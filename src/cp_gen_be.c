@@ -76,15 +76,17 @@ a "for"] would have to be rewritten.)
 */
 #endif /* DO_IL_LOWERING */
 
-/* CAREFUL: These variables must be initialized by assignments at the
-   start of the routine cp_gen_be, NOT by static initialization.  That's
-   because the back end can be called more than once when compiling
-   multiple source files. */
+
 static FILE	*f_C_output;
 			/* File to which the output is written. */
+static unsigned long
+		max_output_line_size = 200; /* Arbitrary. */
+			/* Maximum allowable output line size. */
 /* Current output position -- file, line, sequence number, column: */
 static a_source_file_ptr
 		curr_output_file;
+static a_line_number
+		curr_output_line;
 static a_seq_number
 		curr_output_seq_number;
 static a_column_number
@@ -102,9 +104,10 @@ static a_source_sequence_entry_ptr
 			   current class scope. */
 
 static a_boolean
-		inside_struct_in_C_mode;
-			/* TRUE if we are currently generating code inside
-			   a struct in C mode. */
+		type_declaration_cannot_be_emitted_now;
+			/* TRUE if we are in a context where a type declaration
+			   cannot be emitted (e.g., a function declarator,
+			   a struct in C mode). */
 
 /*
 The following variables indicate state within a function.  They are saved
@@ -272,9 +275,6 @@ entry is found.
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
       case iek_comment:
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-      case iek_field:  /* These show up only in C mode.  They're ignored
-                          here because they should be considered to be
-                          inside the "scope" of the class. */
         /* Not significant. */
         break;
       case iek_type:
@@ -284,6 +284,8 @@ entry is found.
       case iek_src_seq_secondary_decl:
         /* Significant. */
         goto done;
+      case iek_field:  /* These show up only in C mode.  They should be
+                          skipped outside of this routine. */
       default:
         unexpected_condition_str(
             "adv_to_signif_file_scope_source_sequence_entry: bad entity kind");
@@ -378,9 +380,6 @@ entry is found.
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
       case iek_comment:
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-      case iek_field:  /* These show up only in C mode.  They're ignored
-                          here because they should be considered to be
-                          inside the "scope" of the class. */
       case iek_constant:  /* These show up for enum constants. */
         /* Not significant. */
         break;
@@ -394,15 +393,17 @@ entry is found.
       case iek_source_sequence_entry:
         /* A proxy for a file-scope entity.  Usually significant, but not
            if the associated entity is not significant in the file scope,
-           e.g., if it's an iek_field. */
+           e.g., if it's an enum constant. */
         { an_il_entry_kind kind = ss_entry_kind(ss_assoc_with_proxy(ssep));
-          if (kind == iek_field || kind == iek_constant) {
+          if (kind == iek_constant) {
             /* Not significant. */
             break;
           }  /* if */
         }
         /* Significant. */
         goto done;
+      case iek_field:  /* These show up only in C mode.  They should be
+                          skipped outside of this routine. */
       default:
         unexpected_condition_str(
             "adv_to_signif_func_scope_source_sequence_entry: bad entity kind");
@@ -419,6 +420,21 @@ Advance the function-scope source sequence list to the next (significant)
 entry, and return a pointer to it.  Return NULL if there are no more entries.
 */
 {
+  a_boolean                   is_proxy;
+  a_source_sequence_entry_ptr file_scope_ssep;
+
+  /* Remember whether the entry is a proxy for a file-scope declaration, i.e.,
+     whether it's an entry on the function-scope list that marks the position
+     of a file-scope declaration and points to the corresponding entry on the
+     file-scope list. */
+  is_proxy = ss_is_proxy(func_scope_source_sequence_entry);
+  if (is_proxy) {
+    file_scope_ssep = ss_assoc_with_proxy(func_scope_source_sequence_entry);
+    /* Since this entry is a proxy, the current entry on the file scope
+       list should be the associated entry. */
+    check_assertion_str(file_scope_ssep == file_scope_source_sequence_entry,
+            "next_func_scope_source_sequence_entry: partner of proxy missing");
+  }  /* if */
   if (il_header.source_language == sl_C) {
     /* If advancing from a class definition in C mode, skip to after the
        end of the class.  This simulates having the source sequence entries
@@ -428,30 +444,33 @@ entry, and return a pointer to it.  Return NULL if there are no more entries.
        We find the end of the class list in the file scope and step through
        the entries at this level to find the proxy for that last entry,
        then advance from there. */
-    if (ss_is_proxy(func_scope_source_sequence_entry)) {
-      a_type_ptr                  type;
-      a_source_sequence_entry_ptr ssep =
-                         ss_assoc_with_proxy(func_scope_source_sequence_entry);
-      if (src_seq_entry_is_class_definition(ssep, &type)) {
-        ssep = last_src_seq_of_class_definition(type);
-        /* ssep is now the last source sequence entry for the class definition.
-           Go through the function scope list looking for the proxy that
-           points to it. */
-        for (;;) {
-          check_assertion_str(ss_is_proxy(func_scope_source_sequence_entry),
-                   "next_func_scope_source_sequence_entry: bad skipped entry");
-          if (ss_assoc_with_proxy(func_scope_source_sequence_entry) == ssep) {
-            break;
-          } /* if */
-          func_scope_source_sequence_entry =
-                                        func_scope_source_sequence_entry->next;
-        }  /* for */
-      }  /* if */
+    a_type_ptr type;
+    if (is_proxy &&
+        src_seq_entry_is_class_definition(file_scope_ssep, &type)) {
+      a_source_sequence_entry_ptr ssep= last_src_seq_of_class_definition(type);
+      /* Advance the file-scope list to the right place.  (It will be
+         advanced one more step below.) */
+      file_scope_source_sequence_entry = ssep;
+      /* ssep is now the last source sequence entry for the class definition.
+         Go through the function scope list looking for the proxy that
+         points to it. */
+      for (;; func_scope_source_sequence_entry =
+                                      func_scope_source_sequence_entry->next) {
+        check_assertion_str(func_scope_source_sequence_entry != NULL &&
+                            ss_is_proxy(func_scope_source_sequence_entry),
+                       "next_func_scope_source_sequence_entry: missing proxy");
+        if (ss_assoc_with_proxy(func_scope_source_sequence_entry) == ssep) {
+          break;
+        } /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   /* Advance to the next entry. */
   func_scope_source_sequence_entry = func_scope_source_sequence_entry->next;
   adv_to_signif_func_scope_source_sequence_entry();
+  /* If the entry on the function-scope list was a proxy, advance the
+     file-scope list too. */
+  if (is_proxy) (void)next_file_scope_source_sequence_entry();
   return func_scope_source_sequence_entry;
 }  /* next_func_scope_source_sequence_entry */
 
@@ -609,6 +628,37 @@ End the current line of output.
 }  /* end_output_line */
 
 
+static void write_line_directive(a_seq_number      seq,
+                                 a_line_number     line_number,
+                                 a_source_file_ptr new_output_file)
+/*
+Write a #line directive for the indicated sequence number, line number, and
+file.
+*/
+{
+  /* End the previous line if there is one. */
+  if (curr_output_column != 0) end_output_line();
+#if 0
+  /* Option to output old-style directive? */
+#endif /* 0 */
+  curr_output_line = line_number;
+  (void)fprintf(f_C_output, "#line %lu", curr_output_line);
+  curr_output_seq_number = seq;
+  if (new_output_file != curr_output_file) {
+    /* The file name is put out only if it changed. */
+    curr_output_file = new_output_file;
+#if 0
+    /* Need to escape special characters? */
+#endif /* 0 */
+    (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
+  }  /* if */
+  (void)fputc('\n', f_C_output);
+  /* There must be a line following a #line directive, and the line's
+     number is already set, so consider the line started already. */
+  curr_output_column = 1;
+}  /* write_line_directive */
+
+
 static void set_output_position(a_source_position *pos)
 /*
 Position the output file properly for output of something at the indicated
@@ -656,25 +706,7 @@ etc.
     }  /* if */
     if (line_directive_needed) {
       /* Write a #line directive for the new line position. */
-      /* End the previous line if there is one. */
-      if (curr_output_column != 0) end_output_line();
-#if 0
-      /* Option to output old-style directive? */
-#endif /* 0 */
-      (void)fprintf(f_C_output, "#line %lu", line_number);
-      curr_output_seq_number = seq;
-      if (new_output_file != curr_output_file) {
-        /* The file name is put out only if it changed. */
-        curr_output_file = new_output_file;
-#if 0
-        /* Need to escape special characters? */
-#endif /* 0 */
-        (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
-      }  /* if */
-      (void)fputc('\n', f_C_output);
-      /* There must be a line following a #line directive, and the line's
-         number is already set, so consider the line started already. */
-      curr_output_column = 1;
+      write_line_directive(seq, line_number, new_output_file);
     } else {
       check_assertion(seq >= curr_output_seq_number);
       while (seq > curr_output_seq_number) {
@@ -698,9 +730,16 @@ Write the indicated character to the output file.
 }  /* write_ch */
 
 
+/*
+Write a space to the output file.
+*/
+#define write_space() write_ch(' ');
+
+
 static void write_str(char *str)
 /*
-Write the indicated string to the output file.
+Write the indicated string to the output file.  It is not necessarily a
+complete token.
 */
 {
   if (curr_output_column == 0) curr_output_column = 1;
@@ -710,25 +749,47 @@ Write the indicated string to the output file.
 }  /* write_str */
 
 
+static void write_tok_str(char *str)
+/*
+Write the indicated string to the output file.  It's a complete token (or
+several), which means a long line could be broken before or after it.
+*/
+{
+  sizeof_t len = strlen(str);
+  if (curr_output_column == 0) curr_output_column = 1;
+  if (curr_output_column + len - 1 > max_output_line_size) {
+    /* This token will not fit on the current line, so start a new line.
+       Do that by emitting a #line directive to repeat the current line. */
+    write_line_directive(curr_output_seq_number, curr_output_line,
+                         curr_output_file);
+  }  /* if */
+  fputs(str, f_C_output);
+  /* Keep track of the current column number on output. */
+  curr_output_column += len;
+}  /* write_tok_str */
+
+
 static void write_num(long num)
 /*
-Write the indicated signed number to the output file.
+Write the indicated signed number to the output file.  The number is assumed
+to be a full token.
 */
 {
   char buffer[50];
   (void)sprintf(buffer, "%ld", num);
-  write_str(buffer);
+  write_tok_str(buffer);
 }  /* write_num */
 
 
 static void write_unsigned_num(unsigned long num)
 /*
-Write the indicated unsigned number to the output file.
+Write the indicated unsigned number to the output file.  The number is assumed
+to be a full token.
 */
 {
   char buffer[50];
   (void)sprintf(buffer, "%lu", num);
-  write_str(buffer);
+  write_tok_str(buffer);
 }  /* write_unsigned_num */
 
 
@@ -744,7 +805,7 @@ is given by scp.
 #if 0
   /* Qualified name, template names. */
 #endif /* 0 */
-  write_str(name);
+  write_tok_str(name);
 }  /* gen_name */
 
 
@@ -763,7 +824,7 @@ is given by scp.  Generate a name if the entity is unnamed.
     char buffer[50];
     (void)sprintf(buffer, "__T%lu",
                   (unsigned long)unique_id_for_il_pointer(scp));
-    write_str(buffer);
+    write_tok_str(buffer);
   }  /* if */
 }  /* gen_allowing_unnamed_name */
 
@@ -861,7 +922,7 @@ Output the indicated constant.
     if (constant->implicit_cast) {
       /* If the constant is implicitly cast to another type, put out the
          requisite cast. */
-      write_str("(");
+      write_tok_str("(");
       gen_cast(orig_type);
       need_cast_close_paren = TRUE;
     }  /* if */
@@ -877,7 +938,7 @@ Output the indicated constant.
         if (sign_of_integer_constant(constant) < 0) {
           /* Negative value.  Put in parentheses. */
           need_close_paren = TRUE;
-          write_str("(");
+          write_tok_str("(");
         }  /* if */
         /* Write the literal form of the constant. */
         write_str(str_for_integer_constant(constant));
@@ -896,7 +957,7 @@ Output the indicated constant.
           write_str("LL");
 #endif /* LONG_LONG_ALLOWED */
         }  /* if */
-        if (need_close_paren) write_str(")");
+        if (need_close_paren) write_tok_str(")");
       }  /* if */
       break;
     case ck_string:
@@ -918,7 +979,7 @@ Output the indicated constant.
 #if 0
       /* Could avoid the parentheses for non-negative constants. */
 #endif /* 0 */
-      write_str("(");
+      write_tok_str("(");
       fkind = con_type->variant.float_kind;
       /* Output the floating-point constant. */
       write_str(fp_to_string(fkind, &constant->variant.float_value));
@@ -928,7 +989,7 @@ Output the indicated constant.
       } else if (fkind == (a_float_kind)fk_long_double) {
         write_str("L");
       }  /* if */
-      write_str(")");
+      write_tok_str(")");
       break;
     case ck_address:
       /* Address constant. */
@@ -978,13 +1039,13 @@ Output the indicated constant.
           /* Okay. */
         } else {
           ptr_implicit_cast_case = TRUE;
-          write_str("((unsigned long)");
+          write_tok_str("((unsigned long)");
         }  /* if */
       }  /* if */
       offset = constant->variant.address.offset;
       if (offset != 0) {
         /* Non-zero offset.  Deal with scaling issues. */
-        write_str("(");
+        write_tok_str("(");
         scaled_offset_cast = FALSE;
         /* See if the size of the underlying object is such that scaling
            can be done implicitly instead of playing tricks with casting
@@ -1001,15 +1062,15 @@ Output the indicated constant.
              need not be repeated here. */
           if (!constant->implicit_cast) {
            gen_cast(orig_type);
-            write_str("(");
+            write_tok_str("(");
             scaled_offset_cast = TRUE;
           }  /* if */
-          write_str("(char *)");
+          write_tok_str("(char *)");
         }  /* if */
       }  /* if */
       /* If using an ampersand, surround the name with parentheses to avoid
          precedence problems. */
-      if (need_ampersand) write_str("(&");
+      if (need_ampersand) write_tok_str("(&");
       switch (constant->variant.address.kind) {
         case abk_routine:
           gen_routine_name(constant->variant.address.variant.routine);
@@ -1027,15 +1088,15 @@ Output the indicated constant.
         default:
           unexpected_condition_str("gen_constant: bad addr constant kind");
       }  /* switch */
-      if (need_ampersand) write_str(")");
+      if (need_ampersand) write_tok_str(")");
       if (offset != 0) {
         /* Add in the (signed) offset. */
-        write_str(" + ");
+        write_tok_str(" + ");
         write_num((long)offset);
-        if (scaled_offset_cast) write_str(")");
-        write_str(")");
+        if (scaled_offset_cast) write_tok_str(")");
+        write_tok_str(")");
       }  /* if */
-      if (ptr_implicit_cast_case) write_str(")");
+      if (ptr_implicit_cast_case) write_tok_str(")");
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
@@ -1043,14 +1104,14 @@ Output the indicated constant.
       break;
     case ck_aggregate:
       /* Aggregate constant (used in initializers). */
-      write_str("{");
+      write_tok_str("{");
       for (sub_con = constant->variant.aggregate.first_constant;
            sub_con != NULL;
            sub_con = sub_con->next) {
         gen_constant(sub_con);
-        if (sub_con->next != NULL) write_str(", ");
+        if (sub_con->next != NULL) write_tok_str(", ");
       }  /* for */
-      write_str("}");
+      write_tok_str("}");
       break;
 #if 0
     /* Need ck_dynamic_init. */
@@ -1058,7 +1119,7 @@ Output the indicated constant.
     default:
       unexpected_condition_str("gen_constant: bad constant kind");
   }  /* switch */
-  if (need_cast_close_paren) write_str(")");
+  if (need_cast_close_paren) write_tok_str(")");
 }  /* gen_constant */
 
 
@@ -1068,32 +1129,36 @@ Print the storage class and a space.  If there is no printable storage class,
 omit the space.
 */
 {
+  char *str;
+
   switch (storage_class) {
     case sc_extern:
-      write_str("extern ");
+      str = "extern ";
       break;
     case sc_static:
-      write_str("static ");
+      str = "static ";
       break;
     case sc_auto:
 #if 0
       /* "auto" could be suppressed in most cases.  The only tricky cases
          are ones involving disambiguation. */
 #endif /* 0 */
-      write_str("auto ");
+      str = "auto ";
       break;
     case sc_unspecified:
       /* Print nothing. */
-      break;
+      goto done;
     case sc_register:
-      write_str("register ");
+      str = "register ";
       break;
     case sc_typedef:
-      write_str("typedef ");
+      str = "typedef ";
       break;
     default:
       unexpected_condition_str("gen_storage_class: bad storage class");
   }  /* switch */
+  write_tok_str(str);
+done:;
 }  /* gen_storage_class */
 
 
@@ -1102,45 +1167,48 @@ static void gen_int_kind_name(an_integer_kind kind)
 Print the name of an integer kind.
 */
 {
+  char *str;
+
   switch (kind) {
     case ik_char:
-      write_str("char");
+      str = "char";
       break;
     case ik_signed_char:
-      write_str("signed char");
+      str = "signed char";
       break;
     case ik_unsigned_char:
-      write_str("unsigned char");
+      str = "unsigned char";
       break;
     case ik_short:
-      write_str("short");
+      str = "short";
       break;
     case ik_unsigned_short:
-      write_str("unsigned short");
+      str = "unsigned short";
       break;
     case ik_int:
-      write_str("int");
+      str = "int";
       break;
     case ik_unsigned_int:
-      write_str("unsigned int");
+      str = "unsigned int";
       break;
     case ik_long:
-      write_str("long");
+      str = "long";
       break;
     case ik_unsigned_long:
-      write_str("unsigned long");
+      str = "unsigned long";
       break;
 #if LONG_LONG_ALLOWED
     case ik_long_long:
-      write_str("long long");
+      str = "long long";
       break;
     case ik_unsigned_long_long:
-      write_str("unsigned long long");
+      str = "unsigned long long";
       break;
 #endif /* LONG_LONG_ALLOWED */
     default:
       unexpected_condition_str("gen_int_kind_name: bad integer kind");
   }  /* switch */
+  write_tok_str(str);
 }  /* gen_int_kind_name */
 
 
@@ -1149,19 +1217,22 @@ static void gen_float_kind_name(a_float_kind kind)
 Print the name of a float kind.
 */
 {
+  char *str;
+
   switch (kind) {
     case fk_float:
-      write_str("float");
+      str = "float";
       break;
     case fk_double:
-      write_str("double");
+      str = "double";
       break;
     case fk_long_double:
-      write_str("long double");
+      str = "long double";
       break;
     default:
       unexpected_condition_str("gen_float_kind_name: bad float kind");
   }  /* switch */
+  write_tok_str(str);
 }  /* gen_float_kind_name */
 
 
@@ -1225,12 +1296,12 @@ qualifier.
   check_assertion_str(type->kind == (a_type_kind)tk_typeref,
                       "gen_type_qualifier: bad type kind");
   if (type->variant.typeref.is_const) {
-    write_str("const");
+    write_tok_str("const");
     previous_qualifier = TRUE;
   }  /* if */
   if (type->variant.typeref.is_volatile) {
-    if (previous_qualifier) write_str(" ");
-    write_str("volatile");
+    if (previous_qualifier) write_space();
+    write_tok_str("volatile");
   }  /* if */
 }  /* gen_type_qualifier */
 
@@ -1242,7 +1313,7 @@ Output the definition of the indicated typedef.
 {
   /* set_output_position has already been called for the type. */
   type->definition_put_out = TRUE;
-  write_str("typedef ");
+  write_tok_str("typedef ");
   gen_type(type->variant.typeref.type, &type->source_corresp);
 }  /* gen_typedef_definition */
 
@@ -1262,14 +1333,14 @@ Output the definition of the indicated enum type.
   /* set_output_position has already been called for the enum type itself
      if that's appropriate. */
   /* Generate "enum <name>". */
-  write_str("enum");
+  write_tok_str("enum");
   if (has_name(type)) {
-    write_str(" ");
+    write_space();
     gen_type_name(type);
   }  /* if */
   enum_con = type->variant.integer.enum_info.constant_list;
   if (enum_con != NULL) {
-    write_str(" {");
+    write_tok_str(" {");
     /* Output the enumeration constants. */
     /* Start with an expected value of 0 next. */
     next_enum_value = *enum_con;
@@ -1280,18 +1351,18 @@ Output the definition of the indicated enum type.
       gen_constant_name(enum_con);
       /* Output the value if it's not the next value in sequence. */
       if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
-        write_str(" = ");
-        write_str(str_for_integer_constant(enum_con));
+        write_tok_str(" = ");
+        write_tok_str(str_for_integer_constant(enum_con));
         next_enum_value = *enum_con;
       }  /* if */
       enum_con = enum_con->next;
       /* Stop if at the end of the list of constants. */
       if (enum_con == NULL) break;
       /* Not the end of the list, so output a separator and keep looping. */
-      write_str(", ");
+      write_tok_str(", ");
       incr_integer_value(&next_enum_value.variant.integer_value);
     }  /* for */
-    write_str("}");
+    write_tok_str("}");
   }  /* if */
 }  /* gen_enum_definition */
 
@@ -1351,10 +1422,10 @@ be put out (they don't have sequence entries).
   gen_type(field->type, &field->source_corresp);
   if (field->bit_size != 0) {
     /* A bit field.  Put out the size. */
-    write_str(":");
+    write_tok_str(":");
     write_unsigned_num((unsigned long)field->bit_size);
   }  /* if */
-  write_str("; ");
+  write_tok_str("; ");
 }  /* gen_field_decl */
 
 
@@ -1371,12 +1442,13 @@ Output the definition of the indicated class type.
   type->definition_put_out = TRUE;
   /* set_output_position has already been called for the class type itself
      it that's appropriate. */
-  write_str(tag_kind(type->kind));
+  write_tok_str(tag_kind(type->kind));
   if (has_name(type)) {
-    write_str(" ");
+    write_space();
     gen_type_name(type);
   }  /* if */
-  /* See if this class is defined. */
+  /* See if this class is defined.  In C mode, there is no class type
+     supplement, so check for the presence of fields. */
   field_list = type->variant.class_struct_union.field_list;
   ctsp = type->variant.class_struct_union.extra_info;
   scope = NULL;
@@ -1386,8 +1458,9 @@ Output the definition of the indicated class type.
     /* Save class_scope_source_sequence_entry for later restoration. */
     a_source_sequence_entry_ptr saved_class_scope_source_sequence_entry =
                                              class_scope_source_sequence_entry;
-    a_boolean saved_inside_struct_in_C_mode = inside_struct_in_C_mode;
-    write_str(" { ");
+    a_boolean saved_type_declaration_cannot_be_emitted_now =
+                                        type_declaration_cannot_be_emitted_now;
+    write_tok_str(" { ");
     if (scope != NULL) {
       /* C++ -- the class has a scope. */
       class_scope_source_sequence_entry = scope->source_sequence_list;
@@ -1407,7 +1480,9 @@ Output the definition of the indicated class type.
            unnamed bit fields.) */
         class_scope_source_sequence_entry = NULL;
       }  /* if */
-      inside_struct_in_C_mode = TRUE;
+      /* While we're inside the struct, types must be emitted when used,
+         not in free-standing declarations. */
+      type_declaration_cannot_be_emitted_now = TRUE;
     }  /* if */
     /* Go through the source sequence list and generate the members of the
        class. */
@@ -1418,6 +1493,14 @@ Output the definition of the indicated class type.
          loop. */
       (void)next_class_scope_source_sequence_entry();
       switch (ss_entry_kind(ssep)) {
+        case iek_constant:
+          /* Ignore all constants in C mode (e.g., enum constants). */
+          if (il_header.source_language == sl_C) break;
+          /* Ignore enum constants (they come out as part of the enum type). */
+          if (is_enum_constant((a_constant_ptr)entity_ptr)) break;
+          /* Other constants (C++ only) are member constants. */
+          unimplemented();
+          break;
         case iek_field:
           /* Generate the declaration for a field (nonstatic data member). */
           field = (a_field_ptr)entity_ptr;
@@ -1457,8 +1540,9 @@ Output the definition of the indicated class type.
     gen_unnamed_bit_fields((a_field_ptr)NULL, prev_field, field_list);
     /* Restore the previous value of class_scope_source_sequence_entry. */
     class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
-    inside_struct_in_C_mode = saved_inside_struct_in_C_mode;
-    write_str("}");
+    type_declaration_cannot_be_emitted_now =
+                                  saved_type_declaration_cannot_be_emitted_now;
+    write_tok_str("}");
   }  /* if */
 }  /* gen_class_definition */
 
@@ -1474,16 +1558,16 @@ or enum.
        to the type by name).  This is presumably the only reference to
        the type, so that's fine.  Also put out the definition if it
        is needed and was delayed because we're inside a struct in C mode. */
+    type->definition_delayed = FALSE;
     if (type->kind == (a_type_kind)tk_integer) {
       gen_enum_definition(type);
     } else {
       gen_class_definition(type);
     }  /* if */
-    type->definition_delayed = FALSE;
   } else {
     /* The type has a name, so it can be referred to by that name. */
-    write_str(tag_kind(type->kind));
-    write_str(" ");
+    write_tok_str(tag_kind(type->kind));
+    write_space();
     gen_type_name(type);
   }  /* if */
 }  /* gen_tag_reference */
@@ -1512,7 +1596,7 @@ Output a type specifier.
 {
   switch (type->kind) {
     case tk_void:
-      write_str("void");
+      write_tok_str("void");
       break;
     case tk_integer:
       if (type->variant.integer.enum_type) {
@@ -1521,7 +1605,7 @@ Output a type specifier.
       } else {
         /* Normal integer type. */
         if (type->variant.integer.explicitly_signed) {
-          write_str("signed ");
+          write_tok_str("signed ");
         }  /* if */
         gen_int_kind_name(type->variant.integer.int_kind);
       }  /* if */
@@ -1539,7 +1623,7 @@ Output a type specifier.
         /* The top type is a type qualifier.  Output it and move on to the
            underlying type. */
         gen_type_qualifier(type);
-        write_str(" ");
+        write_space();
         gen_type_specifier(type->variant.typeref.type);
       } else if (type->source_corresp.name == NULL ||
                  is_not_yet_defined_typedef(type)) {
@@ -1572,7 +1656,7 @@ entry).
     } else {
       /* Put out a type qualifier. */
       gen_type_qualifier(qual_type);
-      write_str(" ");
+      write_space();
     }  /* if */
   }  /* for */
 }  /* gen_pointer_type_qualifier */
@@ -1605,13 +1689,13 @@ is not empty, because it contains a name or a derived type).
                         /*need_trailing_space=*/TRUE);
     /* Output "*" or "&" for pointer or reference. */
     if (type->variant.pointer.is_reference) {
-      write_str("&");
+      write_tok_str("&");
     } else {
-      write_str("*");
+      write_tok_str("*");
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
     gen_pointer_type_qualifiers(qual_type, type);
-    if (need_paren) write_str("(");
+    if (need_paren) write_tok_str("(");
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     gen_type_first_part(type->variant.ptr_to_member.type,
@@ -1619,10 +1703,10 @@ is not empty, because it contains a name or a derived type).
                         /*need_trailing_space=*/TRUE);
     /* Output Classname::*. */
     gen_type_name(type->variant.ptr_to_member.class_of_which_a_member);
-    write_str("::*");
+    write_tok_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
     gen_pointer_type_qualifiers(qual_type, type);
-    if (need_paren) write_str("(");
+    if (need_paren) write_tok_str("(");
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
@@ -1632,7 +1716,7 @@ is not empty, because it contains a name or a derived type).
     gen_type_first_part(type->variant.routine.return_type,
                         /*need_paren=*/TRUE,
                         /*need_trailing_space=*/TRUE);
-    if (need_paren) write_str("(");
+    if (need_paren) write_tok_str("(");
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* A qualifier on an array type shouldn't be possible, period. */
@@ -1641,14 +1725,14 @@ is not empty, because it contains a name or a derived type).
     gen_type_first_part(type->variant.array.element_type,
                         /*need_paren=*/TRUE,
                         /*need_trailing_space=*/TRUE);
-    if (need_paren) write_str("(");
+    if (need_paren) write_tok_str("(");
   } else {
     /* No declarator part to process.  Handle the specifier type. */
 #if 0
     /* Suppress this for constructors and destructors. */
 #endif /* 0 */
     gen_type_specifier(qual_type);
-    if (need_trailing_space) write_str(" ");
+    if (need_trailing_space) write_space();
   }  /* if */
 }  /* gen_type_first_part */
 
@@ -1664,9 +1748,11 @@ is non-NULL, in which case that is the function scope.
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
   a_variable_ptr                param_var;
+  a_boolean                     saved_type_declaration_cannot_be_emitted_now =
+                                        type_declaration_cannot_be_emitted_now;
 
   if (scope != NULL) param_var = scope->variant.routine.parameters;
-  write_str("(");
+  write_tok_str("(");
   if (!rtsp->prototyped) {
     /* Old-style list. */
     if (scope != NULL) {
@@ -1678,18 +1764,21 @@ is non-NULL, in which case that is the function scope.
           param_var = param_var->next;
           if (param_var == NULL) break;
           /* Put out a separator and keep looping. */
-          write_str(", ");
+          write_tok_str(", ");
         }  /* for */
       }  /* if */
     }  /* if */
   } else {
     /* Prototyped list. */
+    /* Within the declarator, types must be put out as they are referenced,
+       and not in free-standing declarations. */
+    type_declaration_cannot_be_emitted_now = TRUE;
     param = rtsp->param_type_list;
     if (param == NULL) {
       /* The first argument is NULL, so this is a "void" parameter list.
          Write it as void in C, as empty in C++. */
       if (il_header.source_language == sl_C) {
-        write_str("void");
+        write_tok_str("void");
       }  /* if */
     } else {
       /* List the parameter types (and, if this the definition, names too). */
@@ -1716,27 +1805,29 @@ is non-NULL, in which case that is the function scope.
         if (param == NULL) break;
         /* There are more parameters, so output a separator and keep
            looping. */
-        write_str(", ");
+        write_tok_str(", ");
       }  /* for */
     }  /* if */
     if (rtsp->has_ellipsis) {
       /* There is an ellipsis. */
       /* Separate it from the parameters if there are any. */
-      if (rtsp->param_type_list != NULL) write_str(", ");
-      write_str("...");
+      if (rtsp->param_type_list != NULL) write_tok_str(", ");
+      write_tok_str("...");
     }  /* if */
   }  /* if */
-  write_str(")");
+  write_tok_str(")");
   /* Output a cv-qualifier for a member function, if there is one. */
   if (rtsp->implicit_this_param_type != NULL) {
     a_type_ptr underlying_type =
                                type_pointed_to(rtsp->implicit_this_param_type);
     for (; is_immediate_type_qualifier(underlying_type);
          underlying_type = underlying_type->variant.typeref.type) {
-      write_str(" ");
+      write_space();
       gen_type_qualifier(underlying_type);
     }  /* for */
   }  /* if */
+  type_declaration_cannot_be_emitted_now =
+                                  saved_type_declaration_cannot_be_emitted_now;
 }  /* gen_function_declarator */
 
 
@@ -1746,13 +1837,13 @@ Generate an array declarator for the indicated array type.
 */
 {
   check_assertion(!type->variant.array.is_variable_size_array);
-  write_str("[");
+  write_tok_str("[");
   /* For unknown-bound arrays, put nothing between the []. */
   if (type->variant.array.variant.number_of_elements != 0) {
     write_unsigned_num((unsigned long)type->
                                      variant.array.variant.number_of_elements);
   }  /* if */
-  write_str("]");
+  write_tok_str("]");
 }  /* gen_array_declarator */
 
 
@@ -1773,22 +1864,22 @@ out first if anything is generated.
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
-    if (need_paren) write_str(")");
+    if (need_paren) write_tok_str(")");
     gen_type_second_part(type->variant.pointer.type, /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    if (need_paren) write_str(")");
+    if (need_paren) write_tok_str(")");
     gen_type_second_part(type->variant.ptr_to_member.type,
                          /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    if (need_paren) write_str(")");
+    if (need_paren) write_tok_str(")");
     gen_function_declarator(type, (a_scope_ptr)NULL);
     gen_type_second_part(type->variant.routine.return_type,
                          /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
-    if (need_paren) write_str(")");
+    if (need_paren) write_tok_str(")");
     gen_array_declarator(type);
     gen_type_second_part(type->variant.array.element_type,
 			 /*need_paren=*/TRUE);
@@ -1837,11 +1928,11 @@ Generate "operand_1 . operand_2".
   if (operand_1->kind == (an_expr_node_kind)enk_variable) {
     /* Optimize "(*p).i" as "p->i". */
     gen_expression(operand_1);
-    write_str("->");
+    write_tok_str("->");
   } else {
     /* Normal "." case. */
     gen_lvalue(operand_1);
-    write_str(".");
+    write_tok_str(".");
   }  /* if */
   gen_field_reference(operand_2);
 }  /* gen_simple_field_selection */
@@ -1872,28 +1963,28 @@ an expression.  In effect, add an indirection to the expression.
         op == (an_expr_operator_kind)eok_padd_subsc) {
       /* The expression is a pointer addition.  It can be rewritten as
          a subscripting operation (i.e., *(a+b) becomes a[b]). */
-      write_str("(");
+      write_tok_str("(");
       gen_expr_with_parens(operand_1);
-      write_str("[");
+      write_tok_str("[");
       gen_expression(operand_2);
-      write_str("])");
+      write_tok_str("])");
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_field ||
                op == (an_expr_operator_kind)eok_bit_field) {
       /* The expression is a field selection, which has an implicit "&"
          in front of it (in C terms).  Adding the indirection removes 
          the "&". */
-      write_str("(");
+      write_tok_str("(");
       gen_simple_field_selection(operand_1, operand_2);
-      write_str(")");
+      write_tok_str(")");
       processed = TRUE;
     }  /* if */
   }  /* if */
   if (!processed) {
     /* Not a special case: write "*expression". */
-    write_str("(*");
+    write_tok_str("(*");
     gen_expr_with_parens(node);
-    write_str(")");
+    write_tok_str(")");
   }  /* if */
 }  /* gen_lvalue */
 
@@ -1903,9 +1994,9 @@ static void gen_cast(a_type_ptr type)
 Generate a cast to the indicated type.
 */
 {
-  write_str("(");
+  write_tok_str("(");
   gen_type(type, (a_source_correspondence *)NULL);
-  write_str(")");
+  write_tok_str(")");
 }  /* gen_cast */
 
 
@@ -1917,19 +2008,17 @@ is a declaration for the function.  If so, advance past the source sequence
 entry so it will not be put out as a declaration.
 */
 {
-  if (ss_is_proxy(func_scope_source_sequence_entry)) {
+  if (func_scope_source_sequence_entry != NULL &&
+      ss_is_proxy(func_scope_source_sequence_entry)) {
     a_source_sequence_entry_ptr ssep =
                          ss_assoc_with_proxy(func_scope_source_sequence_entry);
     if (ss_entry_kind(ssep) == iek_routine){
       a_routine_ptr decl_rout = ss_entry_ptr(ssep, a_routine_ptr);
       /* Make sure the routine being called is the one being declared. */
       if (rout == decl_rout) {
-        /* Advance past the declaration on both the file scope and
-           the function scope source sequence lists. */
+        /* Advance past the declaration (the file scope list will also be
+           advanced). */
         (void)next_func_scope_source_sequence_entry();
-        check_assertion_str(file_scope_source_sequence_entry == ssep,
-                   "check_for_implicit_function_decl: wrong file scope entry");
-        (void)next_file_scope_source_sequence_entry();
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1965,7 +2054,7 @@ Generate an expression operation.
       opstr = "-";
       break;
     case eok_not:
-      write_str("!");
+      write_tok_str("!");
       gen_boolean_controlling_expression(operand_1);
       goto done;
     case eok_cast:
@@ -1982,7 +2071,7 @@ Generate an expression operation.
     case eok_ppost_incr:
       /* Post-increment operators. */
       gen_lvalue(operand_1);
-      write_str("++");
+      write_tok_str("++");
       goto done;
     case eok_ipre_incr:
     case eok_fpre_incr:
@@ -1996,7 +2085,7 @@ Generate an expression operation.
     case eok_ppost_decr:
       /* Post-decrement operators. */
       gen_lvalue(operand_1);
-      write_str("--");
+      write_tok_str("--");
       goto done;
     case eok_ipre_decr:
     case eok_fpre_decr:
@@ -2117,21 +2206,21 @@ Generate an expression operation.
       break;
     case eok_subscript:
       gen_expr_with_parens(operand_1);
-      write_str("[");
+      write_tok_str("[");
       gen_expression(operand_2);
-      write_str("]");
+      write_tok_str("]");
       goto done;
     case eok_field:
-      write_str("&(");
+      write_tok_str("&(");
       gen_lvalue(operand_1);
-      write_str(".");
+      write_tok_str(".");
       gen_field_reference(operand_2);
-      write_str(")");
+      write_tok_str(")");
       goto done;
     case eok_value_field:
     case eok_value_bit_field:
       gen_expr_with_parens(operand_1);
-      write_str(".");
+      write_tok_str(".");
       gen_field_reference(operand_2);
       goto done;
     case eok_bit_field:
@@ -2139,7 +2228,7 @@ Generate an expression operation.
       unexpected_condition_str("gen_operation: eok_bit_field as rvalue");
     case eok_extract_bit_field:
       gen_lvalue(operand_1);
-      write_str(".");
+      write_tok_str(".");
       gen_field_reference(operand_2);
       goto done;
     case eok_shiftl:
@@ -2159,7 +2248,7 @@ Generate an expression operation.
       break;
     case eok_comma:
       gen_expr_with_parens(operand_1);
-      write_str(", ");
+      write_tok_str(", ");
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         gen_lvalue(operand_2);
       } else {
@@ -2168,24 +2257,24 @@ Generate an expression operation.
       goto done;
     case eok_land:
       gen_boolean_controlling_expression(operand_1);
-      write_str(" && ");
+      write_tok_str(" && ");
       gen_boolean_controlling_expression(operand_2);
       goto done;
     case eok_lor:
       gen_boolean_controlling_expression(operand_1);
-      write_str(" || ");
+      write_tok_str(" || ");
       gen_boolean_controlling_expression(operand_2);
       goto done;
     case eok_question:
       /* Three operand operator. */
       gen_boolean_controlling_expression(operand_1);
-      write_str(" ? ");
+      write_tok_str(" ? ");
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         gen_lvalue(operand_2);
       } else {
         gen_expr_with_parens(operand_2);
       }  /* if */
-      write_str(" : ");
+      write_tok_str(" : ");
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         gen_lvalue(operand_2->next);
       } else {
@@ -2202,17 +2291,17 @@ Generate an expression operation.
       }  /* if */
       /* Put out the function to call. */
       gen_lvalue(operand_1);
-      write_str("(");
+      write_tok_str("(");
       { an_expr_node_ptr call_argument;
         /* Put out the arguments. */
         for (call_argument = operand_2; call_argument != NULL;) {
           gen_expr_with_parens(call_argument);
           call_argument = call_argument->next;
           if (call_argument != NULL) {
-            write_str(", ");
+            write_tok_str(", ");
           }  /* if */
         }  /* for */
-        write_str(")");
+        write_tok_str(")");
       }
       goto done;
     default:
@@ -2221,7 +2310,7 @@ Generate an expression operation.
   /* General-case processing: */
   if (operand_2 == NULL) {
     /* Unary operator; operator goes first. */
-    write_str(opstr);
+    write_tok_str(opstr);
   }  /* if */
   /* Generate the first operand. */
   if (operand_1_is_lvalue) {
@@ -2231,9 +2320,9 @@ Generate an expression operation.
   }  /* if */
   if (operand_2 != NULL) {
     /* Binary operator. */
-    write_str(" ");
-    write_str(opstr);
-    write_str(" ");
+    write_space();
+    write_tok_str(opstr);
+    write_space();
     gen_expr_with_parens(operand_2);
   }  /* if */
 done:;
@@ -2250,27 +2339,27 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
   switch (expr->kind) {
     case enk_operation:
-      if (need_parens) write_str("(");
+      if (need_parens) write_tok_str("(");
       gen_operation(expr);
-      if (need_parens) write_str(")");
+      if (need_parens) write_tok_str(")");
       break;
     case enk_constant:
       gen_constant(expr->variant.constant);
       break;
     case enk_variable_address:
-      if (need_parens) write_str("(");
-      write_str("&");
+      if (need_parens) write_tok_str("(");
+      write_tok_str("&");
       gen_variable_name(expr->variant.variable);
-      if (need_parens) write_str(")");
+      if (need_parens) write_tok_str(")");
       break;
     case enk_variable:
       gen_variable_name(expr->variant.variable);
       break;
     case enk_routine_address:
-      if (need_parens) write_str("(");
-      write_str("&");
+      if (need_parens) write_tok_str("(");
+      write_tok_str("&");
       gen_routine_name(expr->variant.routine);
-      if (need_parens) write_str(")");
+      if (need_parens) write_tok_str(")");
       break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
@@ -2308,9 +2397,9 @@ of a statement or short-circuit operator.  The expression is surrounded
 by parentheses.
 */
 {
-  write_str("(");
+  write_tok_str("(");
   gen_expression(expr);
-  write_str(")");
+  write_tok_str(")");
 }  /* gen_boolean_controlling_expression */
 
 
@@ -2336,7 +2425,7 @@ Generate code for the indicated "for" statement.
   /* Generate "for (init; test; incr) statement".
      "init" might be an expression or a declaration, or omitted;
      "test" and "incr" are expressions and may also be omitted. */
-  write_str("for (");
+  write_tok_str("for (");
   /* Generate the initialization statement or declaration. */
   init_stmt = statement->variant.for_loop.extra_info->initialization;
   if (init_stmt != NULL &&
@@ -2375,21 +2464,21 @@ Generate code for the indicated "for" statement.
       gen_curr_func_declaration();
     } else {
       /* The initialization is omitted. */
-      write_str("; ");
+      write_tok_str("; ");
     }  /* if */
   }  /* if */
   /* Generate the termination-test expression if there is one. */
   if (statement->expr != NULL) {
     gen_boolean_controlling_expression(statement->expr);
   }  /* if */
-  write_str(";");
+  write_tok_str(";");
   /* Generate the increment expression if there is one. */
   if (statement->variant.for_loop.extra_info->increment != NULL) {
     an_expr_node_ptr incr = statement->variant.for_loop.extra_info->increment;
-    write_str(" ");
+    write_space();
     gen_expression(incr);
   }  /* if */
-  write_str(") ");
+  write_tok_str(") ");
   /* Generate the dependent statement. */
   gen_statement(statement->variant.for_loop.statement);
 }  /* gen_for_statement */
@@ -2401,7 +2490,8 @@ Generate the case label(s) or default label for the indicated switch clause.
 The current function source sequence entry is for that switch clause.
 */
 {
-  a_constant_ptr con;
+  a_constant_ptr  con;
+  a_statement_ptr clause_stmt;
 
   /* Check for the presence of the source sequence entry for the switch
      clause. */
@@ -2414,19 +2504,40 @@ The current function source sequence entry is for that switch clause.
                       "gen_case_label: wrong switch clause");
   /* Advance past the source sequence entry for the switch clause. */
   (void)next_func_scope_source_sequence_entry();
-  /* Start a new line to get better formatting.  This wouldn't be
-     necessary if we had source positions on case labels, but we don't. */
-  end_output_line();
+  /* Try to determine a source position for the case label.  This would be
+     easier if there were a source position in the IL, but there isn't. */
+  { a_source_position pos;
+    /* See if there is a statement in the clause that has a position. */
+    for (clause_stmt = scp->statements;
+         clause_stmt != NULL;
+         clause_stmt = clause_stmt->next) {
+      set_position_from_stmt_source_position(pos, clause_stmt->position);
+      /* Ignore statements with no source position. */
+      if (pos.seq != 0) {
+        /* Found a statement with a position.  Use it. */
+        set_output_position(&pos);
+        goto position_set;
+      }  /* if */
+    }  /* for */
+    /* We didn't find a statement with a position.  See if there is a break
+       position. */
+    set_position_from_stmt_source_position(pos, scp->break_position);
+    if (pos.seq != 0) {
+      /* There is a break position.  Use it. */
+      set_output_position(&pos);
+    }  /* if */
+position_set:;
+  }
   con = scp->constant_list;
   if (con == NULL) {
     /* An empty list identifies the default clause. */
-    write_str("default: ");
+    write_tok_str("default: ");
   } else {
     /* Put out a list of case labels. */
     for (; con != NULL; con = con->next) {
-      write_str("case ");
+      write_tok_str("case ");
       gen_constant(con);
-      write_str(": ");
+      write_tok_str(": ");
     }  /* for */
   }  /* if */
 }  /* gen_case_label */
@@ -2469,7 +2580,7 @@ source sequence entry points to the switch clause.
   }  /* for */
   if (need_break) {
     set_output_position_for_stmt(&scp->break_position);
-    write_str("break;");
+    write_tok_str("break;");
   }  /* if */
 }  /* gen_switch_clause */
 
@@ -2552,9 +2663,9 @@ Generate code for the indicated switch statement.
   a_statement_ptr saved_switch_statement = curr_switch_statement;
   a_statement_ptr body_statement;
 
-  write_str("switch (");
+  write_tok_str("switch (");
   gen_expression(statement->expr);
-  write_str(") ");
+  write_tok_str(") ");
   /* Generate the body statement.  During the processing, when statements
      that correspond to case labels turn up, the case labels will be
      emitted. */
@@ -2704,7 +2815,7 @@ Generate code for a block statement ("{ ... }").
   /* Do not put out braces for compiler-generated blocks. */
   compiler_generated = (bssp->parent_block == NULL &&
                         statement != curr_function_scope->assoc_block);
-  if (!compiler_generated) write_str("{ ");
+  if (!compiler_generated) write_tok_str("{ ");
   scope = bssp->assoc_scope;
   if (scope != NULL) {
     /* The block defines a scope. */
@@ -2719,7 +2830,7 @@ Generate code for a block statement ("{ ... }").
     curr_scope_within_function = saved_curr_scope;
   }  /* if */
   set_output_position_for_stmt(&bssp->final_position);
-  if (!compiler_generated) write_str("}");
+  if (!compiler_generated) write_tok_str("}");
 }  /* gen_block_statement */
 
 
@@ -2733,7 +2844,7 @@ Generate code for the indicated statement.
 
   if (statement == NULL) {
     /* Empty statement. */
-    write_str(";");
+    write_tok_str(";");
     goto done;
   }  /* if */
   kind = statement->kind;
@@ -2775,38 +2886,38 @@ Generate code for the indicated statement.
     case stmk_expr:
       /* Expression statement: generate "expr;". */
       gen_expression(statement->expr);
-      write_str(";");
+      write_tok_str(";");
       break;
     case stmk_if:
       /* "if" statement: generate "if (expr) statement" or
                                   "if (expr) statement else statement". */
-      write_str("if ");
+      write_tok_str("if ");
       gen_boolean_controlling_expression(statement->expr);
-      write_str(" ");
+      write_space();
       /* Generate the "then" part. */
       gen_statement(statement->variant.if_stmt.then_statement);
       if (statement->variant.if_stmt.else_statement != NULL) {
         /* Generate the "else" part. */
-        write_str("else ");
+        write_tok_str("else ");
         gen_statement(statement->variant.if_stmt.else_statement);
       }  /* if */
       break;
     case stmk_while:
       /* "while" statement: generate "while (expr) statement". */
-      write_str("while ");
+      write_tok_str("while ");
       gen_boolean_controlling_expression(statement->expr);
-      write_str(" ");
+      write_space();
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
       break;
     case stmk_end_test_while:
       /* "do"-"while" statement: generate "do statement while (expr);". */
-      write_str("do ");
+      write_tok_str("do ");
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
-      write_str("while ");
+      write_tok_str("while ");
       gen_boolean_controlling_expression(statement->expr);
-      write_str(";");
+      write_tok_str(";");
       break;
     case stmk_for:
       /* "for" statement. */
@@ -2814,25 +2925,25 @@ Generate code for the indicated statement.
       break;
     case stmk_goto:
       /* "goto" statement: generate "goto name;". */
-      write_str("goto ");
+      write_tok_str("goto ");
       /* Labels for "break" and "continue" are compiler-generated. */
       gen_name_allowing_unnamed(&statement->variant.label->source_corresp);
-      write_str(";");
+      write_tok_str(";");
       break;
     case stmk_label:
       /* Label statement: generate "name:;". */
       /* Labels for "break" and "continue" are compiler-generated. */
       gen_name_allowing_unnamed(&statement->variant.label->source_corresp);
-      write_str(":;");
+      write_tok_str(":;");
       break;
     case stmk_return:
       /* "return" statement: generate "return;" or "return expr;". */
-      write_str("return");
+      write_tok_str("return");
       if (statement->expr != NULL) {
-        write_str(" ");
+        write_space();
         gen_expression(statement->expr);
       }  /* if */
-      write_str(";");
+      write_tok_str(";");
       break;
     case stmk_block:
       /* Block: generate "{ ... }". */
@@ -2855,7 +2966,7 @@ Generate code for the indicated statement.
       unexpected_condition_str("gen_statement: bad statement kind");
   }  /* switch */
 done:;
-  write_str(" ");
+  write_space();
 }  /* gen_statement */
 
 
@@ -2895,10 +3006,11 @@ information about the secondary declaration.
   if (type->definition_put_out) {
     /* The definition has already been put out, so don't do it again.
        This can happen in C mode when one struct is defined inside another. */
-  } else if (!has_name(type) || inside_struct_in_C_mode) {
+  } else if (!has_name(type) || type_declaration_cannot_be_emitted_now) {
     /* Treat this type declaration as embedded in another declaration, and
        do not put the declaration out at this point, if (a) the type is
-       unnamed or (b) we are inside a struct in C mode.  Ordinarily, it's
+       unnamed or (b) we are at a point where a type declaration cannot
+       be emitted (e.g., inside a struct in C mode).  Ordinarily, it's
        okay to render
          struct A { int i; } x;     as
          struct A { int i; }; struct A x;
@@ -2929,7 +3041,7 @@ information about the secondary declaration.
       gen_class_definition(type);
     }  /* if */
     /* Finish the declaration. */
-    write_str(";");
+    write_tok_str(";");
   }  /* if */
 }  /* gen_type_decl */
 
@@ -2941,11 +3053,11 @@ Output the indicated dynamic initialization.
 {
   switch (dip->kind) {
     case dik_constant:
-      write_str(" = ");
+      write_tok_str(" = ");
       gen_constant(dip->variant.constant);
       break;
     case dik_expression:
-      write_str(" = ");
+      write_tok_str(" = ");
       gen_expression(dip->variant.expression);
       break;
     default:
@@ -2964,7 +3076,7 @@ Output the initializer, if any, for the indicated variable.
       /* No initializer. */
       break;
     case initk_static:
-      write_str(" = ");
+      write_tok_str(" = ");
       gen_constant(var->initializer.constant);
       break;
     case initk_dynamic:
@@ -3009,7 +3121,7 @@ information about the secondary declaration.
   /* Output the initializer, if any, but only if this is a definition. */
   if (is_definition) gen_initializer(var);
   /* Finish the declaration. */
-  write_str(";");
+  write_tok_str(";");
 }  /* gen_variable_decl */
 
 
@@ -3034,10 +3146,10 @@ the parameters to be declared.
       a_variable_ptr var = ss_entry_ptr(ssep, a_variable_ptr);
       if (var->is_parameter) {
         /* Output the parameter declaration. */
-        write_str(" ");
+        write_space();
         set_output_position(&var->source_corresp.decl_position);
         gen_type(var->type, &var->source_corresp);
-        write_str(";");
+        write_tok_str(";");
         /* Continue with the next source sequence entry. */
         continue;
       }  /* if */
@@ -3071,7 +3183,7 @@ for the definition of the indicated routine.  scope is the associated scope.
   if (!rout->type->variant.routine.extra_info->prototyped) {
     gen_old_style_parameter_decls();
   }  /* if */
-  write_str(" ");
+  write_space();
 }  /* gen_func_definition_type */
 
 
@@ -3156,14 +3268,14 @@ information about the secondary declaration.
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
-  if (rout->is_inline) write_str("inline ");
-  if (rout->is_virtual) write_str("virtual ");
+  if (rout->is_inline) write_tok_str("inline ");
+  if (rout->is_virtual) write_tok_str("virtual ");
   /* Output the routine name and its type. */
   if (!is_definition) {
     /* A declaration of the routine. */
     gen_type(rout->type, &rout->source_corresp);
     /* Finish the declaration. */
-    write_str(";");
+    write_tok_str(";");
   } else {
     /* The definition of the routine. */
     gen_routine_definition(rout);
@@ -3209,7 +3321,7 @@ Generate the declaration and advance to the next source sequence entry.
       unexpected_condition_str(
               "gen_curr_func_declaration: bad entity kind on source seq list");
   }  /* switch */
-  write_str(" ");
+  write_space();
 }  /* gen_curr_func_declaration */
 
 
@@ -3241,14 +3353,13 @@ points to the entry for the secondary declaration.
 static void gen_file_scope_entity(a_source_sequence_entry_ptr ssep)
 /*
 Generate the declaration of the file scope entity identified by the
-given source sequence entry, and advance the file scope source sequence
-list pointer.
+given source sequence entry.  Do NOT advance the file scope source sequence
+list pointer (because this routine is called for file-scope entities that
+are declared during function and class scopes).
 */
 {
   char *entity_ptr = ssep->entity.ptr;
 
-  /* Advance to the next file-scope entry. */
-  (void)next_file_scope_source_sequence_entry();
   switch (ss_entry_kind(ssep)) {
     case iek_type:
       gen_type_decl((a_type_ptr)entity_ptr,
@@ -3279,7 +3390,7 @@ list pointer.
       unexpected_condition_str(
                   "gen_file_scope_entity: bad entity kind on source seq list");
   }  /* switch */
-  write_str(" ");
+  write_space();
 }  /* gen_file_scope_entity */
 
 
@@ -3288,14 +3399,18 @@ static void process_file_scope_entities(void)
 Process all the file scope entities, and everything under those.
 */
 {
+  a_source_sequence_entry_ptr ssep;
+
   /* Use the global-scope source sequence list to visit all the right
      entries in the right order. */
   file_scope_source_sequence_entry =
                                  il_header.primary_scope->source_sequence_list;
   adv_to_signif_file_scope_source_sequence_entry();
-  while (file_scope_source_sequence_entry != NULL) {
-    /* Generate one entity. */
-    gen_file_scope_entity(file_scope_source_sequence_entry);
+  while ((ssep = file_scope_source_sequence_entry) != NULL) {
+    /* Advance past this entry. */
+    (void)next_file_scope_source_sequence_entry();
+    /* Generate the entity. */
+    gen_file_scope_entity(ssep);
   }  /* while */
 }  /* process_file_scope_entities */
 
@@ -3351,12 +3466,13 @@ Initialize for the C++/C-generating back end.
   error_position.column = SP_COL_UNKNOWN;
   /* Output position is unknown. */
   curr_output_file = NULL;
+  curr_output_line = 0;
   curr_output_seq_number = 0;
   curr_output_column = 0;  /* Special value meaning there is no output line. */
   file_scope_source_sequence_entry = NULL;
   func_scope_source_sequence_entry = NULL;
   class_scope_source_sequence_entry = NULL;
-  inside_struct_in_C_mode = FALSE;
+  type_declaration_cannot_be_emitted_now = FALSE;
   curr_function_scope = NULL;
   curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
