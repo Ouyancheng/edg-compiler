@@ -174,8 +174,8 @@ typedef enum /*a_token_kind*/ {
   tok_throw,
   tok_try,
   tok_virtual,
-  tok_wchar_t,
   /* C++ tokens not in the ARM: */
+  tok_wchar_t,
   tok_const_cast,
   tok_dynamic_cast,
   tok_mutable,
