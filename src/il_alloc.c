@@ -3469,10 +3469,6 @@ you will need to modify or remove these tests.
     /* The specified alignment can be greater than or equal to the expected
        alignment.  This is required because the prefix alignment must be
        a multiple of the pointer alignment. */
-    /* Allow the prefix alignment to be smaller than required if the
-       expected value is 1 or 2.  This is helpful because on some systems
-       the prefix has a very small alignment requirement when there
-       is no IL entry number in it. */
     fprintf(stderr, "Expected HOST_IL_ENTRY_PREFIX_ALIGNMENT is %d\n",
             expected);
     internal_error(
