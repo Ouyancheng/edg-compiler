@@ -11571,7 +11571,7 @@ Return TRUE if any entries were read.
       ilp->in_definition_list_file = TRUE;
       result = TRUE;
     }  /* while */
-    fclose(f_definition_list);
+    (void)fclose(f_definition_list);
   }  /* if */
   return result;
 }  /* read_definition_list_file */
