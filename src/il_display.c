@@ -3522,7 +3522,9 @@ where file.cil specifies the IL file.  Output is to stdout.
   if (optind != argc - 1) {
     command_line_error(ec_cl_il_display_requires_il_file_name);
   }  /* if */
+#if CHECKING
   check_target_configuration();
+#endif /* CHECKING */
   file_name = argv[optind];
   f_il_input = fopen(file_name, "rb");
   if (f_il_input == NULL) {
