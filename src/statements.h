@@ -152,10 +152,20 @@ typedef struct a_control_flow_descr {
 			   block is enclosed. */
     } block;
     /* When kind == cfdk_init: */
-    a_statement_ptr
-		init_statement;
-			/* A pointer to an stmk_init or stmk_set_vla_size
-			   statement. */
+    struct {
+      a_statement_ptr
+		statement;
+			/* A pointer to an stmk_init, stmk_set_vla_size, or
+			   (in Microsoft C mode) an stmk_block statement.
+			   (The stmk_block statement is what's left over if
+			   a dynamic initialization is lowered in place in
+			   Microsoft C mode.) */
+      a_variable_ptr
+		variable;
+			/* A pointer to the variable that is dynamically
+			   initialized.  NULL when the statement pointer
+			   refers to an stmk_set_vla_size statement. */
+    } init;
     /* When kind == cfdk_goto: */
     struct {
       a_statement_ptr
@@ -378,6 +388,8 @@ EXTERN int	depth_stmt_stack
 
 extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                                  a_source_position  *stmt_pos);
+
+extern void update_init_statement_control_flow(a_statement_ptr  sp);
 
 extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                                    a_source_position    *pos);

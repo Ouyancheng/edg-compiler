@@ -1575,6 +1575,7 @@ created, or NULL it there is none.
                                           &vp->source_corresp.decl_position);
     if (p_init_stmt != NULL) *p_init_stmt = init_stmt;
     init_stmt->variant.dynamic_init = dip;
+    update_init_statement_control_flow(init_stmt);
   }  /* if */
   /* Mark all dynamically initialized variables as referenced.  (They are
      "referenced" in the sense that a variable assigned to, even if never

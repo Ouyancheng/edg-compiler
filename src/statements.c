@@ -243,16 +243,18 @@ purposes.
               cfdp->source_pos.seq);
       break;
     case cfdk_init:
-      sp = cfdp->variant.init_statement;
-      if (sp->kind == (a_statement_kind)stmk_init) {
-        a_dynamic_init_ptr  dip = sp->variant.dynamic_init;
+      sp = cfdp->variant.init.statement;
+      if (sp->kind == (a_statement_kind)stmk_init ||
+          (C_mode() && microsoft_mode &&
+           sp->kind == (a_statement_kind)stmk_block)) {
+        a_variable_ptr  vp = cfdp->variant.init.variable;
         fprintf(f_debug, "initialization");
-        if (dip != NULL && dip->variable != NULL) {
+        if (vp != NULL) {
           fputs(" of \"", f_debug);
-          db_name(&dip->variable->source_corresp);
+          db_name(&vp->source_corresp);
           fputc('"', f_debug);
         }  /* if */
-      } else {
+      } else if (sp->kind == (a_statement_kind)stmk_set_vla_size) {
         a_vla_dimension_ptr  vdp = sp->variant.vla_dimension;
         fprintf(f_debug, "VLA declaration");
         if (vdp != NULL) {
@@ -260,6 +262,8 @@ purposes.
           db_type(vdp->type);
           fputc('"', f_debug);
         }  /* if */
+      } else {
+        printf(f_debug, "***BAD STMT KIND***");
       }  /* if */
       fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
               cfdp->source_pos.seq);
@@ -444,7 +448,8 @@ to it.
       cfdp->variant.block.is_within_catch_or_try_block = FALSE;
       break;
     case cfdk_init:
-      cfdp->variant.init_statement = NULL;
+      cfdp->variant.init.statement = NULL;
+      cfdp->variant.init.variable = NULL;
       break;
     case cfdk_goto:
       cfdp->variant.goto_statement.ptr = NULL;
@@ -794,10 +799,13 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
            initializations for which a diagnostic should not be issued will
            not be found, since we stop searching the block once its last case
            label has been seen. */
-        sp = cfdp->variant.init_statement;
+        sp = cfdp->variant.init.statement;
+        vp = cfdp->variant.init.variable;
         severity = es_none;
-        if (sp->kind == (a_statement_kind)stmk_init) {
-          vp = sp->variant.dynamic_init->variable;
+        if (vp != NULL) {
+          check_assertion(sp->kind == (a_statement_kind)stmk_init ||
+                          (C_mode() && microsoft_mode &&
+                           sp->kind == (a_statement_kind)stmk_block));
           if (!has_static_storage_duration(vp->storage_class)) {
             severity = es_warning;
             if (!C_mode() && !cfront_2_1_mode) {
@@ -814,7 +822,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           }  /* if */
         } else {
           /* Must be a stmk_set_vla_size statement. */
-          vp = NULL;
+          check_assertion(sp->kind == (a_statement_kind)stmk_set_vla_size);
           severity = es_error;
         }  /* if */
         if (severity != es_none) {
@@ -1313,7 +1321,6 @@ the current statement sequence.
   a_boolean                     statement_list_allowed;
   a_statement_ptr               extra_block;
   a_statement_ptr               temp_stmt;
-  a_control_flow_descr_ptr      cfdp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     in_guarded_statement_of_microsoft_try = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1480,18 +1487,11 @@ the current statement sequence.
     set_unreachable(curr_reachability);
   }  /* if */
   if (kind == (a_statement_kind)stmk_init ||
-      kind == (a_statement_kind)stmk_set_vla_size) {
-    /* An stmk_init or stmk_set_vla_size statement is being added to the IL.
-       Add an entry to the control_flow_descr_list to point to it.  This will
-       constitute part of the information used to diagnose transfers of
-       control over initializing declarations. */
-    cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
-    cfdp->variant.init_statement = sp;
-    add_to_control_flow_descr_list(cfdp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  } else if (kind == (a_statement_kind)stmk_decl) {
-    /* An stmk_decl is not an executable statement. */
+      kind == (a_statement_kind)stmk_decl ||
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      kind == (a_statement_kind)stmk_set_vla_size) {
+    /* Not an executable statement. */
   } else {
     /* Anything else is an executable statement.  Set a flag indicating
        that an executable statement has been seen in the current block. */
@@ -1507,6 +1507,28 @@ Call add_statement_at_stmt_pos using pos_curr_token as statement source
 position.
 */
 #define add_statement(kind) add_statement_at_stmt_pos((kind), &pos_curr_token)
+
+
+void update_init_statement_control_flow(a_statement_ptr  sp)
+/*
+An stmk_init or stmk_set_vla_size statement is being added to the IL.  Add
+an entry to the control_flow_descr_list to point to it.  This will be part
+the information used to diagnose transfers of control over initializing
+declarations.
+*/
+{
+  a_control_flow_descr_ptr  cfdp;
+
+  check_assertion(sp->kind == (a_statement_kind)stmk_init ||
+                  sp->kind == (a_statement_kind)stmk_set_vla_size);
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
+  cfdp->variant.init.statement = sp;
+  if (sp->kind == (a_statement_kind)stmk_init) {
+    cfdp->variant.init.variable = sp->variant.dynamic_init->variable;
+  }  /* if */
+  add_to_control_flow_descr_list(cfdp);
+}  /* update_init_statement_control_flow */
+
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -1723,6 +1745,7 @@ expression is to be evaluated to fix the size of the array.
   vla_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_set_vla_size,
                                        pos);
   vla_stmt->variant.vla_dimension = vdp;
+  update_init_statement_control_flow(vla_stmt);
 }  /* set_vla_size_statement */
 
 
@@ -3545,9 +3568,13 @@ issue a diagnostic complaining about skipping over an initialization.
       a_type_ptr         tp;
       a_statement_ptr    sp;
 
-      sp = cfdp->variant.init_statement;
-      if (sp->kind == (a_statement_kind)stmk_init) {
-        vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
+      sp = cfdp->variant.init.statement;
+      vp = cfdp->variant.init.variable;
+      if (vp != NULL) {
+        check_assertion(sp->kind == (a_statement_kind)stmk_init ||
+                        (C_mode() && microsoft_mode &&
+                         sp->kind == (a_statement_kind)stmk_block));
+        vp = cfdp->variant.init.variable;
         /* We only issue a diagnostic for jumping over an initialization of
            an automatic variable (see [stmt.decl], para 3). */
         if (!has_static_storage_duration(vp->storage_class)) {
@@ -3569,7 +3596,7 @@ issue a diagnostic complaining about skipping over an initialization.
         }  /* if */
       } else {
         /* Must be a stmk_set_vla_size statement. */
-        vp = NULL;
+        check_assertion(sp->kind == (a_statement_kind)stmk_set_vla_size);
         severity = es_error;
       }  /* if */
       if (severity != es_none) {

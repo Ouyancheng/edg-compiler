@@ -1,10 +1,25 @@
 Version 2.37
 
-9/29/97   Incorrect routine name linkage on class member function type
+9/29/97   Microsoft compatibility: incorrect diagnostic on branch past
+          dynamically initialized automatic aggregate variable
+
+In Microsoft C mode, a branch over a dynamically initialized automatic
+aggregate variable would sometimes evoke an incorrect diagnostic (an error,
+with an inappropriate message).  Now fixed.
+
+  void f(int i) {
+    if (i) goto L2;       // Warning is now issued in Microsoft C mode
+    {
+      int a[2] = { i, i };
+  L2:;
+    }
+  }
+
+9/29/97   Incorrect routine-name-linkage on class member function type
 
 When the definition of a class member function appeared outside the class
 definition but within an extern "C" context, the name linkage on the
-routine type was set incorrectly, with the result (when IL lowering was
+routine type was set incorrectly, with the result (if IL lowering was
 done) that its name was incorrectly mangled.  This has been fixed.
 
   class A {
