@@ -1325,6 +1325,7 @@ static void set_offsets_for_corresponding_virtual_base_classes(
 #endif /* CHECKING */
         bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
                                                bcp->type->alignment);
+        fixup_embedded_virtual_base_classes(bcp, lob->class_type);
       }  /* if */
       if (!use_decl_order) break;
     }  /* if */
