@@ -1184,6 +1184,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
     map = copy_pragma_string();
     /* Scan the tokens from the pragma string. */
     scan_pragma_string(map, &start_of_dir_position);
+    free_macro_arg(&map);
     /* Bypass the scanned string and check for the closing parenthesis. */
     (void)get_token();
     if (curr_token == tok_rparen) {

@@ -1,5 +1,10 @@
 Version 3.4
 
+4/15/05  Macro argument entry for _Pragma operator not freed
+
+The macro argument entry allocated during processing of a C99 _Pragma
+operator was not freed.  Now fixed.
+
 4/15/04  Microsoft compatibility: "&" ignored in front of string literal
 
 MSVC++ ignores the "&" operator when it appears in front of a string
