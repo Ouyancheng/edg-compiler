@@ -1,5 +1,14 @@
 Version 2.46
 
+6/1/01   Microsoft compatibility: floating-point nontype template
+         parameters accepted
+
+Floating-point nontype template parameters are now accepted in
+Microsoft mode.
+
+  template <double d> struct A {};
+  A<2.0> x;
+
 6/1/01   "friend T;" accepted when T is a template parameter
 
 A nonstandard friend declaration of the form "friend T", where T
