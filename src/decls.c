@@ -5842,7 +5842,8 @@ block.
         /* An extension of the original definition of this namespace -- push
            a scope for the scanning the namespace body. */
         nsp = ns_sym->variant.namespace_info.ptr;
-        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                   skip_namespace_aliases(nsp));
       }  /* if */
       record_symbol_declaration(srk_flags, ns_sym, &namespace_pos,
                                 (a_source_sequence_entry_ptr)NULL);
