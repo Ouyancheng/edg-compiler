@@ -694,11 +694,16 @@ to a type, make the typeinfo variable for the underlying type and set
 
   typeinfo_type = type;
   *flags_value = 0;
-  if (is_ptr_or_ref_type(type)) {
-    /* For a pointer or reference to a type, use the typeinfo for the
-       underlying type. */
-    typeinfo_type = type_pointed_to(type);
-    *flags_value = is_pointer_type(type) ? ETS_IS_POINTER : ETS_IS_REFERENCE;
+  /* For a pointer or reference to a type, use the typeinfo for the
+     underlying type and a flag to indicate the reference or pointer.
+     Both flags are on for a reference to a pointer. */
+  if (is_reference_type(typeinfo_type)) {
+    typeinfo_type = type_pointed_to(typeinfo_type);
+    *flags_value |= ETS_IS_REFERENCE;
+  }  /* if */
+  if (is_pointer_type(typeinfo_type)) {
+    typeinfo_type = type_pointed_to(typeinfo_type);
+    *flags_value |= ETS_IS_POINTER;
   }  /* if */
   /* Note that make_typeinfo_var drops type qualifiers on the type. */
   typeinfo_var = make_typeinfo_var(typeinfo_type);
