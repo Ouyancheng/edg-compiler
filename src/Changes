@@ -1,5 +1,10 @@
 Version 2.29
 
+5/11/95  Non-null test on pointer on call of user-written operator delete
+
+The change of 1/26/95 has been undone.  It's now clearer that the
+!= NULL test must be done by the user-written operator delete.
+
 5/10/95  Use of prototype instantiation vs. nonreal instantiation
 
 The way in which the front end decides whether a reference such
