@@ -18622,8 +18622,8 @@ the body should be emitted by the back end.
       force_definition_of_compiler_generated_routine(rout_ptr);
       check_assertion(rout_ptr->assoc_scope != NULL_region_number);
     }  /* if */
-#if IA64_ABI
   }  /* if */
+#if IA64_ABI
   if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
       rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
     a_routine_list_entry_ptr rlep;
