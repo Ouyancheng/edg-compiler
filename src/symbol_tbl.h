@@ -589,15 +589,6 @@ typedef struct a_class_symbol_supplement {
   unsigned int	any_nonreal_base_classes:1;
 			/* For a prototype instantiation this is TRUE
 			   if any of its base classes are nonreal classes. */
-  unsigned int	instantiated_by_can_instantiate_pragma:1;
-			/* TRUE for template classes that were instantiated by
-			   a can instantiate pragma and have not been used
-			   in a context that would require a full
-			   instantiation.  This flag is used to detect
-			   uses of such classes in contexts that require
-      			   full instantiations so that the instantiation
-			   required flags may be correctly set on the
-			   classes members. */
 } a_class_symbol_supplement;
 
 
