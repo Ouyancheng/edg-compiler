@@ -358,10 +358,10 @@ property fields).
   a_boolean               err = FALSE;
   a_type_kind             tkind;
   a_boolean               array_of_incomp_class_or_enum = FALSE;
+  a_boolean               missing_element_type = FALSE;
   a_boolean               is_member_function_typedef = FALSE;
   a_type_ptr              mft_class_type, mft_rout_type;
   a_symbol_ptr            mft_sym;
-
 
   db_enter(3, "add_to_derived_type_list");
 #if DEBUG
@@ -419,7 +419,8 @@ property fields).
            of zero, which is the case for the partial array and pointer
            types. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type)) {
+        if (is_object_type(temp_type) &&
+            !temp_type->variant.array.bound_is_zero) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a member that is a zero-length
@@ -450,6 +451,8 @@ property fields).
                  done only when the class is the immediate element type. */
               array_of_incomp_class_or_enum = TRUE;
             }  /* if */
+          } else {
+            missing_element_type = TRUE;
           }  /* if */
         } else if (is_ptr_to_member_type(temp_type) &&
                    pm_member_type(temp_type) == NULL) {
@@ -695,7 +698,8 @@ property fields).
           (tkind == (a_type_kind)tk_pointer ||
            tkind == (a_type_kind)tk_ptr_to_member ||
            array_of_incomp_class_or_enum ||
-           is_object_type(new_type_ptr) || is_function_type(new_type_ptr) ||
+           (is_object_type(new_type_ptr) && !missing_element_type) ||
+           is_function_type(new_type_ptr) ||
            is_error_type(new_type_ptr))) {
         while (tkind == (a_type_kind)tk_array ||
                tkind == (a_type_kind)tk_pointer ||
