@@ -4568,6 +4568,58 @@ type qualifier.  This routine also scans the enclosing brackets.  E.g.,
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+static a_boolean unelaborated_cfront_friend_class(void)
+/*
+Return whether this is a friend declaration of the form "friend X;" where
+"X" has not yet been declared.  This is only accepted in Cfront modes.
+The case where "X" is already declared is also a Cfront extension, but is
+accepted by several other C++ compilers.  It is handled by
+check_missing_declarator_in_member_declaration.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(curr_token == tok_friend && any_cfront_mode());
+  /* Advance to the token following "friend". */
+  (void)get_token();
+  if (!is_decl_qualified_name_start()) {
+    /* Can't be the start of an identifier -- back up to continue
+       processing. */
+    unget_token();
+    curr_token = tok_friend;
+  } else {
+    /* Advance over the identifier, which may actually be a
+       qualified name or even a template class. */
+    a_boolean          lookup_err;
+    a_symbol_ptr       tag_sym;
+    a_source_position  ident_pos;
+
+    ident_pos = pos_curr_token;
+    tag_sym = coalesce_and_lookup_generalized_identifier(
+                    GID_NO_OPTIONS, ilm_tentative_type, &lookup_err);
+    /* Even if the lookup was successful, if the next token is not
+       a ";" this is not of the form "friend T;". */
+    if (next_token() != tok_semicolon || tag_sym != NULL) {
+      /* If there is no semicolon following the class name, this
+         is not a friend class declaration.  If tag_sym is not NULL,
+         the class was already known and this is more easily handled
+         in check_missing_declarator_in_member_declaration.  Either
+         way, back up. */
+      clear_specific_symbol(locator_for_curr_id);
+      unget_token();
+      curr_token = tok_friend;
+    } else if (tag_sym == NULL) {
+      /* This friend declaration introduces a new type -- which is
+         okay in cfront compatibility mode.  Still, issue a remark
+         on use of a nonstandard feature. */
+      pos_st_remark(ec_nonstd_friend_decl, &ident_pos, "class");
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* unelaborated_cfront_friend_class */
+
+
 #if !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is only used when GNU extension are allowed.
                     upc_block_size is only used when UPC extensions are
@@ -5315,7 +5367,7 @@ Returns TRUE if there is an error in the specifiers.
 	  err = TRUE;
 	} else {
           decl_specifiers_seen |= DS_FRIEND;
-	  *output_flags |= DSO_FRIEND;
+          *output_flags |= DSO_FRIEND;
           if (decl_specifiers_seen != DS_FRIEND) {
             if ((decl_specifiers_seen & DS_STORAGE_CLASS) &&
                 !microsoft_mode &&
@@ -5330,109 +5382,18 @@ Returns TRUE if there is an error in the specifiers.
               decl_specifiers_seen &= ~(DS_MUTABLE);
               *output_flags &= ~DSO_MUTABLE;
             }  /* if */
-          } else {
+          } else if (any_cfront_mode()) {
             /* Check for a special case -- a friend declaration of the form
                "friend T;" which is taken to mean the same as "friend class T;"
-               by cfront (even if T has not yet been defined).  Although there
-               is no support for this syntax in the ARM, we accept it (except
-               in strict ANSI mode) since it is widely used in older C++
-               code.  */
-            /* Advance to the token following "friend". */
-            (void)get_token();
-            if (!is_decl_qualified_name_start()) {
-              /* Can't be the start of an identifier -- back up to continue
-                 processing. */
-              unget_token();
-              curr_token = tok_friend;
-            } else {
-              /* Advance over the identifier, which may actually be a
-                 qualified name or even a template class. */
-              a_boolean          lookup_err;
-              a_symbol_ptr       tag_sym;
-              a_source_position  ident_pos;
-
-              ident_pos = pos_curr_token;
-              tag_sym = coalesce_and_lookup_generalized_identifier(
-                              GID_NO_OPTIONS, ilm_tentative_type, &lookup_err);
-              /* Even if the lookup was successful, if the next token is not
-                 a ";" this is not of the form "friend T;". */
-              if (next_token() != tok_semicolon) {
-                /* No semicolon -- back up. */
-                clear_specific_symbol(locator_for_curr_id);
-                unget_token();
-                curr_token = tok_friend;
-              } else if (any_cfront_mode() && tag_sym == NULL) {
-                /* This friend declaration introduces a new type -- which is
-                   okay in cfront compatibility mode.  Still, issue a remark
-                   on use of a nonstandard feature. */
-                vacuous_decl_allowed = FALSE;
-                pos_st_remark(ec_nonstd_friend_decl, &ident_pos, "class");
-                goto process_class_specifier;
-              } else {
-                a_type_ptr  tp = NULL;
-                a_boolean   is_typedef = FALSE;
-
-                if (tag_sym != NULL &&
-                    is_class_or_class_proxy_symbol(tag_sym)) {
-                  tp = type_symbol_type(tag_sym);
-                  if (tp->kind == (a_type_kind)tk_typeref) {
-                    is_typedef = TRUE;
-                    if (is_qualified_type(tp)) {
-                      /* This should be an error:
-                           typedef const struct A TA;
-                           class B { friend TA; };
-                      */
-                      tp = NULL;
-                    }  /* if */
-                  } else if (!is_class_struct_union_type(tp) &&
-                             !is_template_param_type(tp)) {
-                    /* This can happen in template instantiations of
-                           friend T;
-                       with T e.g. substituted by "long". */
-                    tp = NULL;
-                  }  /* if */
-                }  /* if */
-                if (tp == NULL) {
-                  /* Lookup failed to find an unqualified class symbol.  Issue
-                     an error. */
-                  error(ec_bad_friend_decl);
-                  err = TRUE;
-                  basic_type = bt_error;
-                } else {
-                  /* This declaration is of the form "friend T;" and T is
-                     a previously declared class name.  Issue a diagnostic
-                     for using a nonstandard feature. */
-                  char               *class_key_string;
-
-                  switch (skip_typerefs(tp)->kind) {
-                    case tk_class:   class_key_string = "class";   break;
-                    case tk_struct:  class_key_string = "struct";  break;
-                    case tk_union:   class_key_string = "union";   break;
-                    case tk_template_param:
-                                     class_key_string = "class";   break;
-#if CHECKING
-                    default: internal_error("decl_specifiers: bad type kind");
-#endif /* CHECKING */
-                  }  /* switch */
-                  /* Strict ANSI diagnostic in strict ANSI mode, remark
-                     otherwise. */
-                  pos_st_diagnostic(strict_ansi_mode ?
-                                      strict_ansi_error_severity : es_remark,
-                                    ec_nonstd_friend_decl, &ident_pos,
-                                    class_key_string);
-                  /* Note that scan_class_specifier is not called for this
-                     case.  Therefore, mark the symbol declared. */
-                  record_symbol_declaration(SRK_DECLARATION | SRK_FRIEND,
-                                            tag_sym, &ident_pos,
-                                            (a_source_sequence_entry_ptr)NULL);
-                  if (!is_typedef) declares_something = TRUE;
-                  *type_ptr = tp;
-                  basic_type = bt_struct_union;
-                  is_elaborated_type_specifier = TRUE;
-                }  /* if */
-              }  /* if */
+               by cfront.  This only handles the case where T has not yet been
+               declared.  If T is already declared, the construct is accepted
+               in other nonstrict modes through the processing in
+               check_missing_declarator_in_member_declaration. */
+            if (unelaborated_cfront_friend_class()) {
+              vacuous_decl_allowed = FALSE;
+              goto process_class_specifier;
             }  /* if */
-          }  /* if */
+	       }  /* if */
 	}  /* if */
 	break;
       case tok_virtual:

@@ -1,5 +1,16 @@
 Version 3.1
 
+8/27/02   Microsoft compatibility: friend declaration with __declspec specifier
+
+In Microsoft mode, a friend class declaration could either omit the class 
+(or struct or union) keyword or add a __declspec specifier, but not both.
+Now the combination of both extensions is accepted in Microsoft mode.
+
+  struct S;
+  class C {
+    friend __declspec(dllimport) S;  // Previously an error; now accepted in
+  };                                 // Microsoft mode.
+
 8/22/02   IL CHANGE: opname_or_builtin field of a_routine renamed "variant"
 
 As part of the IA-64 ABI changes, the field named "opname_or_builtin"

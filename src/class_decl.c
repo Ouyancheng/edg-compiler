@@ -10696,9 +10696,10 @@ moreover, several fields of *decl_info may be updated by this routine.
       pos_error(ec_mutable_not_allowed, err_pos);
     }  /* if */
     if (dso_flags & DSO_FRIEND) {
-      if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
-          !is_enum_type(member_type) &&
-          depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      if (is_error_type(member_type)) {
+        /* An error was already issued. */
+      } else if (!is_enum_type(member_type) &&
+               depth_template_declaration_scope == NO_SCOPE_DEPTH) {
         /* This is a friend class declaration, of the form:
                    friend class A;
            which is the only form the ARM (see 11.4) allows. */
@@ -10706,9 +10707,30 @@ moreover, several fields of *decl_info may be updated by this routine.
           /* "friend typename ..." is not allowed. */
           pos_error(ec_no_typename_in_friend_class_decl, err_pos);
         } else {
+          if (!(dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
+            char               *class_key_string;
+
+            switch (skip_typerefs(member_type)->kind) {
+              case tk_class:   class_key_string = "class";   break;
+              case tk_struct:  class_key_string = "struct";  break;
+              case tk_union:   class_key_string = "union";   break;
+              case tk_template_param:
+                               class_key_string = "class";   break;
+#if CHECKING
+              default: internal_error("decl_specifiers: bad type kind");
+#endif /* CHECKING */
+            }  /* switch */
+            /* Strict ANSI diagnostic in strict ANSI mode, remark
+               otherwise. */
+            pos_st_diagnostic(strict_ansi_mode ?
+                                strict_ansi_error_severity : es_remark,
+                              ec_nonstd_friend_decl,
+                              &locator_for_curr_id.source_position,
+                              class_key_string);
+          }  /* if */
           decl_friend_class(class_type, member_type);
         }  /* if */
-      } else if (!is_error_type(member_type)) {
+      } else {
         /* Invalid friend declaration. */
         pos_error(ec_bad_friend_decl, err_pos);
       }  /* if */
