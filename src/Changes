@@ -1,5 +1,12 @@
 Version 2.46
 
+12/8/01  Handling of rethrow, lowering and unordered expressions
+
+In two places in the front end, now fixed, the IL for a throw with
+no expression (a "rethrow") was not correctly handled, which could
+result in very rare cases in a dereference of a null pointer,
+in examine_expr_for_unordered_temp_inits or mark_expr_slice_dyn_inits.
+
 12/4/01  Spurious error on typedef to base class member
 
 A spurious error was issued on a typedef of a base class member named as

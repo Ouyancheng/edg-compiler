@@ -1124,10 +1124,12 @@ destruction processed, and is updated on output.
       any_temp_inits |= any_temp_inits_part_2;
       break;
     case enk_throw:
-      any_temp_inits = examine_dynamic_init_for_unordered_temp_inits(
+      if (expr->variant.throw_info != NULL) {
+        any_temp_inits = examine_dynamic_init_for_unordered_temp_inits(
                                         expr->variant.throw_info->dynamic_init,
                                         mark_all_unordered,
                                         last_processed);
+      }  /* if */
       break;
     case enk_typeid:
       if (expr->variant.typeid_info.expr != NULL) {

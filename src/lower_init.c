@@ -8686,7 +8686,9 @@ the given expression.
                                               freeing_of_storage_on_exception);
         break;
       case enk_throw:
-        mark_slice_dyn_inits(expr->variant.throw_info->dynamic_init);
+        if (expr->variant.throw_info != NULL){ 
+          mark_slice_dyn_inits(expr->variant.throw_info->dynamic_init);
+        }  /* if */
         break;
       case enk_object_lifetime:
         /* Note that we do go into another object lifetime, because
