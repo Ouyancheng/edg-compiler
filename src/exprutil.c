@@ -4905,7 +4905,11 @@ not an lvalue, it is left alone.
         /* The lvalue address is represented by some kind of expression
            node. */
         node = operand->variant.expression;
-        if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+        if ((C_dialect == C_dialect_pcc || SVR4_C_mode
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                        || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                         ) &&
 	    is_operation_node(node) &&
             node->variant.operation.kind ==
                                       (an_expr_operator_kind)eok_lvalue_cast) {
