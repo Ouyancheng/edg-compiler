@@ -3850,6 +3850,7 @@ Clear a standard conversion description to default values.
   std_conv->exception_spec_incompatibility = FALSE;
   std_conv->conv_of_string_literal_to_ptr_to_nonconst = FALSE;
   std_conv->warning_suggested = ec_no_error;
+  std_conv->is_mild_warning = FALSE;
 }  /* clear_std_conv_descr */
 
 
@@ -5251,6 +5252,7 @@ See conversion_possible.
           if (!same_entities(source_enum_type, dest_enum_type)) {
             /* Warn on mixing different enums, or non-enums and enums. */
             std_conv->warning_suggested = ec_mixed_enum_type;
+            std_conv->is_mild_warning = TRUE;
           }  /* if */
         }  /* if */
       } else {
@@ -5283,6 +5285,7 @@ See conversion_possible.
             (is_imaginary(dest_type)   && !is_nonreal_floating(source_type) &&
              (!source_is_constant || !is_zero_constant(source_constant)))) {
           std_conv->warning_suggested = ec_real_imaginary_conversion;
+          std_conv->is_mild_warning = TRUE;
         }  /* if */
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -5337,6 +5340,7 @@ See conversion_possible.
              ilp64_will_narrow(source_type, dest_type)) {
     /* Check for potential problems when porting to an ILP64 environment. */
     std_conv->warning_suggested = ec_ilp64_will_narrow;
+    std_conv->is_mild_warning = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (okay && !source_is_constant &&
              std_conv->warning_suggested == ec_no_error &&
@@ -5345,6 +5349,7 @@ See conversion_possible.
        Warn because this is a 64-bit porting issue.  This diagnostic is
        suppressed by default (see cmd_line.c). */
     std_conv->warning_suggested = ec_impl_narrowing_64_bit_int;
+    std_conv->is_mild_warning = TRUE;
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
@@ -5490,7 +5495,7 @@ exception specifications are not checked.
 }  /* inverse_impl_conversion_possible */
 
 
-a_boolean static_cast_conversion_possible(
+static a_boolean static_cast_conversion_possible_full(
                                  a_type_ptr    source_type,
                                  a_boolean     source_is_constant,
                                  a_boolean     source_is_string_literal,
@@ -5498,7 +5503,8 @@ a_boolean static_cast_conversion_possible(
                                  a_type_ptr    dest_type,
                                  a_boolean     allow_qualifier_or_eh_mismatch,
                                  an_error_code default_warning_code,
-                                 an_error_code *warning_suggested)
+                                 an_error_code *warning_suggested,
+                                 a_boolean     *is_mild_warning)
 /*
 Return TRUE if it is okay to explicitly convert something of type source_type
 to something of type dest_type in a static_cast.  If source_is_constant is
@@ -5511,7 +5517,9 @@ source_is_constant is FALSE, for an extension.  If the conversion is
 suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into *warning_suggested when no
-specific message applies.  Any type qualifiers on the types themselves
+specific message applies.  *is_mild_warning is returned TRUE if the
+warning in *warning_suggested is more of an observation rather than a
+conformance issue.  Any type qualifiers on the types themselves
 are ignored, and when allow_qualifier_or_eh_mismatch is TRUE exception
 specifications and lower level cv-qualifiers are also ignored.
 Note that this routine does not handle casts to reference types and it doesn't
@@ -5523,10 +5531,10 @@ C++ mode.  See [expr.static.cast].
   a_boolean        impl_okay = FALSE, inv_impl_okay = FALSE;
   a_std_conv_descr impl_std_conv, inv_impl_std_conv;
 
-  db_enter(5, "static_cast_conversion_possible");
+  db_enter(5, "static_cast_conversion_possible_full");
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "static_cast_conversion_possible: source_type = ");
+    fprintf(f_debug, "static_cast_conversion_possible_full: source_type = ");
     db_abbreviated_type(source_type);
     fprintf(f_debug, ", dest_type = ");
     db_abbreviated_type(dest_type);
@@ -5534,6 +5542,7 @@ C++ mode.  See [expr.static.cast].
   }  /* if */
 #endif /* DEBUG */
   *warning_suggested = ec_no_error;
+  *is_mild_warning = FALSE;
   /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
@@ -5543,7 +5552,7 @@ C++ mode.  See [expr.static.cast].
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
   check_assertion_str(!is_reference_ptr(dest_type),
-                    "static_cast_conversion_possible: dest_type is reference");
+               "static_cast_conversion_possible_full: dest_type is reference");
 
   if (is_void(dest_type)) {
     /* Anything --> (possibly qualified) void is allowed. */
@@ -5561,10 +5570,19 @@ C++ mode.  See [expr.static.cast].
                                          &impl_std_conv) != FALSE;
     if (impl_okay &&
         (impl_std_conv.warning_suggested == ec_no_error ||
-         impl_std_conv.warning_suggested == ec_impl_narrowing_64_bit_int)) {
+         impl_std_conv.is_mild_warning)) {
       /* There is an implicit conversion, and it's not questionable. */
       okay = TRUE;
       *warning_suggested = impl_std_conv.warning_suggested;
+      *is_mild_warning = impl_std_conv.is_mild_warning;
+      if (*is_mild_warning) {
+        /* A mixed int/enum warning, possible in C mode, should get no
+           warning when an explicit cast is used. */
+        if (*warning_suggested == ec_mixed_enum_type) {
+          *warning_suggested = ec_no_error;
+          *is_mild_warning = FALSE;
+        }  /* if */
+      }  /* if */
     } else if (!C_mode()) {
       inv_impl_okay = inverse_impl_conversion_possible(
                                                source_type, dest_type,
@@ -5572,14 +5590,13 @@ C++ mode.  See [expr.static.cast].
                                                suppress_extensions,
                                                &inv_impl_std_conv);
       if (inv_impl_okay &&
-          inv_impl_std_conv.warning_suggested == ec_no_error) {
+          (inv_impl_std_conv.warning_suggested == ec_no_error ||
+           inv_impl_std_conv.is_mild_warning)) {
         /* The inverse of any standard conversion is allowed in C++. */
         okay = TRUE;
+        *warning_suggested = inv_impl_std_conv.warning_suggested;
+        *is_mild_warning = inv_impl_std_conv.is_mild_warning;
       }  /* if */
-    } else if (is_integral_or_enum(source_type) && is_enum(dest_type)) {
-      /* In C, integral --> enum can be done as an implicit conversion
-         but we check for it again here to avoid the warning. */
-      okay = TRUE;
     }  /* if */
   }  /* if */
   if (!okay) {
@@ -5588,21 +5605,52 @@ C++ mode.  See [expr.static.cast].
          Allow it, with a warning. */
       okay = TRUE;
       *warning_suggested = impl_std_conv.warning_suggested;
+      *is_mild_warning = impl_std_conv.is_mild_warning;
     } else if (inv_impl_okay) {
       /* There is a questionable inverse conversion that covers this
          case.  Allow it, with a warning. */
       okay = TRUE;
       *warning_suggested = inv_impl_std_conv.warning_suggested;
+      *is_mild_warning = inv_impl_std_conv.is_mild_warning;
     }  /* if */
   }  /* if */
 
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "static_cast_conversion_possible: %s\n",
+    fprintf(f_debug, "static_cast_conversion_possible_full: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
+  return okay;
+}  /* static_cast_conversion_possible_full */
+
+
+a_boolean static_cast_conversion_possible(
+                                 a_type_ptr    source_type,
+                                 a_boolean     source_is_constant,
+                                 a_boolean     source_is_string_literal,
+                                 a_constant    *source_constant,
+                                 a_type_ptr    dest_type,
+                                 a_boolean     allow_qualifier_or_eh_mismatch,
+                                 an_error_code default_warning_code,
+                                 an_error_code *warning_suggested)
+/*
+Interface to static_cast_conversion_possible for the simple case
+where the is_mild_warning parameter is not needed.
+*/
+{
+  a_boolean is_mild_warning;
+  a_boolean okay = static_cast_conversion_possible_full(
+                                                source_type,
+                                                source_is_constant,
+                                                source_is_string_literal,
+                                                source_constant,
+                                                dest_type,
+                                                allow_qualifier_or_eh_mismatch,
+                                                default_warning_code,
+                                                warning_suggested,
+                                                &is_mild_warning);
   return okay;
 }  /* static_cast_conversion_possible */
 
@@ -5629,16 +5677,19 @@ and destination types, and return TRUE if one is allowed.
 }  /* compound_conversion_possible */
 
 
-a_boolean reinterpret_cast_conversion_possible(
+static a_boolean reinterpret_cast_conversion_possible_full(
                                               a_type_ptr    source_type,
                                               a_type_ptr    dest_type,
-                                              an_error_code *warning_suggested)
+                                              an_error_code *warning_suggested,
+                                              a_boolean     *is_mild_warning)
 /*
 Return TRUE if it is okay to explicitly convert something of type source_type
 to something of type dest_type in a reinterpret_cast.  Any type qualifiers
 on the types themselves are ignored.  If the conversion
 is suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
+*is_mild_warning is returned TRUE if the warning in *warning_suggested
+is more of an observation rather than a conformance issue.
 Note that this routine does not handle casts to reference types, it
 doesn't reject conversions that cast away constness, and it doesn't
 handle user-defined conversions.  This routine is called in C mode as
@@ -5658,6 +5709,7 @@ well as C++ mode.
   }  /* if */
 #endif /* DEBUG */
   *warning_suggested = ec_no_error;
+  *is_mild_warning = FALSE;
   /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
@@ -5685,11 +5737,13 @@ well as C++ mode.
       /* The destination is not large enough to hold all of the bits
          of the pointer.  Issue a warning. */
       *warning_suggested = ec_pointer_conversion_loses_bits;
+      *is_mild_warning = TRUE;
     } else if (dest_of_ptr_cast_big_enough(dest_type, source_type)) {
       /* The conversion is to a same-sized integral type.  Warn about
          this as a 64-bit porting issue (but the diagnostic is turned
          off by default). */
       *warning_suggested = ec_pointer_conversion_to_same_size_int;
+      *is_mild_warning = TRUE;
     }  /* if */
   } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)
 #if UPC_EXTENSIONS_ALLOWED
@@ -5786,6 +5840,24 @@ well as C++ mode.
 }  /* reinterpret_cast_conversion_possible */
 
 
+a_boolean reinterpret_cast_conversion_possible(
+                                              a_type_ptr    source_type,
+                                              a_type_ptr    dest_type,
+                                              an_error_code *warning_suggested)
+/*
+Interface to reinterpret_cast_conversion_possible_full for the simple
+case where the is_mild_warning parameter is not needed.
+*/
+{
+  a_boolean is_mild_warning;
+  a_boolean okay = reinterpret_cast_conversion_possible_full(source_type,
+                                                             dest_type,
+                                                             warning_suggested,
+                                                             &is_mild_warning);
+  return okay;
+}  /* reinterpret_cast_conversion_possible */
+
+
 a_boolean expl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_constant,
                                    a_boolean     source_is_string_literal,
@@ -5822,7 +5894,9 @@ set to TRUE (otherwise it is set to FALSE).
   a_boolean     okay = FALSE;
   a_boolean     static_cast_okay, reinterpret_cast_okay;
   an_error_code static_cast_warning_suggested;
+  a_boolean     static_cast_warning_is_mild;
   an_error_code reinterpret_cast_warning_suggested;
+  a_boolean     reinterpret_cast_warning_is_mild;
 
   db_enter(5, "expl_conversion_possible");
 #if DEBUG
@@ -5844,13 +5918,14 @@ set to TRUE (otherwise it is set to FALSE).
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
   } else {
-    static_cast_okay =
-      static_cast_conversion_possible(source_type, source_is_constant,
+    static_cast_okay = static_cast_conversion_possible_full(
+                                      source_type, source_is_constant,
                                       source_is_string_literal,
                                       source_constant, dest_type,
                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                       default_warning_code,
-                                      &static_cast_warning_suggested) != FALSE;
+                                      &static_cast_warning_suggested,
+                                      &static_cast_warning_is_mild) != FALSE;
 
     if (static_cast_warning_suggested == ec_impl_narrowing_64_bit_int) {
       /* Change a message that refers to an implicit conversion to one
@@ -5859,7 +5934,7 @@ set to TRUE (otherwise it is set to FALSE).
     }  /* if */
     if (static_cast_okay &&
         (static_cast_warning_suggested == ec_no_error ||
-         static_cast_warning_suggested == ec_expl_narrowing_64_bit_int)) {
+         static_cast_warning_is_mild)) {
       /* The conversion can be done as a static_cast, without a warning. */
       okay = TRUE;
       *warning_suggested = static_cast_warning_suggested;
@@ -5876,13 +5951,13 @@ set to TRUE (otherwise it is set to FALSE).
       okay = TRUE;
     } else {
       reinterpret_cast_okay =
-            reinterpret_cast_conversion_possible(
+            reinterpret_cast_conversion_possible_full(
                               source_type, dest_type,
-                              &reinterpret_cast_warning_suggested) != FALSE;
+                              &reinterpret_cast_warning_suggested,
+                              &reinterpret_cast_warning_is_mild) != FALSE;
       if (reinterpret_cast_okay &&
           (reinterpret_cast_warning_suggested == ec_no_error ||
-           reinterpret_cast_warning_suggested ==
-                                           ec_pointer_conversion_loses_bits)) {
+           reinterpret_cast_warning_is_mild)) {
         /* The conversion can be done as a reinterpret_cast, without a
            warning or with a mild warning. */
         okay = TRUE;

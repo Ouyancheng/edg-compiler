@@ -647,6 +647,11 @@ typedef struct a_std_conv_descr {
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this conversion is done. */
+  a_byte_boolean
+		is_mild_warning;
+			/* If TRUE, the warning indicated by warning_suggested
+			   is mild, more an observation than a conformance
+			   issue. */
 } a_std_conv_descr;
 
 
