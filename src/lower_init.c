@@ -2686,6 +2686,8 @@ routine is invoked at program startup.
                       file_scope_init_routine->instantiation_needed_bit_number;
     set_per_instantiation_needed_flag((char *)link_var, iek_variable,
                                     link_var->instantiation_needed_bit_number);
+    /* Make sure the variable doesn't get changed to external. */
+    link_var->source_corresp.static_used_by_instantiation = FALSE;
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   mark_as_needed((char *)link_var, iek_variable);
