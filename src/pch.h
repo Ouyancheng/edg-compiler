@@ -261,6 +261,8 @@ extern void generate_precompiled_header(void);
 
 extern void header_stop_no_longer_pending(void);
 
+extern void process_prefix_pragma_hdrstop(void);
+
 extern void pch_fixup_for_curr_source_file(void);
 
 extern void pch_init(void);

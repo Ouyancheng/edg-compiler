@@ -1266,12 +1266,13 @@ begin.
   /* See if this is the special header stop pragma. */
   is_pragma_hdrstop = kind == ppd_pragma && curr_id_is("hdrstop");
   if (using_a_pch_file) {
+    /* Save the line number of the beginning of the directive. */
+    a_line_number	actual_line = curr_ise->actual_line;
     /* Skip to the end of this directive. */
     while (get_token() != tok_newline);
     if (building_pch_prefix) {
       if (is_pragma_hdrstop ||
-          (curr_ise->actual_line ==
-                        (a_line_number)pos_of_last_event_from_pch.seq &&
+          (actual_line == (a_line_number)pos_of_last_event_from_pch.seq &&
            pos->column == pos_of_last_event_from_pch.column)) {
         /* Actually, both conditions should be TRUE when a pragma hdrstop
            is found. */
@@ -1282,9 +1283,13 @@ begin.
     /* We previously encountered a pragma hdrstop, disregard any
        additional events. */
   } else {
-    convert_pp_directive_to_string();
-    add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
-    if (is_pragma_hdrstop) pragma_hdrstop_found = TRUE;
+    /* Terminate the event list processing when a pragma hdrstop is found. */
+    if (is_pragma_hdrstop) {
+      process_prefix_pragma_hdrstop();
+    } else {
+      convert_pp_directive_to_string();
+      add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
+    }  /* if */
   }  /* if */
 }  /* pch_prefix_processing_for_pp_directive */
 
@@ -1304,6 +1309,7 @@ execute the preprocessor directive.
   a_source_position  	save_error_position;
   a_source_position  	start_of_dir_position;
   a_pp_directive_kind	dir_kind;
+  a_boolean		is_header_stop_dir = FALSE;
 
   db_enter(3, "pp_directive");
 
@@ -1326,6 +1332,16 @@ execute the preprocessor directive.
   if (next_event_resumes_compilation) {
      /* We are done skipping the file prefix when making use of a PCH. */
      pch_fixup_for_curr_source_file();
+  }  /* if */
+  /* See if this directive is marks the header stop position.  If so,
+     after processing the directive, we need to call
+     generate_precompiled_header. */
+  if (header_stop_position_pending) {
+    if (curr_ise->actual_line == 
+                           (a_line_number)header_stop_source_position.seq &&
+        start_of_dir_position.column == header_stop_source_position.column) {
+      is_header_stop_dir = TRUE;
+    }  /* if */
   }  /* if */
   if (!building_pch_prefix) {
     switch ((int)dir_kind) {
@@ -1440,7 +1456,12 @@ execute the preprocessor directive.
   do_string_literal_concatenation = save_do_string_literal_concatenation;
   /* Restore the error position as at entry. */
   copy_source_position(save_error_position, error_position);
-
+  if (is_header_stop_dir) {
+    /* This is the last directive in a precompiled header file that is
+       to be generated. */
+    generate_precompiled_header();
+    header_stop_no_longer_pending();
+  }  /* if */
   db_exit();
 }  /* pp_directive */
 

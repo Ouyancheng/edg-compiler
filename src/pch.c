@@ -438,6 +438,8 @@ file.
     (void)strcpy(pep->value, value);
   }  /* if */
   pep->position = *position;
+  /* Replace the sequence number with the actual file line number. */
+  pep->position.seq = curr_ise->actual_line;
   /* Add this entry to the list. */
   if (pch_event_list_head == NULL) pch_event_list_head = pep;
   if (pch_event_list_tail != NULL) pch_event_list_tail->next = pep;
@@ -546,8 +548,27 @@ information.
        and close the primary input file. */
     pop_input_stack();
   }  /* if */
-  header_stop_source_position = pos_curr_token;
-  header_stop_is_end_of_source = (curr_token == tok_end_of_source);
+  if (pragma_hdrstop_found) {
+    a_pch_event_ptr	pep = pch_event_list_head;
+    a_pch_event_ptr	last_event_to_use = NULL;
+    /* Advance to the final #include, #define, or #pragma in the list. */
+    for (; pep != NULL; pep = pep->next) {
+      if (pep->kind == pchek_pp_directive) {
+        a_pp_directive_kind	ppd_kind = pep->variant.ppd_kind;
+        if (ppd_kind == ppd_include ||
+            ppd_kind == ppd_define ||
+            ppd_kind == ppd_pragma) {
+          last_event_to_use = pep;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Discard any events that follow the new last one. */
+    last_event_to_use->next = NULL;
+    header_stop_source_position = last_event_to_use->position;
+  } else {
+    header_stop_source_position = pos_curr_token;
+    header_stop_is_end_of_source = (curr_token == tok_end_of_source);
+  }  /* if */
   /* Reset the state information maintained by the lexical routines. */
   lexical_reset();
   /* Clear the primary source file pointer, otherwise, push_input_stack
@@ -557,6 +578,16 @@ information.
      will force the next token to begin on a new line. */
   building_pch_prefix = FALSE;
 }  /* build_prefix_information */
+
+
+void process_prefix_pragma_hdrstop(void)
+/*
+Do processing needed when a pragma hdrstop is found while doing the
+prefix scan.
+*/
+{
+  pragma_hdrstop_found = TRUE;
+}  /* process_prefix_pragma_hdrstop */
 
 
 static void open_pch_output_file(void)
@@ -1214,6 +1245,9 @@ write out the precompiled header file.
   if (using_a_pch_file) {
     /* We are using input obtained from a precompiled header, don't
        try to generate a new one. */
+  } else if (cannot_create_pch_file) {
+    /* Some condition was encountered that makes creation of a precompiled
+       header impossible. */
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* Don't save the header files if we are not currently at file scope. */
   } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
