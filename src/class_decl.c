@@ -1032,7 +1032,7 @@ nested class.
                                         (an_il_entry_kind)iek_routine,
                                         (a_source_sequence_entry_ptr)NULL);
           }  /* if */
-#endif NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           /* Let get_token know about the cache. */
           rescan_cached_tokens(&rfp->function_body_token_cache);
@@ -4332,7 +4332,7 @@ of the function, and again overloading is a possibility.
              class definition has been completed; a secondary-decl entry
              will be put out here. */
           func_info->is_movable_member_or_friend_def = TRUE;
-#endif NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       } else if (sym != NULL &&
@@ -5351,7 +5351,7 @@ declared member functions.
       if (!class_type->source_corresp.is_local_to_function) {
         func_info->is_movable_member_or_friend_def = TRUE;
       }  /* if */
-#endif NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
     if (!func_info->is_definition ||
         func_info->is_movable_member_or_friend_def) {
