@@ -20,6 +20,9 @@ twice for increments, decrements, and compound assignments.
     arr[i++].v += 1;  // i no longer incremented twice.
   }
 
+This change uses the new enk_reuse_value expression node
+described below (IL CHANGE).
+
 2/13/05  GNU two-operand "?" operator supported in GNU C++ mode
 
 The two-operand form of the "?" operator, formerly supported only
