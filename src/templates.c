@@ -906,8 +906,8 @@ If it involves no template-parameter type, simply return "type".
   if (tp != NULL) {
     /* Nested type case -- e.g., A<T>::B, where B names a nested class or
        enumeration.  The substitution is performed on the class-of-which-member
-       rather than on the nested type itself.  Note that algorithm deals
-       any nesting depth. */
+       rather than on the nested type itself.  Note that the algorithm deals
+       with any nesting depth. */
     tp = copy_type_with_substitution(tp, templ_arg_list, source_pos);
     if (tp == type->source_corresp.class_of_which_a_member) {
       /* No change to the parent class, so this is simply a case of A::B --
