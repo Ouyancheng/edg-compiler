@@ -12325,7 +12325,9 @@ in il_init.)
   /* Global variables declared in il.h. */
   register_trans_unit_array(orphaned_file_scope_il_entries);
   register_trans_unit_variable(type_of_type_info);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(type_of_guid);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(curr_fp_contract_state);
   register_trans_unit_variable(curr_fenv_access_state);
   register_trans_unit_variable(curr_cx_limited_range_state);
@@ -12347,7 +12349,9 @@ need initialization for every (primary and secondary) translation unit.
   /* Global variables declared in il.h. */
   curr_il_region_number = NULL_region_number;
   type_of_type_info = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   type_of_guid = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   curr_fp_contract_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
   curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
