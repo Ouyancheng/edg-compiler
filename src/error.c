@@ -66,13 +66,29 @@ that ordinarily this routine should not be called directly; use the macro
 #define is_pointer_or_reference_type(tp) \
 	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
 
+
+/*
+*/
+
+#define NORMAL_DIAG_INDENT 0;	/* The number of spaces to be indented prior
+				   to conventional single message
+				   diagnostics. */
+#define INDENT_AMOUNT 10	/* Number of additional spaces at the start of
+				   continuation lines. */
+#define LIST_DIAG_INDENT 12	/* The number of spaces to be indented prior
+				   to each additional message that is part of
+				   a multiple message diagnostic, i.e. an
+				   error diagnostic followed by a list of
+				   entities.  For appearances, this value
+				   should be greater than INDENT_AMOUNT. */
+
+				   
 #define BASE_MSG_SEGMENT_SIZE 100
 				/* The starting length of a formatted
 				   message segment. */
 #define INCR_MSG_SEGMENT_SIZE BASE_MSG_SEGMENT_SIZE
 				/* The increment size to be used to lengthen
 				   a message seqment. */
-
 
 /*
 An error message being formed is represented by a linked list of message
@@ -98,6 +114,10 @@ typedef struct msg_segment {
   msg_segment_ptr
 		next;		/* Pointer to the next message segment. */
   char		*segment;	/* Pointer to the message segment buffer. */
+  char		*first_quote;	/* Pointer to the first double quote in the 
+				   segment.  NULL if none. */
+  char		*second_quote;	/* Pointer to the second double quote in the 
+				   segment.  NULL if none. */
   int		length;		/* Current length of the message segment. */
   int		max_length;	/* Maximum string size that can be accommodated
 				   in the message segment buffer. */
@@ -143,11 +163,6 @@ typedef struct msg_segment {
 } msg_segment;
 
 
-
-
-#define MAX_ERR_SEG_KIND_PER_MSG 2
-				/* The maximum number of error message
-				   arguments of any message segment kind. */
 /*
 Diagnostic message substitutions can be based upon strings, types, and symbols
 passed to the appropriate diagnostic routines.  The following arrays of
@@ -155,6 +170,11 @@ pointers to these various substitution kinds are used to denote the
 source of substitutions in message segments.  The sequence number in
 message segment descriptor is used as an index into the appropriate array.
 */
+
+#define MAX_ERR_SEG_KIND_PER_MSG 2
+				/* The maximum number of error message
+				   arguments of any message segment kind. */
+
 static char *	error_msg_strings[MAX_ERR_SEG_KIND_PER_MSG + 1];
 				/* Array of pointers to the strings to be
 				   inserted into diagnostic messages. */
@@ -1538,11 +1558,13 @@ Allocate and initialize the fixed part a new message segment.
   msg_segment_ptr	msg;
 
   msg = (msg_segment_ptr)alloc_general(sizeof(msg_segment));
-  msg->next       = NULL;
-  msg->segment    = NULL;
-  msg->length     = 0;
-  msg->max_length = 0;
-  msg->sequence   = 1;
+  msg->next         = NULL;
+  msg->segment      = NULL;
+  msg->first_quote  = NULL;
+  msg->second_quote = NULL;
+  msg->length       = 0;
+  msg->max_length   = 0;
+  msg->sequence     = 1;
   return msg;
 }  /* new_message_segment */
 
@@ -1902,9 +1924,11 @@ segment described by *seg_ptr.
 */
 {
   add_string_to_segment("\"", seg_ptr);
+  seg_ptr->first_quote = seg_ptr->segment + seg_ptr->length - 1;
   form_type_first_part(tp, /*need_parens=*/FALSE, seg_ptr);
   form_type_second_part(tp, /*need_parens=*/FALSE, seg_ptr);
   add_string_to_segment("\"", seg_ptr);
+  seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
 }  /* summarize_type */
 
 
@@ -2149,6 +2173,7 @@ symbol_name:
       } /* if */
       /* Add the beginning double quote. */
       add_string_to_segment("\"", seg_ptr);
+      seg_ptr->first_quote = seg_ptr->segment + seg_ptr->length - 1;
       /* Check if this is a C++ constructor, destructor or conversion 
          routine. */
       if (routine != NULL) {
@@ -2196,6 +2221,7 @@ symbol_name:
   }  /* switch */
   /* Add the closing double quote mark. */
   add_string_to_segment("\"", seg_ptr);
+  seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
 
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
@@ -2248,6 +2274,8 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
   /* Establish the message segment descriptor for the first segment. */
   curr_segment = establish_first_segment();
   while (*msg_ptr != '\0') {
+    curr_segment->first_quote = NULL;
+    curr_segment->second_quote = NULL;
     switch (*msg_ptr) {
       case '%':
         /* This is the beginning of a parameter substitution descriptor. */
@@ -2485,11 +2513,13 @@ end_of_loop:
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void write_message(char      *msg,
-                          int       len,
-                          FILE      *file,
-                          int       *line_len,
-                          a_boolean wrap)
+static void write_message_part(char      *msg,
+                               int       len,
+                               FILE      *file,
+                               int       *line_len,
+                               a_boolean wrap,
+                               a_boolean quoted_text,
+                               a_boolean start_of_diagnostic)
 /*
 Write out a piece of an error message.  msg points to the
 message (or is NULL if there is no message), and len is its length (or
@@ -2497,21 +2527,40 @@ message (or is NULL if there is no message), and len is its length (or
 indicated by file.  *line_len is incremented by the number of characters
 written.  If wrap is TRUE, the text will be wrapped to successive
 additional lines as necessary and *line_len will be set to the number
-of characters written on the final line.
+of characters written on the final line.  If quoted_text is TRUE, the
+msg consists solely of a double quoted string that should not be broken
+if possible.
+
+When text as allowed to be wrapped to the next line, trailing spaces on
+each message fragment are not printed; but the number of these blanks is
+remembered and used,if needed, for spacing before the next fragment.  The
+boolean start_of_diagnostic indicates the beginning of a complete diagnostic.
+Any trailing spaces not printed at the end of the previous diagnostic will
+be forgotten.
 */
 {
 #define INDENT_AMOUNT 10 /* Number of spaces at the start of continuation
                             lines. */
-  int chars_to_take, chars_that_will_fit_on_line;
+  int		chars_to_take,
+		chars_that_will_fit_on_line;
+  static int	trailing_space_count;
 
+  if (start_of_diagnostic) trailing_space_count = 0;
   if (msg != NULL) {
     if (len < 0) len = strlen(msg);
     while (wrap && 
-           (chars_that_will_fit_on_line = 
-            MAX_ERROR_OUTPUT_LINE_LENGTH - *line_len) < len) {
+           (chars_that_will_fit_on_line = MAX_ERROR_OUTPUT_LINE_LENGTH -
+                                  *line_len - trailing_space_count) < len) {
       /* The text is too long to fit on one line.  Write part of it,
          and continue on the next line. */
       if (chars_that_will_fit_on_line < 0) chars_that_will_fit_on_line = 0;
+      /* Check that any quoted text that will not fit on this line
+         can be put on the next line without being broken. */
+      if (quoted_text &&
+          len <= MAX_ERROR_OUTPUT_LINE_LENGTH - INDENT_AMOUNT ) {
+        /* Quoted text will fit nicely on the next line. */
+        goto start_line_and_indent;
+      };  /* if */
       for (chars_to_take = chars_that_will_fit_on_line;
            chars_to_take > 0;
            chars_to_take--) {
@@ -2529,12 +2578,19 @@ of characters written on the final line.
       }  /* if */
       /* Print the characters that will fit on the current line. */
       if (chars_to_take > 0) {
+        /* Print any "remembered" spaces from the last fragment. */
+        for (; trailing_space_count > 0; trailing_space_count--) {
+          fputc(' ', file);
+        }; /* for */
+        for (; trailing_space_count-- > 0;) fputc(' ', file);
         *line_len += fprintf(file, "%.*s", chars_to_take, msg);
         msg += chars_to_take;
         len -= chars_to_take;
       }  /* if */
+start_line_and_indent:
       /* Skip over any blanks at the start of the remaining text of the
-         message. */
+         message and discard any spaces from the previous message fragment. */
+      trailing_space_count = 0;
       while (len > 0 && *msg == ' ') {
         msg++;
         len--;
@@ -2547,11 +2603,21 @@ of characters written on the final line.
     }  /* while */
     /* Print the final piece of the text (in the usual case, this prints
        all of the text). */
+    /* Print any "remembered" spaces from the last fragment. */
+    for (; trailing_space_count > 0; trailing_space_count--) {
+      fputc(' ', file);
+    }; /* for */
+
+    if (wrap) {
+      /* Remove any trailing spaces from the final piece of text.  These
+         will be added prior to the next piece of text if needed. */
+      for (; len > 0 && msg[len - 1] == ' '; len--, trailing_space_count++) {}
+    }  /* if */
     if (len > 0) {
       *line_len += fprintf(file, "%.*s", len, msg);
     }  /* if */
   }  /* if */
-}  /* write_message */
+}  /* write_message_part */
 
 
 static void init_error_params(void)
@@ -2560,6 +2626,7 @@ Initialize the array of user string, types and symbols to be inserted into
 a diagnostic message.
 */
 {
+
   int i;
 
   /* Initialize the message substitution kind array. */
@@ -2573,13 +2640,87 @@ a diagnostic message.
 }  /* init_error_params */
 
 
+static void write_message(FILE      *file,
+                          int       *line_len,
+                          a_boolean wrap)
+/*
+Write each of the message segments chained from the static variable
+error_message_head to the specified file.  *line_len is the current line
+length and is incremented to reflect the number of characters added
+to the current line.  If wrap is TRUE, the text will be wrapped to
+successive additional lines as necessary.
+*/
+{
+  msg_segment_ptr curr_seg;
+  int		  length;
+  int		  total_len;
+  a_boolean	  start_of_message = TRUE;
+
+  for (curr_seg = error_message_head;
+       curr_seg != NULL &&
+         curr_seg->kind != (a_message_segment_kind)msk_last;
+       curr_seg = curr_seg->next) {
+    switch (curr_seg->kind) {
+      case msk_error_text_part:
+        write_message_part(curr_seg->variant.msg_part, curr_seg->length,
+                           file, line_len, wrap, /*quoted_text=*/FALSE,
+                           start_of_message);
+        break;
+      case msk_user_string:
+        if (curr_seg->variant.string.quoted) {
+          goto handle_embedded_quoted_text;
+        }  /* if */
+        write_message_part(error_msg_strings[curr_seg->sequence], -1, file,
+                           line_len, wrap, /*quoted_text=*/FALSE,
+                           start_of_message);
+        break;
+      case msk_type:
+      case msk_symbol:
+handle_embedded_quoted_text:
+        if (curr_seg->first_quote == NULL) {
+          write_message_part(curr_seg->segment, -1, file, line_len,
+                             wrap, /*quoted_text=*/FALSE,
+                             start_of_message);
+        } else {
+          /* This segment contains double quoted text which should not be
+             broken across lines. */
+          total_len = 0;
+          if (curr_seg->segment != curr_seg->first_quote) {
+            total_len = (curr_seg->first_quote - curr_seg->segment);
+            write_message_part(curr_seg->segment, total_len, file,
+                               line_len, wrap, /*quoted_text=*/FALSE,
+                               start_of_message);
+            start_of_message = FALSE;
+          };  /* if */
+          /* Output the quoted text as a single unit. */
+          total_len += length = curr_seg->second_quote -
+                                curr_seg->first_quote +1;
+          write_message_part(curr_seg->first_quote, length, file, line_len,
+                             wrap, /*quoted_text=*/TRUE,
+                             start_of_message);
+          start_of_message = FALSE;
+          /* Check for any fragment following the quoted text. */
+          if ((length = curr_seg->length - total_len) > 0) {
+            write_message_part(curr_seg->second_quote + 1, length, file,
+                               line_len, wrap, /*quoted_text=*/FALSE,
+                               start_of_message);
+          }  /* if */
+        };  /* if */
+        break;
+    }  /* switch */
+    start_of_message = FALSE;
+  }  /* for */
+  putc('\n', file);
+}  /* write_message */
+
+
 static void write_diagnostic(a_source_position *error_pos,
                              an_error_severity severity)
 /*
 Write out a diagnostic message with the given message string, position, and
 severity.  If the error is severe, terminate the compilation.
-The message to be put out is the concatenation of the linked list of
-message segments pointed to by the global variable error_msg_head.
+The message to be written is the concatenation of the linked list of
+message segments pointed to by the static variable error_message_head.
 */
 {
   char            *severity_string, *file_name, *full_name;
@@ -2591,7 +2732,6 @@ message segments pointed to by the global variable error_msg_head.
   a_boolean       source_text_needed = FALSE;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   int             line_len = 0;
-  msg_segment_ptr curr_seg;
 
   if ((int)severity < (int)error_threshold) {
     /* Ignore the message if its severity is below the threshold. */
@@ -2688,41 +2828,9 @@ message segments pointed to by the global variable error_msg_head.
       line_len += fprintf(stderr, "%s", severity_string);
     }  /* if */
 
-    /* Put out the error message text.  Try to collect the three parts
-       into a single message if possible, as that will improve the
-       appearance of the output of the line-wrapping algorithm in
-       write_message (if the text is not consolidated, lines may be
-       broken at the text-piece boundaries, which can be, for example,
-       between a quote and a file name). */
+    /* Put out the error message text. */
+    write_message(stderr, &line_len, TRUE);
 
-    for (curr_seg = error_message_head;
-         curr_seg != NULL &&
-           curr_seg->kind != (a_message_segment_kind)msk_last;
-         curr_seg = curr_seg->next) {
-      switch (curr_seg->kind) {
-        case msk_error_text_part:
-          write_message(curr_seg->variant.msg_part, curr_seg->length, stderr,
-                        &line_len, /*wrap=*/TRUE);
-          break;
-        case msk_user_string:
-          { char  *msg;
-
-            if (curr_seg->variant.string.quoted) {
-              msg = curr_seg->segment;
-            } else {
-              msg = error_msg_strings[curr_seg->sequence];
-            }  /* if */
-            write_message(msg, -1, stderr, &line_len, /*wrap=*/TRUE);
-          }
-          break;
-        case msk_type:
-        case msk_symbol:
-          write_message(curr_seg->segment, -1, stderr, &line_len,
-                        /*wrap=*/TRUE);
-          break;
-      }  /* switch */
-    }  /* for */
-    putc('\n', stderr);
 #if !STANDALONE_UTILITY_PROGRAM
     if (source_text_needed) {
       /* Write the source text line, with a caret pointing to the location
@@ -2785,34 +2893,7 @@ message segments pointed to by the global variable error_msg_head.
       }  /* if */
       /* Put out the error message text. */
       line_len = 0;  /* Meaningless. */
-      for (curr_seg = error_message_head;
-           curr_seg != NULL &&
-             curr_seg->kind != (a_message_segment_kind)msk_last;
-           curr_seg = curr_seg->next) {
-        switch (curr_seg->kind) {
-          case msk_error_text_part:
-            write_message(curr_seg->variant.msg_part, curr_seg->length,
-                          f_raw_listing, &line_len, /*wrap=*/FALSE);
-            break;
-          case msk_user_string:
-            { char  *msg;
-
-              if (curr_seg->variant.string.quoted) {
-                msg = curr_seg->segment;
-              } else {
-                msg = error_msg_strings[curr_seg->sequence];
-              }  /* if */
-              write_message(msg, -1, f_raw_listing, &line_len, /*wrap=*/FALSE);
-            }
-            break;
-          case msk_type:
-          case msk_symbol:
-            write_message(curr_seg->segment, -1, f_raw_listing,
-                          &line_len, /*wrap=*/FALSE);
-            break;
-        }  /* switch */
-      }  /* for */
-      putc('\n', f_raw_listing);
+      write_message(f_raw_listing, &line_len, TRUE);
     }  /* if */
   }  /* if */
 
@@ -2897,9 +2978,9 @@ Write a command-line error message, and terminate the compilation.
 }  /* command_line_error */
 
 
-static void diag_message (an_error_code     error_code,
-                          a_source_position *error_pos,
-                          an_error_severity severity)
+static void construct_diagnostic (an_error_code     error_code,
+                                  a_source_position *error_pos,
+                                  an_error_severity severity)
 /*
 Construct a diagnostic message.  The error code is error_code, and the
 position of the error is *error_pos.  severity gives the severity (e.g.,
@@ -2927,22 +3008,24 @@ diagnostic is written.
       case msk_user_string:
 #if CHECKING
         if (error_msg_strings[curr_seg->sequence] == NULL) {
-          internal_error("diag_message: missing string substitution");
+          internal_error("construct_diagnostic: missing string substitution");
         }  /* if */
 #endif /* CHECKING */
         if (curr_seg->variant.string.quoted) {
           /* Rebuild the user string surrounded by double quotes. */
           add_string_to_segment("\"", curr_seg);
+          curr_seg->first_quote = curr_seg->segment + curr_seg->length - 1;
           add_string_to_segment(error_msg_strings[curr_seg->sequence],
                                 curr_seg);
           add_string_to_segment("\"", curr_seg);
+          curr_seg->second_quote = curr_seg->segment + curr_seg->length - 1;
         }  /* if */
         break;
         
       case msk_type:
 #if CHECKING
         if (error_msg_types[curr_seg->sequence] == NULL) {
-          internal_error("diag_message: missing type substitution");
+          internal_error("construct_diagnostic: missing type substitution");
         }  /* if */
 #endif /* CHECKING */
         form_type_summary(error_msg_types[curr_seg->sequence], curr_seg);
@@ -2951,7 +3034,7 @@ diagnostic is written.
 #if !STANDALONE_UTILITY_PROGRAM
 #if CHECKING
         if (error_msg_syms[curr_seg->sequence] == NULL) {
-          internal_error("diag_message: missing symbol substitution");
+          internal_error("construct_diagnostic: missing symbol substitution");
         }  /* if */
 #endif /* CHECKING */
         form_symbol_name(error_msg_syms[curr_seg->sequence],
@@ -2962,7 +3045,7 @@ diagnostic is written.
   }  /* for */
 
   write_diagnostic(error_pos, severity);
-}  /* diag_message */
+}  /* construct_diagnostic */
 
 
 void pos_st_remark(an_error_code     error_code,
@@ -2975,7 +3058,7 @@ indicated position.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_remark);
+  construct_diagnostic(error_code, error_pos, es_remark);
 }  /* pos_st_remark */
 
 
@@ -3019,7 +3102,7 @@ indicated position.
 {
   init_error_params();
   error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_remark);
+  construct_diagnostic(error_code, error_pos, es_remark);
 }  /* pos_ty_remark */
 
 
@@ -3045,7 +3128,7 @@ indicated position.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_remark);
+  construct_diagnostic(error_code, error_pos, es_remark);
 }  /* pos_sy_remark */
 
 
@@ -3071,7 +3154,7 @@ indicated position.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_warning);
+  construct_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_st_warning */
 
 
@@ -3104,7 +3187,7 @@ indicated position.
 {
   init_error_params();
   error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_warning);
+  construct_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_ty_warning */
 
 
@@ -3132,7 +3215,7 @@ indicated position.
   init_error_params();
   error_msg_syms[1] = symbol;
   error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_warning);
+  construct_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_sy_warning */
 
 
@@ -3146,7 +3229,7 @@ indicated position.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_warning);
+  construct_diagnostic(error_code, error_pos, es_warning);
 }  /* pos_sy_warning */
 
 
@@ -3172,7 +3255,7 @@ indicated position.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_error);
+  construct_diagnostic(error_code, error_pos, es_error);
 }  /* pos_st_error */
 
 
@@ -3188,7 +3271,7 @@ indicated position.
   init_error_params();
   error_msg_strings[1] = error_string;
   error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_error);
+  construct_diagnostic(error_code, error_pos, es_error);
 }  /* pos_st_error */
 
 
@@ -3232,7 +3315,7 @@ indicated position.
 {
   init_error_params();
   error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_error);
+  construct_diagnostic(error_code, error_pos, es_error);
 }  /* pos_ty_error */
 
 
@@ -3248,7 +3331,7 @@ indicated position.
   init_error_params();
   error_msg_types[1] = type1;
   error_msg_types[2] = type2;
-  diag_message(error_code, error_pos, es_error);
+  construct_diagnostic(error_code, error_pos, es_error);
 }  /* pos_ty_error */
 
 
@@ -3274,7 +3357,7 @@ indicated position.
 {
   init_error_params();
   error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error);
+  construct_diagnostic(error_code, error_pos, es_error);
 }  /* pos_sy_error */
 
 
@@ -3290,7 +3373,7 @@ indicated position.
   init_error_params();
   error_msg_types[1] = type;
   error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error);
+  construct_diagnostic(error_code, error_pos, es_error);
 }  /* pos_syty_error */
 
 
@@ -3334,7 +3417,7 @@ at the indicated position, and then terminate the compilation.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
-  diag_message(error_code, error_pos, es_catastrophe);
+  construct_diagnostic(error_code, error_pos, es_catastrophe);
 }  /* pos_st_catastrophe */
 
 
