@@ -566,7 +566,8 @@ typedef enum /*an_error_code*/ {
   ec_self_friendship,
   ec_period_used_as_qualifier,
   ec_const_function_anachronism,
-  ec_dependent_stmt_is_declaration
+  ec_dependent_stmt_is_declaration,
+  ec_void_param_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

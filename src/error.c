@@ -1950,6 +1950,9 @@ error code.
     case ec_dependent_stmt_is_declaration:
       m = "a dependent statement may not be a declaration";
       break;
+    case ec_void_param_not_allowed:
+      m = "a parameter may not have void type";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
