@@ -712,6 +712,7 @@ do_variable:
             put_string("cannot be called");
           }  /* if */
         } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+          a_symbol_ptr	prototype_sym;
           switch (tssp->variant.class_template.type_kind) {
             case tk_class:  put_string("class");           break;
             case tk_struct: put_string("struct");          break;
@@ -719,6 +720,20 @@ do_variable:
             case tk_error:  put_string("no type kind");    break;
             default:        put_string("<BAD TYPE KIND>"); break;
           }  /* switch */
+          prototype_sym = tssp->variant.class_template.prototype_instantiation;
+          if (prototype_sym != NULL) {
+            /* If the prototype instantiation has a partial specialization
+               template argument list (i.e., it is for a partial
+               specialization), display the primary template argument list
+               to identify the partial specialization. */
+            a_type_ptr			prototype_type;
+            a_class_type_supplement_ptr	ctsp;
+            prototype_type = type_symbol_type(prototype_sym);
+            ctsp = prototype_type->variant.class_struct_union.extra_info;
+            if (ctsp->partial_spec_template_arg_list != NULL) {
+              db_template_arg_list(ctsp->template_arg_list);
+            }  /* if */
+          }  /* if */
         }  /* if */
         /* Output information from the template symbol supplement. */
         if (sym->kind == (a_symbol_kind)sk_function_template) {
