@@ -56,6 +56,9 @@ static void find_type_correspondence(a_type_ptr  type,
                                      a_boolean   parent_found);
 static void find_template_correspondence(a_template_ptr  templ,
                                          a_boolean       parent_found);
+static a_symbol_list_entry_ptr find_class_template_instantiation(
+                                      a_template_symbol_supplement_ptr  tssp,
+                                      a_symbol_ptr                      inst);
 static a_boolean verify_type_correspondence(a_type_ptr  type);
 static a_boolean verify_template_correspondence(a_template_ptr  templ);
 static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
@@ -1888,7 +1891,7 @@ given enum type.
 }  /* establish_trans_unit_correspondences_for_enum */
 
 
-void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
+static void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
 /*
 Set the correspondence pointers in the members of a type.  The members' types
 are not checked.
@@ -2087,6 +2090,46 @@ are not checked.
     }  /* if */
   }  /* if */
 }  /* establish_trans_unit_correspondences_for_class */
+
+
+void establish_class_instantiation_corresp(a_type_ptr  type)
+/*
+Establish correspondences for members of a class template instantiation.
+This is much like establish_trans_unit_correspondences_for_class, but for
+instantiations in primary translation units, we must start with the type
+(if any) in a secondary translation unit whose correspondence is the given
+type.
+*/
+{
+  if (in_secondary_trans_unit(type)) {
+    establish_trans_unit_correspondences_for_class(type);
+  } else {
+    a_symbol_ptr  inst = (a_symbol_ptr)type->source_corresp.assoc_info,
+                  templ_sym = primary_template_of(
+                                   inst->variant.class_struct_union.extra_info
+                                       ->class_template);
+    a_symbol_list_entry_ptr
+                  slep = templ_sym->variant.template_info->all_instantiations;
+    a_type_ptr    sec = NULL;
+    /* Look for an entry in a secondary translation unit that matches the
+       given primary translation unit instantiation. */
+    for (; slep != NULL; slep = slep->next) {
+      sec = type_symbol_type(slep->symbol);
+      if (sec == type) {
+        /* The type was first instantiated in a primary translation unit.
+           There are no correspondences to be set. */
+        clear_class_type_correspondence(type, /*visited=*/TRUE);
+        break;
+      } else if (!in_secondary_trans_unit(sec)) {
+        /* A primary translation unit correspondence: not what we are looking
+           for. */
+      } else if ((a_type_ptr)trans_unit_corresp_pointer_of(sec) == type) {
+        establish_trans_unit_correspondences_for_class(sec);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* establish_class_instantiation_corresp */
 
 
 a_boolean seek_class_type_corresp(a_type_ptr  type_1,
@@ -2498,9 +2541,9 @@ template.
           a_type_ptr  sec = type_symbol_type(slep->symbol);
           check_assertion(in_secondary_trans_unit(sec));
           (void)seek_class_type_corresp(sec, prim);
-          if (inst->defined) {
-            slep->symbol = inst;
-          }  /* if */
+          /* It is tempting to set slep->symbol = inst at this point, but we
+             may need to have a record of sec to set correspondences for its
+             members when establish_class_instantiation_corresp is called. */
         }  /* if */
       }  /* if */
     } else if (is_function_symbol(inst)) {

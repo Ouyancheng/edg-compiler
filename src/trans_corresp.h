@@ -131,7 +131,7 @@ extern void set_trans_unit_correspondences(void);
 extern void record_instantiation(a_symbol_ptr                      inst,
                                  a_template_symbol_supplement_ptr  tssp);
 
-extern void establish_trans_unit_correspondences_for_class(a_type_ptr  type);
+extern void establish_class_instantiation_corresp(a_type_ptr  type);
 
 extern void corresp_one_time_init(void);
 

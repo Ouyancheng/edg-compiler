@@ -2276,7 +2276,7 @@ might not be able to if the template itself has not yet been defined.
          translation units to notify it that the class type is complete.
          This causes the correspondence of the class members to be
          established. */
-      establish_trans_unit_correspondences_for_class(class_type);
+      establish_class_instantiation_corresp(class_type);
     }  /* if */
   }  /* if */
   db_exit();
