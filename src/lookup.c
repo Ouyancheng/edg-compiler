@@ -1694,7 +1694,8 @@ Macro that initializes a lookup state variable.
   ((name_space_for_symbol_kind[(int)sym->kind] ==			     \
                                   (lookup_state).required_name_space_kind) && \
    ((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
-    invisible_okay || /*lint --e(506)*/					\
+    /*lint --e(506)*/							\
+    invisible_okay ||							\
     (lookup_state).is_linkage_lookup ||					\
     (lookup_state).is_friend_lookup) &&					\
    (!(lookup_state).must_be_class_or_namespace ||			\
@@ -1777,7 +1778,9 @@ of the lookup is returned to the caller.
     /* Ignore symbols that do not match the lookup requirements. */
     fund_sym = fundamental_symbol_of(new_sym);
     if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state,
-                              /*invisible_okay=*/FALSE)) continue;
+                              /*invisible_okay=*/FALSE)) {
+      continue;
+    }  /* if */
     /* The namespace symbol supplement contains the scope depth at which
        symbols from a given namespace should be visible.  See if the scope
        depth for this namespace matches the scope pointed to by ssep. */
