@@ -1,5 +1,11 @@
 Version 2.39
 
+2/20/98   Compilation problem in lower_il.c with BACK_END_IS_C_GEN_BE set to 0
+
+When BACK_END_IS_C_GEN_BE is set to 0, lower_il.c did not compile correctly
+due to a missing #if surrounding move_class_promoted_local_types.
+This problem was introduced in version 2.38.
+
 2/18/97   Microsoft compatibility: L#param to produce wide string literal
 
 In Microsoft mode, the idiom L#param is now accepted as requesting

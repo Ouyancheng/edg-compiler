@@ -9813,6 +9813,7 @@ Promote the asm entries on the asm_entries list of the indicated scope
   scope->asm_entries = NULL;
 }  /* promote_asm_entries */
 
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
 static void move_class_promoted_local_types(a_type_ptr class_type,
                                             a_type_ptr *local_types,
@@ -9847,6 +9848,7 @@ done for the parent class.
   }  /* if */
 }  /* move_class_promoted_local_types */
 
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
 static void promote_type_list(a_type_ptr  type,
                               a_scope_ptr promotion_scope,
