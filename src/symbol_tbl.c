@@ -415,7 +415,7 @@ and indentation is the indentation desired.
   fputs(buffer, f_debug);
   col += strlen(buffer);
 
-  (void)sprintf(buffer, "scope %d", sym->decl_scope);
+  (void)sprintf(buffer, "scope %ld", sym->decl_scope);
   put_string(buffer);
 
   if (sym->referenced) put_string("ref'd");
@@ -512,7 +512,7 @@ and indentation is the indentation desired.
           put_string("last field is zero-array");
         }  /* if */
         if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
-          sprintf(buffer, "member_decl_scope %0d\n", cssp->member_decl_scope);
+          sprintf(buffer, "member_decl_scope %0ld\n", cssp->member_decl_scope);
         }  /* if */
         if (cssp->template_param_for_proxy_class != NULL) {
           if (debug_level >= 4) put_string("has ptr for proxy");

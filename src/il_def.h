@@ -6482,7 +6482,7 @@ front end.
 */
 typedef long a_scope_number;
 #define MAX_SCOPE_NUMBER LONG_MAX
-#define NO_SCOPE_NUMBER (-1)
+#define NO_SCOPE_NUMBER ((a_scope_number)-1)
 			/* Scope number used for things without scope. */
 #define FILE_SCOPE_NUMBER 0
 			/* Scope number for the file scope. */

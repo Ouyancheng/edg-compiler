@@ -90,7 +90,7 @@ Display one scope stack entry.
 {
   int                      len;
 
-  fprintf(f_debug, "%s%3d %3d ",
+  fprintf(f_debug, "%s%3ld %3d ",
           (ssep == &scope_stack[decl_scope_level]) ? "**" : "  ",
           ssep->number, scope_depth_of(ssep));
   len = db_scope_kind(ssep->kind);
@@ -3441,7 +3441,7 @@ End a name scope by popping an entry off the scope stack.
 #if DEBUG
   if (debug_level >= 3) {
     if (pointers_block->symbols != NULL || debug_level >= 4) {
-      fprintf(f_debug, "pop_scope: number = %d, depth = %d",
+      fprintf(f_debug, "pop_scope: number = %ld, depth = %d",
               ssep->number, depth_scope_stack);
       if (curr_routine != NULL) {
         (void)fputs(", curr_routine = \"", f_debug);
