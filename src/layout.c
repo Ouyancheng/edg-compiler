@@ -379,7 +379,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   }  /* if */
   /* Give a warning for a signed one-bit field; ANSI C allows it, but it's
      strange. */
-  if (is_signed && bit_field_size == 1) warning(ec_signed_one_bit_field);
+  if (!unnamed_bit_field && is_signed && bit_field_size == 1) {
+    warning(ec_signed_one_bit_field);
+  }  /* if */
   /* Set base_type to bit_field_type with the proper type qualifiers. */
   if (bit_field_type == skip_typerefs(base_type)) {
     /* The original type, base_type, has turned out to be correct after all.
