@@ -34,6 +34,15 @@ and parsing of them into tokens.
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
 
+
+/*
+Return TRUE if tok is a token kind that is a literal constant.
+*/
+#define is_literal_constant_token(tok)                                \
+  (tok == tok_float_constant || tok == tok_int_constant ||            \
+   tok == tok_char_constant  || tok == tok_string_literal)
+
+
 /*
 Variables pertaining to the input stack (for include files and the
 primary source file) and the current input file (the top entry on the
@@ -171,87 +180,359 @@ static a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 #define PLC_OTHER 3
 			/* All other characters. */
 
+/*
+Information about cached tokens, i.e., tokens saved for later rescanning.
+*/
+static a_cached_token_ptr
+		cached_token_rescan_list;
+			/* If non-NULL, points to a list of cached tokens
+			   that should be rescanned by get_token before going
+			   forward in the input stream. */
+static a_cached_token_ptr
+		avail_cached_tokens;
+			/* List of cached token entries (allocated in front
+			   end storage) freed and available for reuse. */
+static a_constant_ptr
+		avail_cached_constants;
+			/* List of constant entries (allocated in front end
+			   storage) for use with token caching entries,
+			   freed and available for reuse. */
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
 */
 static unsigned long
 		num_orig_line_modifs_allocated,
-		num_source_line_modifs_allocated;
+		num_source_line_modifs_allocated,
+		num_cached_tokens_allocated,
+		num_cached_constants_allocated;
 #endif /* DEBUG */
 
-/*
-Data structure for trapping a token (to look ahead one token), and for
-saving/restoring the current token state.
-*/
-typedef struct a_token_state {
-  /* Saved copy of the information related to a token returned from
-     get_token, for later restoration.  The fields here have the
-     same names as the global variables whose state they save. */
-  a_token_kind	curr_token;
-  a_symbol_locator
-		locator_for_curr_id;
-  a_symbol_ptr	symbol_list_for_curr_id;
-  a_constant	const_for_curr_token;
-  a_source_position
-		pos_curr_token,
-		error_position;
-  int		kind_of_white_space_skipped;
-  a_boolean	lint_argsused_flag;
-  short		lint_varargs_count;
-  a_boolean	lint_notreached_flag;
-  /* start_of_curr_token, end_of_curr_token, and len_of_curr_token
-     do not need to be saved (since saving/restoring is not done at
-     the pp-token level), nor do variables describing the input stream. */
-} a_token_state;
-static a_boolean
-		trapped_token;
-			/* TRUE if the next token after the current one
-			   has already been scanned, and the information
-			   about it is in trapped_token_state. */
-static a_token_state
-		trapped_token_state;
-			/* When trapped_token is TRUE, information about
-			   the trapped token. */
 
-
-static void save_curr_token_state(a_token_state *tsp)
+static void set_globals_from_lint_and_pragma_state(
+                                                 a_lint_and_pragma_state *laps)
 /*
-Save all information about the current token in *tsp, for later restoration.
+Set the global lint and pragma state variables to match the state indicated
+in laps.
 */
 {
-  tsp->curr_token = curr_token;
-  tsp->locator_for_curr_id = locator_for_curr_id;
-  tsp->symbol_list_for_curr_id = symbol_list_for_curr_id;
-  copy_constant(&const_for_curr_token, &tsp->const_for_curr_token);
-  copy_source_position(pos_curr_token, tsp->pos_curr_token);
-  copy_source_position(error_position, tsp->error_position);
-  tsp->kind_of_white_space_skipped = kind_of_white_space_skipped;
-  tsp->lint_argsused_flag = lint_argsused_flag;
-  tsp->lint_varargs_count = lint_varargs_count;
-  tsp->lint_notreached_flag = lint_notreached_flag;
-}  /* save_curr_token_state */
+#if DEBUG
+  if (debug_level >= 3) {
+    if (arg_pragma != laps->arg_pragma) {
+      fprintf(f_debug, "Setting arg_pragma = %d\n", (int)laps->arg_pragma);
+    }  /* if */
+  if (lint_varargs_count != laps->lint_varargs_count) {
+      fprintf(f_debug, "Setting lint_varargs_count = %d\n",
+                                                (int)laps->lint_varargs_count);
+    }  /* if */
+  if (lint_argsused_flag != laps->lint_argsused_flag) {
+      fprintf(f_debug, "Setting lint_argsused_flag = %s\n",
+                       laps->lint_argsused_flag ? "TRUE" : "FALSE");
+    }  /* if */
+  if (lint_notreached_flag != laps->lint_notreached_flag) {
+      fprintf(f_debug, "Setting lint_notreached_flag = %s\n",
+                       laps->lint_notreached_flag ? "TRUE" : "FALSE");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  arg_pragma = laps->arg_pragma;
+  lint_varargs_count = laps->lint_varargs_count;
+  lint_argsused_flag = laps->lint_argsused_flag;
+  lint_notreached_flag = laps->lint_notreached_flag;
+}  /* set_globals_from_lint_and_pragma_state */
 
 
-static void restore_curr_token_state(a_token_state *tsp)
+static void clear_lint_and_pragma_state(a_lint_and_pragma_state *laps)
 /*
-Restore all information about the current token from *tsp.
+Clear the lint and pragma state in a token cache.
 */
 {
-  curr_token = tsp->curr_token;
-  locator_for_curr_id = tsp->locator_for_curr_id;
-  symbol_list_for_curr_id = tsp->symbol_list_for_curr_id;
-  copy_constant(&tsp->const_for_curr_token, &const_for_curr_token);
-  copy_source_position(tsp->pos_curr_token, pos_curr_token);
-  copy_source_position(tsp->error_position, error_position);
-  kind_of_white_space_skipped = tsp->kind_of_white_space_skipped;
-  lint_argsused_flag = tsp->lint_argsused_flag;
-  lint_varargs_count = tsp->lint_varargs_count;
-  lint_notreached_flag = tsp->lint_notreached_flag;
-  /* start_of_curr_token, end_of_curr_token, and len_of_curr_token were
-     not saved.  Clear start_of_curr_token to catch any (illegal) use of it. */
-  start_of_curr_token = NULL;
-}  /* restore_curr_token_state */
+  laps->arg_pragma           = (an_arg_pragma_kind)apk_none;
+  laps->lint_varargs_count   = NOT_LINT_VARARGS;
+  laps->lint_argsused_flag   = FALSE;
+  laps->lint_notreached_flag = FALSE;
+}  /* clear_lint_and_pragma_state */
+
+
+void clear_token_cache(a_token_cache *cache)
+/*
+Initialize a token cache, presumably so tokens can be added to it.
+*/
+{
+  cache->first_token = NULL;
+  cache->last_token  = NULL;
+  clear_lint_and_pragma_state(&cache->lint_and_pragma_state);
+}  /* init_token_cache */
+
+
+static a_cached_token_ptr alloc_cached_token(void)
+/*
+Allocate a cached token entry.  Reuse a freed entry if possible.
+*/
+{
+  a_cached_token_ptr ctp;
+
+  if (avail_cached_tokens != NULL) {
+    /* Reuse a freed entry. */
+    ctp = avail_cached_tokens;
+    avail_cached_tokens = avail_cached_tokens->next;
+  } else {
+    /* Allocate a new entry. */
+    ctp = (a_cached_token_ptr)alloc_fe(sizeof(a_cached_token));
+#if DEBUG
+    num_cached_tokens_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  ctp->next = NULL;
+  ctp->source_position = pos_curr_token;
+  ctp->token = (a_byte_token_kind)tok_error;
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
+  return ctp;
+}  /* alloc_cached_token */
+
+
+static a_constant_ptr alloc_cached_constant(void)
+/*
+Allocate a cached constant entry.  Reuse a freed entry if possible.
+*/
+{
+  a_constant_ptr cp;
+
+  if (avail_cached_constants != NULL) {
+    /* Reuse a freed entry. */
+    cp = avail_cached_constants;
+    avail_cached_constants = avail_cached_constants->next;
+  } else {
+    /* Allocate a new entry. */
+    cp = (a_constant_ptr)alloc_fe(sizeof(a_constant));
+#if DEBUG
+    num_cached_constants_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  return cp;
+}  /* alloc_cached_constant */
+
+
+/*
+Add the cached token pointed to by ctp to the end of the token cache
+pointed to by cache.
+*/
+#define add_cached_token_to_cache(ctp, cache)                         \
+{ if (cache->first_token == NULL) {                                   \
+    cache->first_token = ctp;                                         \
+  } else {                                                            \
+    cache->last_token->next = ctp;                                    \
+  }  /* if */                                                         \
+  cache->last_token = ctp;                                            \
+}  /* add_cached_token_to_cache */
+
+
+static void add_lint_and_pragma_entry(a_token_cache *cache)
+/*
+Add a lint and pragma entry to the end of the indicated token cache
+to bring its lint and pragma state into conformance with the
+current state as indicated by the global variables.
+*/
+{
+  a_cached_token_ptr ctp;
+
+  cache->lint_and_pragma_state.arg_pragma = arg_pragma;             
+  cache->lint_and_pragma_state.lint_varargs_count = lint_varargs_count;
+  cache->lint_and_pragma_state.lint_argsused_flag = lint_argsused_flag;
+  cache->lint_and_pragma_state.lint_notreached_flag = lint_notreached_flag;
+  ctp = alloc_cached_token();
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_lint_and_pragma;
+  ctp->variant.lint_and_pragma_state = cache->lint_and_pragma_state;
+  add_cached_token_to_cache(ctp, cache);
+}  /* add_lint_and_pragma_entry */
+
+
+/*
+Add an entry to the end of a token cache list to indicate a lint/pragma
+change if the current lint/pragma state does not match the state
+assumed at the end of the cache list.
+*/
+#define if_necessary_add_lint_and_pragma_entry(cache)                 \
+{ if (cache->lint_and_pragma_state.arg_pragma != arg_pragma ||        \
+      cache->lint_and_pragma_state.lint_varargs_count != lint_varargs_count ||\
+      cache->lint_and_pragma_state.lint_argsused_flag != lint_argsused_flag ||\
+      cache->lint_and_pragma_state.lint_notreached_flag !=            \
+                                                       lint_notreached_flag) {\
+    add_lint_and_pragma_entry(cache);                                 \
+  }  /* if */                                                         \
+}  /* if_necessary_add_lint_and_pragma_entry */
+
+
+void cache_curr_token(a_token_cache *cache)
+/*
+Save the current token on the end of the list of tokens saved in *cache.
+This is used to save tokens for later rescanning.  This may not be used
+for pp-tokens.
+*/
+{
+  a_cached_token_ptr ctp;
+
+  /* Check to see if the current lint comment/pragma state is different
+     than the last known state reflected in the cache.  If it is, put
+     an entry to reflect the change on the end of the cache list. */
+  if_necessary_add_lint_and_pragma_entry(cache);
+  /* Build an entry for the current token itself. */
+  ctp = alloc_cached_token();
+  ctp->token = (a_byte_token_kind)curr_token;
+  if (curr_token == tok_identifier) {
+    /* Identifier -- save a pointer to the symbol header.  If the name
+       is a qualified name, save the pointer to the qualified name symbol. */
+    if (locator_for_curr_id.qualified_name_symbol != NULL) {
+      ctp->extra_info_kind = (a_token_extra_info_kind)teik_qualified_name;
+      ctp->variant.qualified_name_symbol =
+                                     locator_for_curr_id.qualified_name_symbol;
+    } else {
+      ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
+      ctp->variant.identifier_header = locator_for_curr_id.symbol_header;
+    }  /* if */
+  } else if (is_literal_constant_token(curr_token)) {
+    /* Literal constant -- save the constant's value. */
+    ctp->extra_info_kind = (a_token_extra_info_kind)teik_constant;
+    ctp->variant.constant = alloc_cached_constant();
+    /* Copy the constant.  Note that anything pointed to by the constant
+       (e.g., a string) has been allocated in the file scope and doesn't
+       need to be copied. */
+    copy_constant(&const_for_curr_token, ctp->variant.constant);
+  } else {
+    /* No extra information needed for this token. */
+    ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
+  }  /* if */
+  add_cached_token_to_cache(ctp, cache);
+}  /* cache_curr_token */
+
+
+void rescan_cached_tokens(a_token_cache *cache)
+/*
+Put the tokens saved in *cache onto the rescan list so that they will be
+re-fetched by get_token.  On return, the current token is the first
+token of the cache.  The token that was the current token on entry is
+placed at the end of the rescan list so that it will be fetched again
+after the rescanned tokens have been gotten.  If there are no tokens
+in the cache, nothing is done.
+*/
+{
+  a_lint_and_pragma_state laps;
+
+  db_enter(3, "rescan_cached_tokens");
+  if (cache->first_token != NULL) {
+    /* Add the current token to the cache, so that (a) it is not lost,
+       and (b) the lint/pragma state is properly updated in the
+       transition from the end of the new list to the existing
+       current token. */
+    cache_curr_token(cache);
+    /* Put the tokens in the cache onto the front of the rescan list. */
+    cache->last_token->next = cached_token_rescan_list;
+    cached_token_rescan_list = cache->first_token;
+    /* Clear the cache to be neat. */
+    cache->first_token = cache->last_token = NULL;
+    /* Start the lint and pragma flags off with default values.  They will be
+       changed from that by teik_lint_and_pragma entries on the token list. */
+    clear_lint_and_pragma_state(&laps);
+    set_globals_from_lint_and_pragma_state(&laps);
+    /* Fetch the first cached token. */
+    (void)get_token();
+  }  /* if */
+  db_exit();
+}  /* rescan_cached_tokens */
+
+
+/*
+Free a cached token entry, i.e., put it on the avail list to be reused.
+*/
+#define free_cached_token(ctp)                                        \
+{ ctp->next = avail_cached_tokens;                                    \
+  avail_cached_tokens = ctp;                                          \
+}  /* free_cached_token */
+
+
+/*
+Free a cached constant entry, i.e., put it on the avail list to be reused.
+*/
+#define free_cached_constant(ctp)                                     \
+{ ctp->next = avail_cached_constants;                                 \
+  avail_cached_constants = ctp;                                       \
+}  /* free_cached_constant */
+
+
+static void make_locator_for_qualified_name_symbol(a_symbol_ptr     sym,
+                                                   a_symbol_locator *locator)
+/*
+Make a symbol locator for referring to sym as a qualified name symbol.
+A qualified name symbol locator is used for qualified names like "A::x"
+in C++.
+*/
+{
+  /* Note that the test here for sk_undefined depends on the fact that
+     get_qualified_name enters error qualified names that way. */
+  if (sym->kind == (a_symbol_kind)sk_undefined) {
+    /* The symbol is an error qualified name. */
+    set_to_error_locator(*locator);
+  } else {
+    /* The symbol is a normal symbol. */
+    make_locator_for_symbol(sym, locator);
+  }  /* if */
+  locator->qualified_name_symbol = sym;
+}  /* make_locator_for_qualified_name_symbol */
+
+
+static a_token_kind get_token_from_cached_token_rescan_list(void)
+/*
+Remove the first token from cached_token_rescan_list, establish it as the
+current token, and return its token kind.
+*/
+{
+  a_token_kind       ctoken;
+  a_cached_token_ptr ctp;
+
+  db_enter(3, "get_token_from_cached_token_rescan_list");
+take_first_entry:
+  /* Remove the first entry from the list. */
+  ctp = cached_token_rescan_list;
+  cached_token_rescan_list = cached_token_rescan_list->next;
+  /* If it is a special entry indicating a lint comment or pragma,
+     process it and take another entry. */
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_lint_and_pragma) {
+    set_globals_from_lint_and_pragma_state(
+                                          &ctp->variant.lint_and_pragma_state);
+    free_cached_token(ctp);
+    goto take_first_entry;
+  }  /* if */
+  /* Entry is for a token (normal case). */
+  ctoken = (a_token_kind)ctp->token;
+  pos_curr_token = ctp->source_position;
+  error_position = pos_curr_token;
+  start_of_curr_token = end_of_curr_token = NULL;
+  len_of_curr_token = 0;
+  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
+    /* For an identifier, restore the locator and symbol list pointer. */
+    /* Note that set_to_error_locator uses error_position as the
+       position, which is correct (error_position == pos_curr_token). */
+    set_to_error_locator(locator_for_curr_id);
+    locator_for_curr_id.symbol_header = ctp->variant.identifier_header;
+    symbol_list_for_curr_id = symbol_list_from_locator(locator_for_curr_id);
+  } else if (ctp->extra_info_kind ==
+                                (a_token_extra_info_kind)teik_qualified_name) {
+    /* For a qualified name identifier, restore the locator and symbol list
+       pointer. */
+    make_locator_for_qualified_name_symbol(ctp->variant.qualified_name_symbol,
+                                           &locator_for_curr_id);
+    locator_for_curr_id.source_position = pos_curr_token;
+    symbol_list_for_curr_id = NULL;
+  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
+    /* For a literal constant, restore const_for_curr_token. */
+    copy_constant(ctp->variant.constant, &const_for_curr_token);
+    free_cached_constant(ctp->variant.constant);
+  }  /* if */
+  free_cached_token(ctp);
+  db_exit();
+  return ctoken;
+}  /* get_token_from_cached_token_rescan_list */
 
 
 static an_orig_line_modif_ptr add_orig_line_modif(
@@ -2255,12 +2536,12 @@ white_space_loop:
                looks at one digit. */
             while (*curr_char_loc == ' ') curr_char_loc++;
             while (isdigit(ch = *curr_char_loc)) {
-              if (lint_varargs_count > SHRT_MAX / 10) {
+              if (lint_varargs_count > LINT_VARARGS_COUNT_MAX / 10) {
                 lint_varargs_count = 0;
                 break;
               }  /* if */
               lint_varargs_count *= 10;
-              if (lint_varargs_count > SHRT_MAX - (ch - '0')) {
+              if (lint_varargs_count > LINT_VARARGS_COUNT_MAX - (ch - '0')) {
                 lint_varargs_count = 0;
                 break;
               }  /* if */
@@ -2888,9 +3169,9 @@ If exp_digit_sequence is TRUE, then a string of decimal digits will be
 scanned as a tok_digit_sequence (used in the #line directive).  Other tokens
 will be processed normally.
 
-If trapped_token is TRUE, the next token was previously fetched (see
-next_token), and the information for it is retrieved from
-trapped_token_state, rather than fetching another token.
+If cached_token_rescan_list is non-NULL, it points to a list of cached
+tokens which are to be rescanned; the first token on that list is removed
+and returned.
 
 This routine is called an enormous number of times, and therefore has
 been written to be as fast as possible.  Structure has been sacrificed
@@ -2913,11 +3194,9 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   a_boolean		rescan;
   a_token_kind          compound_token;
 
-  /* If there is a trapped token, reuse it (see next_token). */
-  if (trapped_token) {
-    trapped_token = FALSE;
-    restore_curr_token_state(&trapped_token_state);
-    ctoken = curr_token;
+  /* If there are cached tokens to be rescanned, take the first on the list. */
+  if (cached_token_rescan_list != NULL) {
+    ctoken = get_token_from_cached_token_rescan_list();
     goto return_from_token_scan;
   }  /* if */
 rescan_token:
@@ -3493,9 +3772,7 @@ return_from_token_scan:
                                      start_of_curr_token);
     }  /* if */
     /* Dump constants only if they have been converted. */
-    if (!fetch_pp_tokens &&
-        (ctoken == tok_float_constant || ctoken == tok_int_constant ||
-         ctoken == tok_char_constant  || ctoken == tok_string_literal)) {
+    if (!fetch_pp_tokens && is_literal_constant_token(ctoken)) {
       /* Dump value for constant. */
       fprintf(f_debug, ", ");
       db_constant(&const_for_curr_token);
@@ -3786,7 +4063,8 @@ the start of the next token, because getting the proper next token might
 involve macro expansion or scanning of a preprocessing directive.
 */
 {
-  a_token_state curr_token_state;
+  a_token_cache cache;
+  a_token_kind  ntoken;
 
   db_enter(3, "next_token");
 #if CHECKING
@@ -3794,22 +4072,17 @@ involve macro expansion or scanning of a preprocessing directive.
     internal_error("next_token: called with fetch_pp_tokens TRUE");
   }  /* if */
 #endif /* CHECKING */
-  /* If the next token has already been fetched, there's no need to do
-     the get_token call. */
-  if (!trapped_token) {
-    /* Save the information about the current token. */
-    save_curr_token_state(&curr_token_state);
-    /* Fetch the next token. */
-    (void)get_token();
-    /* Save the information about this new token for use at the next
-       "real" call of get_token. */
-    trapped_token = TRUE;
-    save_curr_token_state(&trapped_token_state);
-    /* Restore the original token's information. */
-    restore_curr_token_state(&curr_token_state);
-  }  /* if */
+  /* Put the current token into a token cache so it can be rescanned. */
+  clear_token_cache(&cache);
+  cache_curr_token(&cache);
+  /* Fetch the next token and remember its kind. */
+  ntoken = get_token();
+  /* Put the two tokens in the cache (original, next) on the rescan list,
+     and refetch the original token.  Note that the "next" token remains on
+     the rescan list. */
+  rescan_cached_tokens(&cache);
   db_exit();
-  return trapped_token_state.curr_token;
+  return ntoken;
 }  /* next_token */
 
 
@@ -3917,20 +4190,26 @@ set to NULL and return FALSE.
           /* This is a qualified name. */
           /* Save the start position of the qualified name (get_class_qualifier
              puts it in error_position). */
-          copy_source_position(error_position, start_position);
+          start_position = error_position;
           set_err_pos_to_curr_token();
           /* The current token must now be the final identifier of the
              qualified name, e.g., "x" in "A::B::x".  Note that
              get_class_qualifier did not get the next token after
-             the qualifier so we can do the test here with a
-             next_token.  That allows us to preserve the next token in
-             the case that the following identifier is missing. */
+             the qualifier if it's not an identifier.  That allows us
+             to preserve the next token in the case that the identifier
+             is missing. */
           if (curr_token != tok_identifier) {
             /* The final identifier is missing.  The current token is the
                final "::" of the qualifier.  Construct a fake
                tok_identifier token. */
-            copy_source_position(trapped_token_state.pos_curr_token,
-                                 error_position);
+            /* Get the source position of the next token (where the identifier
+               would have been). */
+#if CHECKING
+            if (cached_token_rescan_list == NULL) {
+              internal_error("get_qualified_name: cannot get position");
+            }  /* if */
+#endif /* CHECKING */
+            error_position = cached_token_rescan_list->source_position;
             /* syntax_error is deliberately not called. */
             error(ec_exp_identifier);
             curr_token = tok_identifier;
@@ -3956,6 +4235,8 @@ set to NULL and return FALSE.
             /* For the error cases, set the current locator to an error locator
                with qualified_name_symbol pointing to a newly-created error
                symbol of kind sk_undefined. */
+            /* See make_locator_for_qualified_name_symbol; it depends on an
+               error qualified name having type sk_undefined. */
             set_to_error_locator(locator_for_curr_id);
             locator_for_curr_id.qualified_name_symbol =
                         enter_symbol((a_symbol_kind)sk_undefined,
@@ -3967,7 +4248,11 @@ set to NULL and return FALSE.
           /* Clear the symbol list to be neat. */
           symbol_list_for_curr_id = NULL;
           is_qualified_name = TRUE;
-          copy_source_position(start_position, error_position);
+          error_position = start_position;
+          /* Since we're returning a pseudo-token, set pos_curr_token.
+             This is desirable so token caching does not have to save two
+             positions. */
+          pos_curr_token = start_position;
         }  /* if */
       }  /* if */
 #if DEBUG
@@ -4007,6 +4292,8 @@ Display and return the amount of space used for various lexical tables.
                                an_orig_line_modif);
   write_one("source line modif", num_source_line_modifs_allocated,
                                  a_source_line_modif);
+  write_one("cached token", num_cached_tokens_allocated, a_cached_token);
+  write_one("cached constant", num_cached_constants_allocated, a_constant);
 
   total = after_end_of_curr_source_line - curr_source_line;
   fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "curr_source_line",
@@ -4063,10 +4350,14 @@ of the front end.
   at_end_of_source_file = FALSE;
   after_end_of_all_source = FALSE;
   curr_raw_listing_line_code = '\0';
-  trapped_token = FALSE;
+  cached_token_rescan_list = NULL;
+  avail_cached_tokens = NULL;
+  avail_cached_constants = NULL;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
+  num_cached_tokens_allocated = 0;
+  num_cached_constants_allocated = 0;
 #endif /* DEBUG */
 
   /* Do the initial allocation for curr_source_line the first time this

@@ -106,6 +106,8 @@ typedef enum /*a_token_kind*/ {
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
+/* More compact form: */
+typedef a_byte a_byte_token_kind;
 
 #if DEBUG
 /*
@@ -579,6 +581,99 @@ EXTERN a_boolean
 			/* Set to TRUE when a lint-style "notreached" comment
 			   is detected; reset at the start of each
 			   statement. */
+
+/*
+Data structure used to save information about a token so that the token
+can be cached and then rescanned.  Note that this is never done with
+pp-tokens.  See cache_curr_token et al.
+*/
+enum a_token_extra_info_kind_tag {
+  /* Kind of additional information saved in a cached token entry. */
+  teik_none,		/* No extra information, i.e., normal token. */
+  teik_identifier,	/* Extra information for an identifier. */
+  teik_qualified_name,	/* Extra information for a qualified name. */
+  teik_constant,	/* Extra information for a literal constant. */
+  teik_lint_and_pragma	/* Extra information for a lint comment or pragma. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_token_extra_info_kind;
+typedef struct a_lint_and_pragma_state *a_lint_and_pragma_state_ptr;
+typedef struct a_lint_and_pragma_state {
+  /* Structure used to summarize a state of the lint and pragma flags,
+     i.e., flags that are set between tokens by preprocessing-level
+     operations. */
+  an_arg_pragma_kind
+		arg_pragma;
+			/* Argument pragma, used for printf/scanf argument
+			   lists. */
+  unsigned int	lint_argsused_flag:1;
+			/* Lint argsused comment. */
+  unsigned int	lint_notreached_flag:1;
+			/* Lint notreached comment. */
+  a_lint_varargs_count
+		lint_varargs_count;
+			/* Lint varargs comment argument count. */
+} a_lint_and_pragma_state;
+typedef struct a_cached_token *a_cached_token_ptr;
+typedef struct a_cached_token {
+  /* Information on a single token, saved for later rescanning of the
+     token. */
+  a_cached_token_ptr
+		next;	/* Next cached token on the list, NULL if none. */
+  a_source_position
+		source_position;
+			/* Source position of the token. */
+  a_byte_token_kind
+		token;
+			/* The token kind (e.g., tok_identifier).  Not valid
+			   when extra_info_kind == teik_lint_and_pragma. */
+  a_token_extra_info_kind
+		extra_info_kind;
+			/* Indication of the type of extra information about
+			   the token provided below. */
+  union {
+    /* When extra_info_kind == teik_normal, no variant fields. */
+    /* When extra_info_kind == teik_identifier: */
+    a_symbol_header_ptr
+		identifier_header;
+			/* Pointer to the symbol header for the identifier. */
+    /* When extra_info_kind == teik_qualified_name: */
+    a_symbol_ptr
+		qualified_name_symbol;
+			/* Pointer to the qualified name symbol. */
+    /* When extra_info_kind == teik_constant: */
+    a_constant_ptr
+		constant;
+			/* Pointer to a constant entry (in front end storage)
+			   giving the value for the literal constant. */
+    /* When extra_info_kind == teik_lint_and_pragma: */
+    a_lint_and_pragma_state
+		lint_and_pragma_state;
+			/* New state for the lint and pragma flags. */
+  } variant;
+} a_cached_token;
+typedef struct a_token_cache *a_token_cache_ptr;
+typedef struct a_token_cache {
+  /* Data structure used to hold a token cache, i.e., some number of
+     tokens that are being saved for later rescanning. */
+  a_cached_token_ptr
+		first_token,
+		last_token;
+			/* First and last tokens on the list, or both NULL
+			   if the list is empty. */
+  a_lint_and_pragma_state
+		lint_and_pragma_state;
+			/* Lint and pragma state as of after the last token;
+			   used in determining whether or not a
+			   teik_lint_and_pragma entry is needed to record
+			   a change in the lint comment or pragma state. */
+} a_token_cache;
+/* Initialize a token cache. */
+extern void clear_token_cache(a_token_cache *cache);
+/* Save the current token in a token cache. */
+extern void cache_curr_token(a_token_cache *cache);
+/* Put some cached tokens on the get_token rescan list. */
+extern void rescan_cached_tokens(a_token_cache *cache);
 
 
 /* Read next logical source line. */
