@@ -126,17 +126,16 @@ Double the number of allocation entries in the current pool.
 
 static void free_dead_allocations(void  *ptr)
 /*
-ptr points to a VLA variable about to be allocated.  Free all allocations
-which cannot possibly be live because they're "above" ptr on the call stack.
-(This can happen as a result of longjmp calls.)  This routine is very similar
-to __vla_dealloc, but to keep the latter as efficient as possible the two
-use separate code.
+ptr points into a live stack frame of the run-time support library.  Free all
+allocations which cannot possibly be live because they're "above" ptr on the
+call stack.  (This can happen as a result of longjmp calls.)  This routine is
+very similar to __vla_dealloc, but to keep the latter as efficient as possible
+the two use separate code.
 */
 {
   ptrdiff_t  alloc_idx = curr_vla_pool->last_allocation;
 
-  /* Pop the stack until we find the VLA allocation corresponding to the
-     given pointer. */
+  /* Pop the stack until we find the VLA allocation that may still be live. */
   for (; alloc_idx >= 0; --alloc_idx) {
     a_vla_allocation_ptr  allocation = &curr_vla_pool->allocations[alloc_idx];
     if ((char*)&alloc_idx > (char*)ptr) {
@@ -153,9 +152,6 @@ use separate code.
     if (allocation->block == NULL) {
       /* A special block: Delete it right away. */
       free(*(void**)allocation->vla_var);
-      if (allocation->vla_var == ptr) {
-        break;
-      }  /* if */
     } else {
       /* An allocation in a normal block: Compute the offset of the VLA
          storage within the block. */
@@ -214,13 +210,13 @@ point to that storage.
         /* The call stack grows with increasing addresses. */
         if ((char*)curr_vla_pool->allocations[last_idx].vla_var >
                                                           (char*)&alloc_idx) {
-          free_dead_allocations(ptr);
+          free_dead_allocations((void*)&alloc_idx);
         }  /* if */
       } else {
         /* The call stack grows with decreasing addresses. */
         if ((char*)curr_vla_pool->allocations[last_idx].vla_var <
                                                           (char*)&alloc_idx) {
-          free_dead_allocations(ptr);
+          free_dead_allocations((void*)&alloc_idx);
         }  /* if */
       }  /* if */
     }  /* if */
