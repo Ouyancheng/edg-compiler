@@ -4,10 +4,10 @@ Version 2.36
 
 When GENERATE_SOURCE_SEQUENCE_ENTRIES is TRUE, the declared_type field in
 variables that represent function parameters will now record the type as
-declared, before adjustments such as the decay of array type to pointer.
-The only exceptions are parameters of function template instantiations,
-since the template declaration may involve template parameter types (which
-are not permitted in the IL).
+declared, i.e., before adjustments such as the decay of array type to
+pointer.  (Note: this has not yet been implemented for parameters of
+function template instantiations; the template declaration may involve
+template parameter types, which are not permitted in the IL.)
 
 6/9/97    EH cleanup state during initializations of file-scope entities
 
