@@ -3925,6 +3925,9 @@ containing such a reference to the type.
 }  /* is_or_contains_specific_template_param */
 
 
+#if 0
+/* The following is not needed until support for nontype template parameters
+   on function templates is added. */
 a_boolean type_contains_specific_template_param_constant(a_type_ptr     tp,
                                                          a_constant_ptr cp)
 /*
@@ -3943,7 +3946,7 @@ in the type tree represented by tp.
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
-
+#endif /* if 0 */
 
 /******************************************************************************
 *                                                             \  ___  /       *
