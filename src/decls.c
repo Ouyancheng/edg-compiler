@@ -2258,6 +2258,7 @@ that it is the default operator new().
 static an_id_linkage_kind id_linkage(a_symbol_locator *locator,
                                      a_storage_class  storage_class,
                                      a_type_ptr       type,
+                                     a_boolean        is_main_function,
                                      a_symbol_ptr     *linked_symbol,
                                      a_symbol_ptr     *overload_symbol,
                                      a_scope_depth    *effective_decl_level)
@@ -2362,7 +2363,8 @@ will be involved in overloading.
         decls_at_same_scope = (other_decl->decl_scope ==
                                     scope_stack[*effective_decl_level].number);
         if (C_dialect == C_dialect_cplusplus && is_function &&
-            other_decl->kind != (a_symbol_kind)sk_variable) {
+            other_decl->kind != (a_symbol_kind)sk_variable &&
+            !is_main_function) {
           /* C++ function -- type compatibility check is required. */
           if (decls_at_same_scope) *overload_symbol = other_decl;
           if (other_decl->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -2930,6 +2932,7 @@ void decl_var_or_routine(a_symbol_locator      *locator,
                          a_boolean             is_implicit_function,
                          a_boolean             is_function_def_with_body,
                          a_boolean             inline_specified,
+                         a_boolean             is_main_function,
                          a_symbol_ptr          *symbol_ptr,
                          an_id_linkage_kind    *linkage_ptr,
                          a_type_ptr            *old_type,
@@ -2971,7 +2974,6 @@ otherwise, set *ext_sym to NULL.
   a_source_correspondence
                     *source_corresp_ptr;
   a_scope_depth     effective_decl_level;
-  a_boolean         is_main_function = FALSE;
 
   db_enter(3, "decl_var_or_routine");
 #if CHECKING
@@ -3000,8 +3002,9 @@ otherwise, set *ext_sym to NULL.
     sym = *symbol_ptr;
   } else {
     /* Determine the linkage of this symbol. */
-    linkage = id_linkage(locator, storage_class, type_ptr, &linked_symbol,
-                         &homonym_symbol, &effective_decl_level);
+    linkage = id_linkage(locator, storage_class, type_ptr, is_main_function,
+                         &linked_symbol, &homonym_symbol,
+                         &effective_decl_level);
   }  /* if */
   /* at_file_scope will be TRUE if the IL variable or routine must be
      allocated in the file scope memory region.  This is always true
@@ -3151,12 +3154,6 @@ otherwise, set *ext_sym to NULL.
        Record the re-declaration for cross-reference purposes. */
     mark_declared(sym, &locator->source_position,
                   /*save_as_decl_position=*/is_function_def_with_body);
-  }  /* if */
-  if (is_function && storage_class == (a_storage_class)sc_unspecified &&
-      !is_error_locator(*locator) &&
-      (strcmp(locator->symbol_header->identifier, "main") == 0)) {
-    is_main_function = TRUE;
-    /* This is "main", which is always given "C" linkage. */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     if (!is_function && decl_scope_level == DEPTH_OF_FILE_SCOPE &&
@@ -3888,6 +3885,7 @@ symbol has already been entered as an undefined symbol.
                       /*is_implicit_function=*/TRUE,
                       /*is_function_def_with_body=*/FALSE,
                       /*inline_specified=*/FALSE,
+                      /*is_main_function=*/FALSE,
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -6379,7 +6377,8 @@ static void function_definition(
                           a_func_info_block  *func_info,
                           a_storage_class    storage_class,
                           a_boolean          inline_specified,
-                          a_boolean          has_explicit_type_specifier)
+                          a_boolean          has_explicit_type_specifier,
+                          a_boolean          is_main_function)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
@@ -6497,7 +6496,8 @@ explicitly specified (rather than defaulted to "int").
     decl_var_or_routine(locator, storage_class, rout_type,
                         /*is_implicit_function=*/FALSE,
                         /*is_function_def_with_body=*/TRUE, inline_specified,
-                        &symbol_ptr, &linkage, &old_type, &ext_sym);
+                        is_main_function, &symbol_ptr, &linkage,
+                        &old_type, &ext_sym);
   }  /* if */
   symbol_ptr->defined = TRUE;
   routine_ptr = symbol_ptr->variant.routine;
@@ -7354,15 +7354,38 @@ continue_with_declaration:
                  &local_type_ptr, &bottom_derived_type, &func_info,
                  &dim_expr_ptr);
       is_function = is_function_type(local_type_ptr);
-      is_main_function =
-                (is_function && !is_error_locator(locator) &&
-                 (strcmp(locator.symbol_header->identifier, "main") == 0) &&
-                 (storage_class == (a_storage_class)sc_unspecified ||
-                    storage_class == (a_storage_class)sc_extern) &&
-                 (locator.specific_symbol == NULL ||
-                    locator.specific_symbol->class_of_which_a_member == NULL));
-      if (is_main_function && def_external_linkage.is_explicit) {
-        pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
+      is_main_function = FALSE;
+      if (is_function && locator.symbol_header->identifier != NULL &&
+          (strcmp(locator.symbol_header->identifier, "main") == 0)) {
+        /* Recognizing a declaration of function "main" is more than checking
+           the identifier. */
+        if (C_dialect == C_dialect_cplusplus) {
+          if (locator.specific_symbol == NULL ||
+              locator.specific_symbol->class_of_which_a_member == NULL) {
+            /* Not a member function named "main". */
+            is_main_function = TRUE;
+            /* Perform some error checking that is specific to C++. */
+            if (def_external_linkage.is_explicit) {
+              pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
+            }  /* if */
+            /* "inline" and "static" are not allowed (ARM 3.4). */
+            if (storage_class == (a_storage_class)sc_static) {
+              pos_error(ec_static_main, &declarator_pos);
+              storage_class =(a_storage_class)sc_unspecified;
+            }  /* if */
+            if (inline_specified) {
+              pos_error(ec_inline_main, &declarator_pos);
+              inline_specified = FALSE;
+            }  /* if */
+          }  /* if */
+        } else {
+          if (storage_class == (a_storage_class)sc_unspecified ||
+              storage_class == (a_storage_class)sc_extern) {
+            /* Not a static function named "main".  This is not an option
+               in C++ (ARM 3.4). */
+            is_main_function = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
       has_parenthesized_initializer = do_flags & DO_PARENTHESIZED_INITIALIZER;
       /* top_declarator_type_is_function is TRUE if the fact that this is a
@@ -7487,7 +7510,7 @@ continue_with_declaration:
         function_definition(&locator, local_type_ptr, 
                             top_declarator_type_is_function, &func_info,
                             local_storage_class, inline_specified,
-                            has_explicit_type_specifier);
+                            has_explicit_type_specifier, is_main_function);
         goto return_point;
       }  /* if */
       /* Not a function definition, must be a declaration. */
@@ -7645,8 +7668,8 @@ continue_with_declaration:
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             /*is_implicit_function=*/FALSE,
                             /*is_function_def_with_body=*/FALSE,
-                            inline_specified, &symbol_ptr, &linkage,
-                            &old_type, &ext_sym);
+                            inline_specified, is_main_function, &symbol_ptr,
+                            &linkage, &old_type, &ext_sym);
         if (is_parameter) {
           switch_back_to_original_region(region_to_switch_back_to);
         }  /* if */
