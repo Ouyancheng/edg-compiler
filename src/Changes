@@ -2,9 +2,9 @@ Version 2.35
 
 2/14/97  Setting of result_is_not_used flag with inlining
 
-In some cases when inlining was done in IL lowering, some expression
-nodes had result_is_not_used set even when the result was used higher
-up the expression tree.  Now fixed.
+In some cases when IL lowering was done (and particularly inlining), some
+expression nodes had result_is_not_used set even when the result was used
+higher up the expression tree.  Now fixed.
 
 2/14/97  Exception not considered caught in catch associated with internal try
 
