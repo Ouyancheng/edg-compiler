@@ -1211,7 +1211,6 @@ template is defined.
     if (sse_ptr->kind == (a_scope_kind)sck_template_instantiation) {
       /* The instantiation context depth is the depth at the point the
          instantiation is triggered. */
-      check_assertion(sse_ptr->instantiation_context_depth != NO_SCOPE_DEPTH);
       sse_ptr = &scope_stack[sse_ptr->instantiation_context_depth];
     } else if (sse_ptr->depth_innermost_instantiation_scope !=
                                                          NO_SCOPE_DEPTH) {
