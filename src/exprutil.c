@@ -4363,12 +4363,14 @@ Return TRUE if and only if the given operator is a compound assignment.
     case eok_imultiply_assign:
     case eok_idivide_assign:
     case eok_remainder_assign:
+#if FIXED_POINT_ALLOWED
     case eok_fxadd_assign:
     case eok_fxsubtract_assign:
     case eok_fxmultiply_assign:
     case eok_fxdivide_assign:
     case eok_fxshiftl_assign:
     case eok_fxshiftr_assign:
+#endif /* FIXED_POINT_ALLOWED */
     case eok_fadd_assign:
     case eok_fsubtract_assign:
     case eok_fmultiply_assign:
