@@ -6892,7 +6892,17 @@ continue_with_declaration:
           /* This is the definition of a static member function.  No storage
              class specifier (not even "static") is permitted. */
           if (local_storage_class != (a_storage_class)sc_unspecified) {
-            pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+            if (local_storage_class == (a_storage_class)sc_static &&
+                inline_specified) {
+              /* Just give a warning on this.  The storage class designation
+                 is taken to be redundant, since all "inline" member functions
+                 (both static and nonstatic, in the sense applied to member
+                 functions) are "static" (in the sense of having internal
+                 linkage). */
+              pos_warning(ec_storage_class_not_allowed, &decl_start_pos);
+            } else {
+              pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+            }  /* if */
           }  /* if */
           /* Set the storage class to sc_static. */
           local_storage_class = (a_storage_class)sc_static;
