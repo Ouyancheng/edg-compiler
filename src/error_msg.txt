@@ -867,6 +867,7 @@ ec_type_qualifier_on_void_return_type;;"in a function definition a type qualifie
 ec_static_data_member_not_allowed;;"static data member declaration is not allowed in this class"
 ec_invalid_declaration;;"template instantiation resulted in an invalid function declaration"
 ec_ellipsis_not_allowed;;"\"...\" is not allowed"
+ec_cl_extern_inline_option_only_in_cplusplus;;"option \"extern_inline\" can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
