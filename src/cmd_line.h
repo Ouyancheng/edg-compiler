@@ -111,6 +111,9 @@ typedef enum /*an_option_kind*/ {
   optk_pack_alignment,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   optk_alternate_tokens,
+#if MINIMAL_INLINING
+  optk_inlining,
+#endif /* MINIMAL_INLINING */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -483,11 +486,25 @@ EXTERN a_targ_alignment
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean
-                alternate_tokens_allowed /* = */
-                               initial_value(DEFAULT_ALTERNATE_TOKENS_ALLOWED);
+                alternate_tokens_allowed
+#if VAR_INITIALIZERS
+                                         = DEFAULT_ALTERNATE_TOKENS_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
                         /* TRUE if the C++ operator keywords (such as
 			   "and", "or", "not", etc.) and digraphs should
 			   be allowed. */
+
+#if MINIMAL_INLINING
+EXTERN a_boolean
+		inlining_enabled
+#if VAR_INITIALIZERS
+                                 = TRUE
+#endif /* VAR_INITIALIZERS */
+                                       ;
+			/* TRUE if minimal inlining should be done by IL
+			   lowering. */
+#endif /* MINIMAL_INLINING */
 
 
 /* Process the command line arguments. */

@@ -402,6 +402,14 @@ Initialize the option information table.
 			 "no_alternate_tokens",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if MINIMAL_INLINING
+  add_option_description(optk_inlining, "inlining",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_inlining, "no_inlining",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* MINIMAL_INLINING */
 }  /* initialize_option_descriptions */
 
 
@@ -836,8 +844,10 @@ Process the arguments on the command line that invoked the compiler.
           strict_ansi_error_severity = es_warning;
           strict_ansi_discretionary_severity = es_warning;
         }  /* if */
-	/* Enable recognition of operaotor keywords and digraphs. */
+	/* Enable recognition of operator keywords and digraphs. */
 	alternate_tokens_allowed = TRUE;
+        /* Temporary lifetime is short. */
+        long_lifetime_temps = FALSE;
         break;
       case optk_preprocess_only_emit_line_dirs:
         /* Do preprocessing only, output to stdout, with #line information. */
@@ -1236,6 +1246,12 @@ Process the arguments on the command line that invoked the compiler.
            should not be allowed. */
         alternate_tokens_allowed = opt_value;
         break;
+#if MINIMAL_INLINING
+      case optk_inlining:
+        /* Minimal inlining should or should not be done. */
+        inlining_enabled = opt_value;
+        break;
+#endif /* MINIMAL_INLINING */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1279,7 +1295,11 @@ Process the arguments on the command line that invoked the compiler.
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
     if (option_kind_used[(int)optk_alternate_tokens]) {
+#if 0
       command_line_error(ec_cl_alternate_token_option_only_in_cplusplus);
+#else /* 0 */
+      command_line_error(ec_cl_operator_keyword_option_only_in_cplusplus);
+#endif /* 0 */
     }  /* if */
     /* Set wchar_t_is_keyword to FALSE, just in case the default value
        is TRUE.  The value must not be TRUE in C mode. */
