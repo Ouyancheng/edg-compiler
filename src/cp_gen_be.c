@@ -154,6 +154,12 @@ static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
 
+static a_boolean
+		in_template_argument_list;
+			/* TRUE if we are currently processing template
+                           arguments.  Used to suppress typedefs in template
+                           arguments in is_typedef_invisible_in_cp_gen_be. */
+
 static a_source_sequence_entry_ptr
 		curr_source_sequence_entry;
 			/* The current source sequence entry. */
@@ -1867,6 +1873,7 @@ Output the template arguments of the entity associated with scp.
   a_template_arg_ptr tap = template_arguments_for_name(scp, entry_kind,
                                                          &insert_space);
   if (tap != NULL) {
+    a_boolean saved_in_template_argument_list = in_template_argument_list;
     if (msvc_is_generated_code_target && msvc_target_version_number <= 1300) {
       /* MSVC++ up to version 7.0 has a bug when a qualified template name
          is separated from the following "<" by a "#line" directive, so
@@ -1879,7 +1886,9 @@ Output the template arguments of the entity associated with scp.
     }  /* if */
     if (insert_space) write_space();
     /* Put out the template argument list, e.g., "<int, float>". */
+    in_template_argument_list = TRUE;
     form_template_args(tap, &octl);
+    in_template_argument_list = saved_in_template_argument_list;
   }  /* if */
 }  /* gen_template_arguments */
 
@@ -2106,6 +2115,33 @@ is called.
         (curr_name_context == NULL ||
          curr_name_context->class_type_for_access_not_naming != parent_class)){
       invisible = TRUE;
+    }  /* if */
+  }  /* if */
+  if (in_template_argument_list && !invisible) {
+    /* We would like to treat typedefs in template arguments as invisible,
+       so that we generate "X<int>" instead of "X<Y<...>::_Type>" -- it's
+       shorter and it's less confusing for cases where the source actually
+       has something like X<int> but X<int> was previously instantiated using
+       the long typedef member name.  However, we have to be careful that
+       we don't replace an accessible typedef name with an inaccessible
+       underlying type. */
+    a_type_ptr underlying_type = skip_typerefs(type);
+
+    invisible = TRUE;
+    if (underlying_type->source_corresp.is_class_member &&
+        underlying_type->source_corresp.access !=
+                                              (an_access_specifier)as_public) {
+      a_type_ptr parent_of_underlying_type =
+                             underlying_type->source_corresp.parent.class_type;
+      if (!class_is_in_name_context_stack(parent_of_underlying_type,
+                                          /*include_base_classes=*/FALSE) &&
+          (curr_name_context == NULL ||
+           curr_name_context->class_type_for_access_not_naming !=
+                                                  parent_of_underlying_type)) {
+        /* The underlying type may be inaccessible, so we have to use the
+           typedef. */
+        invisible = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return invisible;
@@ -11356,6 +11392,7 @@ Initialize for the C++/C-generating back end.
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type
      underlying _Bool. */
   octl.render_c99_bool = c99_mode || gcc_mode;
+  in_template_argument_list = FALSE;
 }  /* init_cp_gen_be */
 
 
