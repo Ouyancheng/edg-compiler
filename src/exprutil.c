@@ -1696,7 +1696,7 @@ Test an expression node to see if it's a bit-field extraction.
                                (an_expr_operator_kind)eok_extract_bit_field))
 
 
-a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
+static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
 /*
 Determine the type that would result from applying the integral promotions
 (3.2.1.1) to the type of node.  Return the promoted type, which may be
