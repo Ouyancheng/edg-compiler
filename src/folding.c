@@ -30,7 +30,8 @@ Determine the severity (error or warning) to be used for integer
 operation overflows.
 */
 #if TARG_NO_ERROR_ON_INTEGER_OVERFLOW
-#define ES_INT_OVERFLOW es_warning
+#define ES_INT_OVERFLOW                                               \
+  (strict_ansi_mode ? strict_ansi_error_severity : es_warning)
 #else /* !TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 #define ES_INT_OVERFLOW es_error
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */

@@ -1,5 +1,11 @@
 Version 2.13
 
+12/4/92  In strict ANSI mode, errors on integer overflows
+
+In strict ANSI C or C++ mode (-A), integer overflows in folding operations
+now yield errors regardless of the setting of the
+TARG_NO_ERROR_ON_INTEGER_OVERFLOW configuration flag.
+
 12/3/92  Speed optimization in constant sharing
 
 The hash used in looking for shareable constants has been improved to
