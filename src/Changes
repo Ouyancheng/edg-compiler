@@ -1,5 +1,17 @@
 Version 2.26
 
+10/5/94  IL write: template param types that leak out of the front end
+
+Template parameter types, which are really a front-end-only concept,
+can leak out of the front end by appearing in pointers-to-members
+on a based types list.  The IL write/read routines issue an internal error
+on encountering such things.  The problem had been solved for most
+cases by having IL lowering rewrite the offending types on the based
+types list.  However, when the C++-generating back end is used, IL
+lowering is not done, so the problem remained.  The problem is now fixed
+by having the IL write routines write a null pointer in place of any
+pointer to a tk_template_param type.
+
 10/4/94  IL lowering: type qualifiers on source argument of generated
          copy constructor call
 
