@@ -1,5 +1,13 @@
 Version 2.34
 
+10/30/96 Incomplete type in exception specification
+
+An error is now issued if an exception specification type is an incomplete
+type or a pointer or reference to incomplete type (except cv-qualified
+void *).  This is required by a recent Working Paper change (section 15.4
+[except.spec] paragraph 1); in addition, it fixes an internal error in IL
+lowering.
+
 10/29/96 Missing destructions in the presence of unordered initializations
 
 Since the C++ sequence point rules provide only a partial ordering on

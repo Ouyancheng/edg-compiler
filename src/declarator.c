@@ -686,23 +686,51 @@ specification is handled later (see check_exception_specification).
       estp->type = error_type();
     } else {
       type_name(&estp->type);
+      if (exceptions_enabled && !is_error_type(estp->type)) {
+        /* Check the type to be sure it's not an incomplete type or a pointer
+           to an incomplete type. */
+        a_type_ptr  tp = estp->type;
+
+        /* Force instantiation of template class. */
+        complete_type_is_needed(tp);
+        if (is_incomplete_type(tp)) {
+          /* A exception specification type must be complete. */
+          pos_error(ec_incomplete_type_not_allowed, &type_pos);
+        } else if (is_ptr_or_ref_type(tp)) {
+          tp = type_pointed_to(tp);
+          if (is_void_type(tp)) {
+            /* Pointer to cv-qualified void is okay. */
+          } else {
+            /* Force instantiation of template class. */
+            complete_type_is_needed(tp);
+            if (is_incomplete_type(tp)) {
+              /* A exception specification type cannot be a pointer or
+                 reference to incomplete type. */
+              pos_error(ec_ptr_or_ref_to_incomplete_type, &type_pos);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (esp != NULL) {
       /* Add estp to the list. */
       if (end_of_list == NULL) {
         esp->exception_specification_type_list = estp;
       } else {
-        /* Examine other entries already on the list to see if the current one
-           is redundant. */
-        other_estp = esp->exception_specification_type_list;
-        for (; other_estp != NULL; other_estp = other_estp->next) {
-          if (!other_estp->redundant &&
-              identical_types(estp->type, other_estp->type)) {
-            pos_remark(ec_redundant_exception_specification_type, &type_pos);
-            estp->redundant = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
+        if (!is_error_type(estp->type)) {
+          /* Examine other entries already on the list to see if the current
+             one is redundant. */
+          other_estp = esp->exception_specification_type_list;
+          for (; other_estp != NULL; other_estp = other_estp->next) {
+            if (!other_estp->redundant &&
+                identical_types(estp->type, other_estp->type)) {
+              pos_remark(ec_redundant_exception_specification_type, &type_pos);
+              estp->redundant = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        /* Add it to the end of the list. */
         end_of_list->next = estp;
       }  /* if */
       end_of_list = estp;
