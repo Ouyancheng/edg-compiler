@@ -768,7 +768,7 @@ int main(int argc, char *argv[])
       me_error("cannot open %s", codes_output_file_name);
     }  /* if */
     data_output_file = fopen(data_output_file_name, "w");
-    if (codes_output_file == NULL) {
+    if (data_output_file == NULL) {
       me_error("cannot open %s", data_output_file_name);
     }  /* if */
     /* Generate the output file headers. */

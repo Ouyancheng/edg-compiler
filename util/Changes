@@ -1,3 +1,10 @@
+Version 2.33
+
+7/2/96   Incorrect error test in mk_errinfo
+
+mk_errinfo was incorrectly checking for an error when opening the err_data.h
+file.  This could result in an abort if the file could not be opened.
+-------------------------------------------------------------------------------
 Version 2.32, June 28, 1996
 
 5/25/96  Prelinker diagnostic when nm exits with an error
