@@ -5671,6 +5671,14 @@ process_class_specifier:
           }  /* if */
           /* The identifier is a type name and should be treated as a
              type specifier. */
+          if (locator_for_curr_id.is_semivisible_nested_class) {
+            /* The symbol in the locator is a nested class that is not
+               visible according to the ARM lookup rules but is returned
+               in support of the nested class anachronism (ARM 18.3.5).
+               Issue a warning. */
+            str_warning(ec_nested_class_anachronism,
+                        name_of_symbol(locator_for_curr_id.specific_symbol));
+          }  /* if */
           /* Do ambiguity and access control checking. */
           check_ambiguity_and_verify_access(&locator_for_curr_id);
           /* If the symbol is a projection symbol, get the fundamental
