@@ -2179,6 +2179,10 @@ typedef struct an_exception_specification {
   a_type_ptr	type;
 			/* Pointer to the type declared in the exception
 			   specification. */
+  a_source_position
+		decl_position;
+			/* Source position of the declaration of this
+			   exception specification. */
 } an_exception_specification;
 #endif /* ifdef CIL */
 

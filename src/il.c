@@ -4650,6 +4650,8 @@ region.
 #endif /* DEBUG */
   esp->next = NULL;
   esp->type = NULL;
+  esp->decl_position.seq = 0;
+  esp->decl_position.column = SP_COL_UNKNOWN;
   return esp;
 }  /* alloc_exception_specification */
 
