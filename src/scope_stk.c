@@ -3257,7 +3257,7 @@ NULL.
           /* No diagnostic. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (rout_ptr->is_inline &&
-                   rout_ptr->storage_class == (a_storage_class)sc_extern) {
+                   !routine_defined(rout_ptr)) {
           /* An extern-inline function that was referenced but not defined.
              Note that the Microsoft compiler issues no diagnostic on this
              (though the linker may). */
