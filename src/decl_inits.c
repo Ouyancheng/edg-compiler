@@ -1625,10 +1625,19 @@ this function points to a tree that includes a dynamic-init entry.
        array of char is initialized by a string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
-    check_for_opening_brace(&brace_flag);
-    if (brace_flag == TRUE) {
+    if (curr_token == tok_lbrace) {
+      /* Make sure it's truly an aggregate and not some non-aggregate class: */
+      if (is_class_struct_union_type(context.type) &&
+          !(symbol_supplement_for_class(context.type)->is_class_aggregate)) {
+        pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
+                     context.type);
+        context.type = error_type();
+      }  /* if */
+      check_for_opening_brace(&brace_flag);
       /* Since we saw a left brace, we start afresh with designations: */
       init_info->designation_state = ds_no_designation;
+    } else {
+      brace_flag = FALSE;
     }  /* if */
     if (check_for_string_constant_initializer(type, &init_con, &context)) {
       /* The object being initialized has type array of char or wchar_t, and
