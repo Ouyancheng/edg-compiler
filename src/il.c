@@ -275,7 +275,9 @@ static void db_base_class_field(a_field *fp,
 Dump field *fp derived from base class *tp, for debug purposes.
 */
 {
-  fprintf(f_debug, "\n\tfield %s::", tp->source_corresp.name);
+  fputs("\n\t", f_debug);
+  db_access_control(fp->source_corresp.access);
+  fprintf(f_debug, " field %s::", tp->source_corresp.name);
   db_name(&fp->source_corresp);
   fputs(", type = ", f_debug);
   db_abbreviated_type(fp->type);
@@ -357,13 +359,13 @@ pointer_or_reference:
       fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
     case tk_struct:
-      fputs("struct {\n", f_debug);
+      fputs("struct {", f_debug);
       goto class_struct_union;
     case tk_union:
-      fputs("union {\n", f_debug);
+      fputs("union {", f_debug);
       goto class_struct_union;
     case tk_class:
-      fputs("class {\n", f_debug);
+      fputs("class {", f_debug);
 class_struct_union:
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && tp->kind != (a_type_kind)tk_union) {
@@ -373,6 +375,7 @@ class_struct_union:
           bcp = bcp->next;
         }  /* while */
       }  /* if */
+      fputc('\n', f_debug);
       fp = tp->variant.class_struct_union.field_list;
       while (fp != NULL) {
         db_field(fp);
