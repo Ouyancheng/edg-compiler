@@ -1,5 +1,7 @@
 Version 2.44
 
+7/24/00  IL version number changed to 2.36
+
 7/20/00  Elision of implicit cast, no type change
 
 When an implicit cast in the IL is elided (because the underlying
