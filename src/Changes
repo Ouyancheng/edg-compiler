@@ -1,5 +1,22 @@
 Version 2.11
 
+10/27/92 New identifier scanning routines
+
+The routines that scan class qualifiers and identifiers have been
+reworked to provide a more flexible interface.  The token kinds
+tok_class_qualifier and tok_ptr_to_member have been added to allow
+these constructs to be represented as pseudo-tokens.  A new data
+structure "a_class_qualifier" has been added to describe a
+class qualifier or pointer to member token.  Several routines have been
+eliminated and replaced with new versions.  The following routines
+have been replaced:
+
+	Old Routine			New Routine
+  ------------------------------   -----------------------------------------
+  get_class_qualifier		   is_generalized_identifier_start
+  get_qualified_name		   coalesce_generalized_identifier
+  get_normal_id_or_qualified_name  coalesce_and_lookup_generalized_identifier
+
 10/27/92 Template support
 
 Substantial changes have been made over the past six weeks to introduce
