@@ -255,9 +255,6 @@ Clear a symbol locator.
 #ifndef LEXICAL_H
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
-#ifndef TRANS_LIMS_H
-#include "trans_lims.h"
-#endif /* ifndef trans_lims.h */
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */

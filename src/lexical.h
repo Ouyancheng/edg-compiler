@@ -170,9 +170,6 @@ a_token_sequence_number
 
 /* These includes are placed here so that a_token_kind will be defined
    for general use before including these files. */
-#ifndef TRANS_LIMS_H
-#include "trans_lims.h"
-#endif /* ifndef TRANS_LIMS_H */
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */

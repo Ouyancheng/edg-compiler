@@ -21,7 +21,6 @@ and parsing of them into tokens.
 #include "lexical.h"
 #include "preproc.h"
 #include "error.h"
-#include "trans_lims.h"
 #include "host_envir.h"
 #include "cmd_line.h"
 #include "debug.h"
