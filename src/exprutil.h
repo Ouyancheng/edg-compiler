@@ -235,6 +235,9 @@ typedef struct a_user_conv_descr {
 			   an lvalue-->rvalue conversion).  Note that this
 			   is meaningful even when the entry indicates no
 			   conversion. */
+  a_byte_boolean
+		ambiguous;
+			/* If TRUE the conversion is ambiguous. */
 } a_user_conv_descr;
 
 /*
@@ -243,7 +246,8 @@ one that describes no conversion to be done.
 */
 #define is_null_user_conv_descr(user_conversion)                      \
   ((user_conversion)->routine == NULL &&                              \
-   !(user_conversion)->class_identity_or_bitwise_copy)
+   !(user_conversion)->class_identity_or_bitwise_copy &&              \
+   (user_conversion)->ambiguous)
 
 /*
 Argument match levels for overloaded function call resolution; See ARM 13.2.

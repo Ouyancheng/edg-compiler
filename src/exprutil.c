@@ -4310,6 +4310,7 @@ default values.
   fdp->class_identity_or_bitwise_copy = FALSE;
   fdp->std_conversion_needed          = FALSE;
   fdp->result_is_an_lvalue            = FALSE;
+  fdp->ambiguous                      = FALSE;
 }  /* clear_user_conv_descr */
 
 
@@ -8251,6 +8252,7 @@ This routine is only used in C++ mode.
       *user_conversion = candidate_functions->user_conversion;
     }  /* if */
   }  /* if */
+  user_conversion->ambiguous = *ambiguous;
   if (*ambiguous && ambiguity_list != NULL) {
     /* Return the candidate functions list to the caller, for use in generating
        an ambiguity error.  The caller will free the list. */
@@ -8344,6 +8346,7 @@ is only used in C++ mode.
       *user_conversion = candidate_functions->user_conversion;
     }  /* if */
   }  /* if */
+  user_conversion->ambiguous = *ambiguous;
   if (*ambiguous && ambiguity_list != NULL) {
     /* Return the candidate functions list to the caller, for use in generating
        an ambiguity error.  The caller will free the list. */
@@ -8747,7 +8750,10 @@ no additional conversion is needed after the conversion function is called.
 
   orig_operand = *operand;
   conversion_routine = user_conversion->routine;
-  if (user_conversion->class_identity_or_bitwise_copy) {
+  if (user_conversion->ambiguous) {
+    /* The conversion was ambiguous. */
+    conv_to_error_operand(operand);
+  } else if (user_conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     prep_class_bitwise_copy_operand(operand, dest_type, expression_kind);
   } else if (conversion_routine->special_kind ==
