@@ -1,5 +1,15 @@
 Version 2.44
 
+6/21/00  IL file read abort due to bad pointer-to-member type
+
+A mistake in building up related types for pointer-to-member casts
+caused two routine types in the IL to point to the same parameter type
+list.  If that IL was written to a file and read back in, and the
+parameter type list had more than one parameter type, the "next"
+pointers in the list would have had their addresses remapped twice,
+which generally caused an abort in ptr_remap_function
+("address not in any mem block").
+
 6/19/00  C++ generating back end: abort on initialization of non-POD aggregate
 
 The C++ generating back end used to abort when trying to generate C++ code for

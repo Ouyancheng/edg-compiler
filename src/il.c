@@ -5467,12 +5467,11 @@ return the original member type.
       a_type_ptr                     new_member_type;
       a_routine_type_supplement_ptr  new_rtsp;
 
-      /* Allocate the new function type and copy into it. */
-      new_member_type = alloc_type((a_type_kind)tk_routine);
-      copy_type(member_type, new_member_type);
+      new_member_type =
+               copy_routine_type_with_param_types(member_type,
+                                                  /*copy_default_args=*/FALSE);
       new_rtsp = new_member_type->variant.routine.extra_info;
       new_rtsp->this_class = class_type;
-      new_rtsp->qualifiers = old_rtsp->qualifiers;
       member_type = new_member_type;
     }  /* if */
   }  /* if */
