@@ -3357,6 +3357,11 @@ specification allow a variable-sized array as the top type.
       /* Cast the pointer returned by "new" to the right type. */
       cast_operand(ptr_new_type, result, expression_kind,
                    /*is_implicit_cast=*/TRUE);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+      /* Determine and remember the default operator new() routine for
+         the class. */
+      set_class_assoc_operator_new_routine(new_type);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     }  /* if */
   }  /* if */
   /* See if the object has or needs initialization. */
@@ -3628,6 +3633,11 @@ As an anachronism, allow an expression inside the [ ].
                          (a_boolean)delete_routine->is_virtual,
                          /*new_or_delete_call_for_array=*/array_delete,
                          result);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+      /* Determine and remember the default operator delete() routine for
+         the class. */
+      set_class_assoc_operator_delete_routine(delete_type);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     }  /* if */
   }  /* if */
 

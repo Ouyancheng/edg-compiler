@@ -4218,7 +4218,35 @@ routine body is generated at this time.
   db_exit();
 }  /* generate_special_function */
 
+#if ASSIGNMENT_TO_THIS_ALLOWED
 
+void set_class_assoc_operator_new_routine(a_type_ptr class_type)
+/*
+Determine the operator new() function to be used for the indicated class
+and record it in the class's assoc_operator_new_routine field.
+*/
+{
+  a_symbol_ptr                new_function_symbol;
+  a_class_type_supplement_ptr ctsp = 
+                             class_type->variant.class_struct_union.extra_info;
+
+  if (ctsp->assoc_operator_new_routine == NULL) {
+    /* Use the class "new" if there is one, and otherwise the global operator
+       new. */
+    new_function_symbol = opname_member_function_symbol(
+                                                       (an_opname_kind)onk_new,
+                                                       class_type);
+    if (new_function_symbol == NULL) {
+      new_function_symbol = global_operator_new_or_delete_symbol(
+                                                    (an_opname_kind)onk_new,
+                                                    &error_position,
+                                                    /*make_default_new=*/TRUE);
+    }  /* if */
+    ctsp->assoc_operator_new_routine = new_function_symbol->variant.routine;
+  }  /* if */
+}  /* set_class_assoc_operator_new_routine */
+
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
 static void make_default_constructor_body(a_scope_ptr  scope)
 /*
@@ -4230,11 +4258,6 @@ will return a pointer to the constructed object.
   a_routine_type_supplement_ptr  rtsp;
   a_variable_ptr                 vp;
   a_param_type_ptr               ptp;
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  a_symbol_ptr                   new_function_symbol;
-  a_type_ptr                     rout_class;
-  a_routine_ptr                  rout;
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
   db_enter(4, "make_default_constructor_body");
   /* Create the parameter variable -- needed for copy constructors only. */
@@ -4252,39 +4275,49 @@ will return a pointer to the constructed object.
           alloc_statement((a_statement_kind)stmk_return);
   sp->expr = this_param_value_expr();
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  /* Indicate the "new" routine to be called for the class, since it may have
-     to be called within the constructor wrapper code. */
-  rout = scope->variant.routine.ptr;
-  rout_class = rout->source_corresp.class_of_which_a_member;
-  /* Use the class "new" if there is one, and otherwise the global operator
-     new. */
-  new_function_symbol = opname_member_function_symbol((an_opname_kind)onk_new,
-                                                      rout_class);
-  if (new_function_symbol == NULL) {
-    new_function_symbol = global_operator_new_or_delete_symbol(
-                                                    (an_opname_kind)onk_new,
-                                                    &error_position,
-                                                    /*make_default_new=*/TRUE);
-  }  /* if */
-  rout->assoc_new_or_delete_routine = new_function_symbol->variant.routine;
+  /* Determine and remember the operator new() routine for the class. */
+  set_class_assoc_operator_new_routine(scope->variant.routine.ptr->
+                                       source_corresp.class_of_which_a_member);
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-
   db_exit();
-  return;
 }  /* make_default_constructor_body */
 
+#if ASSIGNMENT_TO_THIS_ALLOWED
+
+void set_class_assoc_operator_delete_routine(a_type_ptr class_type)
+/*
+Determine the operator delete() function to be used for the indicated class
+and record it in the class's assoc_operator_delete_routine field.
+*/
+{
+  a_symbol_ptr                delete_function_symbol;
+  a_class_type_supplement_ptr ctsp = 
+                             class_type->variant.class_struct_union.extra_info;
+
+  if (ctsp->assoc_operator_delete_routine == NULL) {
+    /* Use the class "delete" if there is one, and otherwise the global
+       operator delete. */
+    delete_function_symbol = opname_member_function_symbol(
+                                                    (an_opname_kind)onk_delete,
+                                                    class_type);
+    if (delete_function_symbol == NULL) {
+      delete_function_symbol = global_operator_new_or_delete_symbol(
+                                                    (an_opname_kind)onk_delete,
+                                                    &error_position,
+                                                    /*make_default_new=*/TRUE);
+    }  /* if */
+    ctsp->assoc_operator_delete_routine =
+                                       delete_function_symbol->variant.routine;
+  }  /* if */
+}  /* set_class_assoc_operator_delete_routine */
+
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
 static void make_default_destructor_body(a_scope_ptr  scope)
 /*
 Create the body for a default destructor.  It will return no value.
 */
 {
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  a_symbol_ptr  delete_function_symbol;
-  a_type_ptr    rout_class;
-  a_routine_ptr rout;
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-
   db_enter(4, "make_default_destructor_body");
   /* Create a statement block that is empty except for the return
      statement. */
@@ -4292,25 +4325,11 @@ Create the body for a default destructor.  It will return no value.
   scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  /* Indicate the "delete" routine to be called for the class, since it may
-     have to be called within the destructor wrapper code. */
-  rout = scope->variant.routine.ptr;
-  rout_class = rout->source_corresp.class_of_which_a_member;
-  /* Use the class "delete" if there is one, and otherwise the global operator
-     delete. */
-  delete_function_symbol = opname_member_function_symbol(
-                                                    (an_opname_kind)onk_delete,
-                                                    rout_class);
-  if (delete_function_symbol == NULL) {
-    delete_function_symbol = global_operator_new_or_delete_symbol(
-                                                   (an_opname_kind)onk_delete,
-                                                   &error_position,
-                                                   /*make_default_new=*/FALSE);
-  }  /* if */
-  rout->assoc_new_or_delete_routine = delete_function_symbol->variant.routine;
+  /* Determine and remember the operator delete() routine for the class. */
+  set_class_assoc_operator_delete_routine(scope->variant.routine.ptr->
+                                       source_corresp.class_of_which_a_member);
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   db_exit();
-  return;
 }  /* make_default_destructor_body */
 
 

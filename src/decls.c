@@ -3650,6 +3650,13 @@ on a prior declaration.
           cssp->has_copy_constructor_for_const_object = const_okay;
         }  /* if */
       }  /* if */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+      /* Determine and remember the operator new() routine for the class. */
+      set_class_assoc_operator_new_routine(class_type);
+    } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Determine and remember the operator delete() routine for the class. */
+      set_class_assoc_operator_delete_routine(class_type);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     }  /* if */
   }  /* if */
   if (inline_specified) sym->variant.routine->is_inline = TRUE;
