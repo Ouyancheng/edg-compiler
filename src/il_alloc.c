@@ -2503,6 +2503,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->is_using_directive    = FALSE;
   udp->is_class_member       = FALSE;
   udp->hidden                = FALSE;
+  udp->compiler_generated    = FALSE;
   udp->access                = (an_access_specifier)as_public;
   udp->qualifier.namespace_ptr
                              = NULL;

@@ -8303,13 +8303,18 @@ Return a pointer to the variable that is declared.
 }  /* condition_declaration */
 
 
-static void make_using_directive(a_namespace_ptr    nsp,
-                                 a_source_position  *pos)
+void make_using_directive(a_namespace_ptr    nsp,
+                          a_source_position  *pos,
+			  a_boolean	     compiler_generated)
 /*
 Create a using-decl entry for a using-directive that specifies the indicated
 namespace, add it to the current scope's list of using-decl entries, and
 "activate" it to assure that inactive-list symbols belonging to the namespace
 will be found during name lookup.
+
+compiler_generated is TRUE for implicit using-directives created for
+unnamed namespaces, and for certain using-directives created to emulate
+a Microsoft bug.
 */
 {
   a_using_decl_ptr  udp;
@@ -8320,12 +8325,13 @@ will be found during name lookup.
   udp->entity.kind = (a_byte_il_entry_kind)iek_namespace;
   udp->entity.ptr = (char *)nsp;
   udp->is_using_directive = TRUE;
+  udp->compiler_generated = compiler_generated;
   udp->decl_sequence_number = ++decl_seq_counter;
   add_to_using_decls_list(udp);
   /* Activate it. */
   add_active_using_directive(udp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (nsp->source_corresp.name != NULL) {
+  if (!compiler_generated) {
     /* Not a compiler-generated using directive for an unnamed namespace. */
     add_to_source_sequence_list((char *)udp, (an_il_entry_kind)iek_using_decl);
   }  /* if */
@@ -8640,7 +8646,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
            as an extension. */
         pop_scope();
         /* Do an implicit "using" directive of the unnamed namespace. */
-        make_using_directive(nsp, &pos_curr_token);
+        make_using_directive(nsp, &pos_curr_token,
+                             /*compiler_generated=*/TRUE);
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                    nsp);
         scope_stack[depth_scope_stack].
@@ -8768,7 +8775,8 @@ A using-directive entry is created and activated for the current scope.
       mark_referenced(sym, &locator_for_curr_id.source_position);
       /* Allocate a using-directive entry specifying this namespace and
          activate it. */
-      make_using_directive(sym->variant.namespace_info.ptr, &decl_start_pos);
+      make_using_directive(sym->variant.namespace_info.ptr, &decl_start_pos,
+                           /*compiler_generated=*/FALSE);
     }  /* if */
     (void)get_token();
   }  /* if */

@@ -391,6 +391,10 @@ extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
 
 extern a_variable_ptr condition_declaration(void);
 
+extern void make_using_directive(a_namespace_ptr    nsp,
+                                 a_source_position  *pos,
+		   	         a_boolean	    compiler_generated);
+
 /* Bit vector used to pass flags into declarator and into and out of
    declaration routines.  Each bit represents a flag.  (Note that several of
    the bit sets described with this type have more than 16 flags; "unsigned

@@ -497,18 +497,19 @@ static void add_active_using_directive_to_scope(
 				a_scope_stack_entry_ptr	ssep,
 				a_decl_sequence_number	effective_decl_seq);
 
-static void add_active_using_directives_for_namespace(
-				a_namespace_ptr		nsp,
+static void add_active_using_directives_for_scope(
+				a_scope_ptr		scope,
 				a_scope_stack_entry_ptr	ssep,
 				a_decl_sequence_number	parent_decl_seq)
 /*
 Create active using directive entries for any using directives present
-in the specified namespace.  If the namespace specified by nsp was
-made visible by a using-directive, parent_decl_seq is the declaration
-sequence number of the using-directive that made it visible.
+in the specified scope (which is either a namespace scope or the file scope).
+If scope is a namespace scope, and was made visible by a using-directive,
+parent_decl_seq is the declaration sequence number of the using-directive
+that made it visible.
 */
 {
-  a_using_decl_ptr  udp = nsp->variant.assoc_scope->using_decls;
+  a_using_decl_ptr  udp = scope->using_decls;
 
   while (udp != NULL) {
     if (udp->is_using_directive) {
@@ -523,7 +524,7 @@ sequence number of the using-directive that made it visible.
     }  /* if */
     udp = udp->next;
   }  /* while */
-}  /* add_active_using_directives_for_namespace */
+}  /* add_active_using_directives_for_scope */
 
 
 static void add_active_using_directive_to_scope(
@@ -601,7 +602,8 @@ using-directives specified after the point of definition of the template.
     scope_stack[new_depth].using_directives_apply = TRUE;
     /* Add active using directives for the namespaces that should be
        visible because of the transitivity of using directives. */
-    add_active_using_directives_for_namespace(nsp, ssep, effective_decl_seq);
+    add_active_using_directives_for_scope(nsp->variant.assoc_scope, ssep,
+                                          effective_decl_seq);
     /* Now that a using directive is active, inactive symbols may be
        visible. */
     scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
@@ -1707,6 +1709,11 @@ Activate or reactivate the file scope of the current translation unit.
 {
   (void)push_scope((a_scope_kind)sck_file, file_scope_number, (a_type_ptr)NULL,
                    (a_routine_ptr)NULL);
+  /* Add active using directives for the namespaces that should be
+     visible because of the transitivity of using directives. */
+  add_active_using_directives_for_scope(curr_translation_unit->primary_scope,
+                                        &scope_stack[depth_scope_stack],
+					NO_DECL_SEQUENCE_NUMBER);
 }  /* push_file_scope */
 
 
@@ -1758,9 +1765,9 @@ template defined in a namespace.
                           (a_template_decl_info_ptr)NULL, PS_NO_OPTIONS);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
-  add_active_using_directives_for_namespace(assoc_namespace,
-                                            &scope_stack[depth_scope_stack],
-					    NO_DECL_SEQUENCE_NUMBER);
+  add_active_using_directives_for_scope(assoc_namespace->variant.assoc_scope,
+                                        &scope_stack[depth_scope_stack],
+					NO_DECL_SEQUENCE_NUMBER);
   return scope;
 }  /* push_namespace_scope */
 
@@ -1787,17 +1794,27 @@ This routine implements this bug by taking the using-directives from the
 namespace being popped and applying them to the file scope.
 */
 {
-  /* Add active using directives for the namespaces that should be
-     visible because of the transitivity of using directives. */
- a_scope_depth	depth;
- add_active_using_directives_for_namespace(nsp,
-                                           &scope_stack[DEPTH_OF_FILE_SCOPE],
-                                           NO_DECL_SEQUENCE_NUMBER);
- /* Update all of the scopes on the scope stack to indicate that symbols
-    visible as a result of a using-directive may be visible. */
- for (depth = depth_scope_stack; depth >= DEPTH_OF_FILE_SCOPE; depth--) {
-   scope_stack[depth].inactive_symbols_may_be_visible = TRUE;
- }  /* for */
+  a_using_decl_ptr	udp = nsp->variant.assoc_scope->using_decls;
+  a_scope_depth		depth;
+
+  /* Create using-directives for each of the namespaces nominated in a
+     using-directive of the namespace scope specified by nsp. */
+  while (udp != NULL) {
+    if (udp->is_using_directive) {
+      a_namespace_ptr	nsp;
+      check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
+      /* Get a pointer to the namespace to be used. */
+      nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
+      make_using_directive(nsp, &null_source_position,
+                           /*compiler_generated=*/TRUE);
+    }  /* if */
+    udp = udp->next;
+  }  /* while */
+  /* Update all of the scopes on the scope stack to indicate that symbols
+     visible as a result of a using-directive may be visible. */
+  for (depth = depth_scope_stack; depth >= DEPTH_OF_FILE_SCOPE; depth--) {
+    scope_stack[depth].inactive_symbols_may_be_visible = TRUE;
+  }  /* for */
 }  /* microsoft_using_directive_bug_processing */
 
 

@@ -1279,6 +1279,13 @@ typedef struct a_using_decl {
 			   a base class member brought into a derived class
 			   by a using-declaration is subsequently hidden by a
 			   declaration in the derived class. */
+  a_bit_field	compiler_generated:1;
+			/* TRUE for a using-directive that did not actually
+			   appear in the source.  This is the case for the
+			   implicit using-directive created when using
+			   unnamed namespaces and is also TRUE for the
+			   using-directive created to simulate a Microsoft
+			   bug (in Microsoft bugs mode). */
   an_access_specifier
                 access;
 			/* For class member using-declarations only, the

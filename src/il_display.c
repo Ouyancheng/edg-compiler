@@ -3809,6 +3809,9 @@ Display the indicated using-directive entry.
                (char *)ptr->qualifier.namespace_ptr, iek_namespace);
     }  /* if */
   }  /* if */
+  if (ptr->compiler_generated) {
+    disp_boolean("compiler_generated", ptr->compiler_generated);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);
