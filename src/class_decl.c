@@ -2160,36 +2160,10 @@ duplicate paths.  The copy will be a base class of new_class.
   db_exit();
 }  /* add_indirect_base_class */
 
-#if 0
-/* Forward declaration for indirect recursion. */
-static a_base_class_ptr resolve_duplicate_virtual_base_classes(
-                                                  a_type_ptr       class_type,
-                                                  a_base_class_ptr base_class);
 
-static void check_for_duplicate_virtual_step(a_type_ptr        class_type,
+static void set_preferred_virtual_derivation(a_type_ptr        class_type,
                                              a_base_class_ptr  base_class)
 /*
-If the initial step entry of the derivation of base_class is a virtual base
-class, recursively apply a check to any other virtual base class in its path.
-Then, if it's a duplicate, resolve the duplication.
-*/
-{
-  a_base_class_ptr  step_bcp = base_class->derivation->base_class;
-
-  if (step_bcp->is_virtual && step_bcp->type != base_class->type) {
-    check_for_duplicate_virtual_step(class_type, step_bcp);
-    if (step_bcp->is_duplicate) {
-      (void)resolve_duplicate_virtual_base_classes(class_type, step_bcp);
-    }  /* if */
-  }  /* if */
-}  /* check_for_duplicate_virtual_step */
-
-    
-static a_base_class_ptr resolve_duplicate_virtual_base_classes(
-                                                   a_type_ptr       class_type,
-                                                   a_base_class_ptr base_class)
-/*
-
 When a class is derived from a virtual base class by more than one
 derivation path, only one instance of the virtual base class will actually
 show up in the base class graph.  For instance, if V is a virtually base
@@ -2208,218 +2182,58 @@ looks like this:
                      A   B
                       \ /
                        C
+The derivations for X and Y in C are represented as ==>V==>X and ==>V==>Y,
+respectively, but V in C has two derivations, ==>A==>V and ==>B==>V.  Both
+paths are represented in the IL -- the base class entry for V points to a
+linked list of virtual-derivation entries, each of which points to a
+derivation of V.
 
-This routine is called when the base class list contains duplicate
-instances the virtual base class: it selects the best derivation path,
-moves that entry to the appropriate location, and removes other duplicates
-to a side list.
+This routine is called to identify the "preferred" path -- the sequence of
+casts that affords the greatest "normal" accessibility (i.e., without
+special treatment for casts in the context of member or friend functions).
+When there are two entries with equally good access, a direct base class is
+preferred over in indirect, and an indirect base class with no virtual base
+classes in its derivation is preferred over one that has virtual base
+classes in its derivation.
 
-The appropriate location in the list is the first appearance of the base
-class in the depth-first, left-to-right traversal of the base specifiers.
-In the above example, the base class list contains X, Y, V(1), A, V(2),
-and B upon entry to the routine (where V(1) and V(2) are two entries for
-V).  One of the Vs is selected and placed in the location of V(1).  The
-other is placed on the duplicates list of the preferred entry.  The
-resulting base class list contains X, Y, V, A, and B.
-
-Preference is given to the duplicate entry that affords the best access
-(ARM 11.7).  When there are two entries with equally good access, a direct
-base class is preferred over in indirect, and an indirect base class with
-no virtual base classes in its derivation is preferred over one that has
-virtual base classes in its derivation.
-
-If the preferred virtual base class entry was not the original first
-to be seen in processing the base specifiers list, and if it had base
-classes of its own, the paths of its base classes is fixed up.  Thus, the
-original derivation of A was through V(1), but if V(2) was preferable, the
-derivation would be changed to be through V(2).
-
-Return the preferred base class to the called.
-*/
-{
-  a_derivation_step_ptr  step;
-  an_access_specifier    access, temp_access;
-  a_boolean              is_direct = FALSE;
-  a_base_class_ptr       bcp, prev, insert_after, next_bcp;
-  a_base_class_ptr       first_duplicate = NULL;
-  a_base_class_ptr       pointer_base_class = NULL;
-  a_base_class_ptr       end_of_duplicates_list;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-  a_base_class_ptr       data_section_base_class = NULL;
-  a_boolean              complete_subobject = FALSE;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-
-  db_enter(4, "resolve_duplicate_virtual_base_classes");
-
-  /* If the path from the most derived class to base_class involves a
-     duplicate virtual base class, resolve the latter first, and then go
-     on to resolve the duplicates for base_class itself. */
-  check_for_duplicate_virtual_step(class_type, base_class);
-  /* Save the access of base_class. */
-  access = normal_access_to_end_of_path(base_class->derivation);
-  first_duplicate = NULL;
-  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->is_duplicate && bcp->type == base_class->type) {
-      if (first_duplicate == NULL) first_duplicate = bcp;
-      /* Save the first pointer-base-class among the duplicates.  It will
-         be used by the preferred base class. */
-      if (pointer_base_class == NULL) {
-        pointer_base_class = bcp->pointer_base_class;
-      }  /* if */
-      if (bcp->direct) is_direct = TRUE;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-      /* Do the same with the data-section-base-class and the setting for the
-         complete-subobject flag in cfront mode. */
-      if (data_section_base_class == NULL) {
-        data_section_base_class = bcp->data_section_base_class;
-      }  /* if */
-      if (bcp->complete_subobject) complete_subobject = TRUE;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-      if (bcp == base_class) {
-        /* bcp is the base-class we started with.  Keep looking. */
-      } else {
-        /* Again, first resolve duplicates in the path.  Otherwise the
-           subsequent accessibility check won't be accurate. */
-        check_for_duplicate_virtual_step(class_type, bcp);
-        /* We already have the accessibility of the other path.  Compute the
-           accessibility of the current path. */
-        temp_access = normal_access_to_end_of_path(bcp->derivation);
-        /* Compare the two paths. */
-        if (is_more_accessible(temp_access, access)) {
-          /* The new one is more accessible.  Use it. */
-          base_class = bcp;
-          access = temp_access;
-        } else if (temp_access == access) {
-          /* No preference based on accessibility.  Look for other criteria. */
-          if (!base_class->direct) {
-            if (bcp->direct) {
-              /* Choose a direct base class over an indirect. */
-              base_class = bcp;
-            } else if (!bcp->derivation->base_class->is_virtual) {
-              if (base_class->derivation->base_class->is_virtual) {
-                /* Choose a path without virtual base classes over one that has
-                   them. */
-                base_class = bcp;
-#if 0
-              } else {
-                /* Both are indirect base classes with no virtual steps.
-                   Is it worth it to choose the shorter or use some other
-                   criterion? */
-#endif /* if 0 */
-              }
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  /* The preferred duplicate is now pointed to by base_class.  Set its fields
-     accordingly. */
-  base_class->is_duplicate = FALSE;
-  base_class->pointer_base_class = pointer_base_class;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-  base_class->data_section_base_class = data_section_base_class;
-  base_class->complete_subobject = complete_subobject;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-  base_class->direct = is_direct;
-  if (base_class != first_duplicate) {
-    /* Remove base_class from its current position and place it before
-       first_duplicate. */
-    a_boolean  first_duplicate_seen = FALSE;
-    prev = insert_after = NULL;
-    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-      if (bcp == first_duplicate) {
-        insert_after = prev;
-        first_duplicate_seen = TRUE;
-      } else if (bcp == base_class) {
-        /* Remove base_class from the list and reinsert it just before
-           first_duplicate. */
-        prev->next = base_class->next;
-        if (insert_after == NULL) {
-          /* Add it to the front of the list. */
-          class_type->
-              variant.class_struct_union.extra_info->base_classes = base_class;
-        } else {
-          /* Add it following insert_after. */
-          insert_after->next = base_class;
-        }  /* if */
-        /* Remove first_duplicate and add it to the duplicate_entries list. */
-        base_class->next = first_duplicate->next;
-        base_class->duplicate_entries = first_duplicate;
-        end_of_duplicates_list = first_duplicate;
-        first_duplicate->next = NULL;
-        break;
-      } else if (!first_duplicate_seen) {
-        step = bcp->derivation;
-        if (step->base_class == first_duplicate && step->next != NULL) {
-          step->base_class = base_class;
-        }  /* if */
-      }  /* if */
-      prev = bcp;
-    }  /* for */
-    /* Clear unneeded fields. */
-    first_duplicate->pointer_base_class = NULL;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-    first_duplicate->data_section_base_class = NULL;
-    first_duplicate->complete_subobject = FALSE;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-  } else {
-    end_of_duplicates_list = NULL;
-  }  /* if */
-  /* Remove all the rest of the duplicates and insert them after the preferred
-     base class.  Note that the loop needn't traverse the first part of the
-     list again; rather, it starts with the entry following base_class.*/
-  prev = base_class;
-  for (bcp = base_class->next; bcp != NULL; bcp = next_bcp) {
-    next_bcp = bcp->next;
-    if (bcp->is_duplicate && bcp->type == base_class->type) {
-      /* Found another duplicate. */
-      prev->next = bcp->next;
-      /* Add it to the end of the duplicates list. */
-      if (end_of_duplicates_list == NULL) {
-        base_class->duplicate_entries = bcp;
-      } else {
-        end_of_duplicates_list->next = bcp;
-      }  /* if */
-      bcp->next = NULL;
-      end_of_duplicates_list = bcp;
-      /* Clear unneeded fields. */
-      bcp->pointer_base_class = NULL;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-      bcp->data_section_base_class = NULL;
-      bcp->complete_subobject = FALSE;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-    } else {
-      prev = bcp;
-    }  /* if */
-  }  /* if */
-  db_exit();
-  return base_class;
-}  /* resolve_duplicate_virtual_base_classes */
-#endif /* if 0 */
-
-static void set_preferred_virtual_derivation(a_type_ptr        class_type,
-                                             a_base_class_ptr  base_class)
-/*
+Note that the virtual base class appears on the base class list in the
+position of its first appearance in the depth-first left-to-right tranversal
+of the base specifiers graph.  This position is independent of the which
+appearance of the base class happens to have been marked preferred.
 */
 {
   a_virtual_derivation_ptr  vdp, preferred_vdp;
 
   db_enter(4, "set_preferred_virtual_derivation");
+  /* Has this set of virtual derivations been checked yet?  This can be
+     determined by seeing If any has the preferred flag set already. */
+#if 0
+  /* Since the preferred flag is set on the first virtual-derivation entry
+     if at all, we can just check follow the pointer from the base class.
+     If this changes, we will have to call preferred_virtual_derivation_of
+     and check for a non-null return value.  Or else we'll need a flag in
+     the base class entry. */
+#endif /* if 0 */
   vdp = base_class->paths_to_virtual_base_class;
   if (vdp->preferred) {
     /* Already done. */
   } else {
+    /* Traverse the linked list of virtual derivations. */
     for (; vdp != NULL; vdp = vdp->next) {
       if (vdp->derivation->base_class->is_virtual &&
           vdp->derivation->base_class != base_class) {
+        /* If this virtual base class has a virtual base class in its
+           derivation path, the intermediate step has to be processed first. */
         set_preferred_virtual_derivation(class_type,
                                          vdp->derivation->base_class);
       }  /* if */
+      /* Determined the accessibility of a public member of the virtual base
+         class in the context of the the most derived class. */
       vdp->normal_access = access_to_end_of_path(
                                     (an_access_specifier)as_public,
                                     vdp->derivation, /*virt_derivation=*/TRUE);
       if (vdp->first) {
+        /* Prefer the first unless another turns out to have better access. */
         preferred_vdp = vdp;
       } else {
         /* Compare the two paths. */
@@ -2444,6 +2258,8 @@ static void set_preferred_virtual_derivation(a_type_ptr        class_type,
       }  /* if */
     }  /* for */
     preferred_vdp->preferred = TRUE;
+    /* Move the preferred derivation to the front of the list of virtual
+       derivation entries. */
     if (!preferred_vdp->first) {
       vdp = base_class->paths_to_virtual_base_class;
       for (; vdp != NULL; vdp = vdp->next) {
@@ -2614,6 +2430,11 @@ or struct definition.  The syntax is
         error(ec_bad_base_class);
         goto skip_base_class;
       }  /* if */
+      /* Issue a warning if an explicit access specifier was not provided
+         (as per the recommendation on p. 243 of the ARM). */
+      if (!access_already_specified) {
+        str_warning(ec_missing_access_specifier, default_access_str);
+      }  /* if */
       check_assertion(ctsp != NULL);
       /* Before creating the base class entry and adding it to the list of
          base classes, go through the list looking for conflicts. */
@@ -2642,11 +2463,6 @@ or struct definition.  The syntax is
           }  /* if */
         }  /* if */
       }  /* for */
-      /* Issue a warning if an explicit access specifier was not provided
-         (as per the recommendation on p. 243 of the ARM). */
-      if (!access_already_specified) {
-        str_warning(ec_missing_access_specifier, default_access_str);
-      }  /* if */
       /* The current class will have to have a constructor if any of its base
          classes is virtual or itself has a constructor; it requires a
          destructor if any of its base classes has a destructor.  Record such
