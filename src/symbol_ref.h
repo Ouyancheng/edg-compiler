@@ -180,11 +180,11 @@ extern void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list);
    pointer tp that is passed in need not be a class type.) */
 #define record_complete_class_type_needed(tp)  /* Nothing */
 
-/* tp is a pointer to a class type.  This is a context in which a type is
-   required to be complete, so if tp is incomplete see if it is a template
-   class that can be instantiated.  Issuing a diagnostic on an incomplete
-   type is done separately.  Also (if appropriate for the implementation)
-   record that the class was required to be complete in the current context. */
+/* tp is a class type.  This is a context in which a type is required to be
+   complete, so if tp is incomplete see if it is a template class that can
+   be instantiated.  Issuing a diagnostic on an incomplete type is done
+   separately.  Also (if appropriate for the implementation) record that the
+   class was required to be complete in the current context. */
 #define complete_class_type_is_needed(tp)                               \
 {                                                                       \
   if (C_dialect == C_dialect_cplusplus) {                               \
