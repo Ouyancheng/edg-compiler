@@ -3613,13 +3613,15 @@ cross-reference output describing this declaration.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (C_mode() && microsoft_mode &&
-              f_types_are_compatible(type_ptr, *old_type,
-                                     TCF_REDECLARATION |
-                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
-                                     TCF_IGNORE_SIGNEDNESS)) {
-            /* The only thing preventing compatibility was the signedness of
-               integral types.  Just issue a warning in Microsoft C mode. */
+              is_integral_type(type_ptr) && is_integral_type(*old_type) &&
+              integral_types_the_same_except_for_signedness(type_ptr,
+                                                            *old_type)) {
+            /* Compatible but for a difference in signedness -- just issue a
+               warning in Microsoft C mode. */
             severity = es_warning;
+            /* MSVC gives preference to the signedness of the first
+               declaration. */
+            type_ptr = variable_ptr->type;
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
