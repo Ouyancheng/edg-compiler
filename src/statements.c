@@ -1252,6 +1252,11 @@ the current routine.
       /* No warning if the routine's type was not explicitly specified. */
     } else if (rout == il_header.main_routine) {
       /* No warning for "main". */
+    } else if (rout->special_kind ==
+                        (a_special_function_kind)sfk_constructor) {
+      /* No warning -- constructors will not have a return expression since
+         at the source level they have no return type; however, in the IL
+         they are represented as returning the "this" parameter. */
     }  else {
       warning(ec_no_value_returned_in_non_void_function);
     }  /* if */
@@ -1287,25 +1292,29 @@ See also 3.6.6.4.
 #endif /* CHECKING */
   (void)get_token();
   add_stop_token(tok_semicolon);
+  /* Get a pointer to the current routine entry. */
+  rout = current_routine_entry();
   /* See if the optional expression is present. */
   if (curr_token == tok_semicolon) {
     /* The expression is missing. */
     check_void_return_okay();
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
+      /* In a constructor the user may not specify a return value.  However,
+         the IL contains code to return the "this" variable. */
+      sp->expr = this_param_value_expr();
+    }  /* if */
   } else {
     /* The expression is present. */
-    /* Get a pointer to the current routine entry, and get its return
-       type. */
-    rout = current_routine_entry();
+    /* Get the return type of the current routine entry. */
     return_type = skip_typerefs(rout->type)->variant.routine.return_type;
-    if (is_void_type(return_type)) {
-      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-          rout->special_kind == (a_special_function_kind)sfk_destructor) {
-        /* Constructors and destructors may not return a value (ARM 6.6.3). */
-        error(ec_value_returned_in_constructor);
-      } else {
-        /* A void function may not return a value. */
-        error(ec_value_returned_in_void_function);
-      }  /* if */
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+        rout->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Constructors and destructors may not return a value (ARM 6.6.3). */
+      error(ec_value_returned_in_constructor);
+      return_type = error_type();
+    } else if (is_void_type(return_type)) {
+      /* A void function may not return a value. */
+      error(ec_value_returned_in_void_function);
       return_type = error_type();
     }  /* if */
     /* Scan the return expression and convert it to the function type. */
@@ -1896,7 +1905,12 @@ come out on the closing "}".
     /* Add a return with no expression.  Do not add it if the current
        code is truly unreachable. */
     if (code_reachable != rc_unreachable) {
-      (void)add_statement((a_statement_kind)stmk_return);
+      a_statement_ptr sp = add_statement((a_statement_kind)stmk_return);
+      if (current_routine_entry()->special_kind ==
+                             (a_special_function_kind)sfk_constructor) {
+        /* By default constructors return the "this" variable. */
+        sp->expr = this_param_value_expr();
+      }  /* if */
     }  /* if */
   }  /* if */
 
