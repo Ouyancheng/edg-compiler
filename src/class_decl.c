@@ -5167,6 +5167,14 @@ of the function, and again overloading is a possibility.
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
   db_enter(3, "decl_friend_function");
+  if (is_template_dependent_context() &&
+      !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Template dependent friend declarations should only be encountered in
+       prototype instantiation scopes, but severe syntax errors can get us
+       here nonetheless.  In that case we just skip the friend processing. */
+    check_assertion(total_errors > 0);
+    set_to_named_error_locator(*locator);
+  }  /* if */    
   if (!is_error_locator(*locator)) {
     sym = locator->specific_symbol;
     if (sym == NULL && locator->is_template_id) {
