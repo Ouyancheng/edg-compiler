@@ -4197,6 +4197,7 @@ performed.
 {
   a_boolean			instantiations_needed;
   a_template_instance_ptr	tip;
+  a_template_instantiation_mode	saved_instantiation_mode;
 
   db_enter(3, "automatic_instantiation");
   /* Set the instantiation mode to tim_none.  This is done to ensure that
@@ -4204,6 +4205,7 @@ performed.
      performed.  We don't want a mode like "used" or "all" to cause
      other instantiations to happen as a consequence of the requested
      instantiations that are performed. */
+  saved_instantiation_mode = instantiation_mode;
   instantiation_mode = tim_none;
   /* We always need to go through the full instantiation list to set the
      flags to be passed to the back-end.  We don't, however, need to
@@ -4268,6 +4270,10 @@ performed.
       }  /* if */
     }  /* if */
   }  /* for */
+  /* Restore the original instantiation mode.  This is needed because it
+     is used later on in the front end wrapup process when assigning
+     linkage class members. */
+  instantiation_mode = saved_instantiation_mode;
   db_exit();
 }  /* automatic_instantiation */
 
