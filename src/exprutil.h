@@ -475,6 +475,10 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
+extern void make_constructor_call(a_routine_ptr      ctor_routine,
+                                  an_expr_node_ptr   arg_expr_list,
+                                  an_operand         *result);
+
 extern void prep_elision_initializer_operand(
                                       an_operand         *source_operand,
                                       a_type_ptr         class_type,
