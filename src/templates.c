@@ -92,6 +92,7 @@ typedef enum /* a_template_info_line_type */ {
   tilt_secondary_trans_units,	/* Used by driver. */
   tilt_template_name,
   tilt_dependency,
+  tilt_entry_point,
   tilt_last
   /* Lint comments to disable warnings that the driver line types are
      not used. */
@@ -119,6 +120,7 @@ static char	*template_info_line_type_names[(int)tilt_last+1] = {
   /* tilt_secondary_trans_units */	"stu",
   /* tilt_template_name */		"tnm",
   /* tilt_dependency */                 "dep",
+  /* tilt_entry_point */                "ent",
   /* tilt_last */			NULL
 };
 
@@ -18689,6 +18691,44 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 #if INSTANTIATE_EXTERN_INLINE
 
+#if IA64_ABI
+
+static void write_alternate_entry_points_to_template_info_file(
+						a_routine_ptr	rout_ptr)
+/*
+rout_ptr is the routine entry for a constructor or destructor.  If the
+routine has alternate entry points, create template information file entries
+for them.  These are special "entry point" entries, which refer to the
+previous instantiation flag entry.
+*/
+{
+  a_routine_list_entry_ptr	rlep;
+  char				*name;
+
+  /* Create an entry point for the internal constructor/destructor, but without
+     having its name remapped to the primary. */
+  name = get_mangled_function_name_full(rout_ptr,
+                                        /*force_primary_name=*/FALSE);
+  write_to_template_info_file(tilt_entry_point, name,
+                              (char*)NULL, (a_symbol_ptr)NULL);
+  /* Write the entries for the alternate entry points. */
+  for (rlep = rout_ptr->variant.ctor_dtor.alternate_entry_points;
+       rlep != NULL;
+       rlep = rlep->next) {
+    /* Skip the entry point for the complete object constructor as the
+       primary entry point will have been output using the name of the
+       complete object constructor. */
+    if (rlep->routine->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_complete) {
+      name = get_mangled_function_name_full(rlep->routine,
+                                            /*force_primary_name=*/FALSE);
+      write_to_template_info_file(tilt_entry_point, name,
+                                 (char*)NULL, (a_symbol_ptr)NULL);
+    }  /* if */
+  }  /* for */
+}  /* write_alternate_entry_points_to_template_info_file */
+
+#endif /* IA64_ABI */
+
 static void create_instantiation_flags_for_inline_function(
 					a_routine_ptr	rout_ptr)
 /*
@@ -18746,6 +18786,15 @@ a body (if needed) for extern inline functions.
         write_instantiation_flags_to_template_info_file(
              name, instance_required, do_not_instantiate, can_be_instantiated,
              (a_symbol_ptr)NULL);
+#if IA64_ABI
+        /* Check for alternate entry points that must be output. */
+        if (rout_ptr->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+            rout_ptr->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) {
+          write_alternate_entry_points_to_template_info_file(rout_ptr);
+        }  /* if */
+#endif /* IA64_ABI */
 #if DO_IL_LOWERING
       } else {
         /* The flags are to be placed in the IL as special variables. */
