@@ -2821,8 +2821,6 @@ without it.
 static a_symbol_ptr decl_friend_function(a_symbol_locator    *locator,
                                          a_type_ptr          class_type,
                                          a_type_ptr          function_type,
-                                         an_exception_specification_ptr
-                                                             exception_spec,
                                          a_boolean           is_inline)
 /*
 Do processing for declaring a function (identified by *locator and with
@@ -2889,7 +2887,7 @@ of the function, and again overloading is a possibility.
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       decl_var_or_routine(locator, storage_class, function_type,
-                          exception_spec, /*is_implicit_function=*/FALSE,
+                          /*is_implicit_function=*/FALSE,
                           is_function_def_with_body, is_inline,
                           is_main_function, &sym, &linkage, &old_type,
                           &ext_sym);
@@ -2915,8 +2913,6 @@ of the function, and again overloading is a possibility.
             !sym->variant.routine.ptr->is_inline) {
           error(ec_inline_not_allowed);
         }  /* if */
-        merge_exception_specifications(exception_spec,
-                                       sym->variant.routine.ptr);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3248,8 +3244,6 @@ static a_symbol_ptr decl_member_function(
                                    a_symbol_locator        *locator,
                                    a_type_ptr              class_type,
                                    a_type_ptr              member_type,
-                                   an_exception_specification_ptr
-                                                           exception_spec,
                                    an_access_specifier     access,
                                    a_boolean               is_inline,
                                    a_boolean               is_virtual,
@@ -3299,7 +3293,6 @@ special function kind (e.g., constructor, destructor), if any.
        merge the declarations anyway. */
     redecl_member_function(sym, member_type, access, is_inline, is_virtual,
                            &locator->source_position);
-    merge_exception_specifications(exception_spec, rtn);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -3321,7 +3314,6 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
     rtn->compiler_generated = compiler_generated;
-    rtn->exception_specifications = exception_spec;
     if (cssp->is_nonreal_class) {
       /* This symbol represents a member function of a prototype instantiation
          of a class template.  As such it is a quasi function template itself.
@@ -4127,6 +4119,7 @@ routine body is generated at this time.
 {
   a_type_ptr                rout_type;
   a_routine_type_supplement *extra_info;
+  a_symbol_ptr              rout_sym;
   a_symbol_locator          locator;
   a_source_position         pos;
 
@@ -4167,11 +4160,21 @@ routine body is generated at this time.
   }  /* if */
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
-  (void)decl_member_function(&locator, class_type, rout_type,
-                             (an_exception_specification_ptr)NULL,
-                             (an_access_specifier)as_public,
-                             /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
-                             /*compiler_generated=*/TRUE, sfkind);
+  rout_sym = decl_member_function(&locator, class_type, rout_type,
+                                  (an_access_specifier)as_public,
+                                  /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
+                                  /*compiler_generated=*/TRUE, sfkind);
+#if 0
+#else
+#define exceptions_disallowed FALSE
+#endif /* if 0 */
+  if (!exceptions_disallowed) {
+    a_throw_specification_ptr tsp;
+    /* No explicit throw specification, meaning anything may be thrown. */
+    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
+    tsp->decl_position = pos_curr_token;
+    rout_sym->variant.routine.ptr->throw_specification = tsp;
+  }  /* if */
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
      it may have been empty), so update the class symbol supplement, just to
@@ -6217,7 +6220,6 @@ Scan the body of a class definition, including the base classes list.
               if (friend_specified) {
                 rout_sym =
                       decl_friend_function(&locator, class_type, local_type,
-                                           func_info.exception_specifications,
                                            inline_specified);
               } else {
                 if (is_destructor) {
@@ -6228,8 +6230,7 @@ Scan the body of a class definition, including the base classes list.
                 }  /* if */
                 /* Create a symbol for the member function. */
                 rout_sym = decl_member_function(
-                                   &locator, class_type, local_type,
-                                   func_info.exception_specifications, access,
+                                   &locator, class_type, local_type, access,
                                    inline_specified, virtual_specified,
                                    /*compiler_generated=*/FALSE, spec_kind);
                 if (corresp_prototype_tag_sym != NULL) {
@@ -6244,6 +6245,9 @@ Scan the body of a class definition, including the base classes list.
                   }  /* if */
                 }  /* if */
               }  /* if */
+              add_throw_specification(func_info.throw_specification,
+                                          rout_sym->variant.routine.ptr);
+
               if (!function_def_present) {
                 if (func_info.param_id_list != NULL) {
                   /* Free the list of parameter identifiers -- they're not

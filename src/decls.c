@@ -1520,45 +1520,190 @@ need not be addressed here.
   return prototyped;
 }  /* is_prototyped_parameter_list_start */
 
+#if 0
+#else
+#define exceptions_disallowed FALSE
+#endif /* if 0 */
 
-void merge_exception_specifications(an_exception_specification_ptr  new_list,
-                                    a_routine_ptr                   rp)
+void add_throw_specification(a_throw_specification_ptr  new_tsp,
+                             a_routine_ptr              rp)
 /*
-Add the exception specifications list, if any, to the routine entry.  If
-there is already one there, check for consistency between the two lists.
+Add the throw specification, if any, to the routine entry.  If the routine
+already has one, leave it but check for consistency between the current
+one and the one previously declared.
 */
 {
-  db_enter(4, "add_exception_specifications");
-  if (new_list == NULL) {
-    if (rp->exception_specifications == NULL) {
-      /* Okay. */
-    } else {
-      /* Error. */
-    }  /* if */
-  } else if (rp->exception_specifications == NULL) {
-    /* Error. */
-    rp->exception_specifications = new_list;
+  a_boolean                       match, any_difference_seen;
+  a_throw_specification_ptr  new_list, old_list, tsp, other_tsp;
+  a_symbol_ptr                    rout_sym;
+
+  db_enter(4, "add_throw_specification");
+  check_assertion(new_tsp != NULL || exceptions_disallowed);
+  if (exceptions_disallowed) {
+    /* If exception processing is suppressed for the current compilation,
+       the constructs will have been scanned (after an error is issued) but
+       the IL needed be updated. */
+    check_assertion(rp->throw_specification == NULL);
+  } else if (rp->throw_specification == NULL) {
+    /* No comparison need be done -- this must be the first declaration of
+       the routine. */
+    rp->throw_specification = new_tsp;
   } else {
-#if 0
-      /* Not yet implemented. */
-#endif /* if */
+    rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+    switch (rp->throw_specification->kind) {
+      case tsk_none:
+        /* Previous specification asserted that no exceptions will be thrown.
+           It is compatible only with an identical specification on the
+           current declaration. */
+        if (new_tsp->kind != (a_throw_spec_kind)tsk_none) {
+          pos_stsy_start_error(ec_incompatible_throw_specification,
+                               &new_tsp->decl_position, ":", rout_sym);
+          add_diag_info(ec_previously_empty_throw_list);
+          end_error();
+        }  /* if */
+        break;
+      case tsk_any:
+        /* Previous specification asserted that any exception may be thrown.
+           It is compatible only with an identical specification on the
+           current declaration. */
+        if (new_tsp->kind != (a_throw_spec_kind)tsk_any) {
+          pos_stsy_error(ec_incompatible_throw_specification,
+                         &new_tsp->decl_position, "", rout_sym);
+        }  /* if */
+        break;
+      case tsk_list_entry:
+        /* Previous specification was a list of the types that will be
+           thrown.  Check for a mismatch between the previous list and the
+           current one. */
+        old_list = rp->throw_specification;
+        if (new_tsp->kind == (a_throw_spec_kind)tsk_list_entry) {
+          /* The current throw specification is also a list of types. */
+          new_list = new_tsp;
+        } else {
+          /* The current throw specification is not a list of types but
+             instead says either "will throw nothing" or "may throw anything".
+             Issue diagnostics as though this were a NULL list from which
+             the previously listed types were omitted. */
+          new_list = NULL;
+        }  /* if */
+        any_difference_seen = FALSE;
+        /* First loop through the current list (if any) and issue a diagnostic
+           on any type present in the current list but absent from the
+           previous one. */
+        for (tsp = new_list; tsp != NULL; tsp = tsp->next) {
+          if (tsp->redundant) {
+            /* Don't bother looking for a match on redundant types.  It will
+               already have been done. */
+          } else {
+            match = FALSE;
+            other_tsp = old_list;
+            for (; other_tsp != NULL; other_tsp = other_tsp->next) {
+              if (!other_tsp->redundant && other_tsp->type != NULL &&
+                  identical_types(tsp->type, other_tsp->type)) {
+                /* An entry of the same type was found on the previous list. */
+                match = TRUE;
+                break;
+              }  /* if */
+            }  /* for */
+            if (!match) {
+              /* No match was found, so the previous list does not have a
+                 type that is on the current list. */
+              if (!any_difference_seen) {
+                /* The diagnostics will be combined with a header message
+                   followed by additional messages identifying the specific
+                   discrepency.  This is the first diagnostic, so put out
+                   the header message first. */
+                pos_stsy_start_error(ec_incompatible_throw_specification,
+                                     &new_tsp->decl_position, ":", rout_sym);
+
+                any_difference_seen = TRUE;
+              }  /* if */
+              ty_add_diag_info(ec_previously_omitted_throw_type,
+                               tsp->type);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        /* Next loop through the previous list and issue a diagnostic on any
+           type present in the previous list but absent from the current one
+           (if any). */
+        other_tsp = old_list;
+        for (; other_tsp != NULL; other_tsp = other_tsp->next) {
+          if (other_tsp->redundant) {
+            /* Don't bother looking for a match on redundant types.  It will
+               already have been done. */
+          } else {
+            match = FALSE;
+            for (tsp = new_tsp; tsp != NULL; tsp = tsp->next) {
+              if (!tsp->redundant &&
+                  other_tsp->type != NULL && tsp->type != NULL &&
+                  identical_types(tsp->type, other_tsp->type)) {
+                match = TRUE;
+                break;
+              }  /* if */
+            }  /* for */
+            if (!match) {
+              if (!any_difference_seen) {
+                /* This is the first diagnostic, so put out the header
+                   message first. */
+                pos_stsy_start_error(ec_incompatible_throw_specification,
+                                     &new_tsp->decl_position, ":", rout_sym);
+
+                any_difference_seen = TRUE;
+              }  /* if */
+              ty_add_diag_info(ec_previously_included_throw_type,
+                               other_tsp->type);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        if (any_difference_seen) end_error();
+        break;
+#if CHECKING
+      default:
+        internal_error("add_throw_specification: bad kind");
+#endif /* CHECKING */
+    }  /* switch */
   }  /* if */
   db_exit();
-}  /* merge_exception_specifications */
+}  /* add_throw_specification */
 
 
-static an_exception_specification_ptr scan_exception_specifications(void)
+static void scan_throw_specification(a_func_info_block_ptr  func_info)
 /*
+Scan a throw specification, which may be empty or take either of two forms:
+
+  throw ( type-name [, type-name]... )
+  throw ()
+
+A throw specification with a list of names means "these types will be
+thrown".  A throw specification the an empty list ("throw ()") means "no
+exception with be thrown".  An empty throw specification means "any
+exception may be thown".
+
+Update the func_info block with a pointer to the appropriate kind of throw
+specification entry.
+
+Diagnostics are issued on redundant types on a list, but if this is a
+redeclaration of a routine, reconciliation with the previously throw
+specification is handled later (see add_throw_specification).
 */
 {
-  an_exception_specification_ptr  esp;
-  an_exception_specification_ptr  list = NULL, end_of_list = NULL;
-  a_type_ptr                      tp = NULL;
-  a_source_position               decl_pos;
+  a_throw_specification_ptr  tsp, other_tsp, end_of_list = NULL;
 
-  db_enter(4, "scan_exception_specifications");
+  db_enter(4, "scan_throw_specification");
+  if (curr_token != tok_throw) {
+    if (!exceptions_disallowed) {
+      /* No explicit throw specification, meaning anything may be thrown. */
+      tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
+      tsp->decl_position = pos_curr_token;
+      func_info->throw_specification = tsp;
+    }  /* if */
+    goto done;
+  }  /* if */
+  if (exceptions_disallowed) {
+    /* Exceptions are suppressed for this compilation. */
+    pos_error(ec_no_exception_support, &pos_curr_token);
+  }  /* if */
   /* Bypass "throw". */
-  check_assertion(curr_token == tok_throw);
   (void)get_token();
   /* Next token should be a left paren. */
   if (curr_token == tok_lparen) {
@@ -1566,8 +1711,10 @@ static an_exception_specification_ptr scan_exception_specifications(void)
     if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
          this routine. */
-      list = alloc_exception_specification();
-      list->decl_position = pos_curr_token;
+      tsp = alloc_throw_specification((a_throw_spec_kind)tsk_none);
+      tsp->decl_position = pos_curr_token;
+      func_info->throw_specification = tsp;
+      /* Bypass the right paren. */
       (void)get_token();
       goto done;
     }  /* if */
@@ -1579,26 +1726,35 @@ static an_exception_specification_ptr scan_exception_specifications(void)
   }  /* if */
   /* Loop through the types. */
   do {
-    decl_pos = pos_curr_token;
+    /* Allocate the throw specification entry. */
+    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_list_entry);
+    tsp->decl_position = pos_curr_token;
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/FALSE)) {
       /* Error. */
-      error(ec_exp_type_specifier);
-      tp = error_type();
+      pos_error(ec_exp_type_specifier, &tsp->decl_position);
+      tsp->type = error_type();
     } else {
-      type_name(&tp);
+      type_name(&tsp->type);
     }  /* if */
-    /* Allocate the exception specification entry, set its fields, and
-       add it to the end of the list. */
-    esp = alloc_exception_specification();
-    esp->decl_position = decl_pos;
-    esp->type = tp;
-    if (list == NULL) {
-      list = esp;
+    /* Add tsp to the list. */
+    if (end_of_list == NULL) {
+      func_info->throw_specification = tsp;
     } else {
-      end_of_list->next = esp;
+      /* Examine other entries already on the list to see if the current one
+         is redundant. */
+      other_tsp = func_info->throw_specification;
+      for (; other_tsp != NULL; other_tsp = other_tsp->next) {
+        if (!other_tsp->redundant &&
+            identical_types(tsp->type, other_tsp->type)) {
+          pos_remark(ec_redundant_throw_type, &tsp->decl_position);
+          tsp->redundant = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+      end_of_list->next = tsp;
     }  /* if */
-    end_of_list = esp;
+    end_of_list = tsp;
     /* If the next token is not a comma, it should be a right paren -- but
        check for a few other tokens that (in error cases) should also force
        the loop to terminate. */
@@ -1613,10 +1769,9 @@ static an_exception_specification_ptr scan_exception_specifications(void)
   } else {
     error(ec_exp_rparen);
   }  /* if */
-done:
+done:;
   db_exit();
-  return list;
-}  /* scan_exception_specifications */
+}  /* scan_throw_specification */
 
 
 static void function_declarator(a_type_ptr        *new_type_ptr,
@@ -2148,7 +2303,7 @@ scope is that of a class definition.
       if (func_info == &local_func_info_block) {
         /* Error. */
       }  /* if */
-      func_info->exception_specifications = scan_exception_specifications();
+      scan_throw_specification(func_info);
     }  /* if */
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -2217,12 +2372,13 @@ scope is that of a class definition.
                                             /*is_volatile=*/FALSE);
       extra_info->implicit_this_param_type = this_param_type;
     }  /* if */
-    if (curr_token == tok_throw &&
-        func_info->exception_specifications == NULL) {
-      if (func_info == &local_func_info_block) {
-        /* Error. */
+    if (func_info->throw_specification == NULL) {
+      if (curr_token == tok_throw) {
+        if (func_info == &local_func_info_block) {
+          /* Error. */
+        }  /* if */
       }  /* if */
-      func_info->exception_specifications = scan_exception_specifications();
+      scan_throw_specification(func_info);
     }  /* if */
   }  /* if */
   copy_source_position(start_pos, error_position);
@@ -3350,8 +3506,6 @@ not be TRUE.
 void decl_var_or_routine(a_symbol_locator      *locator,
                          a_storage_class       storage_class,
                          a_type_ptr            type_ptr,
-                         an_exception_specification_ptr
-                                               exception_specifications,
                          a_boolean             is_implicit_function,
                          a_boolean             is_function_def_with_body,
                          a_boolean             inline_specified,
@@ -3752,15 +3906,12 @@ skip_overloading:;
       reconcile_routine_types(routine_ptr, type_ptr,
                               /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE);
-      merge_exception_specifications(exception_specifications,
-                                     routine_ptr);
     } else if (routine_ptr == NULL) {
       /* There is no IL entry, so create one now, and add it to the routine
          list of the file scope. */
       routine_ptr = make_routine(type_ptr, storage_class,
                                  /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
       if (C_dialect == C_dialect_cplusplus) {
-        routine_ptr->exception_specifications = exception_specifications;
         if (locator->is_operator_name) {
           routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
           routine_ptr->opname_kind = locator->variant.opname;
@@ -3781,10 +3932,6 @@ skip_overloading:;
         check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
                                    &storage_class, &locator->source_position,
                                   /*suppress_diagnostic=*/linked_redecl_error);
-        if (C_dialect == C_dialect_cplusplus) {
-          merge_exception_specifications(exception_specifications,
-                                         routine_ptr);
-        }  /* if */
 #if ASM_FUNCTION_ALLOWED
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -3940,8 +4087,6 @@ skip_overloading:;
 
 void decl_function_template(a_symbol_locator    *locator,
                             a_type_ptr          type_ptr,
-                            an_exception_specification_ptr
-                                                exception_specifications,
                             a_symbol_ptr        *symbol_ptr,
                             a_storage_class     storage_class,
                             a_boolean           is_inline)
@@ -4086,7 +4231,6 @@ class template.
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
     rout_ptr->is_inline = is_inline;
-    rout_ptr->exception_specifications = exception_specifications;
     if (locator->is_operator_name) {
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
       rout_ptr->opname_kind = locator->variant.opname;
@@ -4100,8 +4244,6 @@ class template.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
-  } else {
-    merge_exception_specifications(exception_specifications, rout_ptr);
   }  /* if */
   if (overload_symbol != NULL) {
     /* A new symbol was added to an overload list which may have included
@@ -4247,8 +4389,6 @@ the symbol and its linkage (which is always "none").
 
 static void define_member_function(a_symbol_locator   *locator,
 				   a_type_ptr         type_ptr,
-                                   an_exception_specification_ptr
-                                                      exception_specifications,
                                    a_boolean          inline_specified,
 				   a_symbol_ptr       *symbol_ptr,
                                    an_id_linkage_kind *linkage_ptr,
@@ -4345,7 +4485,6 @@ on a prior declaration.
       rp->special_kind = other_rp->special_kind;
       rp->opname_kind = other_rp->opname_kind;
     }  /* if */
-    rp->exception_specifications = exception_specifications;
     *old_type = type_ptr;
   } else {
     /* A member function symbol with a compatible type was found. */
@@ -4359,7 +4498,6 @@ on a prior declaration.
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
-    merge_exception_specifications(exception_specifications, rp);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
       /* If the routine is a default constructor or a copy constructor, it may
          be that this has not yet been recorded in the symbol.  (This becomes
@@ -4648,7 +4786,6 @@ symbol has already been entered as an undefined symbol.
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Declare the function identifier. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      /*exception_specifications=*/NULL,
                       /*is_implicit_function=*/TRUE,
                       /*is_function_def_with_body=*/FALSE,
                       /*inline_specified=*/FALSE,
@@ -8027,10 +8164,8 @@ explicitly specified (rather than defaulted to "int").
     /* This is the definition of a member function. */
     check_assertion(prototyped);
     is_member_function_def = TRUE;
-    define_member_function(locator, rout_type,
-                           func_info->exception_specifications,
-                           inline_specified, &symbol_ptr, &linkage,
-                           &old_type, &ext_sym);
+    define_member_function(locator, rout_type, inline_specified,
+                           &symbol_ptr, &linkage, &old_type, &ext_sym);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_var_or_routine scan the
@@ -8101,7 +8236,6 @@ explicitly specified (rather than defaulted to "int").
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
     decl_var_or_routine(locator, storage_class, rout_type,
-                        func_info->exception_specifications,
                         /*is_implicit_function=*/FALSE,
                         /*is_function_def_with_body=*/TRUE, inline_specified,
                         is_main_function, &symbol_ptr, &linkage,
@@ -8109,6 +8243,9 @@ explicitly specified (rather than defaulted to "int").
   }  /* if */
   symbol_ptr->defined = TRUE;
   routine_ptr = symbol_ptr->variant.routine.ptr;
+  if (C_dialect == C_dialect_cplusplus) {
+    add_throw_specification(func_info->throw_specification, routine_ptr);
+  }  /* if */
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
   if (!is_member_function_def &&
@@ -9232,11 +9369,14 @@ continue_with_declaration:
         local_type_ptr = symbol_ptr->variant.variable.ptr->type;
       } else {
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            func_info.exception_specifications,
                             /*is_implicit_function=*/FALSE,
                             /*is_function_def_with_body=*/FALSE,
                             inline_specified, is_main_function, &symbol_ptr,
                             &linkage, &old_type, &ext_sym);
+        if (C_dialect == C_dialect_cplusplus && is_function) {
+          add_throw_specification(func_info.throw_specification,
+                                  symbol_ptr->variant.routine.ptr);
+        }  /* if */
         if (is_old_style_param_decl) {
           /* A variable has been entered for a name that appears in an
              old-style param declaration but for which no corresponding

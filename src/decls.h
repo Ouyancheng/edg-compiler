@@ -175,15 +175,12 @@ extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
                                     a_boolean      preserve_rout_type,
                                     a_boolean      preserve_type_ptr);
 
-extern void merge_exception_specifications(
-                                    an_exception_specification_ptr  new_list,
-                                    a_routine_ptr                   rp);
+extern void add_throw_specification(a_throw_specification_ptr  tsp,
+                                    a_routine_ptr              rp);
 
 extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_storage_class     storage_class,
                                 a_type_ptr          type_ptr,
-                                an_exception_specification_ptr
-                                                    exception_specification,
                                 a_boolean           is_implicit_function,
                                 a_boolean           is_function_def_with_body,
                                 a_boolean           inline_specified,
@@ -195,8 +192,6 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
 
 extern void decl_function_template(a_symbol_locator    *locator,
                                    a_type_ptr          type_ptr,
-                                   an_exception_specification_ptr
-                                                       exception_specification,
                                    a_symbol_ptr        *symbol_ptr,
                                    a_storage_class     storage_class,
                                    a_boolean           is_inline);
