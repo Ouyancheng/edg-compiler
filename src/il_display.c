@@ -1051,6 +1051,19 @@ Display a_param_type entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_param_type);
   disp_ptr("type", (char *)ptr->type, iek_type);
+#ifdef CFE
+  if (ptr->passed_via_copy_constructor) {
+    disp_boolean("passed_via_copy_constructor",
+                 (a_boolean)ptr->passed_via_copy_constructor);
+  }  /* if */
+  if (ptr->type_involves_template_param) {
+    disp_boolean("type_involves_template_param",
+                 (a_boolean)ptr->type_involves_template_param);
+  }  /* if */
+  if (ptr->default_arg_expr) {
+    disp_ptr("default_arg_expr", ptr->default_arg_expr, iek_expr);
+  }  /* if */
+#endif /* ifdef CFE */
 }  /* disp_param_type */
 
 #ifdef CFE
