@@ -300,7 +300,8 @@ the primary translation unit is preferred.
                    entry. */
                 check_assertion(corresp_tssp->all_instantiations == NULL);
 #if DEBUG
-                if (db_flag_is_set("trans_corresp")) {
+                if (db_trace("trans_corresp", templ, iek_template) ||
+                    db_trace("trans_corresp", corresp_templ, iek_template)) {
                   fprintf(f_debug, "all_instantiations transferred because\n");
                 }  /* if */
 #endif /* DEBUG */
@@ -1470,7 +1471,10 @@ is in fact valid.
   
     match = verify_name_correspondence(field);
     if (match &&
-        (!types_are_redecl_compatible(field->type, corresp_field->type) ||
+        (!f_types_are_compatible(field->type, corresp_field->type,
+                                 TCF_SEEK_CORRESP |
+                                 TCF_REDECLARATION |
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          !same_exception_spec(field->type, corresp_field->type) ||
          field->offset != corresp_field->offset ||
          field->offset_bit_remainder != corresp_field->offset_bit_remainder ||
@@ -2986,7 +2990,7 @@ translation unit correspondence pointer if one is found.
     if (trans_unit_corresp_of(nsp) == NULL) {
       /* Mark this namespace as visited to avoid infinite recursion. */
 #if DEBUG
-      if (db_flag_is_set("trans_corresp")) {
+      if (db_trace("trans_corresp", nsp, iek_namespace)) {
         fprintf(f_debug, "Guard: ");
       }  /* if */
 #endif /* DEBUG */
@@ -3246,7 +3250,7 @@ symbol supplement.
                          ->variant.template_info;
     /* Mark the type as visited to avoid infinite recursion. */
 #if DEBUG
-    if (db_flag_is_set("trans_corresp")) {
+    if (db_trace("trans_corresp", class_type, iek_type)) {
       fprintf(f_debug, "Guard: ");
     }  /* if */
 #endif /* DEBUG */
@@ -3355,13 +3359,26 @@ template.
 {
   if (total_errors != 0) {
     /* Once errors have been detected correspondence checking is no
-       longer done so there's no need to maintain this list. */
-  } else if (is_primary_translation_unit) {
+       longer done so there's no need to maintain the list of all
+       instantiations of an entity. */
+    goto done;
+  }  /* if */
+  if (is_primary_translation_unit) {
+    a_template_ptr  templ;
     if (!secondary_translation_unit_seen()) {
       /* There is no need to look for a matching instantiation in a secondary
          translation unit. */
       mark_canonical_instantiation(tssp, inst);
-    } else if (is_class_struct_union_symbol(inst)) {
+      goto done;
+    }  /* if */
+    templ = tssp->il_template_entry;
+    if (canonical_il_entry_of(templ) != (char*)templ->canonical_template) {
+      /* The given tssp is not associated with the canonical template entry. */
+      templ = (a_template_ptr)canonical_il_entry_of(templ);
+      tssp = template_supplement_for_symbol(
+                              (a_symbol_ptr)templ->source_corresp.assoc_info);
+    }  /* if */
+    if (is_class_struct_union_symbol(inst)) {
       a_type_ptr               prim = type_symbol_type(inst);
       if (prim->variant.class_struct_union.is_prototype_instantiation ||
           prim->variant.class_struct_union.is_nonreal_class) {
@@ -3386,7 +3403,7 @@ template.
         }  /* if */
       }  /* if */
     } else if (is_function_symbol(inst)) {
-       a_symbol_list_entry_ptr
+      a_symbol_list_entry_ptr
                       slep = find_function_template_instantiation(tssp, inst);
       if (slep == NULL) {
         mark_canonical_instantiation(tssp, inst);
@@ -3416,6 +3433,8 @@ template.
                                           inst->variant.routine.instance_ptr);
     }  /* if */
   }  /* if */
+done:
+  return;
 }  /* record_instantiation */
 
 
