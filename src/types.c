@@ -3494,6 +3494,237 @@ conversions (constructors and conversion functions).
 }  /* expl_conversion_possible */
 
 
+static a_type_ptr composite_routine_type(a_type_ptr  rout_type1,
+                                         a_type_ptr  rout_type2)
+/*
+Determine the composite type based on routine types rout_type1 and rout_type2
+and return a pointer to it.  Note: one of the types passed in may be returned
+as the composite type.
+*/
+{
+  a_type_ptr                     comp_type;
+  a_type_ptr                     comp_return_type, tp;
+  a_param_type_ptr               param_list1, param_list2, end_of_list;
+  a_param_type_ptr               ptp1, ptp2, new_ptp;
+  a_boolean                      comp_prototyped;
+  a_routine_type_supplement_ptr  rtsp1, rtsp2, rtsp;
+  a_boolean                      return_type1_as_comp_type = TRUE;
+  a_boolean                      return_type2_as_comp_type = TRUE;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  a_calling_convention           comp_calling_convention;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+  rtsp1 = rout_type1->variant.routine.extra_info;
+  param_list1 = rtsp1->param_type_list;
+  rtsp2 = rout_type2->variant.routine.extra_info;
+  param_list2 = rtsp2->param_type_list;
+  /* Form the composite of the return types. */
+  comp_return_type = composite_type(rout_type1->variant.routine.return_type,
+                                    rout_type2->variant.routine.return_type);
+  if (comp_return_type != rout_type1->variant.routine.return_type) {
+    return_type1_as_comp_type = FALSE;
+  }  /* if */
+  if (comp_return_type != rout_type2->variant.routine.return_type) {
+    return_type2_as_comp_type = FALSE;
+  }  /* if */
+  /* If both function types are not prototyped, the composite type is
+     likewise not prototyped.  If one of the two types is prototyped, the
+     other not, the composite type is the one that is prototyped.  If both
+     types are prototyped, the composite type is prototyped, with each
+     parameter type in its list being the composite of the corresponding
+     parameter types in the two lists. */
+  comp_prototyped = rtsp1->prototyped || rtsp2->prototyped;
+  if (rtsp1->prototyped != comp_prototyped) return_type1_as_comp_type = FALSE;
+  if (rtsp2->prototyped != comp_prototyped) return_type2_as_comp_type = FALSE;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  comp_calling_convention = rtsp1->calling_convention;
+  if (comp_calling_convention == (a_calling_convention)cc_default) {
+    comp_calling_convention = rtsp2->calling_convention;
+  }  /* if */
+  if (rtsp1->calling_convention != comp_calling_convention) {
+    return_type1_as_comp_type = FALSE;
+  }  /* if */
+  if (rtsp2->calling_convention != comp_calling_convention) {
+    return_type2_as_comp_type = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+  if (!return_type1_as_comp_type && !return_type2_as_comp_type) {
+    goto make_new_comp_type;
+  }  /* if */
+  if (!comp_prototyped) {
+    /* Both types have old-style (non-prototyped) interfaces, so there is no
+       real parameter information in the composite. However, if one or the
+       other has parameter information because it's a function with a
+       definition, preserve that information in the composite. */
+    if (param_list1 != NULL) {
+      return_type2_as_comp_type = FALSE;
+    }  /* if */
+    if (param_list2 != NULL) {
+      return_type1_as_comp_type = FALSE;
+    }  /* if */
+  } else if (!rtsp2->prototyped) {
+    /* Type 2 has an old-style interface, so use the prototyped interface
+       from type 1. */
+    return_type2_as_comp_type = FALSE;
+  } else if (!rtsp1->prototyped) {
+    /* Type 1 has an old-style interface, so use the prototyped interface
+       from type 2. */
+    return_type1_as_comp_type = FALSE;
+  } else {
+    /* First go through both parameter lists and compare the types.  As
+       long as one of the lists remains eligible to serve as the composite,
+       keep going. */
+    for (ptp1 = param_list1, ptp2 = param_list2;
+         ptp1 != NULL;
+         ptp1 = ptp1->next, ptp2 = ptp2->next) {
+#if CHECKING
+      if (ptp2 == NULL) {
+        /* Since the types are compatible and old-style parameter lists
+           have been ruled out, the two parameter lists should be the same
+           length. */
+        internal_error("composite_type: unequal length param lists");
+      }  /* if */
+#endif /* CHECKING */
+      if (!C_mode()) {
+        /* Form the composite of the C++ default argument expressions;
+           it's guaranteed that at most one of the parameter lists
+           has a default argument expression. */
+        if (ptp1->has_default_arg || ptp1->default_arg_expr != NULL) {
+          return_type2_as_comp_type = FALSE;
+          if (!return_type1_as_comp_type) goto make_new_comp_type;
+        } else if (ptp2->has_default_arg ||
+                   ptp2->default_arg_expr != NULL) {
+          return_type1_as_comp_type = FALSE;
+          if (!return_type2_as_comp_type) goto make_new_comp_type;
+        }  /* if */
+      }  /* if */
+      /* Form the composite of the two types. */
+      if (C_mode() && !type_qualifiers_match(ptp1->type, ptp2->type)) {
+        /* One tricky case that comes up is
+              int f(int);
+              int f(const int);
+           X3J11 has said that the composite of those parameter types is the
+           composite of the unqualified types (interpretation 13).  We use
+           that rule only when the qualifiers are different, so that the
+           composite of
+              int f(const int, int);
+              int f(const int, const int);
+           still has "const int" in the first parameter. */
+        tp = composite_type(make_unqualified_type(ptp1->type),
+                            make_unqualified_type(ptp2->type));
+      } else {
+        tp = composite_type(ptp1->type, ptp2->type);
+      }  /* if */
+      /* Compare the two parameter types against their composite type.  Stop
+         if it is no longer true that one or the other of the original routine
+         types can can serve as the composite type. */
+      if (tp != ptp1->type) {
+        return_type1_as_comp_type = FALSE;
+        if (!return_type2_as_comp_type) goto make_new_comp_type;
+      }  /* if */
+      if (tp != ptp2->type) {
+        return_type2_as_comp_type = FALSE;
+        if (!return_type1_as_comp_type) goto make_new_comp_type;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (return_type1_as_comp_type) {
+    /* Nothing prevents returning rout_type1 as the composite type. */
+    comp_type = rout_type1;
+    /* Merge the exception specifications. */
+    if (rtsp1->exception_specification == NULL) {
+      rtsp1->exception_specification = rtsp2->exception_specification;
+    }  /* if */
+  } else if (return_type2_as_comp_type) {
+    /* rout_type1 can't serve as composite type, but rout_type2 can. */
+    comp_type = rout_type2;
+    /* Merge the exception specifications. */
+    if (rtsp2->exception_specification == NULL) {
+      rtsp2->exception_specification = rtsp1->exception_specification;
+    }  /* if */
+  } else {
+make_new_comp_type:
+    /* Neither of the types passed in can be returned as the composite type,
+       so allocate a new type entry and construct a new param-type list. */
+    comp_type = alloc_type((a_type_kind)tk_routine);
+    comp_type->variant.routine.return_type = comp_return_type;
+    rtsp = comp_type->variant.routine.extra_info;
+    /* In case only one of the types has a param types list, be sure it is
+       param_list1 that is non-NULL. */
+    if (param_list1 == NULL && param_list2 != NULL) {
+      /* Swap the lists pointers. */
+      param_list1 = param_list2;
+      param_list2 = NULL;
+    }  /* if */
+    ptp1 = param_list1;
+    ptp2 = param_list2;
+    end_of_list = NULL;
+    while (ptp1 != NULL) {
+      /* Pass a NULL source position to make_param_type to avoid inappropriate
+         diagnostics on a type that doesn't correspond directly to a source
+         construct. */
+      new_ptp = make_param_type(composite_type(ptp1->type, ptp2->type),
+                                &null_source_position);
+      if (!C_mode()) {
+        /* Form the composite of the C++ default argument expressions; it's
+           guaranteed that at most one of the parameter lists has a default
+           argument expression. */
+        if (ptp1->has_default_arg) {
+          new_ptp->has_default_arg = TRUE;
+          if (ptp1->default_arg_expr != NULL) {
+            new_ptp->default_arg_expr =
+                          duplicate_default_arg_expr(ptp1->default_arg_expr);
+          }  /* if */
+        } else if (ptp2 != NULL && ptp2->has_default_arg) {
+          new_ptp->has_default_arg = TRUE;
+          if (ptp2->default_arg_expr != NULL) {
+            new_ptp->default_arg_expr =
+                          duplicate_default_arg_expr(ptp2->default_arg_expr);
+          }  /* if */
+        }  /* if */
+        if (ptp1->type_involves_template_param) {
+          check_assertion(ptp2 == NULL || ptp2->type_involves_template_param);
+          new_ptp->type_involves_template_param = TRUE;
+        }  /* if */
+        if (ptp1->passed_via_copy_constructor) {
+          check_assertion(ptp2 == NULL || ptp2->passed_via_copy_constructor);
+          new_ptp->passed_via_copy_constructor = TRUE;
+        }  /* if */
+      }  /* if */
+      /* Add the parameter type entry to the end of the list. */
+      if (rtsp->param_type_list == NULL) {
+        rtsp->param_type_list = new_ptp;
+      } else {
+        end_of_list->next = new_ptp;
+      }  /* if */
+      end_of_list = new_ptp;
+      /* Advance to the next param-type in list1. */
+      ptp1 = ptp1->next;
+      if (ptp2 != NULL) {
+        /* list2 must not have been NULL, so advance to the next in that list
+           also.  Note that both lists will be of equal length. */
+        ptp2 = ptp2->next;
+        check_assertion((ptp1 == NULL) == (ptp2 == NULL));
+      }  /* if */
+    }  /* while */
+    rtsp->prototyped = comp_prototyped;
+    rtsp->has_ellipsis = rtsp1->has_ellipsis;
+#if MICROSOFT_KEYWORDS_ALLOWED
+    rtsp->calling_convention = comp_calling_convention;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+    if (!C_mode()) {
+      rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
+      if (rtsp1->exception_specification != NULL) {
+        rtsp->exception_specification = rtsp1->exception_specification;
+      } else {
+        rtsp->exception_specification = rtsp2->exception_specification;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return comp_type;
+}  /* composite_routine_type */
+
+
 a_type_ptr composite_type(a_type_ptr type_1,
                           a_type_ptr type_2)
 /*
@@ -3507,22 +3738,8 @@ is allocated, it is allocated in the file scope.
   a_type_ptr       comp_type;
   a_type_ptr       base_type_1, base_type_2;
   a_type_ptr       member_type_1, member_type_2;
-  a_type_ptr       comp_elem, comp_param_type, param_type;
+  a_type_ptr       comp_elem;
   a_targ_size_t    num_elems;
-  a_param_type_ptr list1, list2, param1, param2;
-  a_boolean        list1_prototyped, list2_prototyped;
-  a_boolean        comp_equals_list1, comp_equals_list2;
-  a_param_type_ptr comp_param, comp_param_list, end_comp_param_list;
-  a_boolean        comp_prototyped;
-  an_expr_node_ptr comp_default_arg_expr;
-  a_boolean        comp_has_default_arg;
-  a_type_ptr       param_1_type, param_2_type;
-  a_routine_type_supplement_ptr
-                   rtsp1, rtsp2;
-#if MICROSOFT_KEYWORDS_ALLOWED
-  a_calling_convention
-                   comp_calling_convention;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
   db_enter(5, "composite_type");
   if (type_1 == type_2) {
@@ -3645,219 +3862,7 @@ is allocated, it is allocated in the file scope.
           break;
         case tk_routine:
           /* Function types. */
-          /* Form the composite of the return types. */
-          comp_elem = composite_type(base_type_1->variant.routine.return_type,
-                                     base_type_2->variant.routine.return_type);
-          /* If both function types are not prototyped, the composite type
-             is likewise not prototyped.  If one of the two types is
-             prototyped, the other not, the composite type is the one
-             that is prototyped.  If both types are prototyped, the
-             composite type is prototyped, with each parameter type in
-             its list being the composite of the corresponding parameter
-             types in the two lists. */
-          rtsp1 = base_type_1->variant.routine.extra_info;
-          rtsp2 = base_type_2->variant.routine.extra_info;
-          list1 = rtsp1->param_type_list;
-          list2 = rtsp2->param_type_list;
-          list1_prototyped = rtsp1->prototyped;
-          list2_prototyped = rtsp2->prototyped;
-          comp_prototyped = list1_prototyped || list2_prototyped;
-#if MICROSOFT_KEYWORDS_ALLOWED
-          comp_calling_convention = rtsp1->calling_convention;
-          if (comp_calling_convention == (a_calling_convention)cc_default) {
-            comp_calling_convention = rtsp2->calling_convention;
-          }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-          if (!comp_prototyped) {
-            /* Both types have old-style (non-prototyped) interfaces, so
-               there is no real parameter information in the composite.
-               However, if one or the other has parameter information because
-               it's a function with a definition, preserve that information
-               in the composite. */
-            if (list1 != NULL) {
-              comp_param_list = list1;
-            } else {
-              comp_param_list = list2;
-            }  /* if */
-          } else if (!list2_prototyped) {
-            /* Type 2 has an old-style interface, so use the prototyped
-               interface from type 1. */
-            comp_param_list = list1;
-          } else if (!list1_prototyped) {
-            /* Type 1 has an old-style interface, so use the prototyped
-               interface from type 2. */
-            comp_param_list = list2;
-          } else {
-            /* Both types are prototyped, so the element-wise composite of
-               the two parameter lists must be constructed.  Take a first
-               pass through to see if the composite is equal to either of
-               the parameter lists. */
-            for (comp_equals_list1 = comp_equals_list2 = TRUE,
-                                                param1 = list1, param2 = list2;
-                 param1 != NULL;
-                 param1 = param1->next, param2 = param2->next) {
-#if CHECKING
-              if (param2 == NULL) {
-                /* Since the types are compatible and old-style parameter lists
-                   have been ruled out, the two parameter lists should have the
-                   same length. */
-                internal_error("composite_type: unequal length param lists");
-              }  /* if */
-#endif /* CHECKING */
-              /* Form the composite of the two types.  One difficult case
-                 that comes up is
-                   int f(int);
-                   int f(const int);
-                 X3J11 has said that the composite of those parameter types
-                 is the composite of the unqualified types (interpretation
-                 13).  We use that rule only when the qualifiers are
-                 different, so that the composite of
-                   int f(const int, int);
-                   int f(const int, const int);
-                 still has "const int" in the first parameter. */
-              param_1_type = param1->type;
-              param_2_type = param2->type;
-              if (!type_qualifiers_match(param_1_type, param_2_type)) {
-                param_1_type = make_unqualified_type(param_1_type);
-                param_2_type = make_unqualified_type(param_2_type);
-              }  /* if */
-              comp_param_type = composite_type(param_1_type, param_2_type);
-              /* Form the composite of the C++ default argument expressions;
-                 it's guaranteed that at most one of the parameter lists
-                 has a default argument expression. */
-              comp_default_arg_expr = (param1->default_arg_expr != NULL) ?
-                                                     param1->default_arg_expr :
-                                                     param2->default_arg_expr;
-	      comp_has_default_arg = param1->has_default_arg ||
-				     param2->has_default_arg;
-              /* Compare the two parameter types against their composite
-                 type.  Stop if it is no longer true that one of the original
-                 parameter lists can serve as the composite list. */
-              if (comp_param_type != param1->type ||
-		  comp_has_default_arg != (a_boolean)param1->has_default_arg ||
-                  comp_default_arg_expr != param1->default_arg_expr) {
-                comp_equals_list1 = FALSE;
-              }  /* if */
-              if (comp_param_type != param2->type ||
-		  comp_has_default_arg != (a_boolean)param2->has_default_arg ||
-                  comp_default_arg_expr != param2->default_arg_expr) {
-                comp_equals_list2 = FALSE;
-              }  /* if */
-              if (!comp_equals_list1 && !comp_equals_list2) break;
-            }  /* for */
-            if (comp_equals_list1) {
-              comp_param_list = list1;
-            } else if(comp_equals_list2) {
-              comp_param_list = list2;
-            } else {
-              /* Neither parameter list matches the composite, so construct
-                 a new parameter list.  This happens for something like
-
-                   int f(int (*)(      ), double (*)[3]);
-                   int f(int (*)(char *), double (*)[ ]);
-
-                 where the composite type is
-
-                   int f(int (*)(char *), double (*)[3]);
-
-              */
-              a_param_type_ptr param1_on_which_first_loop_failed = param1;
-
-              comp_param_list = end_comp_param_list = NULL;
-              for (param1 = list1,  param2 = list2;
-                   param1 != NULL;
-                   param1 = param1->next, param2 = param2->next) {
-                if (param1 == param1_on_which_first_loop_failed) {
-                  /* Little optimization: when we get to the parameters on
-                     which the loop above failed, use the composite type
-                     already formed.  This is nice when that type is something
-                     distinct from the two parameter types.  Without this
-                     trick, that type would be lost. */
-                  param_type = comp_param_type;
-                } else {
-                  /* For the other parameter pairs, we call composite_type.
-                     For the parameters preceding the key pair, composite_type
-                     will do what it did in the loop above and return one of
-                     the original types; for parameters following that pair,
-                     composite_type must be called because it has not been
-                     called yet for those parameters. */
-                  param_type = composite_type(param1->type, param2->type);
-                }  /* if */
-                /* Pass a NULL source position to make_param_type to avoid
-                   inappropriate diagnostics on a type that doesn't correspond
-                   directly to a source construct. */
-                comp_param = make_param_type(param_type,
-                                             &null_source_position);
-                /* Form the composite of the C++ default argument expressions;
-                   it's guaranteed that at most one of the parameter lists
-                   has a default argument expression. */
-                if (param1->has_default_arg) {
-                  comp_param->has_default_arg = TRUE;
-                  comp_param->default_arg_expr = param1->default_arg_expr;
-                } else if (param2->has_default_arg) {
-                  comp_param->has_default_arg = TRUE;
-                  comp_param->default_arg_expr = param2->default_arg_expr;
-                }  /* if */
-                if (param1->type_involves_template_param ||
-                    param2->type_involves_template_param) {
-                  comp_param->type_involves_template_param = TRUE;
-                }  /* if */
-                /* Add the parameter type entry to the end of the list. */
-                if (comp_param_list == NULL) {
-                  comp_param_list = comp_param;
-                } else {
-                  end_comp_param_list->next = comp_param;
-                }  /* if */
-                end_comp_param_list = comp_param;
-              }  /* for */
-            }  /* if */
-          }  /* if */
-          /* Try to use one of the two types we already have.  If that's
-             not possible, build a new function type.  The return type,
-             parameter list, and prototyped flag must match.  Note that the
-             has_ellipsis flag is not checked because both types must have the
-             same value, and likewise the implicit "this" parameter type. */
-          if (base_type_1->variant.routine.return_type == comp_elem &&
-              rtsp1->param_type_list == comp_param_list &&
-              list1_prototyped == comp_prototyped
-#if MICROSOFT_KEYWORDS_ALLOWED
-              && rtsp1->calling_convention == comp_calling_convention
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-                                                 ) {
-            comp_type = base_type_1;
-            if (rtsp1->exception_specification == NULL) {
-              rtsp1->exception_specification = rtsp2->exception_specification;
-            }  /* if */
-          } else if (base_type_2->variant.routine.return_type == comp_elem &&
-              rtsp2->param_type_list == comp_param_list &&
-              (a_boolean)rtsp2->prototyped == comp_prototyped
-#if MICROSOFT_KEYWORDS_ALLOWED
-              && rtsp2->calling_convention == comp_calling_convention
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-                                                             ) {
-            comp_type = base_type_2;
-            if (rtsp2->exception_specification == NULL) {
-              rtsp2->exception_specification = rtsp1->exception_specification;
-            }  /* if */
-          } else {
-            /* Build a new function type. */
-            a_routine_type_supplement_ptr rtsp;
-            comp_type = alloc_type((a_type_kind)tk_routine);
-            comp_type->variant.routine.return_type = comp_elem;
-            rtsp = comp_type->variant.routine.extra_info;
-            rtsp->param_type_list = comp_param_list;
-            rtsp->prototyped = comp_prototyped;
-#if MICROSOFT_KEYWORDS_ALLOWED
-            rtsp->calling_convention = comp_calling_convention;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-            rtsp->has_ellipsis = rtsp1->has_ellipsis;
-            rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
-            if (rtsp1->exception_specification != NULL) {
-              rtsp->exception_specification = rtsp1->exception_specification;
-            } else {
-              rtsp->exception_specification = rtsp2->exception_specification;
-            }  /* if */
-          }  /* if */
+          comp_type = composite_routine_type(base_type_1, base_type_2);
           break;
         case tk_ptr_to_member:
           /* The composite of two pointer-to-member types will point to the
