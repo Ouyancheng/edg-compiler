@@ -8189,7 +8189,7 @@ next_declaration:
        this must be done before inline function bodies are scanned, since
        return code may be affected by how the routine calling method flag
        is set.) */
-    check_dependent_type_fixup_list(class_type);
+    check_dependent_type_fixup_list(tag_sym);
     /* Build a list of the namespaces in which this class and its bases
        classes are defined.  This is needed to look up operators that
        operate on this class type. */
