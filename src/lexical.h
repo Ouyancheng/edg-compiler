@@ -1110,11 +1110,6 @@ typedef struct a_source_line_modif {
 			/* TRUE if this modification is for a macro expansion
 			   that is currently being rescanned in order to
 			   do old-style token pasting. */
-  a_bit_field	locked:1;
-			/* TRUE if this modification should not be moved (for
-			   the purpose of optimizing searches).  Used when
-			   this entry is used as a marker to delimit a prefix
-			   part of the list of source line modifications. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original

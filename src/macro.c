@@ -2166,8 +2166,6 @@ end_scan_for_macro_modifs:;
       if (curr_token != tok_rparen || pp != NULL) {
         add_stop_token(tok_comma);
         do {
-          a_source_line_modif_ptr  locked_slmp;
-          a_boolean                saved_slm_lock;
           /* Scan one argument value.  The argument value ends with a
              comma or right parenthesis that is not inside parentheses.
              Note that expand_macros is FALSE, and therefore the argument
@@ -2297,15 +2295,15 @@ do_argument_again:
           /* In pcc mode, this is not necessary, since all arguments
              are scanned only in raw form. */
           if (pcc_preprocessing_mode) goto end_arg_expansion;
-          slmp = add_source_line_modif(start_of_curr_token, 1,
-                                       map->raw_text,
-                                       map->raw_text+map->raw_len);
           /* On the expansion, the scanning is limited to the raw text just
              inserted.  This implements the requirement of 3.8.3.1 that
              arguments be "macro replaced as if they formed the rest of
              the source file".  Because of the is_isolated_text flag in
              the source_modification, we will get a tok_end_of_source
              back from get_token when the end of the text is reached. */
+          slmp = add_source_line_modif(start_of_curr_token, 1,
+                                       map->raw_text,
+                                       map->raw_text+map->raw_len);
           slmp->is_isolated_text = TRUE;
           slmp->source_position = start_pos;
           curr_char_loc = map->raw_text;
@@ -2318,13 +2316,6 @@ do_argument_again:
           delete_source_from_loc = NULL;
           (void)arg_get_token(&any_white_space_skipped);
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
-          /* slmp->next will be used as a list delimiter.  If non-NULL,
-             make sure it does not get moved. */
-          locked_slmp = slmp->next;
-          if (locked_slmp != NULL) {
-            saved_slm_lock = locked_slmp->locked;
-            locked_slmp->locked = TRUE;
-          }  /* if */
           /* Note that the tok_end_of_source here would be returned by
              arg_get_token; it's not actually the end of source. */
           while (curr_token != tok_end_of_source) {
@@ -2355,39 +2346,29 @@ do_argument_again:
              modifications to the raw text.  Remove those (thus restoring
              the original raw text), make a list of them, and save that
              list in modif_list for this argument.  That list will be used
-             later when the expanded form is required in the macro expansion,
-             to generate appropriate modifications to a copy of the raw
-             text. */
+	     later when the expanded form is required in the macro expansion,
+	     to generate appropriate modifications to a copy of the raw
+	     text. */
           map->modif_list = NULL;
           end_modif_list = NULL;
-          if (sequence_id == sequence_id_for_source_line_modifs) {
-            /* Modifications were not applied (otherwise the global counter
-               sequence_id_for_source_line_modifs would have been incremented).
-               */
-          } else {
-            for (slmp = source_line_modif_list; slmp != locked_slmp;) {
-              slmp2 = slmp;
-              slmp = slmp->next;
-              if (slmp2->sequence_id > sequence_id) {
-                /* Found a modification to this argument.  Remove it, save it
-                   on the modif_list for this argument.  Entries are added
-                   at the end so that they will be in the original order.
-                   This is required by copy_modif_list. */
-                rem_source_line_modif(slmp2);
-                if (map->modif_list == NULL) {
-                  map->modif_list = slmp2;
-                } else {
-                  end_modif_list->next = slmp2;
-                }  /* if */
-                slmp2->next = NULL;
-                end_modif_list = slmp2;
+          for (slmp = source_line_modif_list; slmp != NULL;) {
+            slmp2 = slmp;
+            slmp = slmp->next;
+            if (slmp2->sequence_id > sequence_id) {
+              /* Found a modification to this argument.  Remove it, save it
+                 on the modif_list for this argument.  Entries are added
+                 at the end so that they will be in the original order.
+                 This is required by copy_modif_list. */
+              rem_source_line_modif(slmp2);
+              if (map->modif_list == NULL) {
+                map->modif_list = slmp2;
+              } else {
+                end_modif_list->next = slmp2;
               }  /* if */
-            }  /* for */
-          }  /* if */
-          /* Restore the lock state of the locked entry (if any): */
-          if (locked_slmp != NULL) {
-            locked_slmp->locked = saved_slm_lock;
-          }  /* if */
+              slmp2->next = NULL;
+              end_modif_list = slmp2;
+            }  /* if */
+          }  /* for */
           expand_macros = FALSE;
           /* Re-establish deletion of the characters of the macro
              invocation. */

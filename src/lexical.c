@@ -2013,7 +2013,6 @@ invocations.
                             = FALSE;
   slmp->being_rescanned_for_token_pasting
                             = FALSE;
-  slmp->locked              = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_macro_def_ptr)NULL;
@@ -2168,7 +2167,7 @@ within_curr_source_line(loc_in_line) == FALSE).
                                   slmp->end_inserted_text+1)) {
       /* loc_in_line falls within this entry's text.  Move the entry to 
          the front of the list to speed up other searches. */
-      if (prev_slmp != NULL && !slmp->locked) {
+      if (prev_slmp != NULL) {
         prev_slmp->next = slmp->next;
         slmp->next = source_line_modif_list;
         source_line_modif_list = slmp;
