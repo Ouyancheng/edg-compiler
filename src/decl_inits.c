@@ -957,9 +957,20 @@ unreachable code).
   a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
   a_memory_region_number  region_to_switch_back_to = NULL_region_number;
+  a_boolean               static_lifetime;
+  a_boolean               at_file_scope;
 
   db_enter(4, "gen_dynamic_initialization");
-  if (depth_stmt_stack >= 0) {
+  at_file_scope = (depth_stmt_stack < 0);
+  if (at_file_scope) {
+    static_lifetime = TRUE;
+  } else {
+    check_assertion(scope_stack[depth_scope_stack].kind ==
+                                              (a_scope_kind)sck_function ||
+                    scope_stack[depth_scope_stack].kind ==
+                                              (a_scope_kind)sck_block);
+    check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
+    static_lifetime = has_static_storage_duration(vp->storage_class);
     /* We are in executable code (i.e., inside a function or block rather
        than at file scope). */
     if (dip->kind != (a_dynamic_init_kind)dik_none) {
@@ -977,8 +988,7 @@ unreachable code).
     }  /* if */
   }  /* if */
   /* Build the dynamic initialization entry. */
-  if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
-      vp->storage_class == (a_storage_class)sc_static) {
+  if (!at_file_scope && static_lifetime) {
     /* Initializers for local static variables must appear in the file scope
        memory region. */
     switch_to_file_scope_region(&region_to_switch_back_to);
@@ -992,11 +1002,9 @@ unreachable code).
   vp->init_kind = (an_init_kind)initk_dynamic;
   vp->initializer.dynamic = new_dip;
   new_dip->variable = vp;
-  if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_function ||
-      scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_block) {
-    /* Must be the initialization of a local static variable.  Build the
+  if (!at_file_scope) {
+    /* Must be the initialization of a local variable.  Build the
        initialization statement and add it to the statement block. */
-    check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
                                           &vp->source_corresp.decl_position);
     init_stmt->variant.dynamic_init = new_dip;
@@ -1004,10 +1012,12 @@ unreachable code).
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement, so attach the dynamic initialization
        entry to the scope list. */
-    check_assertion(decl_scope_level == DEPTH_OF_FILE_SCOPE ||
-                    vp->source_corresp.class_of_which_a_member != NULL);
     add_to_dynamic_inits_list(new_dip);
   }  /* if */
+  /* If needed, create a destruction entry and associate it with the
+     appropriate object-lifetime entry. */
+  record_end_of_lifetime_destruction(new_dip, static_lifetime,
+                                     /*unordered=*/FALSE);
   /* Mark all dynamically initialized variables as referenced.  (They are
      "referenced" in the sense that a variable assigned to, even if never
      used, is referenced.)  It is especially important not to leave the
