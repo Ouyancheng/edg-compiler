@@ -194,14 +194,15 @@ is in within a function body.
        running through the scope stack. */
     for (scope_depth = depth_scope_stack; ; --scope_depth) {
       a_scope_kind	kind;
+      if (scope_depth < DEPTH_OF_FILE_SCOPE) {
+        scope_depth = NO_SCOPE_DEPTH;
+        break;
+      }  /* if */
       kind = scope_stack[scope_depth].kind;
       if (kind == (a_scope_kind)sck_class_reactivation ||
           kind == (a_scope_kind)sck_namespace_reactivation) {
         /* Ignore class and namespace reactivations. */
         continue;
-      } else if (scope_depth < DEPTH_OF_FILE_SCOPE) {
-        scope_depth = NO_SCOPE_DEPTH;
-        break;
       } else if (scope_stack[scope_depth].number == sym->decl_scope) {
         /* This is the scope stack entry corresponding to the declaration
            scope number, where relevant characteristics of the scope are
