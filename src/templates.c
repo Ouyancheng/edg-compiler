@@ -17618,7 +17618,7 @@ secondary_variable refers to.
   mip = secondary_tip->master_instance;
   primary_tip->master_instance = mip;
   mip->instance = primary_tip;
-}  /* set_master_instance_for_new_canonical_entry */
+}  /* set_master_instance_for_new_canonical_variable */
 
 
 void set_master_instance_information(void)
