@@ -8405,7 +8405,8 @@ static void drop_from_file_scope_source_sequence_list(
 
   last_ssep = ssep;
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
-      is_immediate_class_type((a_type_ptr)ssep->entity.ptr)) {
+      (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
+       is_immediate_enum_type((a_type_ptr)ssep->entity.ptr))) {
     for (;;) {
       if (last_ssep->entity.kind ==
                      (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
