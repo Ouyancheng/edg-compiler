@@ -1201,8 +1201,12 @@ issuing an error on an incomplete type.
     if (cssp->constructor != NULL) {
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
+      a_source_position  pos;
+
+      /* Use the source position of the first argument as the call position. */
+      pos = pos_curr_token;
       scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
-                          source_pos, vp_type);
+                          &pos, vp_type);
       if (conversion_routine == NULL) {
         err = TRUE;
       } else {
