@@ -880,6 +880,7 @@ Return TRUE if two PCH events are equivalent.
 */
 {
   a_boolean	result = FALSE;
+  a_boolean	is_include = FALSE;
 
   if (pep1->kind == pep2->kind) {
     switch (pep1->kind) {
@@ -891,6 +892,7 @@ Return TRUE if two PCH events are equivalent.
         break;
       case pchek_pp_directive:
         result = pep1->variant.ppd_kind == pep2->variant.ppd_kind;
+        is_include = pep1->variant.ppd_kind == ppd_include;
         break;
       default:
         unexpected_condition();
@@ -902,7 +904,19 @@ Return TRUE if two PCH events are equivalent.
         /* Both value strings are empty so are equivalent.  Leave result
            set to TRUE. */
       } else {
-        result = strcmp(pep1->value, pep2->value) == 0;
+        if (!is_include) {
+          result = strcmp(pep1->value, pep2->value) == 0;
+        } else {
+          /* For include directives, compare the values as file names. */
+          /* First make sure the include kind matches (i.e., <...> vs.
+             "...".  This is not done in Microsoft bugs mode. */
+          result = microsoft_bugs || pep1->value[0] == pep2->value[0];
+          if (result) {
+            /* Now compare the actual file names. */
+            result = f_compare_file_names(pep1->value, pep2->value,
+                                          /*ignore_delimiters=*/TRUE) == 0;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1618,7 +1632,8 @@ the current directory.
   if (result) {
     /* If the current directory matches, check the directory associated
        with the primary source file. */
-    result = strcmp(ptr, directory_of(primary_source_file_name)) == 0;
+    result = compare_dir_names(ptr,
+                               directory_of(primary_source_file_name)) == 0;
     if (!result) {
       /* A mismatch of the primary source file is diagnosed as a command
 	 line option mismatch. */

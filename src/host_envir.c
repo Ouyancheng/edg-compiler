@@ -544,6 +544,22 @@ used to represent stdin; it must return  NULL.
 }  /* end_of_directory_name */
 
 
+static char *start_of_file_name(char *file_name)
+/*
+Return the first character of the file name portion of "file_name"
+(i.e., the part after an optional directory name).
+*/
+{
+  char	*result;
+
+  result = end_of_directory_name(file_name);
+  /* If there is a directory, use the character after the end of the
+     directory name; otherwise, return the file name passed in. */
+  result = result == NULL ? file_name : result + 1;
+  return result;
+}  /* start_of_file_name */
+
+
 static char *end_of_base_name(char *file_name)
 /*
 Given a simple file name (with no directory name), return a pointer to
@@ -2761,6 +2777,132 @@ Extract the wide character value and return it.
   }  /* for */
   return wc;
 }  /* extract_wide_char_from_string */
+
+
+static char *normalize_dir_name(char *dir_name)
+/*
+Remove a leading "./" from the directory name.
+*/
+{
+  while (dir_name != NULL && dir_name[0] == '.' &&
+         (dir_name[1] == '/'
+#if __MICROSOFT_OS__
+                             || dir_name[1] == '\\'
+#endif /* __MICROSOFT_OS__ */
+                                                   )) {
+    dir_name += 2;
+  }  /* if */
+  return dir_name;
+}  /* normalize_dir_name */
+
+#if __MICROSOFT_OS__
+
+#define CAN_COMPARE_FILE_IDENTIFIERS FALSE
+
+#else /* !__MICROSOFT_OS__ */
+
+#define CAN_COMPARE_FILE_IDENTIFIERS TRUE
+
+static a_boolean same_file_identifiers(char	*file1,
+					  char	*file2)
+/*
+Compare the inode numbers of file1 and file2 to determine whether the
+two names name the same file.
+*/
+{
+  struct stat	buf1;
+  struct stat	buf2;
+  a_boolean	result = FALSE;
+
+  if (stat(file1, &buf1) == 0 && stat(file2, &buf2) == 0) {
+    result = buf1.st_dev == buf2.st_dev &&
+             buf1.st_ino == buf2.st_ino;
+  }  /* if */
+  return result;
+}  /* same_file_identifiers */
+
+#endif /* __MICROSOFT_OS__ */
+
+
+int f_compare_file_names(char		*file1,
+	 		 char		*file2,
+		         a_boolean	ignore_delimiters)
+/*
+Return zero if file1 and file2 name the same file.  ignore_delimiters
+is TRUE if the file names are from #include directives and still have
+the '"' or '<' delimiters.
+*/
+{
+  char		*start1 = file1;
+  char		*start2 = file2;
+  char		*file_start1;
+  char		*file_start2;
+  char		*end1;
+  char		*end2;
+  a_boolean	match = FALSE;
+  char		saved_delim1;
+  char		saved_delim2;
+
+  /* If we are ignoring delimiters, temporarily replace the trailing
+     delimiter with a null. */
+  if (ignore_delimiters) {
+    end1 = start1 + strlen(file1) - 1;
+    saved_delim1 = *end1;
+    *end1 = '\0';
+    end2 = start2 + strlen(file2) - 1;
+    saved_delim2 = *end2;
+    *end2 = '\0';
+    /* Increment the starting point past the delimiters. */
+    start1++;
+    start2++;
+  }  /* if */
+  /* Find the start of the actual file name component of the two files. */
+  file_start1 = start_of_file_name(start1);
+  file_start2 = start_of_file_name(start2);
+  if (compare_file_chars(file_start1, file_start2) == 0) {
+    /* Only check further if the file name components match. */
+#if CAN_COMPARE_FILE_IDENTIFIERS
+    if (same_file_identifiers(start1, start2)) {
+      match = TRUE;
+    }  /* if */
+#else CAN_COMPARE_FILE_IDENTIFIERS
+    char	*dir1;
+    char	*dir2;
+    /* Normalize the directory names so that "./x.h" and "x.h" will
+       compare equal. */
+    dir1 = directory_of(start1);
+    dir2 = directory_of(start2);
+    dir1 = normalize_dir_name(dir1);
+    dir2 = normalize_dir_name(dir2);
+    if (compare_file_chars(dir1, dir2) == 0) {
+      match = TRUE;
+    }  /* if */
+#endif CAN_COMPARE_FILE_IDENTIFIERS
+  }  /* if */
+  if (ignore_delimiters) {
+    /* Restore the original delimiter characters. */
+    *end1 = saved_delim1;
+    *end2 = saved_delim2;
+  }  /* if */
+  /* Convert the boolean result into a strcmp-like result value. */
+  return match ? 0 : 1;
+}  /* f_compare_file_names */
+
+
+int compare_dir_names(char	*dir1,
+		      char	*dir2)
+/*
+Compare the directory names specified by dir1 and dir2.  Return zero if
+they are the same.
+*/
+{
+  int	result;
+
+  dir1 = normalize_dir_name(dir1);
+  dir2 = normalize_dir_name(dir2);
+  result = compare_file_chars(dir1, dir2);
+  return result;
+}  /* compare_dir_names */
 
 
 void host_envir_one_time_init(void)

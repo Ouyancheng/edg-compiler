@@ -2724,8 +2724,7 @@ found in the list.
   for (ifhp = include_file_history_list, prev_ifhp = NULL;
        ifhp != NULL;
        prev_ifhp = ifhp, ifhp = ifhp->next) {
-    if (name_length == ifhp->name_length &&
-        compare_file_names(full_name, ifhp->full_name) == 0) {
+    if (compare_file_names(full_name, ifhp->full_name) == 0) {
       /* We've found a match. */
       found = TRUE;
       break;

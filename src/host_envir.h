@@ -1727,15 +1727,31 @@ extern void host_envir_early_init(void);
 extern void host_envir_init(void);
 
 /*
-Define a macro that can be used to compare two file names.
+Define a macro that can be used to compare the characters that make
+up file names.
 */
 #if __MICROSOFT_OS__
 /* On MS-DOS, the comparison must be case insensitive. */
-#define compare_file_names(s1, s2) strnicmp((s1), (s2), INT_MAX)
+#define compare_file_chars(s1, s2) strnicmp((s1), (s2), INT_MAX)
+  strnicmp((s1), (s2), (length))
 #else /* !__MICROSOFT_OS__ */
 /* On other systems, the comparison is case sensitive. */
-#define compare_file_names(s1, s2) strcmp((s1), (s2))
+#define compare_file_chars(s1, s2) strcmp((s1), (s2))
 #endif /* __MICROSOFT_OS__ */
+
+/*
+Wrapper macro that calls f_compare_file_names with a default value for
+the ignore_delimiters parameter.
+*/
+#define compare_file_names(s1, s2)					\
+  (f_compare_file_names(s1, s2, /*ignore_delimiters=*/FALSE))
+
+extern int f_compare_file_names(char		*file1,
+	 		        char		*file2,
+		                a_boolean	ignore_delimiters);
+
+extern int compare_dir_names(char	*dir1,
+			     char	*dir2);
 
 #ifndef STDLIB_H_INCLUDED
 /*

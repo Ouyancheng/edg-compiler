@@ -1,5 +1,23 @@
 Version 2.44
 
+7/13/00  Improved file name comparisons
+
+The file name comparison routines have been improved so that certain
+distinct file names that name the same file are considered to match.
+For example, "t.c" and "./t.c" are now considered to match.  On
+Unix-like systems, the inode numbers are compared for files that have
+the same file name but different directory names.  This permits an
+even broader range of differently-specified file names to match.
+For example, "t.c" and "/a/b/t.c" will be considered to match when
+the current directory is "/a/b".
+
+7/13/00  Microsoft compatibility: include-kind ignored in PCH comparisons
+
+In Microsoft bugs mode, a file included as "xyz.h" is treated as equivalent
+to <xyz.h> when determining whether a given precompiled header file
+can be used.  This is not done in other modes because the two directives
+do not necessarily name the same file.
+
 7/10/00  C++-generating back end: expressions preserved in more cases
 
 When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (default for
