@@ -1377,11 +1377,11 @@ Initialize the pragma description table.
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
-                 /*automatically_include_in_il=*/FALSE,
-                 /*make_text_not_tokens=*/FALSE,
+                 /*automatically_include_in_il=*/BACK_END_IS_CP_GEN_BE,
+                 /*make_text_not_tokens=*/BACK_END_IS_CP_GEN_BE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
-		 /*ignore_in_back_end=*/TRUE,
+		 /*ignore_in_back_end=*/!BACK_END_IS_CP_GEN_BE,
                  es_error);
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
