@@ -1715,7 +1715,7 @@ initialized.  These are addressed in the course of the processing.
                            ec_nested_class_anachronism,
                            locator_for_curr_id.specific_symbol);
           }  /* if */
-          init_type = type_symbol_type(member_or_base_sym);
+          init_type = skip_typerefs(type_symbol_type(member_or_base_sym));
           /* Locate it in the base classes list for the current class.  Note
              that only direct and virtual base classes can be specified. */
           bcp = class_type->
