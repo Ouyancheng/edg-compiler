@@ -1,5 +1,20 @@
 Version 2.30
 
+7/6/95   type_info name strings for nested classes
+
+The RTTI name strings in type_info entries generated for nested classes had
+incorrect (partially-mangled) names if the class was not referenced from
+any function.  Now fixed.
+
+  struct A {
+    struct B {
+      struct C {  // Name string for A::B::C was A::__Q2_1A1B::__Q3_1A1B1C
+        virtual void f();
+      };
+    };
+  };
+  void A::B::C::f() {}
+
 7/5/95   Added is_placeholder_for_namespace_type to a_type
 
 A new variant field, is_placeholder_for_namespace_type, has been added to
