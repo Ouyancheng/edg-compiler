@@ -8827,7 +8827,7 @@ be of integral type.  See section 3.3.5 of the standard.
           is_complex_type(operand_2.type)) &&
         save_token != tok_remainder) {
       prepare_imaginary_operation(save_token, operand_1, &operand_2,
-                                  &result_type, &op);
+                                  &operator_position, &result_type, &op);
     } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     /* Do not insert code here. */
@@ -9061,7 +9061,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (imaginary_arithmetic) {
         prepare_imaginary_operation(save_token, operand_1, &operand_2,
-                                    &result_type, &op);
+                                    &operator_position, &result_type, &op);
       } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* Do not insert code here. */
@@ -9443,9 +9443,6 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   a_boolean             operand_1_is_pointer, operand_1_is_ptr_to_member;
   a_boolean             processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
-#if C99_IL_EXTENSIONS_SUPPORTED
-  a_boolean             imaginary_arithmetic = FALSE;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
   db_enter(4, "scan_eq_operator");
 
@@ -9533,51 +9530,31 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                                                           &operand_2,
                                                           &second_is_constant);
         }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED
-        if ((is_imaginary_type(operand_1->type) ||
-             is_imaginary_type(operand_2.type)) &&
-            !(is_complex_type(operand_1->type) ||
-              is_complex_type(operand_2.type))) {
-          imaginary_arithmetic = TRUE;
-        } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        /* Do not insert code here. */
-        {
-          operation_type = determine_arithmetic_conversions(operand_1,
-                                                            &operand_2);
-        }  /* if */
+        operation_type = determine_arithmetic_conversions(operand_1,
+                                                          &operand_2);
       }  /* if */
     }  /* if */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-    if (imaginary_arithmetic) {
-      prepare_imaginary_operation(save_token, operand_1, &operand_2,
-                                  &result_type, &op);
-    } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    /* Do not insert code here. */
-    {
-      result_type = boolean_result_type();
-      change_binary_operand_types(operation_type, operand_1, &operand_2);
-      if (funny_unsigned_comparison) {
-        /* Check for pointless comparisons of unsigned integers against
-           negative constants:
-             u == -n   (always false)
-             u != -n   (always true)
-           The expression is not simplified.  Note that we check the
-           nonconstant operand type before any type promotions and the
-           constant value after any type change. */
-        a_boolean constant_sign;
-        if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
-                                                        second_is_constant,
-                                                        &constant_sign) &&
-            constant_sign < 0) {
-          /* Comparison of an unsigned value with a negative constant. */
-          pos_warning(ec_unsigned_compare_with_negative, &operator_position);
-        }  /* if */
+    result_type = boolean_result_type();
+    change_binary_operand_types(operation_type, operand_1, &operand_2);
+    if (funny_unsigned_comparison) {
+      /* Check for pointless comparisons of unsigned integers against
+         negative constants:
+           u == -n   (always false)
+           u != -n   (always true)
+         The expression is not simplified.  Note that we check the
+         nonconstant operand type before any type promotions and the
+         constant value after any type change. */
+      a_boolean constant_sign;
+      if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
+                                                      second_is_constant,
+                                                      &constant_sign) &&
+          constant_sign < 0) {
+        /* Comparison of an unsigned value with a negative constant. */
+        pos_warning(ec_unsigned_compare_with_negative, &operator_position);
       }  /* if */
-      op = which_binary_operator(save_token, operation_type);
     }  /* if */
+    op = which_binary_operator(save_token, operation_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
   }  /* if */
@@ -10765,28 +10742,17 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
          dropped as appropriate. */
       orig_result_type = operand_1->type;
       result_type = rvalue_type(orig_result_type);
-#if C99_IL_EXTENSIONS_SUPPORTED
-      if (is_imaginary_type(operand_1->type) ||
-          is_imaginary_type(operand_2.type)) {
-        do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-        prepare_imaginary_operation(tok_assign, operand_1, &operand_2,
-                                    &result_type, &op);
-      } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      /* Do not insert code here. */
-      {
-        op = which_binary_operator(tok_assign, result_type);
+      op = which_binary_operator(tok_assign, result_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Check for a bug related to null pointer constants in Microsoft C
-           mode. */
-        process_microsoft_null_pointer_constant_bug(&operand_2, result_type);
+      /* Check for a bug related to null pointer constants in Microsoft C
+         mode. */
+      process_microsoft_null_pointer_constant_bug(&operand_2, result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* do_operand_transformations is not done in the second operand, because
-           the processing for that is done in the conversion stuff. */
-        prep_assignment_operand(&operand_2, result_type,
-                                ec_incompatible_assignment_operands,
-                                &operator_position);
-      }  /* if */
+      /* do_operand_transformations is not done in the second operand,
+         because the processing for that is done in the conversion stuff. */
+      prep_assignment_operand(&operand_2, result_type,
+                              ec_incompatible_assignment_operands,
+                              &operator_position);
       build_binary_result_operand(operand_1, &operand_2, op,
                                   result_type, result);
       /* In C++, assignment operators return lvalues. */
@@ -10943,11 +10909,15 @@ See section 3.3.16 of the standard.
     if ((is_imaginary_type(operand_1->type) ||
          is_imaginary_type(operand_2.type)) &&
         !(is_complex_type(operand_1->type) ||
-          is_complex_type(operand_2.type))) {
+          is_complex_type(operand_2.type)) &&
+        (save_token == tok_times_assign ||
+         save_token == tok_divide_assign ||
+         save_token == tok_plus_assign ||
+         save_token == tok_minus_assign)) {
         an_expr_operator_kind  op;
         do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
         prepare_imaginary_operation(save_token, operand_1, &operand_2,
-                                    &result_type, &op);
+                                    &operator_position, &result_type, &op);
         build_binary_result_operand(operand_1, &operand_2, op,
                                     result_type, result);
       } else
@@ -10971,7 +10941,7 @@ See section 3.3.16 of the standard.
                                  operand_1,
                                  enum_type_is_integral ?
                                    ec_expr_not_scalar :
-                                   ec_expr_not_arithmetic_or_enum_or_pointer)) {
+                                   ec_expr_not_arithmetic_or_enum_or_pointer)){
               /* The first operand is a pointer, so the second one must be
                  integral or enum. */
               if (check_integral_or_enum_operand(&operand_2)) {
@@ -11037,7 +11007,8 @@ See section 3.3.16 of the standard.
             /* Normal case. */
             operation_type = determine_arithmetic_conversions(operand_1,
                                                               &operand_2);
-            cast_operand(operation_type, &operand_2, /*check_cast_access=*/TRUE,
+            cast_operand(operation_type, &operand_2,
+                         /*check_cast_access=*/TRUE,
                          /*is_implicit_cast=*/TRUE,
                          /*is_reinterpret_cast=*/FALSE,
                          /*reinterpret_semantics=*/FALSE);

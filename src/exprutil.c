@@ -3502,6 +3502,7 @@ should be preserved.
 void prepare_imaginary_operation(a_token_kind           op_token,
                                  an_operand             *operand_1,
                                  an_operand             *operand_2,
+                                 a_source_position      *operator_position,
                                  a_type_ptr             *result_type,
                                  an_expr_operator_kind  *op)
 /*
@@ -3511,6 +3512,7 @@ sense that the result type is not necessarily a type to which both operands
 promoted and the result type (returned through result_type) depends on the
 particular operation (represented by op_token).  This routine also determines
 the IL operator (*op) implementing the given arithmetic operation.
+*operator_position gives the operator position, for error messages.
 */
 {
   a_type_ptr    type_1 = skip_typerefs(operand_1->type),
@@ -3567,17 +3569,6 @@ the IL operator (*op) implementing the given arithmetic operation.
         *result_type = imaginary_type(fkind_result);
       }  /* if */
       break;
-    case tok_assign:
-      fkind_result = fkind_1;
-      *op = (an_expr_operator_kind)eok_fassign;
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *result_type = type_1;
-      } else {
-        pos_ty2_error(ec_incompatible_assignment_operands,
-                      &error_position, type_2, type_1);
-        *result_type = error_type();
-      }  /* if */
-      break;
     case tok_plus_assign:
       fkind_result = fkind_1;
       *op = (an_expr_operator_kind)eok_fadd_assign;
@@ -3585,7 +3576,7 @@ the IL operator (*op) implementing the given arithmetic operation.
         *result_type = type_1;
       } else {
         pos_ty2_error(ec_incompatible_operands,
-                      &error_position, type_2, type_1);
+                      operator_position, type_2, type_1);
         *result_type = error_type();
       }  /* if */
       break;
@@ -3596,7 +3587,7 @@ the IL operator (*op) implementing the given arithmetic operation.
         *result_type = type_1;
       } else {
         pos_ty2_error(ec_incompatible_operands,
-                      &error_position, type_2, type_1);
+                      operator_position, type_2, type_1);
         *result_type = error_type();
       }  /* if */
       break;
@@ -3607,7 +3598,7 @@ the IL operator (*op) implementing the given arithmetic operation.
         *result_type = type_1;
       } else {
         pos_ty2_error(ec_incompatible_operands,
-                      &error_position, type_2, type_1);
+                      operator_position, type_2, type_1);
         *result_type = error_type();
       }  /* if */
       break;
@@ -3618,35 +3609,12 @@ the IL operator (*op) implementing the given arithmetic operation.
         *result_type = type_1;
       } else {
         pos_ty2_error(ec_incompatible_operands,
-                      &error_position, type_2, type_1);
-        *result_type = error_type();
-      }  /* if */
-      break;
-    case tok_eq:
-      fkind_result = promoted_float_kind(fkind_1, fkind_2);
-      *op = (an_expr_operator_kind)eok_feq;
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *result_type = imaginary_type(fkind_result);
-      } else {
-        pos_ty2_error(ec_incompatible_operands,
-                      &error_position, type_2, type_1);
-        *result_type = error_type();
-      }  /* if */
-      break;
-    case tok_ne:
-      fkind_result = promoted_float_kind(fkind_1, fkind_2);
-      *op = (an_expr_operator_kind)eok_fne;
-      if (type_1_is_imaginary && type_2_is_imaginary) {
-        *result_type = imaginary_type(fkind_result);
-      } else {
-        pos_ty2_error(ec_incompatible_operands,
-                      &error_position, type_2, type_1);
+                      operator_position, type_2, type_1);
         *result_type = error_type();
       }  /* if */
       break;
     default:
-      error(ec_complex_type_not_allowed);
-      *result_type = error_type();
+      unexpected_condition_str("Bad operator in prepare_imaginary_operation");
   }  /* switch */
   if (!is_error_type(*result_type)) {
     a_boolean complex_result = is_complex_type(*result_type);
