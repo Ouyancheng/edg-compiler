@@ -1247,8 +1247,13 @@ string is null-terminated.
         /* Print the file and line number, with a column number if the
            position could not be indicated via a caret pointing to the
            source of the current line. */
-        line_len += fprintf(stderr, "\"%s\", line %lu", file_name,
-                                                        line_number);
+        /* If the line is from stdin, do not display the file name. */
+        if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
+          line_len += fprintf(stderr, "Line %lu", line_number);
+        } else {
+          line_len += fprintf(stderr, "\"%s\", line %lu", file_name,
+                                                          line_number);
+        }  /* if */
         if (column_needed) {
           line_len += fprintf(stderr, " (col. %d)", error_pos->column);
         }  /* if */
