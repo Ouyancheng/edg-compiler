@@ -295,6 +295,10 @@ extern a_boolean is_cfront_member_function_typedef(a_type_ptr   type_ptr,
                                                    a_type_ptr   *class_type,
                                                    a_symbol_ptr *sym);
 
+extern a_type_qualifier_set collect_type_qualifiers(
+                                       a_decl_pos_block_ptr  decl_pos_block,
+                                       a_upc_block_size      *upc_block_size);
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 extern a_type_ptr form_declared_type(a_type_ptr             type_ptr,
                                      a_func_info_block_ptr  func_info);

@@ -100,7 +100,7 @@ the type symbol for the typedef, for use in diagnostics.
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_type_qualifier_set collect_type_qualifiers(
+a_type_qualifier_set collect_type_qualifiers(
                                        a_decl_pos_block_ptr  decl_pos_block,
                                        a_upc_block_size      *upc_block_size)
 /*

@@ -1,5 +1,13 @@
 Version 3.4
 
+11/12/03 GNU compatibility: const qualifier ignored on extended asm construct
+
+In GNU modes the front end now accepts and ignores (with a warning) a const
+qualifier appearing as part of an extended asm construct.  Previously this
+caused a syntax error.  For example:
+
+  void f() { asm const ("nop": :); }  // Now accepted in GNU modes.
+
 11/11/03 Microsoft compatibility: Explicit reduction of alignment ignored
 
 In Microsoft mode, the front end now ignores (with a warning) attempts to

@@ -9254,13 +9254,24 @@ instruction's operands.
   } else {
     /* Skip past the "asm". */
     (void)get_token();
-#if GNU_EXTENSIONS_ALLOWED
-    /* Skip a potential "volatile". */
-    if (gnu_mode && curr_token == tok_volatile) {
-      is_volatile = TRUE;
-      (void)get_token();
+    if (gnu_mode && (curr_token == tok_volatile || curr_token == tok_const)) {
+      /* Scan a volatile and/or const qualifier.  The const qualifier is
+         ignored with a warning. */
+      a_source_position     cv_pos;
+      a_decl_pos_block      ext_cv_pos;
+      a_upc_block_size      block_size = 0;
+      a_type_qualifier_set  qualifiers;
+
+      cv_pos = pos_curr_token;
+      qualifiers = collect_type_qualifiers(&ext_cv_pos, &block_size);
+      check_assertion(block_size == 0);
+      if (qualifiers & TQ_CONST) {
+        pos_warning(ec_const_ignored, &cv_pos);
+      }  /* if */
+      if (qualifiers & TQ_VOLATILE) {
+        is_volatile = TRUE;
+      }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Check for and skip the opening parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_stop_token(tok_rparen);
