@@ -1045,7 +1045,7 @@ typedef struct a_decl_modifiers_block {
 			/* Pointer to a string representing the argument of an
 			   allocate decl-modifier (in Microsoft-compatibility
 			   mode). */
-#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_decl_modifiers_block;
 
 
