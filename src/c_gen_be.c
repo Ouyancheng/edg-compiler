@@ -857,7 +857,13 @@ information should be output.  In some modes, a #if 0 will be put out.
 {
   a_boolean output_code_for_entity = TRUE;
 
-  if (!source_corresp->referenced) {
+  if (!source_corresp->
+#if MAINTAIN_NEEDED_FLAGS
+                       needed
+#else /* !MAINTAIN_NEEDED_FLAGS */
+                       referenced
+#endif /* MAINTAIN_NEEDED_FLAGS */
+                                 ) {
     output_code_for_entity = FALSE;
     if (annotate) {
       write_if_0_directive();
@@ -875,7 +881,13 @@ end it here.
 */
 {
   if (annotate) {
-    if (!source_corresp->referenced) {
+    if (!source_corresp->
+#if MAINTAIN_NEEDED_FLAGS
+                         needed
+#else /* !MAINTAIN_NEEDED_FLAGS */
+                         referenced
+#endif /* MAINTAIN_NEEDED_FLAGS */
+                                   ) {
       write_endif_0_directive();
     }  /* if */
   }  /* if */
