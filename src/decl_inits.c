@@ -2322,8 +2322,12 @@ created, or NULL it there is none.
     vp->initializer.dynamic = dip;
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement, so attach the dynamic initialization
-       entry to the scope list. */
-    add_to_dynamic_inits_list(dip);
+       entry to the scope list.  Be careful not to insert IL that depends on
+       template parameters though (unless that is configured for). */
+    if (prototype_instantiations_in_il ||
+        !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      add_to_dynamic_inits_list(dip);
+    }  /* if */
   }  /* if */
   /* The dynamic init entry should point at the variable. */
   dip->variable = vp;
@@ -2827,11 +2831,7 @@ returned set to TRUE.
       }  /* if */
     }  /* if */
     check_assertion((init_dip == NULL) != (init_con == NULL));
-    if (!prototype_instantiations_in_il &&
-        scope_stack[depth_scope_stack].in_prototype_instantiation) {
-      /* Do not attach an initializer that may be template dependent in the
-         IL tree. */
-    } else if (init_dip != NULL) {
+    if (init_dip != NULL) {
       /* Generate a dynamic initialization entry, attach it to the variable,
          and generate an stmk_init statement. */
       a_statement_ptr init_stmt;
