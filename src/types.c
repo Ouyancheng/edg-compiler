@@ -2354,7 +2354,7 @@ Otherwise, return FALSE.
       is_immediate_class_type(new_type_1) &&
       is_immediate_class_type(new_type_2) &&
       !has_name(new_type_1) && !has_name(new_type_2)) {
-    (void)seek_class_type_corresp(new_type_1, new_type_2);
+    (void)seek_type_corresp(new_type_1, new_type_2);
   }  /* if */
   if (in_secondary_trans_unit(new_type_1) &&
       (is_immediate_class_type(new_type_1) ||
@@ -2463,6 +2463,13 @@ for more information.
               identical = TRUE;
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
             }  /* if */
+          } else if ((flags & ITF_SEEK_CORRESP) != 0 &&
+                     type_1->variant.integer.enum_type &&
+                     type_2->variant.integer.enum_type) {
+            /* The types are expected to be identical, but because they are
+               presumably defined in two different translation units, the
+               correspondence of their inner structure must be checked. */
+              identical = seek_type_corresp(type_1, type_2);
           }  /* if */
           break;
         case tk_float:
@@ -2510,7 +2517,7 @@ for more information.
               /* The types are expected to be identical, but because they are
                  presumably defined in two different translation units, the
                  correspondence of their inner structure must be checked. */
-              identical = seek_class_type_corresp(type_1, type_2);
+              identical = seek_type_corresp(type_1, type_2);
             }  /* if */
           } else if (equiv_class_types(type_1, type_2,
                                        /*error_matches_anything=*/FALSE)) {

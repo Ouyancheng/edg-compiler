@@ -2134,7 +2134,7 @@ type.
 }  /* establish_class_instantiation_corresp */
 
 
-a_boolean seek_class_type_corresp(a_type_ptr  type_1,
+a_boolean seek_type_corresp(a_type_ptr  type_1,
                                   a_type_ptr  type_2)
 /*
 Check if the given class types are in fact the same and, if so, record all
@@ -2151,14 +2151,20 @@ return FALSE.
                      (trans_unit_corresp_pointer_of(type_1) == (char*)type_1);
     clear_type_correspondence(type_1, /*visited=*/FALSE);
     record_trans_unit_corresp(type_1, type_2);
-    establish_trans_unit_correspondences_for_class(type_1);
-    result = verify_class_type_correspondence(type_1);
+    if (is_immediate_class_type(type_1)) {
+      establish_trans_unit_correspondences_for_class(type_1);
+    } else if (is_immediate_enum_type(type_1)) {
+      establish_trans_unit_correspondences_for_enum(type_1);
+    } else {
+      unexpected_condition();
+    }  /* if */
+    result = verify_type_correspondence(type_1);
     if (!result && !visited) {
       clear_type_correspondence(type_1, /*visited=*/FALSE);
     }  /* if */
   }  /* if */
   return result;
-}  /* seek_class_type_corresp */
+}  /* seek_type_corresp */
 
 
 static void find_namespace_correspondence(a_namespace_ptr  nsp)
@@ -2550,7 +2556,7 @@ template.
              the canonical correspondence. */
           a_type_ptr  sec = type_symbol_type(slep->symbol);
           check_assertion(in_secondary_trans_unit(sec));
-          (void)seek_class_type_corresp(sec, prim);
+          (void)seek_type_corresp(sec, prim);
           /* It is tempting to set slep->symbol = inst at this point, but we
              may need to have a record of sec to set correspondences for its
              members when establish_class_instantiation_corresp is called. */
@@ -3006,6 +3012,13 @@ translation unit correspondence pointer if one is found.
                     (is_immediate_class_type(var->type) ||
                      is_immediate_enum_type(var->type))) {
                   record_trans_unit_corresp(var->type, corresp_var->type);
+                  if (var->type->kind != corresp_var->type->kind) {
+                    /* An error: will be caught later. */
+                  } else if (is_immediate_class_type(var->type)) {
+                    establish_trans_unit_correspondences_for_class(var->type);
+                  } else {
+                    establish_trans_unit_correspondences_for_enum(var->type);
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }
