@@ -164,7 +164,13 @@ extern void scan_dependent_type_parenthesized_initializer(
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 
+#if GNU_EXTENSIONS_ALLOWED 
+
 extern a_type_ptr scan_typeof_operator(void);
+
+extern void typedef_initializer(a_symbol_ptr  symbol_ptr);
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern an_expr_node_ptr make_condition_value_expression(
                                                 a_variable_ptr var,

@@ -4502,6 +4502,33 @@ The parentheses are required, unlike for sizeof.
   return result;
 }  /* scan_typeof_operator */
 
+
+void typedef_initializer(a_symbol_ptr  symbol_ptr)
+/*
+Scan an initializer expression applied to a typedef (with the given symbol).
+This is a GNU extension, with the effect of setting the type defined to the
+type of the expression.
+*/
+{
+  an_expr_stack_entry  expr_stack_entry;
+  an_operand           operand;
+
+  check_assertion(symbol_ptr->kind = (a_symbol_kind)sk_type);
+  /* Prepare to scan an expression. */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+  /* Scan an expression. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  /* The expression is treated as an rvalue. */
+  conv_lvalue_to_rvalue(&operand);
+  /* Remember the type. */
+  symbol_ptr->variant.type.ptr = operand.type;
+  pop_expr_stack();
+}  /* typedef_initializer */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 

@@ -10658,6 +10658,12 @@ continue_with_declaration:
       }  /* if */
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!has_explicit_type_specifier && !is_constructor_or_destructor &&
+#if GNU_EXTENSIONS_ALLOWED
+          /* "typedef foo = 3;" is a GNU extension, not a use of
+             implicit int. */
+          !(gcc_mode && curr_token == tok_assign && 
+            local_storage_class == (a_storage_class)sc_typedef) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
           !locator.is_conversion_name) {
         report_missing_type_specifier(&declarator_start_pos, is_function,
                                       /*is_function_def=*/FALSE,
@@ -11036,9 +11042,20 @@ continue_with_declaration:
         /* If the symbol is a parameter, the subroutine will generate the
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
-        initializer(symbol_ptr, &locator.source_position, linkage,
-                    has_parenthesized_initializer, is_old_style_param_decl,
-                    &incomplete_type_error_reported, &decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+        if (gcc_mode && local_storage_class == (a_storage_class)sc_typedef) {
+          typedef_initializer(symbol_ptr);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          decl_pos_block.var_init_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          initializer(symbol_ptr, &locator.source_position, linkage,
+                      has_parenthesized_initializer, is_old_style_param_decl,
+                      &incomplete_type_error_reported, &decl_pos_block);
+        }  /* if */
         if (decl_invisible_to_initializer && !symbol_ptr->is_error) {
           /* Mark the symbol as visible now that the initializer is
              complete. */
