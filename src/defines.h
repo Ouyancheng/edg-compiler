@@ -552,6 +552,15 @@ Enable recognition of Microsoft attributes for internal versions.
 #endif /* ifndef LOWER_FIXED_POINT */
 
 /*
+GNU target compiler configuration.  When not using a GNU compiler to compile
+the front end, set GNU_TARGET_VERSION_NUMBER to a reasonable default.
+*/
+#if !defined(__GNUC__) || !defined(__GNUC_MINOR__) || \
+    !defined(__GNUC_PATCHLEVEL)
+#define GNU_TARGET_VERSION_NUMBER 30200
+#endif /* !defined(__GNUC__) || !defined(__GNUC_MINOR__) || ... */
+
+/*
 Set ABI-related switches.  This is done late so that individual configurations
 (above) can do something different from the EDG default by setting the
 switches before this point.
