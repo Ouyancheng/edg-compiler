@@ -1,9 +1,22 @@
 Version 2.20
 
+10/20/93 Cast of 0 to pointer type allowed in nontype template argument
+
+A cast of a null pointer constant (0) to a pointer or pointer-to-member
+type is now allowed in a template nontype actual argument.
+
+  template<char *P> class T {};
+  struct A {};
+  template<int A::*P> class TT{};
+  T<(char *)0> x;      // Now okay
+  TT<(int A::*)0> xx;  // Now okay
+
 10/20/93 Increase in number of include files that may be opened at once
 
 The constant MAX_INCLUDE_FILES_OPEN_AT_ONCE has been increased from
-3 to 8.  This is a more reasonable value for virtually all systems.
+3 to 8.  This is a more reasonable value for virtually all systems
+and may improve compilation speed slightly.  Note that, as ever, this
+is not an upper limit on the maximum depth of include file nesting.
 The definition of this value has also been moved from lexical.c to
 host_envir.h.
 
