@@ -1043,7 +1043,14 @@ scope for the symbol must still be active.
      memory area (see find_symbol); it can therefore be used without
      copying. */
   sc->name = sp->header->identifier;
-  sc->decl_position = sp->decl_position;
+  if (sc->decl_position.seq != 0) {
+    /* The decl-position is already set, so this must be a resetting of
+       the source correspondence.  Let the caller decide whether and how the
+       current value should be overwritten. */
+  } else {
+    /* Set the source position. */
+    sc->decl_position = sp->decl_position;
+  }  /* if */
   /* Clear the referenced flag.  It was set to TRUE in
      set_default_source_corresp, so that unassociated entities will
      all have the referenced flag set.  Here it's cleared, now that we
