@@ -1,5 +1,12 @@
 Version 2.40
 
+9/17/98   Accessibility of destructor and copy constructor in handler
+
+The requirement (15.3 para 17) is now enforced that, when a handler
+parameter is of class type, the copy constructor and destructor be
+accessible in the context of the handler.  (However, in Microsoft mode
+the access check on the copy constructor is suppressed.)
+
 9/16/98   Microsoft compatibility: support for __declspec(noreturn)
 
 In Microsoft compatibility mode, "noreturn" is now recognized as a

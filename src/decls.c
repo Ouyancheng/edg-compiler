@@ -6856,15 +6856,20 @@ clause is to be attached.  catch_pos is the source position of "catch".
           } else {
             pos = pos_curr_token;
           }  /* if */
+          /* Both the copy constructor and destructor must be accessible in
+             the context of the handler (15.3 [except.handle] para 17).
+             (However, the Microsoft compiler doesn't enforce accessibilty
+             of copy constructors). */
           cctor = select_copy_constructor(type_ptr,
                                           (a_type_qualifier_set)TQ_NONE,
                                           &pos, type_ptr, &bitwise_copy,
                                           /*evaluated=*/TRUE,
-                                          /*suppress_access_check=*/TRUE);
-          check_assertion((cctor == NULL) == bitwise_copy); 
+                                          /*suppress_access_check=*/
+                                                           microsoft_mode);
+          check_assertion((cctor == NULL) == bitwise_copy);
           dtor = select_destructor(type_ptr, type_ptr, &pos,
                                    /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                   /*suppress_access_check=*/TRUE);
+                                   /*suppress_access_check=*/FALSE);
         } else {
           /* Non classes require only bitwise copying. */
           cctor = dtor = NULL;
