@@ -1296,12 +1296,12 @@ on the scope types list.
 }  /* lower_c99_type */
 
 
-static void lower_c99_routine(a_type_ptr type)
+static void lower_c99_routine(a_routine_ptr routine)
 /*
 Do C99 lowering on the indicated routine (the header, not the body).
 */
 {
-  lower_c99_source_correspondence(&type->source_corresp);
+  lower_c99_source_correspondence(&routine->source_corresp);
 }  /* lower_c99_routine */
 
 
