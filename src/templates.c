@@ -8610,7 +8610,7 @@ for the instance, or NULL if no instance is found.
   a_partial_order_candidate_ptr	candidates_list = NULL;
 
   orig_sym = sym;
-  if (sym->is_class_member && explicit_arg_list_present == NULL) {
+  if (sym->is_class_member && !explicit_arg_list_present) {
     /* A member function symbol, find the member function that matches
        the specified type.  This is used to find a normal member function
        of a template class.  Skip this step when an explicit template
