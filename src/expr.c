@@ -3238,7 +3238,7 @@ specification allow a variable-sized array as the top type.
   an_argument_summary_ptr
                     arg_summary_list, sizeof_arg_summary;
   an_expr_node_ptr  dummy;
-  a_boolean         has_placement_term, array_new;
+  a_boolean         array_new;
   a_targ_size_t     effective_num_of_elements;
 
   db_enter(4, "scan_new_operator");
@@ -3270,7 +3270,6 @@ specification allow a variable-sized array as the top type.
   arg_summary_list = NULL;
   copy_source_position(pos_curr_token, placement_position);
   trapped_left_paren = FALSE;
-  has_placement_term = FALSE;
   if (curr_token == tok_lparen) {
     (void)get_token();
     /* Both the placement term and the type can start with a parenthesis.
@@ -3284,9 +3283,8 @@ specification allow a variable-sized array as the top type.
       trapped_left_paren = TRUE;
     } else {
       /* This is the placement expression list. */
-      has_placement_term = TRUE;
-      /* Check for an empty list, which is not allowed. */
       if (curr_token == tok_rparen) {
+        /* An empty list is not allowed. */
         error(ec_exp_primary_expr);
         (void)get_token();
       } else {
@@ -3385,11 +3383,7 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     if (operator_new_symbol == NULL) {
       /* Use the global operator "new". */
-      operator_new_symbol = global_operator_new_or_delete_symbol(
-                                                       (an_opname_kind)onk_new,
-                                                       &new_position,
-                                                       /*make_default_new=*/
-                                                          !has_placement_term);
+      operator_new_symbol = opname_function_symbol((an_opname_kind)onk_new);
     }  /* if */
     /* Select the proper "new" function if there are several; even if there
        is only one, check the argument types. */
@@ -3683,10 +3677,8 @@ As an anachronism, allow an expression inside the [ ].
       }  /* if */
       if (operator_delete_symbol == NULL) {
         /* Use the global operator "delete". */
-        operator_delete_symbol = global_operator_new_or_delete_symbol(
-                                                   (an_opname_kind)onk_delete,
-                                                   &delete_position,
-                                                   /*make_default_new=*/FALSE);
+        operator_delete_symbol =
+                            opname_function_symbol((an_opname_kind)onk_delete);
       }  /* if */
       /* Make an expression for the address of the function. */
       delete_routine = operator_delete_symbol->variant.routine;
