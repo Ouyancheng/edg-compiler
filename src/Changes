@@ -1,5 +1,19 @@
 Version 2.41
 
+2/25/99  Friend functions: no injection on declaration, special lookup
+
+Functions declared in friend declarations in classes are no longer
+entered into the innermost enclosing namespace scope.  They are
+after a fashion still declared in those scopes, but the name is
+not visible unless it is actually declared by some other (non-friend)
+declaration.  Such friend functions are found by argument-dependent
+lookup (see below).  This feature can be enabled or disabled with
+--[no_]friend_injection.  The default is given by
+DEFAULT_FRIEND_INJECTION (TRUE in the release, i.e., not the
+setting required by the standard, because this feature does seem
+to break some real-world code).  The old behavior is preserved
+in Microsoft mode and cfront mode.
+
 2/25/99  Argument-dependent lookup on function calls
 
 Argument-dependent lookup (also known as Koenig lookup) is now
