@@ -10562,7 +10562,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			is_super_qualified = FALSE;
 
 /* Macro used to determine whether we are processing the identifier in
-   a Microsoft __if_exits or __if_not_exists directive. */
+   a Microsoft __if_exists or __if_not_exists directive. */
 #define in_if_exists ((options & GID_IN_IF_EXISTS) != 0)
 
   db_enter(4, "f_is_generalized_identifier_start");
@@ -11556,7 +11556,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
   db_enter(4, "coalesce_and_lookup_qualified_name");
 
 /* Macro used to determine whether we are processing the identifier in
-   a Microsoft __if_exits or __if_not_exists directive. */
+   a Microsoft __if_exists or __if_not_exists directive. */
 #define in_if_exists ((options & GID_IN_IF_EXISTS) != 0)
 
   *err = FALSE;
@@ -11848,7 +11848,7 @@ scanned is, in fact, an identifier).
   a_boolean			templ_err = FALSE;
 
 /* Macro used to determine whether we are processing the identifier in
-   a Microsoft __if_exits or __if_not_exists directive. */
+   a Microsoft __if_exists or __if_not_exists directive. */
 #define in_if_exists ((options & GID_IN_IF_EXISTS) != 0)
 
   /* Mask the error flags out of the options flags to prevent the errors
