@@ -1,5 +1,20 @@
 Version 3.6
 
+2/9/05   GNU C++ compatibility: sizeof(incomplete class) in template
+
+In g++ mode (with gnu_version < 30400), a sizeof an incomplete class
+type is now allowed inside a template definition.  In any instantiation
+of the template, the type must be complete.  g++ (before 3.4) doesn't
+process the insides of templates before an actual instantiation, and
+therefore issues no error on such cases.
+
+  struct I;
+  template <class T> struct A {
+    int arr[sizeof(I)];  // No error on incomplete I here now in g++ mode
+  };
+  struct I { int x; };
+  A<int> y;  // I is complete when A<int> instantiation is done
+
 2/8/05   Spurious error on template static data member with dependent
          parenthesised initializer
 

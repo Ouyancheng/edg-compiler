@@ -4690,6 +4690,14 @@ Syntax:
       if (gpp_mode) {
         pos_warning(ec_incomplete_type_not_allowed, &type_position);
       }  /* if */
+    } else if (gpp_mode && gnu_version < 30400 &&
+               is_template_dependent_context() &&
+               !do_dependent_name_processing &&
+               is_class_struct_union_type(sizeof_type)) {
+      /* g++ before 3.4 allows sizeof an incomplete class type in
+         a prototype instantiation (because it doesn't instantiate the
+         insides of templates). */
+      template_case = TRUE;
     } else {
       pos_error(ec_incomplete_type_not_allowed, &type_position);
       sizeof_type = error_type();
