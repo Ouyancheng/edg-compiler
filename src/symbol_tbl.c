@@ -8051,15 +8051,17 @@ End a name scope by popping an entry off the scope stack.
       check_assertion(curr_object_lifetime ==
                       ssep->curr_scope_object_lifetime);
       pop_object_lifetime();
+    }  /* if */
 #if DO_IL_LOWERING
+    if (!old_region_still_needed) {
       if (!keep_object_lifetime_info_in_lowered_il) {
         /* We're not supposed to pass object lifetime information to the back
            end, so unlink all object lifetimes from the IL tree.  This has to
            be done after the file scope object lifetime has been popped. */
         eliminate_all_object_lifetimes(il_scope);
       }  /* if */
-#endif /* DO_IL_LOWERING */
     }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur
      after IL lowering and before done_with_memory_region. */
