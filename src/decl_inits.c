@@ -198,7 +198,8 @@ object.  curr_element identifies the next element to be initialized.
 *con_list and *di_list are list of constant entries and dynamic init
 entries (respectively) that represent the initialization of the array;
 *end_of_con_list and *end_of_di_list point to the terminal entries on
-the two list.
+the two lists.  *incomplete_init is set to TRUE if a reference or const
+member remains uninitialized.
 */
 {
   a_type_ptr                     element_type;
@@ -329,34 +330,13 @@ of constant initializers.
     dip->variant.expression = expression;
   }  /* if */
 }  /* scan_initializer_of_simple_object */
-
-
-static void flush_initializers(void)
-/*
-Flush a comma-separated list of initializer expressions by calling the
-expression scanning routine.  This routine is called from get_initializer
-in error cases.
-*/
-{
-  a_dynamic_init  local_di;
-
-  do {
-    add_stop_token(tok_comma);
-    scan_initializer_of_simple_object(/*nonconst_allowed=*/
-                                           (C_dialect == C_dialect_cplusplus),
-                                      error_type(), &local_di);
-    remove_stop_token(tok_comma);
-    
-  } while (loop_token(tok_comma) && curr_token != tok_rbrace &&
-           curr_token != tok_semicolon);
-}  /* flush_initializers */
   
 
 static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
                                       a_boolean           top_level,
-                                      a_boolean           *incomplete_init,
+                                       a_boolean           *incomplete_init,
                                       a_boolean           *nothing_taken)
 /*
 Scan a constant initializer or initializer list, and return a pointer to
@@ -366,7 +346,9 @@ It will be updated if the object is an incomplete array whose size is
 now known because it is initialized.  If there is some error in the
 initializer, an error constant is returned.  top_level is TRUE if this
 is a top-level initializer (braces are required surrounding initializers
-for unions and aggregates at that level).
+for unions and aggregates at that level).  *nothing_taken is returned
+TRUE if no source tokens were taken because the entity being initialized
+is an empty class.
 */
 {
   a_constant_ptr      init_con = NULL;
@@ -379,6 +361,7 @@ for unions and aggregates at that level).
   a_targ_size_t       curr_array_element;
   a_field_ptr         curr_field;
   a_boolean           any_more_initializers, any_more_members;
+  a_boolean           local_nothing_taken;
   a_type_kind         kind;
   a_boolean           array_too_long_error_given = FALSE;
   a_boolean           took_extra_comma;
@@ -486,10 +469,7 @@ for unions and aggregates at that level).
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type.  Note that local_type has already
          been stripped of typerefs above. */
-      any_more_initializers = TRUE;
-      any_more_members = TRUE;
-      is_incomplete_array = FALSE;
-      /* In ANSI C, the top-level initializer for a struct, union, or
+      /* In ANSI C and C++, the top-level initializer for a struct, union, or
          array must be surrounded by braces.  e.g., "int a[1] = 1;" is
          not allowed.  However, pcc will allow initialization with
          a single value and we allow it as an extension. */
@@ -498,12 +478,16 @@ for unions and aggregates at that level).
           diagnostic(strict_ansi_error_severity, ec_exp_lbrace);
         }  /* if */
       }  /* if */
+      /* Get information on the first member of the aggregate to be
+         initialized. */
+      any_more_members = TRUE;  /* Assume. */
+      is_incomplete_array = FALSE;
       kind = local_type->kind;
       if (kind == (a_type_kind)tk_error) {
-        flush_initializers();
-        goto end_of_initializer_list;
-      }  /* if */
-      if (kind == (a_type_kind)tk_array) {
+        /* Error type. */
+        member_type = error_type();
+      } else if (kind == (a_type_kind)tk_array) {
+        /* Array.  Start with first element. */
         curr_array_element = 0;
         is_incomplete_array = is_incomplete_type(local_type);
         member_type = local_type->variant.array.element_type;
@@ -517,34 +501,58 @@ for unions and aggregates at that level).
           internal_error("get_initializer: not array or class/struct/union");
         }  /* if */
 #endif /* CHECKING */
+        /* Class/struct/union.  Start with first field. */
         curr_field = local_type->variant.class_struct_union.field_list;
         any_more_members = (curr_field != NULL);
-        if (brace_flag) {
-          if (curr_token == tok_rbrace) {
-            /* Empty initializer list --  "{ }". */
-            any_more_initializers = FALSE;
-            if (C_dialect != C_dialect_cplusplus) {
-              /* C mode. */
-              error(ec_exp_primary_expr);
-            } else if (strict_ansi_mode) {
-              /* In C++ issue a diagnostic only in strict ANSI mode. */
-              diagnostic(strict_ansi_error_severity,
-                         ec_empty_initializer_list);
-            }  /* if */
+      }  /* if */
+      /* Check for cases that involve initializing nothing, i.e., the
+         zero-trip-loop cases. */
+      any_more_initializers = TRUE;  /* Assume. */
+      if (brace_flag) {
+        /* The list for the aggregate at this level is enclosed in { }. */
+        if (curr_token == tok_rbrace) {
+          /* Empty initializer list --  "{ }".  An error, but allowed
+             as an extension in C++ (it's an error according to the
+             syntax, but it makes sense to initialize empty classes). */
+          any_more_initializers = FALSE;
+          if (C_dialect != C_dialect_cplusplus) {
+            /* C mode. */
+            error(ec_exp_primary_expr);
+          } else if (strict_ansi_mode) {
+            /* In C++ issue a diagnostic only in strict ANSI mode. */
+            diagnostic(strict_ansi_error_severity,
+                       ec_empty_initializer_list);
           }  /* if */
-        } else if (!any_more_members && !top_level) {
+        }  /* if */
+      } else {
+        /* The list for the aggregate is not enclosed in braces. */
+        if (!any_more_members && !top_level) {
+          /* This is an initialization of an aggregate with no members,
+             i.e., an empty class, and there are no braces for this
+             level of the aggregate.  Take nothing to satisfy this
+             initialization. */
+          *nothing_taken = TRUE;
           any_more_initializers = FALSE;
         }  /* if */
       }  /* if */
-      if (!brace_flag && !any_more_members) *nothing_taken = TRUE;
       con_list = end_of_con_list = NULL;
       took_extra_comma = FALSE;
-      /* Loop, scanning initializers. */
-      while (any_more_initializers && any_more_members) {
+      /* Loop, scanning initializers and building an aggregate constant. */
+      while (any_more_initializers) {
         /* Determine the type of the member being initialized. */
-        a_boolean  local_nothing_taken;
-
-        if (kind == (a_type_kind)tk_array) {
+        if (!any_more_members) {
+          /* There are more initializers, but we've run out of members
+             into which to put them. */
+          error(ec_too_many_initializer_values);
+          /* Switch to an error type to take this and all following
+             initializers without error. */
+          member_type = error_type();
+          kind = (a_type_kind)tk_error;
+          any_more_members = TRUE;
+        }  /* if */
+        if (kind == (a_type_kind)tk_error) {
+          /* No processing for this case. */
+        } else if (kind == (a_type_kind)tk_array) {
           /* member_type was set outside the loop. */
 #if DEBUG
           if (debug_level == 4 && kind == (a_type_kind)tk_array) {
@@ -587,12 +595,20 @@ for unions and aggregates at that level).
           end_of_con_list->next = member_con;
         }  /* if */
         end_of_con_list = member_con;
-        /* Advance to the next member. */
-        if (kind == (a_type_kind)tk_array) {
+        /* Advance to the next member of the aggregate.  Set
+           any_more_members FALSE if there are no more members. */
+        if (kind == (a_type_kind)tk_error) {
+          /* Error case; do not advance. */
+        } else if (kind == (a_type_kind)tk_array) {
+          /* Array; see if there are any elements remaining. */
           if (curr_array_element == TARG_SIZE_T_MAX) {
             /* Array too long; presumably, this is an incomplete array
                being initialized with a ridiculous number of initial
-               values. */
+               values.  Note that it is okay to do the check and increment
+               before knowing whether or not there is an initializer for
+               this element because after the last initializer of an incomplete
+               array the curr_array_element will indicate the size, which
+               is also subject to the same range check. */
             if (!array_too_long_error_given) {
               error(ec_array_size_too_large);
               array_too_long_error_given = TRUE;
@@ -600,10 +616,10 @@ for unions and aggregates at that level).
           } else {
             /* Advance to next array element. */
             curr_array_element++;
-            /* Exit the loop if there are no elements remaining. */
             if (!is_incomplete_array &&
                 local_type->variant.array.number_of_elements <=
                                                        curr_array_element) {
+              /* No more elements in the array. */
               any_more_members = FALSE;
             }  /* if */
           }  /* if */
@@ -611,12 +627,12 @@ for unions and aggregates at that level).
                    kind == (a_type_kind)tk_struct) {
           /* Advance to the next field of the class or struct. */
           curr_field = curr_field->next;
-          /* Exit the loop if there are no fields remaining. */
+          /* Check for no fields remaining. */
           if (curr_field == NULL) {
             any_more_members = FALSE;
           } else if (curr_field->next == NULL &&
                      is_incomplete_type(curr_field->type)) {
-            /* Also exit on an incomplete array at the final field of a
+            /* Also exit on an incomplete array as the final field of a
                struct (allowed as an extension, but not allowed to be
                initialized).  This would come up in a case like
                  struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
@@ -626,33 +642,29 @@ for unions and aggregates at that level).
         } else {
 #if CHECKING
           if (kind != (a_type_kind)tk_union) {
-            internal_error(
-                     "get_initializer: in loop, not array/struct/union");
+            internal_error("get_initializer: in loop, not array/struct/union");
           }  /* if */
 #endif /* CHECKING */
           /* Only the first field in a union is initialized, so having done
              that field, we are done with the union. */
           any_more_members = FALSE;
         }  /* if */
-        if (local_nothing_taken && !any_more_members &&
-            curr_token == tok_comma) {
-          set_err_pos_to_curr_token();
-          error(ec_exp_primary_expr);
-          local_nothing_taken = FALSE;
-        }  /* if */
+        /* See if there are any more initializer expressions in the source
+           input that should be taken as part of the current aggregate. */
         if (local_nothing_taken) {
           /* The initializer was not scanned, so we don't want to look for
-             a comma. */
+             a comma.  any_more_initializers remains TRUE. */
+        } else if (!brace_flag && top_level) {
+          /* If this is a top-level list that is not brace-enclosed
+             (an error or extension, except in pcc mode) we must stop now,
+             having taken only one value.  Do not check for a comma,
+             because if present it would be part of the declaration
+             syntax rather than an initializer list separator:
+               int a[2] = 1, b;
+                           ^not an initializer list separator
+          */
+          any_more_initializers = FALSE;
         } else {
-          /* If there are no more members and this is not a brace-enclosed
-             list, exit the loop now, without taking a comma or brace
-             following. Likewise if this is a top-level list that is not
-             brace-enclosed (an error except in pcc mode), end the loop now,
-             having taken only one value. */
-          if (!brace_flag && (!any_more_members || top_level)) {
-            any_more_initializers = FALSE;
-            break;
-          }  /* if */
           /* Skip a comma separating initializers.  This might be an extra
              comma at the end of the list. */
           any_more_initializers = loop_token(tok_comma);
@@ -666,28 +678,23 @@ for unions and aggregates at that level).
           if (curr_token == tok_rbrace) {
             took_extra_comma = any_more_initializers;
             any_more_initializers = FALSE;
+          } else if (!any_more_members && !brace_flag) {
+            /* There are no more members and this is not a brace-enclosed
+               list, so take no more initializers. */
+            any_more_initializers = FALSE;
           }  /* if */
         }  /* if */
-        /* Keep looping if there are more initializers and if there are more
-           array elements or fields to initialize. */
+        /* Keep looping while there are more initializers. */
       }  /* while */
-      if (any_more_initializers && !any_more_members) {
-        /* There are more initializers, but we've run out of members
-           into which to put them. */
-        if (!brace_flag && !top_level) {
-        } else {
-          if (curr_token != tok_comma) {
-            error(ec_too_many_initializer_values);
-          }  /* if */
-          flush_initializers();
-          goto end_of_initializer_list;
-        }  /* if */
-      }  /* if */
-      if (!any_more_initializers && any_more_members) {
+      /* There are no more initializers in the source (at least, none
+         that should be considered part of the current aggregate). */
+      if (any_more_members) {
         /* Set a flag indicating an "incomplete initialization" if (1) there
            are more fields or array elements and (2) those fields or array
            elements are const or ref or have const or ref components. */
-        if (kind == (a_type_kind)tk_array) {
+        if (kind == (a_type_kind)tk_error) {
+          /* No action required. */
+        } else if (kind == (a_type_kind)tk_array) {
           /* We have been initializing the elements of an array, but we
              ran out of initializers before reaching the end of the array.
              If the array element is const qualified or is a class type
@@ -715,7 +722,11 @@ for unions and aggregates at that level).
               *incomplete_init = TRUE;
             }  /* if */
           }  /* if */
+        } else if (kind == (a_type_kind)tk_union) {
+          /* No action required. */
         } else {
+          check_assertion(kind == (a_type_kind)tk_struct ||
+                          kind == (a_type_kind)tk_union);
           /* We have been initializing the fields of a class object, but we
              ran out of initializers before reaching the last field.  See if
              any of the remaining fields are const or ref types. */
@@ -778,7 +789,6 @@ for unions and aggregates at that level).
                                       &con_list, &end_of_con_list, di_list,
                                       end_of_di_list, incomplete_init);
       }  /* if */
-end_of_initializer_list:
       /* Allocate the aggregate constant that is the value for the
          initializer. */
       init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
