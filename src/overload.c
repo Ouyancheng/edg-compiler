@@ -2222,9 +2222,11 @@ is set to NULL.
           /* Loop for each argument. */
           while (cfp->current_arg_match != NULL) {
             if (cfp->current_arg_match->match_level !=
-                                               (an_arg_match_level)aml_exact) {
+                                               (an_arg_match_level)aml_exact ||
+                cfp->current_arg_match->less_desirable_exact_match) {
               /* This argument, and therefore this function, is not an exact
-                 match. */
+                 match.  The "less desirable" case is considered an inexact
+                 match because an exact template match could beat it. */
               goto end_exact_test;
             }  /* if */
             cfp->in_best_match_set_for_some_argument = TRUE;
