@@ -5764,11 +5764,15 @@ to indicate whether an enumeration is actually defined.
        after the closing brace, if any, to get the IL types list in the
        right order.  Note that incomplete enums are not added
        to the type list, because the actual definition has not yet
-       appeared.  See pop_scope; they get added at the end of the scope.
-       Tags that were declared in a prototype scope were added to the
-       type list at the end of the prototype scope, so do not add them
-       again. */
-    if (!prototype_tag_resolution) {
+       appeared.  See pop_scope; they get added at the end of the scope. */
+    if (prototype_tag_resolution) {
+      /* Tags that were declared in a prototype scope were added to the type
+         list at the end of the prototype scope, so do not add them again. */
+    } else if (scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_template_declaration) {
+      /* This is an error case -- an enum definition within a template
+         parameter declaration.  Don't try to enter the type in the IL. */
+    } else {
       add_to_types_list(enum_type, effective_decl_level);
     }  /* if */
     /* Switch back from the file scope memory region to whatever region

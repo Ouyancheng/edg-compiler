@@ -6427,6 +6427,10 @@ next_declaration:
     } else if (is_prototype_instantiation) {
       /* The type entries created for a class template are not added to the
          types list. */
+    } else if (scope_stack[effective_decl_level].kind ==
+                                   (a_scope_kind)sck_template_declaration) {
+      /* This is an error case -- a class definition within a template
+         parameter declaration.  Don't try to enter the class in the IL. */
     } else {
       /* Add the class type to the list for the current scope.  Note that
          incomplete structs/unions are not added to the type list (this code
