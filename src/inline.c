@@ -129,7 +129,7 @@ Display the indicated variable remapping for debugging urposes.
       if (is_constant_node(expr)) {
         db_constant(vrip->variant.expr->variant.constant);
       } else if (is_variable_address_node(expr)) {
-        fprintf("&");
+        fprintf(f_debug, "&");
         db_name(&expr->variant.variable->source_corresp);
       } else {
         db_expression(expr);

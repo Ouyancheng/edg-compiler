@@ -39,7 +39,7 @@ typedef enum /*a_variable_remapping_kind*/ {
   vrk_none,		/* No remapping; used in entries that exist only to
 			   record the arg_expr and arg_expr_next fields. */
   vrk_temporary,	/* Variable is remapped to a temporary variable. */
-  vrk_constant_expr,	/* Variable is remapped to a constant-valued
+  vrk_constant_expr	/* Variable is remapped to a constant-valued
 			   expression. */
 } a_variable_remapping_kind;
 typedef struct a_variable_remapping_for_inlining
