@@ -1,5 +1,17 @@
 Version 2.46
 
+12/12/01 Incorrect IL after lowering of file-scope initialization
+
+In some cases involving IL lowering of an initialized global-scope
+or namespace-scope variable whose initializing expression creates
+a class temporary by calling a constructor, a necessary copy of
+IL did not correctly unlink the old expression from the IL tree.
+As a consequence the object lifetime tree could contain an unlowered
+dynamic initialization for the variable.  This could cause an abort,
+e.g., an IL write/read error, especially if the constructor is
+inlinable and is removed from the IL tree because all references
+were expanded inline.
+
 12/9/01  Microsoft mode: (void *)1 allowed as case label constant
 
 MSVC++ allows integral constants cast to pointer types as case label

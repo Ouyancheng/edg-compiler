@@ -4028,6 +4028,7 @@ C99 mode for the same reason.
         if (expr_list != NULL && in_file_scope(expr_list)) {
           dip->variant.constructor.args =
                        copy_list_of_expr_trees(expr_list,
+                                               CE_UNLINK_SOURCE_DESTRUCTIONS |
                                                CE_TRANSFER_DESTR_ENTITY_DESCR);
         }  /* if */
       }  /* if */
