@@ -9134,7 +9134,9 @@ statement unless suppress_trailing_space is TRUE.
         suppress_trailing_space = TRUE;
       } else {        
         an_asm_entry_ptr asm_entry = statement->variant.asm_entry;
-        write_tok_str("asm");
+        /* GNU C does not treat "asm" as a keyword in some (e.g., C99)
+           modes. */
+        write_tok_str(gcc_is_generated_code_target ? "__asm__" : "asm");
 #if GNU_EXTENSIONS_ALLOWED
         if (asm_entry->is_volatile && 
             (asm_entry->operands != NULL || asm_entry->clobbers != NULL)) {

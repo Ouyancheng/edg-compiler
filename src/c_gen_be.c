@@ -6554,7 +6554,8 @@ Generate C for an asm statement or declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here; this is the "else" of an "if". */
   {
-    write_tok_str("asm");
+    /* GNU C does not treat "asm" as a keyword in some (e.g., C99) modes. */
+    write_tok_str(gcc_is_generated_code_target ? "__asm__" : "asm");
 #if GNU_EXTENSIONS_ALLOWED
     if (aep->is_volatile && (aep->operands != NULL || aep->clobbers != NULL)) {
       write_tok_str(" volatile");
