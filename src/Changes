@@ -1,5 +1,12 @@
 Version 2.22
 
+1/11/94  Optimization of next_token routines
+
+The routines next_token and next_two_tokens have been optimized
+to use the cached token information when it is available.  Also,
+a special lexical lookahead routine has been written to eliminate
+the most of the next_two_token calls when scanning simple identifiers.
+
 1/11/94  Multiple inline definitions of friend function
 
 An error is now issued when a friend function is defined more than once

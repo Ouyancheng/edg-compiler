@@ -936,6 +936,12 @@ an equivalent change.
   return ctoken;
 }  /* get_token_from_reusable_cache_stack */
 
+/*
+Macro that is TRUE when tokens are being rescanned from a cache.
+*/
+#define rescanning_cached_tokens()				\
+  (cached_token_rescan_list != NULL || reusable_cache_stack != NULL)
+
 
 static an_orig_line_modif_ptr add_orig_line_modif(
                                 an_orig_line_modif_kind kind,
@@ -4839,19 +4845,47 @@ to peek ahead at the next token and decide on a path through the syntax.
 This routine cannot be used when fetching raw preprocessing tokens.
 */
 {
-  a_token_cache cache;
-  a_token_kind  ntoken;
+  a_token_cache 	cache;
+  a_token_kind 		ntoken;
+  a_cached_token_ptr	ctp = NULL;
 
   db_enter(3, "next_token");
-  /* Put the current token into a token cache so it can be rescanned. */
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  cache_curr_token(&cache);
-  /* Fetch the next token and remember its kind. */
-  ntoken = get_token();
-  /* Put the two tokens in the cache (original, next) on the rescan list,
-     and refetch the original token.  Note that the "next" token remains on
-     the rescan list. */
-  rescan_cached_tokens(&cache);
+  /* If we are currently rescanning tokens from a cache then we should
+     just be able to fetch the token kind from the next token on the
+     list to be rescanned.  This code does not handle some of the more complex
+     cases such as when we have to scan over the end of a reusable cache.
+     In these cases we use the more general (and slower) method is used
+     to fetch the next token. */
+  if (cached_token_rescan_list != NULL) {
+    /* There are tokens on the non-reusable rescan list. */
+    ctp = cached_token_rescan_list;
+  } else if (reusable_cache_stack != NULL) {
+    /* There are tokens on the reusable rescan list. */
+    ctp = reusable_cache_stack->next_cached_token;
+  }  /* if */
+  /* Get the next token that is not a lint/pragma state entry. */
+  while (ctp != NULL &&
+         ctp->extra_info_kind ==
+                             (a_token_extra_info_kind)teik_lint_and_pragma) {
+    ctp = ctp->next;
+  }  /* for */
+  /* If there is no cached token or if the token is the end-of-source token
+     which is used to terminate the token cache, then disregard this token
+     and fetch the next token using the slower method. */
+  if (ctp != NULL && ctp->token != (a_token_kind)tok_end_of_source) {
+    /* There is a cached token from which we can get then token kind. */
+    ntoken = ctp->token;
+  } else {
+    /* Put the current token into a token cache so it can be rescanned. */
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    /* Fetch the next token and remember its kind. */
+    ntoken = get_token();
+    /* Put the two tokens in the cache (original, next) on the rescan list,
+       and refetch the original token.  Note that the "next" token remains on
+       the rescan list. */
+    rescan_cached_tokens(&cache);
+  }  /* if */
   db_exit();
   return ntoken;
 }  /* next_token */
@@ -4870,27 +4904,59 @@ fetches the next two tokens instead of only one.  This routine
 cannot be used when fetching raw preprocessing tokens.
 */
 {
-  a_token_cache cache;
-  a_token_kind	ntoken;
+  a_token_cache 	cache;
+  a_token_kind		ntoken;
+  a_cached_token_ptr	ctp = NULL;
 
   db_enter(3, "next_two_tokens");
-  /* Put the current token into a token cache so it can be rescanned. */
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  cache_curr_token(&cache);
-  /* Fetch the token or possibly the two next tokens and remember their
-     kinds.  If the first token doesn't match the value specified by the
-     caller the caller should not use the value in *token_2. */
-  ntoken = get_token();
-  if (ntoken == first_token_must_be) {
-    cache_curr_token(&cache);
-    *token_2 = get_token();
-  } else {
-    *token_2 = tok_error;
+  /* If we are currently rescanning tokens from a cache then we should
+     just be able to fetch the token kind from the next token on the
+     list to be rescanned.  This code does not handle some of the more complex
+     cases such as when we have to scan over the end of a resusable cache.
+     In these cases we use the more general (and slower) method is used
+     to fetch the next token. */
+  if (cached_token_rescan_list != NULL) {
+    /* There are tokens on the non-reusable rescan list. */
+    ctp = cached_token_rescan_list;
+  } else if (reusable_cache_stack != NULL) {
+    /* There are tokens on the reusable rescan list. */
+    ctp = reusable_cache_stack->next_cached_token;
   }  /* if */
-  /* Put the two or three tokens in the cache (original, next 1, and possibly
-     next 2) on the rescan list, and refetch the original token.  Note
-     that the "next" token remains on the rescan list. */
-  rescan_cached_tokens(&cache);
+  /* Get the next token that is not a lint/pragma state entry. */
+  while (ctp != NULL &&
+         ctp->extra_info_kind ==
+                             (a_token_extra_info_kind)teik_lint_and_pragma) {
+    ctp = ctp->next;
+  }  /* for */
+  /* If there is no cached token or if the token is the end-of-source token
+     which is used to terminate the token cache, then disregard this token
+     and fetch the next token using the slower method.  Also do this if the
+     second token is NULL or end-of-source. */
+  if (ctp != NULL && ctp->token != (a_token_kind)tok_end_of_source &&
+      ctp->next != NULL &&
+      ctp->next->token != (a_token_kind)tok_end_of_source) {
+    /* There is a cached token from which we can get then token kind. */
+    ntoken = ctp->token;
+    *token_2 = ctp->next->token;
+  } else {
+    /* Put the current token into a token cache so it can be rescanned. */
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    /* Fetch the token or possibly the two next tokens and remember their
+       kinds.  If the first token doesn't match the value specified by the
+       caller the caller should not use the value in *token_2. */
+    ntoken = get_token();
+    if (ntoken == first_token_must_be) {
+      cache_curr_token(&cache);
+      *token_2 = get_token();
+    } else {
+      *token_2 = tok_error;
+    }  /* if */
+    /* Put the two or three tokens in the cache (original, next 1, and possibly
+       next 2) on the rescan list, and refetch the original token.  Note
+       that the "next" token remains on the rescan list. */
+    rescan_cached_tokens(&cache);
+  }  /* if */
   db_exit();
   return ntoken;
 }  /* next_two_tokens */
@@ -5556,6 +5622,63 @@ by the options.  Returns TRUE if any errors were diagnosed.
 }  /* f_check_for_generalized_identifier_errors */
 
 
+static a_boolean qualifier_delimiter_does_not_follow_token(void)
+/*
+Return TRUE if we can tell that the token following the current
+token (usually an identifier) is not a "::" or, in cfront compatibility
+mode, a ".".  These delimiters are used to indicate qualified names,
+e.g., A::B::x. If it is not easy to tell whether a delimiter appears,
+the safe answer of FALSE is returned.  This routine is part of a speed
+optimization: if the token following an identifier is clearly not a
+qualified name delimiter, some expensive processing can be avoided.
+*/
+{
+  a_boolean     delim_does_not_follow = FALSE;
+  register char ch;
+
+  if (rescanning_cached_tokens()) {
+    /* Tokens are coming from a token cache.  The optimization cannot be
+       done in this case, but it is also not really needed because
+       the next token can be inspected quickly when the tokens are coming
+       from a cache. */
+    /* delim_does_not_follow = FALSE;  -- already set. */
+  } else {
+    /* Skip white space following the token.  */
+    (void)skip_white_space();
+    ch = *curr_char_loc;
+    if (ispunct((unsigned char)ch)) {
+      /* The next token begins with a punctuation character.  Check for the
+         special cases. */
+      if (ch == ':' && curr_char_loc[1] == ':') {
+        /* Definitely a "::". */
+        /* delim_does_not_follow = FALSE;  -- already set. */
+      } else if (ch == '<') {
+        /* A "<" that could be a template argument list delimiter. */
+        /* delim_does_not_follow = FALSE;  -- already set. */
+      } else if (ch == '.' && cfront_compatibility_mode) {
+        /* Definitely a "." in cfront mode. */
+        /* delim_does_not_follow = FALSE;  -- already set. */
+      } else {
+        /* Some other operator, e.g., ";" or "(", so delimiter does not
+           follow the token. */
+        delim_does_not_follow = TRUE;
+      }  /* if */
+    } else if (isalpha((unsigned char)ch)) {
+      /* This might be a macro call, so we can't tell. */
+    } else {
+      /* Anything else (e.g., a constant), so the delimiter does not appear. */
+      delim_does_not_follow = TRUE;
+    }  /* if */
+  }  /* if */
+  return delim_does_not_follow;
+}  /* qualifier_delimiter_does_not_follow_token */
+
+
+#define next_two_tokens_if_qualifier_delimiter(separator, second_token)	\
+  (qualifier_delimiter_does_not_follow_token() ?			\
+    (*(second_token) = tok_error), tok_error :				\
+    next_two_tokens(separator, second_token))
+
 
 a_boolean f_is_generalized_identifier_start(an_identifier_options_set options)
 /*
@@ -5714,7 +5837,8 @@ This routine may only be called in C++ mode.
      whether the identifier is a class name or a type name, if needed.  */
   might_be_qualifier = FALSE;
   if (curr_token == tok_identifier) {
-    next_tok = next_two_tokens(tok_colon_colon, &next_tok_2);
+    next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
+                                                      &next_tok_2);
     if (next_tok == tok_colon_colon || next_tok == tok_lt) {
       might_be_qualifier = TRUE;
     } else if (cfront_compatibility_mode && next_tok == tok_period &&
@@ -5738,7 +5862,8 @@ This routine may only be called in C++ mode.
   } else if (dtor_must_be_nonclass) {
     dtor_class_type = type_keyword();
     if (dtor_class_type != NULL) {
-      next_tok = next_two_tokens(tok_colon_colon, &next_tok_2);
+      next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
+                                                        &next_tok_2);
       if (next_tok == tok_colon_colon && next_tok_2 == tok_compl) {
         might_be_qualifier = TRUE;
       }  /* if */
@@ -5933,7 +6058,8 @@ This routine may only be called in C++ mode.
         /* Skip over the class-name, and the "::". */
         (void)get_token();
         if (get_token() != tok_identifier ||
-            next_two_tokens(qualifier_separator, &next_tok_2) !=
+            next_two_tokens_if_qualifier_delimiter(qualifier_separator,
+                                                   &next_tok_2) !=
                                                        qualifier_separator) {
           /* Not an identifier followed by "::", so end the loop. */
           break;
