@@ -1,5 +1,19 @@
 Version 2.11
 
+9/27/92  IL for comma expressions with lvalues as the second operand
+
+The C++ IL generated for expressions like
+
+  (a, b)
+
+(where b is an lvalue) formerly looked liked
+
+  *(a, &b)
+
+because in C++ mode the conversion from lvalue to rvalue is done on
+the whole comma expression instead of its second operand.  That case
+is now optimized back to the original form.
+
 9/27/92  Definition of virtual function tables of unreferenced classes
 
 IL lowering has been changed so that the definitions for virtual function

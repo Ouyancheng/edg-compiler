@@ -3677,6 +3677,7 @@ expression for the corresponding rvalue, and return a pointer to it.
     /* An operation node. */
     new_type = type_pointed_to(node->type);
     op = node->variant.operation.kind;
+    op1 = node->variant.operation.operands;
     if (op == (an_expr_operator_kind)eok_padd ||
         op == (an_expr_operator_kind)eok_padd_subsc) {
       /* A pointer addition; change to a subscripting operation. */
@@ -3695,11 +3696,19 @@ expression for the corresponding rvalue, and return a pointer to it.
            &(i ? j : k)
          (only valid in C++). */
       optimized_case = TRUE;
-      op1 = node->variant.operation.operands;
       op2 = op1->next;
       op3 = op2->next;
       op1->next = op2 = conv_lvalue_expr_to_rvalue(op2);
       op2->next = conv_lvalue_expr_to_rvalue(op3);
+    } else if (C_dialect == C_dialect_cplusplus &&
+               op == (an_expr_operator_kind)eok_comma) {
+      /* Comma operator.  Apply the transformation to the second operand
+         of the ",".  This is useful for a case like
+           (p = f(x), *p)
+      */
+      optimized_case = TRUE;
+      op2 = op1->next;
+      op1->next = conv_lvalue_expr_to_rvalue(op2);
     } else if (node->variant.operation.assignment_returns_lvalue) {
       /* The operation is an assignment that returns an lvalue.
          Change it to one that returns an rvalue. */
