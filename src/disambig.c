@@ -385,6 +385,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
   a_boolean	type_specifier_seen = FALSE;
   a_boolean	is_ctor_or_dtor_name = FALSE;
   a_symbol_ptr	sym;
+  /* Disambiguation code should never be called in C mode.  (Otherwise, we
+     would have to add things like tok_c99_bool to the cases below.) */
+  check_assertion(!C_mode());
   for (;;) {
     switch (curr_token) {
       /* Storage class specifiers. */

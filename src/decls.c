@@ -7377,6 +7377,7 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 {
   a_type_ptr type;
 
+  check_assertion(!C_mode());
   switch (curr_token) {
     case tok_char:
       type = integer_type((an_integer_kind)ik_char);

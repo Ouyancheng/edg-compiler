@@ -42,6 +42,7 @@ Clear an output control block to default values.
   octl->gen_pcc_code              = FALSE;
   octl->suppress_local_typedefs   = FALSE;
   octl->suppress_not_yet_defined_typedefs = FALSE;
+  octl->render_c99_bool           = FALSE;
   octl->c_generating_back_end     = FALSE;
 #if DEBUG
   octl->debug_output              = FALSE;
@@ -1000,10 +1001,10 @@ by octl.
            back end, where it is output as its underlying type. */
         octl->output_str("wchar_t");
       } else if (type->variant.integer.bool_type &&
-                 !octl->c_generating_back_end) {
+                 (!octl->c_generating_back_end || octl->render_c99_bool)) {
         /* Output a bool type as "bool", except in the C generating
            back end, where it is output as its underlying type. */
-        octl->output_str("bool");
+        octl->output_str(octl->render_c99_bool ? "_Bool" : "bool");
       } else
 #endif /* ifdef CFE */
       {

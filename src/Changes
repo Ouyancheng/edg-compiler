@@ -1,5 +1,19 @@
 Version 2.45
 
+10/10/00 C99 _Bool type
+
+In C99 mode, the front end now recognizes the keyword _Bool and associates
+it with the same representation as that of the C++ bool type.  (IL CHANGE:
+the bool_type field of struct a_type can now also be TRUE in C99 mode.)
+For example:
+
+  _Bool b, *pb = &b;
+  int main() {
+    _Bool nn = pb;
+    printf("%d\n", nn);  /* Prints "1" in C99 mode. */
+    return 0;
+  }
+
 10/10/00 Looking for composite pointer type in operator overloading for
          comparison operators
 

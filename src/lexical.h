@@ -144,6 +144,8 @@ typedef enum /*a_token_kind*/ {
 #if RESTRICT_ALLOWED
   tok_restrict,
 #endif /* RESTRICT_ALLOWED */
+  /* C99 types: _Bool. */
+  tok_c99_bool,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cdecl,
   tok_declspec,
@@ -245,6 +247,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if RESTRICT_ALLOWED
    "restrict",
 #endif /* RESTRICT_ALLOWED */
+   "_Bool",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
@@ -568,6 +571,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if RESTRICT_ALLOWED
    (an_opname_kind)onk_none,          /* tok_restrict */
 #endif /* RESTRICT_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_c99_bool */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_declspec */

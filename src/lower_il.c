@@ -1771,32 +1771,6 @@ intermediate field selections.
 }  /* au_field_lvalue_selection_expr */
 
 
-an_expr_node_ptr add_cast(an_expr_node_ptr node,
-                          a_type_ptr       new_type)
-/*
-Add a cast to new_type to the node and return the cast node.
-new_type should not have any top-level type qualifiers.
-*/
-{
-  return make_operator_node((an_expr_operator_kind)eok_cast, new_type, node);
-}  /* add_cast */
-
-
-an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
-                                       a_type_ptr       new_type)
-/*
-Add a cast to new_type to the node and return the cast node.  If the
-type of the node is already new_type return the original node.
-new_type should not have any top-level type qualifiers.
-*/
-{
-  if (!il_identical_types(node->type, new_type)) {
-    node = add_cast(node, new_type);
-  }  /* if */
-  return node;
-}  /* add_cast_if_necessary */
-
-
 void change_to_cast(an_expr_node_ptr node,
                     an_expr_node_ptr operand_node,
                     a_type_ptr       new_type)
@@ -1819,18 +1793,6 @@ type of the node is already "char *" return the original node.
 {
   return add_cast_if_necessary(node, char_star_type());
 }  /* add_cast_to_char_star */
-
-
-static an_expr_node_ptr integral_promote_node(an_expr_node_ptr expr)
-/*
-Add a cast to do integral promotion to expr, if necessary.
-*/
-{
-  /* Note that this doesn't handle bit fields. */
-  expr = add_cast_if_necessary(expr,
-                               type_after_integral_promotion(expr->type));
-  return expr;
-}  /* integral_promote_node */
 
 
 static an_expr_node_ptr integral_promote_pm_node(an_expr_node_ptr expr)
@@ -6720,25 +6682,16 @@ static void lower_bool_cast(an_expr_node_ptr expr)
 Lower an eok_bool_cast node, which converts an operand to bool.
 */
 {
-  an_expr_node_ptr      operand = expr->variant.operation.operands;
-  an_expr_node_ptr      zero_node;
-  a_constant            zero_constant;
-  an_expr_operator_kind op;
-
-  /* A cast to bool in C++ is rewritten as a "!= 0" test in C. */
-  operand = integral_promote_node(operand);
-  make_zero_of_proper_type(operand->type, &zero_constant);
-  zero_node = alloc_node_for_constant(&zero_constant);
-  operand->next = zero_node;
+  /* The bulk of the work is done by transform_bool_cast. */
+  transform_bool_cast(expr);
   /* Note that the result type may still be "bool" here; if so, a cast will
      be inserted later.  The type will be "int" if adjust_bool_operation_types
      has discovered this case can be optimized. */
-  op = which_binary_operator(tok_ne, operand->type);
-  set_node_operator(expr, op, expr->type, operand);
-  if (op == (an_expr_operator_kind)eok_pmne) {
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pmne) {
     /* For the pointer-to-member case, the comparison must be lowered. */
+    an_expr_node_ptr  zero_node = expr->variant.operation.operands->next;
     mark_as_not_visited(zero_node->variant.constant);
-    /* Note that zero_expr is not lowered; that allows the subroutine to
+    /* Note that zero_node is not lowered; that allows the subroutine to
        generate better code. */
     lower_pm_comparison(expr, /*operand1_lowered=*/TRUE);
   }  /* if */

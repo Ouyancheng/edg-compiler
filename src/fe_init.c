@@ -233,6 +233,8 @@ Install the keywords in the symbol table.
     /* __func__ (similar to __FUNCTION__ in Microsoft mode) is a named string
        constant that is the name of the function currently being defined. */
     enter_keyword((a_token_kind)tok_function_name, "__func__");
+    /* Enable new type names. */
+    enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
   }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type.
      __INTADDR__(addr_expr) scans its argument as an initializer

@@ -109,6 +109,10 @@ typedef struct an_il_to_str_output_control_block {
 			   that have been promoted out of their enclosing
 			   nested context. */
   a_byte_boolean
+	render_c99_bool;
+			/* TRUE if the C99 boolean type should be rendered as
+			   "_Bool".  Otherwise, the underlying type is used. */
+  a_byte_boolean
 	c_generating_back_end;
 			/* TRUE if the output is being done for the
 			   C-generating back end. */

@@ -3909,7 +3909,7 @@ typedef struct a_type {
                            is a distinct type. */
       a_bit_field
 		bool_type:1;
-			/* TRUE if this type is bool in C++. */
+			/* TRUE if this type is bool in C++ or _Bool in C99. */
       bitfield_to_avoid_codecenter_warnings()
       union {
         /* When enum_type is TRUE: */
