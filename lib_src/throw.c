@@ -944,7 +944,9 @@ a try block with a catch that matches the type of the object thrown.
       }  /* while */
       cleanup(function_ehsep, __eh_curr_region,
               destination_ehsep->variant.try_block.region_number);
-      
+      /* Restore the region number to the appropriate value for entry to the
+         catch clause. */
+      __eh_curr_region = destination_ehsep->variant.try_block.region_number;
     }  /* if */
   }  /* if */
 
