@@ -176,7 +176,7 @@ entry is pointed to by scp.  The IL entry is of the indicated kind.
 The output includes template arguments on template classes.
 */
 {
-  char *name = scp->name;
+  char *name = unmangled_name_of(scp);
 
   if (name == NULL) {
     /* For entities without names, use <unnamed>. */

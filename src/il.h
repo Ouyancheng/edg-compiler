@@ -514,6 +514,16 @@ those containing source correspondence information.)
 */
 #define has_name(entry) ((entry)->source_corresp.name != NULL)
 
+/*
+Return the original unmangled name of an entity, given a pointer to
+its source correspondence entry.
+*/
+#if NEED_NAME_MANGLING
+#define unmangled_name_of(scp) \
+  ((scp)->name_has_been_mangled ? (scp)->unmangled_name : (scp)->name)
+#else /* !NEED_NAME_MANGLING */
+#define unmangled_name_of(scp) ((scp)->name)
+#endif /* NEED_NAME_MANGLING */
 
 /*
 Clear the parent information in the indicated entity to remove the entity
