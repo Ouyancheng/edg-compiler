@@ -1,5 +1,15 @@
 Version 3.5
 
+7/27/04  C mode: Diagnostic on unnamed parameter in function definition
+
+The error issued in C mode on an unnamed parameters in a function definition
+has been made discretionary (i.e., its severity can be lowered from the
+command-line).  For example:
+
+  int f(int a, int /*unused*/) {  /* C mode error is now discretionary. */
+    return a;
+  }
+
 7/26/04  GNU compatibility: Additional built-in functions
 
 A number of new built-in functions introduced by GNU C/C++ 3.4 were added to

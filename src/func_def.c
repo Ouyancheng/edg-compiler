@@ -782,7 +782,9 @@ and for the instantiation of template functions.
       /* New-style (function prototype) for which at least one of the param
          names was omitted in the prototype.  In C this is not valid on a
          function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-      if (C_mode()) error(ec_all_proto_params_must_be_named);
+      if (C_mode()) {
+        diagnostic(es_discretionary_error, ec_all_proto_params_must_be_named);
+      }  /* if */
     }  /* if */
     if (f_xref_info != NULL) {
       /* Cross reference info is being put out. */
