@@ -625,10 +625,13 @@ to replace the initial portion of this compilation.
 #if USER_CONTROL_OF_STRUCT_PACKING
   il_header.default_max_member_alignment = default_max_member_alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (do_preprocessing_only) {
+  if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
+  }  /* if */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
+  if (do_preprocessing_only) {
+    /* IL file not needed. */
   } else {
     if (!suppress_il_file_write) {
       /* Open the IL file. */
@@ -636,8 +639,8 @@ to replace the initial portion of this compilation.
     }  /* if */
     /* Write the beginning of the IL file if one is to be generated. */
     start_il_file();
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Set the default name linkage kind for externally linked objects and
      functions.  In C++ this can be overridden by a linkage specification
      (ARM 7.4). */

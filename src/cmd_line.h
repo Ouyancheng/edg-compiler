@@ -117,6 +117,7 @@ typedef enum /*an_option_kind*/ {
   optk_SVR4_C_mode,
   optk_brief_diagnostics,
   optk_nonconst_ref_anachronism,
+  optk_no_preproc_only,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -162,6 +163,12 @@ EXTERN a_boolean
 		do_preprocessing_only /* = FALSE */;
 			/* If TRUE, the compiler is to act like cpp: the
 			   source is preprocessed, but not compiled. */
+EXTERN a_boolean
+                pp_output_file_needed /* = FALSE */;
+                        /* If TRUE, the compiler will output information to
+			   the preprocessing output file.  This could be
+			   preprocessed text, makefile dependency information,
+			   etc. */
 EXTERN a_boolean
 		generate_pp_output /* = FALSE */;
 			/* If TRUE, the preprocessing step should generate

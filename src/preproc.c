@@ -1615,13 +1615,6 @@ is asked to act like cpp.
       gen_expanded_raw_listing_output_for_curr_line(/*do_inserted_text=*/TRUE);
     }  /* if */
   }  /* if */
-  if (f_pp_output != NULL) {
-    /* Check for errors in writing the pp output file, then close it. */
-    if (fflush(f_pp_output) || ferror(f_pp_output) ||
-        (f_pp_output != stdout && fclose(f_pp_output))) {
-      str_catastrophe(ec_file_write_error, "preprocessing output");
-    }  /* if */
-  }  /* if */
 }  /* cpp_driver */
 
 

@@ -116,6 +116,15 @@ and before the back end (if any) is executed.
   finish_il_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
+  /* Close the preprocessing output file, if needed. */
+  if (f_pp_output != NULL) {
+    /* Check for errors in writing the pp output file, then close it. */
+    if (fflush(f_pp_output) || ferror(f_pp_output) ||
+        (f_pp_output != stdout && fclose(f_pp_output))) {
+      str_catastrophe(ec_file_write_error, "preprocessing output");
+    }  /* if */
+  }  /* if */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Create or remove the instantiation information file if necessary. */
   if (!do_preprocessing_only && automatic_instantiation_mode &&
