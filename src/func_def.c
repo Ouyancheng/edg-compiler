@@ -222,6 +222,10 @@ first token of the asm instruction.
   char             *body;
 
   db_enter(3, "scan_asm_block");
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+  /* is_asm_block can be FALSE only in Microsoft mode. */
+  check_assertion(is_asm_block == TRUE);
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
   /* Initialize static variables used for building the string. */
   pos_in_asm_func_body_buffer = 0;
   prev_stop_char = NULL;
@@ -248,10 +252,10 @@ first token of the asm instruction.
       /* Special handling for a left brace embedded within the assembler
          code: assume it has a matching right brace. */
       if (curr_token == tok_lbrace) ++nbrace;
-    } else if (curr_token == tok_newline || curr_token == tok_semicolon) {
-      /* When it's not a brace-enclosed block of statements terminate the
-         scan when a '\n' or ';' is reached -- finish the copy, excluding
-         the current token. */
+    } else if (curr_token == tok_newline) {
+      /* Microsoft mode: when it's not a brace-enclosed block of statements
+         terminate the scan when end-of-line is reached -- finish the copy,
+         excluding the current token. */
       copy_from_source_to_asm_func_buffer(start_of_curr_token, NULL);
       break;
     }  /* if */
