@@ -953,6 +953,9 @@ error code.
     case ec_no_constructor:
       m = "no constructor exists for class \"%s\"";
       break;
+    case ec_bad_union_field:
+      m = "invalid union member -- disallowed member function in class \"%s\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
