@@ -33,8 +33,6 @@ more or less true in the past, but not always.  For example:
 Formerly, the types ended up in the order TMPL<C>, OUTER, C.  Now they
 appear in source order (C, TMPL<C>, OUTER).
 
-int main () { return 0; }
-
 10/8/93  Reference initialization cases
 
 The diagnostics on two cases have been changed:
