@@ -1040,7 +1040,7 @@ this function points to a tree that includes a dynamic-init entry.
             a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
             if (local_any_dynamic_init) {
               /* Not a ck_dynamic_init, yet there was dynamic initialization:
-                 this must be an aggregate constant with a ck_dynamaic_init
+                 this must be an aggregate constant with a ck_dynamic_init
                  in its tree somewhere.  Put a dik_nonconstant_aggregate on
                  top of it (instead of a dik_constant). */
               check_assertion(member_con->kind ==
