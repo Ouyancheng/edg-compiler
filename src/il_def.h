@@ -1984,8 +1984,8 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
 = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* dmt_near */		"__near",
-  /* dmt_far */			"__far",
+  /* dmt_near */		"near",
+  /* dmt_far */			"far",
   /* dmt_dllimport */		"dllimport",
   /* dmt_dllexport */		"dllexport",
   /* dmt_thread */		"thread",
