@@ -196,9 +196,8 @@ This includes template arguments on template classes.
 }  /* form_unqualified_name */
 
 
-static void form_class_qualifier(
-                              a_type_ptr                            class_type,
-                              an_il_to_str_output_control_block_ptr octl)
+void form_class_qualifier(a_type_ptr                            class_type,
+                          an_il_to_str_output_control_block_ptr octl)
 /*
 Output a class qualifier (e.g., "A::B::") that identifies the indicated
 class type.  Do the output in the way described by octl.
