@@ -906,15 +906,34 @@ and should overwrite primary_entry.  Do the overwriting.  The "next"
 pointer is not adjusted; the caller must do that if necessary.
 */
 #if MAINTAIN_NEEDED_FLAGS
-#define overwrite_primary_entry(primary_entry, corresp_entry) \
-{ a_boolean saved_needed = (primary_entry)->source_corresp.needed; \
-  *(primary_entry) = *(corresp_entry); \
-  (primary_entry)->source_corresp.needed = saved_needed; \
-}
+#define save_needed_flag_for_overwrite(primary_entry) \
+  a_boolean saved_needed = (primary_entry)->source_corresp.needed;
+#define restore_needed_flag_for_overwrite(primary_entry) \
+  (primary_entry)->source_corresp.needed = saved_needed;
 #else /* !MAINTAIN_NEEDED_FLAGS */
-#define overwrite_primary_entry(primary_entry, corresp_entry) \
-{ *(primary_entry) = *(corresp_entry); }
+#define save_needed_flag_for_overwrite(primary_entry) /* Nothing */
+#define restore_needed_flag_for_overwrite(primary_entry) /* Nothing */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if ONE_INSTANTIATION_PER_OBJECT
+#define save_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+  a_per_instantiation_needed_flags_entry_ptr saved_pi_needed = \
+        (primary_entry)->source_corresp.per_instantiation_needed_flags;
+#define restore_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+  (primary_entry)->source_corresp.per_instantiation_needed_flags = \
+                                                       saved_pi_needed;
+#else /* !ONE_INSTANTIATION_PER_OBJECT */
+#define save_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+  /* Nothing */
+#define restore_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+  /* Nothing */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#define overwrite_primary_entry(primary_entry, corresp_entry) \
+{ save_needed_flag_for_overwrite(primary_entry) \
+  save_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+  *(primary_entry) = *(corresp_entry); \
+  restore_needed_flag_for_overwrite(primary_entry) \
+  restore_per_instantiation_needed_flags_for_overwrite(primary_entry) \
+}  /* overwrite_primary_entry */
 
 
 static void finish_trans_unit_copy(a_scope_ptr scope)
