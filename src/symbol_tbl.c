@@ -112,6 +112,12 @@ static a_param_id_ptr
 			/* List of parameter id entries freed and available
 			   for reuse. */
 
+static a_decl_sequence_number
+		decl_seq_counter;
+			/* Counter, initialized to 0 with each compilation
+			   unit, for maintaining the declaration sequence
+			   numbers for symbols. */
+
 #if DEBUG
 #define DEBUG_LINE_LENGTH 79
 /* Macros used within db_symbol, referencing local variables defined
@@ -470,6 +476,13 @@ and indentation is the indentation desired.
     col += strlen(str) + 6;
   }  /* if */
 
+  if (sym->decl_seq > 0) {
+    (void)sprintf(buffer, "#%lu", sym->decl_seq);
+  }  /* if */
+  put_separator("", strlen(buffer));
+  fputs(buffer, f_debug);
+  col += strlen(buffer);
+
   (void)sprintf(buffer, "(%lu/%u)", sym->decl_position.seq,
 		sym->decl_position.column);
   put_separator("", strlen(buffer));
@@ -477,9 +490,6 @@ and indentation is the indentation desired.
   col += strlen(buffer);
 
   (void)sprintf(buffer, "scope %d", sym->decl_scope);
-  if (sym->decl_seq > 0) {
-    (void)sprintf(&buffer[strlen(buffer)], " (#%lu)", sym->decl_seq);
-  }  /* if */
   put_string(buffer);
 
   if (sym->referenced) put_string("ref'd");
@@ -6019,7 +6029,6 @@ of the template.
   ssep->source_position          = pos_curr_token;
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_param_list      = NULL;
-  ssep->decl_seq                 = 0;
   ssep->last_label_decl_seq = 0;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
@@ -7032,42 +7041,17 @@ is called only in C++.
 }  /* pop_class_reactivation_scope */
 
 
-void set_decl_sequence_number(a_symbol_ptr  sym)
+#if 0
+static void set_decl_sequence_number(a_symbol_ptr  sym)
 /*
-Set the delaration sequence number of the symbol pointed to by sym.  The
-counters are maintained on a per-scope basis, except that a block scope uses
-the counter of the function scope to which it belongs.
+Set the delaration sequence number of the symbol pointed to by sym.
 */
 {
-  a_scope_stack_entry_ptr  ssep;
-  a_boolean                is_local_to_function;
-  a_scope_depth            scope_depth;
-
-  if (sym->decl_seq == 0) {
-    /* Get a pointer to the scope stack entry corresponding to the decl_scope
-       field of sym. */
-    scope_depth = scope_depth_of(sym, &is_local_to_function);
-    check_assertion(scope_depth != NO_SCOPE_DEPTH);
-    ssep = &scope_stack[scope_depth];
-    if (ssep->kind == (a_scope_kind)sck_block) {
-      /* sym was declared in a block scope, so we will need the function's
-         scope stack entry. */
-      ssep = &scope_stack[ssep->depth_innermost_function_scope];
-    }  /* if */
-    /* Declarations are expected only in certain kinds of scopes. */
-    check_assertion_str((ssep->kind == (a_scope_kind)sck_file ||
-                         ssep->kind == (a_scope_kind)sck_function ||
-                         ssep->kind ==
-                                    (a_scope_kind)sck_template_declaration ||
-                         ssep->kind == (a_scope_kind)sck_func_prototype ||
-                         ssep->kind == (a_scope_kind)sck_class_struct_union),
-                        "set_decl_sequenc_number: bad scope kind");
-    /* Increment the counter that is kept in the scope stack entry and copy it
-       into the symbol. */
-    sym->decl_seq = ++ssep->decl_seq;
-  }  /* if */
+  sym->decl_seq = ++decl_seq_counter;
 }  /* set_decl_sequence_number */
-
+#else
+#define set_decl_sequence_number(sym) (sym)->decl_seq = ++decl_seq_counter
+#endif /* if 0 */
 
 static void write_xref_entry(a_symbol_reference_kind kind,
                              a_symbol_ptr            sym_ptr,
@@ -7190,6 +7174,7 @@ be put out.
   check_assertion(!sym_ptr->defined);
   sym_ptr->decl_position = *source_position;
   sym_ptr->defined = TRUE;
+  set_decl_sequence_number(sym_ptr);
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
     if (f_xref_info != NULL) {
       /* If writing cross-reference information, write an entry for this
@@ -7276,6 +7261,7 @@ Indicate that the given symbol is declared at the given position.
     }  /* if */
     sym_update_source_sequence_list(sym_ptr, source_position);
   }  /* if */
+  if (sym_ptr->decl_seq == 0) set_decl_sequence_number(sym_ptr);
 }  /* mark_declared */
 
 
@@ -7867,6 +7853,7 @@ to avoid an 8-character external name clash with symbol_table.)
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
+  decl_seq_counter = 0;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
