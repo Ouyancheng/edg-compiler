@@ -1654,6 +1654,9 @@ the scope being pushed.
   ssep->string_literal_table = NULL;
   ssep->string_literal_sequence_number = 0;
 #endif /* DO_IL_LOWERING */
+#if CHECKING 
+  ssep->avoid_codecenter_warnings    = FALSE;
+#endif /* CHECKING */
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;

@@ -391,6 +391,7 @@ typedef struct a_scope_stack_entry {
 			   string literal sequence numbers should be
 			   assigned. */
 #endif /* DO_IL_LOWERING */
+  bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
