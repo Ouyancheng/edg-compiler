@@ -821,10 +821,31 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Qualifiers on the parameter type are also not significant when dealing
        with rvalues.  One cannot distinguish f(int) and f(const int). */
     param_type = skip_typerefs(param_type);
-    /* See if the "T[] --> T*" and "T(args) --> T(*)(args)" cases apply. */
+    /* See if any transformations apply (e.g., T[] --> T*). */
     if (arg_operand != NULL) {
-      if (is_array_type(arg_type)) {
-        if (is_an_lvalue(arg_operand)) {
+      /* Note that the cases here simulate transformations handled by
+         do_operand_transformations. */
+      if (is_an_lvalue(arg_operand)) {
+        /* See if the operand is an lvalue for a constant-valued variable.
+           If so, an lvalue --> rvalue transformation might be useful. */
+        a_constant_ptr con_var_value = NULL;
+        if (is_constant_operand(arg_operand)) {
+          a_constant_ptr con = &arg_operand->variant.constant;
+          if (con_is_exact_addr_of_variable(con)) {
+            con_var_value =
+                     var_constant_value(con->variant.address.variant.variable);
+          }  /* if */
+        } else if (is_expression_operand(arg_operand)) {
+          con_var_value =
+            value_of_constant_var_lvalue_expr(arg_operand->variant.expression);
+        }  /* if */
+        if (con_var_value != NULL) {
+          /* The operand is an lvalue for a constant-valued variable.
+             Make an operand for the constant value, because it might be
+             that a pointer conversion can convert 0 to a pointer type. */
+          make_constant_operand(con_var_value, &implicit_arg_operand);
+          arg_operand = &implicit_arg_operand;
+        } else if (is_array_type(arg_type)) {
           /* An array lvalue, or a string literal represented as an lvalue.
              This is the "T[] --> T*" case.  Make a operand to crudely
              simulate the operand one would get if one converted the

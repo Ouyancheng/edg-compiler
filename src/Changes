@@ -1,5 +1,19 @@
 Version 2.19
 
+8/4/93   const variable with value 0 allowed as null pointer constant
+
+A const-valued int variable with value 0 should, in our opinion, be
+allowed as a null pointer constant.  We formerly failed to allow it
+as such in overload resolution.  That is now fixed.
+
+  struct A {};
+  void f(char *);
+  void f(A);
+  const int i = 0;
+  void m() {
+    f(i);  // Allowed now.
+  }
+
 8/4/93   Promotion of unsigned char when sizeof(int)==sizeof(char)
 
 If sizeof(int)==sizeof(char), unsigned char should be promoted to
