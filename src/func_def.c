@@ -1140,7 +1140,7 @@ the definitions of ordinary functions.  After doing some error checking,
 it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
 This function is also called in the case of a nondefining out-of-class
-member declaration (allowed in Microsoft mode only).
+member declaration (allowed in some Microsoft modes only).
 */
 {
   a_symbol_ptr         sym;
@@ -1156,6 +1156,14 @@ member declaration (allowed in Microsoft mode only).
   class_type = locator->specific_symbol->parent.class_type;
   rout_type = skip_typerefs(type_ptr);
   sym = locator->specific_symbol;
+  if (microsoft_out_of_class_redecl && microsoft_version >= 1310 &&
+      (!is_member_function_symbol(sym) ||
+       !sym->variant.routine.ptr->is_template_function)) {
+    /* Recent microsoft compilers only accept the out-of-class redeclaration
+       syntax for template specializations. */
+    pos_error(ec_member_function_redecl_outside_class,
+              &locator->source_position);
+  }  /* if */
   if (!is_member_function_symbol(sym)) {
     /* We must have nonfunction class member.  This is an error, so set sym
        to NULL to force the creation of a fake member function symbol. */

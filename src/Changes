@@ -1,5 +1,17 @@
 Version 3.6
 
+3/1/05   Microsoft compatibility: Out-of-class member redeclarations
+
+The front end emulates a Microsoft extension that allows out-of-class member
+function redeclarations that aren't definitions.  For example:
+
+  struct S { void f(); };
+  void S::f();  // Accepted in some Microsoft modes.
+
+Since MSVC++ 7.1 no longer accepts this syntax, we no longer accept such
+code when microsoft_version >= 1310.  (Similar syntax is still accepted to
+express old-style specializations of member functions of class templates.)
+
 3/1/05   Internal error on unnamed class member types across translation units
 
 When simultaneously processing multiple translation units containing a class
