@@ -117,7 +117,7 @@ issue a warning and discard the extra characters.
 
 8/12/94  Consolidated routines to convert constants and types to string form
 
-Some of out customers have pointed out the embarrassing fact that we
+Some of our customers have pointed out the embarrassing fact that we
 had 5 or 6 different copies of routines that produce output strings for
 constants and types.  Embarrassment is a great motivator, so we've
 consolidated those routines into one set in il_to_str.c.  Of course,
@@ -201,7 +201,8 @@ explicit initializer, to create an object with const or ref fields, e.g.,
 8/8/94   C mode: a struct with no named fields
 
 An error is now issued in C mode whenever a struct or union is defined
-with no named fields.  The following used to slip by:
+with no named fields.  The following used to be allowed (it's undefined
+behavior in ANSI/ISO C):
 
   struct S { int:0; };               // Now an error in C mode
 
