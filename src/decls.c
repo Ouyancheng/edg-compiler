@@ -982,6 +982,7 @@ consistent with that of the previous declaration.
     goto done;
   }  /* if */
   if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
+    an_error_severity  severity = es_error;
     old_tsp = skip_typerefs(prev_type)->
                          variant.routine.extra_info->exception_specification;
     new_tsp = skip_typerefs(new_rout_type)->
@@ -991,6 +992,14 @@ consistent with that of the previous declaration.
       /* This a function redeclaration -- the exception specifications have to
          match. */
       error_code = ec_incompatible_exception_specification;
+      if (is_redecl && microsoft_mode && microsoft_version >= 1300 &&
+          rp != NULL) {
+        /* Recent Microsoft compilers do not require the exception
+           specification of a class member to be repeated on redeclarations.
+           We issue a warning in that case.  Note that calls to composite_type
+           will ensure that the original specification is retained. */
+        severity = es_warning;
+      }  /* if */
     } else {
       /* Not a redeclaration -- probably a template specialization.
          In diagnostics refer to template rather than a previous declaration
@@ -1019,24 +1028,15 @@ consistent with that of the previous declaration.
       if (new_tsp != NULL) {
         /* Previously the exception specification was absent; now one is
            provided.  Issue an error. */
-        pos_stsy_error(error_code, throw_pos, "", prev_decl);
+        pos_stsy_diagnostic(severity, error_code, throw_pos, "", prev_decl);
       }  /* if */
     } else if (new_tsp == NULL) {
       /* Issue a diagnostic on the omission of a throw specification on the
          current declaration (it must have been present on the previous
          one). */
-      an_error_severity  severity = es_error;
-      if (is_redecl && microsoft_mode && microsoft_version >= 1300 &&
-          rp != NULL) {
-        /* Recent Microsoft compilers do not require the exception
-           specification of a class member to be repeated on redeclarations.
-           We issue a warning in that case.  Note that calls to composite_type
-           will ensure that the original specification is retained. */
-        severity = es_warning;
-      } else if (is_redecl &&
-                 rp != NULL && !rp->source_corresp.is_class_member &&
-                 (is_new_operator(rp->variant.opname_kind) ||
-                  is_delete_operator(rp->variant.opname_kind))) {
+      if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
+          (is_new_operator(rp->variant.opname_kind) ||
+           is_delete_operator(rp->variant.opname_kind))) {
         /* Unless we are in strict mode, issue a warning instead of an error
            if this is a redeclaration of what may be a library new or delete
            routine: the relaxation is to ease the upgrading of old code. */
