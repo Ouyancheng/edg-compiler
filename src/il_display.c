@@ -946,9 +946,10 @@ do_struct_union:
         disp_boolean("originally_unnamed", TRUE);
       }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-      if (ptr->max_member_alignment != 0) {
+      if (ptr->variant.class_struct_union.max_member_alignment != 0) {
         disp_unsigned_long("max_member_alignment",
-                           (unsigned long)ptr->max_member_alignment);
+                           (unsigned long)ptr->variant.class_struct_union.
+                                                        max_member_alignment);
       }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       break;
@@ -3349,7 +3350,7 @@ Display the IL for the file scope in human-readable form.
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (il_header.default_max_member_alignment != 0) {
     disp_unsigned_long("default_max_member_alignment",
-                       (unsigned long)ptr->default_max_member_alignment);
+                       (unsigned long)il_header.default_max_member_alignment);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
