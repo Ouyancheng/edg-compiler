@@ -1,0 +1,81 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+defines.h -- Defines configuration parameters for a given vesion of the
+             front end.
+
+*/
+
+/*
+Note: This is the EDG internal version.  The version shipped as part of
+the release should contain no defines.
+*/
+
+/* Common options. */
+#define COMPILE_MULTIPLE_SOURCE_FILES 1
+#define USING_QUANTIFY 1
+
+#ifdef sun
+
+#ifdef OPTIMIZED_VERSION
+
+/* Options for Sun optimized version. */
+#define CHECKING 1
+#define DEBUG 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER=0
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER=1
+#define LONG_LONG_ALLOWED=0
+#define GENERATE_SOURCE_SEQUENCE_LISTS=0
+
+#else /* !defined(OPTIMIZED_VERSION) */
+
+/* Options for Sun test version. */
+#define __BSD__ 1
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#define FIL 1
+
+#endif /* !defined(OPTIMIZED_VERSION) */
+
+#else /* !defined(sun) */
+
+/* Options for UnixWare test version. */
+#define __SYSV__
+#define COMPILE_MULTIPLE_SOURCE_FILES=1
+#define STAT_FIRST_PARAM_IS_CONST=1
+#define TARG_ALIGNOF_DOUBLE=4
+#define TARG_ALIGNOF_LONG_DOUBLE=4
+#define TARG_SIZEOF_LONG_DOUBLE=12
+#define TARG_JMP_BUF_NUM_ELEMENTS=10
+#define CHECKING=1
+#define DEBUG=1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER=1
+#define LONG_LONG_ALLOWED=1
+#define GENERATE_SOURCE_SEQUENCE_LISTS=0
+#define C_GEN_BE_GENERATES_ANSI_C=1
+#define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL=0
+#define ASSIGNMENT_TO_THIS_ALLOWED=0
+#define DEFAULT_ALLOW_ANACHRONISMS=0
+#define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG=0
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY=0
+#define NEW_CAN_BE_FOLDED_INTO_CTOR=0
+
+#endif /* defined(sun) */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
