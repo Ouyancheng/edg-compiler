@@ -143,12 +143,10 @@ extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 extern void remap_orphaned_file_scope_entry_array_ptrs(
                                        a_remap_function_ptr remap_function);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#endif /* IL_WALK_NEEDED */
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY
 extern char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind);
 
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY */
+#endif /* IL_WALK_NEEDED */
                      
 #endif /* ifndef IL_WALK_H */
 

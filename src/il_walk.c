@@ -13,20 +13,13 @@ il_walk.c -- Routines to walk the intermediate language tree.
 
 */
 
+
 #include "basics.h"
 #include "host_envir.h"
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY
-/* If debugging or display output is needed, the utility routine to 
-   format a character string based on the IL entry kind must be compiled.
-*/
+#if IL_WALK_NEEDED
 #include "il_walk.h"
 #include "il.h"
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY */
-
-/* None of this is needed if not writing IL to a file. */
-#if IL_WALK_NEEDED
-
 #include "error.h"
 #include "mem_manage.h"
 
@@ -1710,9 +1703,6 @@ them through remap_function.
 #undef remap_orphan_list_last
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
-#endif /* IL_WALK_NEEDED */
-                     
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY
 
 char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind)
 /*
@@ -1786,7 +1776,7 @@ entry kind passed as an argument.
   return s;
 }  /* retrieve_il_entry_kind_name */
 
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY */
+#endif /* IL_WALK_NEEDED */
 
 /******************************************************************************
 *                                                             \  ___  /       *
