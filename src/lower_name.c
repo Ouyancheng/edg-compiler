@@ -1730,20 +1730,16 @@ the length of the name.
 */
 {
   sizeof_t              mangled_name_length, name_length, digits;
-  a_derivation_step_ptr dsp, temp_dsp;
+  a_derivation_step_ptr dsp;
 
   /* The form of the name is like
        4abcd
      or
        8abcd__ef  (this for base class "abcd" in "ef")
+     Note that if the base class is virtual, the first step of the derivation
+     is always virtual.
   */
   dsp = bcp->derivation;
-  if (bcp->any_virtual_steps_in_derivation) {
-    /* Drop the parts of the derivation preceding a virtual step. */
-    for (temp_dsp = dsp; temp_dsp != NULL; temp_dsp = temp_dsp->next) {
-      if (temp_dsp->base_class->is_virtual) dsp = temp_dsp;
-    }  /* for */
-  }  /* if */
   /* Determine the length. */
   name_length = mangled_derivation_name(dsp, (char *)NULL);
   digits = digits_to_represent((unsigned long)name_length);
