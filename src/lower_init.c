@@ -4265,7 +4265,7 @@ arrays with class elements.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
   a_routine_ptr               new_routine = ndsp->routine;
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
-  an_expr_node_ptr            entity_node, new_node, temp_var_node;
+  an_expr_node_ptr            entity_node, new_node;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
   a_variable_ptr              temp_var;
   a_constant                  num_elem_constant;
@@ -4375,6 +4375,7 @@ arrays with class elements.
        the increment to avoid incrementing temp if it is NULL. */
     { a_constant       null_constant;
       an_expr_node_ptr compare_node, add_node, assign_node, question_node;
+      an_expr_node_ptr temp_var_node;
 
       /* Make "temp != 0". */
       temp_var_node = var_rvalue_expr(temp_var);
