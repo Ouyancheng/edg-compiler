@@ -7280,6 +7280,16 @@ that follows.
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
+          if (func_info.is_inline) {
+            rp->is_inline = TRUE;
+            rp->storage_class = (a_storage_class)sc_static;
+            rp->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_internal;
+          } else {
+            rp->storage_class = (a_storage_class)sc_unspecified;
+            rp->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+          }  /* if */
           if (func_info.function_type_from_typedef) {
             /* Just as it is an error when a normal function is defined for
                the function type to come from a typedef, so too is that an
