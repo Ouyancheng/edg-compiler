@@ -8705,7 +8705,8 @@ TRUE.
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
     if (udp->qualifier.class_type == sym->parent.class_type) {
-      scp = source_corresp_for_il_entry(udp->entity.ptr, udp->entity.kind);
+      scp = source_corresp_for_il_entry(udp->entity.ptr,
+                                        (an_il_entry_kind)udp->entity.kind);
       if (((a_symbol_ptr)scp->assoc_info)->header == sym->header) {
         /* This must be a duplicate.  In strict mode issue an error (see
            7.3.3 para 8); otherwise issue a lesser diagnostic. */
