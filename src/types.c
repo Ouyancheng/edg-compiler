@@ -49,6 +49,9 @@ predicates.
    and enumerated types. */
 #define is_integral(tp) ((tp)->kind == (a_type_kind)tk_integer)
 
+/* Enum types are integral types that are tagged as enums. */
+#define is_enum(tp) (is_integral(tp) && (tp)->variant.integer.enum_type)
+
 /* Character types are three particular integral types. */
 #define is_character(tp) \
   (is_integral(tp) && \
@@ -201,6 +204,16 @@ Return TRUE if the type is a signed integral type.
   tp = skip_typerefs(tp);
   return(is_integral(tp) && int_kind_is_signed(tp->variant.integer.int_kind));
 }  /* is_signed_integral_type */
+
+
+a_boolean is_enum_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an enum type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_enum(tp));
+}  /* is_enum_type */
 
 
 a_boolean is_character_type(a_type_ptr tp)
