@@ -14,20 +14,22 @@ preproc.c -- Preprocessing directives.
 */
 
 
-#include "basics.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+#include "symbol_tbl.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "preproc.h"
 #include "decls.h"
-#include "error.h"
-#include "lexical.h"
-#include "mem_manage.h"
-#include "host_envir.h"
-#include "il.h"
-#include "cmd_line.h"
 #include "expr.h"
-#include "symbol_tbl.h"
 #include "symbol_ref.h"
 #include "macro.h"
-#include "const_ints.h"
 #include "pch.h"
 
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
