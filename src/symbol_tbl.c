@@ -371,8 +371,13 @@ and indentation is the indentation desired.
         if (cssp->assignment_by_bitwise_copy_allowed) {
           put_string("op= bitwise copy okay");
         }  /* if */
-        if (debug_level >= 4 && cssp->class_template != NULL) {
-          put_string("has class template ptr");
+        if (cssp->class_template != NULL) {
+          if (debug_level >= 4) {
+            put_string("has class template ptr");
+          }  /* if */
+          if (!cssp->is_real_instantiation) {
+            put_string("non-real instance");
+          }  /* if */
         }  /* if */
       }
       break;
@@ -474,7 +479,7 @@ and indentation is the indentation desired.
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
-        a_symbol_ptr                      inst_sym;
+        a_symbol_ptr                      inst_sym, mft_sym;
 
         tssp = sym->variant.template.extra_info;
         if (tssp->body_token_cache.first_token != NULL) {
@@ -510,6 +515,14 @@ and indentation is the indentation desired.
             fprintf(f_debug, "%*s", indentation + 2, "");
             db_symbol(inst_sym, "", indentation + 4);
             inst_sym = inst_sym->next;
+          }  /* while */
+          mft_sym = tssp->variant.class.instantiations;
+          while (mft_sym != NULL) {
+            fprintf(f_debug, "%*smember function template:\n",
+                    indentation, "");
+            fprintf(f_debug, "%*s", indentation + 2, "");
+            db_symbol(mft_sym, "", indentation + 4);
+            mft_sym = mft_sym->next;
           }  /* while */
         } else {
           a_routine_ptr  routine = tssp->variant.function.routine;
@@ -873,6 +886,7 @@ state.
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
         cssp->has_operator_new = FALSE;
         cssp->has_operator_delete = FALSE;
+        cssp->is_real_instantiation = FALSE;
       }
       break;
     case sk_variable:
@@ -941,6 +955,7 @@ state.
         if (sym_kind == sk_class_template) {
           tssp->variant.class.instantiations = NULL;
           tssp->variant.class.type_kind      = (a_type_kind)tk_error;
+          tssp->variant.class.member_function_templates = NULL;
         } else {
           tssp->variant.function.instantiations = NULL;
           clear_token_cache(&tssp->variant.function.decl_token_cache);
@@ -6010,12 +6025,20 @@ Allocate a new template parameter list entry and return a pointer to it.
 
 
 
-a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol)
+a_symbol_ptr coalesce_template_class_reference
+			(a_symbol_ptr		   template_symbol,
+			 an_identifier_options_set options,
+			 a_boolean		   *err)
 /*
 The current identifier is a class template name.  Look for an optional
 template argument list.  If an argument list is present, scan the argument
 list and call a routine to lookup or create the symbol and type information
-for an instance of the class template.
+for an instance of the class template.  The template argument list is
+required unless either the GID_TEMPLATE_ARGS_OPTIONAL flag is set in the
+"options" argument, or the class template pointed to by "template_symbol"
+is the same as the class template associated with the innermost instantiation
+scope.   If no errors occur while scanning the argument list, we call
+a routine to lookup the appropriate instance (or generate one if needed).
 */
 {
   a_source_position      start_pos;
@@ -6027,8 +6050,9 @@ for an instance of the class template.
   a_boolean              any_errors = FALSE;
   a_memory_region_number region_to_switch_back_to;
 
-  db_enter(3, "get_template_class");
+  db_enter(3, "coalesce_template_class_reference");
 
+  *err = FALSE;
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
   /* Save the current locator. */
@@ -6044,9 +6068,19 @@ for an instance of the class template.
          class template. */
       goto normal_exit;
     } else {
-      /* We still have the class template symbol.  Simply return this to
-         the caller. */
-      goto skip_processing;
+      if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
+         /* Template arguments are not required -- simply return the
+            symbol of the class template. */
+         goto skip_processing;
+      } else {
+        /* Issue an error and return an error locator. */
+        pos_sy_error(ec_missing_template_arg_list, &start_pos,
+                     template_symbol);
+        make_specific_symbol_error_locator(&locator_for_curr_id);
+        new_sym = locator_for_curr_id.specific_symbol;
+        any_errors = TRUE;
+        goto normal_exit;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Always allocate template arguments at the file scope. */
@@ -6081,7 +6115,7 @@ for an instance of the class template.
     } else {  /* else executed when !is_type_param */
 #if CHECKING
       if (sym->kind != sk_constant) {
-        internal_error("get_template_class: constant expected");
+        internal_error("coalesce_template_class_reference: constant expected");
       }  /* if */
 #endif /* CHECKING */
       constant = fs_constant((a_constant_repr_kind)ck_error);
@@ -6160,7 +6194,7 @@ normal_exit:
 skip_processing:
   db_exit();
   return new_sym;
-}  /* get_template_class */
+}  /* coalesce_template_class_reference */
 
 
 a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)

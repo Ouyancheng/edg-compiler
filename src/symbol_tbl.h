@@ -464,6 +464,14 @@ typedef struct a_class_symbol_supplement {
   unsigned int  has_operator_delete:1;
 			/* TRUE if a member operator delete() has been declared
 			   for this class or a class from which it derived. */
+  unsigned int  is_real_instantiation:1;
+                        /* TRUE if the class is an instantiation of a class
+			   template and is a "real" instantiation.  A real
+			   instantiation is one in which none of the template
+			   arguments is a template parameter.  This will be
+			   FALSE in the case of the prototype instantiation
+			   and any other instantiations based on template
+			   parameters. */
 } a_class_symbol_supplement;
 
 
@@ -650,6 +658,13 @@ typedef struct a_template_symbol_supplement {
 		type_kind;
 			/* The kind (tk_class, tk_struct, or tk_union) which
 			   is instatiated types will have. */
+      a_symbol_ptr
+		member_function_templates;
+			/* Pointer to a linked list of sk_function_template
+			   symbols representing member functions whose bodies
+			   are defined outside the class template declaration.
+			   The are linked by next pointers and thus are
+			   not actually in the symbol table. */
     } class;
     /* When kind = sk_function_template. */
     struct {
@@ -1499,7 +1514,10 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 
-extern a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol);
+extern a_symbol_ptr coalesce_template_class_reference
+			(a_symbol_ptr		   template_symbol,
+			 an_identifier_options_set options,
+			 a_boolean		   *err);
 extern void update_instantiation_required_flag
                                   (a_function_instantiation_entry_ptr fiep,
                                    a_boolean                          value);
