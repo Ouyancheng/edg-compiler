@@ -4724,8 +4724,6 @@ its source correspondence entry, if any, has been put out.)
 	   should not be set, since the parent class of a member function or
 	   static data member template is generally not a real class. */
 	set_source_corresp(&il_template_entry->source_corresp, sym);
-        set_membership_in_source_corresp(&il_template_entry->source_corresp,
-                                         sym);
 	/* Create the string that represents the template declaration. */
 	make_template_string(il_template_entry, template_param_list_cache,
 			     decl_token_cache, p_template_body_cache);
