@@ -3944,6 +3944,9 @@ this one is such a continuation.
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+    check_assertion(!type->variant.class_struct_union.is_template_class ||
+                    type->variant.class_struct_union.extra_info
+                                                    ->assoc_template != NULL);
     if (template_decl != NULL) {
       gen_template_header(template_decl);
     } else
@@ -6727,15 +6730,23 @@ is the one associated with the template.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+    tp = ss_entry_ptr(sec_decl, a_template_ptr);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+    /* The canonical_template field should only be NULL for template template
+       parameters, and those do not come through here. */
+    check_assertion(tp->canonical_template != NULL &&
+                    tp->canonical_template->definition_template != tp);
     is_definition = FALSE;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-    tp = ss_entry_ptr(sec_decl, a_template_ptr);
   } else {
+    tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+    /* The canonical_template field should only be NULL for template template
+       parameters, and those do not come through here. */
+    check_assertion(tp->canonical_template != NULL &&
+                    tp->canonical_template->definition_template == tp);
     is_definition = TRUE;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-    tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   /* If all prototype instantiations are recorded in the IL, the templates
@@ -7910,6 +7921,8 @@ declaration following this one is such a continuation.
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+  check_assertion(!var->is_template_static_data_member ||
+                  var->assoc_template != NULL);
   if (template_decl != NULL) {
     gen_template_header(template_decl);
   } else
@@ -8442,6 +8455,7 @@ TRUE if the declaration following this one is such a continuation.
     gen_member_access_specifier_for_decl_of(&rout->source_corresp);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+  check_assertion(!rout->is_template_function || rout->assoc_template != NULL);
   if (template_decl != NULL) {
     gen_template_header(template_decl);
   }  /* if */
