@@ -41,7 +41,8 @@ Declarations for EDG template prelink utility.
 extern FILE* popen(char *command, char *mode);
 
 /* Command to be used to produce a namelist of an object file. */
-static char		nm_command[] = "/bin/nm -og 2>/dev/null";
+static char		default_nm_command[] = "/bin/nm -og";
+static char		nm_command_suffix[] = " 2>/dev/null";
 
 static char		*pl_predefined_names[] = {
 #ifdef sparc

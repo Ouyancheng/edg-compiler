@@ -230,6 +230,10 @@ static a_boolean		limit_recursion = TRUE;
    by the prelinker. */
 static char message_prefix[] = "C++ prelinker";
 
+/* TRUE if external names have an extra underscore prefix.  Can be
+   modified by a command line option. */
+static a_boolean		skip_underscore_prefix = UNDERSCORE_PREFIX;
+
 
 #if DEBUG
 static int pl_debug_level = 0;
@@ -472,6 +476,15 @@ to the copy.
 }  /* pl_copy_string */
 
 
+static void pl_invalid_input(void)
+/*
+Issue an invalid input error and exit.
+*/
+{
+  pl_error("invalid input format");
+}  /* pl_invalid_input */
+
+
 static void pl_read_nm_output(void)
 /*
 Read the output of the nm command.  This routine is written to accept
@@ -519,7 +532,6 @@ or defined in that object file.
     char		*name;
     char		type;
     a_pl_symbol_ptr	psp;
-    int			i;
     char		ch;
     char		*curr_filename;
     char		*rest_of_line;
@@ -604,24 +616,22 @@ or defined in that object file.
     }  /* if */
     /* Extract the symbol information from the remainder of the line.
        Verify that the line has the proper format. */
-    /* Look for 8 hex characters or blanks at the start of the line. */
+    /* Skip over the first field which is expected to contain the
+       value field.  Skip to a blank. */
     pos = rest_of_line;
-    for (i = 0; i < 8; ++i) {
-      ch = *pos++;
-      if ((!isxdigit(ch)) && (ch != ' ')) goto invalid_input;
-    }  /* for */
+    while((ch = *pos), ch != ' ' && ch != '\0') pos++;
     /* Look for blank after value. */
-    if (*pos++ != ' ') goto invalid_input;
+    if (*pos++ != ' ') pl_invalid_input();
+    /* Now look for a nonblank. */
+    while (*pos == ' ') pos++;
     /* Get the type code. */
     type = *pos++;
-    if (!isalpha(type)) goto invalid_input;
+    if (!isalpha(type)) pl_invalid_input();
     /* Look for blank after type. */
-    if (*pos++ != ' ') goto invalid_input;
-#if UNDERSCORE_PREFIX
+    if (*pos++ != ' ') pl_invalid_input();
     /* Skip passed extra underscore at the start of every symbol if an
        underscore is present.  */
-    if (*pos == '_') pos++;
-#endif /* UNDERSCORE_PREFIX */
+    if (skip_underscore_prefix && *pos == '_') pos++;
     if (type != 'B' &&
         type != 'D' &&
         type != 'T' &&
@@ -656,9 +666,6 @@ or defined in that object file.
     }  /* if */
   }  /* while */
   return;
-invalid_input:
-  pl_error("invalid input format");
-  /*NOTREACHED*/
 }  /* pl_read_nm_output */
 
 
@@ -1421,10 +1428,16 @@ int main(int argc, char *argv[])
   extern int	optind;
   int		optchar;
   long		number_of_iterations = 0;
+  char		*nm_command = default_nm_command;
 
-#define OPTION_LIST "lnvd:"
+#define OPTION_LIST "lnvuc:d:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
+      case 'c':
+        /* Specify the nm command to be used instead of the default
+           value. */
+        nm_command = optarg;
+        break;
       case 'l':
         /* Don't stop after a certain number of iterations. */
         limit_recursion = FALSE;
@@ -1433,6 +1446,11 @@ int main(int argc, char *argv[])
         /* Update the instantiation list files but don't recompile the
            files. */
         suppress_compilation = TRUE;
+        break;
+      case 'u':
+        /* Specify whether names have an extra underscore that should
+           be ignored.  The option selects the opposite of the default. */
+        skip_underscore_prefix = !UNDERSCORE_PREFIX;
         break;
       case 'v':
         /* Verbose mode. */
@@ -1460,7 +1478,7 @@ int main(int argc, char *argv[])
     cmd_line_size += arg_size + 1;
     if (arg_size > longest_filename) longest_filename = arg_size;
   }  /* for */
-  cmd_line_size += strlen(nm_command);
+  cmd_line_size += strlen(nm_command) + strlen(nm_command_suffix);
   /* Allocate a buffer for the command line. */
   command = (char *)pl_malloc_with_check(cmd_line_size + 1);
   /* Allocate a buffer than can be used to manipulate filenames.  The
@@ -1475,6 +1493,7 @@ int main(int argc, char *argv[])
     strcat(command, filename);
     any_ii_files |= pl_check_for_ii_file(filename);
   }  /* for */
+  strcat(command, nm_command_suffix);
 #if DEBUG
   if (pl_debug_level >= 2) fprintf(stderr, "%s\n", command);
 #endif /* DEBUG */
@@ -1495,7 +1514,7 @@ int main(int argc, char *argv[])
       pl_read_instantiation_info_files();
 
 #if DEBUG
-      if (pl_debug_level >= 3) {
+      if (pl_debug_level >= 4) {
         pl_db_input_files();
       }  /* if */
 #endif /* DEBUG */
@@ -1503,7 +1522,7 @@ int main(int argc, char *argv[])
       pl_prelink();
 
 #if DEBUG
-      if (pl_debug_level >= 2) {
+      if (pl_debug_level >= 4) {
         pl_db_global_symbols(/*all=*/FALSE);
       }  /* if */
 #endif /* DEBUG */
