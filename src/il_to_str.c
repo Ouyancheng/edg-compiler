@@ -768,7 +768,7 @@ top-level "const".  Do the output in the way described by octl.
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
                          /*add_const=*/FALSE,
-                         /*suppress_const=*/FALSE,
+                         suppress_const,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
