@@ -5909,20 +5909,16 @@ Scan the body of a class definition, including the base classes list.
               /* A declaration with no declarator that defines a type but does
                  not declare a name -- something like "struct { int i; };" or
                  "enum {};".  */
-#if 0
               /* Does the ARM rule out such useless constructs?  The
                  introduction to Chapter 7 says, "A declaration introduces
                  one or more names into a program", and when declares_something
-                 is FALSE no name was introduced. */
+                 is FALSE no name was introduced.  On the other hand, 9.2 para
+                 4 allows the omission of declarators with enum and class
+                 specifiers.  However, we take this to include only enum and
+                 class specifiers that at least declare *something*. */
               pos_diagnostic(strict_ansi_mode ?
                                strict_ansi_error_severity : es_warning,
                              ec_useless_decl, &decl_start_pos);
-#else
-              /* Does the ARM rule out such useless constructs?  Section
-                 9.2 para 4 explicitly allows omission of declarators with
-                 enum and class specifiers.  Just issue a warning. */
-              pos_warning (ec_useless_decl, &decl_start_pos);
-#endif /* if 0 */
             } else {
               /* A case like "int;" is explicitly disallowed by language in
                  ARM 9.2. */
