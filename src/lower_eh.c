@@ -1993,11 +1993,11 @@ the cleanup action entry.  Any code generated is inserted at insert_location.
 
 
 /*
-Pointer to the routine entry for the runtime routine __free_caught_object.
+Pointer to the routine entry for the runtime routine __free_thrown_object.
 NULL until created.
 */
 static a_routine_ptr
-		free_caught_object_routine;
+		free_thrown_object_routine;
 
 
 void cleanup_on_exit_from_catch(an_insert_location *insert_location)
@@ -2008,12 +2008,12 @@ generated is inserted at insert_location.
 {
   a_statement_ptr call_stmt;
 
-  /* Make a call of the runtime routine __free_caught_object.  This tells
+  /* Make a call of the runtime routine __free_thrown_object.  This tells
      the runtime it can now destroy the caught object and free the space
      for it. */
   call_stmt = make_call_statement(
-                              make_runtime_routine("__free_caught_object",
-                                                   &free_caught_object_routine,
+                              make_runtime_routine("__free_thrown_object",
+                                                   &free_thrown_object_routine,
                                                    void_type()),
                               (an_expr_node_ptr)NULL);
   /* Insert the statement at the right place. */
@@ -2220,7 +2220,7 @@ invocation of the front end.
   catch_clause_number_var = NULL;
   caught_object_address_var = NULL;
   setjmp_routine = NULL;
-  free_caught_object_routine = NULL;
+  free_thrown_object_routine = NULL;
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
   { a_targ_size_t    size;
