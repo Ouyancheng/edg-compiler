@@ -8433,38 +8433,85 @@ If not, return the indicated source sequence entry.
 
 #if MAINTAIN_NEEDED_FLAGS
 
+static a_source_sequence_entry_ptr find_src_seq_secondary_decl_entry(
+                                     a_source_sequence_entry_ptr  ssep,
+                                     char                         *entity_ptr)
+/*
+Walk the source-sequence list starting at ssep and return the first
+secondary-decl source sequence entry that is associated with the IL entity
+whose address is the same as entity_ptr.  If none is found, return NULL.
+*/
+{
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
+    if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_src_seq_secondary_decl) {
+      sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      if (sssdp->entity.ptr == entity_ptr) {
+        /* A match.  Break and return ssep. */
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return ssep;
+}  /* find_src_seq_secondary_decl_entry */
+
+
 static a_source_sequence_entry_ptr drop_tag_def_from_src_seq_list(
                                      a_source_sequence_entry_ptr  ssep,
                                      a_boolean                    retain_first)
 /*
+ssep is a source sequence entry representing the definition of a class or
+enum type -- i.e., it will be followed by zero or more entries and then by an
+end-of-construct entry that points back to the same type to which ssep points.
+If retain_first is FALSE, remove all the entries from the source sequence
+list; if retain_first is TRUE, leave the first in the list and remove the
+others.  Note: this is not a general purpose routine but is rather part of the
+processing that prunes the IL based on how the needed, definition_needed, and
+keep_in_il flags are set on various entries.  Among other things, it assumes
+the list to which the entries belong is the file-scope source sequence list.
+It also may do fix up on entries it removes.
 */
 {
   a_type_ptr                   type_ptr = (a_type_ptr)ssep->entity.ptr;
   a_source_sequence_entry_ptr  prev_ssep, *prev_link_addr;
   a_src_seq_secondary_decl_ptr sssdp;
 
+  db_enter(4, "drop_tag_def_from_src_seq_list");
   type_ptr = ss_entry_ptr(ssep, a_type_ptr);
   check_assertion_str(ss_entry_kind(ssep) == (an_il_entry_kind)iek_type &&
                       (is_immediate_class_type(type_ptr) ||
                        is_immediate_enum_type(type_ptr)),
                       "drop_tag_def_from_src_seq_list: bad entity kind");
+  /* The source sequence entries will be removed by linking around them.
+     Since source-sequence entries have a prev pointer, we need to remember
+     what to point back to. */ 
   if (retain_first) {
+    /* ssep itself is to be retained, so the prev pointer will point back to
+       it when its successors are removed. */
     prev_ssep = ssep;
   } else {
+    /* ssep is not to be retained, so remember its prev link. */
     prev_ssep = ssep->prev;
   }  /* if */
+  /* Save the address from which the "linking around" will start. */
   if (prev_ssep != NULL) {
     prev_link_addr = &prev_ssep->next;
   } else {
+    /* We will be linking around the head of the list.  Note the assumption
+       that it is the file-scope list. */
     prev_link_addr = &scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->
                                                         source_sequence_list;
+    check_assertion(*prev_link_addr == ssep);
   }  /* if */
+  /* Loop until the end-of-construct entry corresponding to ssep is found. */
   ssep = ssep->next;
   for (;;) {
     if (ss_entry_kind(ssep) ==
                    (an_il_entry_kind)iek_src_seq_end_of_construct &&
         ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
                                            entity.ptr == (char *)type_ptr) {
+      /* Found -- stop looping. */
       break;
     }  /* if */
 #if 0
@@ -8476,7 +8523,10 @@ static a_source_sequence_entry_ptr drop_tag_def_from_src_seq_list(
 #endif /* CHECKING */
 #endif /* if 0 */
     if (C_mode()) {
+      /* Special processing in C mode, which does not have nested structs and
+         enums in the sense that C++ does. */
       if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
+        /* A struct or enum definition that should be retained in the IL. */
         a_type_ptr  tp = ss_entry_ptr(ssep, a_type_ptr);
         check_assertion_str2(ss_entry_kind(ssep) ==
                                              (an_il_entry_kind)iek_type &&
@@ -8484,6 +8534,9 @@ static a_source_sequence_entry_ptr drop_tag_def_from_src_seq_list(
                               is_immediate_enum_type(tp)),
                              "drop_tag_def_from_src_seq_list:",
                              "bad entity kind");
+        /* Link around the entries that have been seen thus far, skip the
+           entries entailed by the struct or enum definition that should be
+           retained, and then resume the processing in the outer loop. */
         *prev_link_addr = ssep;
         ssep->prev = prev_ssep;
         ssep = ssep->next;
@@ -8496,23 +8549,35 @@ static a_source_sequence_entry_ptr drop_tag_def_from_src_seq_list(
 #endif /* if 0 */
             if (ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->
                                                 entity.ptr == (char *)tp) {
+              /* We've located the end-of-construct entry for the struct/enum
+                 definition.  Reset the prev-link state and break out of the
+                 loop. */
               prev_ssep = ssep;
               prev_link_addr = &ssep->next;
               break;
             } else {
+              /* End-of-construct for something else.  Keep going. */
               ssep = ssep->next;
             }  /* if */
           } else if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
+            /* Keep going. */
             ssep = ssep->next;
           } else {
+            /* An unneeded struct/enum definition embedded within the needed
+               one.  Remove it.  Note that ssep will, upon return from
+               the recursive call, point to the entry immediately following
+               the end-of-construct of the definition being removed. */
             ssep = drop_tag_def_from_src_seq_list(ssep,
-                                                    /*retain_first=*/FALSE);
+                                                  /*retain_first=*/FALSE);
+            /* Reset the prev-link state. */
             prev_ssep = ssep->prev;
             prev_link_addr = &ssep->prev->next;
           }  /* if */
         }  /* for */
       }  /* if */
     } else {
+      /* C++ mode.  If this represents a friend function declaration, reset
+         the routine's source-sequence entry, if appropriate. */
       if (ss_entry_kind(ssep) ==
                     (an_il_entry_kind)iek_src_seq_secondary_decl) {
         sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
@@ -8520,15 +8585,22 @@ static a_source_sequence_entry_ptr drop_tag_def_from_src_seq_list(
             sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
           a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
           if (rp->source_corresp.source_sequence_entry == ssep) {
-            rp->source_corresp.source_sequence_entry = NULL;
+            rp->source_corresp.source_sequence_entry =
+                   find_src_seq_secondary_decl_entry(ssep, sssdp->entity.ptr);
+
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
     ssep = ssep->next;
   }  /* for */
+  /* Now set the pointers to effect linking around the entries that were to
+     be removed. */
   *prev_link_addr = ssep->next;
   if (ssep->next != NULL) ssep->next->prev = prev_ssep;
+  db_exit();
+
+  /* Return the next entry. */
   return ssep->next;
 }  /* drop_tag_def_from_src_seq_list */
 
@@ -8537,16 +8609,23 @@ static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
                                              a_source_sequence_entry_ptr  ssep)
 
 /*
+Remove ssep from the file-scope source sequence list.  If ssep corresponds to
+the start of a class or enum definition, also remove all the source sequence
+entries up to and including the corresponding end-of-construct entry.  Return
+the source sequence entry that follows the entry or entries removed.
 */
 {
   a_source_sequence_entry_ptr  last_ssep, next_ssep;
 
+  db_enter(4, "drop_from_fs_src_seq_list");
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
       (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
        is_immediate_enum_type((a_type_ptr)ssep->entity.ptr))) {
-    next_ssep = drop_tag_def_from_src_seq_list(ssep,
-                                                  /*retain_first=*/FALSE);
+    /* It's a class or enum definition.  Remove everything from here through
+       to the end-of-construct entry. */
+    next_ssep = drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
   } else {
+    /* Link around ssep and return its successor in the list. */
     last_ssep = ssep;
     if (ssep->prev == NULL) {
       scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->
@@ -8560,6 +8639,7 @@ static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
     next_ssep = last_ssep->next;
     ssep->prev = last_ssep->next = NULL;
   }  /* if */
+  db_exit();
   return next_ssep;
 }  /* drop_from_fs_src_seq_list */
 
@@ -8612,31 +8692,38 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 
 static void turn_class_definition_into_declaration(a_type_ptr  class_type)
 /*
+class_type identifies a class whose definition is not needed.  Turn the IL
+entry into one representing a nondefining declaration.
 */
 {
-  a_class_type_supplement_ptr   ctsp;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
+  db_enter(4, "turn_class_definition_into_declaration");
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 3) {
     fputs("Removing definition of ", f_debug);
     db_abbreviated_type(class_type);
     fputc('\n', f_debug);
   }  /* if */
 #endif /* if DEBUG */
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL) {
+  if (!C_mode()) {
+    /* In C++ mode fix up the class-type-supplement and data structures
+       pointed to from it. */
+    a_class_type_supplement_ptr  ctsp, friend_ctsp;
     a_type_ptr                   friend_class;
-    a_class_type_supplement_ptr  friend_ctsp;
     a_routine_ptr                friend_rout;
     a_class_list_entry_ptr       clep, prev_clep, next_clep;
+
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    /* If the definition of class_type included friend declarations, the
+       befriended classes and routines have pointers back to class_type.
+       Those pointers have to be removed. */
+    /* Go through the befriended class. */
     while (ctsp->friend_classes != NULL) {
       friend_class = ctsp->friend_classes->class_type;
       friend_ctsp = friend_class->variant.class_struct_union.extra_info;
       if (friend_ctsp != NULL) {
+        /* Go through the list of classes that have specified friend_class
+           as a friend, find the entry that matches class_type, and link
+           around it. */
         prev_clep = NULL;
         clep = friend_ctsp->befriending_classes;
         for (; clep != NULL; clep = next_clep) {
@@ -8648,16 +8735,22 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
             } else {
               prev_clep->next = next_clep;
             }  /* if */
+            /* Break out of the inner loop and continue the outer loop,
+               moving to the next class declared as a friend of class_type. */
             break;
           }  /* if */
           /* No match -- keep looping. */
           prev_clep = clep;
         }  /* for */
       }  /* if */
+      /* Check the next friend class. */
       ctsp->friend_classes = ctsp->friend_classes->next;
     }  /* while */
+    /* Now go through the befriended routines. */
     while (ctsp->friend_routines != NULL) {
       friend_rout = ctsp->friend_routines->routine;
+      /* Go through the list of classes that have specified friend_rout as a
+         friend, find the entry that matches class_type, and link around it. */
       prev_clep = NULL;
       clep = friend_rout->befriending_classes;
       for (; clep != NULL; clep = next_clep) {
@@ -8669,30 +8762,49 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
           } else {
             prev_clep->next = next_clep;
           }  /* if */
+          /* Break out of the inner loop and continue the outer loop, moving
+             to the next routine declared as a friend of class_type. */
           break;
         }  /* if */
         /* No match -- keep looping. */
         prev_clep = clep;
       }  /* for */
+      /* Check the next friend function. */
       ctsp->friend_routines = ctsp->friend_routines->next;
     }  /* if */
+    /* Clear all the pointers in the class_type_supplement.  This includes the
+       assoc_scope pointer. */
     clear_class_type_supplement(ctsp);
+    /* Clear flags that can only be TRUE for classes with definitions. */
+    class_type->variant.class_struct_union.any_const_member = FALSE;
+    class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
+    class_type->variant.class_struct_union.abstract = FALSE;
+    class_type->variant.class_struct_union.any_virtual_functions = FALSE;
+    class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
+    class_type->variant.class_struct_union.
+               any_virtual_functions_including_in_base_classes = FALSE;
   }  /* if */
+  /* Reset size and alignment to default values, as though this class had
+     never been defined. */
   class_type->size = 0;
   class_type->alignment = 1;
+  /* Similarly, the field list pointer is cleared. */
   class_type->variant.class_struct_union.field_list = NULL;
-  class_type->variant.class_struct_union.any_const_member = FALSE;
-  class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
-  class_type->variant.class_struct_union.abstract = FALSE;
-  class_type->variant.class_struct_union.any_virtual_functions = FALSE;
-  class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
-  class_type->variant.class_struct_union.
-             any_virtual_functions_including_in_base_classes = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  {
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  /* The source sequence entry pointed to the class_type should be changed to
+     a secondary source sequence entry, since only definitions have primary
+     source sequence entries. */
   ssep = class_type->source_corresp.source_sequence_entry;
   if (ssep != NULL) {
     if (class_type->variant.class_struct_union.
                          nested_class_defined_outside_of_parent) {
+      /* This is a nested class defined outside the definition of its parent
+         class.  Remove from the file-scope source-sequence list the entries
+         representing the definition. */
 #if CHECKING
       /* This won't work for local classes. */
       check_assertion_str2(!class_type->source_corresp.is_local_to_function,
@@ -8700,32 +8812,25 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
                            "local classes not supported");
 #endif /* CHECKING */
       (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
-      /* Start at the point in the source sequence list corresponding to the
-         beginning of the class or namespace definition. */
+      /* Now reset the source-sequence entry in class_type to refer to the
+         non-defining declaration inside the definition of its parent.  Start
+         at the point in the source sequence list corresponding to the
+         beginning of the class definition, and loop through the list till a
+         secondary declaration pointing to class_type is found. */
       ssep = class_type->source_corresp.parent.class_type->
                                      source_corresp.source_sequence_entry;
-      /* Loop through the list till a secondary declaration pointing to
-         class_type is found. */
-      for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
-        if (ss_entry_kind(ssep) ==
-                            (an_il_entry_kind)iek_src_seq_secondary_decl) {
-          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-          if (sssdp->entity.ptr == (char *)class_type) {
-            /* A match.  Reset the source sequence entry pointer in the
-               routine entry and break out of the loop. */
-            class_type->source_corresp.source_sequence_entry = ssep;
-            break;
-          }  /* if */
-        }  /* if */
-#if CHECKING
-        if (ssep->next == NULL) {
-          unexpected_condition_str2("turn_class_definition_into_declaration:",
-                                  "source sequence secondary decl not found");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* for */
+      ssep = find_src_seq_secondary_decl_entry(ssep, (char *)class_type);
+      check_assertion_str2(ssep != NULL,
+                           "turn_class_definition_into_declaration:",
+                           "source sequence secondary decl not found");
+      /* Reset the source sequence entry pointer in the type entry. */
+      class_type->source_corresp.source_sequence_entry = ssep;
     } else {
       check_assertion(ss_entry_ptr(ssep, a_type_ptr) == class_type);
+      /* This is a nested class defined within the definition of its parent
+         class.  This time, remove the entries representing the definition
+         *except* the first, which will be transformed to represent a
+         secondary declaration now that the definition has been eliminated. */
       (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/TRUE);
       /* Turn what was originally a definition into a secondary declaration
          (a nondefining class declaration) as far as the source-sequence
@@ -8739,31 +8844,50 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
       sssdp->autonomous_tag_decl = TRUE;
     }  /* if */
   }  /* if */
+  }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   class_type->variant.class_struct_union.
                        nested_class_defined_outside_of_parent = FALSE;
+  db_exit();
 }  /* turn_class_definition_into_declaration */
 
 
 static void eliminate_unneeded_class_definitions(a_type_ptr  class_type)
 /*
+This routine is part of the processing that prunes the IL based on how the
+needed, definition_needed, and keep_in_il flags are set on various entries.
+class_type specifies a class which is to be kept in the IL but whose
+definition (if there is one) may not need to be retained.  If the definition
+is not needed, transform this entry to represent a non-defining declaration
+of the class.
 */
 {
-  a_class_type_supplement_ptr  ctsp;
+  db_enter(4, "eliminate_unneeded_class_definitions");
+  if (!C_mode()) {
+    a_class_type_supplement_ptr  ctsp;
 
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-    a_type_ptr  tp = ctsp->assoc_scope->types;
-    for (; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp)) {
-        eliminate_unneeded_class_definitions(tp);
-      }  /* if */
-    }  /* for */
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    if (ctsp->assoc_scope != NULL) {
+      /* This is a C++ class for which a definition has been provided.  Apply
+         this check on each of its nested classes.  Note that it may turn out
+         that the nested class definition is eliminated even though the
+         containing class definition is retained. */
+      a_type_ptr  tp = ctsp->assoc_scope->types;
+      for (; tp != NULL; tp = tp->next) {
+        if (is_immediate_class_type(tp)) {
+          eliminate_unneeded_class_definitions(tp);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
-  if (class_type->size > 0 &&
-      !class_type->variant.class_struct_union.definition_needed) {
+  /* Now do the transformation of the class itself, if appropriate.  Note
+     that we check the class size rather than the assoc_scope, since in C
+     mode there is no assoc_scope even when the class has a definition. */
+  if (!class_type->variant.class_struct_union.definition_needed &&
+      class_type->size > 0) {
     turn_class_definition_into_declaration(class_type);
   }  /* if */
+  db_exit();
 }  /* eliminate_unneeded_class_definitions */
 
 
@@ -8777,11 +8901,8 @@ dependent on it.  The routine entry itself is dealt with later.
   a_memory_region_number  n;
   a_scope_ptr             sp;
   a_routine_ptr           rp;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+  db_enter(3, "eliminate_bodies_of_unneeded_functions");
   /* Loop through the memory regions.  Skip the front end and file scope
      memory regions. */
   for (n = FILE_SCOPE_REGION_NUMBER + 1;
@@ -8795,7 +8916,18 @@ dependent on it.  The routine entry itself is dealt with later.
       rp = sp->variant.routine.ptr;
       if (!rp->source_corresp.needed) {
         /* An unneeded routine definition. */
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "Removing function body for ");
+          db_name(&rp->source_corresp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+        {
+        a_source_sequence_entry_ptr   ssep;
+        a_src_seq_secondary_decl_ptr  sssdp;
+
         ssep = rp->source_corresp.source_sequence_entry;
         if (ssep != NULL) {
           if (rp->defined_outside_of_parent) {
@@ -8809,8 +8941,10 @@ dependent on it.  The routine entry itself is dealt with later.
                reset as though the definition had never happened.  This means
                finding its non-defining declaration within the class or
                namespace definition. */
-            /* Start at the point in the source sequence list corresponding
-               to the beginning of the class or namespace definition. */
+            /* Loop through the source sequence list, starting at the point
+               corresponding to the beginning of the class or namespace
+               definition, till a secondary declaration entry pointing to
+               same routine is found. */
             if (scp->is_class_member) {
               ssep = scp->parent.class_type->
                                    source_corresp.source_sequence_entry;
@@ -8818,27 +8952,12 @@ dependent on it.  The routine entry itself is dealt with later.
               ssep = scp->parent.namespace_ptr->
                                    source_corresp.source_sequence_entry;
             }  /* if */
-            /* Loop through the list till a secondary declaration pointing to
-               same routine is found. */
-            for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
-              if (ssep->entity.kind ==
-                   (an_il_entry_kind)iek_src_seq_secondary_decl) {
-                sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-                if (sssdp->entity.ptr == (char *)rp) {
-                  /* A match.  Reset the source sequence entry pointer in the
-                     routine entry and break out of the loop. */
-                  scp->source_sequence_entry = ssep;
-                  break;
-                }  /* if */
-              }  /* if */
-#if CHECKING
-              if (ssep->next == NULL) {
-                unexpected_condition_str2(
-                                  "eliminate_bodies_of_unneeded_functions:",
-                                  "source sequence secondary decl not found");
-              }  /* if */
-#endif /* CHECKING */
-            }  /* for */
+            ssep = find_src_seq_secondary_decl_entry(ssep, (char *)rp);
+            check_assertion_str2(ssep != NULL,
+                                 "eliminate_bodies_of_unneeded_functions:",
+                                 "source sequence secondary decl not found");
+            /* Reset the source sequence entry pointer in the routine entry. */
+            scp->source_sequence_entry = ssep;
           } else {
             /* Turn the associated source sequence entry into a secondary-decl
                source sequence entry.  This is done even though the entry
@@ -8857,6 +8976,7 @@ dependent on it.  The routine entry itself is dealt with later.
           }  /* if */
         }  /* if */
         rp->defined_outside_of_parent = FALSE;
+        }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Reset the routine entry to undefined state. */
         rp->defined = FALSE;
@@ -8869,6 +8989,7 @@ dependent on it.  The routine entry itself is dealt with later.
       }  /* if */
     }  /* if */
   }  /* for */
+  db_exit();
 }  /* eliminate_bodies_of_unneeded_functions */
 
 
@@ -8886,7 +9007,7 @@ eliminated, if appropriate.
   a_type_ptr       tp, prev_tp, next_tp;
   a_routine_ptr    rp, prev_rp, next_rp;
 
-  db_enter(4, "eliminate_unneeded_il_entries");
+  db_enter(3, "eliminate_unneeded_il_entries");
   /* In C++ process the entities on lists belonging to namespaces defined
      within the current scope. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -8901,7 +9022,7 @@ eliminated, if appropriate.
   for (vp = scope->variables; vp != NULL; vp = next_vp) {
     next_vp = vp->next;
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 3) {
       fprintf(f_debug, "%semoving variable ",
               il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
       db_name(&vp->source_corresp);
@@ -8924,7 +9045,7 @@ eliminated, if appropriate.
   for (tp = scope->types; tp != NULL; tp = next_tp) {
     next_tp = tp->next;
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 3) {
       fprintf(f_debug, "%semoving ",
               il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
       db_abbreviated_type(tp);
@@ -8977,7 +9098,7 @@ eliminated, if appropriate.
         for (vp = solhp->orphaned_variables; vp != NULL; vp = next_vp) {
           next_vp = vp->next;
 #if DEBUG
-          if (debug_level >= 4) {
+          if (debug_level >= 3) {
             fprintf(f_debug, "%semoving orphaned variable ",
                     il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
             db_name(&vp->source_corresp);
@@ -9001,7 +9122,7 @@ eliminated, if appropriate.
         for (tp = solhp->orphaned_types; tp != NULL; tp = next_tp) {
           next_tp = tp->next;
 #if DEBUG
-          if (debug_level >= 4) {
+          if (debug_level >= 3) {
             fprintf(f_debug, "%semoving orphaned type ",
                     il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
             db_abbreviated_type(tp);
@@ -9078,7 +9199,7 @@ eliminated, if appropriate.
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 3) {
       fprintf(f_debug, "%semoving routine ",
               il_entry_prefix_of(rp).keep_in_il ? "Not r" : "R");
       db_name(&rp->source_corresp);
@@ -9106,7 +9227,7 @@ eliminated, if appropriate.
   for (hnp = scope->hidden_names; hnp != NULL; hnp = next_hnp) {
     next_hnp = hnp->next;
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 3) {
       fprintf(f_debug, "%semoving hidden name entry for ",
               il_entry_prefix_of(hnp->entity.ptr).keep_in_il ? "Not r" : "R");
       if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
