@@ -1,5 +1,20 @@
 Version 2.39
 
+4/21/98   Spurious "not a template" error during disambiguation prescan of
+          an initializer expression
+
+A spurious error was issued if an identifier was followed by a less-than
+sign in an initializer that participated in an expression vs. declaration
+disambiguation.  This has been fixed.
+
+  int main() {
+    int i = 1;
+    bool b;
+    while (int(b = (i < 10))) {  // spurious "i" is not a template
+      i++;
+    }
+  }
+
 4/21/98   Scope with which IL template entries are associated
 
 When RECORD_TEMPLATES_IN_IL is configured to TRUE, the template entries

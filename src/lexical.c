@@ -687,7 +687,8 @@ new cache, all tokens up to the end-of-cache marker will be copied.
       curr_token_sequence_number = MAX_TOKEN_SEQUENCE_NUMBER;		\
     } else {								\
       (void)get_token();						\
-      (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL); \
+      (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |\
+					    GID_IS_EXPR_CONTEXT);	\
     }  /* if */								\
   } else {								\
     (void)get_token();							\
