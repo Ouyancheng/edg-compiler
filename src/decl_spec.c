@@ -253,6 +253,7 @@ source position of the specified inheritance kind is returned in
         add_stop_token(tok_rparen);
         if (curr_token != tok_identifier) {
           syntax_error(ec_exp_identifier);
+          *err = TRUE;
         } else {
           while (curr_token == tok_identifier) {
             char *modifier;
@@ -362,6 +363,7 @@ source position of the specified inheritance kind is returned in
                       decl_modifiers->uuid_string[length] = '\0';
                     } else {
                       error(ec_bad_uuid_string);
+                      *err = TRUE;
                     }  /* if */
 end_of_uuid_string:
                     (void)get_token();
@@ -393,6 +395,7 @@ end_of_uuid_string:
               if (is_class_decl) {
                 /* "allocate" is not allowed on a class declaration. */
                 pos_error(ec_declspec_allocate_not_allowed, &pos_curr_token);
+                *err = TRUE;
                 if (next_token() == tok_lparen) {
                   /* Advance past "allocate" to the left paren. */
                   (void)get_token();
@@ -411,6 +414,7 @@ end_of_uuid_string:
                   if (curr_token != tok_string_literal) {
                     /* Error. */
                     syntax_error(ec_bad_allocate_segname);
+                    *err = TRUE;
                   } else {
                     /* The current token is a string literal.  No checking
                        is done to assure that it is a valid data segment name
