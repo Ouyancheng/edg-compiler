@@ -1556,16 +1556,6 @@ and arguments of old-style calls.
 }  /* interchangeable_types */
 
 
-/*
-Return TRUE if type_1 does not have some top-level type qualifier that
-type_2 has.
-*/
-#define fewer_qualifiers(type_1, type_2)                              \
-  ((is_const_qualified_type(type_2) && !is_const_qualified_type(type_1)) || \
-   (is_volatile_qualified_type(type_2) &&                             \
-                                    !is_volatile_qualified_type(type_1)))
-
-
 static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
                                              a_type_ptr dest_type)
 /*

@@ -153,6 +153,17 @@ extern a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
                                           an_error_code *err_code);
 extern a_type_ptr make_file_scope_type(a_type_ptr old_type);
 
+
+/*
+Return TRUE if type_1 does not have some top-level type qualifier that
+type_2 has.  Note that this macro does not check that the underlying
+types are compatible.
+*/
+#define fewer_qualifiers(type_1, type_2)                              \
+  ((is_const_qualified_type(type_2) && !is_const_qualified_type(type_1)) || \
+   (is_volatile_qualified_type(type_2) &&                             \
+                                    !is_volatile_qualified_type(type_1)))
+
 /*
 Return the type of the variable (lvalue) represented by node.  This mainly
 involves removing the extra "pointer to" in the expression type for
