@@ -2953,6 +2953,7 @@ Scan the declaration of a single template nontype parameter.
   a_type_ptr 			        bottom_derived_type;
   a_source_position			param_pos;
   a_source_sequence_entry_ptr           declarator_ssep;
+  a_type_ptr				tp;
 
   /* Scan the declaration specifiers. */
   param_pos = pos_curr_token;
@@ -2977,9 +2978,15 @@ Scan the declaration of a single template nontype parameter.
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr);
   /* Check for illegal nontype parameter types. */
-  if (is_void_type(*param_type_ptr)) {
+  tp = skip_typerefs(*param_type_ptr);
+  if (is_void_type(tp)) {
     /* A parameter type of void is not allowed. */
     error(ec_void_template_parameter);
+  } else if (tp->kind == tk_float) {
+    /* A floating point parameter type of void is no longer permitted. */
+    an_error_severity	severity;
+    severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+    diagnostic(severity, ec_float_template_parameter);
   }  /* if */
 }  /* scan_a_template_parameter_declaration */
 
