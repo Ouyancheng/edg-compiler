@@ -284,7 +284,7 @@ Flags to be set when using the KAI inliner.
 
 /* Options for HP-UX version. */
 
-/* Options to get enable quasi standard Unix features: */
+/* Options to enable quasi-standard Unix features: */
 #define _INCLUDE_POSIX_SOURCE 1
 #define _INCLUDE_XOPEN_SOURCE 1
 #define _INCLUDE_AES_SOURCE 1
