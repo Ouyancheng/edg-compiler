@@ -19895,7 +19895,7 @@ is a recursive call for a class nested within the template class.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode && !is_pragma &&
           pragma_kind == (a_pragma_kind)pk_instantiate) {
-        /* Members of dllimport class are never explicitly instantiated. */
+        /* Members of a dllimport class are never explicitly instantiated. */
         a_class_type_supplement_ptr  ctsp =
                              class_type->variant.class_struct_union.extra_info;
         if (ctsp != NULL && (ctsp->decl_modifiers & DM_DLLIMPORT)) {
