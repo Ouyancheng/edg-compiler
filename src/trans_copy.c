@@ -549,11 +549,13 @@ and remap the pointers in the copy.
   } else if (kind == iek_scope) {
     a_scope_ptr scope = (a_scope_ptr)copy;
     scope->scope_orphaned_list_header_generated = FALSE;
+#if DO_IL_LOWERING
   } else if (kind == iek_class_type_supplement) {
     a_class_type_supplement_ptr ctsp = (a_class_type_supplement_ptr)copy;
     /* type_as_subobject can be non-NULL if prelowering of the class type
        has been done.  If so, clear the pointer on copy. */
     ctsp->type_as_subobject = NULL;
+#endif /* DO_IL_LOWERING */
   }  /* if */
 }  /* copy_entry */
 
