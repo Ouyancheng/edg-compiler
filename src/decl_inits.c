@@ -956,7 +956,7 @@ followed by an assignment token, that token is also discarded.
   } else if (curr_token == tok_lbracket) {
     /* An array element designator. */
     a_constant  constant;
-    get_token();
+    (void)get_token();
     scan_integral_constant_expression(&constant);
     if (curr_token == tok_ellipsis) {
       /* An extended "array range" designator (form "[xxx ... yyy]"). */
