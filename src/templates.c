@@ -4641,7 +4641,7 @@ as the current token; otherwise, it is consumed.
     instantiate_class_template(sym, prototype_type);
     if (tag_resolution) {
       /* This is the resolution of a previously incomplete template
-	 declaration.  If there are any incomplete instantitions that were
+	 declaration.  If there are any incomplete instantiations that were
          involved in array type declarations, fix them up now. */
       fixup_types_that_refer_to_incomplete_instantiations(sym, prototype_type);
     }  /* if */
