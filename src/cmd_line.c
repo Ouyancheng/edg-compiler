@@ -316,7 +316,7 @@ Process the arguments on the command line that invoked the compiler.
 	optarg = "-N";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
       case 'O':
         /* Allow anachronisms. Toggle the value (use the non-default value)
            of the flag that specifies whether anachronisms should be
