@@ -2467,9 +2467,6 @@ scope is that of a class definition.
           }  /* if */
           if (default_arg_expr_allowed) {
             ptp->has_default_arg = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            last_param_id->has_default_arg = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
             func_info->any_default_args = TRUE;
           }  /* if */
         }  /* if */

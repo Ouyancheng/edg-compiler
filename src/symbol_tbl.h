@@ -712,12 +712,6 @@ typedef struct a_param_id {
 			/* TRUE for an old-style parameter that for which
 			   an explicit declaration is omitted. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_byte_boolean
-		has_default_arg;
-			/* TRUE if a default argument was declared in this
-			   parameter declaration.  Used in setting the
-			   rout_src_seq_entry_for_default_arg_decl for the
-			   corresponding param-type entry. */
   a_source_sequence_entry_ptr
 		source_sequence_entry;
 			/* Source-sequence information saved during declarator

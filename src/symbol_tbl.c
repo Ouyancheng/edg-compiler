@@ -8626,7 +8626,6 @@ locator_for_curr_id.
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  pip->has_default_arg = FALSE;
   pip->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
