@@ -949,7 +949,8 @@ messages about any invalid attributes.
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
-        /* Make sure that the requested alignment is permissible. */
+        /* Apply the specified alignment (which may be an increase or a
+           decrease). */
         alignment = ap->variant.alignment;
         fp->alignment = alignment;
         break;
