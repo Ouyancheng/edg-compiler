@@ -1618,7 +1618,7 @@ issued a similar error).  Return FALSE if there is some error.
     if (is_routine ? !routine_types_are_compatible(old_type, type_ptr,
                            C_mode() ? TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING :
                                       TCF_NO_FLAGS) :
-                     !types_are_compatible(old_type, type_ptr)) {
+                     !types_are_redecl_compatible(old_type, type_ptr)) {
       /* The old and new types are incompatible.  Allow certain cases
          in SVR4 C compatibility mode. */
       if (SVR4_C_mode && interchangeable_types(old_type, type_ptr)) {
@@ -2442,7 +2442,7 @@ describing this declaration.
         variable_ptr = linked_symbol->variant.variable.ptr;
         check_assertion(variable_ptr != NULL);
         *old_type = variable_ptr->type;
-        if (!types_are_compatible(type_ptr, *old_type)) {
+        if (!types_are_redecl_compatible(type_ptr, *old_type)) {
           pos_sy_error(ec_not_compatible_with_previous_decl,
                        &locator->source_position, linked_symbol);
           redecl_error_already_issued = TRUE;
@@ -3423,7 +3423,7 @@ the symbol and its linkage (which is always "none").
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
-    } else if (!types_are_compatible(type_ptr, var->type)) {
+    } else if (!types_are_redecl_compatible(type_ptr, var->type)) {
       pos_sy_error(ec_not_compatible_with_previous_decl,
                    &locator->source_position, sym);
       err = TRUE;
