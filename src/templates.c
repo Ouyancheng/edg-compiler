@@ -720,19 +720,37 @@ innermost class scope, even if there are other instantiations (e.g.,
 function instantiations) below that on the scope stack.
 
 This routine is called by scan_class_definition after the class has been
-scanned but before the class scope has been popped.
+scanned but before the class scope has been popped; it is also found when
+a partial instantiation is done.
 */
 {
-  a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			scope_depth = decl_scope_level;
+  a_scope_stack_entry_ptr        ssep;
+  a_scope_depth	                 scope_depth = decl_scope_level;
+  a_boolean                      is_partial_instantiation, placeholder_needed;
+  a_class_symbol_supplement_ptr  cssp;
+  a_type_ptr                     placeholder, placeholder_parent;
 
   ssep = &scope_stack[scope_depth];
-  check_assertion_str2(ssep->assoc_type == class_type,
-                       "create_placeholder_for_class_instantiation:",
-                       "invalid current scope");
-  /* Skip to the scope prior to the current class scope. */
-  ssep--;
-  scope_depth--;
+  cssp = symbol_supplement_for_class(class_type);
+  if (class_type->
+        variant.class_struct_union.extra_info->assoc_scope == NULL) {
+    /* This class has not been defined yet, so it must be the result of a
+       partial instantiation. */
+    is_partial_instantiation = TRUE;
+    placeholder = NULL;
+  } else {
+    /* Full instantiation. */
+    check_assertion_str2(ssep->assoc_type == class_type,
+                         "create_placeholder_for_class_instantiation:",
+                         "invalid current scope");
+    is_partial_instantiation = FALSE;
+    /* If a placeholder was allocated for the partial instantiation, either
+       it should be thrown away or else reused. */
+    placeholder = cssp->partial_instantiation_placeholder;
+    /* Skip to the scope prior to the current class scope. */
+    ssep--;
+    scope_depth--;
+  }  /* if */
   /* Find the nearest enclosing class scope, if any. */
   while (ssep->kind != (a_scope_kind)sck_class_struct_union ||
          symbol_supplement_for_class(ssep->assoc_type)->is_nonreal_class) {
@@ -743,18 +761,40 @@ scanned but before the class scope has been popped.
     scope_depth--;
     ssep--;
   }  /* while */
-  /* At this point, ssep is either NULL or points to a real class scope. */
-  if (ssep != NULL && !ssep->inside_local_class) {
-    a_type_ptr  tp;
+  /* At this point, ssep is either NULL or points to a real class scope.
+     A placeholder is needed if ssep is non-NULL and is not inside a function
+     definition. */
+  placeholder_needed = (ssep != NULL && !ssep->inside_local_class);
+  if (placeholder != NULL) {
+    /* A placeholder was created for the partial instantiation. */
+    placeholder_parent = placeholder->source_corresp.parent.class_type;
+    if (placeholder_needed && placeholder_parent == ssep->assoc_type) {
+      /* Reuse it. */
+      move_to_end_of_types_list(placeholder, scope_depth);
+      placeholder_needed = FALSE;
+    } else {
+      /* Remove it. */
+      remove_from_types_list(placeholder, NO_SCOPE_DEPTH);
+      class_type->variant.class_struct_union.
+              referenced_by_class_instantiation_placeholder_typeref = FALSE;
+    }  /* if */
+    cssp->partial_instantiation_placeholder = NULL;
+  }  /* if */
+  if (placeholder_needed) {
     /* Allocate the placeholder type, set its fields, and add it to the
        types list of the class.  Note that this typeref has no name
        or symbol associated with it. */
-    tp = alloc_type((a_type_kind)tk_typeref);
-    tp->variant.typeref.type = class_type;
-    tp->variant.typeref.is_placeholder_for_class_instantiation = TRUE;
+    placeholder = alloc_type((a_type_kind)tk_typeref);
+    placeholder->variant.typeref.type = class_type;
+    set_class_membership((a_symbol_ptr)NULL, &placeholder->source_corresp,
+                         ssep->assoc_type);
+    placeholder->variant.typeref.is_placeholder_for_class_instantiation = TRUE;
     class_type->variant.class_struct_union.
-                  referenced_by_class_instantiation_placeholder_typeref = TRUE;
-    add_to_types_list(tp, scope_depth);
+            referenced_by_class_instantiation_placeholder_typeref = TRUE;
+    add_to_types_list(placeholder, scope_depth);
+    if (is_partial_instantiation) {
+      cssp->partial_instantiation_placeholder = placeholder;
+    }  /* if */
   }  /* if */
 }  /* create_placeholder_for_class_instantiation */
 
@@ -1630,6 +1670,9 @@ included in the search.
          NO_SCOPE_DEPTH to the subroutine to force it to compute which scope's
          list it belongs to. */
       add_to_types_list(class_type, NO_SCOPE_DEPTH);
+      /* Create a placeholder for this partial instantiation if it occurs
+         inside a class definition. */
+      create_placeholder_for_class_instantiation(class_type);
     }  /* if */
 #if DEBUG
     if (debug_level >= 3 || db_flag_is_set("instantiations")) {
