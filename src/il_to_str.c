@@ -449,12 +449,15 @@ Do the output in the way described by octl.
 
 #if MICROSOFT_KEYWORDS_ALLOWED
 
-void form_microsoft_qualifier(a_type_qualifier_set                  qualifiers,
-                              an_il_to_str_output_control_block_ptr octl)
+static void form_microsoft_qualifier(
+                     a_type_qualifier_set                  qualifiers,
+                     a_boolean                             need_trailing_space,
+                     an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for the Microsoft-specific type qualifiers in the
-indicated qualifier set.  Put a space after the qualifiers if any are
-put out.  Do the output in the way described by octl.
+indicated qualifier set.  If need_trailing_space is TRUE, put out a
+space after the type qualifier (if one is put out).  Do the output
+in the way described by octl.
 */
 {
   a_boolean qualifier_put_out = FALSE;
@@ -469,7 +472,7 @@ put out.  Do the output in the way described by octl.
   output_qualifier(TQ_FASTCALL, "__fastcall");
   output_qualifier(TQ_STDCALL, "__stdcall");
   /* Put out trailing space if required. */
-  if (qualifier_put_out) octl->output_str(" ");
+  if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
 }  /* form_microsoft_qualifier */
 
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
@@ -749,8 +752,8 @@ qualifiers like __cdecl.
     /* Put out any Microsoft qualifiers under the pointer type. */
     qualifiers_under_pointer = get_type_qualifiers(type->variant.pointer.type);
     if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
-      octl->output_str(" ");
-      form_microsoft_qualifier(qualifiers_under_pointer, octl);
+      form_microsoft_qualifier(qualifiers_under_pointer,
+                               /*need_trailing_space=*/TRUE, octl);
     }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
     /* Output "*" or "&" for pointer or reference. */
@@ -763,9 +766,10 @@ qualifiers like __cdecl.
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
-      form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
+      form_type_qualifier(qualifiers, need_trailing_space, octl);
     }  /* if */
 #endif /* ifdef CFE */
+    need_trailing_space = FALSE;  /* Handled already. */
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
@@ -779,8 +783,8 @@ qualifiers like __cdecl.
     qualifiers_under_pointer =
                          get_type_qualifiers(type->variant.ptr_to_member.type);
     if (qualifiers_under_pointer & TQ_ALL_MICROSOFT_QUALIFIERS) {
-      octl->output_str(" ");
-      form_microsoft_qualifier(qualifiers_under_pointer, octl);
+      form_microsoft_qualifier(qualifiers_under_pointer,
+                               /*need_trailing_space=*/TRUE, octl);
     }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
     /* Output Classname::*. */
@@ -790,8 +794,9 @@ qualifiers like __cdecl.
     octl->output_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
-      form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
+      form_type_qualifier(qualifiers, need_trailing_space, octl);
     }  /* if */
+    need_trailing_space = FALSE;  /* Handled already. */
 #endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
@@ -807,6 +812,7 @@ qualifiers like __cdecl.
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
+    need_trailing_space = FALSE;  /* Handled already. */
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -828,6 +834,7 @@ qualifiers like __cdecl.
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
+    need_trailing_space = FALSE;  /* Handled already. */
 #endif /* ifdef CFE */
   } else {
     /* No declarator part to process.  Handle the specifier type. */
@@ -844,16 +851,19 @@ qualifiers like __cdecl.
       form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
     }  /* if */
     form_type_specifier(type, octl);
-    if (need_trailing_space) octl->output_str(" ");
   }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
   /* If there were any Microsoft qualifiers on the top of the type, put
      them out now, right next to the place where the declarator name
      will be. */
-  if (microsoft_qualifiers  != TQ_NONE) {
-    form_microsoft_qualifier(microsoft_qualifiers, octl);
+  if (microsoft_qualifiers != TQ_NONE) {
+    octl->output_str(" ");
+    form_microsoft_qualifier(microsoft_qualifiers,
+                             /*need_trailing_space=*/FALSE, octl);
   }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
+  /* Put out a trailing space if required. */
+  if (need_trailing_space) octl->output_str(" ");
 }  /* form_type_first_part */
 
 
