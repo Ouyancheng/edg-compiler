@@ -259,6 +259,29 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_cl_upc_requires_ansi_c_dialect)*/
 #endif /* !UPC_EXTENSIONS_ALLOWED */
 /*lint -esym(769,a_builtin_function_kind_tag::bfk_fsqrt)*/
+#if !CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+/*lint -esym(759,find_progenitor_symbol)*/
+/*lint -esym(765,find_progenitor_symbol)*/
+/*lint -esym(769,ec_cfront_name_lookup_bug)*/
+#endif /* !CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+#if !ASSIGNMENT_TO_THIS_ALLOWED
+/*lint -esym(759,variable_this_exists)*/
+/*lint -esym(765,variable_this_exists)*/
+/*lint -esym(759,add_constructor_wrapper_code)*/
+/*lint -esym(765,add_constructor_wrapper_code)*/
+/*lint -esym(769,ec_assignment_to_this)*/
+#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
+#if !NEW_CAN_BE_FOLDED_INTO_CTOR
+/*lint -esym(759,initial_processing_on_destructible_initialization)*/
+/*lint -esym(765,initial_processing_on_destructible_initialization)*/
+#endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if IA64_ABI
+/*lint -esym(755,first_derivation_is_direct)*/
+#endif /* IA64_ABI */
+#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+/*lint -esym(769,ec_cfront_multiple_nested_types)*/
+/*lint -esym(769,ec_cfront_global_defined_after_nested_type)*/
+#endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 /******************************************************************************
 *                                                             \  ___  /       *
