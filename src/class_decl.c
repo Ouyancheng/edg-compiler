@@ -5048,8 +5048,6 @@ or struct definition.  The syntax is
       new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
       new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Offset is updated in merge_field_lists. */
-      new_direct_bcp->offset = 0;
       /* Add base classes derived from this base class to the current class's
          base class list.  They are marked as indirect. */
       any_base_class_fixup_required = FALSE;
