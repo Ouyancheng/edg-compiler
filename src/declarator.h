@@ -122,11 +122,7 @@ abstract or real declarator.
 			/* If this bit is set a declarator may be followed
 			   by an initializer using the "(expr-list)"
 			   notation (ARM 8.4). */
-#define DI_DESTRUCTOR_SPECIFIERS ((a_decl_flag_set)0x10)
-			/* If this bit is set decl_specifiers has seen a "~"
-			   and determined that specifiers preceding it, if any,
-			   are consistent with a destructor declaration.  */
-#define DI_NONSTATIC_MEMBER ((a_decl_flag_set)0x20)
+#define DI_NONSTATIC_MEMBER ((a_decl_flag_set)0x10)
 			/* If this bit is set the declarator is for a class
 			   member declared within a class definition without
 			   a "static" type specifier.  If the name turns out
@@ -134,48 +130,48 @@ abstract or real declarator.
 			   a nonstatic member function.  This is of importance
 			   to function_declarator in creating the implicit
 			   this param type entry for such functions. */
-#define DI_IS_CONSTRUCTOR ((a_decl_flag_set)0x40)
+#define DI_IS_CONSTRUCTOR ((a_decl_flag_set)0x20)
 			/* If this bit is set decl_specifiers has determined
 			   that the declaration is that of a constructor. */
-#define DI_DIMENSION_EXPRESSION_ALLOWED ((a_decl_flag_set)0x80)
+#define DI_DIMENSION_EXPRESSION_ALLOWED ((a_decl_flag_set)0x40)
 			/* If this bit is set the first dimension of an array
 			   declarator may be a nonconstant expression. */
-#define DI_IS_TEMPLATE_DECLARATION ((a_decl_flag_set)0x100)
+#define DI_IS_TEMPLATE_DECLARATION ((a_decl_flag_set)0x80)
 			/* If this bit is set declarator is called for a
 			   declaration of a template function or a template
 			   static data member. */
-#define DI_IS_TYPEDEF_DECLARATION ((a_decl_flag_set)0x200)
+#define DI_IS_TYPEDEF_DECLARATION ((a_decl_flag_set)0x100)
 			/* If this bit is set a storage class of "typedef" has
 			   been encountered. */
-#define DI_OPERATOR_NAME_ALLOWED ((a_decl_flag_set)0x400)
+#define DI_OPERATOR_NAME_ALLOWED ((a_decl_flag_set)0x200)
 			/* If this bit is set an operator name (e.g.,
 			   "operator+" or "operator int") is allowed as the
 			   declarator identifier. */
-#define DI_IS_FRIEND_DECL ((a_decl_flag_set)0x800)
+#define DI_IS_FRIEND_DECL ((a_decl_flag_set)0x400)
 			/* If this bit is set the declarator is part of a
 			   friend declaration. */
-#define DI_IS_PARAMETER_DECL ((a_decl_flag_set)0x1000)
+#define DI_IS_PARAMETER_DECL ((a_decl_flag_set)0x800)
 			/* If this bit is set the declarator is part of a
 			   function parameter declaration. */
-#define DI_IS_SPECIALIZATION ((a_decl_flag_set)0x2000)
+#define DI_IS_SPECIALIZATION ((a_decl_flag_set)0x1000)
 			/* If this bit is set the declarator appears in a
 			   template specialization.  When
 			   DI_IS_TEMPLATE_DECLARATION is also set, the
 			   specialization declares a template that is a
 			   specialization of the original template; otherwise,
 			   it is a full specialization. */
-#define DI_IS_EXPLICIT_INSTANTIATION ((a_decl_flag_set)0x4000)
+#define DI_IS_EXPLICIT_INSTANTIATION ((a_decl_flag_set)0x2000)
 			/* If this bit is set the declaration is that of a
 			   C++ explicit template instantiation directive. */
-#define DI_VLA_ALLOWED ((a_decl_flag_set)0x8000)
+#define DI_VLA_ALLOWED ((a_decl_flag_set)0x4000)
 			/* If this bit is set a VLA type is allowed. */
-#define DI_VLA_ASTERISK_ALLOWED ((a_decl_flag_set)0x10000)
+#define DI_VLA_ASTERISK_ALLOWED ((a_decl_flag_set)0x8000)
 			/* If this bit is set "[*]" is allowed to specify
 			   a VLA of unknown size in a function prototype. */
-#define DI_NO_TYPE_SPECIFIERS ((a_decl_flag_set)0x20000)
+#define DI_NO_TYPE_SPECIFIERS ((a_decl_flag_set)0x10000)
 			/* If this bit is set no type specifiers appeared
 			   among the declaration specifiers. */
-#define DI_IS_TEMPLATE_PARAM_DECL ((a_decl_flag_set)0x40000)
+#define DI_IS_TEMPLATE_PARAM_DECL ((a_decl_flag_set)0x20000)
 			/* If this bit is set the declaration is that of a
 			   template parameter. */
 #define DI_LAST DI_IS_TEMPLATE_PARAM_DECL

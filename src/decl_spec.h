@@ -75,58 +75,55 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 			   non-type-name identifier is found before the first
 			   specifier.  Simply set the default type and return
 			   a flag signaling that there are no specifiers. */
-#define DSI_SUPPRESS_MISSING_TYPE_SPEC_WARNING ((a_decl_flag_set)0x20)
-                        /* If this bit is set do not issue a warning on a
-                           missing type specifier. */
-#define DSI_INLINE_ALLOWED ((a_decl_flag_set)0x40)
+#define DSI_INLINE_ALLOWED ((a_decl_flag_set)0x20)
 			/* If this bit is set allow an inline specifier. */
-#define DSI_IS_NEW_TYPE_NAME ((a_decl_flag_set)0x80)
+#define DSI_IS_NEW_TYPE_NAME ((a_decl_flag_set)0x40)
 			/* If this bit is set the declaration specifiers are
 			   part of the type declaration associated with a
 			   "new" operator. */
-#define DSI_VACUOUS_TAG_DECL_ALLOWED ((a_decl_flag_set)0x100)
+#define DSI_VACUOUS_TAG_DECL_ALLOWED ((a_decl_flag_set)0x80)
 			/* If this bit is set a class, struct, union, or enum
 			   declaration with no associated definition may be
 			   interpreted as introducing a new tag name, not
 			   referring to an existing one from outer scope. */
-#define DSI_IS_TEMPLATE_PARAMETER ((a_decl_flag_set)0x200)
+#define DSI_IS_TEMPLATE_PARAMETER ((a_decl_flag_set)0x100)
 			/* If this bit is set decl_specifiers is called for
 			   a template parameter declaration. */
-#define DSI_IS_TEMPLATE_DECLARATION ((a_decl_flag_set)0x400)
+#define DSI_IS_TEMPLATE_DECLARATION ((a_decl_flag_set)0x200)
 			/* If this bit is set decl_specifiers is called for
 			   a template class or template function
                            declaration. */
-#define DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS ((a_decl_flag_set)0x800)
+#define DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS ((a_decl_flag_set)0x400)
 			/* If this bit is set decl_specifiers is called to
 			   scan a list of type qualifiers in the
 			   context of a pointer declarator.  When a token
 			   other than a type qualifier is seen, return
 			   immediately, without issuing any diagnostics. */
-#define DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER ((a_decl_flag_set)0x1000)
+#define DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER ((a_decl_flag_set)0x800)
 			/* If this bit is set decl_specifiers will do special
 			   checking for a "dangling type specifier" -- an
 			   identifier that may belong to a type specifier
 			   of a subsequent declaration because a ";" is
 			   missing. */
-#define DSI_IS_OLD_STYLE_PARAM_DECL ((a_decl_flag_set)0x2000)
+#define DSI_IS_OLD_STYLE_PARAM_DECL ((a_decl_flag_set)0x1000)
 			/* If this bit is set decl_specifiers is being called
 			   for an old-style parameter declaration.  Some error
 			   checking is affected. */
-#define DSI_ASM_ALLOWED ((a_decl_flag_set)0x4000)
+#define DSI_ASM_ALLOWED ((a_decl_flag_set)0x2000)
 			/* If this bit is set "asm" is recognized as a decl-
 			   specifier.  Used only when ASM_FUNCTION_ALLOWED is
 			   TRUE. */
-#define DSI_IS_LINKAGE_SPEC_DECL ((a_decl_flag_set)0x8000)
+#define DSI_IS_LINKAGE_SPEC_DECL ((a_decl_flag_set)0x4000)
 			/* If this bit is set the declaration belongs to
 			   a non-brace-enclosed linkage specification. */
-#define DSI_IS_CONDITION_DECL ((a_decl_flag_set)0x10000)
+#define DSI_IS_CONDITION_DECL ((a_decl_flag_set)0x8000)
 			/* If this bit is set the declaration is that of a
 			   C++ condition in an if, switch, for, or while
 			   statement. */
-#define DSI_IS_EXPLICIT_INSTANTIATION ((a_decl_flag_set)0x20000)
+#define DSI_IS_EXPLICIT_INSTANTIATION ((a_decl_flag_set)0x10000)
 			/* If this bit is set the declaration is that of a
 			   C++ explicit template instantiation directive. */
-#define DSI_IS_SPECIALIZATION ((a_decl_flag_set)0x40000)
+#define DSI_IS_SPECIALIZATION ((a_decl_flag_set)0x20000)
 			/* If this bit is set the declaration is that of a
 			   C++ template specialization. */
 #define DSI_LAST DSI_IS_SPECIALIZATION
@@ -186,16 +183,13 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
                            specifiers, if any, are consistent with those
 			   allowed on a destructor declaration), and so a type
                            of tk_void was returned. */
-#define DSO_CLASS_TEMPLATE 	((a_decl_flag_set)0x1000)
-			/* If this bit is set the declaration appears to be
-			   that of a class template. */
-#define DSO_MUTABLE		((a_decl_flag_set)0x2000)
+#define DSO_MUTABLE		((a_decl_flag_set)0x1000)
 			/* If this bit is set the storage class "mutable" was
 			   found. */
-#define DSO_EXPLICIT		((a_decl_flag_set)0x4000)
+#define DSO_EXPLICIT		((a_decl_flag_set)0x2000)
 			/* If this bit is set the specifier "explicit" was
 			   found. */
-#define DSO_LINKAGE_SPEC_DECL   ((a_decl_flag_set)0x8000)
+#define DSO_LINKAGE_SPEC_DECL   ((a_decl_flag_set)0x4000)
                         /* If this bit is set the decl-specifiers included a
                            linkage specifier; this is only accepted in
                            Microsoft mode (and only under restricted
