@@ -1686,8 +1686,11 @@ Instantiate the body of the template function associated with tip.
 #endif /* DEBUG */
   if (func_info_ptr->is_inline) {
     rout_ptr->is_inline = TRUE;
-    rout_ptr->storage_class = (a_storage_class)sc_static;
-    rout_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    if (!extern_inline_allowed) {
+      rout_ptr->storage_class = (a_storage_class)sc_static;
+      rout_ptr->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_internal;
+    }  /* if */
   }  /* if */
   /* In case the source position in the routine instance is different from
      that of the defining template declaration, copy the latter to the
@@ -1709,8 +1712,7 @@ Instantiate the body of the template function associated with tip.
     rout_ptr->storage_class = (a_storage_class)sc_static;
     rout_ptr->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_internal;
-  } else if (!rout_ptr->is_inline &&
-             !(rout_ptr->storage_class == (a_storage_class)sc_static)) {
+  } else if (rout_ptr->storage_class != (a_storage_class)sc_static) {
     /* Set the linkage for the definition of an externally linked routine. */
     rout_ptr->storage_class = (a_storage_class)sc_unspecified;
     rout_ptr->source_corresp.name_linkage =
@@ -3916,24 +3918,20 @@ the function instantiation entry and set all the pointers.
           rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
           linkage_mismatch = TRUE;
         }  /* if */
-        if (templ_rp->is_inline) {
-          if (rp->called) {
-            sym_remark(ec_called_function_redeclared_inline, rout_sym);
-          }  /* if */
-          rp->is_inline = TRUE;
-        }  /* if */
-      } else {
-        if (rp->storage_class == (a_storage_class)sc_static) {
-          sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
-          rp->storage_class = (a_storage_class)sc_unspecified;
-          rp->source_corresp.name_linkage =
+      } if (rp->storage_class == (a_storage_class)sc_static) {
+        sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
+        rp->storage_class = (a_storage_class)sc_unspecified;
+        rp->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
-          rp->is_inline = FALSE;
-          linkage_mismatch = TRUE;
-        }  /* if */
+        linkage_mismatch = TRUE;
       }  /* if */
-      if (!linkage_mismatch) {
-        if (rp->is_inline && !templ_rp->is_inline) {
+      if (templ_rp->is_inline) {
+        if (rp->called) {
+          sym_remark(ec_called_function_redeclared_inline, rout_sym);
+        }  /* if */
+        rp->is_inline = TRUE;
+      } else {
+        if (rp->is_inline) {
           sym_warning(ec_incompatible_inline_specifier_on_specific_decl,
                       rout_sym);
         }  /* if */
@@ -7734,7 +7732,7 @@ that follows.
           pos_error(ec_storage_class_not_allowed, &decl_start_pos);
           storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if (func_info.is_inline ||
+        if ((func_info.is_inline && !extern_inline_allowed) ||
             storage_class == (a_storage_class)sc_static ||
             (scp->is_class_member ?
              (scp->parent.class_type->source_corresp.name_linkage ==
@@ -7742,9 +7740,10 @@ that follows.
              (scp->parent.namespace_ptr != NULL &&
               (symbol_supplement_for_namespace(scp->parent.namespace_ptr)->
                                                 within_unnamed_namespace)))) {
-          /* Function was declared "inline" or "static" or is a member of
-             an unnamed namespace or of a class that belongs to an unnamed
-             namespace. */
+          /* Function was declared "static" or is a member of an unnamed
+             namespace or of a class that belongs to an unnamed namespace.
+             Or else it was declared "inline" and inline functions have
+             internal linkage by default. */
           rp->storage_class = (a_storage_class)sc_static;
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_internal;
