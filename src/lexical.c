@@ -6412,11 +6412,8 @@ this routine.  Its value is unchanged if no errors are detected.
       arg_ptr->variant.type = argument_type;
     } else {  /* else executed when !is_type_param */
       a_type_ptr  constant_type = sym->variant.constant->type;
-#if CHECKING
-      if (sym->kind != (a_symbol_kind)sk_constant) {
-        internal_error("coalesce_template_class_reference: constant expected");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(sym->kind == (a_symbol_kind)sk_constant,
+                          "scan_template_argument_list: constant expected");
       /* If the type of a constant involves a template parameter type,
          rescan the declaration of the parameter type to get the type
          to be used in this argument list. */
