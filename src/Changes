@@ -17,6 +17,7 @@ viewed as a guiding declaration for template N::f.  Now fixed.
 
 lower_dynamic_cast made reference to an uninitialized local variable
 when the front end is built with an ABI version < 241.  Now fixed.
+[Patch sent out 3/19/99.]
 
 3/18/99  Internal error in composite_array_type eliminated
 
@@ -48,26 +49,27 @@ was defined.  Now, the same mangled name is produced in both cases.
 
 Note that this is an ABI CHANGE.  It has been rolled into 2.41,
 because a patch will be sent to all customers, rather than being
-considered part of 2.42.
+considered part of 2.42.  [Patch sent out 3/19/99.]
 
 3/17/99  name field in typeinfo now const
 
 The "name" field in the typeinfo structure now has "const char *" type.
 The "const" has been added to make the field match the type of string
 literals, which are now const in some modes (see Changes entry of 1/21/99).
+[Patch sent out 3/19/99.]
 
 3/17/99  Incorrect union variant used in too_many_unused_instantiations
 
 The incorrect variant of a union could be accessed by the routine
 too_many_unused_instantiations in certain cases.  This could cause the
 front end to fail to instantiate a template static data member.  This
-has been fixed.
+has been fixed.  [Patch sent out 3/19/99.]
 
 3/16/99  Microsoft compatibility: loss of __declspec attributes on class
          redeclaration
 
 In Microsoft compatibility mode __declspec attributes were lost on a class
-redeclaration in certain cases.  Now fixed.
+redeclaration in certain cases.  Now fixed.  [Patch sent out 3/19/99.]
 
   class __declspec(dllimport) A { };
   class A;                              // "dllimport" no longer lost
@@ -85,7 +87,7 @@ The argument checking done for printf (when #pragma __printf_args is
 used) was not updated when string literals were made const in C++.
 As a consequence, a remark was issued when a string literal (of
 type const char *) was passed for a "%s" printf specifier (which
-expects a char *).  Now fixed.
+expects a char *).  Now fixed.  [Patch sent out 3/19/99.]
 
   #pragma __printf_args
   extern "C" int printf(const char *, ...);
@@ -97,7 +99,8 @@ expects a char *).  Now fixed.
 
 An abort in find_base_class_of has been eliminated.  This abort came
 up when a template constructor whose first parameter is the same type
-as the class was called with a non-class first argument. 
+as the class was called with a non-class first argument.  [Patch sent
+out 3/19/99.]
 
   struct A {
     template<class T> A ( A , T ) { } 
@@ -129,7 +132,7 @@ standardized by the addition of a "!= 0" test, e.g., it should be
 
   if (var != 0) {...}
 
-The "!= 0" test has been added.
+The "!= 0" test has been added.  [Patch sent out 3/19/99.]
 
 3/16/99  Restrictions on function default arguments
 
@@ -144,7 +147,7 @@ warning.  In default mode, however, such constructs are silently accepted
 3/16/99  Demangling of compressed names
 
 In some cases, the library name demangler failed to demangle compressed
-mangled names.  Now fixed.
+mangled names.  Now fixed.  [Patch sent out 3/19/99.]
 
 3/16/99  Minimal inlining: No temporary for field selection argument on
          call with no side effects
@@ -156,7 +159,7 @@ is a field selection on a call that has no side effects.
 
 The introduction of class-name injection in version 2.41 also introduced
 a spurious accessibility error when the base class of a nested class was
-itself a private nested class.  Now fixed.
+itself a private nested class.  Now fixed.  [Patch sent out 3/19/99.]
 
   class C {
     class X { };
@@ -198,7 +201,8 @@ not specify a function declared in the enclosing scope (as required by
 
 In Microsoft compatibility mode a spurious error was issued when an
 inheritance kind of __single_inheritance was specified for a class with
-single inheritance more than one level deep.  Now fixed.
+single inheritance more than one level deep.  Now fixed.  [Patch sent
+out 3/19/99.]
 
   struct A { };
   struct B : A { };
@@ -209,7 +213,7 @@ single inheritance more than one level deep.  Now fixed.
 A problem was introduced when the new rules for the instantiation of
 template default arguments were added in 2.40, which caused this example
 to get a spurious error when compiled in strict mode.  This has been
-fixed.
+fixed.  [Patch sent out 3/19/99.]
 
   template<class T> struct A {
     A();
@@ -225,7 +229,7 @@ fixed.
 2.41 introduced a bug in the runtime library in which a throw of a
 derived object could be caught by a catch of a base pointer, or a throw
 of a derived pointer could be caught by a catch of a base object.  This
-has been fixed.
+has been fixed.  [Patch sent out 3/19/99.]
 
 3/10/99  Internal error on invalid using declaration inside class template
 
@@ -242,7 +246,7 @@ A Microsoft compatibility bug fix in 2.40 introduced a new bug that
 could cause an infinite loop.  The loop occurred in certain cases when
 processing a template declaration that declares an operator function
 declared in a class template or a class template explicit specialization.
-This has been fixed. 
+This has been fixed.  [Patch sent out 3/19/99.]
 
   template <class T> struct A;
   template<> struct A<int> {
@@ -257,7 +261,7 @@ This has been fixed.
 In version 2.41, if the normal lookup component of an overloaded operator
 lookup returned a function template, that template would be ignored.  This
 could result in spurious errors, or in the incorrect function being
-chosen.  This has been fixed.
+chosen.  This has been fixed.  [Patch sent out 3/19/99.]
 
   namespace N {
     template<class T> bool operator!=(const T& _X, const T& _Y);
