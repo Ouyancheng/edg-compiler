@@ -4569,6 +4569,8 @@ otherwise it is NULL.  The syntax is:
         if (!is_destructor) {
           /* Invalid destructor name. */
           set_to_error_locator(*locator);
+          /* Avoid spurious errors later. */
+          if (is_unknown_type(complete_type)) complete_type = void_type();
         } else if (curr_token != tok_lparen) {
           /* A valid destructor name is not followed by a left parenthesis. */
           error(ec_exp_lparen);
@@ -4625,6 +4627,8 @@ otherwise it is NULL.  The syntax is:
           pos_error(ec_bad_conversion_function_decl,
                     &locator->source_position);
           set_to_error_locator(*locator);
+          /* Avoid error recovery problems later. */
+          locator->is_conversion_name = TRUE;
         }  /* if */
       } else if (is_constructor) {
 #if CHECKING
