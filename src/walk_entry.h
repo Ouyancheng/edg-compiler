@@ -571,8 +571,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
 #ifdef CFE
         remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
-        remap_ptr(ptr->lifetime_following_label, an_object_lifetime_ptr,
-                  iek_object_lifetime);
 #endif /* ifdef CFE */
       }
       break;
