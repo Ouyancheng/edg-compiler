@@ -2542,23 +2542,19 @@ will be involved in overloading.
                   *overload_symbol = NULL;
                   goto determine_linkage;
                 }
-#if 0
               } else {
                 /* Look for a match on the list of instantiations. */
-                a_symbol_ptr instance;
-                instance = look_for_template_function_symbol(
-                                       other_decl,
-                                       type->variant.function.return_type,
-                                       type->variant.function.extra_info->
-                                                              param_type_list);
-                if (instance != NULL) {
-                  *linked_symbol = other_decl;
-                  if (fiep->specialization_seen) {
+                a_symbol_ptr sym;
+                sym = find_template_function(other_decl, type,
+                                             (a_param_type_ptr)NULL,
+                                             &locator->source_position);
+                if (sym != NULL) {
+                  *linked_symbol = other_decl = sym;
+                  if (sym->variant.routine.instance_ptr->specialization_seen) {
                     *overload_symbol = NULL;
                   }  /* if */
                   goto determine_linkage;
                 }  /* if */
-#endif /* if 0 */
               }  /* if */
             } else {
               if (is_function_template_decl) {
@@ -3176,6 +3172,7 @@ otherwise, set *ext_sym to NULL.
   a_source_correspondence
                     *source_corresp_ptr;
   a_scope_depth     effective_decl_level = decl_scope_level;
+  a_boolean         template_function_specialization = FALSE;
 
   db_enter(3, "decl_var_or_routine");
 #if CHECKING
@@ -3228,9 +3225,19 @@ otherwise, set *ext_sym to NULL.
   at_file_scope = (is_function || linkage != idl_none);
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
-       to which this declaration is linked.  The new declaration must be
-       compatible with the old. */
-    redeclaration = TRUE;
+       to which this declaration is linked. */
+    if (is_function && linked_symbol->kind == (a_symbol_kind)sk_routine &&
+        linked_symbol->variant.routine.instance_ptr != NULL &&
+        !linked_symbol->variant.routine.instance_ptr->specialization_seen) {
+      /* This is not actually a redeclaration -- linked_symbol refers to a
+         function template instantiation. */
+      template_function_specialization = TRUE;
+    } else {
+      /* The new declaration must be compatible with the old. */
+      redeclaration = TRUE;
+    }  /* if */
+  }  /* if */
+  if (redeclaration) {
     if (linked_symbol->kind == (a_symbol_kind)sk_variable && !is_function) {
       if (C_dialect == C_dialect_cplusplus && linked_symbol->defined &&
           is_variable_definition) {
@@ -3347,6 +3354,10 @@ otherwise, set *ext_sym to NULL.
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
         redecl_error_already_issued = TRUE;
+      } else if (template_function_specialization) {
+        sym = linked_symbol;
+        overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
+        sym->variant.routine.instance_ptr->specialization_seen = TRUE;
       } else {
         /* Overloaded function.  Create the new symbol, which will be on the
            list of functions connected to an sk_overloaded symbol. */
