@@ -4690,8 +4690,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
                                               source_type_qualifiers)) {
         /* Qualifiers are being dropped. */
-        if (string_literals_are_const &&
-            source_is_string_literal &&
+        if (source_is_string_literal &&
+            string_literals_are_const &&
             source_type_qualifiers == (dest_type_qualifiers | TQ_CONST) &&
             same_entities(unqual_dest_type_pointed_to,
                           unqual_source_type_pointed_to)) {
@@ -4699,6 +4699,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              a string literal or wide string literal to a pointer to
              non-const ([conv.array] paragraph 2). */
           std_conv->conv_of_string_literal_to_ptr_to_nonconst = TRUE;
+        } else if (source_is_string_literal &&
+                   string_literals_are_const &&
+                   (microsoft_mode && !C_mode()) &&
+                   is_void(unqual_dest_type_pointed_to)) {
+          /* MSVC++ 7.1 allows conversion of a string literal (which is
+             const) to void *. */
         } else if (cfront_2_1_mode && 
                    is_void(unqual_dest_type_pointed_to) &&
                    is_void(unqual_source_type_pointed_to)) {
