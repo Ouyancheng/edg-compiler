@@ -11666,6 +11666,36 @@ dependent on it.  The routine entry itself is dealt with later.
   db_exit();
 }  /* eliminate_bodies_of_unneeded_functions */
 
+
+static a_boolean type_is_to_be_kept_in_il(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is to be kept in the IL.  For the most
+part, this means that its keep_in_il flag is TRUE.
+*/
+{
+  a_boolean keep;
+  a_type_ptr type = tp;
+
+  /* For placeholder typerefs, test the keep_in_il flag on the
+     underlying type, thus keeping the placeholder typeref if the
+     underlying type is being kept. */
+  while (type->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_typedef(type)) {
+    type = type->variant.typeref.type;
+  }  /* while */
+  keep = il_entry_prefix_of(type).keep_in_il;
+  if (keep && tp->variant.typeref.is_placeholder_for_nested_class_def) {
+    check_assertion(is_immediate_class_type(type));
+    if (!type->variant.class_struct_union.
+                                      nested_class_defined_outside_of_parent) {
+      /* If the body of a nested class defined outside of its parent has
+         been removed, the placeholder for the definition gets removed also. */
+      keep = FALSE;
+    }  /* if */
+  }  /* if */
+  return keep;
+}  /* type_is_to_be_kept_in_il */
+
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
 void eliminate_unneeded_scope_orphaned_list_entries(void)
@@ -11722,16 +11752,18 @@ because, for example, they appear on orphan lists.
       /* Traverse the types list. */
       prev_tp = NULL;
       for (tp = solhp->orphaned_types; tp != NULL; tp = next_tp) {
+        a_boolean keep;
         next_tp = tp->next;
+        keep = type_is_to_be_kept_in_il(tp);
 #if DEBUG
         if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
           fprintf(f_debug, "%semoving orphaned type ",
-                  il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
+                  keep ? "Not r" : "R");
           db_abbreviated_type(tp);
           fputc('\n', f_debug);
         }  /* if */
 #endif /* DEBUG */
-        if (!il_entry_prefix_of(tp).keep_in_il) {
+        if (!keep) {
           /* Remove it from the types list by linking around it. */
           if (prev_tp == NULL) {
             solhp->orphaned_types = tp->next;
@@ -11859,11 +11891,13 @@ eliminated, if appropriate.
   pointers_block->last_variable = prev_vp;
   prev_tp = NULL;
   for (tp = scope->types; tp != NULL; tp = next_tp) {
+    a_boolean  keep;
     next_tp = tp->next;
+    keep = type_is_to_be_kept_in_il(tp);
 #if DEBUG
     if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
       fprintf(f_debug, "%semoving ",
-              il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
+              keep ? "Not r" : "R");
       if (has_name(tp)) {
         db_type_name(tp);
       } else {
@@ -11872,7 +11906,7 @@ eliminated, if appropriate.
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (!il_entry_prefix_of(tp).keep_in_il) {
+    if (!keep) {
       /* Remove it from the types list by linking around it. */
       if (prev_tp == NULL) {
         scope->types = tp->next;
