@@ -1,5 +1,9 @@
 Version 2.11
 
+10/21/92 Bringing pointer-to-member operands of "?" to a common type
+
+The code that brings such operands to a common type has been added.
+
 10/21/92 Fixed bug in detection of "dangling type specifiers"
 
 A bug has been fixed in the code that tries recognize missing semicolon
