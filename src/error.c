@@ -1009,6 +1009,9 @@ error code.
     case ec_return_type_cannot_distinguish_functions:
       m = "cannot overload functions distinguished by return type alone";
       break;
+    case ec_no_conversion_constructor:
+      m = "there is no constructor that can do this conversion";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
