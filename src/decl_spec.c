@@ -28,6 +28,7 @@ decl_spec.c -- Scanning of declaration specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* For check_pack_alignment_value. */
 #include "layout.h"
+#include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "folding.h"
 #include "statements.h"
@@ -5039,6 +5040,7 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_type_ptr                 *type_ptr,
                           a_type_qualifier_set       *qualifiers,
                           an_attribute_ptr           *attributes,
+                          an_ms_attribute_ptr        *p_ms_attributes,
                           a_decl_modifiers_block_ptr decl_modifiers,
                           a_decl_pos_block_ptr       decl_pos_block,
                           a_upc_block_size           *upc_block_size)
@@ -5143,7 +5145,8 @@ recognized as an omitted semi-colon or comma after a class or enum
 definition (e.g., "typedef int T; struct A { ... } T x;").
 When supporting GNU extensions, returns *attributes indicating any
 attributes that were present in the specifiers.  If attributes is
-NULL, then attributes are not allowed.  When upc_block_size is non-NULL,
+NULL, then attributes are not allowed.  p_ms_attributes is used similarly
+for the Microsoft attribute construct.  When upc_block_size is non-NULL,
 the block size associated with a UPC shared qualifier is passed back to
 the caller through that pointer.
 
@@ -5187,6 +5190,7 @@ Returns TRUE if there is an error in the specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                  microsoft_w64_seen = FALSE;
   a_source_position          microsoft_w64_pos;
+  an_ms_attribute_ptr        ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
  
   db_enter(3, "decl_specifiers");
@@ -5478,6 +5482,17 @@ Returns TRUE if there is an error in the specifiers.
                                              &no_remaining_token, &err);
           if (no_remaining_token) goto no_get_token;
         }
+        break;
+      case tok_lbracket:
+        if (any_decl_specifiers_seen || !microsoft_mode || C_mode()) {
+          /* Microsoft attributes have to precede any specifiers.  They are
+             only recognized in Microsoft C++ mode. */
+          goto something_unexpected;
+        } else {
+          ms_attributes = scan_microsoft_attributes(
+                                        (input_flags & DSI_IS_PARAMETER)!= 0);
+          goto no_get_token;
+        }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED

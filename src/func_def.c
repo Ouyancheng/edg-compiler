@@ -1449,6 +1449,7 @@ a_symbol_ptr function_definition(
                         a_storage_class            storage_class,
                         a_boolean                  has_explicit_type_specifier,
                         a_decl_modifiers_block_ptr decl_modifiers,
+                        an_ms_attribute_ptr        ms_attributes,
                         an_attribute_ptr           attributes,
                         a_decl_pos_block_ptr       decl_pos_block)
 /*
@@ -1672,9 +1673,8 @@ member declaration (allowed in Microsoft mode only).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_routine(locator, storage_class, rout_type, func_info,
                  declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
-                 decl_modifiers, attributes, (char *)NULL,
-		 &symbol_ptr, &linkage, &old_type, &ext_sym, 
-		 decl_pos_block);
+                 decl_modifiers, ms_attributes, attributes, (char *)NULL,
+                 &symbol_ptr, &linkage, &old_type, &ext_sym, decl_pos_block);
   }  /* if */
   /* Now scan the function body, except if we're dealing with the special
      Microsoft extension case that allows a nondefining out-of-class

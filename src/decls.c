@@ -247,6 +247,11 @@ optimization is suppressed.
     /* An attribute can start a declaration. */
     is_start = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && curr_token == tok_lbracket) {
+    /* A Microsoft attribute can start a declaration. */
+    is_start = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_identifier &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
@@ -4880,6 +4885,7 @@ void decl_routine(a_symbol_locator             *locator,
                   a_source_sequence_entry_ptr  declarator_ssep,
                   a_symbol_reference_kind      srk_flags,
                   a_decl_modifiers_block_ptr   decl_modifiers,
+                  an_ms_attribute_ptr          ms_attributes,
                   an_attribute_ptr             attributes,
                   char                         *asm_name,
                   a_symbol_ptr                 *symbol_ptr,
@@ -7662,8 +7668,9 @@ symbol has already been entered as an undefined symbol.
   decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL,
                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
-               (an_attribute_ptr)NULL, (char *)NULL, &symbol_ptr, &linkage,
-               &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
+               (an_ms_attribute_ptr)NULL, (an_attribute_ptr)NULL, (char *)NULL,
+               &symbol_ptr, &linkage, &old_type, &ext_sym,
+               (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -7963,8 +7970,9 @@ In C++ mode an error is issued if a type definition appears in a type-name
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, type_ptr, &qualifiers,
-                        (an_attribute_ptr *)NULL, &decl_modifiers,
-                        (a_decl_pos_block_ptr)NULL, (a_upc_block_size*)NULL);
+                        (an_attribute_ptr *)NULL, (an_ms_attribute_ptr*)NULL,
+                        &decl_modifiers, (a_decl_pos_block_ptr)NULL,
+                        (a_upc_block_size*)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) &&
       !gpp_mode) {
@@ -8075,8 +8083,9 @@ within this routine if is_parenthesized comes in FALSE.
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
-                        (an_attribute_ptr*)NULL, &decl_modifiers,
-                        &decl_pos_block, (a_upc_block_size*)NULL);
+                        (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
+                        &decl_modifiers, &decl_pos_block,
+                        (a_upc_block_size*)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -8209,8 +8218,9 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
-                        (an_attribute_ptr*)NULL, &decl_modifiers,
-                        &decl_pos_block, (a_upc_block_size*)NULL);
+                        (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
+                        &decl_modifiers, &decl_pos_block,
+                        (a_upc_block_size*)NULL);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -8303,8 +8313,9 @@ operator function reference.
     clear_decl_pos_block(&decl_pos_block);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
-                          (an_attribute_ptr*)NULL, &decl_modifiers,
-                          &decl_pos_block, (a_upc_block_size*)NULL);
+                          (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
+                          &decl_modifiers, &decl_pos_block,
+                          (a_upc_block_size*)NULL);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -8797,8 +8808,8 @@ a normal try.
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
                               &qualifiers, (an_attribute_ptr*)NULL,
-                              &decl_modifiers, &decl_pos_block,
-                              (a_upc_block_size*)NULL);
+                              (an_ms_attribute_ptr*)NULL, &decl_modifiers,
+                              &decl_pos_block, (a_upc_block_size*)NULL);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -9212,8 +9223,8 @@ Return a pointer to the variable that is declared.
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
                         &qualifiers, (an_attribute_ptr*)NULL,
-                        &decl_modifiers, &decl_pos_block,
-                        (a_upc_block_size*)NULL);
+                        (an_ms_attribute_ptr*)NULL, &decl_modifiers,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &decl_pos);
@@ -10601,9 +10612,9 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    local_is_old_style_param_decl;
   a_storage_class              declared_storage_class, local_storage_class;
   a_type_ptr                   type_ptr, old_type = NULL;
-  a_type_ptr	               local_type_ptr;
+  a_type_ptr                   local_type_ptr;
   a_boolean                    has_explicit_type_specifier;
-  a_boolean	               defines_something;
+  a_boolean                    defines_something;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers, local_decl_modifiers;
@@ -10641,6 +10652,8 @@ of local variables (and types, etc.) of functions and in blocks.
   an_attribute_ptr             *last_specifier_attribute;
   a_boolean                    has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  an_ms_attribute_ptr          ms_attributes = NULL;
+  an_ms_attribute_ptr          *last_ms_attribute_ptr = &ms_attributes;
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
   a_boolean                    is_linkage_spec_decl = FALSE;
@@ -10694,13 +10707,19 @@ of local variables (and types, etc.) of functions and in blocks.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && curr_token == tok_lbracket) {
     /* A Microsoft attribute of the form "[ ... ]". */
-    an_ms_attribute_ptr	ms_attributes;
     ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
     if (curr_token == tok_semicolon) {
       /* This is a standalone attribute block.  Make sure all of the specified
-         attributes are standalone attributes. */
+         attributes are standalone attributes.  This also sets ms_attributes
+         to NULL. */
       verify_standalone_attributes(&ms_attributes);
+      goto advance_past_final_token;
     }  /* if */
+    /* Find the last attribute pointer so we can easily append to this list
+       if necessary. */
+    while (*last_ms_attribute_ptr != NULL) {
+      last_ms_attribute_ptr = &(*last_ms_attribute_ptr)->next;
+    }  /* while */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
@@ -10864,8 +10883,8 @@ continue_with_declaration:
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
                         &type_ptr, &qualifiers, &specifier_attributes,
-                        &decl_modifiers, &decl_pos_block,
-                        (a_upc_block_size*)NULL);
+                        last_ms_attribute_ptr, &decl_modifiers,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
   last_specifier_attribute = last_attribute_link(&specifier_attributes);
@@ -11355,8 +11374,12 @@ continue_with_declaration:
           (void)function_definition(&locator, local_type_ptr,
                                     &func_info, local_storage_class,
                                     has_explicit_type_specifier,
-                                    &decl_modifiers, attributes,
+                                    &decl_modifiers, ms_attributes, attributes,
                                     &decl_pos_block);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* Microsoft attributes have been consumed. */
+          ms_attributes = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           done_with_func_info(func_info);
           if (is_function_try_block) {
             /* Checking for the closing brace will already have been done. */
@@ -11624,9 +11647,13 @@ continue_with_declaration:
         }  /* if */          
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
-                     &local_decl_modifiers, attributes, asm_name,
-                     &symbol_ptr, &linkage, &old_type, &ext_sym,
+                     &local_decl_modifiers, ms_attributes, attributes,
+                     asm_name, &symbol_ptr, &linkage, &old_type, &ext_sym,
                      &decl_pos_block);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Microsoft attributes have been consumed. */
+        ms_attributes = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
@@ -11983,6 +12010,13 @@ continue_with_declaration:
       *last_specifier_attribute = NULL;
       free_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ms_attributes != NULL) {
+        pos_error(ec_ms_attribute_not_allowed, &decl_start_pos);
+        ms_attributes = NULL;
+      }  /* if */
+      last_ms_attribute_ptr = &ms_attributes;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */

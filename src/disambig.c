@@ -399,6 +399,22 @@ keyword.
   }  /* if */
 }  /* prescan_based_modifier */
 
+
+static void prescan_microsoft_attributes(a_disambig_state_ptr       state,
+                                         a_disambig_flag_set        flags)
+/*
+Scan past (and cache) a Microsoft attribute list.  state points to the token
+cache to be used.
+*/
+{
+  check_assertion(curr_token == tok_lbracket);
+  /* Advance past the left bracket. */
+  cache_curr_token(&state->cache);
+  get_token_and_coalesce_if_identifier(flags);
+  /* Now scan up to the matching right bracket. */
+  cache_tokens_until(state, tok_rbracket);
+}  /* prescan_typeof_operator */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -677,6 +693,12 @@ part of a function declarator is found, may_be_decl is set to FALSE.
 {
   /* Scan the function argument list. */
   while (curr_token != tok_rparen) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && curr_token == tok_lbracket) {
+      /* Skip a Microsoft parameter attribute. */
+      prescan_microsoft_attributes(state, flags);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_ellipsis) {
       /* Advance past the ellipsis. */
       cache_curr_token(&state->cache);

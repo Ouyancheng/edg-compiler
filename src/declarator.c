@@ -120,9 +120,9 @@ block size is returned through upc_block_size (when non-NULL).
   if (microsoft_mode) { dsi_flags |= DSI_INLINE_ALLOWED; }
   (void)decl_specifiers(dsi_flags, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
-                        &qualifiers, (an_attribute_ptr *)NULL, 
-                        &dummy_decl_modifiers, &local_decl_pos_block,
-                        upc_block_size);
+                        &qualifiers, (an_attribute_ptr*)NULL,
+                        (an_ms_attribute_ptr*)NULL, &dummy_decl_modifiers,
+                        &local_decl_pos_block, upc_block_size);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1475,6 +1475,7 @@ if this is the function declarator in a friend function declaration.
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
+        an_ms_attribute_ptr  ms_attributes = NULL;
         an_attribute_ptr     attributes = NULL;
         an_attribute_ptr     *last_attribute = &attributes;
 #if GNU_EXTENSIONS_ALLOWED
@@ -1496,10 +1497,9 @@ if this is the function declarator in a friend function declaration.
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */
         (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
-                              &param_type_ptr, &qualifiers, 
-                              &attributes, &decl_modifiers,
-                              &local_decl_pos_block,
-                              (a_upc_block_size *)NULL);
+                              &param_type_ptr, &qualifiers, &attributes,
+                              &ms_attributes, &decl_modifiers,
+                              &local_decl_pos_block, (a_upc_block_size *)NULL);
 #if GNU_EXTENSIONS_ALLOWED
         /* Find the end of the current attribute list. */
         while (*last_attribute != NULL) {

@@ -5871,8 +5871,9 @@ of the function, and again overloading is a possibility.
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
                    declarator_ssep, srk_flags, &decl_info->decl_modifiers,
-                   (an_attribute_ptr)NULL, (char *)NULL, &sym, &linkage,
-                   &old_type, &ext_sym, &decl_info->decl_pos_block);
+                   (an_ms_attribute_ptr)NULL, (an_attribute_ptr)NULL,
+                   (char *)NULL, &sym, &linkage, &old_type, &ext_sym,
+                   &decl_info->decl_pos_block);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -11744,6 +11745,7 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  an_ms_attribute_ptr  ms_attributes = NULL;
   char                 *asm_name = NULL;
   an_attribute_ptr     specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
@@ -11788,8 +11790,8 @@ the IL, the template header is passed via template_decl.
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
                         &member_type, &qualifiers, &specifier_attributes,
-                        &decl_info.decl_modifiers,  &decl_info.decl_pos_block,
-                        (a_upc_block_size *)NULL);
+                        &ms_attributes, &decl_info.decl_modifiers,
+                        &decl_info.decl_pos_block, (a_upc_block_size *)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
   last_specifier_attribute = last_attribute_link(&specifier_attributes);
