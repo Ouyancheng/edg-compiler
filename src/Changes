@@ -3,7 +3,7 @@ Version 3.1
 8/20/02   GNU compatibility: Built-in functions misdeclared
 
 The following built-in functions were previously misdeclared: __builtin_apply,
-__builtin_trap, __builtin_unwind_init, __builtin_dwarf_cfa, and
+__builtin_trap, __builtin_unwind_init, __builtin_unwind_dwarf_cfa, and
 __builtin_dwarf_fp_regnum.
 
   int main() {
