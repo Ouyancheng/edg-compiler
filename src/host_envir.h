@@ -1658,6 +1658,8 @@ extern a_boolean get_file_modification_time(char   *file_name,
 /* Is the specified file a regular (e.g., not directory) file. */
 extern a_boolean is_regular_file(char *file_name);
 
+extern void change_directory(char *dir_name);
+
 /* Is the specified file a directory. */
 extern a_boolean is_directory(char *file_name);
 

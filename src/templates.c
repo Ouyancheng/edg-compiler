@@ -15425,6 +15425,8 @@ the exported templates in that file.
 {
   a_translation_unit_ptr	saved_tup = curr_translation_unit;
 
+  /* Go to the directory containing the file. */
+  change_directory(etfp->directory_name);
   /* Compile the specified translation unit. */
   process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE, etfp);
   /* Consider the exported template file to be in instantiation wrapup at
@@ -15432,6 +15434,8 @@ the exported templates in that file.
   in_instantiation_wrapup = TRUE;
   /* Switch back to the previous translation unit. */
   switch_translation_unit(saved_tup);
+  /* Go back to the original directory. */
+  change_directory(current_directory_name);
 }  /* load_exported_template_file */
 
 

@@ -1763,6 +1763,15 @@ Not used in some configurations.
 }  /* chdir_with_check */
 
 
+void change_directory(char *dir_name)
+/*
+Change to the directory specified by "dir_name".
+*/
+{
+  chdir_with_check(dir_name);
+}  /* change_directory */
+
+
 /* Header comment for is_directory */
 /*
 Determine whether the specified path name is the name of a valid
