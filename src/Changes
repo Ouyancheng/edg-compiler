@@ -394,6 +394,98 @@ no longer issued for a global qualifier on a friend declaration:
 The options --wrap_diagnostics and --no_wrap_diagnostics enable
 and disable a mode in which the error text is not wrapped.
 
+5/17/96 Member templates
+
+Member templates are now supported.  Member templates are class
+templates and function templates that are declared within either
+a normal class or a template class.  Member templates are a pure
+extension (i.e., they don't change the meaning of any valid programs)
+so they are always enabled and no command line option is provided
+to disable the feature.
+
+  struct A {
+    template <class T> T f(T *p) { return *p; }
+  };
+  int main () {
+    int *p = new int(1);
+    A a;
+    int i = a.f(p);  // Uses A::f(int *)
+  }
+
+Member templates can be constructors or conversion functions as well
+as "normal" functions.
+
+  struct A {
+    template<class T> operator T*() { return 0; }
+  } a;
+  int f(int *);
+  int i = f(a);
+
+Only the new-style specialization syntax is permitted when
+providing an explicit specialization for a member template.
+Such specializations must be declared in each translation unit in
+which the function or class is used, before its first use in that
+translation unit.
+
+5/17/96 New specialization syntax
+
+The Working Paper requires that a new syntax be used to declare
+explicit specializations of templates.  This syntax is now supported.
+We require the new syntax for member templates.  The old syntax
+is still permitted by the default configuration in default mode, and
+is disallowed in strict mode (see entry for "Diagnostics on old-style
+template specializations" for further information).
+
+The advantages of the new specialization syntax are:
+
+  - A specialization looks different than a declaration of a function
+    that is not related to the template.
+
+  - Specializations can be declared as well as defined.
+
+  - Old specializations affected overload resolution (i.e., they were also
+    "guiding" declarations).  New specializations have no effect on
+    overload resolution.
+
+Under the new language rules, specializations must be declared before they
+are referenced, and they must be declared wherever the entity is used
+(e.g., it is not permitted for a program to use both the specialized
+and nonspecialized version of the same entity).  Except for class
+specializations, these violations can be detected when using the
+name mangling changes made in version 2.32.
+
+  template <class T> struct A {
+    template <class T2> void f(T2);
+    template <class T2> struct B {};
+  };
+
+  // Definition of member template A<T>::f
+  template <class T> template <class T2> void A<T>::f(T2){}
+
+  // Explicit specialization of template A<int>::f 
+  template <> template <class T2> void A<int>::f(T2){}
+
+  // Explicit specialization of instance of template A<int>::f(double)
+  template <> template <> void A<int>::f(double){}
+	
+  // Explicit specialization of A<char>
+  template <> struct A<char> {};
+
+  template <class T> void glob_func(T);
+
+  // Explicit specialization of glob_func(int)
+  template <> void glob_func(int) {}
+
+A new global variable old_specializations_allowed has been added to control
+whether an old-style template specialization (i.e., one without the
+"template<>" syntax) is accepted.  Its default value is configured by
+DEFAULT_OLD_SPECIALIZATIONS_ALLOWED, and it may be adjusted on the command
+line by --[no_]old_specializations.  Moreover, it is set to TRUE in
+cfront-compatibility mode, and it is set to FALSE in strict ANSI mode
+(unless --old_specializations appears on the command line).  When
+old_specializations_allowed is FALSE, a discretionary error is issued when
+an old-style template specialization is encountered.
+
 5/14/96 referenced flag on template class in instantiation pragma
 
 An instantiation pragma for a class (which really asks for instantiation
@@ -416,18 +508,6 @@ code was invalid if MAINTAIN_NEEDED_FLAGS is configured as FALSE.
   }
   #pragma instantiate Foo<float>
 
-
-5/13/96 Diagnostics on old-style template specializations
-
-New global variable old_specializations_allowed has been added to control
-whether an old-style template specialization (i.e., one without the
-"template<>" syntax) is accepted.  Its default value is configured by
-DEFAULT_OLD_SPECIALIZATIONS_ALLOWED, and it may be adjusted on the command
-line by --[no_]old_specializations.  Moreover, it is set to TRUE in
-cfront-compatibility mode, and it is set to FALSE in strict ANSI mode
-(unless --old_specializations appears on the command line).  When
-old_specializations_allowed is FALSE, a discretionary error is issued when
-an old-style template specialization is encountered.
 
 5/13/96 Failure to find conversion function in template
 
