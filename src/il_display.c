@@ -1549,6 +1549,9 @@ Display the indicated variable.
   if (ptr->template_decl != NULL) {
     disp_template_decl("template_decl", ptr->template_decl);
   }  /* if */
+  if (ptr->assoc_template != NULL) {
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_type);
+  }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
@@ -2022,6 +2025,9 @@ Display the indicated routine.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->template_decl != NULL) {
     disp_template_decl("template_decl", ptr->template_decl);
+  }  /* if */
+  if (ptr->assoc_template != NULL) {
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_type);
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {
@@ -4010,6 +4016,9 @@ Display the indicated class type supplement entry.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->template_decl != NULL) {
     disp_template_decl("template_decl", ptr->template_decl);
+  }  /* if */
+  if (ptr->assoc_template != NULL) {
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_type);
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {

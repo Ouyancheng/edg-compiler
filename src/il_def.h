@@ -3466,6 +3466,11 @@ typedef struct a_class_type_supplement {
 			/* For template entities this points to information
 			   describing the template parameterization of that
 			   entity; otherwise, this is NULL. */
+  a_type_ptr
+		assoc_template;
+			/* For instantiated entities, this points to the
+			   prototype instantiation of the template from which
+			   they were generated; otherwise, this is NULL. */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   a_template_arg_ptr
 		template_arg_list;
@@ -4666,6 +4671,11 @@ typedef struct a_variable {
 			/* For template entities this points to information
 			   describing the template parameterization of that
 			   entity; otherwise, this is NULL. */
+  a_variable_ptr
+		assoc_template;
+			/* For instantiated entities, this points to the
+			   prototype instantiation of the template from which
+			   they were generated; otherwise, this is NULL. */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -5232,6 +5242,11 @@ typedef struct a_routine {
 			/* For template entities this points to information
 			   describing the template parameterization of that
 			   entity; otherwise, this is NULL. */
+  a_routine_ptr
+		assoc_template;
+			/* For instantiated entities, this points to the
+			   prototype instantiation of the template from which
+			   they were generated; otherwise, this is NULL. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

@@ -261,16 +261,36 @@ type is a class type.  Used to indicate cases that require the full type
 of a class rather than just a declaration.
 set_proper_definition_needed_flag sets either definition_needed or
 keep_definition_in_il, or does nothing, depending on the configuration.
+If prototype instantiations are recorded in the IL, they are marked along with
+the real instantiations that the template generated.
 */
 #undef definition_needed_if_class
 #undef set_proper_definition_needed_flag
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
 #if NEEDED_FLAG_WALK
-#define set_proper_definition_needed_flag(ptr) \
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#define set_proper_definition_needed_flag(ptr)                               \
+  set_class_definition_needed(ptr);                                          \
+  if (ptr->variant.class_struct_union.extra_info->assoc_template != NULL) {  \
+    set_class_definition_needed(                                             \
+                ptr->variant.class_struct_union.extra_info->assoc_template); \
+  }  /* if */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#define set_proper_definition_needed_flag(ptr)                               \
   set_class_definition_needed(ptr);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
-#define set_proper_definition_needed_flag(ptr) \
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#define set_proper_definition_needed_flag(ptr)                               \
+  set_class_keep_definition_in_il(ptr);                                      \
+  if (ptr->variant.class_struct_union.extra_info->assoc_template != NULL) {  \
+    set_class_keep_definition_in_il(                                         \
+               ptr->variant.class_struct_union.extra_info->assoc_template);  \
+  }  /* if */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#define set_proper_definition_needed_flag(ptr)                               \
   set_class_keep_definition_in_il(ptr);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* NEEDED_FLAG_WALK */
 #define definition_needed_if_class(ptr) \
 { a_type_ptr local_ptr = skip_typerefs(ptr); \
@@ -293,11 +313,27 @@ Set the definition_needed or keep_definition_in_il flag in a routine.
 #undef set_proper_routine_definition_needed_flag
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
 #if NEEDED_FLAG_WALK
-#define set_proper_routine_definition_needed_flag(ptr) \
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#define set_proper_routine_definition_needed_flag(ptr)   \
+  set_routine_definition_needed(ptr);                    \
+  if (ptr->assoc_template != NULL) {                     \
+    set_routine_definition_needed(ptr->assoc_template);  \
+  }  /* if */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#define set_proper_routine_definition_needed_flag(ptr)   \
   set_routine_definition_needed(ptr);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
-#define set_proper_routine_definition_needed_flag(ptr) \
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#define set_proper_routine_definition_needed_flag(ptr)       \
+  set_routine_keep_definition_in_il(ptr);                    \
+  if (ptr->assoc_template != NULL) {                         \
+    set_routine_keep_definition_in_il(ptr->assoc_template);  \
+  }  /* if */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#define set_proper_routine_definition_needed_flag(ptr)       \
   set_routine_keep_definition_in_il(ptr);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* NEEDED_FLAG_WALK */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
 #define set_proper_routine_definition_needed_flag(ptr) /* Nothing */
@@ -859,6 +895,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_initializer(ptr->init_kind, ptr->initializer);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
+        walk_ptr(ptr->assoc_template, a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
@@ -954,6 +991,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_template_arg);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
+        walk_ptr(ptr->assoc_template, a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Note that we do not test "defined" here because defined gets cleared
@@ -2174,6 +2212,7 @@ after_entry_from_class:
            not to be processed: */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
+        walk_ptr(ptr->assoc_template, a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);

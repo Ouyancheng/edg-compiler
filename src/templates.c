@@ -3134,6 +3134,7 @@ and the class instantiation will detect the runaway case.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   tssp = tip->template_sym->
                  variant.static_data_member.instance_ptr->template_info;
+/* FIXME: update assoc_template */
   static_data_member_sym = tip->instance_sym;
 #if CHECKING
   if (!tip->template_sym->defined ||
@@ -3628,6 +3629,7 @@ prototype instantiation is considered as a potential match.
   a_symbol_ptr 			    prototype_sym;
   a_template_arg_ptr                old_list;
   a_type_ptr                        class_type;
+  a_class_type_supplement_ptr       ctsp;
   a_template_symbol_supplement_ptr  tssp;
   a_template_arg_ptr                tap;
   an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
@@ -3776,8 +3778,13 @@ prototype instantiation is considered as a potential match.
        however, that the type itself is not added to the scope types list
        until a full instantiation takes place -- or, if there is none, in
        pop_scope, as with ordinary classes. */
-    class_type->variant.class_struct_union.extra_info->
-                                            template_arg_list = *new_list;
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    ctsp->template_arg_list = *new_list;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (prototype_instantiations_in_il) {
+      ctsp->assoc_template = prototype_sym->variant.class_struct_union.type;
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     set_source_corresp(&(class_type->source_corresp), sym);
     set_membership_in_source_corresp(&(class_type->source_corresp), sym);
     if (sym->is_class_member) {
@@ -6707,6 +6714,11 @@ type based on the template argument list and the template parameter list
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (prototype_instantiations_in_il) {
+      rp->assoc_template = templ_rout;
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;

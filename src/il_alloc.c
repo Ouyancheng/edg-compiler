@@ -934,6 +934,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->assoc_scope                       = NULL;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   ctsp->template_decl                     = NULL;
+  ctsp->assoc_template                    = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   ctsp->template_arg_list                 = NULL;
   ctsp->partial_spec_template_arg_list    = NULL;
@@ -1386,6 +1387,7 @@ to it.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   vp->template_decl               = NULL;
+  vp->assoc_template              = NULL;
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
@@ -1610,6 +1612,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->template_arg_list           = NULL;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   rp->template_decl               = NULL;
+  rp->assoc_template              = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
