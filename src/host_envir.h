@@ -802,11 +802,26 @@ front end.
 
 /*
 Flag that is TRUE to specify that source files should be read in
-binary mode under MS-DOS.  In this mode, carriage return and control-Z
-are handled by the front end instead of the host C runtime library.
+binary mode under MS-DOS (or Windows 95, or Windows NT).  In this mode,
+carriage return and control-Z are handled by the front end instead of
+the host C runtime library.
+
+The default is TRUE for Microsoft operating systems because it allows
+them to deal properly with Unix files accessed over a network, and it
+sidesteps C runtime library bugs in this area.  In particular,
+Windows NT seems to have some bug with ftell/fseek on files that
+only have a line-feed terminator on lines (no carriage return) -- they
+mostly work okay, but when, with deeply nested inclusion, a file
+is closed and reopened, the ftell/fseek doesn't restore the right
+position when it's at the beginning of a set of zero-length lines
+(several line-feed characters in a row).
 */
 #ifndef READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+#if __MICROSOFT_OS__
+#define READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS TRUE
+#else /* !__MICROSOFT_OS__ */
 #define READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS FALSE
+#endif /* __MICROSOFT_OS__ */
 #endif /* ifndef READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 #if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
 #define CONTROL_Z (0x1a)

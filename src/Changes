@@ -1,5 +1,15 @@
 Version 2.36
 
+5/28/97   READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS made default for Microsoft OSs
+
+The default for READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS is now TRUE for
+Microsoft operating systems (including Windows 95 and Windows NT).
+This allows the front end to deal properly with lines that have
+Unix-style line terminators (no carriage return), which might appear
+on files accessed over a network.  It also sidesteps a bug in Windows
+NT related to using ftell/fseek to save and restore a position in a
+file that has such nonstandard line terminators.
+
 5/25/97   Long lifetime temporaries mode: destruction of temporaries on
           fall-through to next switch clause
 
