@@ -500,6 +500,7 @@ do
 	 --no_preproc_only | \
          --rtti | \
          --no_rtti | \
+         --building_runtime | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
