@@ -41,6 +41,14 @@ typedef struct a_throw_stack_entry {
   void*		object_address;
 			/* Pointer to the memory allocated to store
 			   the copy of the object. */
+  void*		pointer_buffer;
+			/* A piece of memory large enough to store a pointer.
+			   When a pointer is thrown the pointer may undergo
+			   one of several possible conversions including a
+			   conversion from a pointer to derived to a pointer
+			   to base.  This buffer is used to store the modified
+		  	   pointer.  The original pointer must be preserved for
+			   use by a rethrow. */
   an_eh_stack_entry_ptr
 		nearest_enclosing_try_block;
 			/* Pointer to the nearest enclosing try block
@@ -742,9 +750,6 @@ entry is returned in etsp_found.
          This is not a match. */
     } else if (matching_types(etsp, typeinfo, flags)) {
       match = TRUE;
-    } else if (is_reference(etsp->flags) && is_pointer(flags)) {
-      /* No match.  A pointer can only be thrown to a reference of
-         exactly the same type. */
     } else if (etsp->typeinfo == &MANGLED_NAME_OF_PTR_TO_VOID &&
                (is_pointer(etsp->flags) == is_pointer(flags))) {
       /* The exception type specification is a void * and the object
@@ -812,10 +817,21 @@ a try block with a catch that matches the type of the object thrown.
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
   throw_flags = curr_throw_stack_entry->flags;
+  /* If the throw object is a pointer we copy the pointer into a separate
+     buffer whose address is passed to the catch.  This is done because
+     the pointer may undergo a conversion (such as derived to base) and we
+     need to preserve the original pointer in case it is needed by a
+     rethrow. */
   if (is_pointer(throw_flags)) {
+    /* It is a pointer.  object_buffer_ptr points to the special pointer
+       buffer in the throw stack.  object_ptr contains the value of the
+       pointer. */
     object_buffer_ptr = curr_throw_stack_entry->object_address;
     object_ptr = *(void**)object_buffer_ptr;
+    object_buffer_ptr = (void*)&curr_throw_stack_entry->pointer_buffer;
   } else {
+    /* It is not a pointer.  object_buffer_ptr points to the original copy
+       of the object.  object_ptr points to the object buffer. */
     object_buffer_ptr = curr_throw_stack_entry->object_address;
     object_ptr = object_buffer_ptr;
   }  /* if */
@@ -958,21 +974,19 @@ a try block with a catch that matches the type of the object thrown.
   curr_throw_stack_entry->in_handler = TRUE;
   if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     __catch_clause_number = destination_catch_value;
-    if (is_pointer(throw_flags) && is_reference(etsp_found->flags)) {
-      /* The thrown object is a pointer and the caught object is a
-         reference to a pointer.  Provide the handler with a pointer to
-         the pointer. */
+    if (is_pointer(throw_flags)) {
+      /* The throw object is a pointer that may have underdone some
+         kind of conversion such as a derived to base conversion.  Save
+         the updated pointer.  Note that object_buffer_ptrt has already
+         been modified to point to a separate buffer so that the original
+         pointer is preserved in case it is needed by a rethrow. */
+      *(void**)object_buffer_ptr = object_ptr;
       __caught_object_address = object_buffer_ptr;
-    } else if (etsp_found->flags & ETS_IS_ELLIPSIS) {
-      /* It shouldn't really matter what this points to. */
-      __caught_object_address = NULL;
     } else {
-      /* The thrown object may be a pointer or an object.  But whatever
-         it is, the caught object is the same thing.  object_ptr points
-         either to the object (if is_pointer is TRUE) or to the buffer
-         (if is_pointer is FALSE).  This is what the handler expects. */
-      check_assertion(is_pointer(throw_flags) ==
-                                          is_pointer(etsp_found->flags));
+      /* The thrown object is not a pointer.  object_ptr starts out with the
+         same value as object_buffer_ptr but may be modified my a
+         derived to base conversion.  It still points somewhere within
+         the object buffer, however. */
       __caught_object_address = object_ptr;
     }  /* if */
     /* Update the pointer in the try block to point to the throw stack entry
@@ -1010,6 +1024,7 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->typeinfo = typeinfo;
   tsep->flags = flags;
   tsep->object_address = object_address;
+  tsep->pointer_buffer = NULL;
   tsep->is_rethrow = is_rethrow;
   tsep->discard_entry = FALSE;
   tsep->in_handler = FALSE;
