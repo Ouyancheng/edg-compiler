@@ -11,7 +11,8 @@
 /*
 
 lower_c99.c -- Routines to transform C99 IL constructs into constructs
-               available in classic ANSI/ISO C ("C89").
+               available in classic ANSI/ISO C ("C89").  Some GNU C
+               extensions are also lowered here.
 
 */
 
@@ -1610,7 +1611,7 @@ Do C99 lowering on the indicated variable and its subtree.
   lower_c99_initializer(var->init_kind, &var->initializer);
 #if GNU_EXTENSIONS_ALLOWED
   if (force_variable_definition_via_zeroing && var->is_not_common &&
-      var->storage_class != (a_storage_class)sc_extern &&
+      var->storage_class == (a_storage_class)sc_unspecified &&
       var->init_kind == (an_init_kind)initk_none) {
     /* GNU C allows variables without initializers to be marked as "nocommon",
        which indicates that such variables are nontentative definitions.
