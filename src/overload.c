@@ -3956,10 +3956,10 @@ case).  call_position gives the source position of the call.
              function_symbol is an instance of the template.  Otherwise,
              just compare the pointers. */
           if (fund_sym->kind == (a_symbol_kind)sk_function_template ?
-                (function_symbol->variant.routine.instance_ptr != NULL &&
-                 function_symbol->variant.routine.instance_ptr->template_sym ==
-                                                                    fund_sym) :
-                (fund_sym == function_symbol)) break;
+                (base_function_symbol->variant.routine.instance_ptr != NULL &&
+                 base_function_symbol->variant.routine.instance_ptr->
+                                                    template_sym == fund_sym) :
+                (fund_sym == base_function_symbol)) break;
         }  /* for */
         /* Remove any namespace projection symbols. */
         while (sym->kind == (a_symbol_kind)sk_namespace_projection) {
