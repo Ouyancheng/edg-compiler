@@ -3175,7 +3175,7 @@ Add the string specified by "addition" to the temporary string buffer.
   int	addition_length;
 
   addition_length = strlen(addition);
-  if (pos_in_temp_string + addition_length > temp_string_length) {
+  if (pos_in_temp_string + addition_length >= temp_string_length) {
     temp_string_length += TEMP_STRING_BUFFER_INCREMENTAL_ALLOCATION;
     temp_string = (char *)pl_realloc_with_check((a_void_ptr)temp_string,
                                                 temp_string_length);
