@@ -1964,7 +1964,7 @@ qualification of a member function type.
 */
 {
   a_routine_type_supplement_ptr  rtsp =
-                                     routine_type->variant.routine.extra_info;
+                      skip_typerefs(routine_type)->variant.routine.extra_info;
   a_type_ptr                     result = rtsp->this_class;
 
 #if RESTRICT_ALLOWED

@@ -639,9 +639,9 @@ Synthesize the type of the implicit "this" parameter of a routine if the
 underlying class exists (nonstatic members and pointer-to-members); otherwise
 NULL.
 */
-#define implicit_this_param_type_of(routine_type)                     \
-  ((routine_type)->variant.routine.extra_info->this_class != NULL ?   \
-                           f_implicit_this_param_type_of(routine_type) : NULL)
+#define implicit_this_param_type_of(rout_type)                               \
+  (skip_typerefs(rout_type)->variant.routine.extra_info->this_class != NULL ?\
+                              f_implicit_this_param_type_of(rout_type) : NULL)
 
 /*
 Extract a pointer to a base classes list for a class type.  This macro
