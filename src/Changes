@@ -1,5 +1,11 @@
 Version 2.43
 
+10/28/99  offsetof based on __INTADDR__ when size_t smaller than pointer
+
+An implementation of offsetof that uses __INTADDR__ on a system where
+the size of size_t is smaller than a pointer no longer gets a warning
+on the implicit cast of the pointer operand to size_t.
+
 10/28/99  Microsoft compatibility: ambiguous class reference allowed
 
 If a lookup of a name before a "::" finds both a typedef to a class and

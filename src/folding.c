@@ -720,18 +720,19 @@ type.
   /* Change of an address constant previously cast to integer to another
      type. */
   if (is_integral_or_enum_type(new_type)) {
-    /* Pointer value being forced into an integral type.  Make sure the
-       integral type is large enough to hold a pointer. */
-    if (skip_typerefs(new_type)->size < skip_typerefs(old_type)->size) {
-      *err_code = ec_integer_truncated;
-      *err_severity = es_error;
-    } else if (old_constant->kind == (a_constant_repr_kind)ck_integer) {
+    /* Pointer value being forced into an integral type. */
+    if (old_constant->kind == (a_constant_repr_kind)ck_integer) {
       /* A constant that is an integer, cast to some pointer type and back
          to integer, as in (int)(void*)-1: make sure the integer is
-         truncated and sign-extended properly. */
+         truncated and sign-extended properly, with warnings if
+         appropriate. */
       conv_integer_to_integer(old_constant, new_constant, is_implicit_cast,
                               err_code, err_severity);
       conversion_handled = TRUE;
+    } else if (skip_typerefs(new_type)->size < skip_typerefs(old_type)->size) {
+      /* The integral type is not large enough to hold a pointer. */
+      *err_code = ec_integer_truncated;
+      *err_severity = es_error;
     }  /* if */
   } else if (is_floating_type(new_type)) {
     /* Converting an address to a floating-point type cannot be done at
