@@ -1,4 +1,14 @@
-Version 2.22
+Version 2.22, February 26, 1994
+
+2/24/94  IL version number changed to 2.14
+
+Changes (details below): unnamed bit fields appear on field list;
+is_bit_field flag in field entry; is_this_parameter flag in variable
+entry; contains_try_block flag in routine entry; stmk_decl statement
+to indicate position of declarations in statement sequences (only when
+source sequence entries are selected, which is not the default);
+final_source_sequence_entry pointer for blocks; pcc_compatibility_mode
+flag in il_header.
 
 2/24/94  IL lowering handling of cast of pointer-to-member-function
 
