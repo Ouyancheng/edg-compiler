@@ -7086,6 +7086,7 @@ should only be called if cross-reference information is being generated
 
        symbol-id name X file-name line-number column-number
 
+       The separator character between the fields is a horizontal tab.
        where X is "D" for declaration,
                   "M" for modification,
                   "A" for address taken,
@@ -7110,7 +7111,7 @@ should only be called if cross-reference information is being generated
     /* Convert the source position to file name/line number. */
     conv_seq_to_file_and_line(source_position->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
-    fprintf(f_xref_info, "%lu %s %c %s %lu %d\n",
+    fprintf(f_xref_info, "%lu\t%s\t%c\t%s\t%lu\t%d\n",
                          (unsigned long)sym_ptr,
                          sym_ptr->header->identifier,
                          code,

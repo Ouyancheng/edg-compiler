@@ -1,5 +1,11 @@
 Version 2.20
 
+9/21/93  Cross-reference output separator
+
+The separator character between fields in the cross-reference output
+is now a tab instead of a blank.  This was documented as changed in
+that way on 12/15/92, but somehow the change was not made.
+
 9/20/93  Catastrophic error recursion
 
 Under certain conditions it is possible for the compiler to generate
@@ -15,8 +21,8 @@ has been corrected.
 
 9/19/93  Internal error on function template call with incomplete type
 
-There is no longer an internal on a call of a function template with an
-argument that has an incomplete type:
+There is no longer an internal error on a call of a function template
+with an argument that has an incomplete type:
 
   struct A *p;
   template<class T> void f(T);
