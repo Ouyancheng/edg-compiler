@@ -2378,6 +2378,10 @@ Output the definition of the indicated struct or union type.
         {
           /* Put out a bit field declaration. */
           /* Generate the bit field type to match the signedness. */
+          /* Note that any type qualifiers on the field are dropped.  That's
+             important when a bitfield is initialized by executable code
+             generated in a constructor -- if the bitfield were const,
+             some constructs couldn't be generated. */
           write_tok_str(field->bit_field_is_signed ?
 #if C_GEN_BE_GENERATES_ANSI_C
                                        "signed int" : "unsigned int"
