@@ -1,9 +1,24 @@
 Version 2.44
 
+7/10/00  C++-generating back end: expressions preserved in more cases
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (default for
+C++-generating back end versions), constants that are subjected
+to implicit type conversions now preserve the original expression
+in more contexts.
+
+  int main() {
+    switch (55L) {
+      case 22+33: // This expression is now preserved after implicit
+                  // conversion to type of switch expression (long)
+        break;
+    }
+  }
+
 7/8/00   C++-generating back end: sizeofs preserved
 
 When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (default for
-c++-generating back end versions), constants for sizeof operations
+C++-generating back end versions), constants for sizeof operations
 now have an enk_runtime_sizeof expression attached so that the
 original sizeof can be re-created in the generated code.
 

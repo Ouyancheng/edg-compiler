@@ -1405,6 +1405,13 @@ exit:
        if its result depends on the floating-point rounding mode. */
     *did_not_fold = TRUE;
   }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (is_implicit_cast) {
+    /* For an implicit cast, transfer the expression from the old constant
+       to the new one. */
+    new_constant.expr = constant->expr;
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   /* Return the new constant value. */
   copy_constant(&new_constant, constant);
   db_exit();
