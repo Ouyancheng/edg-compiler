@@ -9573,7 +9573,7 @@ have been promoted out of those classes.
             (void)fputs("Type not found: ", f_debug);
             db_abbreviated_type(namespace_type);
             (void)fputc('\n', f_debug);
-            db_scope_type_list(scope, 2);
+            db_scope_type_list(scope, 2, /*do_subscopes=*/FALSE);
 #endif /* DEBUG */
             unexpected_condition_str(
                 "do_all_namespace_member_promotion: namespace type not found");

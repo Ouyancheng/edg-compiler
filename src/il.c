@@ -7860,26 +7860,49 @@ Write out a scope entry for debugging purposes.
 }  /* db_scope */
 
 
-void db_scope_type_list(a_scope_ptr scope,
-                        int         indent)
+static void db_type_list(a_type_ptr type_list,
+                         int        indent,
+                         a_boolean  do_subscopes)
 /*
-Write out the type list for a scope, for debugging purposes.  indent is the
-indentation level.
+Write out a type list, for debugging purposes.  indent is the indentation
+level.  If do_subscopes is TRUE, write out the type lists for subscopes
+as well.
 */
 {
   a_type_ptr type;
   int        n;
 
+  for (type = type_list; type != NULL; type = type->next) {
+    for (n = 0; n < indent; n++) fputc(' ', f_debug);
+    db_abbreviated_type(type);
+    (void)fprintf(f_debug, "\n");
+    if (do_subscopes && is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+        db_type_list(ctsp->assoc_scope->types, indent+2, do_subscopes);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* db_type_list */
+
+
+void db_scope_type_list(a_scope_ptr scope,
+                        int         indent,
+                        a_boolean   do_subscopes)
+/*
+Write out the type list for a scope, for debugging purposes.  indent is the
+indentation level.  If do_subscopes is TRUE, write out the type lists for
+subscopes as well.
+*/
+{
+  int n;
+
   for (n = 0; n < indent; n++) fputc(' ', f_debug);
   (void)fprintf(f_debug, "Type list for ");
   db_scope(scope);
   (void)fprintf(f_debug, ":\n");
-  indent += 2;
-  for (type = scope->types; type != NULL; type = type->next) {
-    for (n = 0; n < indent; n++) fputc(' ', f_debug);
-    db_abbreviated_type(type);
-    (void)fprintf(f_debug, "\n");
-  }  /* for */
+  db_type_list(scope->types, indent+2, do_subscopes);
 }  /* db_scope_type_list */
 
 
@@ -7890,30 +7913,20 @@ Dump the type lists for the indicate scope and its subscopes, for debug
 purposes.  indent indicates the indentation level.
 */
 {
-  a_type_ptr      type;
   a_namespace_ptr nsp;
   a_scope_ptr     bscope;
 
-  db_scope_type_list(scope, indent);
-  indent += 2;
-  for (type = scope->types; type != NULL; type = type->next) {
-    if (is_immediate_class_type(type)) {
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-        db_type_lists(ctsp->assoc_scope, indent);
-      }  /* if */
-    }  /* if */
-  }  /* for */
+  db_scope_type_list(scope, indent, /*do_subscopes=*/TRUE);
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
-      db_type_lists(nsp->variant.assoc_scope, indent);
+      db_type_lists(nsp->variant.assoc_scope, indent+2);
     }  /* if */
   }  /* for */
   for (bscope = scope->scopes; bscope != NULL; bscope = bscope->next) {
-    db_type_lists(bscope, indent);
+    db_type_lists(bscope, indent+2);
   }  /* for */
 }  /* db_type_lists */
+
 
 #endif /* DEBUG */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

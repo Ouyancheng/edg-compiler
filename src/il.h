@@ -711,7 +711,8 @@ extern void db_statement_list(a_statement_ptr  sp,
 extern void db_scope(a_scope_ptr sp);
 
 extern void db_scope_type_list(a_scope_ptr scope,
-                               int         indent);
+                               int         indent,
+                               a_boolean   do_subscopes);
 
 extern void db_type_lists(a_scope_ptr scope,
                           int         indent);
