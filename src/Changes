@@ -1,5 +1,20 @@
 Version 2.39
 
+3/31/98   Removal of top-level type qualifiers in unprototyped parameter
+          lists
+
+When DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES was configured to TRUE, an
+internal error occurred when an old-style parameter declaration with a type
+qualifier was encountered in C++ mode.  (This would be only possible
+running with --anachronisms or in Cfront-compatibility mode.)
+
+  void f(x) const int x; { ... }    // Internal error has been eliminated
+
+The problem was that the type qualifier was not being removed from the
+param-type entry for the parameter; now it is, though it remains on the
+corresponding variable entry.  This also fixes a bug in how name mangling
+is done for functions with old-style parameter lists.
+
 3/29/98   Indirection through a void * pointer in C++ mode
 
 Indirection through a void * pointer now gets an error in C++ mode.
