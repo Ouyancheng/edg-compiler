@@ -1,5 +1,14 @@
 Version 2.33
 
+7/19/96 Abort on invalid redeclaration
+
+A bug has been fixed that resulted in an internal error on the following
+program (C++ mode only):
+
+  void f(int);
+  void f(char);
+  extern int f;    // Used to abort determining linkage for variable f
+
 7/18/96 Precompiled header creation
 
 Precompiled headers were not being created when the last declaration
