@@ -1,6 +1,6 @@
 Version 2.22
 
-1/20/94  Default object file suffix under MS-DOS
+1/20/94  Default file suffixes under MS-DOS
 
 The default object file suffix for MS-DOS has been changed from .o to .obj.
 

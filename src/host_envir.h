@@ -344,7 +344,7 @@ source file to get the name of the generated C output file.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #if __MSDOS__
 /* File names under MSDOS cannot have multiple periods. */
-#define GEN_C_FILE_SUFFIX "_int.c"
+#define GEN_C_FILE_SUFFIX ".ic"
 #else /* !__MSDOS__ */
 #define GEN_C_FILE_SUFFIX ".int.c"
 #endif /* if __MSDOS__ */
