@@ -11336,7 +11336,7 @@ Check that this is a valid type and if so make member_type a friend.
           member_type = proxy_class_for_template_param(
                                                   skip_typerefs(member_type));
         }  /* if */
-        {
+        if (!source_sequence_entries_disallowed) {
           /* Since this type name did not involve an elaborated type name,
              we do not yet have a source sequence entry for it. */
           a_source_sequence_entry_ptr  ssep;
