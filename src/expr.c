@@ -9650,7 +9650,7 @@ There are similar cases other than long and int, and the cases are not
 symmetrical, e.g., "i + l" does not yield an int.
 */
 {
-  if (microsoft_bugs && 
+  if (microsoft_bugs && microsoft_version < 1300 &&
       targ_sizeof_long == targ_sizeof_int &&
       is_integral_type(operand_1->type) &&
       is_integral_type(operand_2->type) &&

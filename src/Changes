@@ -1,5 +1,12 @@
 Version 3.1
 
+8/7/02   Microsoft compatibility: long + int now long in VC7
+
+The Microsoft bug that caused long+int to be seen as int (see
+Changes entries of 4/22/97, 5/2/98) has been fixed in VC 7 (aka
+VC .NET).  When --microsoft_version=1300, emulation of
+that bug is now turned off.
+
 8/7/02   Microsoft C++ compatibility: extern inline declarations
 
 In Microsoft C++ mode, inline functions have external linkage by default.
