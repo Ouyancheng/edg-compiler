@@ -4843,7 +4843,7 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          force_parens)
 /*
 Output the dynamic initialization described by dip.  init_entity_type
-indicates the type of entity being initialized, or if NULL if the type
+indicates the type of entity being initialized, or is NULL if the type
 is fully implied by the dynamic initialization entry (it is needed only
 when the thing being initialized is a reference).  If parenthesized_init
 is TRUE, put parentheses around the initializer; this is the
