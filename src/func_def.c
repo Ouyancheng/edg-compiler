@@ -261,27 +261,30 @@ a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_boolean          evaluated,
                                      a_routine_ptr      rout_ptr)
 /*
-Given a routine type, check that the return type is valid, issuing an
-error if not, and also set the routine calling method flag if appropriate.
-is_expr_use is TRUE if the function is being called or its address is
-being taken.  When is_expr_use is TRUE, evaluated is TRUE if the
-expression is in an evaluated context.  rout_ptr is a pointer to the
-routine that is being defined or called; may be NULL.
+Given a routine type, check that the return type is valid, issuing an error
+if not (additional checks are performed by add_to_derived_type_list).
+is_expr_use is TRUE if the function is being called or its address is being
+taken; otherwise, the function is being defined (nondefining declarations are
+checked by add_to_derived_type_list).  When is_expr_use is TRUE, evaluated is
+TRUE if the expression is in an evaluated context.  rout_ptr is a pointer to
+the routine that is being defined or called; may be NULL.
 */
 {
   a_type_ptr  return_type;
   a_boolean   err = FALSE;
   a_boolean   incomplete_type_error = FALSE;
+  a_type_ptr  orig_return_type;
 
   rout_type = skip_typerefs(rout_type);
-  return_type = rout_type->variant.routine.return_type;
+  orig_return_type = rout_type->variant.routine.return_type;
+  return_type = skip_typerefs(orig_return_type);
   /* 3.7.1, constraints: The return type of a function shall be void
      or an object type other than array.  See also the constraints of
      3.5.4.3 on function declarators, enforced previously by
      add_to_derived_type_list.  In addition, a reference type (including a
      reference to an array or function) may also be returned (ARM 8.2.5). */
   if (is_void_type(return_type)) {
-    if (is_qualified_type(return_type) && !is_expr_use &&
+    if (is_qualified_type(orig_return_type) && !is_expr_use &&
         C_mode() && strict_ansi_mode) {
       /* In strict C mode a void return type on a function definition cannot
          have a qualifier. */
@@ -304,11 +307,11 @@ routine that is being defined or called; may be NULL.
                       !is_function_type(return_type));
       if (is_incomplete_type(return_type)) {
         if (microsoft_bugs && !evaluated &&
-            is_class_struct_union_type(return_type)) {
+            is_immediate_class_type(return_type)) {
           /* MSVC++ allows a function call returning an incomplete class type
              in a not-evaluated context. */
           pos_ty_warning(ec_incomplete_class_return_type, err_pos,
-                         return_type);
+                         orig_return_type);
         } else {
           a_routine_type_supplement_ptr  rtsp = rout_type->
                                                  variant.routine.extra_info;
@@ -330,10 +333,19 @@ routine that is being defined or called; may be NULL.
            !is_array_type(return_type)) ||
           is_reference_type(return_type)) {
         /* err = FALSE; */
+        if (gpp_mode && is_immediate_class_type(return_type) &&
+            return_type->variant.class_struct_union.abstract) {
+          /* In GNU C++ mode, we only check for abstract return types on
+             function definitions.  In other C++ modes, this is done whenever
+             a function type is created. */
+          report_abstract_class_error(ec_function_returning_abstract_class,
+                                      orig_return_type, err_pos);
+          err = TRUE;
+        }  /* if */
       } else {
         err = TRUE;
-        if (is_class_struct_union_type(return_type) &&
-               is_incomplete_type(return_type)) {
+        if (is_immediate_class_type(return_type) &&
+            is_incomplete_type(return_type)) {
           incomplete_type_error = TRUE;
         } else {
           pos_error(ec_bad_function_return_type, err_pos);
@@ -346,11 +358,11 @@ routine that is being defined or called; may be NULL.
         /* We know the routine that is being defined or called. */
         pos_syty_error(ec_incomplete_function_return_type, err_pos,
                        (a_symbol_ptr)rout_ptr->source_corresp.assoc_info,
-                       return_type);
+                       orig_return_type);
       } else {
         /* The name of the function is not available, presumably because it
            is called through a pointer-to-function variable. */
-        pos_ty_error(ec_incomplete_return_type, err_pos, return_type);
+        pos_ty_error(ec_incomplete_return_type, err_pos, orig_return_type);
       }  /* if */
     }  /* if */
   }  /* if */

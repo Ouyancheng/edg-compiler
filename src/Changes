@@ -1,5 +1,19 @@
 Version 3.6
 
+2/10/05  GNU C++ compatibility: Abstract class return types
+
+GNU C++ compilers only diagnose abstract class return types on function
+definitions (standard C++ makes such return types invalid on all return
+type declarations).  The front end now emulates this behavior in GNU C++
+mode.  For example:
+
+  struct A { virtual ~A() = 0; };
+  A f();              // Accepted in GNU C++ mode (error in other modes).
+  typedef A (*PF)();  // Accepted in GNU C++ mode (error in other modes).
+  A f(A *p) {         // Error in all modes.
+    return *p;
+  };
+
 2/9/05   GNU C++ compatibility: Static data members in unnamed class types
 
 In GNU C++ mode, the front end now accepts static data members in unnamed

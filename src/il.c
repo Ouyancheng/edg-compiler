@@ -13334,11 +13334,15 @@ the case if the return type was incomplete at the point of definition.
              for abstract classes.  Also note that this logic assumes that
              value_returned_by_cctor will never be set elsewhere. */
           if (return_type->variant.class_struct_union.abstract) {
-            if (err_pos->seq == 0) {
+            if (err_pos->seq == 0 || gpp_mode) {
               /* A null error position indicates a routine type for which
                  there is no corresponding source position -- e.g., a type
                  is being copied for some reason.  Issue no diagnostic in
                  such cases. */
+              /* GNU C++ compilers only check for abstract class return types
+                 on function definitions.  We don't know at this point whether
+                 we're dealing with a definition.  So a separate test will be
+                 performed when parsing the definition. */
             } else {
               report_abstract_class_error(ec_function_returning_abstract_class,
                                           return_type, err_pos);
