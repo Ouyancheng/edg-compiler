@@ -13821,6 +13821,36 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
   }  /* if */
 }  /* set_curr_token_to_function_name_string */
 
+#if BACK_END_IS_CP_GEN_BE
+
+static char *spelling_for_function_name_token(a_token_kind token)
+/*
+Return the spelling of the function-name token for the indicated
+token kind, e.g., __FUNCTION__ for tok_function_name.  The string
+returned is not in the IL and must be copied if needed there.
+*/
+{
+  char *name;
+
+  name = token_names[(int)token];
+  switch (token) {
+    case tok_func_name:
+    case tok_function_name:
+    case tok_decorated_function_name:
+      break;
+    case tok_pretty_function_name:
+      if (microsoft_mode) {
+        /* In Microsoft mode, __PRETTY_FUNCTION__ is __FUNCSIG__. */
+        name = "__FUNCSIG__";
+      }  /* if */
+      break;
+    default:
+      unexpected_condition_str("spelling_for_function_name_token: bad token");
+  }  /* switch */
+  return name;
+}  /* spelling_for_function_name_token */
+
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 static void make_function_name_operand(an_operand *result)
 /*
@@ -13834,10 +13864,11 @@ which of the various keywords was used.
   a_variable_ptr           *name_var_ptr;
   a_generated_entity_block *gen_entity_block;
   a_constant_ptr           name_string;
+  a_token_kind             func_name_token = curr_token;
 
   /* Decide whether this keyword is equivalent to a string literal
      or a static variable. */
-  is_string = token_is_function_name_string_literal(curr_token);
+  is_string = token_is_function_name_string_literal(func_name_token);
   if (innermost_function_scope == NULL) {
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
@@ -13878,7 +13909,7 @@ which of the various keywords was used.
     }  /* if */
     /* See if the variable for the current function has already been
        created. */
-    switch (curr_token) {
+    switch (func_name_token) {
       case tok_func_name:
       case tok_function_name:
         name_var_ptr = &gen_entity_block->function_name;
@@ -13917,8 +13948,19 @@ which of the various keywords was used.
     var_type = make_qualified_type(name_string->type, TQ_CONST);
     name_var = make_variable(var_type, (a_storage_class)sc_static,
                              depth_innermost_function_scope);
-    name_var->source_corresp.name =
-                                locator_for_curr_id.symbol_header->identifier;
+#if BACK_END_IS_CP_GEN_BE
+    {
+      /* The name of the variable is the token name, e.g., __FUNCTION__.
+         Therefore references to the variable will look like the
+         original source code.  Note that the declaration of the
+         variable will not be put out because no source sequence
+         entry is created. */
+      char *var_name = spelling_for_function_name_token(func_name_token);
+      name_var->source_corresp.name = strcpy(
+                   alloc_primary_file_scope_il((sizeof_t)strlen(var_name) + 1),
+                   var_name);
+    }
+#endif /* BACK_END_IS_CP_GEN_BE */
     name_var->source_corresp.is_local_to_function = TRUE;
     name_var->init_kind = (an_init_kind)initk_static;
     name_var->initializer.constant = name_string;

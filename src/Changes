@@ -1,5 +1,29 @@
 Version 3.4
 
+11/18/03 C++-generating back end, __FUNCTION__ and the like
+
+The C++-generating back end incorrectly passed through
+references to the name of the current function (e.g.,
+__FUNCTION__, __PRETTY_FUNCTION__) in contexts like
+member function bodies.  They came out as references to
+the identifier that appeared most recently preceding
+the function-name reference.  Now fixed.
+
+  void g(const char *);
+  struct A {
+    void f() { g(__FUNCTION__); }  // Output was g(g)
+  } a;
+  int main() {
+    a.f();
+  }
+
+The bug was in the name given to a generated variable,
+so this problem was actually visible even in versions
+that do not use the C++-generating back end, though
+usually the incorrect name was harmless.  For
+non-C++-generating back end versions, the variable
+now has no name.
+
 11/17/03 Error on non-POD class type fetched by built-in va_arg
 
 An error is now issued on a va_arg for a non-POD class type
