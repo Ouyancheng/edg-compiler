@@ -4351,6 +4351,10 @@ and record it in the class's assoc_operator_delete_routine field.
       delete_function_symbol = 
                            opname_function_symbol((an_opname_kind)onk_delete);
     }  /* if */
+    /* Since delete cannot be overloaded, the symbol should not be overloaded
+       and should not be a function template. */
+    check_assertion(delete_function_symbol != NULL &&
+                    is_function_symbol(delete_function_symbol));
     
     ctsp->assoc_operator_delete_routine =
                                    delete_function_symbol->variant.routine.ptr;
@@ -5870,7 +5874,15 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             if (dso_flags & DSO_CONSTRUCTOR) {
               declarator_input_flags |= DI_IS_CONSTRUCTOR;
             }  /* if */
-            if (member_storage_class != (a_storage_class)sc_static) {
+            if (member_storage_class == (a_storage_class)sc_typedef) {
+              declarator_input_flags |= DI_IS_TYPEDEF_DECLARATION;
+            } else if (member_storage_class != (a_storage_class)sc_static) {
+              /* The storage class "static" was not specified and it is not
+                 a typedef declaration.   Therefore, if this turns out to be
+                 a member function declaration, it will be a nonstatic member
+                 function.  This is important because when the routine type
+                 is created, function_declarator needs to know whether to
+                 add an implicit this-param pointer to the type. */
               declarator_input_flags |= DI_NONSTATIC_MEMBER;
             }  /* if */
             if (friend_specified) {
@@ -5921,6 +5933,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     virtual_specified = FALSE;
                     suppress_pure_specifier_error = TRUE;
                   }  /* if */
+                  member_storage_class = (a_storage_class)sc_unspecified;
                 }  /* if */
               } else {
                 if ((is_constructor || is_destructor) &&
@@ -5973,6 +5986,76 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               }  /* if */
               spec_kind = (a_special_function_kind)sfk_none;
               function_def_present = (curr_token == tok_lbrace);
+              if (local_type == member_type) {
+                /* When scanning the declarator does not change the type,
+                   we know this member is a function based on the specifier
+                   type alone.  This is only possible with a typedef name that
+                   represents a function type.  Such typedef types do not
+                   (usually) have implicit this-param types.  Moreover, since
+                   they are shared, they are unsuited to be the type of
+                   a defined function. */
+                a_type_ptr  rout_type = skip_typerefs(local_type);
+                a_boolean   copy_needed = TRUE;
+
+                if (cfront_compatibility_mode &&
+                    rout_type->variant.routine.extra_info->
+                                            implicit_this_param_type != NULL) {
+                  /* We have a situation in which a typedef has been declared
+                     like this:
+                            typedef void A::t(int);  // Nonstandard
+                     meaning "t" names a routine type taking an int argument
+                     and returning void and having an implicit this-param type
+                     of const-ptr-to-A.  (This "member function typedef" is
+                     not part of the language of the ARM  and is allowed for
+                     cfront compatibility only.)  The only supported use is
+                     to declare a pointer-to-member type, e.g.,
+                            t *pm;                   // Okay
+                     Whereas it is apparently being used here to declare a
+                     function, e.g.,
+                            t f;                     // Error
+                     Issue the error. */
+                  pos_sy_error(ec_bad_use_of_ptr_to_member_typedef,
+                               &decl_start_pos,
+                               (a_symbol_ptr)local_type->
+                                        source_corresp.assoc_info);
+                } else if (function_def_present) {
+                  /* Not legal to define a function with a typedef type. */
+                  pos_error(ec_function_type_must_come_from_declarator,
+                            &locator.source_position);
+                } else if (friend_specified ||
+                           member_storage_class ==
+                                           (a_storage_class)sc_static) {
+                  /* No copy is needed. */
+                  copy_needed = FALSE;
+                }  /* if */
+                if (copy_needed) {
+                  /* Build a copy of the routine type so as to have a
+                     non-shared routine type entry. */
+                  local_type = alloc_type((a_type_kind)tk_routine);
+                  copy_routine_type_with_param_types(rout_type, local_type);
+                  if (!friend_specified &&
+                      member_storage_class != (a_storage_class)sc_static) {
+                    /* This is a nonstatic member function declared through
+                       a typedef.  Be sure the implicit this-param type is
+                       filled in, since that's the only way a nonstatic
+                       member function is distinguished from a static member
+                       function. */
+                    a_type_ptr tp;
+
+                    tp = make_pointer_type(class_type);
+                    tp = make_qualified_type(tp, /*is_const=*/TRUE,
+                                             /*is_volatile=*/FALSE);
+                    local_type->variant.routine.extra_info->
+                                      implicit_this_param_type = tp;
+                  } else if (cfront_compatibility_mode) {
+                    /* Just in case this is a copy of the wierd
+                       cfront-compatibility typedef, clear out the implicit
+                       this-param pointer in the copied type entry. */
+                    local_type->variant.routine.extra_info->
+                                            implicit_this_param_type = NULL;
+                  }  /* if */
+                }  /* if */
+              }  /* if */
               if (friend_specified) {
                 rout_sym = decl_friend_function(&locator, class_type,
                                                 local_type, inline_specified);
@@ -6001,25 +6084,6 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               }  /* if */
               if (function_def_present) {
                 /* Next token indicates start of a function definition. */
-                if (local_type == member_type) {
-                  /* When scanning the declarator does not change the type,
-                     we know this member is a function based on the
-                     specifier type alone.  This is only possible with a
-                     typedef name that represents a function type.  Such a
-                     use is not legal, however, so issue the error. */
-                  a_type_ptr        new_type, old_type;
-
-                  pos_error(ec_function_type_must_come_from_declarator,
-                            &locator.source_position);
-                  /* Build a copy of the routine type so as to have a
-                     non-shared routine type entry. */
-                  /* The type was probably from a typedef -- skip past that. */
-                  old_type = rout_sym->variant.routine.ptr->type;
-                  old_type = skip_typerefs(old_type);
-                  new_type = alloc_type((a_type_kind)tk_routine);
-                  copy_routine_type_with_param_types(old_type, new_type);
-                  rout_sym->variant.routine.ptr->type = new_type;
-                }  /* if */
                 if (rout_sym->defined) {
                   pos_sy_error(ec_function_redefinition,
                                &locator.source_position, rout_sym);

@@ -1770,8 +1770,8 @@ scope is that of a class definition.
                             &dummy_storage_class, &dummy_type_ptr);
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
-         function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer to member function
-         are permitted. */
+         function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer
+         to member function are permitted. */
       if (member_function_parent_type == NULL ||
           (!is_nonstatic_member_function &&
            scope_stack[decl_scope_level].kind ==
@@ -3991,7 +3991,7 @@ on a prior declaration.
        into type_ptr:  it is always wrong for nonstatic member functions. */
     rp = sym->variant.routine.ptr;
     type_ptr->variant.routine.extra_info->implicit_this_param_type =
-               rp->type->variant.routine.extra_info->implicit_this_param_type;
+           (*old_type)->variant.routine.extra_info->implicit_this_param_type;
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
@@ -4417,13 +4417,66 @@ Only the first form is accepted in C.
            pointer to a pointer type or a reference to a pointer type). */
         a_type_ptr  temp_type = skip_typerefs(complete_type);
         if (curr_token == tok_star) {
-          if (is_reference_type(temp_type)) {
-            /* Type "pointer to reference to anything" is illegal. */
-            error(ec_pointer_to_reference);
-            err = TRUE;
+          if (cfront_compatibility_mode && is_function_type(temp_type) &&
+              temp_type != complete_type &&
+              (temp_type->variant.routine.extra_info->
+                                        implicit_this_param_type != NULL ||
+               complete_type->source_corresp.
+                                        class_of_which_a_member != NULL)) {
+            /* We have a situation in which a typedef has been declared
+               like this:
+                      typedef void A::t(int);  // Nonstandard typedef
+               (meaning "t" names a routine type taking an int argument and
+               returning void and having an implicit this-param type of
+               const-ptr-to-A) or like this:
+                      struct A {
+                        typedef void t(int);   // Okay
+                      };
+               (meaning "t" names a routine type taking an int argument and
+               returning void).  Cfront treats "t*" (both when t is declared
+               inside the class and when it is declared outside) as though
+               it had been a ptr-to-member declaration -- e.g.,
+                      t* pm = &A::f(int);
+               and
+                      void A::*pm(int) = &A::f(int);
+               have the very same meaning for cfront.  Although this is not
+               part of the language defined in the ARM, it is support for
+               cfront compatibility. */
+            a_type_ptr  class_type, tp, old_type;
+
+            /* Check for a this-param type in the routine type pointed to by
+               the typedef type. */
+            tp = temp_type->variant.routine.extra_info->
+                                       implicit_this_param_type;
+            if (tp != NULL) {
+              /* There was a this-param type.  Remove the pointer. */
+              class_type = type_pointed_to(tp);
+            } else {
+              /* There was no this-param type, so this is a typedef declared
+                 within a class.  Use the class to form the this-param type,
+                 and attach it to a clone of the original routine type. */
+              old_type = temp_type;
+              class_type = complete_type->
+                                      source_corresp.class_of_which_a_member;
+              temp_type = alloc_type((a_type_kind)tk_routine);
+              copy_routine_type_with_param_types(old_type, temp_type);
+              tp = make_pointer_type(class_type);
+              tp = make_qualified_type(tp, /*is_const=*/TRUE,
+                                       /*is_volatile=*/FALSE);
+              temp_type->variant.routine.extra_info->
+                                            implicit_this_param_type = tp;
+            }  /* if */
+            /* Form the pointer-to-member type. */
+            complete_type = ptr_to_member_type(temp_type, class_type);
+          } else {
+            if (is_reference_type(temp_type)) {
+              /* Type "pointer to reference to anything" is illegal. */
+              error(ec_pointer_to_reference);
+              err = TRUE;
+            }  /* if */
+            complete_type = make_pointer_type(err ? error_type() :
+                                                    complete_type);
           }  /* if */
-          complete_type = make_pointer_type(err ? error_type() :
-                                                  complete_type);
         } else {
           if (is_reference_type(temp_type)) {
             /* Type "reference to reference" is illegal. */
@@ -4700,6 +4753,39 @@ otherwise it is NULL.  The syntax is:
         options = GID_DISALLOW_GLOBAL_QUALIFIER | GID_SUPPRESS_ACCESS_ERRORS;
         if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
           options |= GID_DISALLOW_QUALIFIED_NAME;
+        }  /* if */
+        if (cfront_compatibility_mode) {
+          /* Provide support for an exploitable cfront bug. */
+          if (locator_for_curr_id.is_qualified_name &&
+              locator_for_curr_id.qualifier_class_type != NULL &&
+              input_flags & DI_IS_TYPEDEF_DECLARATION &&
+              next_token() == tok_lparen) {
+            /* We have a typedef declaration involving what appears to be a
+               qualified name, but cfront interprets it as a kind of member
+               routine type, e.g.,
+                   typedef void A::t(int);
+                                   ^---------We're here now.
+               The type "t" is construed as a routine type taking an int
+               argument and returning void and having an implicit this-param
+               type of const-ptr-to-A.  Note that this syntax and
+               interpretation are not supported in the ARM.  We allow it
+               under cfront compatibility mode only. */
+#if CHECKING
+            if (locator_for_curr_id.specific_symbol != NULL) {
+              internal_error("declarator: unexpected locator state");
+            }  /* if */
+#endif /* CHECKING */
+            /* Force function_declarator to add an implicit-this-param pointer
+               to the routine type. */
+            member_parent_type = locator_for_curr_id.qualifier_class_type;
+            is_nonstatic_member_function = TRUE;
+            /* Toss out the qualifier. */
+            locator_for_curr_id.qualifier_class_type = NULL;
+            locator_for_curr_id.is_qualified_name = FALSE;
+            /* Issue a warning. */
+            pos_warning(ec_ptr_to_member_typedef,
+                        &locator_for_curr_id.source_position);
+          }  /* if */
         }  /* if */
         /* The declarator may be a qualified name or a normal name. */
         if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
@@ -8233,6 +8319,9 @@ continue_with_declaration:
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
       }  /* if */
     }  /* if */
+    if (storage_class == (a_storage_class)sc_typedef) {
+      di_flags |= DI_IS_TYPEDEF_DECLARATION;
+    }  /* if */
     /* Scan the declarator list. */
     do {
       add_stop_token(tok_comma);
@@ -8297,6 +8386,27 @@ continue_with_declaration:
          declarator was scanned. */
       top_declarator_type_is_function = (is_function &&
 				         local_type_ptr != type_ptr);
+      if (is_function && !top_declarator_type_is_function &&
+          cfront_compatibility_mode) {
+        a_type_ptr                     tp = skip_typerefs(local_type_ptr);
+        a_routine_type_supplement_ptr  rtsp = tp->variant.routine.extra_info;
+
+        /* Check for the declaration of a function with a typedef type that
+           is supposed to be used only for pointer-to-member declarations
+           (and only in cfront compatibility mode). */
+        if (rtsp->implicit_this_param_type != NULL) {
+          pos_sy_error(ec_bad_use_of_ptr_to_member_typedef, &decl_start_pos,
+                       (a_symbol_ptr)local_type_ptr->
+                                        source_corresp.assoc_info);
+                       
+          /* Replace the type with one that does not have an implicit
+             this param. */
+          local_type_ptr = alloc_type((a_type_kind)tk_routine);
+          copy_routine_type_with_param_types(tp, local_type_ptr);
+          local_type_ptr->variant.routine.extra_info->
+                                       implicit_this_param_type = NULL;
+        }  /* if */
+      }  /* if */
       if (C_dialect == C_dialect_cplusplus && defines_something) {
         /* The ARM (8.2.5) explicitly prohibits defining a type in a
            function return type.  This is taken to apply to pointer-to-function
