@@ -2417,8 +2417,9 @@ Adjust its name so it will be unique at the file scope.
   char     *mangled_name, *store_at;
   char     scope_num_buffer[50];
 
-  /* Leave the name alone if the type is unnamed. */
-  if (has_name(type)) {
+  /* Leave the name alone if the type is unnamed or if the name has
+     already been mangled (e.g., for a local nested class). */
+  if (has_name(type) && !type->source_corresp.name_has_been_mangled) {
     /* The encoding is the original type name, two underscores, the
        mangled name of the routine, and "__Lnn" where "nn" is the
        scope number. */
