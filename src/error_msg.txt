@@ -826,6 +826,7 @@ ec_anon_union_class_member_template;;"invalid anonymous union -- class member te
 ec_template_depth_mismatch;;"template nesting depth does not match the previous declaration of %n"
 ec_multiple_template_decls_not_allowed;;"this declaration cannot have multiple \"template <...>\" clauses"
 ec_cl_old_for_variable_scope_option_only_in_cplusplus;;"option to control the for-variable scope can be used only when compiling C++"
+ec_redeclaration_of_for_init_decl_name;;"%sq, declared in for-loop initialization, may not be redeclared in this scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
