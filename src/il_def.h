@@ -3380,7 +3380,11 @@ typedef struct a_new_delete_supplement {
 			   delete. */
   a_routine_ptr	routine;
 			/* Routine to call to do allocation (new) or
-			   deallocation (delete). */
+			   deallocation (delete).  NULL if the new or delete
+			   is for an array whose elements are a class type
+			   with a constructor or destructor, and the new
+			   or delete has been folded into the runtime
+			   routine. */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR
 			/* NULL if the new or delete has been folded into a
 			   constructor or destructor call.  If NULL,
