@@ -39,6 +39,9 @@ extern a_symbol_ptr matching_template_function
                                    a_type_ptr          curr_type,
                                    a_source_position   *source_pos);
 
+extern void record_predeclared_template_function(a_symbol_ptr  templ_sym,
+                                                 a_symbol_ptr  rout_sym);
+
 extern void instantiate_template_class(a_type_ptr  type);
 
 extern void instantiate_template_function(
