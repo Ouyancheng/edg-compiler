@@ -2938,7 +2938,8 @@ body.  Only called in C++ mode.
     /* Now go though each routine entry for the current class. */
     for (rp = scope->routines; rp != NULL; rp = rp->next) {
       sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-      if (!(routine_defined(rp) || sym->defined) && !rp->compiler_generated) {
+      if (!(routine_defined(rp) || (sym != NULL && sym->defined)) &&
+          !rp->compiler_generated) {
         /* An undefined member function. */
         is_inline_virtual =
                     (rp->is_inline && rp->is_virtual && !rp->pure_virtual);
