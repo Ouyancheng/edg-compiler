@@ -2329,21 +2329,19 @@ the block statement.
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
   block->end_of_block_reachable = curr_reachability.reachable;
+  /* Pop the statement stack. */
+  pop_stmt_stack();
   if (block_stmt_is_cfront_dependent_stmt(block_stmt)) {
     /* cfront mode dependent statement. */
-    /* Pop the statement stack. */
-    pop_stmt_stack();
     (void)pop_object_lifetime();
   } else {
-    /* Store the IL scope pointer in the block.  This is NULL except for
-       blocks with declarations. */
+    /* Store the IL scope pointer in the block.  This is usually NULL for
+       blocks with no declarations. */
     scope_ptr = scope_stack[decl_scope_level].il_scope;
     if (scope_ptr != NULL) {
       block->assoc_scope = scope_ptr;
       scope_ptr->assoc_block = block_stmt;
     }  /* if */
-    /* Pop the statement stack. */
-    pop_stmt_stack();
     /* Pop the name scope. */
     pop_scope();
   }  /* if */
