@@ -685,7 +685,7 @@ do
       # templates.  Construct the new .ii file.
       ii_tmp_file=$TMPDIR/$$edgII
       sed -e "1,3 d" $ii_file_name >$ii_tmp_file
-      echo $instantiation_command_line $cfile >$ii_file_name
+      echo $instantiation_command_line >$ii_file_name
       if [ $old_ii_format -ne 1 ] ; then
         pwd >>$ii_file_name
 	echo $cfile >>$ii_file_name

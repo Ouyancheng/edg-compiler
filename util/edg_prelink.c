@@ -1791,19 +1791,21 @@ the file is flagged as requiring recompilation.
 }  /* pl_determine_actions */
 
 
-static int pl_recompile_file(char		 *command_line)
+static int pl_recompile_file(char	*command_line,
+                             char	*file_name)
 /*
 Execute the command to recompile a file.
 */
 {
-  static char	*shell_format_string = "%s";
+  static char	*shell_format_string = "%s %s";
   sizeof_t	length;
   char		*command;
   int		result;
 
-  length = strlen(shell_format_string) + strlen(command_line);
+  length = strlen(shell_format_string) + strlen(command_line) +
+           strlen(file_name);
   command = (char *)pl_malloc_with_check(length);
-  sprintf(command, shell_format_string, command_line);
+  sprintf(command, shell_format_string, command_line, file_name);
   fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix, command);
   fflush(stdout);
   result = system(command);
@@ -1870,7 +1872,8 @@ has changed then write the updated list of instantiations to the file.
 #if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
         (void)unlink(pifp->filename);
 #endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
-        return_status = pl_recompile_file(reserved_lines[0]);
+        return_status = pl_recompile_file(reserved_lines[0],
+                                          reserved_lines[2]);
         /* Stop if an error occurs. */
         if (return_status != 0) break;
       }  /* if */
