@@ -185,6 +185,7 @@ purposes.
 */
 {
   a_dynamic_init_ptr  dip;
+  a_label_ptr         label;
 
   switch (cfdp->kind) {
     case cfdk_block:
@@ -218,16 +219,28 @@ purposes.
       }  /* if */
       break;
     case cfdk_goto:
-      fprintf(f_debug, "goto %s (#%lu, line %lu)",
-              cfdp->variant.goto_statement.ptr->
-                           variant.label.ptr->source_corresp.name,
-              cfdp->id_number, cfdp->source_pos.seq);
+      label = cfdp->variant.goto_statement.ptr->variant.label.ptr;
+      if (label->continue_label) {
+        fputs("continue", f_debug);
+      } else if (label->break_label) {
+        fputs("break", f_debug);
+      } else {
+        fprintf(f_debug, "goto %s", label->source_corresp.name);
+      }  /* if */
+      fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
+              cfdp->source_pos.seq);
       break;
     case cfdk_label:
-      fprintf(f_debug, "label \"%s\" (#%lu, line %lu)",
-              cfdp->variant.label_statement->
-                           variant.label.ptr->source_corresp.name,
-              cfdp->id_number, cfdp->source_pos.seq);
+      label = cfdp->variant.label_statement->variant.label.ptr;
+      if (label->continue_label) {
+        fputs("continue label", f_debug);
+      } else if (label->break_label) {
+        fputs("break label", f_debug);
+      } else {
+        fprintf(f_debug, "label \"%s\"", label->source_corresp.name);
+      }  /* if */
+      fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
+              cfdp->source_pos.seq);
       break;
     case cfdk_init:
       fprintf(f_debug, "initialization");
@@ -339,6 +352,25 @@ of parent block, and the control flow entry itself.
   }  /* for */
   db_cfd(cfdp);
 }  /* db_cfd_with_indentation */
+
+
+static void db_ssse_with_indentation(a_struct_stmt_kind  kind,
+                                     char                *str)
+{
+  fprintf(f_debug, "SS-%.4d    %*.10s", (int)pos_curr_token.seq,
+         strlen(str)+2*depth_stmt_stack, str);
+  switch (kind) {
+    case ssk_compound:   str = "compound";   break;
+    case ssk_if:         str = "if";         break;
+    case ssk_switch:     str = "switch";     break;
+    case ssk_while:      str = "while";      break;
+    case ssk_do:         str = "do";         break;
+    case ssk_for:        str = "for";        break;
+    case ssk_try_block:  str = "try_block";  break;
+    default:             str = "???"; break;
+  }  /* switch */
+  fprintf(f_debug, "ssk_%s\n", str);
+}  /* db_ssse_with_indentation */
 
 #endif /* DEBUG */
 
@@ -1610,13 +1642,74 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
 }  /* define_label */
 
 
+static an_object_lifetime_ptr common_object_lifetime(
+                                              an_object_lifetime_ptr  olp1,
+                                              an_object_lifetime_ptr  olp2)
+/*
+Return the innermost olk_block or olk_block_after_label lifetime that is
+common to olp1 and olp2.  This function should only be called in C++ mode.
+*/
+{
+  an_object_lifetime_ptr  olp;
+
+  /* The outer loop follows olp2 and its parent lifetimes. */
+  for (; olp2 != function_scope_object_lifetime;
+         olp2 = innermost_block_object_lifetime(olp2->parent_lifetime)) {
+    /* The inner loop follows olp1 and its parent lifetimes. */
+    for (olp = olp1;
+         olp != function_scope_object_lifetime;
+         olp = innermost_block_object_lifetime(olp->parent_lifetime)) {
+      if (olp == olp2) {
+        /* Found a match. */
+        goto done;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+done:
+  return olp2;
+}  /* common_object_lifetime */
+
+
+static void define_implicit_label(a_label_ptr               label,
+                                  a_control_flow_descr_ptr  goto_cfdp)
+/*
+Define the specified label, which (if non-null) will have been referenced
+by one or more goto statements represented by the linked list of control
+flow entries headed by goto_cfdp.
+*/
+{
+  an_object_lifetime_ptr         label_olp, *goto_olp_addr;
+  a_control_flow_descr_ptr       cfdp;
+
+  define_label(label);
+  if (!C_mode()) {
+    cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_label);
+    cfdp->variant.label_statement = label->variant.exec_stmt;
+    cfdp->source_pos = pos_curr_token;
+    add_to_control_flow_descr_list(cfdp);
+    label_olp = innermost_block_object_lifetime(curr_object_lifetime);
+    label->variant.exec_stmt->variant.label.lifetime = label_olp;
+    for (; goto_cfdp != NULL;
+           goto_cfdp = goto_cfdp->variant.goto_statement.prev_goto) {
+      goto_olp_addr = &goto_cfdp->variant.goto_statement.ptr->
+                                               variant.label.lifetime;
+      *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
+    }  /* for */
+  }  /* if */
+}  /* define_implicit_label */
+
+
 static void define_continue_label(void)
 /*
 Define the "continue" label for the current structured statement,
 if it has been used.
 */
 {
-  define_label(struct_stmt_stack[depth_stmt_stack].continue_label);
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
+
+  if (sssep->continue_label != NULL) {
+    define_implicit_label(sssep->continue_label, sssep->continue_statements);
+  }  /* if */
 }  /* define_continue_label */
 
 
@@ -1744,7 +1837,9 @@ current structured statement.
   sssep->curr_decl_statement  = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sssep->break_label          = NULL;
+  sssep->break_statements     = NULL;
   sssep->continue_label       = NULL;
+  sssep->continue_statements  = NULL;
   sssep->switch_selector_type = NULL;
   sssep->switch_has_default_clause
                               = FALSE;
@@ -1761,6 +1856,11 @@ current structured statement.
   sssep->extra_block_insert_loc      = NULL;
 #endif /* if 0 */
   sssep->depth_of_assoc_scope        = NO_SCOPE_DEPTH;
+#if DEBUG
+  if (db_flag_is_set("dump_control_flow")) {
+    db_ssse_with_indentation(kind, "pushing ");
+  }  /* if */
+#endif /* DEBUG */
   if (kind == ssk_compound && !sp->dependent_statement) {
     sssep->depth_of_assoc_scope = depth_scope_stack;
   } else {
@@ -1988,6 +2088,8 @@ a structured statement has ended.
   register a_struct_stmt_stack_entry_ptr sssep;
   a_struct_stmt_kind                     kind;
   a_statement_ptr                        sp;
+  a_label_ptr                            break_label;
+  a_control_flow_descr_ptr               break_statements;
   
   db_enter(4, "pop_stmt_stack");
   sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -2039,15 +2141,23 @@ a structured statement has ended.
        is properly bound to an IL entry. */
     terminate_curr_block_object_lifetime(sssep);
   }  /* if */
+  break_label = sssep->break_label;
+  break_statements = sssep->break_statements;
+#if DEBUG
+  if (db_flag_is_set("dump_control_flow")) {
+    db_ssse_with_indentation(kind, "popping ");
+  }  /* if */
+#endif /* DEBUG */
   /* Pop the stack. */
   depth_stmt_stack--;
-  if (depth_stmt_stack > -1) {
-    /* If the break label for this statement was referenced, generate 
-       its definition now.  This must be done after depth_stmt_stack is
-       decremented so that the label will appear outside the structured
-       statement.  It must also be done after curr_reachability has been
-       adjusted. */
-    define_label(sssep->break_label);
+  /* If the break label for this statement was referenced, generate 
+     its definition now.  This must be done after depth_stmt_stack is
+     decremented so that the label will appear outside the structured
+     statement.  It must also be done after curr_reachability has been
+     adjusted. */
+  if (break_label != NULL) {
+    check_assertion(depth_stmt_stack > -1);
+    define_implicit_label(break_label, break_statements);
   }  /* if */
   db_exit();
 }  /* pop_stmt_stack */
@@ -2847,7 +2957,7 @@ diagnose the condition.
 {
   a_control_flow_descr_ptr  cfdp, start_cfdp, common_parent;
   an_error_severity         severity;
-  a_statement_ptr           label_stmt, goto_stmt;
+  an_object_lifetime_ptr    label_olp, *goto_olp_addr;
 
   db_enter(4, "check_goto_and_label");
   if (is_forwards && goto_cfdp->variant.goto_statement.prev_goto != NULL) {
@@ -3014,40 +3124,11 @@ diagnose the condition.
     /* Find the common object lifetime containing both the goto statement and
        the label, and update the goto statement's lifetime field to point to
        it. */
-    an_object_lifetime_ptr  goto_olp, label_olp, olp;
+    label_olp = label_cfdp->variant.label_statement->variant.label.lifetime;
+    goto_olp_addr = &goto_cfdp->variant.goto_statement.ptr->
+                                                      variant.label.lifetime;
+    *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
 
-    label_stmt = label_cfdp->variant.label_statement;
-    label_olp = label_stmt->variant.label.lifetime;
-    goto_stmt = goto_cfdp->variant.goto_statement.ptr;
-    goto_olp = goto_stmt->variant.label.lifetime;
-    /* The outer loop follows parent pointers in the object lifetime for the
-       goto statement. */
-    while (goto_olp != function_scope_object_lifetime) {
-      /* The inner loop follows parent pointers in the object lifetime for
-         the label. */
-      olp = label_olp;
-      for (;;) {
-        /* Skip lifetime entries that are not going to be kept in the IL. */
-        olp = innermost_keepable_lifetime(olp);
-        if (olp == goto_olp) {
-          /* Found a match. */
-          goto update_goto_stmt;
-        }  /* if */
-        if (olp == function_scope_object_lifetime) {
-          /* Stop the inner loop if the function scope object lifetime is
-             reached without a match. */
-          break;
-        }  /* if */
-        /* Advance up the parent lifetime chain for the label. */
-        olp = olp->parent_lifetime;
-      }  /* for */
-      /* Advance up the parent lifetime chain for the goto statement, skipping
-         lifetime entries that are not going to be kept in the IL. */
-      goto_olp = innermost_keepable_lifetime(goto_olp->parent_lifetime);
-    }  /* while */
-update_goto_stmt:
-    /* Enter the match in the goto statement. */
-    goto_stmt->variant.label.lifetime = goto_olp;
   }  /* if */
 #if 0
   if (is_forwards) {
@@ -3098,8 +3179,7 @@ condition is not recognized till the label statement is reached.
   } else {
     /* This is a goto to the label. */
     /* Allocate and fill in a goto entry. */
-    goto_cfdp = alloc_control_flow_descr(
-                                     (a_control_flow_descr_kind)cfdk_goto);
+    goto_cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
     goto_cfdp->source_pos = *pos;
     goto_cfdp->variant.goto_statement.ptr = sp;
     add_to_control_flow_descr_list(goto_cfdp);
@@ -3191,6 +3271,7 @@ See also 3.6.6.2.
   register a_statement_ptr      sp;
   a_struct_stmt_stack_entry_ptr sssep;
   a_label_ptr                   dest_label;
+  a_control_flow_descr_ptr      cfdp;
 
   db_enter(3, "continue_statement");
   check_for_unreachable_code();
@@ -3216,6 +3297,20 @@ See also 3.6.6.2.
     stmt_update_source_sequence_list(sp);
     /* Put the destination label into the goto. */
     sp->variant.label.ptr = dest_label;
+    if (!C_mode()) {
+      /* Set the object lifetime.  It is a provisional setting and may be
+         changed based on the lifetime of the continue label itself. */
+      sp->variant.label.lifetime =
+                        innermost_block_object_lifetime(curr_object_lifetime);
+      /* Allocate and fill in a goto entry.  This is done in C++ mode only
+         because it's only needed for object lifetime management. */
+      cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
+      cfdp->source_pos = pos_curr_token;
+      cfdp->variant.goto_statement.ptr = sp;
+      add_to_control_flow_descr_list(cfdp);
+      cfdp->variant.goto_statement.prev_goto = sssep->continue_statements;
+      sssep->continue_statements = cfdp;
+    }  /* if */
     /* Do processing required for any pragmas that are bound to the current
        statement. */
     process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
@@ -3247,6 +3342,7 @@ See also 3.6.6.3.
   register a_statement_ptr      sp;
   a_struct_stmt_stack_entry_ptr sssep;
   a_label_ptr                   dest_label;
+  a_control_flow_descr_ptr      cfdp;
 
   db_enter(3, "break_statement");
   check_for_unreachable_code();
@@ -3292,6 +3388,20 @@ See also 3.6.6.3.
       stmt_update_source_sequence_list(sp);
       /* Put the destination label into the goto. */
       sp->variant.label.ptr = dest_label;
+      if (!C_mode()) {
+        /* Set the object lifetime.  It is a provisional setting and may be
+           changed based on the lifetime of the continue label itself. */
+        sp->variant.label.lifetime =
+                        innermost_block_object_lifetime(curr_object_lifetime);
+        /* Allocate and fill in a goto entry.  This is done in C++ mode only
+           because it's only needed for object lifetime management. */
+        cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
+        cfdp->source_pos = pos_curr_token;
+        cfdp->variant.goto_statement.ptr = sp;
+        add_to_control_flow_descr_list(cfdp);
+        cfdp->variant.goto_statement.prev_goto = sssep->break_statements;
+        sssep->break_statements = cfdp;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Ignore the initial "break". */

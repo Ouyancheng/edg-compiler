@@ -43,170 +43,8 @@ typedef struct a_reachability_summary {
 			   comment). */
 } a_reachability_summary;
 
-/*
-Stack indicating nesting of structured statements.  There is an entry
-on this stack for each current structured statement.  A structured statement
-is one that can contain other statements.
-*/
-typedef enum /*a_struct_stmt_kind*/ {
-  /* Types of structured statements. */
-  ssk_compound,		/* Compound statement, i.e., { ... }. */
-  ssk_if,		/* if statement. */
-  ssk_switch,		/* switch statement. */
-  ssk_while,		/* while (...) {} statement. */
-  ssk_do,		/* do {} while (...); statement. */
-  ssk_for,		/* for (...; ...; ...) {} statement. */
-  ssk_try_block		/* try compound-stmt handler-seq statement. */
-} a_struct_stmt_kind;
 
-typedef struct a_struct_stmt_stack_entry *a_struct_stmt_stack_entry_ptr;
-typedef struct a_struct_stmt_stack_entry {
-  /* An entry on the structured statement stack, describing one
-     current structured statement. */
-  a_struct_stmt_kind
-		kind;	/* Kind of structured statement. */
-  a_boolean	in_else_of_if;
-			/* TRUE when kind == ssk_if and we are in the
-			   "else" clause. */
-  a_statement_ptr
-		statement;
-			/* The associated IL statement.  Indirectly,
-			   also gives the pointer to the first dependent
-			   statement of the structured statement. */
-  a_switch_clause_ptr
-		curr_switch_clause;
-			/* When kind == stmk_switch, this points to the
-			   current switch clause, or is NULL if there
-			   is no current switch clause.  It is set only for
-			   simple clauses, those begun by case labels appearing
-			   directly within the switch statement or a top-level
-			   compound statement.  When kind != stmk_switch,
-			   if this statement is nested within a switch and
-			   it contains case labels, this points to the case
-			   clause for the case label most recently encountered;
-			   otherwise, it is NULL. */
-  a_statement_ptr
-		extra_block;
-			/* If non-NULL, points to an stmk_block statement
-			   added under the primary statement for this
-			   structured statement in order to allow attaching
-			   more than one statement under a statement that
-			   allows only one. */
-  a_statement_ptr
-		last_dep_statement;
-			/* Points to the last dependent statement under
-			   the structured statement (or under extra_block,
-			   if that is non-NULL).  NULL if there are
-			   no dependent statements. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_statement_ptr
-		curr_decl_statement;
-			/* When kind == ssk_compound, pointer to the current
-			   stmk_decl statement, if any, governing a series of
-			   declarations; when a statement that is not a
-			   declaration is reached, this pointer is cleared; it
-			   is reset once a new declaration is encountered. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_label_ptr	break_label,
-		continue_label;
-			/* Labels to be branched to for a break or
-			   continue out of this statement.  NULL until
-			   needed. */
-  a_type_ptr	switch_selector_type;
-			/* The type of the switch selector expression
-			   (int or long). */
-  unsigned int	switch_has_default_clause:1;
-			/* TRUE if the structured statement is a switch and
-			   it has a default clause. */
-  unsigned int	rout_type_explicitly_specified:1;
-			/* TRUE if the current routine was declared with an
-			   explicit return type.  This flag is set in the
-			   top level statement stack entry only. */
-  unsigned int	any_exec_statement_seen:1;
-			/* Within compound statements (blocks), TRUE if any
-			   executable statement (not declaration) has been
-			   seen. */
-  unsigned int  for_init:1;
-			/* TRUE if the structured statement is a for loop and
-			   the statement currently being processed is a
-			   for-init statement; FALSE otherwise. */
-  unsigned int	is_catch_clause:1;
-			/* TRUE if kind == ssk_compound and this structured
-			   statement represents the top level block of a
-			   catch clause. */
-  unsigned int	label_invalidates_curr_block_object_lifetime:1;
-			/* TRUE if kind == ssk_compound and the object
-			   lifetime pointed to by this entry has been
-			   invalidated by a label in an inner block. This
-			   flag will be cleared again once the required fixup
-			   has been done and the curr_block_object_lifetime
-			   pointer has been reset. */
-  a_reachability_summary
-		start_reachable;
-			/* Indicates whether or not the start of the structured
-			   statement is reachable. */
-  a_reachability_summary
-		end_reachable;
-			/* Indicates whether or not the end of the structured
-			   statement is reachable. */
-  an_object_lifetime_ptr
-		curr_block_object_lifetime;
-			/* If kind == ssk_compound, a pointer to the currently
-			   active object lifetime directly associated with
-			   this block (if any).  A lifetime is pushed when a
-			   block starts, but a label in the midst of the
-			   block "invalidates" the lifetime and a new one is
-			   pushed to replace it; this pointer then points to
-			   the new one. */
-  a_statement_ptr
-		extra_block_insert_loc;
-			/* If kind == ssk_compound, a (possibly NULL) pointer
-			   to a statement (either stmk_label or stmk_block)
-			   after which an extra block can be inserted to
-			   provide an IL entry to which a new object lifetime
-			   (i.e., one to which curr_block_object_lifetime is
-			   reset after a label) can bind (if it is needed). */
-  a_scope_depth depth_of_assoc_scope;
-			/* If kind == ssk_compound and a scope stack entry
-			   was pushed in conjuction with this structured
-			   statement stack entry, the depth of the former in
-			   the scope stack; NO_SCOPE_DEPTH otherwise. */
-} a_struct_stmt_stack_entry;
-
-EXTERN a_struct_stmt_stack_entry_ptr
-		struct_stmt_stack
-#if VAR_INITIALIZERS
-                                  = NULL
-#endif /* VAR_INITIALIZERS */
-                                        ;
-			/* The currently active structured statement stack
-			   itself.  The current entry is [depth_stmt_stack].
-			   Entry [0] is for the main block of the current
-			   function, if we are currently inside a function.
-			   Note that in C++ there can be more than one such
-			   stack, though only one is active at a time.  The
-			   struct_stmt_stack array is actually a subarray of
-			   struct_stmt_stack_container. */
-
-EXTERN int	depth_stmt_stack
-#if VAR_INITIALIZERS
-                                 = -1
-#endif /* VAR_INITIALIZERS */
-                                     ;
-			/* Index of the current entry in struct_stmt_stack.
-			   -1 if the stack is empty. */
-
-extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
-                                                 a_source_position  *stmt_pos);
-extern a_statement_ptr compound_statement(a_boolean at_function_level,
-                                          a_boolean explicit_return_type,
-                                          a_boolean is_catch_clause);
-
-extern void wrapup_control_flow_processing(a_scope_ptr  scope_ptr);
-
-extern void warn_if_code_is_unreachable(an_error_code      error_code,
-                                        a_source_position  *err_pos);
-
+typedef struct a_control_flow_descr *a_control_flow_descr_ptr;
 /*
 a_control_flow_desr is an entry used in tracking gotos, labels, and
 initializing declarations in order to diagnose errors in transferring
@@ -223,7 +61,7 @@ enum a_control_flow_descr_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_control_flow_descr_kind;
 
-typedef struct a_control_flow_descr *a_control_flow_descr_ptr;
+
 typedef struct a_control_flow_descr {
   a_control_flow_descr_ptr
 		next;
@@ -343,6 +181,181 @@ typedef struct a_control_flow_descr {
   } variant;
 } a_control_flow_descr;
 
+
+/*
+Stack indicating nesting of structured statements.  There is an entry
+on this stack for each current structured statement.  A structured statement
+is one that can contain other statements.
+*/
+typedef enum /*a_struct_stmt_kind*/ {
+  /* Types of structured statements. */
+  ssk_compound,		/* Compound statement, i.e., { ... }. */
+  ssk_if,		/* if statement. */
+  ssk_switch,		/* switch statement. */
+  ssk_while,		/* while (...) {} statement. */
+  ssk_do,		/* do {} while (...); statement. */
+  ssk_for,		/* for (...; ...; ...) {} statement. */
+  ssk_try_block		/* try compound-stmt handler-seq statement. */
+} a_struct_stmt_kind;
+
+typedef struct a_struct_stmt_stack_entry *a_struct_stmt_stack_entry_ptr;
+typedef struct a_struct_stmt_stack_entry {
+  /* An entry on the structured statement stack, describing one
+     current structured statement. */
+  a_struct_stmt_kind
+		kind;	/* Kind of structured statement. */
+  a_boolean	in_else_of_if;
+			/* TRUE when kind == ssk_if and we are in the
+			   "else" clause. */
+  a_statement_ptr
+		statement;
+			/* The associated IL statement.  Indirectly,
+			   also gives the pointer to the first dependent
+			   statement of the structured statement. */
+  a_switch_clause_ptr
+		curr_switch_clause;
+			/* When kind == stmk_switch, this points to the
+			   current switch clause, or is NULL if there
+			   is no current switch clause.  It is set only for
+			   simple clauses, those begun by case labels appearing
+			   directly within the switch statement or a top-level
+			   compound statement.  When kind != stmk_switch,
+			   if this statement is nested within a switch and
+			   it contains case labels, this points to the case
+			   clause for the case label most recently encountered;
+			   otherwise, it is NULL. */
+  a_statement_ptr
+		extra_block;
+			/* If non-NULL, points to an stmk_block statement
+			   added under the primary statement for this
+			   structured statement in order to allow attaching
+			   more than one statement under a statement that
+			   allows only one. */
+  a_statement_ptr
+		last_dep_statement;
+			/* Points to the last dependent statement under
+			   the structured statement (or under extra_block,
+			   if that is non-NULL).  NULL if there are
+			   no dependent statements. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_statement_ptr
+		curr_decl_statement;
+			/* When kind == ssk_compound, pointer to the current
+			   stmk_decl statement, if any, governing a series of
+			   declarations; when a statement that is not a
+			   declaration is reached, this pointer is cleared; it
+			   is reset once a new declaration is encountered. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_label_ptr	break_label;
+			/* Label to be branched to for a break out of this
+			   statement.  NULL until needed. */
+  a_control_flow_descr_ptr
+		break_statements;
+			/* Pointer to a linked list of control flow entries
+			   identifying the break statements (if any) in this
+			   structured statement. */
+  a_label_ptr	continue_label;
+			/* Label to be branched to for a continue of this loop
+			   statement.  NULL until needed. */
+  a_control_flow_descr_ptr
+		continue_statements;
+			/* Pointer to a linked list of control flow entries
+			   identifying the continue statements (if any) in this
+			   structured statement. */
+  a_type_ptr	switch_selector_type;
+			/* The type of the switch selector expression
+			   (int or long). */
+  unsigned int	switch_has_default_clause:1;
+			/* TRUE if the structured statement is a switch and
+			   it has a default clause. */
+  unsigned int	rout_type_explicitly_specified:1;
+			/* TRUE if the current routine was declared with an
+			   explicit return type.  This flag is set in the
+			   top level statement stack entry only. */
+  unsigned int	any_exec_statement_seen:1;
+			/* Within compound statements (blocks), TRUE if any
+			   executable statement (not declaration) has been
+			   seen. */
+  unsigned int  for_init:1;
+			/* TRUE if the structured statement is a for loop and
+			   the statement currently being processed is a
+			   for-init statement; FALSE otherwise. */
+  unsigned int	is_catch_clause:1;
+			/* TRUE if kind == ssk_compound and this structured
+			   statement represents the top level block of a
+			   catch clause. */
+  unsigned int	label_invalidates_curr_block_object_lifetime:1;
+			/* TRUE if kind == ssk_compound and the object
+			   lifetime pointed to by this entry has been
+			   invalidated by a label in an inner block. This
+			   flag will be cleared again once the required fixup
+			   has been done and the curr_block_object_lifetime
+			   pointer has been reset. */
+  a_reachability_summary
+		start_reachable;
+			/* Indicates whether or not the start of the structured
+			   statement is reachable. */
+  a_reachability_summary
+		end_reachable;
+			/* Indicates whether or not the end of the structured
+			   statement is reachable. */
+  an_object_lifetime_ptr
+		curr_block_object_lifetime;
+			/* If kind == ssk_compound, a pointer to the currently
+			   active object lifetime directly associated with
+			   this block (if any).  A lifetime is pushed when a
+			   block starts, but a label in the midst of the
+			   block "invalidates" the lifetime and a new one is
+			   pushed to replace it; this pointer then points to
+			   the new one. */
+  a_statement_ptr
+		extra_block_insert_loc;
+			/* If kind == ssk_compound, a (possibly NULL) pointer
+			   to a statement (either stmk_label or stmk_block)
+			   after which an extra block can be inserted to
+			   provide an IL entry to which a new object lifetime
+			   (i.e., one to which curr_block_object_lifetime is
+			   reset after a label) can bind (if it is needed). */
+  a_scope_depth depth_of_assoc_scope;
+			/* If kind == ssk_compound and a scope stack entry
+			   was pushed in conjuction with this structured
+			   statement stack entry, the depth of the former in
+			   the scope stack; NO_SCOPE_DEPTH otherwise. */
+} a_struct_stmt_stack_entry;
+
+EXTERN a_struct_stmt_stack_entry_ptr
+		struct_stmt_stack
+#if VAR_INITIALIZERS
+                                  = NULL
+#endif /* VAR_INITIALIZERS */
+                                        ;
+			/* The currently active structured statement stack
+			   itself.  The current entry is [depth_stmt_stack].
+			   Entry [0] is for the main block of the current
+			   function, if we are currently inside a function.
+			   Note that in C++ there can be more than one such
+			   stack, though only one is active at a time.  The
+			   struct_stmt_stack array is actually a subarray of
+			   struct_stmt_stack_container. */
+
+EXTERN int	depth_stmt_stack
+#if VAR_INITIALIZERS
+                                 = -1
+#endif /* VAR_INITIALIZERS */
+                                     ;
+			/* Index of the current entry in struct_stmt_stack.
+			   -1 if the stack is empty. */
+
+extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
+                                                 a_source_position  *stmt_pos);
+extern a_statement_ptr compound_statement(a_boolean at_function_level,
+                                          a_boolean explicit_return_type,
+                                          a_boolean is_catch_clause);
+
+extern void wrapup_control_flow_processing(a_scope_ptr  scope_ptr);
+
+extern void warn_if_code_is_unreachable(an_error_code      error_code,
+                                        a_source_position  *err_pos);
 
 /* Structure for saving the current state of the structured statement stack
    so that it can be reinitialized to handle a nested function and then
