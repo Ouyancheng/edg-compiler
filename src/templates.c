@@ -15365,7 +15365,7 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(can_instantiate_list),
       pch_saved_var_array_elem(inline_function_list),
       pch_saved_var_array_elem(avail_partial_order_candidates),
-      pch_saved_var_array_elem(type_of_unknown_templ_param_constant),
+      pch_saved_var_array_elem(type_of_unknown_templ_param_nontype),
 #if DEBUG
       pch_saved_var_array_elem(num_partial_order_candidates_allocated),
 #endif /* DEBUG */
@@ -15414,11 +15414,11 @@ Initializations for template.
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such
      constants that are created. */
-  type_of_unknown_templ_param_constant =
+  type_of_unknown_templ_param_nontype =
                                     alloc_type((a_type_kind)tk_template_param);
-  set_type_size(type_of_unknown_templ_param_constant);
-  type_of_unknown_templ_param_constant->variant.template_param.kind = 
-                     (a_template_param_type_kind)tptk_type_of_unknown_constant;
+  set_type_size(type_of_unknown_templ_param_nontype);
+  type_of_unknown_templ_param_nontype->variant.template_param.kind = 
+                                      (a_template_param_type_kind)tptk_unknown;
 
 }  /* templates_init */
 

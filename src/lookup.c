@@ -580,7 +580,7 @@ routine.
       set_template_param_constant_kind(constant,
                                   (a_template_param_constant_kind)tpck_member);
       sym->variant.constant = constant;
-      constant->type = type_of_unknown_templ_param_constant;
+      constant->type = type_of_unknown_templ_param_nontype;
       scp = &constant->source_corresp;
       break;
     }

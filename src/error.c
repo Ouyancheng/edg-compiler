@@ -928,7 +928,7 @@ declaration position to eliminate redundant file names in a diagnostic.
       type = fund_sym->variant.constant->type;
       if (type->kind == (a_type_kind)tk_template_param &&
           type->variant.template_param.kind ==
-                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
+                   (a_template_param_type_kind)tptk_unknown) {
         /* If the constant is a proxy or nonreal class member then use an
            entity kind of "nontype" to indicate that this is a generic
            nontype entity and not actually a constant. */

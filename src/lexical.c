@@ -8171,7 +8171,7 @@ done using the disambiguation routines.
            type of an unknown template parameter constant. */
         constant = fs_constant((a_constant_repr_kind)ck_error);
         scan_template_argument_constant_expression(
-                               type_of_unknown_templ_param_constant, constant);
+                               type_of_unknown_templ_param_nontype, constant);
         arg_ptr->variant.constant = constant;
       } else {
         /* Scan the expression, but retain it in the form of an operand so

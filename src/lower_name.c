@@ -461,7 +461,7 @@ to the type "type".
   a_boolean cast_to_unknown =
              (type->kind == (a_type_kind)tk_template_param &&
               type->variant.template_param.kind ==
-                    (a_template_param_type_kind)tptk_type_of_unknown_constant);
+                    (a_template_param_type_kind)tptk_unknown);
 
   /* Output has the form
        Ocsi1Z1ZO <-- "(int)Z1", Z1 indicating a nontype template parameter.

@@ -2470,7 +2470,7 @@ for more information.
                                                           parent.class_type));
                 }  /* if */
                 break;
-              case tptk_type_of_unknown_constant: /* Should never happen. */
+              case tptk_unknown: /* Should never happen. */
               default:
                 unexpected_condition_str
                              ("f_identical_types: bad templ param type kind");

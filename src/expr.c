@@ -3372,7 +3372,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     check_assertion(curr_expr_kind_is_const() &&
                     is_constant_operand(&operand));
     do_unary_operation(op, save_token, &operand,
-                       type_of_unknown_templ_param_constant,
+                       type_of_unknown_templ_param_nontype,
                        result, &start_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -7591,7 +7591,7 @@ be of integral type.  See section 3.3.5 of the standard.
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
     do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_constant,
+                        type_of_unknown_templ_param_nontype,
                         result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -7699,7 +7699,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
     do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_constant,
+                        type_of_unknown_templ_param_nontype,
                         result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -7918,7 +7918,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
     do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_constant,
+                        type_of_unknown_templ_param_nontype,
                         result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -8105,7 +8105,7 @@ standard.
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
     do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_constant,
+                        type_of_unknown_templ_param_nontype,
                         result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -8264,7 +8264,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
     do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_constant,
+                        type_of_unknown_templ_param_nontype,
                         result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -8423,7 +8423,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
     do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_constant,
+                        type_of_unknown_templ_param_nontype,
                         result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -8600,7 +8600,7 @@ standard.
     op = which_binary_operator(save_token,
                                integer_type((an_integer_kind)ik_int));
     do_binary_operation(op, operand_1, &operand_2,
-                        type_of_unknown_templ_param_constant,
+                        type_of_unknown_templ_param_nontype,
                         result, &operator_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -8979,7 +8979,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                       is_constant_operand(&operand_2) &&
                       is_constant_operand(&operand_3));
       do_question_operation(operand_1, &operand_2, &operand_3,
-                            type_of_unknown_templ_param_constant, result);
+                            type_of_unknown_templ_param_nontype, result);
       processed = TRUE;
     } else if (curr_expr_kind_is(ek_template_arg) &&
                (is_bad_type_for_template_arg_operand(operand_1->type) ||

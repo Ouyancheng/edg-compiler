@@ -341,9 +341,9 @@ extern void update_inline_function_flags(void);
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
 
 EXTERN a_type_ptr
-		type_of_unknown_templ_param_constant /* = NULL */;
-			/* A type used for template parameter constants whose
-			   real type cannot be known. */
+		type_of_unknown_templ_param_nontype /* = NULL */;
+			/* A type used for template parameter nontype values
+			   and expressions whose real type cannot be known. */
 
 EXTERN unsigned long
 		defer_inline_function_fixup_and_instantiations;

@@ -1108,7 +1108,7 @@ Dump the contents of the indicated type entry, for debug purposes.
       case tk_template_param:
         fputs("template-param", f_debug);
         if (tp->variant.template_param.kind ==
-                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
+                   (a_template_param_type_kind)tptk_unknown) {
           fputs(" <unknown-type>", f_debug);
         } else {
           if (tp->variant.template_param.kind ==
@@ -7549,9 +7549,9 @@ in doing substitution on a type), set *copy_error to TRUE.
         if (template_param_type != NULL &&
             con->type->kind == (a_type_kind)tk_template_param &&
             con->type->variant.template_param.kind ==
-                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
-          /* For a cast to a tptk_type_of_unknown_constant type, when a
-             template parameter is provided, use that type instead. */
+                   (a_template_param_type_kind)tptk_unknown) {
+          /* For a cast to a tptk_unknown type, when a template parameter
+             is provided, use that type instead. */
           new_type = template_param_type;
         } else {
           new_type = copy_type_with_substitution(con->type,
