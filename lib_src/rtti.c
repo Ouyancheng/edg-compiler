@@ -241,7 +241,8 @@ EXTERN_C void *__dynamic_cast(void			*class_ptr,
 			      a_vtbl_entry_ptr		vtbl_ptr,
 		              a_type_info_impl_ptr	tiip
 #if ABI_COMPATIBILITY_VERSION >= 241
-			    , a_type_info_impl_ptr	source_tiip
+			    , void			*source_ptr,
+			      a_type_info_impl_ptr	source_tiip
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
                               )
 /*
@@ -260,6 +261,12 @@ is used.  vtbl_ptr is a pointer to the virtual function table from
 the source operand.  tiip is a pointer to the type_info_impl
 structure associated with the destination type.  If the source
 operand is being cast to void*, tiip will be NULL.
+
+source_ptr is the original pointer being cast.  It is different from
+class_ptr if the original type did not have a virtual function table
+associated with it.  source_tiip is the type info pointer for the static
+type of the pointer being cast.  These parameters are used to check the
+access of the base class associated with the pointer being cast.
 
 The information about the dynamic type of the source object is obtained
 from entry zero of the virtual function table.
@@ -318,7 +325,7 @@ following information:
       access_okay = TRUE;
     } else {
       a_base_class_spec_ptr	bcsp;
-      bcsp = find_base_class_at_addr(complete_object_ptr, class_ptr,
+      bcsp = find_base_class_at_addr(complete_object_ptr, source_ptr,
                                      object_tiip, source_tiip);
       access_okay = bcsp != NULL && (bcsp->flags & BCS_PUBLIC) != 0;
     }  /* if */
@@ -378,7 +385,8 @@ EXTERN_C void *__dynamic_cast_ref(void                  *class_ptr,
 			          a_vtbl_entry_ptr      vtbl_ptr,
 			          a_type_info_impl_ptr  tiip
 #if ABI_COMPATIBILITY_VERSION >= 241
-				, a_type_info_impl_ptr	source_tiip
+			        , void			*source_ptr,
+			          a_type_info_impl_ptr	source_tiip
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
                                   )
 /*
@@ -390,7 +398,7 @@ __dynamic_cast and throws an exception if the cast failed.
 
   result = __dynamic_cast(class_ptr, vtbl_ptr, tiip
 #if ABI_COMPATIBILITY_VERSION >= 241
-                          , source_tiip
+                          , source_ptr, source_tiip
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
                          );
   if (result == NULL) {
