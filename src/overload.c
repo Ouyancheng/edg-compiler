@@ -1617,7 +1617,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Check for another exact match case, for pointers involving addition
        of type qualifiers on the type pointed to (the "T* --> qualified T *"
        case). */
-    if (!param_is_reference && is_pointer_type(param_type) &&
+    if ((!param_is_reference || microsoft_bugs) &&
+        is_pointer_type(param_type) &&
         is_pointer_type(arg_type)
 #ifdef pointer_types_have_same_repr
         /* Checking that the pointer representation is the same here forces

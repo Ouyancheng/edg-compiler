@@ -1,5 +1,21 @@
 Version 3.1
 
+11/24/02  Microsoft compatibility: overload resolution, reference-to-
+          pointer parameter, pointer argument with different cv-qualifiers
+
+In Microsoft bugs mode, overload resolution now allows a non-const
+reference to a pointer type to bind to a pointer argument even when
+the cv-qualifiers of the types pointed to do not match.  This
+Microsoft extension was already accepted in reference binding,
+but overload resolution was not aware of that relaxation.
+
+  void a(int &a);
+  void a(const char *&a);
+  int main() {
+    char* p = 0;
+    a(p);   // Now accepted in Microsoft bugs mode.
+  }
+
 11/21/02  IL write-read error on extern "C" redeclaration
 
 In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front
