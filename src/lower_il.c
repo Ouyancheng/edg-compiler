@@ -3683,14 +3683,12 @@ class class_type.
 {
   a_boolean needed = FALSE;
 
-  if (bcp->type->variant.class_struct_union.extra_info->
-                                                 virtual_function_count != 0) {
+  if (bcp->type->variant.class_struct_union.any_virtual_functions) {
     /* The base class has virtual functions, so it has a virtual function
        table.  Do we need a version of that virtual function table for
        the case where the base class appears in a complete object of
        type class_type? */
-    if (class_type->variant.class_struct_union.extra_info->
-                                                 virtual_function_count != 0) {
+    if (class_type->variant.class_struct_union.any_virtual_functions) {
       /* The derived class has virtual functions, which might override those
          in the base class. */
       needed = TRUE;
@@ -3717,7 +3715,7 @@ class_type if any are needed and if they have not already been generated.
 
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
-    if (ctsp->virtual_function_count != 0) {
+    if (class_type->variant.class_struct_union.any_virtual_functions) {
       /* The class has virtual functions, so it needs a virtual function table.
          Generate it if it has not already been generated. */
       if (ctsp->virtual_function_table_var == NULL) {
@@ -4283,7 +4281,7 @@ lowering process, but does not modify the class type.
           }  /* if */
         }  /* if */
       }  /* for */
-      if (ctsp->virtual_function_count != 0 &&
+      if (class_type->variant.class_struct_union.any_virtual_functions &&
           ctsp->virtual_function_info_base_class == NULL) {
         /* The class has virtual functions, so it needs a virtual function
            table pointer.  Also, the pointer is not shared with a base
