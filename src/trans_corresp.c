@@ -1345,7 +1345,7 @@ a_class_list_entry nodes.
     result = result->next;
   }  /* while */
   return result;
-}  /* a_class_list_entry_ptr */
+}  /* skip_generated_friend_class */
 
 
 static void add_instantiation(a_template_symbol_supplement_ptr  tssp,
