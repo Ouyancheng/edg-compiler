@@ -1093,7 +1093,15 @@ by octl.
                  !octl->c_generating_back_end) {
         /* Output a wchar_t type as "wchar_t", except in the C generating
            back end, where it is output as its underlying type. */
-        octl->output_str("wchar_t");
+        if (microsoft_mode && microsoft_version >= 1300) {
+          /* In Microsoft mode, when microsoft_verison is >= 1300 __wchar_t
+	     can be used as a keyword even when wchar_t is not recognized.
+             We don't know how the type was originally specified, so output it
+             as __wchar_t or wchar_t based on microsoft_version. */
+          octl->output_str("__wchar_t");
+        } else {
+          octl->output_str("wchar_t");
+        }  /* if */
       } else if (type->variant.integer.bool_type &&
                  (!octl->c_generating_back_end || octl->render_c99_bool)) {
         /* Output a bool type as "bool", except in the C generating

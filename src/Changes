@@ -1,5 +1,17 @@
 Version 3.6
 
+1/31/05  Microsoft compatibility: __wchar_t keyword
+
+The __wchar_t keyword is now supported when microsoft_version is >= 1300.
+This feature allows the __wchar_t keyword to be used as a synonym for the
+wchar_t keyword whether or not the --wchar_t_is_keyword option has been
+specified.  As with the Microsoft compiler, when wchar_t is not a keyword,
+wide string literals do not have type "wchar_t*", but rather have a type
+based on the underlying type of wchar_t (e.g., "unsigned short*") so an
+assignment of the form
+  __wchar_t w = L"xxx";
+will fail to compile when wchar_t is not a keyword.
+
 1/31/05  Microsoft compatibility: "." in place of "::" in qualified names
 
 The Microsoft compiler allows a "." to be used in certain qualified names
