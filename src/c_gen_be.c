@@ -6646,7 +6646,8 @@ handled in declaration processing in dump_variable.
   /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output, &save_indent);
   if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-      dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate) {
+      (dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate ||
+       dip->variant.constant->kind == (a_constant_repr_kind)ck_string)) {
     /* Aggregate initialization.  Only comes up in C++, for aggregate
        initializations to constants done in the middle of blocks. */
     dump_initializer_part(variable, variable->type, dip->variant.constant,
