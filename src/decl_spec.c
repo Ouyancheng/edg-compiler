@@ -3635,8 +3635,8 @@ decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                              );
       } else {
-#if MICROSOFT_EXTENSIONS_ALLOWED
         *type_ptr = extended_integer_type((an_integer_kind)ikind,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                           microsoft_version >= 1200 &&
                                           size >= (int)size_int8 &&
                                           size <= (int)size_int64
