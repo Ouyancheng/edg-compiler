@@ -2366,7 +2366,6 @@ for old style parameter declaration.
 
   sym = alloc_symbol((a_symbol_kind)sk_parameter, locator->symbol_header,
                      &locator->source_position);
-  mark_declared(sym, &locator->source_position);
   /* Set the locator to point to the symbol entered. */
   locator->specific_symbol = sym;
   locator->is_qualified_name = FALSE;
@@ -3322,6 +3321,7 @@ This routine is only used in C++ mode.
 static char *il_entry_for_symbol(a_symbol_ptr      sym,
                                  an_il_entry_kind  *kind)
 /*
+
 */
 {
   char  *entry_ptr = NULL;
@@ -3330,11 +3330,14 @@ static char *il_entry_for_symbol(a_symbol_ptr      sym,
   switch (sym->kind) {
     case sk_macro:
       /* Only manifest constant macros have an associated IL entry. */
-      if (!sym->variant.macro_def->is_manifest_constant) break;
-      entry_ptr = (char *)sym->variant.macro_def->constant_value;
+      if (sym->variant.macro_def->is_manifest_constant) {
+        entry_ptr = (char *)sym->variant.macro_def->constant_value;
 #if 0
-      *kind = iek_macro;
+        *kind = iek_macro;
+#else
+        check_assertion(entry_ptr != NULL);
 #endif /* if 0 */
+      }  /* if */
       break;
     case sk_constant:
       entry_ptr = (char *)sym->variant.constant;
@@ -3381,6 +3384,7 @@ static char *il_entry_for_symbol(a_symbol_ptr      sym,
 #endif /* CHECKING */
   return entry_ptr;
 }  /* il_entry_for_symbol */
+
 
 static a_source_correspondence *source_corresp_entry_for_symbol(
                                                           a_symbol_ptr sym_ptr)
@@ -7074,6 +7078,7 @@ should only be called if cross-reference information is being generated
   if (!sym_ptr->is_error &&
       sym_ptr->kind != (a_symbol_kind)sk_extern_variable &&
       sym_ptr->kind != (a_symbol_kind)sk_extern_routine &&
+      !is_unnamed_class_symbol(sym_ptr) &&
       source_position->seq != 0) {
     /* The record written to the file is a text line that looks like
 
@@ -7166,13 +7171,19 @@ already, if necessary).  A cross-reference entry for a definition will
 be put out.
 */
 {
-  /* Put the source position in the symbol (since this is the definition)
-     and mark the symbol "defined".  Also, set the decl-sequence number
-     associated with this declaration (again, unconditionally, since this is
-     the definition). */
-  sym_ptr->decl_position = *source_position;
-  sym_ptr->defined = TRUE;
-  set_decl_sequence_number(sym_ptr);
+  if (sym_ptr->defined) {
+    /* This is a redefinition -- allowed for C variables at file scope and
+       macros.  Don't update the source position or the decl-sequence number
+       in such cases. */
+  } else {
+    /* Put the source position in the symbol (since this is the definition)
+       and mark the symbol "defined".  Also, set the decl-sequence number
+       associated with this declaration (again, unconditionally, since this is
+       the definition). */
+    sym_ptr->decl_position = *source_position;
+    sym_ptr->defined = TRUE;
+    set_decl_sequence_number(sym_ptr);
+  }  /* if */
   /* Update the cross reference file if it exists and if this is not a
      template instantiation. */
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
@@ -7596,7 +7607,6 @@ storage_class are the type and storage class for the parameter.
          scope when it is changed to sk_variable. */
       sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
                          depth_scope_stack, /*suppress_redecl_error=*/FALSE);
-      mark_declared(sym, &locator->source_position);
     } else {
       /* Must be an old-style parameter declaration.  The type and storage
          class will be supplied later.  We won't actually enter this symbol

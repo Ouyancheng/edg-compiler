@@ -9447,14 +9447,22 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       if (top_declarator_type_is_function) {
-        if (func_info.param_id_list != NULL) {
+        a_param_id_ptr  pid = func_info.param_id_list;
+
+        if (pid != NULL) {
           /* If the function has a non-empty old-style identifier list of
              parameters, a body should have been present. */
           if (!local_type_ptr->variant.routine.extra_info->prototyped) {
             error(ec_param_id_list_needs_function_def);
           }  /* if */
-          /* Free the list of parameter identifiers -- they're not needed
-             if there's no definition. */
+          /* After updating xref information on each symbol, free the list
+             of parameter identifiers -- they're not needed if there's no
+             definition. */
+          for (; pid != NULL; pid = pid->next) {
+            if (pid->symbol != NULL) {
+              mark_declared(pid->symbol, &pid->symbol->decl_position);
+            }  /* if */
+          }  /* if */
           free_param_id_list(&(func_info.param_id_list));
         }  /* if */
       }  /* if */
@@ -9619,7 +9627,8 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
-                            (a_func_info_block *)NULL, is_variable_def,
+                            (a_func_info_block *)NULL,
+                            is_variable_def || is_tentative_definition,
                             &symbol_ptr, &linkage, &old_type, &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
@@ -9631,7 +9640,7 @@ continue_with_declaration:
           symbol_ptr->referenced = TRUE;
         }  /* if */
       }  /* if */
-      if (is_variable_def) {
+      if (is_variable_def && C_dialect == C_dialect_cplusplus) {
         /* At the point at which an object of incomplete template class is
            defined, its class needs to be instantiated.  When its type is
            ref-template-class, the instantiation is also required.  Note that
