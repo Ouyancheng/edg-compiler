@@ -71,16 +71,18 @@ The front end no longer attempts to constant-fold unary operators applied on
 the UPC pseudo-constants THREADS and MYTHREAD.  The implicit conversion of
 these constants to a boolean constant is also inhibited.
 
-2/10/03  Microsoft compatibility: Ambiguous virtual function overriders
+2/10/03  Microsoft/Sun/Cfront compatibility: Ambiguous virtual function
+         overriders
 
-In Microsoft bugs mode, no diagnostic is issued for classes defined in such
-a way that a virtual function is ambiguously overridden in some base classes.
-For example:
+In Microsoft bugs mode, Sun mode, and Cfront mode, no diagnostic is issued
+for classes defined in such a way that a virtual function is ambiguously
+overridden in some base classes.  For example:
 
   struct B { virtual void f(); };
   struct D1: B { virtual void f(); };
   struct D2: B { virtual void f(); };
-  struct X: D1, D2 {};  // Normally an error, but not in Microsoft bugs mode
+  struct X: D1, D2 {};  // Normally an error, but not in Microsoft bugs mode,
+                        // Sun mode, or Cfront mode.
 
 In such cases, the overrider selected by the front end is arbitrary.
 
