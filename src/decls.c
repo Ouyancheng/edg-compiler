@@ -8001,9 +8001,11 @@ continue_with_declaration:
                 struct x {int a;};
              since it declares something (namely x). */
           /* ANSI probably thinks of this as an error, but that seems a bit
-             extreme, so we make it a warning.  pcc allows this, so the most
-             we can issue in that case is a warning. */
-          warning(ec_useless_decl);
+             extreme, especially since pcc allows it.  Normally we issue a
+             warning, unless the -A option is selected. */
+          diagnostic(strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_useless_decl);
         }  /* if */
       } else {
         /* Since declares_something is TRUE, this must be a class, struct,
