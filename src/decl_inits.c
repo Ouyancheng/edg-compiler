@@ -356,8 +356,6 @@ init_info is a pointer to a block of information tracking this initialization.
   a_type_ptr                     tp;
   a_boolean                      ctor_found = FALSE;
   a_class_symbol_supplement_ptr  cssp;
-  an_aggregate_init_context_ptr  prev_init_context;
-
 
   /* Make a pass over the remaining fields. */
   for (; fp != NULL; fp = fp->next) {
@@ -389,6 +387,7 @@ init_info is a pointer to a block of information tracking this initialization.
   }  /* for */
 #if 0
   if (!ctor_found) {
+    an_aggregate_init_context_ptr  prev_init_context;
     for (prev_init_context = init_context->prev_context;
          prev_init_context != NULL;
          prev_init_context = prev_init_context->prev_context) {
