@@ -861,7 +861,7 @@ nearest value that can be represented by "value_bits" bits.
        shifted the mantissa, this turns out to be the same as the half way
        value determined above. */
     increment_value = half_way_value;
-    /* Increment the value.  Mask of the lower order bits for neatness. */
+    /* Increment the value.  Mask off the lower order bits for neatness. */
     part = (part + increment_value) & ~part_mask;
     mp->parts[part_number] = part;
     if (part < orig_part) {
@@ -990,7 +990,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
     }  /* if */
   }  /* if */
   /* See if the number of mantissa bits provided exceeds the mantissa size.
-     mang_dig includes the implicit bit. */
+     mant_dig includes the implicit bit. */
   {
     /* Some long double kinds do not make use of an implicit mantissa bit. */
     int	implicit_bits;
