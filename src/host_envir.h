@@ -1822,8 +1822,8 @@ using IL lowering or the C generating back end.
 #define MODULE_ID_NEEDED TRUE
 #else /* !(NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) */
 #define MODULE_ID_NEEDED FALSE
-#endif (NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && \
-       !STANDALONE_UTILITY_PROGRAM
+#endif /* (NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && \
+         !STANDALONE_UTILITY_PROGRAM */
 
 #if MODULE_ID_NEEDED
 extern void change_non_id_characters(char *str);
