@@ -70,7 +70,7 @@ at the beginning of get_token need to be done.
 #define recalc_any_initial_get_token_tests_needed()			\
   (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||	\
                                         cached_token_rescan_list != NULL || \
-                                        reusable_cache_stack != NULL)	   \
+                                        reusable_cache_stack != NULL)
 
 
 /* Macro to check prevent calling the error checking function unless some
