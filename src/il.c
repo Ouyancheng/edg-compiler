@@ -3350,22 +3350,28 @@ diagnostic if the parameter type is an abstract class.
            fixup list. */
         add_to_dependent_type_fixup_list(param_type, (a_type_ptr)NULL, ptp,
                                          err_pos);
-      } else if (!symbol_supplement_for_class(param_type)->
-                                        construction_by_bitwise_copy_allowed) {
-        /* Yes. */
-        ptp->passed_via_copy_constructor = TRUE;
-        /* If the parameter type is an abstract class, issue an error.  Note
-           that construction_by_bitwise_copy_allowed will never be TRUE
-           for abstract classes.  Also note that this logic assumes that
-           passed_via_copy_constructor will never be set elsewhere. */
-        if (param_type->variant.class_struct_union.abstract) {
-          if (err_pos->seq == 0) {
-            /* A null error position indicates a parameter type for which
-               there is no corresponding source position -- e.g., a type
-               is being copied for some reason.  Issue no diagnostic in
-               such cases. */
-          } else {
-            pos_error(ec_abstract_class_param_type, err_pos);
+      } else {
+        a_class_symbol_supplement_ptr cssp =
+                                       symbol_supplement_for_class(param_type);
+        if (!cssp->construction_by_bitwise_copy_allowed ||
+            (!any_cfront_mode() && cssp->destructor != NULL)) {
+          /* The class has a "real" copy constructor, or it has a
+             destructor, so a copy of an object of this class type must be
+             made when it is passed as an argument. */
+          ptp->passed_via_copy_constructor = TRUE;
+          /* If the parameter type is an abstract class, issue an error.  Note
+             that construction_by_bitwise_copy_allowed will never be TRUE
+             for abstract classes.  Also note that this logic assumes that
+             passed_via_copy_constructor will never be set elsewhere. */
+          if (param_type->variant.class_struct_union.abstract) {
+            if (err_pos->seq == 0) {
+              /* A null error position indicates a parameter type for which
+                 there is no corresponding source position -- e.g., a type
+                 is being copied for some reason.  Issue no diagnostic in
+                 such cases. */
+            } else {
+              pos_error(ec_abstract_class_param_type, err_pos);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

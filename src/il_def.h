@@ -1322,7 +1322,9 @@ typedef struct a_param_type {
 			   a copy constructor to be called.  For a parameter
 			   of type T, the actual argument will be the address
 			   of a temporary of type T, into which the argument
-			   value has been copied. */
+			   value has been copied.  Also set for parameter
+			   types that allow by-value copy construction if
+			   the type has a destructor. */
   unsigned int	has_default_arg:1;
              		/* TRUE if a default argument has been declared for
 			   this parameter.  Because of delayed token scanning

@@ -1,6 +1,16 @@
 Version 2.24
 
-7/4/94   top-level const on lowered routine with modifiable "this"
+7/4/94   Argument of class type that allows bitwise copy but has destructor
+
+Arguments of a class type that allows bitwise copy construction but
+also has a destructor are now treated like arguments of classes with
+"real" copy constructors.  That is, a copy is made, the address of the
+copy is passed as the argument, and the destructor is called on the
+copy after the call returns.  Formerly, the copy was made by passing
+the class object by value, and the destructor was never called.  The old
+behavior is preserved in cfront compatibility mode.
+
+7/4/94   Top-level const on lowered routine with modifiable "this"
 
 When assignment to "this" is done within a member function, or when
 "this" is modified within a constructor because the "new" operation is
