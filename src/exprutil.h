@@ -209,6 +209,12 @@ typedef struct an_argument_summary {
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
+  a_byte_boolean
+		added_for_default_arg;
+			/* TRUE if this entry was added for a case where the
+			   actual argument was omitted and there is a default
+			   argument value.  The operand will have been cleared
+			   but not set to anything beyond that. */
   an_operand	operand;
 			/* The argument value. */
 } an_argument_summary;
@@ -295,12 +301,15 @@ an_argument_match_level selector_match_with_this_param(
 
 extern a_symbol_ptr select_overloaded_function(
                             a_symbol_ptr            overloaded_function_symbol,
+                            a_symbol_ptr            alt_function_symbol,
                             a_boolean               have_selector,
                             an_operand              *bound_function_selector,
                             an_argument_summary_ptr arg_list,
+                            a_boolean               error_if_no_match,
                             an_expression_kind      expression_kind,
                             an_error_code           err_none_applies,
                             an_error_code           err_ambiguous,
+                            a_boolean               *no_match,
                             a_source_position       *err_pos,
                             an_expr_node_ptr        *arg_expr_list);
 
