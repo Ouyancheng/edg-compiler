@@ -6374,10 +6374,11 @@ Do IL lowering of the indicated statement and everything under it.
              into
                {temp = expr; cleanup-code; return temp;}
           */
-          if (return_expr != NULL) {
-            /* There is a return expression, so use a temporary.  Note that
-               the return type cannot call for a copy constructor, or the
-               routine would be returning its value via an added parameter. */
+          if (return_expr != NULL && !is_constant_node(return_expr)) {
+            /* There is a nonconstant return expression, so use a temporary.
+               Note that the return type cannot call for a copy constructor,
+               or the routine would be returning its value via an added
+               parameter. */
             temp_var = make_lowered_temporary(return_expr->type);
             /* Change the return statement to return the temporary's value. */
             statement->expr = var_rvalue_expr(temp_var);
