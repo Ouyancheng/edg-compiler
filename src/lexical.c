@@ -3019,7 +3019,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
        has started. */
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
-    if (!do_pop_on_end_of_file || building_pch_prefix) {
+    if (!do_pop_on_end_of_file) {
       /* We're asked not to do the pop, so just return things as they
          are (at_end_of_source_file is TRUE). */
       goto simple_return;

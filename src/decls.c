@@ -5373,11 +5373,18 @@ In C++, however, the declaration list is optional (3.4):
       }  /* if */
     }  /* if */
   } else {
-    do {
-      if (header_stop_position_pending && !curr_ise->is_include_file) {
-        if (curr_ise->actual_line ==
+    for (;;) {
+      if (header_stop_position_pending &&
+          (curr_ise == NULL || !curr_ise->is_include_file)) {
+        /* We are looking for the header stop position and we are not
+           in an include file.  curr_ise can be NULL if we've already
+           popped the primary source file off of the input stack at end
+           of source. */
+        if ((header_stop_is_end_of_source &&
+             curr_token == tok_end_of_source) ||
+            (curr_ise->actual_line ==
               (a_line_number)header_stop_source_position.seq &&
-            pos_curr_token.column == header_stop_source_position.column) {
+            pos_curr_token.column == header_stop_source_position.column)) {
           /* This should be the first declaration in the primary source file
              (i.e., excluding preprocessor directives).  If there were any
              include files and if the current state otherwise qualifies, write
@@ -5386,6 +5393,7 @@ In C++, however, the declaration list is optional (3.4):
         }  /* if */
         header_stop_no_longer_pending();
       }  /* if */
+      if (curr_token == tok_end_of_source) break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* For each declaration at file scope, reset the source-sequence insert
          point for instantiations to NULL -- it will be set to point to the
@@ -5398,8 +5406,10 @@ In C++, however, the declaration list is optional (3.4):
       declaration(/*function_definition_allowed=*/TRUE,
                   /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
                   (a_param_id_ptr)NULL);
-    } while (curr_token != tok_end_of_source);
+    } /* for */
   }  /* if */
+  check_assertion_str2(!header_stop_position_pending, "translation_unit:",
+                       "header stop position not found");
   /* Do any end-of-translation unit pragma processing that may be required. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* First reset the point for instantiations to NULL. */

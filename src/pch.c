@@ -547,6 +547,7 @@ information.
     pop_input_stack();
   }  /* if */
   header_stop_source_position = pos_curr_token;
+  header_stop_is_end_of_source = (curr_token == tok_end_of_source);
   /* Reset the state information maintained by the lexical routines. */
   lexical_reset();
   /* Clear the primary source file pointer, otherwise, push_input_stack
@@ -1208,7 +1209,7 @@ would prevent generation of a precompiled header file, and if none exists,
 write out the precompiled header file.
 */
 {
-#define PCH_DECL_SEQ_THRESHOLD 0
+#define PCH_DECL_SEQ_THRESHOLD 1
 
   if (using_a_pch_file) {
     /* We are using input obtained from a precompiled header, don't
@@ -1227,13 +1228,9 @@ write out the precompiled header file.
     check_assertion(depth_stmt_stack == -1);
     /* Be sure there the overhead in generating a precompiled header is
        justified "quantitatively". */
-    if (curr_ise->include_history == NULL) {
-      /* There haven't been any include files. */
-#if PCH_DECL_SEQ_THRESHOLD != 0
-    } else if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
+    if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
       /* There haven't been enough declarations to justify writing out and
          restoring the header information. */
-#endif /* PCH_DECL_SEQ_THRESHOLD != 0 */
     } else {
       /* Okay -- go ahead and do it. */
       write_precompiled_header_file();
