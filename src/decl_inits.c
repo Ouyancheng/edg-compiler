@@ -518,14 +518,17 @@ The syntax is:
     /* Parameter declarations cannot contain an initializer. */
     error(ec_initializer_in_param);
     err = TRUE;
-  } else if (symbol_ptr->kind != (a_symbol_kind)sk_variable) {
+  } else if (symbol_ptr->kind != (a_symbol_kind)sk_variable &&
+             symbol_ptr->kind != (a_symbol_kind)sk_static_data_member) {
     /* Not a variable (for example, might be a typedef). */
     pos_error(ec_cannot_initialize, source_pos);
     err = TRUE;
   } else {
     vp = symbol_ptr->variant.variable;
     vp_type = vp->type;
-    if (symbol_ptr->decl_scope != FILE_SCOPE_NUMBER && linkage != idl_none) {
+    if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+        symbol_ptr->decl_scope != FILE_SCOPE_NUMBER && 
+        linkage != idl_none) {
       /* Block scope variable with internal or external linkage --
          not allowed to be initialized.  (3.5.7 Constraints) */
       pos_error(ec_cannot_initialize, source_pos);
