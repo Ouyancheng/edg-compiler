@@ -2013,7 +2013,8 @@ Dump the definition ({...}) if body is TRUE.
       while (field != NULL) {
         /* Output a field to do necessary alignment if this field is not
            right after the previous field. */
-        dump_field_padding(curr_offset, prev_field, field->type->alignment,
+        dump_field_padding(curr_offset, prev_field,
+                           skip_typerefs(field->type)->alignment,
                            field->bit_size, field->bit_offset);
         startline(field->source_corresp.decl_position.seq);
         if (field->bit_size == 0) {
