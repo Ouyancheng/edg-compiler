@@ -2762,7 +2762,9 @@ or not the parameter should be passed using a copy constructor.
 {
   a_type_ptr param_type;
 
-  if (C_dialect == C_dialect_cplusplus) {
+  /* Do not set the flag in C mode.  Also, once the flag is set to TRUE
+     it can never be reset. */
+  if (C_dialect == C_dialect_cplusplus && !ptp->passed_via_copy_constructor) {
     param_type = ptp->type;
     param_type = skip_typerefs(param_type);
     if (is_class_struct_union_type(param_type)) {
@@ -5241,7 +5243,9 @@ declaration of the function and must be completed by the point of call.
   if (rtsp->assoc_routine != NULL) {
     /* The routine has been defined, so the flag is set correctly. */
   } else if (C_dialect != C_dialect_cplusplus) {
-    /* The flags cannot be set in C mode. */
+    /* The flag cannot be set in C mode. */
+  } else if (rtsp->value_returned_by_cctor) {
+    /* Once the flag is set, it will never change. */
   } else {
     /* If the function returns a class object that has a "real" copy
        constructor, make the caller provide a temporary for the result. */
