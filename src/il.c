@@ -8397,6 +8397,33 @@ entry, if there is one.
 }  /* set_autonomous_tag_decl_flag */
 
 
+a_source_sequence_entry_ptr find_end_of_tag_construct(
+                                           a_source_sequence_entry_ptr  ssep)
+/*
+ssep points to a source sequence entry for a tag -- a class type or an enum
+type.  Find and return a pointer to the associated end-of-construct entry.
+*/
+{
+  a_type_ptr  tp = (a_type_ptr)ssep->entity.ptr;
+
+  check_assertion(ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
+                  (is_immediate_class_type(tp) || is_immediate_enum_type(tp)));
+  /* Start from the entry immediately following ssep and scan until the
+     associated end-of-construct entry is found. */
+  for (ssep = ssep->next;; ssep = ssep->next) {
+    if (ssep->entity.kind ==
+              (a_byte_il_entry_kind)iek_src_seq_end_of_construct) {
+      /* This is an end-of-construct entry -- be sure it corresponds.  (It
+         might not, since constructs can nest.) */
+      a_src_seq_end_of_construct_ptr  sseocp =
+                            (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
+      if (sseocp->entity.ptr == (char *)tp) break;
+    }  /* if */
+  }  /* for */
+  return ssep;
+}  /* find_end_of_tag_construct */
+
+
 static a_source_sequence_entry_ptr scan_to_end_of_construct(
                                            a_source_sequence_entry_ptr  ssep)
 /*
