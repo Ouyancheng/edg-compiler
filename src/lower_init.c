@@ -2354,7 +2354,7 @@ See lower_dynamic_init for the description of partial_aggr_cond_var.
   an_init_pos_descr    ipd;
   an_init_pos_modifier ipm, *ipmp;
   a_type_ptr           aggr_type;
-  a_constant_ptr       con_ptr, repeated_con;
+  a_constant_ptr       con_ptr, repeated_con, prev_con;
   a_boolean            array_aggr;
 
   /* Mark the constant as visited.  This is necessary if the aggregate
@@ -2388,7 +2388,9 @@ See lower_dynamic_init for the description of partial_aggr_cond_var.
   }  /* if */
   /* Work through the list of constants, pairing each one with a member of
      the aggregate. */
-  for (; con_ptr != NULL; con_ptr = con_ptr->next) {
+  for (prev_con = NULL;
+       con_ptr != NULL;
+       prev_con = con_ptr, con_ptr = con_ptr->next) {
     if (!array_aggr) {
       check_assertion_str(ipmp->curr_field != NULL,
              "lower_dynamic_init_aggregate_constant: have constant, no field");
@@ -2424,6 +2426,15 @@ See lower_dynamic_init for the description of partial_aggr_cond_var.
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
       lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
                             partial_aggr_cond_var, insert_location);
+      /* Remove the ck_init_repeat constant, in case the overall aggregate
+         is kept for the constant parts. */
+      check_assertion(con_ptr->next == NULL);
+      if (prev_con == NULL) {
+        aggr_const->variant.aggregate.first_constant = NULL;
+      } else {
+        prev_con->next = NULL;
+      }  /* if */
+      aggr_const->variant.aggregate.last_constant = prev_con;
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
       /* Aggregate constant initializing a member of an aggregate. */
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
