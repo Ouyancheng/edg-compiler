@@ -1,5 +1,32 @@
 Version 3.6
 
+3/2/05   C++-generating back end: Declarations of explicit specializations
+         of member functions of class templates when
+         CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, an
+explicit specialization of a class template is generated if one of its
+member functions is explicitly specialized.  If the explicit specialization
+of the member function is simply declared and not defined, the C++-generating
+back end formerly generated the namespace-scope member function declaration,
+even though it was already declared in the class template specialization.
+This redeclaration has now been suppressed.  For example:
+
+  template<typename T> struct S {
+    void f();
+  };
+  template<> void S<int>::f();
+
+was formerly generated as:
+
+  template<typename T> struct S {
+    void f();
+  };
+  template<> struct S<int> {
+    void f();
+  };
+  template<> void S<int>::f();  // No longer generated
+
 3/1/05   Microsoft compatibility: Out-of-class member redeclarations
 
 The front end emulates a Microsoft extension that allows out-of-class member
