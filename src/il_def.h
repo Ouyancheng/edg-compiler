@@ -3082,9 +3082,9 @@ typedef struct a_block {
 
 #ifdef CIL
 /* 
-Information about a for loop, pointed to from an stmk_for_loop statement.
-Note that the test expression is not mentioned in this construct.  It is
-pointed to by the "expr" field of the statement entry.
+Information about a for loop, pointed to from an stmk_for statement.  Note
+that the test expression is not mentioned in this construct.  It is pointed
+to by the "expr" field of the statement entry.
 */
 typedef struct a_for_loop *a_for_loop_ptr;
 typedef struct a_for_loop {
