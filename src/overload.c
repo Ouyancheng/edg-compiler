@@ -3456,7 +3456,8 @@ and return TRUE if the tiebreakers should be suppressed for this case.
         a_type_qualifier_set qualifiers;
         a_type_ptr           class_of_which_a_member =
                                        rout->source_corresp.parent.class_type;
-        if (is_copy_constructor(rout, class_of_which_a_member, &qualifiers,
+        if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
+            is_copy_constructor(rout, class_of_which_a_member, &qualifiers,
                                 /*is_declarative_context=*/FALSE)) {
           /* A non-template copy constructor against a template.  Suppress
               the tiebreakers. */
