@@ -55,6 +55,11 @@ it points to an already-allocated array.  If ctor is non-NULL, it
 points to a constructor function to be called for each element of the
 array (whether the array is allocated here or pre-allocated).  Return
 the address of the array.
+
+This routine uses a linked list to record the number of elements in the
+array.  Consequently, the performance degrades if a large number of arrays
+are allocated.  An algorithm that performs better with large numbers of
+elements should be used in a production runtime system.
 */
 {
   register vec_info_ptr info_ptr;
