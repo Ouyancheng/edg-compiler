@@ -1,5 +1,12 @@
 Version 2.23
 
+4/25/95  New file target.c
+
+target.c has been added.  For now it contains only a single function,
+check_target_configuration, which can be called both from the compiler and
+from stand-alone programs (like the IL display program); it checks for
+consistency among target configuration variables and other values.
+
 4/25/94  Two cases involving arrays with qualified member types
 
 (1)  Initialization of a reference to an array with a qualified element
