@@ -9123,7 +9123,7 @@ C mode.
   a_boolean is_still_an_lvalue = FALSE;
   /* Be sure to retrieve the alignment before skipping typerefs in case this
      is ever called in GNU mode (where attributes can change the alignment
-     of typedef types. */
+     of typedef types). */
   a_targ_alignment  
             alignment_before_cast = alignment_of_type(type_before_cast),
             alignment_after_cast = alignment_of_type(type_cast_to);
