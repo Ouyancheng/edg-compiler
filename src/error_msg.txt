@@ -665,7 +665,7 @@ ec_cl_invalid_error_number;;"invalid error number: "
 ec_param_type_ptr_to_array_of_unknown_bound;;"parameter type involves pointer to array of unknown bound"
 ec_param_type_ref_array_of_unknown_bound;;"parameter type involves reference to array of unknown bound"
 ec_ptr_to_member_cast_to_ptr_to_function;;"pointer-to-member-function cast to pointer to function"
-ec_no_named_fields;;"struct or union definition declares no named fields"
+ec_no_named_fields;;"struct or union must declare at least one named field"
 
 ###############################################################################
 #                                                             \  ___  /       #
