@@ -1140,8 +1140,10 @@ Check that if the member has a correspondence its parents do too.
       }  /* if */
       if (!(trans_unit_corresp_pointer_of(scp) != NULL &&
             trans_unit_corresp_pointer_of(scp) != (char *)scp)) {
+#if DEBUG
         db_entity_info(ptr, kind);
         db_entity_info((char *)scp, parent_kind);
+#endif /* DEBUG */
         internal_error("entity has correspondence but parent does not");
       }  /* if */
     }  /* for */
