@@ -4157,18 +4157,19 @@ it is an external definition).
   a_boolean		is_needed = FALSE;
 
   if (!var->is_template_static_data_member) {
-    /* A non-template variable. *\
+    /* A non-template variable. */
     if (var->storage_class == (a_storage_class)sc_unspecified ||
-      var->init_kind == (an_init_kind)initk_dynamic) {
+        var->init_kind == (an_init_kind)initk_dynamic) {
       /* This is an externally linked variable that has been defined, or
          it is a variable local to this translation unit but with
          dynamic initialization, in which case it is treated as "needed"
          because the initialization may have side effects.  Mark it as
          needed now. */
-    is_needed = TRUE;
+      is_needed = TRUE;
+    }  /* if */
   } else {
     /* A template static data member. */
-   if (!is_primary_translation_unit) {
+    if (!is_primary_translation_unit) {
       /* Assume that all static data members from secondary translation units
          are needed.  This will be reconsidered after the routine has
          been copied to the primary translation unit. */
