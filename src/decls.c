@@ -9652,7 +9652,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
         if (sym != NULL) {
           sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), sym);
-          mark_defined(sym, &locator.source_position);
+          record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                                    &sym->decl_position, declarator_ssep);
           mark_variable_value_set(sym);
         }  /* if */
         /* A handler parameter is initialized by the run-time when the
