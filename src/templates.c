@@ -3879,7 +3879,7 @@ indicated by template_sym.  The symbol of the new instance is returned.
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   prev_new_tap = new_list = NULL;
   for (; tap != NULL; tap = tap->next) {
-    new_tap = alloc_template_arg(tap->is_type);
+    new_tap = alloc_template_arg((a_boolean)tap->is_type);
     if (tap->is_type) {
       new_tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
@@ -4232,7 +4232,7 @@ make_new_type:
           tap = type->variant.class_struct_union.extra_info->template_arg_list;
           prev_new_tap = new_list = NULL;
           for (; tap != NULL; tap = tap->next) {
-            new_tap = alloc_template_arg(tap->is_type);
+            new_tap = alloc_template_arg((a_boolean)tap->is_type);
             if (tap->is_type) {
               new_tap->variant.type =
                        copy_type_with_substitution(tap->variant.type,
