@@ -399,30 +399,32 @@ return a pointer to it.
 }  /* make_param_variable */
 
 
-static a_variable_ptr make_implicit_this_param_variable(a_type_ptr  type_ptr)
+static a_variable_ptr make_implicit_this_param_variable(a_type_ptr  rout_type)
 /*
 Create a variable entry for an implicit-this parameter, using the indicated
 routine type, and return a pointer to it.
 */
 {
-  a_variable_ptr                 vp;
-  a_routine_type_supplement_ptr  rtsp = type_ptr->variant.routine.extra_info;
+  a_variable_ptr                 vp;  /* Result */
+  a_type_ptr                     this_type;
+  a_routine_type_supplement_ptr  rtsp = skip_typerefs(rout_type)->
+                                                   variant.routine.extra_info;
   a_type_qualifier_set           qualifiers = rtsp->qualifiers;
 
   /* The implicit this parameter is a pointer type that is not const
      qualified as far as the interface is concerned.  The variable, however,
      does get a const qualifier. */
 #if RESTRICT_ALLOWED
-  type_ptr = make_qualified_type(rtsp->this_class, qualifiers & ~TQ_RESTRICT);
-  type_ptr = make_pointer_type(type_ptr);
-  type_ptr = make_qualified_type(type_ptr,
+  this_type = make_qualified_type(rtsp->this_class, qualifiers & ~TQ_RESTRICT);
+  this_type = make_pointer_type(this_type);
+  this_type = make_qualified_type(this_type,
                                  TQ_CONST | (qualifiers & TQ_RESTRICT));
 #else /* !RESTRICT_ALLOWED */
-  type_ptr = make_qualified_type(rtsp->this_class, qualifiers);
-  type_ptr = make_pointer_type(type_ptr);
-  type_ptr = make_qualified_type(type_ptr, TQ_CONST);
+  this_type = make_qualified_type(rtsp->this_class, qualifiers);
+  this_type = make_pointer_type(this_type);
+  this_type = make_qualified_type(this_type, TQ_CONST);
 #endif /* RESTRICT_ALLOWED */
-  vp = make_param_variable(type_ptr, (a_storage_class)sc_auto);
+  vp = make_param_variable(this_type, (a_storage_class)sc_auto);
   vp->is_this_parameter = TRUE;
   return vp;
 }  /* make_implicit_this_param_variable */
