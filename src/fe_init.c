@@ -465,7 +465,6 @@ to replace the initial portion of this compilation.
   il_init();
   lexical_init();
   symbol_tbl_init();
-  keyword_init();
   class_decl_init();
   def_arg_init();
   templates_init();
