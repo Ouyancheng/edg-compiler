@@ -1,5 +1,12 @@
 Version 2.42
 
+4/13/99  Statement stack address used after possibly reallocation of stack
+
+A bug in switch_statement has been fixed where a statement stack address
+is taken and used later after some code has been executed that could cause
+the stack to be reallocated.  This could result in an abort when the address
+is used later.  Now fixed.
+
 4/9/99   Implicit declaration of copy assignment operator in presence of
          using declaration
 

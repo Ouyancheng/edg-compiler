@@ -2836,7 +2836,6 @@ See also 3.6.4.2.
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_switch, sp, (an_object_lifetime_ptr)NULL);
-  sssep = &struct_stmt_stack[depth_stmt_stack];
   /* Add a switch block entry to the control_flow_descr_list.  The
      corresponding end-of-entry is added at the end of this routine.  This
      is done even though a switch statement usually involves a compound
@@ -2869,6 +2868,7 @@ See also 3.6.4.2.
   }  /* if */
   /* Save the selector expression type for checking of the case label
      values. */
+  sssep = &struct_stmt_stack[depth_stmt_stack];
   sssep->switch_selector_type = sp->expr->type;
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
