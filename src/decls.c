@@ -4681,7 +4681,8 @@ is_definition is TRUE if the label is being scanned as part of a label.
 
 
 static a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
-			             a_type_ptr  *bottom_pointer_derived_type)
+			             a_type_ptr  *bottom_pointer_derived_type,
+                                     a_boolean   reference_allowed)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 
@@ -4693,8 +4694,10 @@ Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 		complete-class-name :: * cv-qualifier-list
 							  opt
 
-where a cv-qualifier-list consists of const or volatile or both.
-Only the first form is accepted in C.
+where a cv-qualifier-list consists of "const" or "volatile" or both.  Only
+the first form is accepted in C.  Note also that even in C++ the second form
+is not allowed in a new-declarator (ARM 5.3.3), so the reference_allowed
+parameter controls the restrictions imposed by the context.
 */
 {
   a_type_ptr     complete_type = specifiers_type;
@@ -4714,7 +4717,7 @@ Only the first form is accepted in C.
        on successive iterations. */
     err = FALSE;
     if (curr_token == tok_star ||
-        (C_dialect == C_dialect_cplusplus && curr_token == tok_ampersand)) {
+        (reference_allowed && curr_token == tok_ampersand)) {
       set_err_pos_to_curr_token();
       if (complete_type != NULL) {
         /* Normal case -- the specifiers type is given, and the pointer or
@@ -4921,7 +4924,9 @@ otherwise it is NULL.  The syntax is:
   /* Look for any initial "*" list indicating pointer types. */
   bottom_pointer_derived_type = NULL;
   complete_type = pointer_declarator(specifiers_type,
-                                     &bottom_pointer_derived_type);
+                                     &bottom_pointer_derived_type,
+                                     /*reference_allowed=*/
+                                       C_dialect == C_dialect_cplusplus);
   parenthesized_initializer_allowed =
                    (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED) &&
                    (is_arithmetic_type(complete_type) ||
@@ -7505,7 +7510,9 @@ syntax is:
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
-    complete_type = pointer_declarator(*type_ptr, &bottom_derived_type);
+    complete_type = pointer_declarator(*type_ptr, &bottom_derived_type,
+                                       /*reference_allowed=*/FALSE);
+
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -7569,7 +7576,8 @@ locator, and return TRUE.  If it doesn't, return FALSE.
       /* Missing type specifier. */
       warning(ec_missing_type_specifier);
     }  /* if */
-    complete_type = pointer_declarator(specifiers_type, &bottom_derived_type);
+    complete_type = pointer_declarator(specifiers_type, &bottom_derived_type,
+                                       /*reference_allowed=*/TRUE);
     unget_token();
     curr_token = tok_identifier;
     pos_curr_token = error_position = *id_pos;
