@@ -1568,7 +1568,7 @@ to indicate whether an enumeration is actually defined.
       }  /* if */
       if (depth_innermost_function_scope == NO_SCOPE_NUMBER &&
           !inside_local_class) {
-        /* Nonlocal class. */
+        /* Enum declaration is not local to a function. */
         set_name_linkage_for_type(enum_type);
       }  /* if */
     }  /* if */
