@@ -8554,9 +8554,10 @@ following the member declaration.
   }  /* if */
   /* A declarator list should be present.  Scan it. */
   do {
-    a_symbol_locator   locator;
-    a_type_ptr         local_type;
-    a_func_info_block  func_info;
+    a_symbol_locator                  locator;
+    a_type_ptr                        local_type;
+    a_func_info_block                 func_info;
+    a_template_symbol_supplement_ptr  tssp;
 
     first_declarator_diagnostics = decl_info.is_first_in_declarator_list;
     add_stop_token(tok_comma);
@@ -8771,6 +8772,10 @@ following the member declaration.
         decl_member_function_template(&locator, class_type, local_type,
                                       &func_info, class_state, &decl_info);
         rout_sym = decl_info.member_sym;
+        if (decl_info.is_constructor && (dso_flags & DSO_EXPLICIT)) {
+          tssp = rout_sym->variant.template_info;
+          tssp->variant.function.routine->is_explicit_constructor = TRUE;
+        }  /* if */
         remove_stop_token(tok_comma);
         goto next_declaration;
       } else {
@@ -8784,7 +8789,6 @@ following the member declaration.
           /* During the prototype instantiation, save the token sequence
              number associated with this declaration so that it can be used
              for matching purposes during real instantiations. */
-          a_template_symbol_supplement_ptr  tssp;
           tssp = rout_sym->variant.routine.instance_ptr->template_info;
           check_assertion(tssp != NULL);
           if (tssp->token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER) {
@@ -8857,7 +8861,7 @@ following the member declaration.
              this member function must be updated, based on the template_info
              of the prototype instantiation.  Note that the current class may
              be nested within the prototype instantiation. */
-          a_template_symbol_supplement_ptr  tssp, class_tssp;
+          a_template_symbol_supplement_ptr  class_tssp;
 
           /* A member function of a template class whose body is supplied in
              the class shares the template declaration information with the
