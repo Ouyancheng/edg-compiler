@@ -613,7 +613,9 @@ typedef struct a_src_seq_secondary_decl {
 			   a specialization. */
   a_bit_field	first_declaration:1;
 			/* TRUE if the declaration is the initial appearance
-			   of an entity in the translation unit. */
+			   of an entity in the translation unit; defined only
+			   for entries referring to class or enum types or
+			   to routines. */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
