@@ -4428,7 +4428,7 @@ return a pointer to it.
   an_expr_node_ptr node;
 
   node = alloc_expr_node((an_expr_node_kind)enk_variable);
-  /* Drop any type qualifiers on the variable type because rvalues so not have
+  /* Drop any type qualifiers on the variable type because rvalues do not have
      type qualifiers. */
   node->type = make_unqualified_type(var->type);
   node->variant.variable = var;
@@ -4566,12 +4566,152 @@ class need not be an immediate base class.
 }  /* base_class_selection_expr */
 
 
+a_variable_ptr create_expr_temporary(a_type_ptr       temp_type,
+                                     a_boolean        force_temp_init,
+                                     an_expr_node_ptr *temp_init_node)
+/*
+Allocate a temporary variable of type temp_type and return a pointer to it.
+If force_temp_init is TRUE or temp_type is a type that requires a destructor,
+also allocate an enk_temp_init node pointing to a dynamic init entry
+and return a pointer to the enk_temp_init node in *temp_init_node; otherwise,
+set *temp_init_node to NULL.
+*/
+{
+  a_variable_ptr     temp_var;
+  a_dynamic_init_ptr dip;
+
+  *temp_init_node = NULL;
+  /* Allocate the temporary. */
+  temp_var = alloc_temporary_variable(temp_type);
+  if (force_temp_init ||
+      (C_dialect == C_dialect_cplusplus &&
+       is_class_struct_union_type(temp_type) &&
+       symbol_supplement_for_class(temp_type)->destructor != NULL)) {
+    /* force_temp_init is TRUE, or the temp_type is a class with a
+       destructor. */
+    dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type);
+#if 0
+    add_to_dynamic_inits_list(dip);
+#endif
+    dip->variable = temp_var;
+    /* Make an enk_temp_init node that points at the dynamic init
+       entry. */
+    (*temp_init_node) = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+    (*temp_init_node)->variant.init.dynamic_init = dip;
+    /* Note that the type and expression are not set yet, as we do not
+       know what expression will be attached to the enk_temp_init. */
+  }  /* if */
+  return temp_var;
+}  /* create_expr_temporary */
+
+
+void attach_expr_under_temp_init(an_expr_node_ptr *node,
+                                 an_expr_node_ptr temp_init_node)
+/*
+temp_init_node points to an enk_temp_init.  Attach the expression pointed to
+by *node under the enk_temp_init node, and update *node to point to the
+enk_temp_node.
+*/
+{
+  temp_init_node->variant.init.expr = *node;
+  temp_init_node->type = (*node)->type;
+  *node = temp_init_node;
+}  /* attach_expr_under_temp_init */
+
+
+an_expr_node_ptr func_call_expr(an_expr_node_ptr function_node,
+                                a_type_ptr       function_type,
+                                a_boolean        is_virtual,
+                                a_boolean        new_or_delete_call_for_array)
+/*
+Make an expression for a call of the function indicated by function_node,
+whose type is function_type, and which is virtual if is_virtual is TRUE or
+a pointer-to-member-function call if the type of function_node is
+pointer-to-member-function.  new_or_delete_call_for_array is TRUE
+if the call is of a C++ new or delete routine to allocate or free an
+array.  The arguments of the call are already attached to function_node.
+A skip_typerefs need not have been done on function_type.  Return
+a pointer to the call node.
+*/
+{
+  an_expr_operator_kind         op;
+  an_expr_node_ptr              call_node;
+  a_type_ptr                    return_type, call_type;
+  a_routine_type_supplement_ptr rtsp;
+  a_variable_ptr                temp_var = NULL;
+  an_expr_node_ptr              temp_init_node = NULL, temp_node, prev_node;
+
+  function_type = skip_typerefs(function_type);
+  /* Any type qualifiers on the return type are dropped because rvalues
+     do not have qualified types. */
+  call_type = return_type =
+                     skip_typerefs(function_type->variant.routine.return_type);
+  rtsp = function_type->variant.routine.extra_info;
+  /* If the function is one for which the caller must supply a place for
+     the result, allocate a temporary for that and insert it into the
+     argument list. */
+  set_routine_calling_method_flag(function_type);
+  if (rtsp->caller_provides_place_to_put_return_value) {
+    /* Allocate the temporary for the return value. */
+    temp_var = create_expr_temporary(return_type, /*force_temp_init=*/FALSE,
+                                     &temp_init_node);
+    /* Make an expression for the address of the temporary. */
+    temp_node = var_lvalue_expr(temp_var);
+    /* Put the expression into the argument list.  If there is a "this"
+       parameter, the temporary is added after it. */
+    prev_node = function_node;
+    if (rtsp->implicit_this_param_type != NULL) prev_node = prev_node->next;
+    temp_node->next = prev_node->next;
+    prev_node->next = temp_node;
+    /* The return type of the call is a pointer to the temporary. */
+    call_type = make_pointer_type(return_type);
+  } else if (is_reference_type(call_type)) {
+    /* If the function returns a reference type, make the result a pointer. */
+    call_type = return_type = make_pointer_type(type_pointed_to(call_type));
+  }  /* if */
+  if (is_ptr_to_member_type(function_node->type)) {
+    /* Call using a pointer-to-member-function. */
+    op = (an_expr_operator_kind)eok_pm_call;
+  } else if (is_virtual) {
+    /* Call of a virtual function. */
+    op = (an_expr_operator_kind)eok_virtual_call;
+  } else {
+    op = (an_expr_operator_kind)eok_call;
+  }  /* if */
+  /* Make an expression for the function call. */
+  call_node = make_operator_node(op, call_type, function_node);
+  if (new_or_delete_call_for_array) {
+    /* Remember that this is a new or delete call for an array. */
+    call_node->variant.operation.new_or_delete_call_for_array = TRUE;
+  }  /* if */
+  /* If a temporary was allocated to hold the returned value, add
+     a comma expression to pick up the temporary value, like
+       (f(&T, a1, a2), T)
+     Note that find_class_rvalue_var_node looks for the form
+     of the expressions generated here to do an optimization.
+  */
+  if (temp_var != NULL) {
+    temp_node = var_rvalue_expr(temp_var);
+    call_node->next = temp_node;
+    call_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                   return_type, call_node);
+    /* If the object involved requires a destructor, an enk_temp_init
+       node was created above.  Attach it above the function call to
+       request the destructor invocation. */
+    if (temp_init_node != NULL) {
+      attach_expr_under_temp_init(&call_node, temp_init_node);
+    }  /* if */
+  }  /* if */
+  return call_node;
+}  /* func_call_expr */
+
+
 a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
                                           an_expr_node_ptr source)
 /*
 Create an expression statement pointing to an assignment operator that
 assigns the rvalue "source" to the lvalue "dest".  Return a pointer to
-the statement.
+the statement.  May not be used for array types.
 */
 {
   a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
@@ -4587,6 +4727,28 @@ the statement.
 }  /* make_assignment_statement */
 
 
+a_statement_ptr make_array_assignment_statement(an_expr_node_ptr dest,
+                                                an_expr_node_ptr source)
+/*
+Create an expression statement pointing to an assignment operator that
+assigns the array lvalue "source" to the lvalue "dest".  Return a pointer to
+the statement.  This doesn't come up directly in programs, but does
+in IL lowering and in generated routines (like assignment operator functions).
+*/
+{
+  a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
+  an_expr_node_ptr node;
+
+  /* Make the assignment node. */
+  node = make_operator_node((an_expr_operator_kind)eok_bassign,
+                            type_pointed_to(dest->type), dest);
+  dest->next = source;
+  /* Put the assignment node under the statement. */
+  stmt->expr = node;
+  return stmt;
+}  /* make_array_assignment_statement */
+
+
 a_statement_ptr make_call_assignment_statement(a_routine_ptr    rout,
                                                an_expr_node_ptr dest,
                                                an_expr_node_ptr source)
@@ -4596,9 +4758,8 @@ calls "rout" to assign the lvalue "source" to the lvalue "dest".  Return
 a pointer to the statement.
 */
 {
-  a_statement_ptr       stmt = alloc_statement((a_statement_kind)stmk_expr);
-  an_expr_node_ptr      node, func_addr_node;
-  an_expr_operator_kind op;
+  a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
+  an_expr_node_ptr node, func_addr_node;
 
   /* Make a node for the address of the function. */
   func_addr_node = function_addr_expr(rout);
@@ -4606,12 +4767,8 @@ a pointer to the statement.
   func_addr_node->next = dest;
   dest->next = source;
   /* Make the call node. */
-  if (rout->is_virtual) {
-    op = (an_expr_operator_kind)eok_virtual_call;
-  } else {
-    op = (an_expr_operator_kind)eok_call;
-  }  /* if */
-  node = make_operator_node(op, dest->type, func_addr_node);
+  node = func_call_expr(func_addr_node, rout->type, rout->is_virtual,
+                        /*new_or_delete_call_for_array=*/FALSE);
   /* Put the call node under the statement. */
   stmt->expr = node;
   return stmt;
