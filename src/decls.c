@@ -4843,7 +4843,7 @@ is not a template declaration scope.
       /* Not a redeclaration. */
       a_scope_stack_entry_ptr  ssep = &scope_stack[effective_decl_level];
       an_error_code            error_code;
-      an_error_code            severity;
+      an_error_severity        severity;
       a_boolean                invalid_scope_for_new_or_delete = FALSE;
 
       if (!is_error_locator(*locator)) {
