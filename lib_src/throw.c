@@ -681,6 +681,7 @@ tp2_qualifiers has.
 #define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)  \
   ((~(tp1_qualifiers) & (tp2_qualifiers)) != 0)
 
+#if ABI_COMPATIBILITY_VERSION >= 241
 
 static a_boolean check_pointer_levels_and_qualifiers(
 			an_exception_type_specification_ptr	etsp,
@@ -737,6 +738,7 @@ permitted.
   return okay;
 }  /* check_pointer_levels_and_qualifiers */
 
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 
 static int check_exception_type_specifications
                         (an_exception_type_specification_ptr  etsp,
@@ -799,12 +801,14 @@ entry is returned in etsp_found.
           /* The qualifiers are acceptable. */
           match = TRUE;
         }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 241
       } else {
         /* Both are multi-level pointers.  Make sure the source can be
            converted to the destination by a valid qualification conversion. */
         if (check_pointer_levels_and_qualifiers(etsp, ptr_flags)) {
           match = TRUE;
         }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 241 */
       }  /* if */
     }  /* if */
     if (match) {
