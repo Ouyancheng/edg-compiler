@@ -4108,11 +4108,13 @@ The value of the operation is an lvalue of type "const struct _GUID".
     expr_stack_entry.potentially_evaluated = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     uuidof_type = operand.type;
-    expr = make_node_from_operand(&operand);
     /* __uuidof(0) is a special case that yields a zero GUID. */
     if (is_constant_operand(&operand) &&
         is_null_pointer_constant(&operand.variant.constant)) {
       uuidof_type = NULL;
+      expr = NULL;
+    } else {
+      expr = make_node_from_operand(&operand);
     }  /* if */
     pop_expr_stack();
   }  /* if */
@@ -4154,6 +4156,11 @@ The value of the operation is an lvalue of type "const struct _GUID".
     uuidof_node->type = make_pointer_type(const_guid);
     make_expression_operand(uuidof_node, const_guid, result);
     result->state = (an_operand_state)os_lvalue;
+    /* The IL operand expression is supposed to be an lvalue.  Make sure
+       it is.  We are counting on the fact that a Microsoft extension makes
+       functions that return classes return lvalues. */
+    check_assertion_str(expr == NULL || is_an_lvalue(&operand),
+                        "scan_uuidof: operand is an rvalue");
   }  /* if */
   /* Set the error position to the starting position. */
   error_position = start_position;
