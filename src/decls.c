@@ -936,7 +936,7 @@ locator_for_curr_id.
   pip->next = NULL;
   pip->locator = locator_for_curr_id;
   pip->declaration_processed = FALSE;
-  pip->param_type = NULL;
+  pip->type = NULL;
   pip->storage_class = (a_storage_class)sc_unspecified;
   db_exit();
   return(pip);
@@ -994,7 +994,7 @@ return NULL.
 
 
 static void add_to_param_id_list(a_symbol_locator      *locator,
-                                 a_param_type_ptr      param_type_ptr,
+                                 a_type_ptr            type_ptr,
                                  a_storage_class       storage_class,
                                  a_func_info_block_ptr func_info,
                                  a_param_id_ptr        *last_param_id)
@@ -1018,7 +1018,7 @@ storage_class are the type and storage class for the parameter.
       /* Put the proper location into the parameter id entry. */
       new_param_id->locator = *locator;
       /* Save the type and storage class for the later declaration. */
-      new_param_id->param_type    = param_type_ptr;
+      new_param_id->type    = type_ptr;
       new_param_id->storage_class = storage_class;
       /* Put this entry on the end of the list of param ids. */
       if (func_info->param_id_list == NULL) {
@@ -1514,7 +1514,8 @@ scope is that of a class definition.
                that case the names are not significant.  However, if the user
                makes a mistake, having as complete a list as possible
                minimizes the error recovery problems. */
-            add_to_param_id_list(&param_locator, ptp, param_storage_class,
+            add_to_param_id_list(&param_locator, param_type_ptr,
+                                 param_storage_class,
                                  func_info, &last_param_id);
             if (is_error_locator(param_locator)) {
               func_info->any_prototype_names_omitted = TRUE;
@@ -1621,7 +1622,7 @@ scope is that of a class definition.
             /* Enter the parameter anyway, for best error recovery. */
           }  /* if */
           /* Add the identifier to the parameter id list. */
-          add_to_param_id_list(&locator_for_curr_id, (a_param_type_ptr)NULL,
+          add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
                                (a_storage_class)sc_unspecified,
                                func_info, &last_param_id);
           /* Advance past the identifier. */
@@ -6203,6 +6204,7 @@ explicitly specified (rather than defaulted to "int").
   a_param_type_ptr   comp_param_type_list;
   a_boolean          comp_prototyped;
   a_boolean	     is_member_function_def = FALSE;
+  a_param_type_ptr   ptp;
 
   db_enter(3, "function_definition");
   /* The top type (function) must have come from a declarator, not from a
@@ -6352,36 +6354,30 @@ explicitly specified (rather than defaulted to "int").
          undeclared, and create the variable entries. */
       do {
         if (!param_id->declaration_processed) {
-#if CHECKING
-          if (param_id->param_type != NULL) {
-            internal_error("function_declaration: param_id has param_type");
-          }  /* if */
-#endif /* CHECKING */
-          /* Enter any undeclared parameters with a type of int.  The
-             param_type entry must be allocated in the file-scope region. */
-          param_id->param_type =
-                        alloc_param_type(integer_type((an_integer_kind)ik_int),
-                                         /*at_file_scope=*/TRUE);
+          /* Enter any undeclared parameters with a type of int. */
+          param_id->type = integer_type((an_integer_kind)ik_int);
           param_id->storage_class = (a_storage_class)sc_auto;
           decl_parameter(&(param_id->locator), &param_id->symbol);
         }  /* if */
+        /* The param_type entry must be allocated in the file-scope region. */
+        ptp = alloc_param_type(/*at_file_scope=*/TRUE);
+        ptp->type = param_id->type;
         /* Add the parameter variable to the list of parameters for this
            routine.  This is done in this way so that the parameters
            will be in the order they appear in the original identifier
            list rather than the order in which they appear in the
            declarations.  Note that the variable entry is allocated
            in the current (function) scope, not at the file scope. */
-        (void)make_parameter(param_id->param_type, param_id->storage_class,
-                             param_id->symbol);
+        (void)make_parameter(ptp, param_id->storage_class, param_id->symbol);
         /* Now build the list of parameter types that is attached to the 
            routine type (needed for checking type compatibility -- see
            types_are_compatible). */
         if (old_style_param_types == NULL) {
-          old_style_param_types = param_id->param_type;
+          old_style_param_types = ptp;
         } else {
-          end_old_style_param_types->next = param_id->param_type;
+          end_old_style_param_types->next = ptp;
         }  /* if */
-        end_old_style_param_types = param_id->param_type;
+        end_old_style_param_types = ptp;
       } while ((param_id = param_id->next) != NULL);
     }  /* if */
     /* Save the composite type determined by decl_var_or_routine, if any.
@@ -6442,6 +6438,7 @@ explicitly specified (rather than defaulted to "int").
                                           rout_type, linked_redecl_error);
   } else {
     /* New-style (function prototype). */
+    a_param_type_ptr  ptp = extra_info->param_type_list;
     if (func_info->any_prototype_names_omitted) {
       /* At least one of the parameter names was omitted in the prototype.
          This is not valid when there is a function definition (except in C++:
@@ -6450,12 +6447,21 @@ explicitly specified (rather than defaulted to "int").
         error(ec_all_proto_params_must_be_named);
       }  /* if */
     }  /* if */
-    for (; param_id != NULL; param_id = param_id->next) {
+#if CHECKING
+    if ((param_id == NULL) != (ptp == NULL)) {
+      internal_error("function_definion: param_id and ptp out of sync");
+    }  /* if */
+#endif /* CHECKING */
+    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
       decl_parameter(&(param_id->locator), &param_symbol_ptr);
-      (void)make_parameter(param_id->param_type, param_id->storage_class,
-                           param_symbol_ptr);
+      (void)make_parameter(ptp, param_id->storage_class, param_symbol_ptr);
+#if CHECKING
+      if ((param_id->next == NULL) != (ptp->next == NULL)) {
+        internal_error("function_definion: param_id and ptp out of sync");
+      }  /* if */
+#endif /* CHECKING */
     }  /* while */
   }  /* if */
   /* Free the list of parameter ids, now that it is no longer needed. */
@@ -6577,14 +6583,24 @@ processing of function definition.
   extra_info->lint_argsused_flag = lint_argsused_flag;
   extra_info->lint_varargs_count = lint_varargs_count;
 
-  for (param_id = func_info->param_id_list;
-       param_id != NULL;
-       param_id = param_id->next) {
+  param_id = func_info->param_id_list;
+  ptp = extra_info->param_type_list;
+#if CHECKING
+  if ((param_id == NULL) != (ptp == NULL)) {
+    internal_error("inline_function_definion: param_id and ptp out of sync");
+  }  /* if */
+#endif /* CHECKING */
+  for (; param_id != NULL;
+         param_id = param_id->next, ptp = ptp->next) {
     /* Declare each parameter identifier to have the associated type
        from the parameter type list. */
     decl_parameter(&(param_id->locator), &param_symbol_ptr);
-    (void)make_parameter(param_id->param_type, param_id->storage_class,
-                         param_symbol_ptr);
+    (void)make_parameter(ptp, param_id->storage_class, param_symbol_ptr);
+#if CHECKING
+    if ((param_id->next == NULL) != (ptp->next == NULL)) {
+      internal_error("inline_function_definion: param_id and ptp out of sync");
+    }  /* if */
+#endif /* CHECKING */
   }  /* for */
   /* Free the list of parameter ids, now that it is no longer needed. */
   free_param_id_list(&(func_info->param_id_list));
@@ -7337,8 +7353,7 @@ continue_with_declaration:
            (they're needed so that the parameters can be entered later in
            the right order). */
         param_id->symbol        = symbol_ptr;
-        param_id->param_type    = alloc_param_type(local_type_ptr,
-                                                   /*at_file_scope=*/TRUE);
+        param_id->type          = local_type_ptr;
         param_id->storage_class = local_storage_class;
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         decl_typedef(&locator, local_type_ptr, &symbol_ptr);
