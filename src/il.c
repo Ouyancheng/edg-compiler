@@ -76,6 +76,7 @@ static unsigned long
 		num_template_param_type_descrs_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
+		num_local_static_variable_inits_allocated,
 		num_variables_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
@@ -1305,7 +1306,9 @@ Dump the initializer of a variable for debug purposes.
   if (var->init_kind != (an_init_kind)initk_none) {
     partial = var->is_partially_initialized ? " (partial)" : "";
     for (a = 0; a < level; a++) fputs(" ", f_debug);
-    if (var->init_kind == (an_init_kind)initk_static) {
+    if (var->init_kind == (an_init_kind)initk_function_local) {
+      fprintf(f_debug, "local static initialization%s\n", partial);
+    } else if (var->init_kind == (an_init_kind)initk_static) {
       fprintf(f_debug, "static init%s: ", partial);
       db_static_initializer(var->initializer.constant);
       (void)fputc('\n', f_debug);
@@ -4985,6 +4988,71 @@ expression node.
   }  /* switch */
   return new_dip;
 }  /* copy_dynamic_init */
+
+
+a_local_static_variable_init_ptr alloc_local_static_variable_init(
+                                                           an_init_kind  kind)
+/*
+Allocate a local_static_variable_init entry of the specified initialization
+kind, clear it to default values, and return a pointer to it.
+*/
+{
+  a_local_static_variable_init_ptr  lsvip;
+
+  db_enter(5, "alloc_local_static_variable_init");
+  check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
+  lsvip = (a_local_static_variable_init_ptr)alloc_il(
+                                        sizeof(a_local_static_variable_init));
+#if DEBUG
+  num_local_static_variable_inits_allocated++;
+#endif /* DEBUG */
+  lsvip->next = NULL;
+  lsvip->variable = NULL;
+  lsvip->init_kind = kind;
+  switch (kind) {
+    case initk_static:
+      lsvip->initializer.constant = NULL;
+      break;
+    case initk_dynamic:
+      lsvip->initializer.dynamic = NULL;
+      break;
+#if CHECKING
+    default:
+      internal_error("alloc_local_static_variable_init: bad init kind");
+#endif /* CHECKING */
+  }  /* switch */
+
+  db_exit();
+  return lsvip;
+}  /* alloc_local_static_variable_init */
+
+
+a_local_static_variable_init_ptr find_local_static_variable_init(
+                                                      a_variable_ptr  var,
+                                                      a_scope_ptr     scope)
+/*
+Return a pointer to the local static variable init entry that appears on the
+linked list for the specified scope and points to the specified variable.
+(It is an internal error for none to be found.)
+*/
+{
+  a_local_static_variable_init_ptr  lsvip;
+
+  check_assertion(scope->kind == (a_scope_kind)sck_function ||
+                  scope->kind == (a_scope_kind)sck_block);
+  check_assertion(var->init_kind == (an_init_kind)initk_function_local);
+  for (lsvip = scope->local_static_variable_inits;
+       lsvip != NULL;
+       lsvip = lsvip->next) {
+    if (lsvip->variable == var) {
+      /* Found it. */
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion_str2(lsvip != NULL, "find_local_static_variable_init:",
+                       "none found for specified variable and scope");
+  return lsvip;
+}  /* find_local_static_variable_init */
 
 
 a_variable_ptr alloc_variable(a_storage_class  storage_class)
@@ -9066,6 +9134,9 @@ Display and return the amount of space used for various IL tables.
                 a_template_param_type_descr);
   db_space_used("type", num_types_allocated, a_type);
   db_space_used("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
+  db_space_used("local static var inits",
+                num_local_static_variable_inits_allocated,
+                a_local_static_variable_init);
   db_space_used("variable", num_variables_allocated, a_variable);
   db_space_used("field", num_fields_allocated, a_field);
   db_space_used("routine", num_routines_allocated, a_routine);
@@ -9294,6 +9365,7 @@ in il_init.)
       pch_saved_var_array_elem(num_constructor_inits_allocated),
       pch_saved_var_array_elem(num_derivation_steps_allocated),
       pch_saved_var_array_elem(num_dynamic_inits_allocated),
+      pch_saved_var_array_elem(num_local_static_variable_inits_allocated),
       pch_saved_var_array_elem(num_exception_specification_types_allocated),
       pch_saved_var_array_elem(num_exception_specifications_allocated),
       pch_saved_var_array_elem(num_expr_nodes_allocated),
@@ -9407,6 +9479,8 @@ of the front end.
                                          = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
+  num_local_static_variable_inits_allocated
+                                         = 0;
   num_variables_allocated                = 0;
   num_fields_allocated                   = 0;
   num_routines_allocated                 = 0;
