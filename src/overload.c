@@ -5894,9 +5894,8 @@ happen only in C++ mode.
      already. */
   if (p_temp_init_node != NULL) {
     if (temp_init_node == NULL) {
-      temp_init_node = alloc_temp_init_node(dest_type,
+      temp_init_node = alloc_temp_init_node(dest_type, dip,
                                             /*result_is_addr=*/TRUE);
-      temp_init_node->variant.init.dynamic_init = dip;
     } else {
       /* Existing enk_temp_init; make sure we get the address of the
          temporary instead of its value. */
@@ -5904,6 +5903,9 @@ happen only in C++ mode.
         temp_init_node->variant.init.result_is_addr = TRUE;
         temp_init_node->type = make_pointer_type(temp_init_node->type);
       }  /* if */
+      /* Put the dynamic initialization on a destruction list if
+         appropriate. */
+      set_temp_init_dynamic_init_lifetime(dip);
     }  /* if */
     *p_temp_init_node = temp_init_node;
   }  /* if */

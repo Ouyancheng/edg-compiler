@@ -6492,44 +6492,6 @@ class need not be an immediate base class.
 }  /* base_class_selection_expr */
 
 
-an_expr_node_ptr alloc_temp_init_node(a_type_ptr temp_type,
-                                      a_boolean  result_is_addr)
-/*
-Create an enk_temp_init node and return a pointer to it.  The implied
-temporary has type temp_type.  The value of the enk_temp_init is the address
-(rather than the value) of the temporary if result_is_addr is TRUE.
-No dynamic initialization entry is attached under the node (the caller
-must do that).
-*/
-{
-  an_expr_node_ptr         temp_init_node;
-  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-
-  temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
-  temp_init_node->variant.init.result_is_addr = result_is_addr;
-  if (result_is_addr) {
-    /* The result is the address of the temporary, so the type is a pointer
-       to the type of the temporary. */
-    temp_init_node->type = make_pointer_type(temp_type);
-  } else {
-    /* The result is the value of the temporary, so the type is the type
-       of the temporary. */
-    temp_init_node->type = skip_typerefs(temp_type);
-  }  /* if */
-  /* Make sure the IL scope that the temporary is part of exists.  Even though
-     the temporary does not exist as a variable, it's still (from a language
-     point of view) part of this scope.  That's important, because it has to
-     be destroyed at the right point.  (Note, however, that when a temp is
-     created for a default argument in the context of a function prototype
-     scope, no IL scope will be created; that's okay, since the expression
-     will be copied in a context that will have an IL scope.) */
-  if (ssep->kind != (a_scope_kind)sck_func_prototype) {
-    (void)ensure_il_scope_exists(ssep);
-  }  /* if */
-  return temp_init_node;
-}  /* alloc_temp_init_node */
-
-
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
 /*

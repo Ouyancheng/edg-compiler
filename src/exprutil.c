@@ -3760,6 +3760,62 @@ initialization entry.  *position gives the associated source position.
 }  /* alloc_dtor_dynamic_init */
 
 
+void set_temp_init_dynamic_init_lifetime(a_dynamic_init_ptr dip)
+/*
+The indicated dynamic initialization is attached to an enk_temp_init.
+If it requires a later destruction, put it into the current object lifetime.
+*/
+{
+  if (curr_expr_is_potentially_evaluated()) {
+    /* Put the destruction (if any) on the list for the current object
+       lifetime. */
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*scope_lifetime=*/FALSE);
+  }  /* if */
+}  /* set_temp_init_dynamic_init_lifetime */
+
+
+an_expr_node_ptr alloc_temp_init_node(a_type_ptr         temp_type,
+                                      a_dynamic_init_ptr dip,
+                                      a_boolean          result_is_addr)
+/*
+Create an enk_temp_init node and return a pointer to it.  The implied
+temporary has type temp_type.  The initialization to be done is pointed
+to by dip.  The value of the enk_temp_init is the address (rather than
+the value) of the temporary if result_is_addr is TRUE.
+*/
+{
+  an_expr_node_ptr         temp_init_node;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+
+  temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+  temp_init_node->variant.init.result_is_addr = result_is_addr;
+  if (result_is_addr) {
+    /* The result is the address of the temporary, so the type is a pointer
+       to the type of the temporary. */
+    temp_init_node->type = make_pointer_type(temp_type);
+  } else {
+    /* The result is the value of the temporary, so the type is the type
+       of the temporary. */
+    temp_init_node->type = skip_typerefs(temp_type);
+  }  /* if */
+  /* Make sure the IL scope that the temporary is part of exists.  Even though
+     the temporary does not exist as a variable, it's still (from a language
+     point of view) part of this scope.  That's important, because it has to
+     be destroyed at the right point.  (Note, however, that when a temp is
+     created for a default argument in the context of a function prototype
+     scope, no IL scope will be created; that's okay, since the expression
+     will be copied in a context that will have an IL scope.) */
+  if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+    (void)ensure_il_scope_exists(ssep);
+  }  /* if */
+  temp_init_node->variant.init.dynamic_init = dip;
+  /* Put the dynamic initialization on a destruction list if appropriate. */
+  set_temp_init_dynamic_init_lifetime(dip);
+  return temp_init_node;
+}  /* alloc_temp_init_node */
+
+
 an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
                                        a_boolean         result_is_addr,
                                        a_source_position *position)
@@ -3778,15 +3834,8 @@ under the enk_temp_init node.  The value of the enk_temp_init is the address
   /* Allocate the dynamic initialization entry. */
   dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
                                 position);
-  if (curr_expr_is_potentially_evaluated()) {
-    /* Put the destruction (if any) on the list for the current object
-       lifetime. */
-    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                       /*scope_lifetime=*/FALSE);
-  }  /* if */
   /* Make an enk_temp_init node that points at the dynamic init entry. */
-  temp_init_node = alloc_temp_init_node(temp_type, result_is_addr);
-  temp_init_node->variant.init.dynamic_init = dip;
+  temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_addr);
   return temp_init_node;
 }  /* create_expr_temporary */
 

@@ -428,9 +428,6 @@ extern void adjust_anonymous_union_field_selection(an_expr_node_ptr node,
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 
-extern an_expr_node_ptr alloc_temp_init_node(a_type_ptr temp_type,
-                                             a_boolean  result_is_addr);
-
 extern void mark_routine_referenced(a_routine_ptr  routine);
 
 extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
