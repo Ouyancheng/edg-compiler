@@ -1218,13 +1218,15 @@ which elsewhere is confirmed to have type size_t).
 }  /* is_default_operator_new */
 
 
-static an_id_linkage_kind id_linkage(a_symbol_locator *locator,
-                                     a_storage_class  *storage_class,
-                                     a_type_ptr       type,
-                                     a_boolean        is_main_function,
-                                     a_symbol_ptr     *linked_symbol,
-                                     a_symbol_ptr     *overload_symbol,
-                                     a_scope_depth    *effective_decl_level)
+static
+an_id_linkage_kind id_linkage(a_symbol_locator      *locator,
+                              a_storage_class       *storage_class,
+                              a_type_ptr            type,
+                              a_boolean             is_main_function,
+                              a_func_info_block_ptr func_info,
+                              a_symbol_ptr          *linked_symbol,
+                              a_symbol_ptr          *overload_symbol,
+                              a_scope_depth         *effective_decl_level)
 /*
 An identifier (specified by *locator) of type "type" and storage class
 "storage class" is about to be declared at the current scope level.
@@ -1249,6 +1251,7 @@ will be involved in overloading.
   a_storage_class    local_storage_class = *storage_class;
   a_boolean          is_function_template_decl = FALSE;
   a_boolean          function_template_seen = FALSE;
+  a_boolean	     is_template_instance;
 
   db_enter(3, "id_linkage");
   *linked_symbol = NULL;
@@ -1447,7 +1450,36 @@ will be involved in overloading.
     }  /* if */
 determine_linkage:
     /* Determine the linkage. */
-    if (!file_scope && local_storage_class != (a_storage_class)sc_extern) {
+    is_template_instance = (other_decl != NULL && is_function &&
+                            other_decl->variant.routine.instance_ptr != NULL);
+    if (is_template_instance && !func_info->is_definition &&
+        !other_decl->variant.routine.instance_ptr->specific_def) {
+      /* A specific declaration of function template instance for which
+         a specific definition has not been seen.  The storage class of this
+         declaration must agree with the storage class of the template. */
+      a_storage_class	templ_storage_class;
+      a_boolean		templ_is_inline;
+      templ_storage_class = other_decl->variant.routine.ptr->storage_class;
+      templ_is_inline = other_decl->variant.routine.ptr->is_inline;
+      if (((templ_storage_class != (a_storage_class)sc_static) &&
+           (local_storage_class == (a_storage_class)sc_static))) {
+        /* The template was not static but the new declaration is.  Issue
+           a warning. */
+        pos_sy_warning(ec_template_and_instance_linkage_conflict,
+                       &locator->source_position, other_decl);
+      } else if (func_info->is_inline && !templ_is_inline) {
+        /* The specific declaration is inline but the template is not.
+           Issue a diagnostic because the inline specifier here will be
+           disregarded. */
+        pos_sy_warning(ec_incompatible_inline_specifier_on_specific_decl,
+                       &locator->source_position, other_decl);
+        func_info->is_inline = FALSE;
+      }  /* if */
+      func_info->is_inline = templ_is_inline;
+      local_storage_class = templ_storage_class;
+    }  /* if */
+    if (!file_scope && 
+               local_storage_class != (a_storage_class)sc_extern) {
       /* A non-file-scope object without extern storage class has no
          linkage.  In C++ a non-file-scope function may be declared --
          a friend function defined inline within a local class; it too
@@ -1484,8 +1516,13 @@ determine_linkage:
         file_scope = TRUE;
         switch (other_decl->kind) {
           case sk_routine:
-            local_storage_class = other_decl->variant.routine.ptr->
+            if (is_template_instance && func_info->is_definition) {
+              /* The linkage of a specific definition is not inherited
+                 from the template. */
+            } else {
+              local_storage_class = other_decl->variant.routine.ptr->
                                                                 storage_class;
+            }  /* if */
             is_function = TRUE;
             break;
           case sk_variable:
@@ -2326,7 +2363,7 @@ describing this declaration.
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, type_ptr, is_main_function,
-                         &linked_symbol, &homonym_symbol,
+                         func_info, &linked_symbol, &homonym_symbol,
                          &effective_decl_level);
   }  /* if */
   /* at_file_scope will be TRUE if the IL variable or routine must be
@@ -2531,6 +2568,15 @@ describing this declaration.
           /* Okay. */
           routine_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->specific_def = TRUE;
+          /* Update the linkage information in the routine to reflect
+             this declaration instead of the information inherited from
+             the template. */
+          routine_ptr->storage_class = storage_class;
+          if (func_info->is_inline && !routine_ptr->is_inline) {
+            changed_to_inline = TRUE;
+          }  /* if */
+          routine_ptr->is_inline = func_info->is_inline;
+          routine_ptr->source_corresp.name_linkage = linkage;
         } else {
           /* There is already a definition.  This is some sort of error. */
           if (routine_ptr->specific_def) {
@@ -2831,7 +2877,9 @@ skip_overloading:;
            flag is reset by the set_source_corresp call). */
         routine_ptr->source_corresp.referenced = saved_referenced_flag;
       }  /* if */
-      changed_to_inline = (func_info->is_inline && !routine_ptr->is_inline);
+      if (func_info->is_inline && !routine_ptr->is_inline) {
+        changed_to_inline = TRUE;
+      }  /* if */
     }  /* if */
     if (func_info->is_inline) routine_ptr->is_inline = TRUE;
     source_corresp_ptr = &routine_ptr->source_corresp;
@@ -3147,7 +3195,8 @@ class template.
     /* id_linkage will set sym to point to an existing symbol when we have
        a redeclaration of a function template. */
     (void)id_linkage(locator, &storage_class, type_ptr,
-                     /*is_main_function=*/FALSE, &sym, &homonym_symbol,
+                     /*is_main_function=*/FALSE, func_info,
+                     &sym, &homonym_symbol,
                      &effective_decl_level);
     if (sym == NULL) {
       /* Not a redeclaration. */

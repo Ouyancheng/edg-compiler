@@ -1,5 +1,22 @@
 Version 2.27
 
+12/13/94 Storage class of template specializations
+
+Formerly, a template instance would always get the storage class of
+the template with which it was associated.  Now the storage
+class of a specialization may be different from the template.
+
+It is still not possible to declare (without defining) a function as
+having linkage different than the template.  This will be possible
+when the new specialization syntax is implemented.
+
+  template <class T> void f(T){}  // Instances are external
+
+  static void f(int){}  // f(int) is static
+
+  static void f(float);  // Storage class on a specific declaration conflicts
+                         // with template.  A warning is issued.
+
 12/13/94 Order dependencies in member function rewriting
 
 There was an inconsistency in how we dealt with dependencies between

@@ -704,6 +704,7 @@ ec_calling_convention_not_allowed_for_type;;"calling conventions may only be app
 ec_decl_modifiers_incompatible_with_previous_decl;;"declaration modifiers are incompatible with previous declaration"
 ec_decl_modifiers_invalid_for_this_decl;;"the modifier %sq is not allowed on this declaration"
 ec_branch_into_try_block;;"transfer of control into a try block"
+ec_incompatible_inline_specifier_on_specific_decl;;"inline specification is incompatible with previous %nod"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
