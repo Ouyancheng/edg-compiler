@@ -2429,7 +2429,7 @@ static void remove_name_from_override_registry(
 /*
 Remove all override registry entries following the given one and pointing to
 an overridden symbol with the same header as the given one (orep).
-This filtering is used to avoid issueing many diagnostics on a single name.
+This filtering is used to avoid issuing many diagnostics on a single name.
 */
 {
   a_symbol_header_ptr  header = orep->overridden_sym->header;
