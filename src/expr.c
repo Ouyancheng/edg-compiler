@@ -7642,14 +7642,14 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         result_type = operation_type = operand_1->type;
       } else if (save_token == tok_minus && is_pointer_type(operand_2.type)) {
         /* Pointer - pointer. */
+        a_type_ptr  type_1 = type_pointed_to(operand_1->type),
+                    type_2 = type_pointed_to(operand_2.type);
+
         pointer_difference = TRUE;
-        /* In ANSI C, both operands must be pointers to qualified or
+        /* In ANSI C and C++, both operands must be pointers to qualified or
            unqualified members of compatible object types (ANSI C 3.3.6).
-           In C++, the standard pointer conversions are also done (ARM 4.6,
-           5.7). The result has type ptrdiff_t (see 3.3.6 and <stddef.h>). */
-        if (types_are_compatible_ignoring_qualifiers(
-                                           type_pointed_to(operand_1->type),
-                                           type_pointed_to(operand_2.type))) {
+           The result has type ptrdiff_t (see 3.3.6 and <stddef.h>). */
+        if (types_are_compatible_ignoring_qualifiers(type_1, type_2)) {
           operation_type = skip_typerefs(operand_1->type);
         } else if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
@@ -7658,8 +7658,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
                           /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
                           &operation_type)) {
-          /* Traditionally, certain differences in the types pointed to have
-             been accepted. */
+          /* Traditionally, (ARM C++) certain differences in the types pointed
+             to have been accepted. */
           if (!(any_cfront_mode() || microsoft_mode)) {
             pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
                                                 : es_warning,
