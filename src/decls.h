@@ -334,6 +334,13 @@ typedef int a_decl_flag_set;
 			   declaration with no associated definition may be
 			   interpreted as introducing a new tag name, not
 			   referring to an existing one from outer scope. */
+#define DSI_IS_TEMPLATE_PARAMETER 0x200
+			/* If this bit is set decl_specifiers is called for
+			   a template parameter declaration. */
+#define DSI_IS_TEMPLATE_DECLARATION 0x400
+			/* If this bit is set decl_specifiers is called for
+			   a template class or template function
+                           declaration. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
@@ -391,6 +398,9 @@ typedef int a_decl_flag_set;
                            specifiers, if any, are consistent with those
 			   allowed on a destructor declaration), and so a type
                            of tk_void was returned. */
+#define DSO_CLASS_TEMPLATE 0x4000
+			/* If this bit is set the declaration appears to be
+			   that of a class template. */
 
 extern void declarator(a_decl_flag_set   input_flags,
                        a_decl_flag_set   *output_flags,
