@@ -137,6 +137,8 @@ extern a_boolean is_decl_start(void);
 
 extern void type_name(a_type_ptr *type_ptr);
 
+extern void clear_func_info(a_func_info_block *func_info);
+
 extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
 extern a_label_ptr scan_label(a_boolean is_definition);
@@ -167,6 +169,9 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
 extern void decl_typedef(a_symbol_locator   *locator,
                          a_type_ptr         type_ptr,
                          a_symbol_ptr       *symbol_ptr);
+
+extern void inline_function_definition(a_routine_ptr     routine_ptr,
+                                       a_func_info_block *func_info);
 
 #if ASM_FUNCTION_ALLOWED
 /* Routine is only needed externally when asm functions are allowed. */
