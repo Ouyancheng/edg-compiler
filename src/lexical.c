@@ -10200,7 +10200,7 @@ Display the contents of a token cache.
       if (count != 0) fprintf(f_debug, "\n");
       fprintf(f_debug, "Token %0lu:\n", count++);
       fprintf(f_debug, "  kind: %s", token_names[(int)ctp->token]);
-      if (ctp->token == (a_token_kind)tok_identifier &&
+      if ((a_token_kind)ctp->token == (a_token_kind)tok_identifier &&
           ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
         fprintf(f_debug, " %s",
                 ctp->variant.locator.symbol_header->identifier);
