@@ -819,6 +819,11 @@ typedef struct an_input_stack_entry {
   a_bit_field	saved_any_tokens_fetched:1;
 			/* Used to save and restore the value of the global
 			   variable any_tokens_fetched_from_curr_input_file. */
+  a_bit_field	preinclude_macros_only:1;
+			/* TRUE if this is a preincluded file that was
+			   included by the preinclude_macros option, and
+			   from which only macro definitions should be
+			   considered. */
   bitfield_to_avoid_codecenter_warnings()
   a_byte        ifg_state;
 			/* Include file guard state information used to
@@ -1756,6 +1761,7 @@ extern void open_file_and_push_input_stack(char      *file_name,
                                            a_boolean is_include_file,
                                            a_boolean is_system_include,
                                            a_boolean is_preinclude,
+					   a_boolean preinclude_macros,
                                            a_boolean is_implicit_include,
                                            a_boolean is_include_next);
 extern FILE *open_file_for_input(
@@ -1775,6 +1781,7 @@ extern void push_input_stack(
 			a_boolean                   is_include_file,
 			a_boolean                   is_system_include,
                         a_boolean                   is_preinclude,
+			a_boolean		    preinclude_macros_only,
                         a_boolean                   is_implicit_include,
                         a_directory_name_entry_ptr  dir_entry,
 			an_include_file_history_ptr ifhp);

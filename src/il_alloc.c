@@ -459,6 +459,7 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   sfp->is_include_file = FALSE;
   sfp->included_by_system_include = FALSE;
   sfp->included_by_preinclude = FALSE;
+  sfp->preinclude_macros_only = FALSE;
   sfp->from_system_include_dir = FALSE;
   sfp->top_level_file = FALSE;
 

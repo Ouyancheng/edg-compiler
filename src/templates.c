@@ -14940,6 +14940,7 @@ file we simply return.
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              is_system_include, /*is_preinclude=*/FALSE,
+		             /*preinclude_macros=*/FALSE,
                              /*is_implicit_include=*/TRUE,
                              dir_entry, ifhp);
             scan_implicitly_included_template_definition_file();

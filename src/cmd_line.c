@@ -748,6 +748,9 @@ Initialize the option information table.
   add_option_description(optk_preinclude, "preinclude", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_preinclude_macros, "preinclude_macros", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_pending_instantiations,
                          "pending_instantiations",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -1282,6 +1285,22 @@ processing routine to update the severity.
     ptr = opt_end + 1;
   }  /* for */
 }  /* process_diag_override_option */
+
+
+static void process_preinclude_option(an_option_kind	kind,
+				      char		*arg)
+/*
+Process a preinclude or preinclude_macros option (determined by
+"kind").  "arg" is the file name.
+*/
+{
+  if (preinclude_file_name != NULL) {
+    /* A value has already been specified. */
+    command_line_error(ec_cl_more_than_one_preinclude);
+  }  /* if */
+  preinclude_file_name = arg;
+  is_macro_preinclude = (kind == optk_preinclude_macros);
+}  /* process_preinclude_option */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2732,8 +2751,9 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
       case optk_preinclude:
+      case optk_preinclude_macros:
         /* File to include at the beginning of compilation. */
-        preinclude_file_name = opt_arg;
+        process_preinclude_option(kind, opt_arg);
         break;
       case optk_define_macro:
         /* Define a macro symbol.  Just save the string for later

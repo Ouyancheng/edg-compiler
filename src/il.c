@@ -2228,6 +2228,7 @@ void record_start_of_source_file(a_source_file_ptr parent_file,
                                  a_boolean	   is_include_file,
 				 a_boolean	   is_system_include,
                                  a_boolean         is_preinclude,
+				 a_boolean	   preinclude_macros_only,
 				 a_boolean	   from_system_include_dir)
 /*
 Create a source file entry in the intermediate language, to record the
@@ -2265,6 +2266,7 @@ in a directory marked as a system include directory.
   sfp->is_include_file = is_include_file;
   sfp->included_by_system_include = is_system_include;
   sfp->included_by_preinclude = is_preinclude;
+  sfp->preinclude_macros_only = preinclude_macros_only;
   sfp->from_system_include_dir = from_system_include_dir;
   /* Link the parent or the preceding sibling file to this one. */
   if (parent_file == NULL) {

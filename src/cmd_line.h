@@ -171,6 +171,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   optk_late_tiebreaker,
   optk_preinclude,
+  optk_preinclude_macros,
   optk_pending_instantiations,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_import_dir,

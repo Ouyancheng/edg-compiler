@@ -3189,6 +3189,7 @@ void open_file_and_push_input_stack(char      *file_name,
 				    a_boolean is_include_file,
                                     a_boolean is_system_include,
                                     a_boolean is_preinclude,
+				    a_boolean preinclude_macros,
                                     a_boolean is_implicit_include,
                                     a_boolean is_include_next)
 /*
@@ -3200,11 +3201,12 @@ when trying the open.  file_name must be allocated in IL storage.
 is_include_file is TRUE if the file is being read as the result of a
 #include directive or a --preinclude command-line-option.  It is
 FALSE for implicitly included files.  is_system_include is TRUE for
-files included with the #include <file.h> notation and FALSE for
-all other files.  is_preinclude is TRUE for files included via the
---preinclude command-line option.  is_implicit_include is TRUE for
-files included for template implicit inclusion.  is_include_next is
-TRUE if the file is being pushed for an #include_next directive.
+files included with the #include <file.h> notation and FALSE for all
+other files.  is_preinclude is TRUE for files included via the
+preinclude or preinclude_macros command-line options (preinclude_macros
+specifies which).  is_implicit_include is TRUE for files included for
+template implicit inclusion.  is_include_next is TRUE if the file is
+being pushed for an #include_next directive.
 */
 {
   char				*full_file_name;
@@ -3242,7 +3244,8 @@ TRUE if the file is being pushed for an #include_next directive.
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
                    is_include_file, is_system_include, is_preinclude,
-                   is_implicit_include, dir_entry, ifhp);
+                   preinclude_macros, is_implicit_include,
+                   dir_entry, ifhp);
 done:
   db_exit();
 }  /* open_file_and_push_input_stack */
@@ -3508,6 +3511,7 @@ void push_input_stack(
 		a_boolean			is_include_file,
 		a_boolean		 	is_system_include,
                 a_boolean                       is_preinclude,
+		a_boolean			preinclude_macros_only,
                 a_boolean			is_implicit_include,
                 a_directory_name_entry_ptr      dir_entry,
 		an_include_file_history_ptr	ifhp)
@@ -3518,10 +3522,11 @@ is_include_file is TRUE if the file is being read as the result of a
 #include directive or a --preinclude command-line-option.  It is FALSE
 for implicitly included files.  is_system_include is TRUE for files
 included with the #include <file.h> notation and FALSE for all other
-files.  is_preinclude is TRUE for files included via the --preinclude
-command-line option.  is_implicit_include is TRUE for files included
-for template implicit inclusion.  dir_entry points to the entry on
-the search path that was used to find this file.
+files.  is_preinclude is TRUE for files included via the preinclude or
+preinclude_macros command-line options (preinclude_macros specifies which).
+is_implicit_include is TRUE for files included for template implicit
+inclusion.  dir_entry points to the entry on the search path that was
+used to find this file.
 */
 {
   int                times_name_appears;
@@ -3598,6 +3603,7 @@ the search path that was used to find this file.
   curr_ise->ifg_state = IFG_STATE_START;
   curr_ise->saved_any_tokens_fetched =
 				      any_tokens_fetched_from_curr_input_file;
+  curr_ise->preinclude_macros_only = preinclude_macros_only;
   any_tokens_fetched_from_curr_input_file = FALSE;
 #if CHECKING
   curr_ise->avoid_codecenter_warnings = 0;
@@ -3626,6 +3632,7 @@ the search path that was used to find this file.
                               full_file_name, name_as_written,
                               &(curr_ise->assoc_il_file), is_include_file,
                               is_system_include, is_preinclude,
+                              preinclude_macros_only,
 			      (dir_entry != NULL &&
                                                dir_entry->system_include_dir));
   /* The two il file pointers start out the same.  They will be made to
@@ -3788,6 +3795,10 @@ at the next level down.
   if (depth_input_stack == 0 || C_dialect != C_dialect_pcc) {
     verify_that_all_pp_ifs_were_closed();
   }  /* if */
+  /* Clear the at_end_of_source_file flag at the end of a file included
+     for the purpose of defining macros.  We will continue reading the
+     primary source file. */
+  if (curr_ise->preinclude_macros_only) at_end_of_source_file = FALSE;
   /* Pop the input stack. */
   /* If the stack is empty, there is no current input file any more.
      This happens at the end of the primary source file. */
@@ -3923,6 +3934,7 @@ at the next level down.
                              full_file_name, /*is_include_file=*/FALSE,
                              (a_boolean)sfp->included_by_system_include,
 			     /*is_preinclude=*/FALSE,
+		             /*preinclude_macros=*/FALSE,
                              /*is_implicit_include=*/TRUE,
                              dir_entry, ifhp);
           }  /* if */
@@ -4306,7 +4318,7 @@ for the GNU C multiline string extension.
        has started. */
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
-    if (!do_pop_on_end_of_file) {
+    if (!do_pop_on_end_of_file || curr_ise->preinclude_macros_only) {
       /* We're asked not to do the pop, so just return things as they
          are (at_end_of_source_file is TRUE). */
       goto simple_return;

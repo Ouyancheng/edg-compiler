@@ -949,6 +949,7 @@ top one in a translation unit", including a secondary translation unit.
                /*is_include_file=*/FALSE,
                /*is_system_include=*/FALSE,
                /*is_preinclude=*/FALSE,
+               /*preinclude_macros=*/FALSE,
                /*is_implicit_include=*/FALSE,
                /*is_include_next=*/FALSE);
   /* Save the source file pointer for this translation unit. */
@@ -964,6 +965,7 @@ top one in a translation unit", including a secondary translation unit.
                /*is_include_file=*/TRUE,
                /*is_system_include=*/FALSE,
                /*is_preinclude=*/TRUE,
+               is_macro_preinclude,
                /*is_implicit_include=*/FALSE,
                /*is_include_next=*/FALSE);
   }  /* if */

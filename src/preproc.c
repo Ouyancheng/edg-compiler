@@ -979,6 +979,7 @@ in which the current file was found).
                                      /*is_include_file=*/TRUE,
                                      is_system_include,
                                      /*is_preinclude=*/FALSE,
+			             /*preinclude_macros=*/FALSE,
                                      /*is_implicit_include=*/FALSE,
                                      is_include_next);
     }  /* if */
@@ -1044,6 +1045,7 @@ simply include that.
                                    /*is_include_file=*/TRUE,
                                    /*is_system_include=*/FALSE,
                                    /*is_preinclude=*/FALSE,
+			           /*preinclude_macros=*/FALSE,
                                    /*is_implicit_include=*/FALSE,
                                    /*is_include_next=*/FALSE);
   }  /* if */
@@ -1186,6 +1188,7 @@ may have extra operand at end).
                                 (a_boolean)actual_sfp->
                                                    included_by_system_include,
                                 (a_boolean)actual_sfp->included_by_preinclude,
+				(a_boolean)actual_sfp->preinclude_macros_only,
                                 (a_boolean)actual_sfp->
                                                       from_system_include_dir);
   }
@@ -2118,6 +2121,19 @@ file).
 }  /* verify_that_all_pp_ifs_were_closed */
 
 
+void process_macro_preinclude(void)
+/*
+When the preinclude_macros option is used, scan and discard any tokens
+until the end of the preinclude file is reached.
+*/
+{
+  for (;;) {
+    if (get_token() == tok_end_of_source) break;
+  }  /* for */
+  pop_input_stack();
+}  /* process_macro_preinclude */
+
+
 void cpp_driver(void)
 /*
 Read through the source, and preprocess it.  Depending on command-line
@@ -2131,6 +2147,9 @@ is asked to act like cpp.
   /* Expand macros only if generating preprocessing output (and not, for
      example, when generating makefile dependencies) . */
   expand_macros = generate_pp_output;
+  /* If the preinclude_macros option was used, scan the files that provide
+     macro definitions. */
+  if (is_macro_preinclude) process_macro_preinclude();
   do {} while (get_token() != tok_end_of_source);
   /* In some cases involving macro ids right before the end of file,
      the end of file line will have been modified (characters will have

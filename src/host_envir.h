@@ -1479,6 +1479,13 @@ storage, not IL storage.
 EXTERN char	*preinclude_file_name;
 
 /*
+TRUE if the file specified by "preinclude_file_name" should be processed
+only for the purpose of defining macros.
+*/
+EXTERN a_boolean
+		is_macro_preinclude;
+
+/*
 Object file name, usually derived from the primary source file name.
 Really used only in generating makefile dependency information.
 The string is allocated in general storage, not IL storage.
