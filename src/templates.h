@@ -68,15 +68,16 @@ extern a_boolean equiv_template_arg_lists(
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 
-extern void delayed_scan_for_function_template_default_args
-			 (a_routine_ptr			   templ_rout,
+extern void delayed_scan_for_function_template_default_args(
+			  a_routine_ptr			   templ_rout,
 			  a_routine_ptr			   rout_ptr,
 			  a_template_symbol_supplement_ptr tssp);
 
-extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
+extern a_symbol_ptr template_declaration(a_boolean  *defines_something,
+                                        a_boolean no_advance_past_final_token);
 
-extern
-void update_instantiation_required_flag(a_template_instance_ptr tip,
+extern void update_instantiation_required_flag(
+                                        a_template_instance_ptr tip,
                                         a_boolean               value,
 				        a_boolean	        defer_linline);
 
