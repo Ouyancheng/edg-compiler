@@ -5975,10 +5975,11 @@ or implicit) controlling the declaration.
                                          /*ambiguous=*/FALSE);
         new_sym->variant.projection.access_adjustment_made = TRUE;
         new_sym->variant.projection.access = access;
-        if (!is_overloaded && other_sym == NULL) {
+        if (other_sym == NULL) {
           /* Just enter it, since no overloading is involved. */
           reenter_symbol(new_sym, depth_scope_stack,
                          /*suppress_error=*/TRUE);
+          /* Save new_sym as other_sym, in case is_overloaded is TRUE. */
           other_sym = new_sym;
         } else {
           other_sym = add_symbol_to_overload_list(new_sym, other_sym);
