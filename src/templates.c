@@ -19598,7 +19598,7 @@ the body should be emitted by the back end.
       check_assertion(rout_ptr->assoc_scope != NULL_region_number);
     }  /* if */
   }  /* if */
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
   if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
       rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
     a_routine_list_entry_ptr rlep;
@@ -19617,7 +19617,7 @@ the body should be emitted by the back end.
       }  /* if */
     }  /* for */
   }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
 }  /* set_body_needed_flag_for_inline_function */
 
 #endif /* INSTANTIATE_EXTERN_INLINE */
@@ -19654,7 +19654,7 @@ are instantiated using a mechanism like the template instantiation mechanism.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 #if INSTANTIATE_EXTERN_INLINE
 
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
 
 static void write_thunk_entry_points_to_template_info_file(
 						a_routine_ptr	rout_ptr)
@@ -19716,7 +19716,7 @@ previous instantiation flag entry.
   }  /* for */
 }  /* write_alternate_entry_points_to_template_info_file */
 
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
 static a_boolean thunk_instance_required(a_routine_ptr rout_ptr)
@@ -19820,7 +19820,7 @@ a body (if needed) for extern inline functions.
        This is done to avoid problems caused by the removal from the IL
        of the routine entry or an enclosing class entry. */
     { a_boolean definition_needed = rout_ptr->definition_needed;
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
       if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
           rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
         /* For constructors and destructors, consider the entity needed if
@@ -19832,7 +19832,7 @@ a body (if needed) for extern inline functions.
           if (rlep->routine->definition_needed) definition_needed = TRUE;
         }  /* for */
       }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
       if (!definition_needed) {
         instance_required = can_be_instantiated = FALSE;
       }  /* if */
@@ -19847,7 +19847,7 @@ a body (if needed) for extern inline functions.
         write_instantiation_flags_to_template_info_file(
              name, instance_required, do_not_instantiate, can_be_instantiated,
              (a_symbol_ptr)NULL);
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
         write_thunk_entry_points_to_template_info_file(rout_ptr);
         /* Check for alternate entry points that must be output. */
         if (rout_ptr->special_kind ==
@@ -19856,7 +19856,7 @@ a body (if needed) for extern inline functions.
                                     (a_special_function_kind)sfk_destructor) {
           write_alternate_entry_points_to_template_info_file(rout_ptr);
         }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
 #if DO_IL_LOWERING
       } else {
         /* The flags are to be placed in the IL as special variables. */
