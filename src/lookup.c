@@ -4051,7 +4051,7 @@ as follows:
 	A::g(2.0)	ambiguous (B::g or C::g.  D::g is hidden)
 
 strong_only is TRUE in g++ mode if a symbol was found in a given
-namespace and that that symbol can overload with symbols from namespaces
+namespace and that symbol can overload with symbols from namespaces
 named in strong using-directives.
 */
 {
