@@ -79,6 +79,8 @@ enum a_symbol_kind_tag {
 			   given external/internal name are equivalent. */
   sk_extern_routine,	/* Definition of a routine with external or internal
 			   linkage, ditto. */
+  sk_projection,        /* Projection of a member symbol from a base class
+                           into a derived class. */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -95,6 +97,7 @@ EXTERN char	*db_sym_names[(int)sk_last + 1]
    "keyword", "macro", "constant", "type", "class-or-struct", "union",
    "enum", "variable", "field", "static-data-member", "member-function",
    "routine", "label", "undefined", "extern-variable", "extern-routine",
+   "projection",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -258,6 +261,78 @@ typedef struct an_extern_symbol_descr {
 } an_extern_symbol_descr;
 
 
+typedef struct a_derivation_path *a_derivation_path_ptr;
+typedef struct a_derivation_path {
+  a_base_class_ptr
+                base_class;
+                         /* A pointer to the base class entry representing
+                            the object to which the current object should
+                            be cast in traversing the derivation path. */
+  a_derivation_path_ptr
+                next;
+                         /* The next step in the derivation path.  If next
+                            is non-NULL, the base class it references should
+                            be on the base_classes list for the current
+                            base class.  The path, then, is a member of
+                            the set of possible paths defined by the
+                            originating class and its base path tree. */
+} a_derivation_path;
+
+
+typedef struct a_projection_symbol_descr *a_projection_symbol_descr_ptr;
+typedef struct a_projection_symbol_descr {
+  a_projection_symbol_descr_ptr
+                next;
+                        /* Next in a linked list, each of which represents
+                           another projection symbols of this name into the
+                           derived class; NULL at the end of the list. */
+  a_symbol_ptr  progenitor_symbol;
+			/* The symbol from which the current symbol was
+			   inherited.  This symbol may itself be a projection
+                           symbol.  For example, if C derives from B and B
+                           derives from A, and if B inherits member i from
+                           A, then C::i is a projection of B::i which in turn
+                           is a projection of A::i; within class C B::i is
+                           the progenitor symbol.  If ambiguous is TRUE, this
+                           symbol is one of several possible. */
+  a_symbol_ptr  original_symbol;
+                        /* The primary base class member to which this
+                           projection symbol refers.  It will be different
+                           from the progenitor_symbol when the latter is a
+                           projection symbol.  Refering to the previous
+                           example, B::i is the progenitor symbol for C::i,
+                           but A::i is the original symbol.  If ambiguous
+                           is TRUE, this symbol is one of several possible. */
+  a_derivation_path_ptr
+                derivation;
+                        /* Pointer to a linked list of entries together
+                           specifying a path between the current class object
+                           and the member specified by original_symbol.
+                           This path can be interpreted as a sequence of
+                           casts, the final cast being to the class of
+                           the primary base class member that original_symbol
+                           identifies.  If ambiguous is TRUE this is one of
+                           several possible paths. */
+  unsigned int /*an_access_specifier*/
+		access:2;
+			/* Access to this symbol in the scope of the derived
+                           class.  This may differ from the access with
+                           which it was originally declared in its base
+                           class. */
+  unsigned int	ambiguous:1;
+			/* TRUE if progenitor_symbol's name is ambiguous in
+                           the current scope, i.e., there's another symbol
+			   with the same name, and no reason to prefer one
+                           over the other. */
+  unsigned int  hidden:1;
+                        /* TRUE if progenitor_symbol is hidden from visibility
+                           in the current scope by another object. */
+  unsigned int  dominated:1;
+                       /*  TRUE if progenitor_symbol is dominated by another
+                           object (see ARM 10.1.1). */
+} a_projection_symbol_descr;
+
+
 typedef struct a_symbol {
   /* A symbol as used by the front end. */
   a_symbol_header_ptr
@@ -286,10 +361,6 @@ typedef struct a_symbol {
 			/* For a symbol that is a class member, this points
 			   to the class type (this includes structs/unions
 			   when compiling C); NULL otherwise. */
-  a_symbol_ptr	immediate_progenitor;
-			/* For a symbol inherited from a base class, this
-			   points to the symbol from which the current symbol
-			   was inherited.  NULL in all other cases. */
   a_symbol_kind kind;
                 	/* The kind of symbol. */
   unsigned int	referenced:1;
@@ -298,19 +369,6 @@ typedef struct a_symbol {
   unsigned int	defined:1;
 			/* TRUE if the symbol is actually defined, not just
 			   declared. */
-  unsigned int	provisional_member:1;
-			/* TRUE if the symbol is a class member by inheritance
-			   and may still be overridden by a local symbol of
-			   the same name. */
-  unsigned int	ambiguous:1;
-			/* TRUE if the symbol is a class member whose name
-			   is ambiguous, i.e., there's another symbol in the
-			   same scope with the same name, and no reason to
-			   prefer one over the other. */
-  unsigned int /*an_access_specifier*/
-		access:2;
-			/* Access to this symbol, for class members.  For
-			   other symbols, as_public. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
@@ -355,6 +413,24 @@ typedef struct a_symbol {
     an_extern_symbol_descr_ptr
 		extern_symbol_descr;
 			/* Information on the external symbol. */
+    /* When kind = sk_projection: */
+    struct {
+      a_projection_symbol_descr_ptr
+                descr;
+                        /* A linked list of descriptors identifying members
+                           of the current derived class that have been
+                           inherited from its base classes.  Such symbols
+                           are referred to as projection symbols, since the
+                           symbol is projected from the base class into the
+                           derived class. */
+      a_byte_boolean
+                access_adjustment;
+                        /* If TRUE an access declaration has been made for
+                           one of the projection symbols on the list, in which
+                           case it cannot be overridden by a local symbol of
+                           the same name.  If it is FALSE such overriding is
+                           permitted. */
+    } projection;
   } variant;
 } a_symbol;
 
@@ -663,6 +739,10 @@ extern void remove_symbol(a_symbol_ptr sym_ptr);
 extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
                                          a_boolean        is_static,
                                          a_symbol_locator *ext_location);
+
+extern a_derivation_path_ptr alloc_derivation_path(void);
+
+extern a_projection_symbol_descr_ptr alloc_projection_symbol_descr(void);
 
 /*
 Options for normal_id_lookup, represented as a bit set:
