@@ -7202,6 +7202,9 @@ functions could still apply).
                  necessary. */
               prep_special_selector_operand(bound_function_selector,
                                             routine_type);
+              change_some_ref_kinds(bound_function_selector->ref_entries_list,
+                                    SRK_ADDRESS_TAKEN,
+                                    SRK_MODIFICATION);
               /* Cast the source operand to the right type. */
               prep_assignment_operand(&arg_operand->operand,
                                       result_type,

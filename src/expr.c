@@ -9125,12 +9125,10 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
       /* Instantiate the type if it is a template class.  This ensures that
          the operator= function is declared. */
       complete_type_is_needed(operand_1->type);
-      /* "=" has a predefined meaning for C-style classes (i.e., bitwise
-         assignment).  Also go that way for incomplete classes, to get
-         a clearer error message. */
-      has_predef_meaning = symbol_supplement_for_class(operand_1->type)->
-                                          assignment_by_bitwise_copy_allowed ||
-                           is_incomplete_type(operand_1->type);
+      /* Defined C++ classes will always have a generated operator=.
+         For incomplete classes, assume a predefined meaning to get clearer
+         error messages. */
+      has_predef_meaning = is_incomplete_type(operand_1->type);
       check_for_operator_overloading((an_opname_kind)onk_assign,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/TRUE,
@@ -9152,15 +9150,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
         /* The subroutine changes operand_1 to the proper lvalue. */
       } else {
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-        if (is_an_rvalue(operand_1) && !C_mode() &&
-            is_class_struct_union_type(operand_1->type)) {
-          /* In C++, assignment of a class type is defined in terms of
-             calling the operator= function.  Here, we have a class with
-             no user-written operator=, but the implicitly-generated one
-             should still allow an rvalue as the left side. */
-          conv_class_operand_to_object_pointer(operand_1);
-          conv_object_pointer_to_lvalue(operand_1);
-        } else if (check_modifiable_lvalue_operand(operand_1)) {
+        if (check_modifiable_lvalue_operand(operand_1)) {
           modifying_lvalue(operand_1, /*value_used=*/FALSE);
         }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
