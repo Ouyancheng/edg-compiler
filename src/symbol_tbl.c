@@ -263,6 +263,7 @@ and indentation is the indentation desired.
   a_type_ptr			type = NULL, temp_type;
   a_variable_ptr		var;
   a_routine_ptr                 rp;
+  a_boolean                     suppress_newline = FALSE;
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
@@ -442,6 +443,7 @@ and indentation is the indentation desired.
           db_symbol(rtn_sym, "", indentation + 2);
         }  /* for */
         col = 0;
+        suppress_newline = TRUE;
       }  /* if */
       break;
     case sk_class_template:
@@ -467,7 +469,7 @@ and indentation is the indentation desired.
           if (tplep->param_type != NULL) {
             db_type(tplep->param_type);
           } else {
-            fprintf(f_debug, "NULL\n");
+            fprintf(f_debug, "NULL");
           }  /* if */
           fprintf(f_debug, "\n");
           col = 0;
@@ -480,6 +482,7 @@ and indentation is the indentation desired.
           inst_sym = inst_sym->next;
         }  /* while */
         col = 0;
+        suppress_newline = TRUE;
       }
       break;
 #if CHECKING
@@ -504,9 +507,13 @@ and indentation is the indentation desired.
       db_type(type);
     } else {
       db_abbreviated_type(type);
-    } 
+    }  /* if */
+    suppress_newline = FALSE;
   }  /* if */
-  (void)fputc('\n', f_debug);
+  /* Recursive calls to db_symbol can create unwanted newlines in the
+     output.  Don't output a newline if the last thing we did was
+     a call to db_symbol. */
+  if (!suppress_newline) (void)fputc('\n', f_debug);
   if (sym->kind == (a_symbol_kind)sk_variable ||
       sym->kind == (a_symbol_kind)sk_static_data_member) {
     if (sym->variant.variable != NULL) {
@@ -4261,6 +4268,73 @@ Only non-member functions will be found.
 }  /* opname_function_symbol */
 
 
+
+static void update_template_param_symbols_for_instantiation
+                (a_type_ptr      type)
+/*
+Update the symbol entries for template formal parameters to reflect the
+values to be used for a given instantiation.  This routine is called by
+push_scope to update the parameters for a new instantiation and is called
+by pop_scope in the case of a recursive instantiation to recreate the
+values needed for the previous call.
+*/
+{
+  a_symbol_ptr          ct_sym;
+  a_symbol_ptr          tc_sym;
+  a_template_param_ptr  tpp;
+  a_template_arg_ptr    tap;
+
+  db_enter(4, "update_template_param_symbols_for_instantiation");
+  /* Get pointers to the symbol of the class template and the
+     template class. */
+  tc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+#if CHECKING
+  if (tc_sym == NULL) {
+    internal_error("update_template_param...: assoc_type has null assoc_info");
+  }  /* if */
+#endif /* CHECKING */
+  /* Get a pointer to the first template argument. */
+  tap = type->variant.class_struct_union.extra_info->template_arg_list;
+  /* Get a pointer back to the class template. */
+  ct_sym = tc_sym->variant.class_struct_union.extra_info->class_template;
+#if CHECKING
+  if (ct_sym == NULL) {
+    internal_error("update_template_param...:  null class_template symbol");
+  }  /* if */
+#endif /* CHECKING */
+  /* Get a pointer to the first template parameter. */
+  tpp = ct_sym->variant.template.extra_info->parameters;
+  /* Loop through the parameters and arguments.  There must be a
+     one-to-one correspondence and the kinds must match.  This was
+     verified when the argument list was scanned.  Update the parameter
+     symbols to point the the type or constant represented in the
+     argument. */
+  while (tpp != NULL) {
+    register a_symbol_ptr  param_symbol = tpp->param_symbol;
+    if (tap->is_type) {
+#if CHECKING
+      if (param_symbol->kind != (a_symbol_kind)sk_type) {
+        internal_error
+            ("update_template_param...: symbol type not sk_type");
+      }  /* if */
+#endif /* CHECKING */
+      param_symbol->variant.type = tap->variant.type;
+    } else {
+#if CHECKING
+      if (param_symbol->kind != (a_symbol_kind)sk_constant) {
+        internal_error
+            ("update_template_param...: symbol type not sk_constant");
+      }  /* if */
+#endif /* CHECKING */
+      param_symbol->variant.constant = tap->variant.constant;
+    }  /* if */
+    tpp = tpp->next;
+    tap = tap->next;
+  }  /* while */
+ db_exit();
+}  /* update_template_param_symbols_for_instantiation */
+
+
 /*
 Return TRUE if the scope stack entry kind given by kind is for something
 that has an effect on access control (a class, class reactivation, or
@@ -4438,13 +4512,11 @@ must be NULL in other cases.
        saved because they can be easily recreated by pop_scope. */
     if (kind == (a_scope_kind)sck_template_instantiation) {
 #if CHECKING
-      if (assoc_type == NULL) {
-        internal_error("push_scope: assoc_type NULL for instantiation scope.");
+      if (assoc_type == NULL || !is_template_class_type(assoc_type)) {
+        internal_error("push_scope: bad assoc_type for instantiation scope.");
       }  /* if */
 #endif /* CHECKING */
-#if 0
-    update_template_param_symbols();
-#endif /* 0 */
+      update_template_param_symbols_for_instantiation(assoc_type);
     }  /* if */
   }  /* if */
   /* Maintain the depth of the innermost function scope. */
@@ -5492,6 +5564,11 @@ an instance of the class template.
     db_symbol(new_sym, "Returning: ", 2);
   }  /* if */
 #endif /* DEBUG */
+
+#if 0
+  push_scope(sck_template_instantiation, NO_SCOPE_NUMBER,
+             new_sym->variant.type, (a_routine_ptr)NULL);
+#endif
 
 error_exit:
   remove_stop_token(tok_gt);
