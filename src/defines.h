@@ -175,6 +175,7 @@ Flags to be set when using the KAI inliner.
 #ifndef OPTIMIZED_VERSION
 #define OPTIMIZED_VERSION 1
 #endif /* !defined(OPTIMIZED_VERSION) */
+#define GUARD_MACRO_FOR_VA_LIST "_VA_LIST_DEFINED"
 #define ONE_INSTANTIATION_PER_OBJECT 0
 
 #define TARG_LITTLE_ENDIAN TRUE
