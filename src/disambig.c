@@ -170,11 +170,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         break;
       /* Type specifier - other simple type name tokens. */
       case tok_char:
-#if 0
-      /* wchar_t and bool are not yet implemented. */
-      case tok_wchar_t:
-      case tok_bool:
-#endif /* 0 */
       case tok_short:
       case tok_int:
       case tok_long:
@@ -183,6 +178,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_float:
       case tok_double:
       case tok_void:
+      case tok_bool:
       case tok_wchar_t:
         type_specifier_seen = TRUE;
         break;

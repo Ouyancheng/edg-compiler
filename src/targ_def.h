@@ -486,7 +486,7 @@ bool constant type.
 */
 
 #ifndef TARG_BOOL_INT_KIND
-#define TARG_BOOL_INT_KIND ((an_integer_kind)ik_unsigned_short)
+#define TARG_BOOL_INT_KIND ((an_integer_kind)ik_char)
 			/* Default value, used to initialize global variable
 			   targ_bool_int_kind. */
 #endif /* !defined(TARG_BOOL_INT_KIND) */

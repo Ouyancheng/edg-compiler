@@ -553,6 +553,11 @@ by octl.
         /* Output a wchar_t type as "wchar_t", except in the C generating
            back end, where it is output as its underlying type. */
         octl->output_str("wchar_t");
+      } else if (type->variant.integer.bool_type &&
+                 !octl->c_generating_back_end) {
+        /* Output a bool type as "bool", except in the C generating
+           back end, where it is output as its underlying type. */
+        octl->output_str("bool");
       } else
 #endif /* ifdef CFE */
       {

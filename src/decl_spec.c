@@ -1456,6 +1456,7 @@ typedef enum {
   bt_void,
   bt_char,
   bt_wchar_t,
+  bt_bool,
   bt_int,
   bt_float,
   bt_double,
@@ -1629,6 +1630,13 @@ decl_specifiers.
     case bt_wchar_t:
       if (sign == sign_none && size == size_none) {
         *type_ptr = wchar_t_type();
+      } else {
+        bad_combination = TRUE;
+      }  /* if */
+      break;
+    case bt_bool:
+      if (sign == sign_none && size == size_none) {
+        *type_ptr = bool_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
@@ -2364,6 +2372,7 @@ Returns TRUE if there is an error in the specifiers.
         /* Fall-through to next case. */
       case tok_char:
       case tok_wchar_t:
+      case tok_bool:
       case tok_int:
       case tok_float:
       case tok_double:
@@ -2380,6 +2389,7 @@ Returns TRUE if there is an error in the specifiers.
             case tok_void:     basic_type = bt_void;    break;
             case tok_char:     basic_type = bt_char;    break;
             case tok_wchar_t:  basic_type = bt_wchar_t; break;
+            case tok_bool:     basic_type = bt_bool;    break;
             case tok_int:      basic_type = bt_int;     break;
             case tok_float:    basic_type = bt_float;   break;
             case tok_double:   basic_type = bt_double;  break;

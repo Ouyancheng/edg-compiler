@@ -1374,71 +1374,76 @@ treated in the same way as its underlying type.
 
   promoted_type = skip_typerefs(type);
   if (is_integral(promoted_type)) {
-    switch (promoted_type->variant.integer.int_kind) {
-      case ik_char:
-        if (targ_has_signed_chars) goto do_signed_char;
-        goto do_unsigned_char;
-      case ik_unsigned_char:
+    if (promoted_type->variant.integer.bool_type) {
+      /* bool always promotes to int. */
+      promoted_type = integer_type((an_integer_kind)(ik_int));
+    } else {
+      switch (promoted_type->variant.integer.int_kind) {
+        case ik_char:
+          if (targ_has_signed_chars) goto do_signed_char;
+          goto do_unsigned_char;
+        case ik_unsigned_char:
 do_unsigned_char:
-        if (C_dialect == C_dialect_pcc) {
-          /* In pcc mode, unsigned char is promoted to unsigned int. */
-          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
-        } else {
-          /* In ANSI mode, unsigned char is promoted to int if all values
-             of type unsigned char can be represented in an int; otherwise
-             unsigned char is promoted to unsigned int. */
-          if (targ_sizeof_int > 1) {
-            /* All values of type unsigned char can fit in an int, so unsigned
-               char is promoted to int. */
-            promoted_type = integer_type((an_integer_kind)ik_int);
-          } else {
-            /* int and char are the same size, so unsigned char is promoted to
-               unsigned int. */
+          if (C_dialect == C_dialect_pcc) {
+            /* In pcc mode, unsigned char is promoted to unsigned int. */
             promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+          } else {
+            /* In ANSI mode, unsigned char is promoted to int if all values
+               of type unsigned char can be represented in an int; otherwise
+               unsigned char is promoted to unsigned int. */
+            if (targ_sizeof_int > 1) {
+              /* All values of type unsigned char can fit in an int, so
+                 unsigned char is promoted to int. */
+              promoted_type = integer_type((an_integer_kind)ik_int);
+            } else {
+              /* int and char are the same size, so unsigned char is promoted
+                 to unsigned int. */
+              promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+            }  /* if */
           }  /* if */
-        }  /* if */
-        break;
-      case ik_signed_char:
+          break;
+        case ik_signed_char:
 do_signed_char:;
-      case ik_short:
-	/* Signed char and signed short are promoted to int. */
-	promoted_type = integer_type((an_integer_kind)ik_int);
-	break;
-      case ik_unsigned_short:
-        if (C_dialect == C_dialect_pcc) {
-          /* In pcc mode, unsigned short is promoted to unsigned int. */
-          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
-        } else {
-          /* In ANSI mode, unsigned short is promoted to int if all values
-             of type unsigned short can be represented in an int; otherwise
-             unsigned short is promoted to unsigned int. */
-          if (targ_sizeof_int > targ_sizeof_short) {
-            /* All values of type unsigned short can fit in an int, so
-               unsigned short is promoted to int. */
-            promoted_type = integer_type((an_integer_kind)ik_int);
-          } else {
-            /* int and short are the same size, so unsigned short is promoted
-               to unsigned int. */
+        case ik_short:
+          /* Signed char and signed short are promoted to int. */
+          promoted_type = integer_type((an_integer_kind)ik_int);
+	  break;
+        case ik_unsigned_short:
+          if (C_dialect == C_dialect_pcc) {
+            /* In pcc mode, unsigned short is promoted to unsigned int. */
             promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
-          }  /* if */
+          } else {
+            /* In ANSI mode, unsigned short is promoted to int if all values
+               of type unsigned short can be represented in an int; otherwise
+               unsigned short is promoted to unsigned int. */
+            if (targ_sizeof_int > targ_sizeof_short) {
+              /* All values of type unsigned short can fit in an int, so
+                 unsigned short is promoted to int. */
+              promoted_type = integer_type((an_integer_kind)ik_int);
+            } else {
+              /* int and short are the same size, so unsigned short is promoted
+                 to unsigned int. */
+              promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+            }  /* if */
 	}  /* if */
 	break;
-      case ik_int:
-      case ik_unsigned_int:
-      case ik_long:
-      case ik_unsigned_long:
+        case ik_int:
+        case ik_unsigned_int:
+        case ik_long:
+        case ik_unsigned_long:
 #if LONG_LONG_ALLOWED
-      case ik_long_long:
-      case ik_unsigned_long_long:
+        case ik_long_long:
+        case ik_unsigned_long_long:
 #endif /* LONG_LONG_ALLOWED */
-        /* These are deliberately left as they are; they are not supposed
-           to be promoted. */
-        break;
+          /* These are deliberately left as they are; they are not supposed
+             to be promoted. */
+          break;
 #if CHECKING
-      default:
-        internal_error("type_after_integral_promotion: bad int kind");
+        default:
+          internal_error("type_after_integral_promotion: bad int kind");
 #endif /* CHECKING */
-    }  /* switch */
+      }  /* switch */
+    }  /* if */
     /* In C++, enumeration types lose their enumeration identity when they
        get promoted. */
     if (C_dialect == C_dialect_cplusplus &&
@@ -1811,7 +1816,9 @@ which do the initial test for exact pointer equality.
             if (type_1->variant.integer.int_kind ==
                                             type_2->variant.integer.int_kind &&
                 type_1->variant.integer.wchar_t_type ==
-                                        type_2->variant.integer.wchar_t_type) {
+                                        type_2->variant.integer.wchar_t_type &&
+                type_1->variant.integer.bool_type ==
+                                        type_2->variant.integer.bool_type) {
               identical = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
             } else if (il_identical && same_repr_int_types(type_1, type_2)) {
@@ -2202,7 +2209,9 @@ for exact pointer equality.
             if (type_1->variant.integer.int_kind ==
                                            type_2->variant.integer.int_kind &&
                 type_1->variant.integer.wchar_t_type ==
-                                        type_2->variant.integer.wchar_t_type) {
+                                        type_2->variant.integer.wchar_t_type &&
+                type_1->variant.integer.bool_type ==
+                                        type_2->variant.integer.bool_type) {
               compat = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
             } else if (C_dialect == C_dialect_pcc &&
