@@ -297,6 +297,9 @@ extern int fileno(FILE *);
 /*lint -esym(759,make_file_scope_temporary)*/
 /*lint -esym(765,make_file_scope_temporary)*/
 #endif /* !LOWER_EXTERN_INLINE */
+#if !REDEFINE_EXTNAME_PRAGMA_ENABLED
+/*lint -esym(769,ec_bad_linkage_for_redefine_extname)*/
+#endif /* !REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

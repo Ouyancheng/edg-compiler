@@ -808,6 +808,18 @@ it to the back end.
 #endif /* ifndef IDENT_DIRECTIVE_AND_PRAGMA */
 
 /*
+Flag that is TRUE if "#pragma redefine_extname" is recognized.  Compilers that
+recognize this pragma should also define a macro __PRAGMA_REDEFINE_EXTNAME.
+*/
+#ifndef REDEFINE_EXTNAME_PRAGMA_ENABLED
+#ifdef __PRAGMA_REDEFINE_EXTNAME
+#define REDEFINE_EXTNAME_PRAGMA_ENABLED TRUE
+#else /* !__PRAGMA_REDEFINE_EXTNAME */
+#define REDEFINE_EXTNAME_PRAGMA_ENABLED FALSE
+#endif /* __PRAGMA_REDEFINE_EXTNAME */
+#endif /* ifndef REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
+/*
 Flag that is TRUE if "#alias" is recognized.
 */
 #ifndef ALIAS_DIRECTIVE

@@ -1705,8 +1705,10 @@ to it.
 #if DECL_MODIFIERS_IN_USE
   vp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   vp->asm_name_or_reg.name        = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if GNU_EXTENSIONS_ALLOWED
   vp->alignment                   = 0;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   vp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
@@ -1714,8 +1716,10 @@ to it.
   vp->is_weak                     = FALSE;
   vp->unused                      = FALSE;
   vp->is_not_common               = FALSE;
-  vp->asm_name_is_valid           = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  vp->asm_name_is_valid           = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
@@ -2041,8 +2045,10 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->section                     = NULL;
   rp->aliased_routine             = NULL;
-  rp->asm_name                    = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  rp->asm_name                    = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2847,6 +2853,9 @@ in the current IL memory region.
 #if PRAGMA_WEAK_ALLOWED
     case pk_weak:
 #endif /* PRAGMA_WEAK_ALLOWED */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+    case pk_redefine_extname:
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:

@@ -4603,6 +4603,13 @@ command line -D options.
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  /* Enter macro __PRAGMA_REDEFINE_EXTNAME to indicate that the special pragma
+     redefine_extname is available. */
+  (void)enter_predef_macro("1", "__PRAGMA_REDEFINE_EXTNAME",
+                           /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
   /* Enter the symbols for the __DATE__ and __TIME__ macros. */
   init_date_and_time_macros(curr_date_time);
   /* Determine whether __STDC__ should be set, and if so, the value to

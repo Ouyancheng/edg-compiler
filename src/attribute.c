@@ -217,14 +217,17 @@ process_alias_fixup_list.
 */
 {
   char       *src_name = NULL, *asm_name = NULL;
+  sizeof_t   src_name_len, asm_name_len;
   a_boolean  err = FALSE;
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     src_name = locator_for_curr_id.symbol_header->identifier;
+    src_name_len = locator_for_curr_id.symbol_header->identifier_length;
     (void)get_token();
     if (curr_token == tok_identifier) {
       asm_name = locator_for_curr_id.symbol_header->identifier;
+      asm_name_len = locator_for_curr_id.symbol_header->identifier_length;
       (void)get_token();
     } else {
       err = TRUE;
@@ -235,9 +238,20 @@ process_alias_fixup_list.
     error(ec_exp_identifier);
   }  /* if */
   wrapup_rescan_of_pragma_tokens(err);
-  if (src_name != NULL && asm_name != NULL) {
+  if (!err) {
+    sizeof_t  prefix_len = sizeof("redefine_extname ")-1;
+    sizeof_t  pragma_len = prefix_len+src_name_len+1+asm_name_len+1;
     add_alias_fixup((a_symbol_ptr)NULL, asm_name, src_name,
                     &ppp->pragma_position);
+    /* Recreate the pragma string: "redefine_extname <src-name> <asm-name>". */
+    ppp->pragma_text  = (char *)alloc_primary_file_scope_il(pragma_len);
+    (void)memcpy(ppp->pragma_text, "redefine_extname ", prefix_len);
+    (void)memcpy(ppp->pragma_text+prefix_len, src_name, src_name_len);
+    ppp->pragma_text[prefix_len+src_name_len] = ' ';
+    (void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1, asm_name,
+                 asm_name_len+1);
+    /* Record the pragma in the IL. */
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
   }  /* if */
 }  /* redefine_extname_pragma */
 

@@ -1922,15 +1922,19 @@ Display the indicated variable.
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   if (ptr->asm_name_is_valid) {
     if (ptr->asm_name_or_reg.name != NULL) {
       disp_string_ptr("asm_name", ptr->section, iek_other_text, 
                       (sizeof_t)0);
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   } else {
     disp_named_register("reg", ptr->asm_name_or_reg.reg);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if GNU_EXTENSIONS_ALLOWED
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
@@ -1948,10 +1952,12 @@ Display the indicated variable.
   if (ptr->is_not_common) {
     disp_boolean("is_not_common", TRUE);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   if (ptr->asm_name_is_valid) {
     disp_boolean("asm_name_is_valid", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   }  /* if */
@@ -2704,10 +2710,12 @@ Display the indicated routine.
   if (ptr->aliased_routine != NULL) {
     disp_ptr("aliased_routine", (char*)ptr->aliased_routine, iek_routine);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   if (ptr->asm_name != NULL) {
     disp_string_ptr("asm_name", ptr->asm_name, iek_other_text, (sizeof_t)0);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
