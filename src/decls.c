@@ -3609,11 +3609,29 @@ cross-reference output describing this declaration.
         check_assertion(variable_ptr != NULL);
         *old_type = variable_ptr->type;
         if (!types_are_redecl_compatible(type_ptr, *old_type)) {
-          pos_sy_error(ec_not_compatible_with_previous_decl,
-                       &locator->source_position, linked_symbol);
-          redecl_error_already_issued = TRUE;
-          linked_redecl_error = TRUE;
-        } else {
+          an_error_severity  severity = es_error;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (C_mode() && microsoft_mode &&
+              f_types_are_compatible(type_ptr, *old_type,
+                                     TCF_REDECLARATION |
+                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                     TCF_IGNORE_SIGNEDNESS)) {
+            /* The only thing preventing compatibility was the signedness of
+               integral types.  Just issue a warning in Microsoft C mode. */
+            severity = es_warning;
+          } else
+#endif MICROSOFT_EXTENSIONS_ALLOWED
+          /* Do not insert code here. */
+          {
+            severity = es_error;      
+            redecl_error_already_issued = TRUE;
+            linked_redecl_error = TRUE;
+          }  /* if */
+          pos_sy_diagnostic(severity, ec_not_compatible_with_previous_decl,
+                            &locator->source_position, linked_symbol);
+        }  /* if */
+        if (!linked_redecl_error) {
           /* The type of the variable should be the composite of the two
              types. */
           variable_ptr->type = type_ptr = composite_type(type_ptr, *old_type);
