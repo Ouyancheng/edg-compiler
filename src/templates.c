@@ -17764,8 +17764,13 @@ is a recursive call for a class nested within the template class.
 
   /* See if this is a valid scope for the explicit instantiation of this
      entity.  This test is only done for explicit instantiation directives,
-     not for pragmas. */
-  if (!is_pragma && top_level) check_instantiation_scope(sym);
+     not for pragmas.  It is not done for Microsoft "extern template"
+     directives either. */
+  if (!is_pragma && top_level && 
+      !(microsoft_mode && pragma_kind ==
+                                      (a_pragma_kind)pk_do_not_instantiate)) {
+    check_instantiation_scope(sym);
+  }  /* if */
   class_type = sym->variant.class_struct_union.type;
   /* The members of the class will be instantiated. Consider this to
      be a reference of this class. */
@@ -18371,6 +18376,7 @@ access errors that were detected.  options is a bit set of option flags.
   a_template_instantiation_mode
 	 			saved_instantiation_mode = instantiation_mode;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_boolean			extern_template = (options & TDO_EXTERN) != 0;
 
   db_enter(3, "explicit_instantiation");
   /* Pragmas cannot bind to explicit instantiations. */
@@ -18378,7 +18384,9 @@ access errors that were detected.  options is a bit set of option flags.
   add_stop_token(tok_semicolon);
   if (ssep->kind != (a_scope_kind)sck_file &&
       ssep->kind != (a_scope_kind)sck_namespace &&
-      ssep->kind != (a_scope_kind)sck_namespace_extension) {
+      ssep->kind != (a_scope_kind)sck_namespace_extension &&
+      !(ssep->kind == (a_scope_kind)sck_class_struct_union ||
+        extern_template)) {
     error(ec_explicit_instantiation_not_in_namespace_scope);
     flush_tokens();
   } else {
@@ -18390,7 +18398,7 @@ access errors that were detected.  options is a bit set of option flags.
     /* In Microsoft mode the "extern" keyword may be used in an explicit
        instantiation directive to indicate that an entity should not be
        instantiated. */
-    if ((options & TDO_EXTERN) != 0) {
+    if (extern_template) {
       pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
     } else {
       pragma_kind = (a_pragma_kind)pk_instantiate;

@@ -12265,15 +12265,23 @@ classes.
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
-          if (curr_token == tok_template || curr_token == tok_export) {
+          if (curr_token == tok_template || curr_token == tok_export ||
+              (microsoft_mode && curr_token == tok_extern &&
+               next_token() == tok_template)) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
                are not permitted in a class context.  The error for an
                explicit instantiation in a class will be issued by
                template_directive_or_declaration. */
-            a_token_kind  final_token = tok_semicolon;
+            a_token_kind                 final_token = tok_semicolon;
+            a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
 
-            template_directive_or_declaration(&final_token, TDO_NO_OPTIONS);
+            if (curr_token == tok_extern) {
+              /* In Microsoft mode "extern template ..." is permitted. */
+              (void)get_token();
+              td_flags = TDO_EXTERN;
+            }  /* if */
+            template_directive_or_declaration(&final_token, td_flags);
             /* The terminating token will be either a semicolon or a right
                brace.  The latter has already been checked for, but the former
                has not. */

@@ -1,5 +1,16 @@
 Version 2.46
 
+9/20/01  Microsoft compatibility: "extern template" allowed in class scope
+
+In Microsoft mode, the front end now accepts "extern template" directives in
+class scope.  (Such directives suppress instantiation of the named entity;
+see Changes entry of 2/4/97.)
+
+  template<class T> struct S {};
+  class C {
+    extern template struct S<int>;  // Now accepted in Microsoft mode
+  };
+
 9/20/01  #warning directive
 
 The front end now supports a #warning directive that is similar to #error,
