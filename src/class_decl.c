@@ -5451,7 +5451,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                          friend class A;
                  (which is the only form the ARM (see 11.4) allows. */
               (void)decl_friend_class(class_type, member_type);
-            } else {
+            } else if (!is_error_type(member_type)) {
               /* Invalid friend declaration. */
               pos_error(ec_bad_friend_decl, &decl_start_pos);
             }  /* if */
@@ -6162,39 +6162,14 @@ to indicate whether the class/struct/union is actually defined.
       internal_error("class_specifier: identifier but not friend decl");
     }  /* if */
 #endif /* CHECKING */
+    /* class_specifier is called with is_friend_decl TRUE only when the name
+       has not yet been declared; this happens in cfront compatibility mode
+       only.  Default kind is "class" when a class is introduced by a friend
+       declaration.   (In fact, there is a slight incompatibility here, since
+       in cfront 2.1 this can also be turned into a union declaration.) */
     tag_id_present = TRUE;
-    tag_sym = curr_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                              /*any_class_tag_allowed=*/TRUE);
-    if (tag_sym != NULL) {
-      /* Already declared. */
-      tag_kind = tag_sym->kind;
-      type_kind = tag_sym->variant.class_struct_union.type->kind;
-      /* Now that we have completed the lookup on the tag identifier we can
-         advance past it. */
-      (void)get_token();
-      goto skip_tag_scan;
-    } else {
-      /* Not yet declared. */
-      /* Default kind is "class" when a class is introduced by a friend
-         declaration. */
-      tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-      type_kind = (a_type_kind)tk_class;
-      if (cfront_compatibility_mode) {
-        /* This is accepted as a forward declaration of a class or struct
-           name.  (In fact, there is a slight incompatibility here, since in
-           cfront 2.1 this can also be turned into a union declaration.) */
-      } else {
-        /* The forward declaration is not allowed. */
-        if (strict_ansi_mode) {
-          /* An error has already been issued. */
-        } else {
-          error(ec_not_a_class_or_struct_name);
-        }  /* if */
-        set_to_error_locator(locator);
-        (void)get_token();
-        goto skip_tag_scan;
-      }  /* if */
-    }  /* if */
+    tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
+    type_kind = (a_type_kind)tk_class;
   }  /* if */
   if (tag_id_present) {
     /* It seems that appearance of a tag name is a declaration of the
