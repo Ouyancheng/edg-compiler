@@ -8717,8 +8717,15 @@ class_type.  Set *updated if a projection symbol is created.
       slep = is_template_list ? cssp->conversion_template_list :
                                 cssp->conversion_list;
       for (; slep != NULL; slep = slep->next) {
-        if (slep->symbol->kind != (a_symbol_kind)sk_projection &&
-            slep->symbol->header == bcslep->symbol->header) {
+        if (slep->symbol->kind == (a_symbol_kind)sk_projection &&
+            !slep->symbol->variant.projection.is_using_decl) {
+          /* This is another inherited conversion function.  If it converts
+             to another type, it certainly should not mask the conversion
+             function that we are now processing.  If it converts to the same
+             type, we have a potential ambiguity: by also projecting the
+             one we are now processing, we will detect such an ambiguity
+             downstream. */
+        } else if (slep->symbol->header == bcslep->symbol->header) {
           /* A conversion list entry from the current class already represents
              a conversion to the type specified by the conversion defined in
              the base class.  Ignore it. */
