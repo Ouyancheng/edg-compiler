@@ -1703,6 +1703,11 @@ specification is handled later (see check_throw_specification).
     /* Exceptions are suppressed for this compilation. */
     pos_error(ec_no_exception_support, &pos_curr_token);
   } else {
+    if (func_info->is_main_function) {
+      /* main() cannot have a throw specification, since there's no call stack
+         to unwind from main.  Issue an error, but scan it anyway. */
+      pos_error(ec_throw_specification_not_allowed, &pos_curr_token);
+    }  /* if */
     tsp = alloc_throw_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     tsp->throw_position = pos_curr_token;
@@ -2376,6 +2381,19 @@ scope is that of a class definition.
       this_param_type = make_qualified_type(this_param_type, /*is_const=*/TRUE,
                                             /*is_volatile=*/FALSE);
       extra_info->implicit_this_param_type = this_param_type;
+    }  /* if */
+    /* Error checking in scan_throw_specification needs to know if this is
+       main().  The check for ordinary C is made in the caller. */
+    if (func_info != &local_func_info_block && !is_error_locator(*locator) &&
+        locator->symbol_header->identifier != NULL &&
+        (strcmp(locator->symbol_header->identifier, "main") == 0)) {
+      /* This function is named "main". */
+      if (member_function_parent_type == NULL &&
+          (locator->specific_symbol == NULL ||
+           locator->specific_symbol->class_of_which_a_member == NULL)) {
+        /* Not a member function named "main". */
+        func_info->is_main_function = TRUE;
+      }  /* if */
     }  /* if */
     if (curr_token == tok_throw) {
       if (func_info == &local_func_info_block) {
@@ -9228,16 +9246,11 @@ continue_with_declaration:
                  &local_type_ptr, &bottom_derived_type, &func_info);
       is_function = is_function_type(local_type_ptr);
       is_main_function = FALSE;
-      if (is_function && !is_error_locator(locator) &&
-          locator.symbol_header->identifier != NULL &&
-          (strcmp(locator.symbol_header->identifier, "main") == 0)) {
-        /* Recognizing a declaration of function "main" is more than checking
-           the identifier. */
+      if (is_function) {
         if (C_dialect == C_dialect_cplusplus) {
-          if (locator.specific_symbol == NULL ||
-              locator.specific_symbol->class_of_which_a_member == NULL) {
-            /* Not a member function named "main". */
-            func_info.is_main_function = is_main_function = TRUE;
+          /* The check has already been done in function_declarator. */
+          if (func_info.is_main_function) {
+            is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
             if (def_external_linkage.is_explicit) {
               pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
@@ -9253,11 +9266,16 @@ continue_with_declaration:
             }  /* if */
           }  /* if */
         } else {
-          if (storage_class == (a_storage_class)sc_unspecified ||
-              storage_class == (a_storage_class)sc_extern) {
-            /* Not a static function named "main".  This is not an option
-               in C++ (ARM 3.4). */
-            func_info.is_main_function = is_main_function = TRUE;
+          /* Ordinary C case -- the check hasn't been done yet. */
+          if (locator.symbol_header->identifier != NULL &&
+              (strcmp(locator.symbol_header->identifier, "main") == 0)) {
+            /* A function named "main". */
+            if (storage_class == (a_storage_class)sc_unspecified ||
+                storage_class == (a_storage_class)sc_extern) {
+              /* Not a static function named "main".  This is not an option
+                 in C++ (ARM 3.4). */
+              func_info.is_main_function = is_main_function = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
