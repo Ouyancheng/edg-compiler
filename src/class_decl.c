@@ -4121,6 +4121,13 @@ The routine body is not generated until it is known to be needed.
 
 
 static void project_base_class_conversion_functions(a_type_ptr class_type)
+/*
+Go through all the direct base classes of the current class class_type and
+create projection symbols to represent inherited conversion functions.  Also
+create a conversion_list_entry for each new projection symbol and link it to
+the list for the current class.  Only create a new projection symbol if the
+destination type is not yet on the current class's conversion list.
+*/
 {
   a_base_class_ptr               bcp;
   a_class_symbol_supplement_ptr  cssp;
@@ -4129,30 +4136,49 @@ static void project_base_class_conversion_functions(a_type_ptr class_type)
 
   bcp = class_type->variant.class_struct_union.extra_info->base_classes;
   cssp = symbol_supplement_for_class(class_type);
+  /* Examine each direct base class. */
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
+      /* Examine each conversion list entry in the base class. */
       bcclep = (symbol_supplement_for_class(bcp->type))->conversion_list;
       for (; bcclep != NULL; bcclep = bcclep->next) {
+        /* Compare the conversion list entry from the base class with the
+           each conversion list entry for the current class.  They convert
+           to the same type if they have the same header. */
         for (clep = cssp->conversion_list; clep != NULL; clep = clep->next) {
           if (clep->symbol->header == bcclep->symbol->header) break;
         }  /* for */
+        /* If clep is not NULL a conversion list entry from the current class
+           already represents a conversion to the type specified by the
+           conversion defined in the base class.  Otherwise, go ahead and
+           create a projection into the current class. */
         if (clep == NULL) {
+          /* Allocate the new conversion list entry and link it in the the
+             list for the current class. */
           clep = alloc_conversion_list_entry();
+          clep->next = cssp->conversion_list;
+          cssp->conversion_list = clep;
+          /* Create the projection symbol and record it in the new conversion
+             list entry. */
           make_locator_for_symbol(bcclep->symbol, &loc);
           loc.specific_symbol = NULL;
-          clep->symbol = make_projected_conversion_symbol(class_type, &loc);
+          clep->symbol = find_projected_symbol(class_type, &loc,
+                                               /*must_be_tag=*/FALSE,
+                                               /*must_be_type_name=*/FALSE,
+                                               /*add_to_active_list=*/TRUE,
+                                               (a_symbol_ptr)NULL);
 #if CHECKING
           if (clep->symbol == NULL) {
             internal_error(
                      "project_base_class_conversion_functions: no projection");
           }  /* if */
 #endif /* CHECKING */
-          clep->next = cssp->conversion_list;
-          cssp->conversion_list = clep;
         }  /* if */
+        /* Get the next conversion list entry from the base class. */
       }  /* for */
     }  /* if */
-  }  /* if */
+    /* Get the next direct base class. */
+  }  /* for */
 }  /* project_base_class_conversion_functions */
 
 
@@ -4889,12 +4915,22 @@ class/struct/union is actually defined.
                 set_to_error_locator(locator);
               }  /* if */
               if (local_defines_something && first_declarator) {
+                /* Type definition in function return type. */
                 pos_error(ec_type_def_not_allowed_in_func_type_decl,
                           &decl_start_pos);
-              } else if (!type_explicitly_specified && first_declarator &&
-                         !is_constructor && !is_destructor &&
-                         !locator.is_conversion_name) {
-                pos_warning(ec_missing_type_specifier, &decl_start_pos);
+              } else if (!type_explicitly_specified) {
+                /* No type specifier. */
+                if (is_constructor || is_destructor ||
+                    locator.is_conversion_name) {
+                  /* Type specifier is not expected (nor permitted) on
+                     constructors, destructors, and conversion functions. */
+                } else {
+                  /* Type specifier is missing.  The type defaults to int,
+                     but issue a warning. */
+                  if (first_declarator) {
+                    pos_warning(ec_missing_type_specifier, &decl_start_pos);
+                  }  /* if */
+                }  /* if */
               }  /* if */
               spec_kind = (a_special_function_kind)sfk_none;
               if (friend_specified) {
@@ -5079,7 +5115,8 @@ next_declaration:
       /* Create compiler-generated default constructor, copy constructor, and
          destructor, if any is needed. */
       check_special_member_functions(class_type);
-      /* Check for inherited conversion functions. */
+      /* Check for inherited conversion functions.  This must be done before
+         rescanning inline function definitions. */
       project_base_class_conversion_functions(class_type);
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note

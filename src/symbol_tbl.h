@@ -357,6 +357,9 @@ to the first byte of the number; it is advanced past the number on return.
 
 typedef struct a_conversion_list_entry *a_conversion_list_entry_ptr;
 typedef struct a_conversion_list_entry {
+  /* Entry representing a user-defined conversion functions for a given class
+     type.  (These are functions that convert a class object to another type
+     and that can be invoked implicitly.) */
   a_conversion_list_entry_ptr
 		next;
 			/* Next in a linked list of conversion list entries;
@@ -393,8 +396,11 @@ typedef struct a_class_symbol_supplement {
 		conversion_list;
 			/* Pointer to a linked list of entries providing
 			   quick access to user-defined conversion functions
-			   declared for this class (i.e., which convert
-			   objects of this class to some type). */
+			   declared for this class.  Once the class has been
+			   defined this list is exhaustive, including one
+			   entry for each target type for which a conversion
+			   is defined.  Inherited conversion functions are
+			   represented by projection symbols. */
   unsigned int	any_nonpublic_members:1;
 			/* TRUE if the class contains any members declared
 			   private or protected. */
@@ -644,11 +650,24 @@ typedef struct a_symbol_header {
 #define SYMBOL_TABLE_SIZE 599
 	  		/* The number of buckets in the symbol table.  This
 			    number should be prime. */
+
+/*
+Top level structure for the hash-table portion of the symbol table.  Each
+bucket of the array contains a pointer to a list of symbol headers whose
+identifiers hash to that bucket.  (Other portions of the symbol table,
+defined for C++ only, are the opname_symbol_table, for accessing operator
+functions by operator, and the conversion_header_list, for accessing
+conversion functions by destination type.)  
+*/
 EXTERN a_symbol_header_ptr
 		symbol_table[SYMBOL_TABLE_SIZE];
-			/* The actual symbol table.  Each bucket of the array
-			   contains a pointer to a list of symbol headers whose
-			   identifiers hash to that bucket. */
+
+/*
+Table of pointers to symbol headers for C++ operator name symbols, for
+names like "operator+".  Indexed by opname kind.
+*/
+EXTERN a_symbol_header_ptr
+		opname_symbol_table[(int)onk_last];
 
 typedef struct a_conversion_header *a_conversion_header_ptr;
 typedef struct a_conversion_header {
@@ -671,18 +690,11 @@ typedef struct a_conversion_header {
 } a_conversion_header;
 
 /*
-List of conversion header entries that serve as a lookup list for
-conversion functions.
+List of conversion header entries that serve as a lookup list for conversion
+functions symbols.
 */
 EXTERN a_conversion_header_ptr
 		conversion_header_list;
-
-/*
-Table of pointers to symbol headers for C++ operator name symbols, for
-names like "operator+".  Indexed by opname kind.
-*/
-EXTERN a_symbol_header_ptr
-		opname_symbol_table[(int)onk_last];
 
 /*
 Symbol information related to the current token:
@@ -933,6 +945,13 @@ extern a_symbol_ptr find_symbol(char             *identifier,
 			        sizeof_t         identifier_length,
 				a_symbol_locator *location);
 
+extern a_symbol_ptr find_projected_symbol(a_type_ptr        class_ptr,
+                                          a_symbol_locator  *locator,
+                                          a_boolean         must_be_tag,
+                                          a_boolean         must_be_type_name,
+                                          a_boolean         add_to_active_list,
+                                          a_symbol_ptr      insert_sym);
+
 extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
 
@@ -955,9 +974,6 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
 extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                               a_type_ptr         class_type,
                                               a_source_position  *pos);
-
-extern a_symbol_ptr make_projected_conversion_symbol(a_type_ptr       class,
-                                                     a_symbol_locator *loc);
 
 extern a_boolean is_unnamed_class_symbol(a_symbol_ptr  sym);
 

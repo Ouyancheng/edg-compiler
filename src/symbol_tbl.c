@@ -1819,16 +1819,23 @@ used for C++ constructs like "operator+".  Use pos as the source position.
 void make_type_conversion_locator(a_type_ptr         type,
                                   a_symbol_locator   *locator,
                                   a_source_position  *pos)
+/*
+Create a locator to represent a type conversion function.  The destination
+type "type" is recorded in the locator.  The symbol header is looked up
+in the conversion header list; if there is none, a new one is created.
+*/
 {
   a_conversion_header_ptr  conv_hdr, prev_conv_hdr;
   a_symbol_header_ptr      sym_hdr;
-  char                     *default_name = "operator conv";
-#define DEFAULT_NAME_LEN 13 /* Length of "operator conv" */
+  char                     *default_name = "conversion";
+#define DEFAULT_NAME_LEN 13 /* Length of "conversion" */
 
   if (is_error_type(type)) {
     set_to_error_locator(*locator);
   } else {
     clear_locator(locator, pos);
+    /* Search the conversion header list for an entry of the required type.
+       If one is found, it is moved to the front of the list. */
     prev_conv_hdr = NULL;
     conv_hdr = conversion_header_list;
     for (; conv_hdr != NULL; conv_hdr = conv_hdr->next) {
@@ -1843,12 +1850,19 @@ void make_type_conversion_locator(a_type_ptr         type,
       }  /* if */
       prev_conv_hdr = conv_hdr;
     }  /* if */
+    /* conv_hdr is NULL if no entry already exists on the list for the
+       specified type. */
     if (conv_hdr == NULL) {
+      /* Create a new conversion header entry and add it to the front of
+         the list. */
       conv_hdr = alloc_conversion_header();
       conv_hdr->next = conversion_header_list;
       conversion_header_list = conv_hdr;
+      /* Set the type and symbol header. */
       conv_hdr->type = type;
       conv_hdr->symbol_header = sym_hdr = alloc_symbol_header();
+      /* All the conversion symbols are given the same name.  This is
+         because the name is not needed for anything but debug output. */
       sym_hdr->identifier_length = DEFAULT_NAME_LEN;
       sym_hdr->identifier = alloc_il((sizeof_t)DEFAULT_NAME_LEN + 1);
       (void)strcpy(sym_hdr->identifier, default_name, DEFAULT_NAME_LEN);
@@ -2500,12 +2514,12 @@ through back to the caller.
 }  /* find_progenitor_symbol */
 
 
-static a_symbol_ptr find_projected_symbol(a_type_ptr        class_ptr,
-                                          a_symbol_locator  *locator,
-                                          a_boolean         must_be_tag,
-                                          a_boolean         must_be_type_name,
-                                          a_boolean         add_to_active_list,
-                                          a_symbol_ptr      insert_sym)
+a_symbol_ptr find_projected_symbol(a_type_ptr        class_ptr,
+                                   a_symbol_locator  *locator,
+                                   a_boolean         must_be_tag,
+                                   a_boolean         must_be_type_name,
+                                   a_boolean         add_to_active_list,
+                                   a_symbol_ptr      insert_sym)
 /*
 Given class_ptr, which identifies a class (or struct or union) type, search
 its base classes for a symbol that projects the name specified in *locator
@@ -2596,18 +2610,6 @@ it is added to the end of the scope entry symbol list for the class.
   db_exit();
   return new_sym;
 }  /* find_projected_symbol */
-
-
-a_symbol_ptr make_projected_conversion_symbol(a_type_ptr        class_type,
-                                              a_symbol_locator  *loc)
-{
-  a_symbol_ptr  sym;
-
-  sym = find_projected_symbol(class_type, loc, /*must_be_tag=*/FALSE,
-                              /*must_be_type_name=*/FALSE,
-                              /*add_to_active_list=*/TRUE, (a_symbol_ptr)NULL);
-  return sym;
-}  /* make_projected_conversion_symbol */
 
 
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
