@@ -562,7 +562,7 @@ used to match the type "char".
 }  /* set_basic_char_centity_attributes */
 #define set_char_centity_attributes()                                 \
 { set_basic_char_centity_attributes();                                \
-  centity_size = TARG_CHAR_BIT;                                       \
+  centity_bits = TARG_CHAR_BIT;                                       \
   centity_is_signed = targ_has_signed_chars;                          \
 }  /* set_char_centity_attributes */
 
@@ -581,7 +581,7 @@ used to match the type "wchar_t".
 }  /* set_basic_wchar_t_centity_attributes */
 #define set_wchar_t_centity_attributes()                              \
 { set_basic_wchar_t_centity_attributes();                             \
-  centity_size = TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT;                   \
+  centity_bits = TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT;                   \
   centity_is_signed = int_kind_is_signed[(int)TARG_WCHAR_T_INT_KIND]; \
 }  /* set_wchar_t_centity_attributes */
 
@@ -611,7 +611,6 @@ processing).
   a_targ_size_t    num_elems;
   unsigned long    chars_taken;
   unsigned long    centity_mask;
-  int              centity_size;
   a_boolean        centity_is_signed;
   int              centity_bits;
 
@@ -633,7 +632,6 @@ processing).
     determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/FALSE,
                                       &constant_size, &num_elems);
     set_wchar_t_centity_attributes();
-    centity_bits = TARG_SIZEOF_WCHAR_T * TARG_CHAR_BIT;
   } else {
      /* Normal character constant. */
     if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
@@ -643,7 +641,6 @@ processing).
     }  /* if */
     constant_size = num_chars;
     set_char_centity_attributes();
-    centity_bits = TARG_CHAR_BIT;
   }  /* if */
   con_type = integer_type(int_kind);
   /* See if the characters we have will fit in the size we've determined. */
@@ -668,14 +665,14 @@ processing).
       /* 'ab' == 0x6162. */
       /* Do sign extension if necessary, but only on the first character. */
       if (i == 0 && centity_is_signed) {
-        sign_extend_integer_value(&ch_int_val, centity_size);
+        sign_extend_integer_value(&ch_int_val, centity_bits);
       }  /* if */
       shift_left_integer_value(&number, centity_bits, &err);
 #else /* !TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT */
       /* 'ab' == 0x6261. */
       /* Do sign extension on the new character if necessary. */
       if (centity_is_signed) {
-        sign_extend_integer_value(&ch_int_val, centity_size);
+        sign_extend_integer_value(&ch_int_val, centity_bits);
       }  /* if */
       if (i != 0) {
         /* Drop any sign extension on the previous value if this isn't the
