@@ -991,7 +991,7 @@ typedef struct a_symbol {
 			   which an error has been diagnosed and which should
 			   not be entered into the symbol table. */
   union {
-    /* When kind == sk_undefined or sk_parameter, no variant fields. */
+    /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
     a_token_kind
 		keyword_token;
@@ -1101,6 +1101,11 @@ typedef struct a_symbol {
 			   declared "static"; applies to sk_member_function
 			   overloading only. */
     } overloaded_function;
+    /* When kind == sk_parameter: */
+    a_param_id_ptr
+		param_id;
+			/* Pointer to the param_id entry with which this
+			   symbol is associated. */
     /* When kind = sk_class_template or sk_function_template: */
     a_template_symbol_supplement_ptr
                 template_info;
@@ -1576,8 +1581,6 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_locator *location,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
-
-extern a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator);
 
 extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr       ct_symbol,
                                                a_source_position *pos);

@@ -1193,7 +1193,6 @@ state.
   sym_ptr->kind = sym_kind;
   switch (sym_kind) {
     case sk_undefined:
-    case sk_parameter:
       /* No variant fields to set. */
       break;
     case sk_keyword:
@@ -1294,6 +1293,9 @@ state.
     case sk_overloaded_function:
       sym_ptr->variant.overloaded_function.symbols = NULL;
       sym_ptr->variant.overloaded_function.mixed_static_nonstatic = FALSE;
+      break;
+    case sk_parameter:
+      sym_ptr->variant.param_id = NULL;
       break;
     case sk_class_template:
     case sk_function_template:
@@ -2167,7 +2169,7 @@ added to the scope symbols list and is not linked into the symbol table.
 }  /* make_projection_symbol */
 
 
-a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator)
+static a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator)
 /*
 Create but do not yet enter an sk_parameter symbol.  This routine is called
 for old style parameter declaration.
@@ -6924,6 +6926,7 @@ storage_class are the type and storage class for the parameter.
         sym = make_parameter_symbol(locator);
       }  /* if */
       new_param_id->symbol = sym;
+      if (sym != NULL) sym->variant.param_id = new_param_id;
       /* Put this entry on the end of the list of param ids. */
       if (func_info->param_id_list == NULL) {
         func_info->param_id_list = new_param_id;
