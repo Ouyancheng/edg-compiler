@@ -7027,7 +7027,28 @@ C++ mode.
       *is_constant = FALSE;
       break;
     case ok_constant:
+      /* Constant.  The constant must be non-negative.  If it is zero,
+         it is rendered as an expression. */
       copy_constant(&result.variant.constant, constant);
+      if (!is_error_constant(constant)) {
+#if CHECKING
+        if (constant->kind != (a_constant_repr_kind)ck_integer) {
+          internal_error(
+                    "scan_new_array_dimension_expression: array size not int");
+        }  /* if */
+#endif /* CHECKING */
+        if (constant->variant.integer_value < 0 &&
+            is_signed_integral_type(constant->type)) {
+          /* A negative value is an error. */
+          error(ec_new_array_size_must_be_nonnegative);
+          set_error_constant(constant);
+        } else if (constant->variant.integer_value == 0) {
+          /* A zero value is returned as an expression to avoid confusing
+             array [] and array [0]. */
+          *expression = alloc_node_for_constant(constant);
+          *is_constant = FALSE;
+        }  /* if */
+      }  /* if */
       break;
 #if CHECKING
     default:
