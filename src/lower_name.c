@@ -927,6 +927,7 @@ specification in the mangling for lengths of literals.
                                       mctl);
           break;
         case tpck_unknown_function:
+        case tpck_template_ref:
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");

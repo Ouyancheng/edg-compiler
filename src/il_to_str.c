@@ -156,7 +156,17 @@ Output the indicated template argument in the way described by octl.
       break;
     case tak_nontype:
       /* Nontype argument. */
-      {
+      if (tap->constant_is_an_arg_operand) {
+        /* The template argument is given by an expression operand (front end
+           only). */
+        check_assertion(!octl->gen_compilable_code);
+        octl->output_str("<expr>");
+      } else if (tap->is_array_bound_of_unknown_type) {
+        /* The template argument is a deduced array bound whose type is not
+           yet known. */
+        check_assertion(!octl->gen_compilable_code);
+        octl->output_str("<deduced-array-bound>");
+      } else {
         a_constant_ptr con = tap->variant.constant;
         if (is_reference_type(con->type)) {
           /* A reference parameter.  Display specially -- one level of
@@ -3150,6 +3160,14 @@ name_cases:
           octl->output_str("__uuidof(");
           form_type(constant->variant.template_param.variant.type, octl);
           octl->output_str(")");
+          break;
+        case tpck_template_ref:
+          form_constant(constant->variant.template_param.variant.
+                                                              template_ref.con,
+                        /*need_parens=*/FALSE, octl);
+          form_template_args(constant->variant.template_param.variant.
+                                                         template_ref.arg_list,
+                             octl);
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");

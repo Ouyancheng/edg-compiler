@@ -686,6 +686,15 @@ do_type_cases:
       disp_ptr("type", (char *)ptr->variant.template_param.variant.type,
                iek_type);
       break;
+    case tpck_template_ref:
+      (void)printf("tpck_template_ref\n");
+      disp_ptr("con",
+               (char *)ptr->variant.template_param.variant.template_ref.con,
+               iek_constant);
+      disp_template_arg_list("arg_list",
+                             (char *)ptr->variant.template_param.variant.
+                                                        template_ref.arg_list);
+      break;
     default:
       (void)printf("**BAD TEMPLATE PARAM CONSTANT KIND**\n");
       break;

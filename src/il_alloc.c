@@ -443,6 +443,10 @@ ck_template_param constant.
     case tpck_uuidof:
       cp->variant.template_param.variant.type = NULL;
       break;
+    case tpck_template_ref:
+      cp->variant.template_param.variant.template_ref.con = NULL;
+      cp->variant.template_param.variant.template_ref.arg_list = NULL;
+      break;
     default:
       unexpected_condition_str("set_template_param_constant_kind: bad kind");
   }  /* switch */

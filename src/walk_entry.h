@@ -625,6 +625,13 @@ the file scope, do not process it (but record an orphan in the latter case).
                 walk_ptr(ptr->variant.template_param.variant.type,
                          a_type_ptr, iek_type);
                 break;
+              case tpck_template_ref:
+                walk_ptr(ptr->variant.template_param.variant.template_ref.con,
+                         a_constant_ptr, iek_constant);
+                walk_list(ptr->variant.template_param.variant.
+                                                         template_ref.arg_list,
+                          a_template_arg_ptr, iek_template_arg);
+                break;
               default:
                 unexpected_condition_str(
                    "walk_entry_and_subtree: bad template param constant kind");

@@ -64,6 +64,7 @@ only a subset, the C and F suffixes identify the subset being used.
 /* Pointers to the main tables in the intermediate language. */
 typedef struct a_source_file *a_source_file_ptr;
 typedef struct a_constant    *a_constant_ptr;
+typedef struct a_template_arg *a_template_arg_ptr;
 typedef struct a_type        *a_type_ptr;
 typedef struct a_variable    *a_variable_ptr;
 #ifdef CIL
@@ -1593,9 +1594,12 @@ enum a_template_param_constant_kind_tag {
   tpck_alignof,		/* The template param constant represents the
 			   __ALIGNOF__ operator applied to a type that
 			   contains a template parameter type. */
-  tpck_uuidof		/* The template param constant represents the
+  tpck_uuidof,		/* The template param constant represents the
 			   Microsoft __uuidof operator applied to a type
 			   that contains a template parameter type. */
+  tpck_template_ref	/* The template param constant provides a pointer
+			   to an unknown function template, and a set of
+			   explicit template arguments for that template. */
 };
 typedef a_byte a_template_param_constant_kind;
 
@@ -1907,6 +1911,18 @@ typedef struct a_constant {
         a_type_ptr
 		type;	/* The type whose sizeof, __ALIGNOF__, or __uuidof is
 			   represented. */
+        /* When template param constant kind == tpck_template_ref: */
+        struct {
+          a_constant_ptr
+		con;
+			/* A constant that identifies the (unknown) template,
+			   i.e., a tpck_unknown_function constant. */
+          a_template_arg_ptr
+		arg_list;
+			/* The template argument list.  Note that a NULL
+			   list is "<>", not the absence of template
+			   arguments. */
+        } template_ref;
       } variant;
     } template_param;
 #endif /* ifdef CIL */
@@ -2813,7 +2829,6 @@ enum a_templ_arg_kind_tag {
 typedef a_byte a_templ_arg_kind;
 
 
-typedef struct a_template_arg *a_template_arg_ptr;
 typedef struct a_template_arg {
   /* Representation of an actual argument of an instance of a template class
      or template function.  A list of these is used to represent the actual
