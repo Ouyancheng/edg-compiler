@@ -154,6 +154,11 @@ extern a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed);
 
+#if RESTRICT_ALLOWED
+extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
+                                               a_source_position  *error_pos);
+#endif RESTRICT_ALLOWED
+
 extern void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
                                      a_type_ptr *bottom_derived_type);
