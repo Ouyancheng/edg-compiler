@@ -5195,6 +5195,7 @@ of the function, and again overloading is a possibility.
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
+          !locator->is_error &&
           class_type->source_corresp.is_local_to_function) {
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
       }  /* if */

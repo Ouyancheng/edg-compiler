@@ -5341,7 +5341,7 @@ skip_overloading:;
       func_info->declared_type = routine_ptr->declared_type;
     }  /* if */
     if (qualifier_namespace_ptr(*locator) != NULL) {
-      check_assertion(!is_friend_decl);
+      check_assertion(!is_friend_decl || locator->is_error);
       routine_ptr->defined_outside_of_parent = TRUE;
     }  /* if */
   }  /* if */
