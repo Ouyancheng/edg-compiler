@@ -4986,25 +4986,24 @@ As an anachronism, allow an expression inside the [ ].
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required. */
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-          dip->destructor = dtor_routine;
           if (array_delete) {
             /* For a delete of an array of classes, generate a dynamic init
                that replicates the destructor call for the whole array. */
-            a_dynamic_init_ptr elem_dip = dip;
             a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
             array_type->variant.array.element_type = base_delete_type;
             /* Array size is left as zero; size need not be set. */
-            if (dip->destructor != NULL) {
+            /* The destruction, if any, is indicated both at the array level
+               (for the full delete) and at the element level (for cleanup if
+               an exception is thrown during the processing). */
+            if (exceptions_enabled) {
+              dip->destructor = dtor_routine;
               dip->destruction_is_for_partially_constructed_aggregate = TRUE;
             }  /* if */
             dip = add_array_nonconstant_aggregate_init(dip, array_type,
                                                        base_delete_type,
                                                        (a_targ_size_t)0);
-            /* The destruction, if any, is indicated both at the array level
-               (for the full delete) and at the element level (for cleanup if
-               an exception is thrown during the processing). */
-            dip->destructor = elem_dip->destructor;
           }  /* if */
+          dip->destructor = dtor_routine;
           ndsp->dynamic_init = dip;
         }  /* if */
       }  /* if */
