@@ -6357,30 +6357,46 @@ mechanism.  This routine scans and builds the asm string.
 static void adjust_pp_int_constant(void)
 /*
 The current token is an integer constant scanned within a preprocessing
-#if expression.  It should be made long if it is not already so.
-See standard, 3.8.1.
+#if expression.  It should be made long if it is not already so (or intmax_t
+in C99 mode).  See C89 standard, 3.8.1.
 */
 {
   an_integer_kind ik;
 
   ik = const_for_curr_token.type->variant.integer.int_kind;
-  if (ik == (an_integer_kind)ik_long ||
-      ik == (an_integer_kind)ik_unsigned_long) {
-    /* The type is long, so leave it alone. */
-#if LONG_LONG_ALLOWED
-  } else if (ik == (an_integer_kind)ik_long_long ||
-             ik == (an_integer_kind)ik_unsigned_long_long) {
-    /* The type is long long, so leave it alone. */
-#endif /* LONG_LONG_ALLOWED */
-  } else {
-    /* The type is smaller than long, so change it.  It's changed to
-       unsigned long if the current type is unsigned, otherwise to long. */
-    if (!int_kind_is_signed[(int)ik]) {
-      ik = (an_integer_kind)ik_unsigned_long;
+  if (c99_mode) {
+    /* In C99 mode, use intmax_t for signed types, uintmax_t for unsigned
+       types. */
+    if (ik == targ_intmax_kind || ik == targ_uintmax_kind) {
+      /* The type is already right, so leave it alone. */
     } else {
-      ik = (an_integer_kind)ik_long;
+      if (!int_kind_is_signed[(int)ik]) {
+        ik = targ_uintmax_kind;
+      } else {
+        ik = targ_intmax_kind;
+      }  /* if */
+      const_for_curr_token.type = integer_type(ik);
     }  /* if */
-    const_for_curr_token.type = integer_type(ik);
+  } else {
+    /* C++ or C89.  Use long or unsigned long. */
+    if (ik == (an_integer_kind)ik_long ||
+        ik == (an_integer_kind)ik_unsigned_long) {
+      /* The type is long, so leave it alone. */
+#if LONG_LONG_ALLOWED
+    } else if (ik == (an_integer_kind)ik_long_long ||
+               ik == (an_integer_kind)ik_unsigned_long_long) {
+      /* The type is long long, so leave it alone. */
+#endif /* LONG_LONG_ALLOWED */
+    } else {
+      /* The type is smaller than long, so change it.  It's changed to
+         unsigned long if the current type is unsigned, otherwise to long. */
+      if (!int_kind_is_signed[(int)ik]) {
+        ik = (an_integer_kind)ik_unsigned_long;
+      } else {
+        ik = (an_integer_kind)ik_long;
+      }  /* if */
+      const_for_curr_token.type = integer_type(ik);
+    }  /* if */
   }  /* if */
 }  /* adjust_pp_int_constant */
 

@@ -8045,8 +8045,10 @@ C, and false or true in C++).
     /* bool exists (C++), so the result type is bool. */
     result_type = bool_type();
   } else if (curr_expr_kind_is(ek_pp)) {
-    /* All integers have a type of long in the preprocessor. */
-    result_type = integer_type((an_integer_kind)ik_long);
+    /* All integers have a type of long in the preprocessor.  In C99 mode,
+       they have type intmax_t, which might be long long. */
+    result_type = integer_type(c99_mode ? targ_intmax_kind :
+                                          (an_integer_kind)ik_long);
   } else {
     /* Result type is int. */
     result_type = integer_type((an_integer_kind)ik_int);

@@ -263,6 +263,16 @@ EXTERN an_integer_kind
 			   Initialized to ik_none and reset later. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+EXTERN an_integer_kind
+		targ_intmax_kind;
+			/* Integer kind associated with the largest signed
+			   integer type.  In C99, this is intmax_t. */
+
+EXTERN an_integer_kind
+		targ_uintmax_kind;
+			/* Integer kind associated with the largest unsigned
+			   integer type.  In C99, this is uintmax_t. */
+
 EXTERN a_targ_size_t
 		targ_max_class_object_size
 #if VAR_INITIALIZERS

@@ -452,6 +452,14 @@ Initialize target machine characteristics.
   /* String literals should not be shared in pcc mode (they're writable), but
      should be ordinarily. */
   string_literals_shared = (C_dialect != C_dialect_pcc);
+  /* Determine the integer kind for the largest integer types. */
+#if LONG_LONG_ALLOWED
+  targ_intmax_kind = (an_integer_kind)ik_long_long;
+  targ_uintmax_kind = (an_integer_kind)ik_unsigned_long_long;
+#else /* !LONG_LONG_ALLOWED */
+  targ_intmax_kind = (an_integer_kind)ik_long;
+  targ_uintmax_kind = (an_integer_kind)ik_unsigned_long;
+#endif /* LONG_LONG_ALLOWED */
   /* Determine the maximum size of a class object. */
   if (targ_max_class_object_size == 0) {
     targ_max_class_object_size = targ_size_t_max;
