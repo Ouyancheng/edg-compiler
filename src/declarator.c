@@ -1975,6 +1975,8 @@ return information about what was scanned in *qualifiers, *call_conv, and
 *based_var.  If qualifiers are scanned, *qual_pos is set to their starting
 position.  If a __based qualifier is scanned, *based_pos is set to its
 source position.  It's permissible for the input to contain no qualifiers.
+If Microsoft extended decl specifiers, introduced by __declspec, are
+encountered, they are scanned and thrown away with a warning.
 */
 {
   a_type_qualifier_set new_qualifiers, duplicates;
@@ -2021,6 +2023,22 @@ source position.  It's permissible for the input to contain no qualifiers.
       }  /* if */
       *based_pos = pos_curr_token;
       *based_var = scan_based_modifier();
+    } else if (curr_token == tok_declspec) {
+      /* Scan the decl-modifiers.  The Microsoft compiler appears to accept
+         and ignore __declspec declarations that appear during declarator
+         processing -- there is no evidence that the decl-modifiers are ever
+         actually applied to the function or variable being declared. */
+      a_boolean             local_err;
+      a_type_qualifier_set  local_qualifiers = TQ_NONE;
+
+      /* Issue a warning that it's being ignored. */
+      warning(ec_decl_modifiers_ignored);
+      (void)scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                                                    &local_qualifiers,
+                                                    &local_err);
+      /* Bypass the closing paren -- if it's missing a diagnostic will already
+         have been issued. */
+      if (curr_token == tok_rparen) (void)get_token();
     } else {
       /* Something else; exit the loop. */
       break;
@@ -2136,6 +2154,9 @@ to the specifiers type); the middle qualifier is handled internally
 by applying it to the pointer type; and the last (unbound) qualifier
 is returned in *unbound_qualifiers.  If unbound_qualifiers is NULL,
 unbound qualifiers are just thrown away.
+
+Microsoft extended decl modifiers are also scanned, but they are ignored
+(which is what the Microsoft compiler itself appears to do).
 */
 {
   a_type_ptr     		complete_type = specifiers_type;

@@ -29,7 +29,7 @@ decl_spec.c -- Scanning of declaration specifiers.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_decl_modifier scan_microsoft_extended_decl_modifiers(
+a_decl_modifier scan_microsoft_extended_decl_modifiers(
                                             a_boolean            is_class_decl,
                                             a_type_qualifier_set *qualifiers,
                                             a_boolean            *err)
