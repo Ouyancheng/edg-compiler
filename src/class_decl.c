@@ -3344,13 +3344,19 @@ or struct definition.  The syntax is
            if it is a union or if it has been declared but not yet defined
            (ARM 10, p. 196), issue an error and skip over this class: it is
            not a valid base class name. */
-        complete_class_type_is_needed(base_class_type);
         if (is_qualified_type(base_class_type) ||
             (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
-            base_class_type->kind == (a_type_kind)tk_union ||
-            !is_complete_class_struct_union_type(base_class_type)) {
+            base_class_type->kind == (a_type_kind)tk_union) {
           error(ec_bad_base_class);
           goto skip_base_class;
+        } else {
+          /* Force instantiation if the base class is a template class. */
+          check_assertion(is_class_struct_union_type(base_class_type));
+          complete_class_type_is_needed(base_class_type);
+          if (is_incomplete_type(base_class_type)) {
+            error(ec_incomplete_type_not_allowed);
+            goto skip_base_class;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Issue a diagnostic if an explicit access specifier was not provided
