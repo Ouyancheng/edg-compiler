@@ -159,7 +159,10 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 #define DSO_CLASS_TEMPLATE 	(a_decl_flag_set)(0x1000)
 			/* If this bit is set the declaration appears to be
 			   that of a class template. */
-#define DSO_LAST DSO_CLASS_TEMPLATE
+#define DSO_MUTABLE		(a_decl_flag_set)(0x2000)
+			/* If this bit is set the storage class "mutable" was
+			   found. */
+#define DSO_LAST DSO_MUTABLE
 			/* Last bit in the bit vector that is in use. */
 #endif /* DECL_SPEC_H */
 
