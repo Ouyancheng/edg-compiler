@@ -12,14 +12,55 @@ cause an internal error in keep_enum_in_result_type:
 
 That is now fixed.
 
+11/27/92 Type qualifier on new-type-name
+
+In cfront compatibility mode the following is now accepted:
+
+  int *pi = new const int;
+
+(ARM 5.3.3 para 3 explicitly prohibits const and volatile in the type
+specifiers of a new-type-name construct, but cfront accepts it.)
+
+11/27/92 Limit on recursive instantiation of template classes
+
+The front end limits apparent "runaway" recursion in the instantiation
+of templates classes -- for instance:
+
+  template <int I> struct S {
+    S<I+1> x;
+  };
+  S<0> s;
+
+where the instantiation of S<0> forces the instantiation of S<1> which
+forces the instantiation of S<2>, and so on.  Now, after the number of
+recursive instantiations of a given class template exceeds a configurable
+value (MAX_PENDING_INSTANTIATIONS), an error is issued and the recursion
+is halted.
+
+11/25/92 Fixed bug in cfront-compatible class layout
+
+An obscure case involving virtual base classes was being handled
+incorrectly when cfront-compatible class layouts were being generated;
+it sometimes resulted in an internal error.  The fix involved a change
+to fixup_embedded_virtual_base_classes.
+
+11/25/92 Fixed error recovery problem with operators
+
+In the declarations of overloaded operators the parameters and, where
+appropriate, return type are now checked before the symbol for the
+operator is entered into the symbol table.  This keeps operator
+functions with invalid type signatures out of the symbol table and
+improves lookup, overload resolution, and error recovery in certain
+cases.
+
 11/25/92 Additional context information added to error output
 
 Additional context information is supplied for errors encountered
 during the instantiation of template classes, template functions, and
 member functions of template classes.  Additional information is also
 supplied for errors encountered while generating functions implicitly
-created by the compiler (i.e., compiler generated constructors and
-destructors).
+created by the compiler (i.e., compiler-generated constructors,
+destructors, and assignment operators).
 
 11/25/92 IL lowering changes all functions to unprototyped (as as option)
 
@@ -53,12 +94,37 @@ sometimes abort.  For example:
 
 This is now fixed.
 
+11/20/92 Template definitions of member functions of class templates
+
+Support has beed added for out-of-line definitions of member functions
+of class templates; both template definitions and specific defintions
+are allowed.  For example:
+
+  template <class T, int I> class A {
+    void f(T&);
+  };
+  template <class T, int I> void A<T,I>::f(T& t) { /* ... */ }
+  void A<int,1>::f(int& t) { /* ... */ }
+
 11/20/92 Subscript checking made more discriminating
 
 Subscript checking is now done only when the object underlying a
 pointer is clearly discernible.  That is, even if the array type is
 known, no subscript-out-of-range warnings are generated unless the
 underlying object is known.
+
+11/18/92 Improved error detection on conversion operators
+
+An error was not being detected in the following case:
+
+  class A {
+    int operator int();          // Error detected
+    int* operator int*();        // Error not detected
+  };
+
+This has been fixed by making decl_specifiers return a tk_unknown
+type when it recognizes a constructor, destructor, or conversion
+operator, and adding code in declarator to deal with the cases better.
 
 11/18/92 Folding of 64-bit integers
 
@@ -104,6 +170,16 @@ the C-generating back end.  The declarations are not actually needed,
 since the enum type and the enumerator constants are replaced by the
 underlying type and values where used.  This change is needed to
 avoid conflicts on enumerator constants in template classes.
+
+11/14/92 "Prototype instantiation" of class templates
+
+At the point of definition, a class template is scanned (1) to detect
+those syntactic and semantic errors that are not dependent on specific
+template arguments and (2) to record member names, as required for
+out-of-line template definitions of member functions and static data
+members.  The result of this scan is referred to as a "prototype
+instantiation" and is distinguished from "real instantiations", i.e.,
+instantiations based on real template arguments.
 
 11/14/92 Subscript checking on negative subscripts
 
