@@ -1044,7 +1044,7 @@ file mode), or to contain template instantiation flags.
 #endif /* ONE_INSTANTIATION_PER_OBJECT && !USE_TEMPLATE_INFO_FILE */
 
 /*
-Flags that is TRUE if the instantiation flags should be written to the
+Flag that is TRUE if the instantiation flags should be written to the
 template information file instead of being put in the object file.
 This defaults to TRUE when a template information file is being used,
 or to FALSE otherwise.
