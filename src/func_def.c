@@ -584,7 +584,6 @@ and for the instantiation of template functions.
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state         saved_pack_alignment_state;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  a_boolean                      discard_definition = FALSE;
 
   db_enter(3, "scan_function_body");
   if (rout_ptr->source_corresp.is_class_member) {

@@ -15343,6 +15343,10 @@ that follows.
   } else {
     /* Assume the template specialization applies to the declarator, which
        should follow. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* We may have to temporarily disable source sequence entries. */
+    a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     add_stop_token(tok_semicolon);
     clear_func_info(&func_info);
     func_info.is_inline = ((dso_flags & DSO_INLINE) != 0);
@@ -15521,7 +15525,13 @@ that follows.
           /* Microsoft Visual C++ 6.0 accepts and discards redefinitions of
              explicit specializations.  The symbol and routine entry must be
              replaced by new ones while scanning the duplicate definition
-             (which will be discarded in the end). */
+             (which will be discarded in the end).  The should be no source
+             sequence entries for the temporary IL entry. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          source_sequence_entries_disallowed = TRUE;
+          f_remove_from_src_seq_list(declarator_ssep, decl_scope_level);
+          declarator_ssep = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           microsoft_specialization_redef = TRUE;
           pos_sy_warning(ec_already_defined, &locator.source_position, sym);
           replace_entry_for_duplicate_specialization(&sym);
@@ -15810,6 +15820,11 @@ that follows.
     }  /* if */
     if (!keep_func_info) done_with_func_info(func_info);
     remove_stop_token(tok_semicolon);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   db_exit();
 }  /* full_specialization */

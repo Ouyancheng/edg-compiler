@@ -4985,6 +4985,8 @@ declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr     name_ref = NULL;
+  a_boolean                saved_sses_disallowed =
+                                           source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
@@ -5544,7 +5546,14 @@ declaration.
                  specializations.  We need to scan the upcoming definition,
                  but it must be discarded and the old body preserved.
                  We will therefore create a new symbol and IL entry, but
-                 discard them after the function body has been scanned. */
+                 discard them after the function body has been scanned.
+                 We also prevent source sequence entries from being generated
+                 for the temporary entry. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+              source_sequence_entries_disallowed = TRUE;
+              f_remove_from_src_seq_list(declarator_ssep, decl_scope_level);
+              declarator_ssep = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               microsoft_specialization_redef = TRUE;
               pos_sy_warning(ec_already_defined, &locator->source_position,
                              sym);
@@ -6247,6 +6256,7 @@ skip_overloading:;
     (void)update_src_seq_secondary_decl((char *)routine_ptr, declared_type,
                                         name_ref, flags, decl_pos_block);
   }  /* if */
+  source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
     /* If a lint-style "argsused" or "varargs" comment appeared, record that in
