@@ -2896,7 +2896,8 @@ created; the caller must set it.
          declaration. */
       a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
       a_boolean     is_local_to_function;
-      if (scope_depth_of_symbol(prev_sym, &is_local_to_function)) {
+      if (scope_depth_of_symbol(prev_sym, &is_local_to_function) ==
+                                                              NO_SCOPE_DEPTH) {
         /* ext_sym was created for a scope that has already been discarded.
            Incompatibilities are not fatal in such cases. */
         incomp_severity = es_warning;
