@@ -5,8 +5,8 @@ Version 2.37
 The implementation of the default new handler did not match the
 working paper definition.  In particular, a NULL value was used to
 specify that the implementation's default new_handler should be used.
-The new_handler is now initialized with a pointer to the default new handler
-routine.
+The new_handler is now initialized with a pointer to the default new
+handler routine.
 
 8/12/97  Incorrect handling of nonvirtual base class of a virtual base
          class in exception handling and dynamic_cast
