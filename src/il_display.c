@@ -1117,7 +1117,7 @@ Print the name of a pragma kind.
     case pk_scanf_args:           s = "pk_scanf_args";          break;
     case pk_lint_argsused:        s = "pk_lint_argsused";       break;
     case pk_lint_varargs_count:   s = "pk_lint_varargs_count";  break;
-    case pk_lint_not_reached:     s = "pk_lint_not_reached";    break;
+    case pk_lint_notreached:      s = "pk_lint_notreached";     break;
     case pk_instantiate:          s = "pk_instantiate";         break;
     case pk_do_not_instantiate:   s = "pk_do_not_instantiate";  break;
     case pk_can_instantiate:      s = "pk_can_instantiate";     break;
