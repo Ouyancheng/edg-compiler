@@ -1,0 +1,199 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1995 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+Run-time type identification -- user callable functions.
+
+*/
+
+#include "basics.h"
+#include "config.h"
+#include "runtime.h"
+
+#if RTTI
+
+#include "rtti.h"
+#include "typeinfo.h"
+
+_bool type_info::operator==(const type_info& rhs) const
+/*
+Return TRUE if two type_info structures refer to the same type.
+*/
+{
+  a_type_info_impl_ptr  tiip1;
+  a_type_info_impl_ptr  tiip2;
+
+  tiip1 = (a_type_info_impl_ptr)_type_info;
+  tiip2 = (a_type_info_impl_ptr)rhs._type_info;
+  return matching_type_info(tiip1, tiip2);
+}  /* type_info::operator== */
+
+
+_bool type_info::operator!=(const type_info& rhs) const
+/*
+Return TRUE if two type_info structures do not refer to the same type.
+*/
+{
+  a_type_info_impl_ptr  tiip1;
+  a_type_info_impl_ptr  tiip2;
+
+  tiip1 = (a_type_info_impl_ptr)_type_info;
+  tiip2 = (a_type_info_impl_ptr)rhs._type_info;
+  return !matching_type_info(tiip1, tiip2);
+}  /* type_info::operator!= */
+
+
+_bool type_info::before(const type_info& rhs) const
+/*
+Return TRUE if the type_info for *this precedes the type_info for rhs using
+some implementation dependent collating sequence.
+
+This is implemented by comparing the pointers used to represent the type
+information.  If the type_info_impl has a unique_id, the address of the
+unique_id is used for collation.  If it does not have a unique_id (i.e.,
+we know there is only a single type_info_impl structure for the type) then
+the address of the single type_info_impl is used for collation.
+*/
+{
+  a_type_info_impl_ptr  tiip1;
+  a_type_info_impl_ptr  tiip2;
+  void*                 ptr1;
+  void*                 ptr2;
+
+  tiip1 = (a_type_info_impl_ptr)_type_info;
+  tiip2 = (a_type_info_impl_ptr)rhs._type_info;
+  ptr1 = tiip1->unique_id != NULL ? (void*)tiip1->unique_id : (void*)tiip1;
+  ptr2 = tiip2->unique_id != NULL ? (void*)tiip2->unique_id : (void*)tiip2;
+  return ptr1 < ptr2;
+}  /* type_info::before */
+
+
+const char * type_info::name() const
+/*
+Returns a pointer to the name string for this type.
+*/
+{
+  a_type_info_impl_ptr  tiip1;
+
+  tiip1 = (a_type_info_impl_ptr)_type_info;
+  return tiip1->name;
+}  /* type_info::before */
+
+
+type_info::~type_info()
+/*
+Destructor for type_info.  This should never actually be called.
+*/
+{
+}  /* type_info::~type_info */
+
+
+bad_cast::bad_cast() throw()
+/*
+Constructor for bad_cast.
+*/
+{
+}  /* bad_cast::bad_cast */
+
+
+bad_cast::bad_cast(const bad_cast& rhs) throw() : exception(rhs)
+/*
+Copy constructor for bad_cast.  Currently does nothing.
+*/
+{
+}  /* bad_cast::bad_cast */
+
+
+bad_cast& bad_cast::operator=(const bad_cast& rhs) throw()
+/*
+Assignment operator for bad_cast.  Currently does nothing.
+*/
+{
+  /* Call the base class assignment operator. */
+  exception::operator=(rhs);
+  return *this;
+}  /* bad_cast::operator= */
+
+
+bad_cast::~bad_cast() throw()
+/*
+Destructor for bad_cast.
+*/
+{
+}  /* bad_cast::~bad_cast */
+
+
+const char* bad_cast::what() const throw()
+/*
+Return a string providing information about the exception.  Currently,
+no additional information is available.
+*/
+{
+  return "";
+}  /* bad_cast::~bad_cast */
+
+
+bad_typeid::bad_typeid() throw()
+/*
+Constructor for bad_typeid.
+*/
+{
+}  /* bad_typeid::bad_typeid */
+
+
+bad_typeid::bad_typeid(const bad_typeid& rhs) throw() : exception(rhs)
+/*
+Copy constructor for bad_typeid.  Currently does nothing.
+*/
+{
+}  /* bad_typeid::bad_typeid */
+
+
+bad_typeid& bad_typeid::operator=(const bad_typeid& rhs) throw()
+/*
+Assignment operator for bad_typeid.  Currently does nothing.
+*/
+{
+  /* Call the base class assignment operator. */
+  exception::operator=(rhs);
+  return *this;
+}  /* bad_typeid::operator= */
+
+
+bad_typeid::~bad_typeid() throw()
+/*
+Destructor for bad_typeid.
+*/
+{
+}  /* bad_typeid::~bad_typeid */
+
+
+const char* bad_typeid::what() const throw()
+/*
+Return a string providing information about the exception.  Currently,
+no additional information is available.
+*/
+{
+  return "";
+}  /* bad_typeid::~bad_typeid */
+
+
+#endif /* RTTI */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1995 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/

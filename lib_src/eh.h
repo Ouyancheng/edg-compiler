@@ -13,9 +13,12 @@ Declarations for exception handling.
 
 */
 
+#ifndef _EH_H
+
 #include <stdlib.h>
 #include "config.h"
 #include "runtime.h"
+#include "rtti.h"
 
 #if EXCEPTION_HANDLING
 
@@ -31,92 +34,9 @@ typedef long an_element_count;
 			   -1 is used to represent an array whose size is
 			   only known an run time. */
 
-typedef void (*a_function_ptr)();
-			/* A pointer type that can be used to store a
-                           pointer to a destructor or an operator delete
-			   function. */
-
-typedef a_byte a_unique_id;
-			/* The thing pointed to by the unique ID in a
-			   typeinfo record. */
-
-typedef a_unique_id *a_unique_id_ptr;
-			/* A pointer to a unique ID. */
-
-typedef void (*a_void_function_ptr)();
-			/* Type used to store a generic function pointer. */
-
-
-typedef unsigned short an_object_offset;
-			/* Type used to store an offset into an object. */
-
 typedef int	a_conditional_flag;
 			/* Type of a flag used for conditional region
 			   entries. */
-
-typedef char*	an_access_flag_string;
-			/* Type of the string used to specify the access
-			   of base classes of the throw object. */
-
-/* Definitions of the values in the flags field of the region description
-   entry. */
-typedef a_byte a_base_class_spec_flag_set;
-#define BCS_NO_FLAGS	0x00
-			/* Value when no flags are set. */
-#define BCS_VIRTUAL	0x01
-			/* The offset provides the position of a pointer
-			   to the base class.  Used for virtual base
-			   classes. */
-#define BCS_LAST	0x02
-			/* TRUE if this is the last base class specifier
-			   in the array. */
-
-#define BASE_ACCESSIBLE     'Y'
-			/* Value in an access list if the class is
-			   accessible. */
-#define BASE_NOT_ACCESSIBLE 'N'
-			/* Value in an access list if the class is
-			   not accessible.  Could be caused by a base
-                           being ambiguous. */
-
-/* Forward declaration of a typeinfo pointer. */
-typedef struct a_typeinfo *a_typeinfo_ptr;
-
-/* Describes the base classes of a class.  Pointed to by the typeinfo
-   of the class. */
-typedef struct a_base_class_spec *a_base_class_spec_ptr;
-typedef struct a_base_class_spec {
-  a_typeinfo_ptr
-		typeinfo;
-			/* The typeinfo for the base class. */
-  an_object_offset
-		offset;
-			/* The offset of the base class in the derived
-			   class. */
-  a_base_class_spec_flag_set
-		flags;
-			/* A collection of bits that specify how the
-			   base class specification entry is to be used.
-			   See the descriptions of the BCS flags above. */
-} a_base_class_spec;
-
-
-/* Type description information for objects that are thrown or
-   caught. */
-typedef struct a_typeinfo {
-  a_unique_id_ptr
-		unique_id;
-			/* When this field is non-NULL two typeinfo
-			   structures describe the same type if their
-			   unique IDs are the same. */
-  a_function_ptr
-		destructor;
-			/* Pointer to the destructor for the object. */
-  a_base_class_spec
-		*base_class_entries;
-			/* Pointer to an array of typeinfo entries for
-			   direct base classes of a class. */
-} a_typeinfo;
 
 typedef unsigned short an_object_handle;
 			/* An offset into the object address array. */
@@ -227,14 +147,14 @@ typedef a_byte an_ETS_flag_set;
 			/* Value used when no flags are set. */
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
-			   by typeinfo is being caught. */
+			   by type_info is being caught. */
 #define ETS_POINTER_TO_CONST	0x02
 #define ETS_POINTER_TO_VOLATILE	0x04
 			/* Indication of the type qualifiers on the type
 			   pointed to, in the pointer case. */
 #define ETS_IS_REFERENCE	0x08
 			/* A reference to an object of the type specified
-			   by typeinfo is being caught. */
+			   by type_info is being caught. */
 #define ETS_IS_ELLIPSIS		0x10
 			/* The catch clause contains an ellipsis. */
 #define ETS_LAST		0x20
@@ -259,8 +179,8 @@ typedef a_byte an_ETS_flag_set;
 typedef struct an_exception_type_specification
 		*an_exception_type_specification_ptr;
 typedef struct an_exception_type_specification {
-  a_typeinfo_ptr
-		typeinfo;
+  a_type_info_impl_ptr
+		type_info;
 			/* Pointer to the type information for the entry.
 			   NULL if the entry has no associated type (for
 			   ellipsis entries or for empty throw specification
@@ -295,9 +215,12 @@ typedef struct an_eh_stack_entry {
   union {
     /* When kind == ehsek_try_block. */
     struct {
-      jmp_buf	setjmp_buffer;
+      __EDG_JMP_BUF_ELEMENT_TYPE
+                setjmp_buffer[__EDG_JMP_BUF_NUM_ELEMENTS];
 			/* Buffer used by setjmp to save state
-			   information. */
+			   information.  The element type and size are
+			   passed from the front end using predefined
+			   macros. */
       an_exception_type_specification_ptr
 		catch_entries;
 			/* Pointer to an array of entries that describe the
@@ -386,7 +309,7 @@ EXTERN void*	__caught_object_address;
 
 EXTERN_C int	 __throw(void);
 
-EXTERN_C void* __throw_alloc(a_typeinfo_ptr	   typeinfo,
+EXTERN_C void* __throw_alloc(a_type_info_impl_ptr  type_info,
 			     a_sizeof_t		   size,
 			     an_ETS_flag_set	   flags,
 			     an_access_flag_string access_flags);
@@ -417,6 +340,8 @@ EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep);
 EXTERN_C void __eh_exit_processing(void);
 
 #endif /* EXCEPTION_HANDLING */
+
+#endif /* ifndef _EH_H */
 
 
 /******************************************************************************

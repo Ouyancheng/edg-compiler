@@ -72,6 +72,9 @@ typedef size_t a_sizeof_t;
 typedef unsigned int a_sizeof_t;
 #endif /* __cplusplus */
 
+typedef void (*a_void_function_ptr)();
+			/* Type used to store a generic function pointer. */
+
 typedef void (*a_destructor_ptr)(void*, int);
 			/* Type used to store a pointer a destructor. */
 

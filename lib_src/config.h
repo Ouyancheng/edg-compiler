@@ -17,6 +17,28 @@ Configuration parameters for the runtime.
 #define CONFIG_H 1
 
 /*
+Flag used to retain ABI (Application Binary Interface, i.e., runtime layout
+and calling sequence) compatibility with older versions.  The value is the
+version number of the EDG C++ front end, e.g., 227 for version 2.27, for
+which compatibility should be maintained.  ABI changes made after that
+version will be suppressed.  Of course, that may suppress certain language
+features that cannot be implemented without the corresponding ABI changes.
+The default -- a large value -- has the effect of requesting the latest
+version of the ABI.
+
+Beginning with version 2.29, the front end defines a preprocessing symbol
+called __EDG_ABI_COMPATIBILITY_VERSION that defines the ABI level
+begin used by the front end.  This value is used, if it is defined.
+*/
+#ifndef ABI_COMPATIBILITY_VERSION
+#ifdef __EDG_ABI_COMPATIBILITY_VERSION
+#define ABI_COMPATIBILITY_VERSION __EDG_ABI_COMPATIBILITY_VERSION
+#else /* ifndef __EDG_ABI_COMPATIBILITY_VERSION */
+#define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
+#endif /* ifdef __EDG_ABI_COMPATIBILITY_VERSION */
+#endif /* ifndef ABI_COMPATIBILITY_VERSION */
+
+/*
 This flag indicates that the runtime system may be called by cfront-generated
 code, and consequently that it must behave as expected by the cfront code.
 For example, cfront passes eight NULL pointers to constructors called
@@ -89,6 +111,25 @@ The mangled name of the typeinfo record for a void * type.
 #define MANGLED_NAME_OF_PTR_TO_VOID __T_v
 #endif /* ifndef MANGLED_NAME_OF_PTR_TO_VOID */
 #endif /* EXCEPTION_HANDLING */
+
+/*
+Should the components of the runtime system that implement run-time
+type identification be included.  Note that enabling RTTI alters
+the structure of the a_type_info_impl that is shared by RTTI and
+exception handling, consequently RTTI cannot be enabled when
+preserving ABI compatibility with versions up to 2.28.
+*/
+#ifndef RTTI
+#if ABI_COMPATIBILITY_VERSION <= 228
+#define RTTI FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#define RTTI TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifndef RTTI */
+#if RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- RTTI TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
 
 #endif /* CONFIG_H */
 
