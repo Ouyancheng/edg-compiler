@@ -261,8 +261,8 @@ Process the arguments on the command line that invoked the compiler.
       case 'a':
         /* Warn on non-ANSI features, disable features that conflict
            with ANSI.  Note that "ANSI" means ANSI C or ANSI C++, depending
-           on the C_dialect setting.  'A' issues  errors for
-           violations, 'a' issues warnings. */
+           on the C_dialect setting.  'A' issues errors for violations,
+	   'a' issues warnings. */
         strict_ansi_mode = TRUE;
         strict_ansi_error_severity = (optchar == 'A') ? es_error : es_warning;
         break;
