@@ -68,6 +68,18 @@ in the primary IL.
 #define entry_to_be_merged(ptr) \
   (il_entry_prefix_of(ptr).il_lowering_flag)
 
+  
+/*
+Provide access to the flag of an entry that indicates that
+the entry's correspondence pointer has been set to point to space into
+which the entry will be or has been copied.  This macro can be used to
+fetch or set the flag.  The entry_written flag can be reused for
+this purpose because secondary translation units are never written
+to an IL file.
+*/
+#define entry_copy_address_assigned(ptr) \
+  (il_entry_prefix_of(ptr).entry_written)
+
 
 static a_boolean f_has_corresp(char *ptr)
 /*
@@ -109,7 +121,7 @@ Return TRUE if an entry has a correspondence in the primary IL
 with which the entry may have to be merged.
 */
 #define has_corresp_that_may_require_merge(ptr) \
-  (has_corresp(ptr) && !entry_needs_copy_flag_is_set(ptr))
+  (has_corresp(ptr) && !entry_copy_address_assigned(ptr))
 
 
 /*
@@ -205,6 +217,8 @@ pointer of the entry pointed to by ptr, of kind "kind".
   } else if (entry_needs_copy_flag_is_set(ptr)) {
     /* This entry has already been encountered and the correspondence
        pointer has been set, and we're awaiting copying. */
+  } else if (entry_copy_address_assigned(ptr)) {
+    /* A copy address has already been assigned to this entry. */
   } else if (has_corresp(ptr)) {
     /* This entry has a correspondence in the primary IL, either because
        one was assigned by trans_corresp or because a copy address
@@ -213,26 +227,23 @@ pointer of the entry pointed to by ptr, of kind "kind".
     if (entry_to_be_merged(ptr)) {
       /* This is an entry that gets merged into its corresponding entry. */
       char *corresp = checked_trans_unit_corresp_pointer_of(ptr);
-      /* The first time through, a copy is made, the subtree is walked,
-         and a two-step correspondence-pointer chain is set up.  If the
-         chain is already present, this is not the first time through,
-         so do nothing. */
-      if (!in_secondary_trans_unit(corresp)) {
-        /* Make a copy, so we will have a version with all the pointers
-           remapped appropriately.  The original entry points to the
-           copy, which points to the canonical entry.  This allows us to get
-           to the copy via trans_unit_corresp_pointer_of, while ensuring
-           that references to the original entry are remapped to the
-           canonical entry (because canonical_il_entry_of loops through to
-           the end of the list).  Note that the copy is in the
-           secondary translation unit file scope memory region. */
-        char *copy = alloc_il(sizeof_il_entry[(int)kind]);
-        check_assertion(!is_string_entry_kind(kind));
-        checked_trans_unit_corresp_pointer_of(ptr) = copy;
-        checked_trans_unit_corresp_pointer_of(copy) = corresp;
-        /* Set the flag to request copying. */
-        set_entry_needs_copy_flag(ptr);
-      }  /* if */
+      /* Make a copy, so we will have a version with all the pointers
+         remapped appropriately.  The original entry points to the
+         copy, which points to the canonical entry.  This allows us to get
+         to the copy via trans_unit_corresp_pointer_of, while ensuring
+         that references to the original entry are remapped to the
+         canonical entry (because canonical_il_entry_of loops through to
+         the end of the list).  Note that the copy is in the
+         secondary translation unit file scope memory region. */
+      char *copy = alloc_il(sizeof_il_entry[(int)kind]);
+      check_assertion(!is_string_entry_kind(kind));
+      checked_trans_unit_corresp_pointer_of(ptr) = copy;
+      checked_trans_unit_corresp_pointer_of(copy) = corresp;
+      /* Set the flag to indicate that a copy address has been assigned.
+         Note that that prevents us from getting to the code here again. */
+      entry_copy_address_assigned(ptr) = TRUE;
+      /* Set the flag to request copying. */
+      set_entry_needs_copy_flag(ptr);
     }  /* if */
   } else {
     /* The entry has no correspondence.  Allocate space for it in the primary
@@ -260,6 +271,8 @@ pointer of the entry pointed to by ptr, of kind "kind".
           ptr = canonical;
         }  /* if */
       }  /* if */
+      /* Set the flag to indicate that a copy address has been assigned. */
+      entry_copy_address_assigned(ptr) = TRUE;
       /* Set the flag to request copying. */
       set_entry_needs_copy_flag(ptr);
       if (!walking_file_scope) {
@@ -368,6 +381,8 @@ correspondence pointer to point to the copy.
 
     check_assertion(in_file_scope(ptr));
     checked_trans_unit_corresp_pointer_of(ptr) = copy;
+    /* Set the flag to indicate that a copy address has been assigned. */
+    entry_copy_address_assigned(ptr) = TRUE;
     (void)memcpy(copy, ptr, size_t_arg(length));
   }  /* if */
 }  /* copy_string_entry */
@@ -1001,10 +1016,6 @@ the lists.
        into it. */
     a_scope_ptr corresp_scope = translation_units->primary_scope;
     checked_trans_unit_corresp_pointer_of(scope) = (char *)corresp_scope;
-    /* Ensure that flag_value_meaning_visited is set, to allow use
-       of entry_needs_copy_flag_is_set and
-       has_corresp_that_may_require_merge. */
-    flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
     mark_to_merge(scope);
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
       /* The object lifetime of the file scope corresponds with the
@@ -2521,6 +2532,8 @@ with linkage.
       /* Make a copy of the entry in the primary IL. */
       new_ptr = alloc_il(sizeof_il_entry[(int)kind]);
       trans_unit_corresp_pointer_of(old_ptr) = new_ptr;
+      /* Set the flag to indicate that a copy address has been assigned. */
+      entry_copy_address_assigned(old_ptr) = TRUE;
       copy_entry_basic(old_ptr, kind, remap_secondary_pointer);
       /* Make sure the copy is processed. */
       il_entry_prefix_of(new_ptr).il_walk_flag = !flag_value_meaning_visited;
