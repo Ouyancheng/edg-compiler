@@ -8699,6 +8699,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), sym);
           mark_defined(sym, &locator.source_position);
+          mark_variable_value_set(sym);
         }  /* if */
         /* A handler parameter is initialized by the run-time when the
            handler is invoked.  Create the dynamic init entry to represent
