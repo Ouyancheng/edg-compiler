@@ -4980,6 +4980,7 @@ declaration.
            replaces the previous one. */
         pos_sy_warning(ec_already_defined, &locator->source_position, sym);
         old_decl_has_body = FALSE;
+        sym->defined = FALSE;
         clear_function_body(
                       il_header.region_scope_entry[routine_ptr->assoc_scope]);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
