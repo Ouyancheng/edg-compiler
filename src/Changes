@@ -1,5 +1,10 @@
 Version 2.24
 
+6/24/94 IL CHANGE: definition_put_out removed
+
+The field definition_put_out, which was used only by the C++-generating
+back end, is no longer needed and has been removed.
+
 6/24/94 IL CHANGE: rout_src_seq_entry_for_default_arg_decl removed
 
 This field, added in version 2.23 to a_param_type (and used only when
