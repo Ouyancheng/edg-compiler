@@ -12625,6 +12625,9 @@ parameter type is not known.
      conversions. */
   if (param_type != NULL) {
     prep_nontype_template_argument_initializer(&result, param_type, constant);
+  } else {
+    /* No destination type.  Make a constant from the operand. */
+    extract_constant_from_operand(&result, constant);
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
