@@ -1935,11 +1935,18 @@ will be involved in overloading.
     }  /* if */
 determine_linkage:
     /* Determine the linkage. */
-    if (is_object && !file_scope &&
-        storage_class != (a_storage_class)sc_extern) {
+    if (!file_scope && storage_class != (a_storage_class)sc_extern) {
       /* A non-file-scope object without extern storage class has no
-         linkage. */
+         linkage.  In C++ a non-file-scope function may be declared --
+         a friend function defined inline within a local class; it too
+         is given no linkage. */
       linkage = idl_none;
+#if CHECKING
+      if (is_function &&
+          (!is_friend_decl || storage_class != (a_storage_class)sc_static)) {
+        internal_error("id_linkage: expected friend and static storage class");
+      }  /* if */
+#endif /* CHECKING */
     } else if (file_scope &&
                storage_class == (a_storage_class)sc_static) {
       /* An object or function at file scope with static storage class
@@ -3585,7 +3592,7 @@ otherwise it is NULL.  The syntax is:
   a_symbol_header_ptr
                   class_symbol_header;
   a_boolean       is_constructor_or_destructor;
-  a_boolean       is_nonstatic_member_function;
+  a_boolean       is_nonstatic_member_function = FALSE;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -3896,7 +3903,6 @@ function_lparen:
           is_nonstatic_member_function = TRUE;
         } else {
           member_parent_type = NULL;
-          is_nonstatic_member_function = FALSE;
         }  /* if */
         func_info = NULL;
         is_constructor_or_destructor = FALSE;
@@ -3907,7 +3913,6 @@ function_lparen:
                locator->variant.opname == (an_opname_kind)onk_delete)) {
             /* operator new and operator delete are always nonstatic, even
                if "static" was not specified in the declaration. */
-            is_nonstatic_member_function = FALSE;
           } else {
             is_nonstatic_member_function = TRUE;
           }  /* if */
