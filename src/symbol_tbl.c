@@ -5458,14 +5458,18 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     class_type = tptdp->class_type;
     is_proxy_or_nonreal_class_lookup = TRUE;
   } else {
-    /* Determine whether we are looking up a name in a nonreal class.
-       A nonreal class is a class template that is being instantiated
-       with a template parameter but does not refer to the prototype
-       instantiation.  Nonreal lookups are handled like proxy class
-       lookups; any name looked up is found.  If the symbol does not exist
-       one will be created. */
+    /* Determine whether we are looking up a name in a nonreal class
+       that is not the prototype instantiation.  Nonreal lookups are
+       handled like proxy class lookups; any name looked up is found.
+       If the symbol does not exist one will be created.  The
+       assoc_scope check is used to exclude the prototype
+       instantiation from being considered nonreal for lookup
+       purposes. */
     cssp = symbol_supplement_for_class(class_type);
-    is_proxy_or_nonreal_class_lookup = cssp->is_nonreal_class;
+    if (cssp->is_nonreal_class && class_type->variant.class_struct_union.
+                                             extra_info->assoc_scope == NULL) {
+      is_proxy_or_nonreal_class_lookup = TRUE;
+    }  /* if */
   }  /* if */
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
