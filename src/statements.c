@@ -1894,9 +1894,6 @@ current structured statement.
   sssep->label_invalidates_curr_block_object_lifetime
                               = FALSE;
   sssep->curr_block_object_lifetime  = olp;
-#if 0
-  sssep->extra_block_insert_loc      = NULL;
-#endif /* if 0 */
   sssep->depth_of_assoc_scope        = NO_SCOPE_DEPTH;
 #if DEBUG
   if (db_flag_is_set("dump_control_flow")) {
@@ -3205,13 +3202,6 @@ diagnose the condition.
     *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
 
   }  /* if */
-#if 0
-  if (is_forwards) {
-    /* The goto entry for a forwards declaration is no longer needed, so it
-       can be removed from the control_flow_descr_list. */
-    remove_control_flow_descr(goto_cfdp);
-  }  /* if */
-#endif /* if 0 */
   db_exit();
 }  /* check_goto_and_label */
 
@@ -3267,9 +3257,6 @@ condition is not recognized till the label statement is reached.
          list (and then only till the label is seen). */
       label_cfdp = label_sym->variant.label.assoc_control_flow_descr;
       check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/FALSE);
-#if 0
-      remove_control_flow_descr(goto_cfdp);
-#endif /* if 0 */
     } else {
       /* This is a forward goto -- i.e., it references a label that has not
          yet been defined.  Record information about it so that, when the
