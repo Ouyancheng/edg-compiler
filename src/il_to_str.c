@@ -1644,7 +1644,7 @@ in the way described by octl.
     case abk_variable:
       { a_variable_ptr var = constant->variant.address.variant.variable;
         anon_union_field = NULL;
-        if (var->is_anonymous_parent_object) {
+        if (var->is_anonymous_parent_object && !octl->c_generating_back_end) {
           /* Address of something within an anonymous union. */
           anon_union_field =
                            select_anon_union_field_for_addr_constant(constant);
