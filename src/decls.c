@@ -2484,6 +2484,11 @@ scope is that of a class definition.
       func_info->prototype_scope_symbols =
                                         scope_stack[depth_scope_stack].symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Add a source sequence entry marking the end of the function
+         prototype scope. */
+      add_end_of_construct_source_sequence_entry(
+                                           (char *)NULL,
+                                           (a_byte_il_entry_kind)iek_routine);
       /* Record the start and end of the prototype scope. */
       terminate_param_source_sequence_sublist(func_info,
                                               ss_entry_start_prev);
