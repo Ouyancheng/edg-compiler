@@ -762,7 +762,7 @@ Write the indicated memory region to the file f_il_output.
     }
 #else /* !ALTERNATE_IL_FILE_FORMAT */
     /* Standard IL file format. */
-    { sizeof_t               total_bytes;
+    { unsigned long          total_bytes;
       a_mem_block_header_ptr hdr;
 
       if (!writing_file_scope_il) {
@@ -787,12 +787,13 @@ Write the indicated memory region to the file f_il_output.
       for (hdr = mem_region_table[region_number];
            hdr != NULL;
            hdr = hdr->next) {
-        sizeof_t block_used = hdr->next_avail_in_block - hdr->start_of_block;
+        unsigned long block_used =
+                                hdr->next_avail_in_block - hdr->start_of_block;
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "total_bytes += %lu + %lu\n",
                            (unsigned long)sizeof(a_mem_block_header),
-                           (unsigned long)block_used);
+                           block_used);
         }  /* if */
 #endif /* DEBUG */
         total_bytes += sizeof(a_mem_block_header) + block_used;
@@ -812,12 +813,13 @@ Write the indicated memory region to the file f_il_output.
       (void)fwrite((char *)&total_bytes, sizeof(total_bytes), 1, f_il_output);
       /* Write the blocks. */
       for (; hdr != NULL; hdr = hdr->next) {
-        sizeof_t block_used = hdr->next_avail_in_block - hdr->start_of_block;
+        unsigned long block_used =
+                                hdr->next_avail_in_block - hdr->start_of_block;
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "writing %lu + %lu\n",
                            (unsigned long)sizeof(a_mem_block_header),
-                           (unsigned long)block_used);
+                           block_used);
         }  /* if */
 #endif /* DEBUG */
         if ((fwrite((char *)hdr, sizeof(a_mem_block_header),

@@ -333,7 +333,7 @@ necessary to make it directly accessible in memory.
 #else /* !ALTERNATE_IL_FILE_FORMAT */
   a_mem_block_header_ptr    old_hdr;
   a_scope_ptr               old_region_scope_entry;
-  sizeof_t                  total_bytes;
+  unsigned long             total_bytes;
   a_block_remap_entry_ptr   remap_entry;
   a_boolean                 first_block;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
@@ -642,7 +642,7 @@ necessary to make it directly accessible in memory.
   first_block = TRUE;
   do {
     a_mem_block_header old_block_header;
-    sizeof_t           block_size, block_used;
+    unsigned long      block_size, block_used;
     char               *new_start_of_block;
 
 #if DEBUG
