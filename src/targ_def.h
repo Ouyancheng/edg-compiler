@@ -539,7 +539,7 @@ match the target machine behavior on integer operations in C.
 			   targ_zero_width_bit_field_alignment. */
 #endif /* ifndef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT */
 
-/* TRUE when an unnamed bit field, typically used to control the alignment
+/* TRUE when a zero-width bit field, typically used to control the alignment
    of the next field, thereby also affects how the alignment of the struct
    as a whole is determined.  Should be TRUE for cfront and Microsoft ABI
    compatibility. */
@@ -556,6 +556,24 @@ match the target machine behavior on integer operations in C.
 			/* Default value, used to initialize global variable
 			 targ_zero_width_bit_field_affects_struct_alignment. */
 #endif /* ifndef TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT */
+
+
+/* TRUE when an unnamed bit field, typically used to control the alignment
+   of the next field, thereby also affects how the alignment of the struct
+   as a whole is determined. */
+#ifndef TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
+#if ABI_COMPATIBILITY_VERSION >= 235
+/* This can be changed. */
+#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#else /* !(ABI_COMPATIBILITY_VERSION >= 235) */
+/* Setting this to FALSE will produce an ABI incompatibility with versions
+   older than 2.35. */
+#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+			/* Default value, used to initialize global variable
+			   targ_unnamed_bit_field_affects_struct_alignment. */
+#endif /* ifndef TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT */
+
 
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h).

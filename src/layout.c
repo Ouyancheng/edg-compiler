@@ -901,10 +901,13 @@ targ_microsoft_bit_field_allocation is FALSE.)
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                              container_alignment);
   }  /* if */
-  if (bit_size == 0 &&
-      !targ_zero_width_bit_field_affects_struct_alignment) {
-    /* This is a zero-width bit field.  The alignment it forces should not
-       affect the alignment of the struct as a whole. */
+  if ((bit_size == 0 &&
+       !targ_zero_width_bit_field_affects_struct_alignment) ||
+      (!targ_unnamed_bit_field_affects_struct_alignment &&
+       field->source_corresp.assoc_info == (char *)unnamed_field_symbol())) {
+    /* This is a zero-width bit field or an unnamed bit field, but the
+       alignment it forces should not affect the alignment of the struct as
+       a whole. */
   } else {
     /* Remember the most stringent alignment requirement as the alignment
        requirement for the overall struct. */

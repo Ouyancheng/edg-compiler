@@ -365,6 +365,17 @@ EXTERN int	targ_zero_width_bit_field_affects_struct_alignment
 			   zero-width (unnamed) bit-field is declared
 			   affects the overall alignment of the struct as
 			   well as the alignment of the next field. */
+
+EXTERN int	targ_unnamed_bit_field_affects_struct_alignment
+#if VAR_INITIALIZERS
+                            = TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if the alignment adjustment when an unnamed
+			   bit-field is declared affects the overall alignment
+			   of the struct as well as the alignment of the next
+			   field. */
+
 /*
 Pointer types:
 */
