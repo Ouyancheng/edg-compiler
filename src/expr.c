@@ -11300,7 +11300,7 @@ standard.
              destruction to unlink it. */
           reduce = FALSE;
         }  /* if */
-#endif /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
       }  /* if */
     }  /* if */
     if (!reduce) {
