@@ -582,8 +582,11 @@ a new symbol is created and entered in the symbol table.
 }  /* decl_parameter */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void eliminate_body_if_imported(a_routine_ptr  routine,
-                                                a_scope_ptr    scope)
+                                       a_scope_ptr    scope)
 /*
 Remove any trace of the function definition of "routine" from the IL.
 "scope" is the scope of the routine body.
