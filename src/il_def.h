@@ -5863,6 +5863,8 @@ enum an_expr_operator_kind_tag {
   eok_xdivide_assign,   /* Complex divide assign operator. */
   eok_jmultiply,        /* Imaginary multiplication.  Imaginary times
                            imaginary gives a real result. */
+  eok_jdivide,          /* Division of real by imaginary gives an
+                           imaginary result with a sign change. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
   eok_complex,          /* Join two real operands, produce a complex as the
@@ -8570,7 +8572,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "x+", "x-", "x*", "x/", "x==", "x!=", "x=",
 #endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-   "x+=", "x-=", "x*=", "x/=", "j*",
+   "x+=", "x-=", "x*=", "x/=", "j*", "j/",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
    "complex",

@@ -585,6 +585,20 @@ followed by a sign inversion ( (__I__*a)*(__I__*b) = -(a*b) ).
 }  /* lower_c99_jmultiply */
 
 
+static void lower_c99_jdivide(an_expr_node_ptr  expr)
+/*
+Turn the given division of a real value by an imaginary value into a real
+division followed by a sign inversion ( a/(b*__I__) = -(a/b)*__I__ ).
+*/
+{
+  expr->variant.operation.operands =
+                  make_operator_node((an_expr_operator_kind)eok_fdivide,
+                                     expr->type,
+                                     expr->variant.operation.operands);
+  expr->variant.operation.kind = (an_expr_operator_kind)eok_fnegate;
+}  /* lower_c99_jdivide */
+
+
 static void lower_c99_complex_cast(an_expr_node_ptr  expr)
 /*
 Transform the given complex cast expression into a function call
@@ -864,6 +878,9 @@ Otherwise, do nothing.
       break;
     case eok_jmultiply:
       lower_c99_jmultiply(expr);
+      break;
+    case eok_jdivide:
+      lower_c99_jdivide(expr);
       break;
 #endif /* LOWER_COMPLEX */
     case eok_cast:

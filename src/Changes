@@ -1,5 +1,14 @@
 Version 2.46
 
+2/9/01   C99 mode: sign inversion in imaginary divide operation
+
+In C99 mode, the division of a real floating point value by an imaginary
+floating point value was erroneously represented as an ordinary floating point
+division.  This resulted for example in "0.5/__I__" being (incorrectly)
+treated equal to "0.5*__I__" instead of "-0.5*__I__" (the latter is correct).
+IL CHANGE: a new operator eok_jdivide has been introduced to represent these
+operations (it is eliminated when LOWER_COMPLEX is TRUE).
+
 2/9/01   Long double requires additional digit for full precision
 
 When emitting a long double value as a string in the C or C++ generating

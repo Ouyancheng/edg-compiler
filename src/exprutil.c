@@ -3597,7 +3597,14 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
             }  /* if */
             break;
           case tok_divide:
-            *op = (an_expr_operator_kind)eok_fdivide;
+            if (is_imaginary_2 && is_real_floating_type(type_1)) {
+              /* A special operator that includes a sign inversion is needed
+                 when dividing a real number by an imaginary number.
+                      x/(y*__I__) == -(x/y)*__I__                      */
+              *op = (an_expr_operator_kind)eok_jdivide;
+            } else {
+              *op = (an_expr_operator_kind)eok_fdivide;
+            }  /* if */
             break;
           case tok_times_assign:
             if (is_imaginary_1 && is_imaginary_2) {

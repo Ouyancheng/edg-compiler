@@ -3196,6 +3196,50 @@ Do the multiplication operation on two imaginary numbers (any precision).
 #endif /* DEBUG */
 }  /* do_jmultiply */
 
+
+static void do_jdivide(a_constant        *constant_1,
+                       a_constant        *constant_2,
+                       a_constant        *result,
+                       an_error_code     *err_code,
+                       an_error_severity *err_severity,
+                       a_boolean         *depends_on_rounding_mode)
+/*
+Do the division of a real number by an imaginary number (any precision).
+*/
+{
+  a_boolean    err, accum_err = FALSE;
+  a_type_ptr   constant_type = skip_typerefs(constant_1->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  /* Check for division by zero to give a specific error message. */
+  if (fp_is_zero_constant(float_kind, &constant_2->variant.float_value)) {
+    *err_code = ec_divide_by_zero;
+    *err_severity = es_error;
+  } else {
+    set_constant_kind(result, (a_constant_repr_kind)ck_imaginary);
+    fp_divide(float_kind,
+              &constant_1->variant.float_value,
+              &constant_2->variant.float_value,
+              &result->variant.float_value, &err,
+              depends_on_rounding_mode);
+    accum_err |= err;
+    fp_negate(float_kind, &result->variant.float_value,
+              &result->variant.float_value, &err);
+    accum_err |= err;
+    if (accum_err) {
+      *err_code = ec_bad_complex_operation_result;
+      *err_severity = es_error;
+    }  /* if */
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("j/", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_jdivide */
+
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_boolean valid_address_constant(a_constant *constant,
@@ -3753,6 +3797,10 @@ as the position for any diagnostics issued.
         case eok_jmultiply:
           do_jmultiply(constant_1, constant_2, result,
                        &err_code, &err_severity, &depends_on_rounding_mode);
+          break;
+        case eok_jdivide:
+          do_jdivide(constant_1, constant_2, result,
+                     &err_code, &err_severity, &depends_on_rounding_mode);
           break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
