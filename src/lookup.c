@@ -1443,7 +1443,7 @@ Macro that initializes a lookup state variable.
     is_class_or_class_proxy_symbol(fund_sym)) && 			\
    (!(lookup_state).must_be_namespace ||				\
     is_namespace_symbol(fund_sym)) &&					\
-   ((lookup_state).decl_seq == 0 ||					\
+   ((lookup_state).decl_seq == NO_DECL_SEQUENCE_NUMBER ||		\
     (lookup_state).decl_seq >= (sym)->decl_seq))
 
 
@@ -3170,6 +3170,7 @@ namespace_qualified_id_lookup.
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
   a_boolean	direct_namespace_members_only = 
                          (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
+  a_boolean	decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
@@ -3180,9 +3181,21 @@ namespace_qualified_id_lookup.
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
    (!must_be_class ||				     		      \
     is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
-   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)))
+   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)) &&	      \
+   (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||		      \
+    decl_seq_number >= (sym)->decl_seq))
 
   db_enter(4, "lookup_in_namespace");
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+      do_dependent_name_processing) {
+    /* If we are inside an instantiation, get the declaration sequence number
+       that indicates which declarations should be visible at the point of
+       definition of the namespace. */
+    a_scope_stack_entry_ptr	ssep;
+    ssep = &scope_stack[depth_innermost_instantiation_scope];
+    check_assertion(ssep->template_decl_info != NULL);
+    decl_seq_number = ssep->template_decl_info->decl_seq;
+  }  /* if */
   /* Search for a symbol in the right scope. */
   /* First, search the list of inactive symbols.  Namespace symbols
      are moved to the inactive list after the initial definition of

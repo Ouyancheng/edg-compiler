@@ -3746,6 +3746,7 @@ the file scope is used.
     overload_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
                                    hdr_ptr, &(other_sym->decl_position));
     overload_sym->decl_scope = other_sym->decl_scope;
+    overload_sym->decl_seq = other_sym->decl_seq;
     /* If the symbol is a member of a class or namespace, set the membership
        of the new symbol. */
     if (other_sym->is_class_member) {
