@@ -6017,6 +6017,7 @@ parameters.
         start_comment();
         write_tok_str(" COMDAT group: ");
         write_tok_str(variable->comdat_group);
+        write_space();
         end_comment();
       } /* if */
 #endif /* IA64_ABI */
@@ -7770,8 +7771,9 @@ if this routine has a body (dump nothing if it has no body).
       write_tok_str(" __attribute__((__weak__))");
 #endif /* GCC_IS_GENERATED_CODE_TARGET */
       start_comment();
-      write_tok_str(" COMDAT Group: ");
+      write_tok_str(" COMDAT group: ");
       write_tok_str(rout->source_corresp.name);
+      write_space();
       end_comment();
     } /* if */
 #endif /* IA64_ABI */
