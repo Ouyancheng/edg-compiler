@@ -1,5 +1,23 @@
 Version 2.21
 
+11/16/93 Restrictions on target type of conversion operator
+
+An error is now issued on declaring a conversion operator whose target
+type is either a (possibly cv-qualified) base class of the class of which
+the operator is a member or a reference to such a base class; this is
+consistent with a post-ARM change to the Working Paper.  In addition, an
+error is issued when the target type is (possible cv-qualified) void, in
+accord with a pending change to the Working Paper, agreed to at the Boston
+meeting.  For example:
+
+  class Base { };
+  class Derived : Base {
+    operator Derived();      // Already an error
+    operator Base();         // Now an error
+    operator Base&();        // Now an error
+    operator void();         // Now an error
+  };
+
 11/16/93 Abort while processing invalid instantiation pragma
 
 An bug has been fixed that can cause an abort when scanning an
@@ -9,7 +27,6 @@ function but is not a function declarator.
   template <class T> struct A {
     void f();
   };
-
   #pragma instantiate void A<int>::f
 
 11/16/93 Name mangling of large nontype template arguments
@@ -110,7 +127,7 @@ never to be defined.  That resulted in bad generated code.
 
   struct X;
   struct Y {
-  	static X x;
+    static X x;
   };
 
 The anachronism transformation is now suppressed when the static data
