@@ -828,6 +828,7 @@ ec_multiple_template_decls_not_allowed;;"this declaration cannot have multiple \
 ec_cl_old_for_init_option_only_in_cplusplus;;"option to control the for-init scope can be used only when compiling C++"
 ec_redeclaration_of_for_init_decl_name;;"%sq, declared in for-loop initialization, may not be redeclared in this scope"
 ec_hidden_by_old_for_init;;"reference is to %nd1 -- under old for-init scoping rules it would have been %nd2"
+ec_cl_for_init_diff_warning_option_only_in_cplusplus;;"option to control warnings on for-init differences can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
