@@ -4126,7 +4126,9 @@ set specific_symbol in locator_for_curr_id to point to the symbol
 for the qualified identifier, and return TRUE.  This is recognized only
 in C++ mode.  If a qualified name is not next, leave specific_symbol
 set to NULL and return FALSE.  options is a set of special options,
-as a bit set; they can include IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL
+as a bit set; they control the lookup of (only) the final identifier in the
+qualified name.  They can include
+IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL
 and IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL.
 */
 {
