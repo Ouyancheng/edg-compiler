@@ -4578,9 +4578,6 @@ Do IL lowering of the indicated routine and everything under it.
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
     lower_type(routine->type);
-    /* Clear the befriending classes field to make the routine entry legal
-       C IL. */
-    routine->befriending_classes = NULL;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode) {
       /* For automatic instantiation, generate a variable or variables with
