@@ -1578,7 +1578,8 @@ to the secondary translation unit.
     for (type = il_header.nontag_types_used_in_exception_or_rtti;
          type != NULL;
          type = type->next) {
-      check_assertion(in_secondary_trans_unit(type));
+      check_assertion(in_secondary_trans_unit(type) &&
+                      type->used_in_exception_or_rtti);
       if (!entry_should_be_copied(type)) {
         check_assertion(!entry_should_overwrite_primary_entry(type));
         mark_to_merge(type, iek_type);
@@ -2411,6 +2412,7 @@ into the primary translation unit il_header.
         }  /* if */
         last_primary_eh_type = corresp_eh_type;
         corresp_eh_type->next = NULL;
+        corresp_eh_type->used_in_exception_or_rtti = TRUE;
       }  /* if */
     }  /* for */
   }
