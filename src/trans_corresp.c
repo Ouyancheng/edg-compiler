@@ -431,8 +431,11 @@ the primary translation unit is preferred.
             if (var->is_template_static_data_member &&
                 !var->source_corresp.parent.class_type
                     ->variant.class_struct_union.is_prototype_instantiation) {
-              set_master_instance_for_new_canonical_variable(
-                                         var, (a_variable_ptr)tcp->canonical);
+              a_variable_ptr  old_ce = (a_variable_ptr)tcp->canonical;
+              if (var->storage_class == (a_storage_class)sc_unspecified &&
+                  old_ce->storage_class == (a_storage_class)sc_unspecified) {
+                set_master_instance_for_new_canonical_variable(var, old_ce);
+              }  /* if */
             }  /* if */
           }
           break;
@@ -2599,9 +2602,6 @@ is in fact valid.
             /* Only check real instantiations if the prototype instantiation
                matched. */
             (void)verify_type_correspondence(inst_type);
-          } else {
-            /* Otherwise, just clear the correspondences. */
-            clear_class_type_correspondence(inst_type, /*visited=*/TRUE);
           }  /* if */
         }  /* for */
       }  /* if */
