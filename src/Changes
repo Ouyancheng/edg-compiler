@@ -1,5 +1,21 @@
 Version 2.44
 
+2/8/00   Microsoft compatibility: name of current class not found as an
+         injected class name
+
+The Microsoft compiler does not find injected class names when looking for
+an unqualified name.  While the front end ignored injected names from base
+classes, the injected name of the current class was not ignored (as it
+should have been).  The injected name of the current class is now ignored
+in Microsoft mode for unqualified names.
+
+  struct C {
+    struct B { B(int); };
+  };
+  struct B : C::B {
+    B() : B(1) {}
+  };
+
 2/8/00   Accurate declared_type for parameters of template functions
 
 The declared_type field of parameter variables in the IL definitions of

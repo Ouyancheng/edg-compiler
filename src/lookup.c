@@ -1735,8 +1735,8 @@ that do normal id lookup processing.
       /* The Microsoft compiler ignores inherited injected class names
          in most cases.  The principal case in which it is found is at
          the start of a qualified name. */
-      if (sym != NULL && sym->kind == (a_symbol_kind)sk_projection &&
-          !lookup_state->must_be_class_or_namespace && microsoft_bugs &&
+      if (sym != NULL && microsoft_bugs &&
+          !lookup_state->must_be_class_or_namespace &&
           is_injected_class_symbol(fundamental_symbol_of(sym))) sym = NULL;
     }  /* if */
   }  /* if */
