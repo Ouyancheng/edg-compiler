@@ -2014,11 +2014,17 @@ qualified_name_check:
           } else {
             projection_member_sym = locator_for_curr_id.specific_symbol;
             member_sym = fundamental_symbol_of(projection_member_sym);
-            if (class_struct_union_type->
-                                variant.class_struct_union.is_nonreal_class ||
-                (projection_member_sym->is_class_member &&
-                 projection_member_sym->parent.class_type->
-                                variant.class_struct_union.is_nonreal_class)) {
+            if (!projection_member_sym->is_class_member) {
+              /* The qualified name is not the name of a class member
+                 (i.e., it's the name of a namespace member). */
+              pos_sy_error(ec_not_class_member,
+                           &qualified_member_position,
+                           projection_member_sym);
+              err = TRUE;
+            } else if (class_struct_union_type->
+                                 variant.class_struct_union.is_nonreal_class ||
+                       projection_member_sym->parent.class_type->
+                                 variant.class_struct_union.is_nonreal_class) {
               /* Skip the check for a nonreal class in a prototype
                  instantiation. */
             } else {
