@@ -14152,10 +14152,16 @@ This routine is also called in C99 mode.
   a_boolean           okay = TRUE, ambiguous;
   a_boolean           string_case = FALSE;
   a_conv_descr        conversion;
+  an_expression_kind  expr_kind;
 
   db_enter(3, "scan_aggregate_class_initializer_expression");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+  expr_kind = (an_expression_kind)ek_normal;
+  if (C_mode() && static_lifetime) {
+    /* C mode aggregate initializers for statics have to be constant. */
+    expr_kind = (an_expression_kind)ek_init_constant;
+  }  /* if */
+  push_expr_stack(expr_kind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   if (static_lifetime) {

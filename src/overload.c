@@ -10123,6 +10123,9 @@ happen only in C++ mode.
   if (dip != NULL) {
     /* The dynamic initialization entry was already allocated above.  This
        happens for the elision cases. */
+  } else if (is_error_operand(source_operand)) {
+    /* Some previous error.  This is important when we get to this
+       routine in a constant expression. */
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
     prep_class_bitwise_copy_operand(source_operand, dest_type,
