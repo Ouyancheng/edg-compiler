@@ -8512,6 +8512,8 @@ any classes that declared the nested class as a template friend.
       set_class_membership_for_template((a_symbol_ptr)NULL, templ,
                                         parent_class);
       templ->source_corresp.access = class_type->source_corresp.access;
+      templ->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
       templ->is_exported = class_is_exported(parent_class);
       add_to_templates_list(templ, depth_scope_stack);
       if (prototype_instantiations_in_il) {
@@ -11307,6 +11309,10 @@ set, and its source sequence entry, if any, has been put out.)
 
   if (il_template_entry != NULL) {
     if (sym != NULL) {
+      /* Set the name linkage.  This may be updated below for a static
+         function template. */
+      il_template_entry->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
       /* Set the template kind. */
       switch (sym->kind) {
         case sk_class_template:
@@ -11335,20 +11341,27 @@ set, and its source sequence entry, if any, has been put out.)
           }  /* if */
           break;
         case sk_function_template:
-          il_template_entry->kind = (a_template_kind)templk_function;
-          proto_sym = prototype_template_of(sym);
-          tssp = template_supplement_for_symbol(proto_sym);
-          if (prototype_instantiations_in_il) {
-            il_template_entry->prototype_instantiation.routine =
-                                  template_supplement_for_symbol(proto_sym)
-                                                   ->variant.function.routine;
-          } else {
-            il_template_entry->prototype_instantiation.routine = NULL;
-          }  /* if */
-          il_template_entry->canonical_template = tssp->il_template_entry;
-          if (decl_state->defines_something) {
-            tssp->il_template_entry->definition_template = il_template_entry;
-          }  /* if */
+          {
+            a_routine_ptr	rout;
+            il_template_entry->kind = (a_template_kind)templk_function;
+            proto_sym = prototype_template_of(sym);
+            tssp = template_supplement_for_symbol(proto_sym);
+            rout = tssp->variant.function.routine;
+            if (prototype_instantiations_in_il) {
+              il_template_entry->prototype_instantiation.routine = rout;
+            } else {
+              il_template_entry->prototype_instantiation.routine = NULL;
+            }  /* if */
+            il_template_entry->canonical_template = tssp->il_template_entry;
+            if (decl_state->defines_something) {
+              tssp->il_template_entry->definition_template = il_template_entry;
+            }  /* if */
+            /* For function templates, take the linkage from the prototype
+               routine.  This will be nlk_internal if the template is
+               static. */
+            il_template_entry->source_corresp.name_linkage =
+                                            rout->source_corresp.name_linkage;
+          }
           break;
         case sk_member_function:
           il_template_entry->kind = (a_template_kind)templk_member_function;

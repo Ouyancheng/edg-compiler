@@ -6555,6 +6555,8 @@ declared member functions.
       set_source_corresp(&templ->source_corresp, sym);
       set_class_membership_for_template((a_symbol_ptr)NULL, templ,
                                         class_type);
+      templ->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
       /* Update the IL template pointer in the template symbol supplement. */
       tssp->il_template_entry = templ;
       templ->source_corresp.access = class_state->access;
@@ -7232,6 +7234,7 @@ member declaration, respectively.
     if (!is_error_locator(*locator)) {
       if (class_state->is_nonreal_instantiation) {
         /* A member of a prototype instantiation. */
+        a_template_ptr		 templ;
         a_template_instance_ptr  tip = alloc_template_instance();
         sym->variant.static_data_member.instance_ptr = tip;
         tip->instance_sym = sym;
@@ -7241,23 +7244,24 @@ member declaration, respectively.
         tip->template_info->token_sequence_number = curr_token_sequence_number;
         /* Although this is not a template, it is an instantiatable variable
            and hence we create a placeholder a_template entry for it. */
-        var->assoc_template = alloc_template();
-        var->assoc_template->kind = (a_template_kind)templk_static_data_member;
-        set_source_corresp(&var->assoc_template->source_corresp, sym);
+        var->assoc_template = templ = alloc_template();
+        templ->kind = (a_template_kind)templk_static_data_member;
+        set_source_corresp(&templ->source_corresp, sym);
+        templ->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
         set_class_membership_for_template((a_symbol_ptr)NULL,
-                                          var->assoc_template,
+                                          templ,
                                           class_type);
-        var->assoc_template->source_corresp.access =
-                                                    var->source_corresp.access;
+        templ->source_corresp.access = var->source_corresp.access;
         /* Update the IL template pointer in the template symbol supplement. */
-        tip->template_info->il_template_entry = var->assoc_template;
+        tip->template_info->il_template_entry = templ;
         /* It is exported if the enclosing class template is exported. */
-        var->assoc_template->is_exported = class_is_exported(class_type);
-        add_to_templates_list(var->assoc_template, decl_scope_level);
+        templ->is_exported = class_is_exported(class_type);
+        add_to_templates_list(templ, decl_scope_level);
         if (prototype_instantiations_in_il) {
-          var->assoc_template->prototype_instantiation.variable = var;
+          templ->prototype_instantiation.variable = var;
         }  /* if */
-        var->assoc_template->canonical_template = var->assoc_template;
+        templ->canonical_template = templ;
       } else {
         /* We must be in the midst of a template class instantiation.  We need
            to bind this static data member to the static data member template
