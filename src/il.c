@@ -9898,7 +9898,7 @@ declaration order on their list.
   for (;;) {
     /* In most cases, all scheduled routine moves will be handled through a
        single traversal of the routines list (which is achieved by the inner
-       do { ... } while loop.  However, a few situations may cause the
+       do { ... } while loop).  However, a few situations may cause the
        ordering by sequence number not to parallel the ordering on the
        routines list (e.g., when multiple routines are declared on a single
        line).  We therefore repeat the traversal until all scheduled moves
