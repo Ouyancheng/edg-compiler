@@ -63,11 +63,11 @@ static char	*pch_file_name;
 			/* Name of the precompiled header file being written
 			   or read. */
 
-static FILE	*f_pch_output;
-			/* File to which the precompiled header information
-			   is being written. */
-
 static FILE	*f_pch_input;
+			/* File from which the precompiled header information
+			   is being read. */
+
+static FILE	*f_pch_output;
 			/* File to which the precompiled header information
 			   is being written. */
 
@@ -139,12 +139,36 @@ Macro to perform an fread with an error check.
   }  /* if */
 
 /*
+Macro to perform an fread and return an error status.  Return TRUE if the
+read succeeded.
+*/
+#define fread_with_status(value, length, file)				\
+  (fread((a_void_ptr)(value), size_t_arg((length)), 1, (file)) == 1)
+
+/*
 Macro to perform an fwrite with an error check.
 */
 #define fwrite_with_check(value, length, file)				\
   if (fwrite((a_void_ptr)(value), size_t_arg((length)), 1, (file)) != 1) { \
     unexpected_condition_str("PCH write error");			\
   }  /* if */
+
+/*
+Macro to do an fseek on the input file with an error check.
+*/
+#define fseek_input_with_check(file, pos, mode)				\
+  if (fseek((file), (long)(pos), (mode)) != 0) {			\
+    unexpected_condition_str("PCH seek error");				\
+  }  /* if */
+
+/*
+Macro to do an fseek on the output file with an error check.
+*/
+#define fseek_output_with_check(file, pos, mode)			\
+  if (fseek((file), (long)(pos), (mode)) != 0) {			\
+    unexpected_condition_str("PCH seek error");				\
+  }  /* if */
+
 
 #if DEBUG
 static long	num_pch_events_allocated;
@@ -1097,8 +1121,10 @@ restore the memory regions.
   if (!successful) {
     mismatch_reason = ec_memory_mismatch;
 #if DEBUG
-    pos_st_warning(mismatch_reason, &null_source_position,
-                   pch_input_file_name);
+    if (automatic_pch_processing) {
+      pos_st_warning(mismatch_reason, &null_source_position,
+                     pch_input_file_name);
+    }  /* if */
 #endif /* DEBUG */
   }  /* if */
   db_exit();
@@ -1198,10 +1224,7 @@ the PCH file.
     }  /* if */
 #endif /* DEBUG */
     /* Seek past the area just mapped. */
-    if (fseek(f_pch_input, (long)(offset + mahp->size), SEEK_SET) != 0) {
-      unexpected_condition_str2("read_memory_used_for_memory_regions:",
-                                "fseek error");
-    }  /* if */
+    fseek_input_with_check(f_pch_input, offset + mahp->size, SEEK_SET);
   }  /* for */
 }  /* read_memory_used_for_memory_regions */
 
@@ -1383,10 +1406,7 @@ current point.
   write_file_section_id(pfs_memory_regions);
   write_memory_regions();
   /* Write the flag that indicates that the PCH file is now complete. */
-  if (fseek(f_pch_output, flag_position, SEEK_SET) != 0) {
-    unexpected_condition_str2("write_precompiled_header_file:",
-                              "fseek error");
-  }  /* if */
+  fseek_output_with_check(f_pch_output, flag_position, SEEK_SET);
   is_complete = TRUE;
   pch_write_value(is_complete);
   (void)fclose(f_pch_output);
@@ -1522,8 +1542,8 @@ written.
   /* We don't use fread_with_check here because we want to handle
      read errors more gracefully.  After all, we don't yet know
      that is is actually a PCH written by this compiler. */
-  if (fread(pch_buffer, size_t_arg(pch_id_string_length),
-            1, f_pch_input) != 1) {
+  if (!fread_with_status(pch_buffer, size_t_arg(pch_id_string_length),
+                         f_pch_input)) {
     /* The read failed -- the file must contain something unexpected. */
   } else {
     /* The read succeeded, see if the ID string matches. */
@@ -1534,8 +1554,7 @@ written.
   if (!match) {
     mismatch_reason = ec_invalid_pch_file;
   }  /* if */
-  if (fread((a_void_ptr)&is_complete, sizeof(is_complete),
-            1, f_pch_input) != 1) {
+  if (!fread_with_status(&is_complete, sizeof(is_complete), f_pch_input)) {
     /* The read failed - the file must not be complete. */
     is_complete = FALSE;
   }  /* if */
@@ -2084,6 +2103,8 @@ be used as part of the applicability check in subsequent compilations.
 
 void register_pch_saved_variables(a_pch_saved_variable array[])
 /*
+Save the address of a list of variables to be saved when a PCH
+file is created and restored when a PCH file is used.
 */
 {
   check_assertion_str2

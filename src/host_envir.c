@@ -1867,6 +1867,8 @@ buffer.
 
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
+#if __WIN32__
+#else /* !__WIN32__ */
 #include <sys/mman.h>
 
 #if __BSD__
@@ -1880,10 +1882,11 @@ extern int getpagesize(void);
 #define _SC_PAGESIZE _SC_PAGE_SIZE
 #endif /* defined(__hpux) || defined(__AIX__) */
 
-static int	page_size = 0;
-			/* The size of a host page.  Memory mapped blocks must
-			   be requested in increments of this size. */
+static FILE*	f_mmap_file;
+			/* The file descriptor for the mmap file. */
 
+static int	mmap_file_number;
+			/* The file number of the mmap file. */
 
 static int get_page_size(void)
 /*
@@ -1902,23 +1905,7 @@ incremental_size must be a multiple of the page size.
 }  /* get_page_size */
 
 
-sizeof_t do_page_alignment(sizeof_t size)
-/*
-Return "size" adjusted as needed to be a multiple of the system page size.
-*/
-{
-  sizeof_t	size2;
-
-  /* On the first call of this routine, get the host page size. */
-  if (page_size == 0) page_size = get_page_size();
-  size2 = (size / page_size) * page_size;
-  if (size2 < size) size2 += page_size;
-  return size2;
-}  /* do_page_alignment */
-
-
-a_void_ptr map_file_region(FILE		*file,
-                           sizeof_t	curr_size,
+a_void_ptr map_file_region(sizeof_t	curr_size,
 		           sizeof_t	incremental_size,
 			   long		file_offset)
 /*
@@ -1928,7 +1915,6 @@ should be added.  incremental_size must be a multiple of the host
 page size.
 */
 {
-  int			fd = fileno(file);
   caddr_t		addr = NULL;
   sizeof_t		size;
 #if USE_FIXED_ADDRESS_FOR_MMAP
@@ -1938,10 +1924,10 @@ page size.
   db_enter(4, "map_file_region");
   size = curr_size + incremental_size;
   /* The file must be large enough to contain the mapped area. */
-  if (fseek(file, (long)size, SEEK_SET) == 0) {
+  if (fseek(f_mmap_file, (long)size, SEEK_SET) == 0) {
     /* Write a character at the last allocated position and
        make sure the write to the file is actually done. */
-    if (fputc(0, file) != EOF && fflush(file) == 0) {
+    if (fputc(0, f_mmap_file) != EOF && fflush(f_mmap_file) == 0) {
       /* An extra byte is added to the size to stop CodeCenter from complaining
          about the after_end_of_block comparison in mem_manage.c. */
 #if USE_FIXED_ADDRESS_FOR_MMAP
@@ -1949,11 +1935,11 @@ page size.
       addr = (a_void_ptr)mmap(map_address,
                               incremental_size,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
-                              fd, (off_t)file_offset);
+                              mmap_file_number, (off_t)file_offset);
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
       addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE,
-                              fd, (off_t)file_offset);
+                              mmap_file_number, (off_t)file_offset);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if DEBUG
       if (debug_level >= 4) {
@@ -2039,6 +2025,42 @@ current file position.
   }  /* if */
   return curr_pos;
 }  /* seek_to_page_alignment */
+
+
+void open_mapped_il_temp_file(void)
+/*
+Open a temporary file to be used for allocation of file mapped
+memory for IL memory blocks.
+*/
+{
+  db_enter(3, "open_mapped_il_temp_file");
+  f_mmap_file = open_temp_file(/*binary_file=*/TRUE);
+  check_assertion(f_mmap_file != NULL);
+  mmap_file_number = fileno(f_mmap_file);
+  db_exit();
+}  /* open_mapped_il_temp_file */
+
+#endif /* __WIN32__ */
+
+static int	page_size = 0;
+			/* The size of a host page.  Memory mapped blocks must
+			   be requested in increments of this size. */
+
+
+sizeof_t do_page_alignment(sizeof_t size)
+/*
+Return "size" adjusted as needed to be a multiple of the system page size.
+*/
+{
+  sizeof_t	size2;
+
+  /* On the first call of this routine, get the host page size. */
+  if (page_size == 0) page_size = get_page_size();
+  size2 = (size / page_size) * page_size;
+  if (size2 < size) size2 += page_size;
+  return size2;
+}  /* do_page_alignment */
+
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 

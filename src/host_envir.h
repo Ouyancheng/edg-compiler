@@ -1050,8 +1050,7 @@ char *get_file_name_from_dir(a_boolean	first,
 extern sizeof_t do_page_alignment(sizeof_t size);
 
 extern
-a_void_ptr map_file_region(FILE		*file,
-                           sizeof_t	curr_size,
+a_void_ptr map_file_region(sizeof_t	curr_size,
 		           sizeof_t	incremental_size,
 			   long         file_offset);
 
@@ -1065,6 +1064,8 @@ extern void unmap_memory(a_void_ptr	addr,
 			 sizeof_t	size);
 
 extern sizeof_t seek_to_page_alignment(FILE *file);
+
+extern void open_mapped_il_temp_file(void);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*

@@ -334,9 +334,6 @@ static sizeof_t	mmap_size_allocated;
 			   the PCH file is included in mmap_size_allocated,
 			   but not in mmap_file_offset. */
 
-static FILE*	f_mmap_file;
-			/* The file descriptor for the mmap file. */
-
 static long	mmap_file_offset;
 			/* The offset into the mmap file of the next block
 			   to be allocated. */
@@ -406,14 +403,12 @@ PCH was created.
 
   if (!mmap_initialized) {
     /* On the first call, open the file that will be mapped. */
-    f_mmap_file = open_temp_file(/*binary_file=*/TRUE);
-    check_assertion(f_mmap_file != NULL);
+    open_mapped_il_temp_file();
     mmap_size_allocated = 0;
     mmap_initialized = TRUE;
     mmap_file_offset = 0;
   }  /* if */
-  addr = map_file_region(f_mmap_file, mmap_size_allocated, size,
-                         mmap_file_offset);
+  addr = map_file_region(mmap_size_allocated, size, mmap_file_offset);
   if (addr == NULL) {
     catastrophe(ec_unable_to_get_mapped_memory);
   }  /* if */
@@ -487,19 +482,6 @@ precompiled headers is suppressed.
   return addr;
 }  /* alloc_new_mem_block */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-
-#else /* STANDALONE_UTILITY_PROGRAM */
-
-a_void_ptr alloc_new_mem_block(sizeof_t size)
-/*
-Allocate a new memory block.  This is the version used for standalone
-utility programs.
-*/
-{
-  a_void_ptr	addr;
-  addr = (a_void_ptr)malloc_with_check(size);
-  return addr;
-}  /* alloc_new_mem_block */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
  
 
@@ -516,7 +498,7 @@ the block header.
 {
   a_mem_block_header_ptr hdr, prev_hdr;
   sizeof_t               alloc_size, needed_size;
-  char                   *alloc_addr;
+  a_void_ptr             alloc_addr;
   a_mem_block_header_ptr hdr_found = NULL;
   a_mem_block_header_ptr prev_hdr_found = NULL;
 
@@ -585,14 +567,22 @@ the block header.
      page size. */
   alloc_size = do_page_alignment(alloc_size);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  alloc_addr = alloc_new_mem_block(alloc_size);
+#if STANDALONE_UTILITY_PROGRAM
+  alloc_addr = malloc_with_check(alloc_size);
+#else /* !STANDALONE_UTILITY_PROGRAM */
+  if (precompiled_header_processing_required) {
+    alloc_addr = alloc_new_mem_block(alloc_size);
+  } else {
+    alloc_addr = malloc_with_check(alloc_size);
+  }  /* if */
+#endif /* STANDALONE_UTILITY_PROGRAM */
   /* Fill in the block header. */
   hdr = (a_mem_block_header_ptr)alloc_addr;
   /* malloc_size non-zero indicates that this block came directly from
      malloc. */
   hdr->malloc_size = alloc_size;
-  hdr->start_of_block = alloc_addr + adjusted_header_size;
-  hdr->after_end_of_block = alloc_addr + alloc_size;
+  hdr->start_of_block = (char *)alloc_addr + adjusted_header_size;
+  hdr->after_end_of_block = (char *)alloc_addr + alloc_size;
 have_hdr:
   /* Everything in the block is available. */
   hdr->next_avail_in_block = hdr->start_of_block;
