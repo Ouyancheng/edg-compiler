@@ -6615,9 +6615,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
                            il_entry_kind_names[(int)kind]);
           
       }  /* switch */
-    } else if (kind == iek_param_type) {
-      fputs(": ", f_debug);
-      db_abbreviated_type(((a_param_type_ptr)ssep->entity.ptr)->type);
     } else {
       a_source_position       *pos;
       a_source_correspondence *scp;
@@ -6648,7 +6645,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           lparen_printed = TRUE;
         }  /* if */
         if (pos->seq > 0) {
-          fprintf(f_debug, "%sat %lu)", (lparen_printed ? ", " : " ("),
+          fprintf(f_debug, "%sat %lu", (lparen_printed ? ", " : " ("),
                   pos->seq);
           lparen_printed = TRUE;
         }  /* if */
@@ -6829,6 +6826,8 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 
 void add_to_src_seq_sublist_list(a_src_seq_sublist_ptr  sublist)
 /*
+Add sublist to the end of the source-sequence-sublist list for the current
+scope.
 */
 {
   a_scope_stack_entry_ptr  scope_stack_ptr;
@@ -6847,7 +6846,10 @@ a_src_seq_sublist_ptr make_sublist_header_and_parent(
                                      a_source_sequence_entry_ptr  fs_ssep,
                                      a_source_sequence_entry_ptr  *local_ssep)
 /*
-Allocate a pair of entries
+Allocate a pair of entries, a sublist header (in the file scope memory
+region) and its "parent", a source sequence entry, which is in the function
+scope memory region; the latter points to the former.  Note that they entries
+are not added to the lists they belong on -- that's handled by the caller.
 */
 {
   a_src_seq_sublist_ptr        sublist;
@@ -6859,6 +6861,7 @@ Allocate a pair of entries
   sublist = alloc_src_seq_sublist();
   sublist->source_sequence_list = fs_ssep;
   sublist->last_source_sequence_entry = fs_ssep;
+  /* Switch to the function scope region for the parent entry. */
   switch_to_scope_region(depth_innermost_ss_list_scope,
                          &region_to_switch_back_to);
   new_ssep = alloc_source_sequence_entry();
@@ -6872,6 +6875,9 @@ Allocate a pair of entries
 
 a_source_sequence_entry_ptr find_sublist_parent(a_src_seq_sublist_ptr sublist)
 /*
+Find the source sequence entry that is the "parent" of sublist -- i.e., the
+iek_src_seq_sublist entry on the function scope source sequence list that
+points to sublist.
 */
 {
   a_source_sequence_entry_ptr  ssep;
@@ -7087,7 +7093,7 @@ this entity.
               /* We've found the insert point. */
               if (prev_sublist == NULL) {
                 /* sublist will become the head of the list.  We don't worry
-                   about checking the tail pointer because we no the list
+                   about checking the tail pointer because we know the list
                    isn't empty. */
                 sublist->next = stack_ptr->il_scope->src_seq_sublist_list;
                 stack_ptr->il_scope->src_seq_sublist_list = sublist;
@@ -7198,6 +7204,12 @@ Find and return the sublist entry that is the header for its sublist.
   return sublist;
 }  /* sublist_header_of */
 
+#if 0
+
+/*
+The following two routines, insert_in_source_sequence_list_after and
+insert_in_source_sequence_list_before, have not been tested.
+*/
 
 void insert_in_source_sequence_list_after(
                                  a_source_sequence_entry_ptr  position_ssep,
@@ -7291,6 +7303,7 @@ memory region.
   }  /* if */
 }  /* insert_in_source_sequence_list_after */
 
+#endif /* if 0 */
 
 a_source_sequence_entry_ptr add_empty_source_sequence_entry(void)
 /*
