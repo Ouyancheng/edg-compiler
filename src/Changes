@@ -1,5 +1,11 @@
 Version 2.44
 
+1/14/00  Preserve bool-correctness in IL lowering of bool increment
+
+IL lowering now uses a constant "1" of bool type in the code generated
+for bool increment.  This preserves bool-correctness in the IL for
+back ends that care.
+
 1/13/00  Needed typedef removed as "unneeded", with cv-qualified parameter
 
 The typedef in the following example was incorrectly removed as

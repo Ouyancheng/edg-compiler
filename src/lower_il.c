@@ -6752,11 +6752,15 @@ Those operations set the lvalue to true instead of incrementing.
 */
 {
   an_expr_node_ptr operand_node = expr->variant.operation.operands;
-  a_type_ptr       operand_type =
-                          f_skip_typerefs(type_pointed_to(operand_node->type));
-  an_expr_node_ptr one_node = node_for_integer_constant(1L,
-                                       operand_type->variant.integer.int_kind);
+  an_expr_node_ptr one_node;
+  a_constant       true_constant;
 
+  /* Build a constant one, but make sure it has bool type to preserve
+     bool-correctness in the IL for back ends that care. */
+  set_integer_constant(&true_constant, (a_host_large_integer)1,
+                       targ_bool_int_kind);
+  true_constant.type = expr->type;
+  one_node = alloc_node_for_constant(&true_constant);
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_incr ||
       expr->result_is_not_used) {
     /* Preincrement: ++x becomes (x = 1).  Also used for postincrement
