@@ -6758,30 +6758,34 @@ void add_to_pragma_list(a_pragma_ptr   pragma,
 			a_type_ptr     class_type)
 /*
 Add pragma to the end of the pragmas list of the appropriate scope.
-If class_type is not NULL, the scope of the class is used.  Otherwise,
-either the file scope or the current scope is used, depending on the
-value of at_file_scope.
+If class_type is not NULL, the scope of the class is used (in C++ mode).
+Otherwise, either the file scope or the current scope is used, depending
+on the value of at_file_scope.
 */
 {
   a_scope_ptr              sp;
   a_scope_stack_entry_ptr  ssep = NULL;
 
-  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && class_type != NULL) {
-    /* The pragma is bound to a member of a class and the binding is taking
-       place at the file scope.  Get the scope pointer from the class type
-       supplement. */
-    sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
-  } else if (class_type != NULL) {
-    /* The pramga is bound to a member of a class and the binding is taking
-       place in another scope.  This is expected to be taking place in the
-       scope in which the member is defined. */ 
+  if (class_type != NULL && !C_mode()) {
+    /* The pramga is bound to a member of a class.  The binding may be
+       taking place in the scope of the class or may be taking place in
+       some other scope.  A static data member definition may have a
+       pragma bound to it at file scope and a friend declaration may have
+       a pragma bound to it in the scope of some other class.  A pragma
+       bound to a class member is always entered on the pragma list of
+       scope of the class. */
     a_scope_depth	scope_depth;
-    scope_depth = depth_scope_stack;
-    check_assertion_str2(scope_stack[scope_depth].assoc_type == class_type,
-                         "add_to_pragma_list:",
-                         "class scope pragma added to wrong scope");
-    ssep = &scope_stack[scope_depth];
-    sp = ensure_il_scope_exists(ssep);
+    sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
+    check_assertion_str2(sp != NULL, "add_to_pragma_list:",
+                         "scope for class is NULL");
+    /* If the scope of the class is still on the scope stack, get a pointer
+       to the scope stack entry. */
+    scope_depth = sp->depth_in_scope_stack;
+    if (scope_depth != NO_SCOPE_DEPTH) {
+      ssep = &scope_stack[scope_depth];
+    } else {
+      ssep = NULL;
+    }  /* if */
   } else {
     a_scope_depth	scope_depth;
     scope_depth = at_file_scope ? DEPTH_OF_FILE_SCOPE : depth_scope_stack;
