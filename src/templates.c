@@ -456,8 +456,9 @@ no need to actually instantiate X<int> in the example above.
 
 
 static a_type_ptr copy_type_with_substitution(
-                                          a_type_ptr          type,
-                                          a_template_arg_ptr  templ_arg_list)
+                                        a_type_ptr          type,
+                                        a_template_arg_ptr  templ_arg_list,
+                                        a_source_position   *source_pos)
 /*
 If "type", a pointer to a type entry, is a template-parameter type, return
 the corresponding real type, based on the template argument list.  If "type"
@@ -465,11 +466,13 @@ contains a template-parameter type, return a copy with the substitution made.
 If it involves no template-parameter type, simply return "type".
 */
 {
-  a_type_ptr          new_type, tp, tp2;
-  int                 i, reusable_param_types;
-  a_template_arg_ptr  tap;
-  a_type_ptr          new_return_type, first_new_type_for_param_types_list;
-  a_param_type_ptr    ptp, new_ptp, prev_ptp;
+  a_type_ptr                     new_type, tp, tp2;
+  int                            i, reusable_param_types;
+  a_template_arg_ptr             tap;
+  a_type_ptr                     new_return_type;
+  a_type_ptr                     first_new_type_for_param_types_list;
+  a_param_type_ptr               ptp, new_ptp, prev_ptp;
+  a_class_symbol_supplement_ptr  cssp;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -500,7 +503,7 @@ If it involves no template-parameter type, simply return "type".
       /* Make a pointer type based on a copy (or reuse, if copying is not
          required) of the type pointed to. */
       tp = type->variant.pointer.type;
-      tp = copy_type_with_substitution(tp, templ_arg_list);
+      tp = copy_type_with_substitution(tp, templ_arg_list, source_pos);
       if (type->variant.pointer.is_reference) {
         new_type = make_reference_type(tp);
       } else {
@@ -510,7 +513,8 @@ If it involves no template-parameter type, simply return "type".
     case tk_typeref:
       /* Make an identically qualified type of a copy (or reuse) of the type
          that underlies the typeref. */
-      tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list),
+      tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list,
+                                       source_pos);
       new_type = make_identically_qualified_type(tp, type);
       break;
     case tk_ptr_to_member:
@@ -518,10 +522,10 @@ If it involves no template-parameter type, simply return "type".
          points to two types, so the new type is based on copies (or reuses)
          of each. */
       tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
-                                       templ_arg_list);
+                                       templ_arg_list, source_pos);
       tp2 = copy_type_with_substitution(
                           type->variant.ptr_to_member.class_of_which_a_member,
-                          templ_arg_list);
+                          templ_arg_list, source_pos);
       new_type = ptr_to_member_type(tp, tp2);
       break;
     case tk_routine:
@@ -533,7 +537,7 @@ If it involves no template-parameter type, simply return "type".
       first_new_type_for_param_types_list = NULL;
       new_return_type = copy_type_with_substitution(
                                         type->variant.routine.return_type,
-                                        templ_arg_list);
+                                        templ_arg_list, source_pos);
       if (new_return_type != type->variant.routine.return_type) {
         /* A substitution was made on the return type, so a new routine type
            will be required. */
@@ -543,7 +547,8 @@ If it involves no template-parameter type, simply return "type".
       for (ptp = type->variant.routine.extra_info->param_type_list;
            ptp != NULL;
            ptp = ptp->next) {
-        tp = copy_type_with_substitution(ptp->type, templ_arg_list);
+        tp = copy_type_with_substitution(ptp->type, templ_arg_list,
+                                         source_pos);
         if (tp != ptp->type) {
           /* A substitution was made, so a new routine type will be required.
              Remember tp so we can avoid calling copy_type_with_substituion
@@ -589,7 +594,8 @@ make_new_type:
           first_new_type_for_param_types_list = NULL;
         } else {
           /* copy_type_with_substitution has not been called yet. */
-          tp = copy_type_with_substitution(ptp->type, templ_arg_list);
+          tp = copy_type_with_substitution(ptp->type, templ_arg_list,
+                                           source_pos);
         }  /* if */
         /* Allocate the param type entry and copy default arg info. */
         new_ptp = alloc_param_type(tp);
@@ -617,7 +623,7 @@ make_new_type:
          required in the element type.  Note that if the element type doesn't
          require substitution, we don't create a new type entry. */
       tp = copy_type_with_substitution(type->variant.array.element_type,
-                                       templ_arg_list);
+                                       templ_arg_list, source_pos);
       if (tp == type->variant.array.element_type) {
         /* Reuse the current type. */
         new_type = type;
@@ -630,6 +636,53 @@ make_new_type:
         add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE,
                           /*in_old_style_param_decl_list=*/FALSE);
       }  /* if */
+      break;
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      cssp = symbol_supplement_for_class(type);
+      if (cssp->class_template == NULL || cssp->is_real_instantiation) {
+        /* Reuse the current type. */
+        new_type = type;
+      } else {
+        /* The class is a template. The copy will be an instantiation of it.
+           Build a new template arg list and call find_template_class. */
+        a_template_arg_ptr  new_list, new_tap, prev_new_tap;
+        a_symbol_ptr        sym;
+
+        tap = type->variant.class_struct_union.extra_info->template_arg_list;
+        prev_new_tap = new_list = NULL;
+        for (; tap != NULL; tap = tap->next) {
+          new_tap = alloc_template_arg(tap->is_type);
+          if (tap->is_type) {
+            new_tap->variant.type =
+                     copy_type_with_substitution(tap->variant.type,
+                                                 templ_arg_list, source_pos);
+          } else {
+#if CHECKING
+            if (tap->variant.constant->kind ==
+#if 0
+                                  (a_constant_repr_kind)ck_template_param
+#else
+                                  (a_constant_repr_kind)ck_error
+#endif /* if 0 */
+                                                                ) {
+              internal_error("copy_type_with_subst: bad const in templ arg");
+            }  /* if */
+#endif /* CHECKING */
+            new_tap->variant.constant = tap->variant.constant;
+          }  /* if */
+          if (new_list == NULL) {
+            new_list = new_tap;
+          } else {
+            prev_new_tap->next = new_tap;
+          }  /* if */
+          prev_new_tap = new_tap;
+        }  /* for */
+        sym = find_template_class(cssp->class_template, &new_list, source_pos);
+        new_type = sym->variant.class_struct_union.type;
+      }  /* if */
+      break;
     default:;
       /* No modification required. */
       new_type = type;
@@ -659,11 +712,12 @@ FALSE.  When for the nth template parameter, the nth template arg has not
 yet been created, extend the template argument list to include n entries.
 */
 {
-  a_boolean           match = FALSE;
-  a_type_ptr          tp, ttp;
-  a_param_type_ptr    ptp, tptp;
-  int                 i;
-  a_template_arg_ptr  tap, prev_tap;
+  a_boolean                      match = FALSE;
+  a_type_ptr                     tp, ttp;
+  a_param_type_ptr               ptp, tptp;
+  int                            i;
+  a_template_arg_ptr             tap, prev_tap;
+  a_class_symbol_supplement_ptr  templ_cssp;
 
   db_enter(5, "matches_template_type");
   if (templ_type->kind == (a_type_kind)tk_template_param) {
@@ -728,6 +782,55 @@ yet been created, extend the template argument list to include n entries.
       /* No match. */
     } else {
       switch (type->kind) {
+        case tk_class:
+        case tk_struct:
+        case tk_union:
+          /* Non-identical class types match if one represents a template
+             and the other is an instantiation of that template.  For
+             instance:
+                template <class T> class A {  ...  };
+                template <class TT> void f(A<TT>) {  ...  };
+                f(A<int>);
+             We reach this code when examining the argument in the call to f.
+             "type" would refer to A<int> and "templ_type" would refer to
+             A<TT>.  First we determine that A<int> and A<TT> refer to the same
+             class template, and that the latter is a nonreal instantiation.
+             Then we call matches_template_type on the template arg types. */
+          templ_cssp = symbol_supplement_for_class(templ_type);
+          if (templ_cssp->class_template != NULL &&
+              symbol_supplement_for_class(type)->class_template ==
+                                             templ_cssp->class_template &&
+              !templ_cssp->is_real_instantiation) {
+            /* The two classes refer to the same template, but templ_type
+               is a nonreal instantiation -- i.e., one based on template
+               parameter types instead of real types. */
+            a_template_arg_ptr  tap, templ_tap;
+            tap = type->variant.class_struct_union.extra_info->
+                                                           template_arg_list;
+            templ_tap = templ_type->variant.class_struct_union.
+                                               extra_info->template_arg_list;
+            do {
+              if (tap->is_type) {
+                match = matches_template_type(tap->variant.type,
+                                              templ_tap->variant.type,
+                                              templ_arg_list);
+              } else if (templ_tap->variant.constant->kind ==
+#if 0
+                                  (a_constant_repr_kind)ck_template_param
+#else
+                                  (a_constant_repr_kind)ck_error
+#endif /* if 0 */
+                                                                ) {
+                match = TRUE;
+              } else {
+                match = eq_constants(tap->variant.constant,
+                                     templ_tap->variant.constant);
+              }  /* if */
+              tap = tap->next;
+              templ_tap = templ_tap->next;
+            } while (match && tap != NULL);
+          }  /* if */
+          break;
         case tk_typeref:
           if (!type_qualifiers_match(type, templ_type)) {
             /* Not a match. */
@@ -885,7 +988,8 @@ templ_sym).
     /* If the routine type does not already exist, create one, based on the
        function template's parameter list (the function parameters, that is,
        not the template parameters) along with the template argument list. */
-    rout_type = copy_type_with_substitution(templ_rout->type, templ_arg_list);
+    rout_type = copy_type_with_substitution(templ_rout->type, templ_arg_list,
+                                            source_pos);
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   /* Give the routine entry the type passed in, and set other fields in
@@ -1637,6 +1741,7 @@ by means of recursive calls.
         /* If the class is an instantiation of a template, check the types
            on which the instantiation is based. */
         tap = tp->variant.class_struct_union.extra_info->template_arg_list;
+        found = FALSE;
         for (; tap != NULL; tap = tap->next) {
           if (tap->is_type) {
             if (template_param_appears_in_type_tree(tparam_type,
