@@ -1,5 +1,13 @@
 Version 2.12
 
+11/16/92 Enumerations commented out in C-generating back end output
+
+An #if 0/#endif pair is now put out around enumerations put out by
+the C-generating back end.  The declarations are not actually needed,
+since the enum type and the enumerator constants are replaced by the
+underlying type and values where used.  This change is needed to
+avoid conflicts on enumerator constants in template classes.
+
 11/14/92 Subscript checking on negative subscripts
 
 Warnings are now issued in nonconstant contexts for negative subscripts

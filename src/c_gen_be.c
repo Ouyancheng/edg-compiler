@@ -1736,7 +1736,10 @@ Dump an enum.  Print the associated source name if there is one.
   a_constant_ptr constant;
   a_constant     enum_value;
 
-  start_unreferenced_bracket(&type->source_corresp);
+  /* Enumerated and types and the enumerated constants end up being replaced
+     by the underlying types and values, so the enum declaration itself
+     is not needed. */
+  fputs("\n#if 0", f_C_output);
   startline(type->source_corresp.decl_position.seq);
   (void)fprintf(f_C_output, "enum %s", get_name(&type->source_corresp));
   constant = type->variant.integer.enum_constant_list;
@@ -1766,7 +1769,7 @@ Dump an enum.  Print the associated source name if there is one.
     fputc('}', f_C_output);
   }  /* if */
   fputc(';', f_C_output);
-  end_unreferenced_bracket(&type->source_corresp);
+  fputs("\n#endif", f_C_output);
 }  /* dump_enum */
 
 #endif /* ifdef CFE */
