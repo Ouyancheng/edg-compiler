@@ -1,5 +1,12 @@
 Version 2.09
 
+9/10/92  Configuring alignment requirements for zero-width bit fields
+
+TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT has been added to target.h; it allows
+the compiler to be configured to handle a zero-width bit field using
+either a pre-defined alignment (as required in cfront compatibility mode)
+or the alignment of the integral type specified in the declaration.
+
 9/9/92  __ALIGNOF__ enhanced
 
 __ALIGNOF__ can now take an argument that is an expression; the
