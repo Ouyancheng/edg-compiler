@@ -445,6 +445,7 @@ base class itself), for debug purposes.
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
   fputs("[[ virtual ", f_debug);
+  db_access_control(preferred_derivation_of(bcp)->access);
   fprintf(f_debug, " base class %s", bcp->type->source_corresp.name);
   fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
   if (bcp->pointer_base_class != NULL) {
@@ -467,8 +468,6 @@ Dump a direct base class entry, for debug purposes.
   a_type     *tp = bcp->type;
   a_field    *fp;
   int        i;
-  a_base_class_derivation_ptr
-             bcdp;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   a_boolean  complete_subobject = bcp->complete_subobject;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
@@ -478,17 +477,8 @@ Dump a direct base class entry, for debug purposes.
   fputs("[[ ", f_debug);
   if (bcp->is_virtual) {
     fputs("virtual ", f_debug);
-    for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
-      if (bcdp->preferred) break;
-    }  /* for */
-    if (bcdp != NULL) {
-      db_access_control(bcdp->access);
-    } else {
-      fputs("<access?>", f_debug);
-    }  /* if */
-  } else {
-    db_access_control(bcp->derivation->access);
   }  /* if */
+  db_access_control(direct_derivation_of(bcp)->access);
   fprintf(f_debug, " base class %s", tp->source_corresp.name);
   if (bcp->is_virtual) {
     fprintf(f_debug, " (pointer offset = %lu", bcp->pointer_offset);
@@ -580,7 +570,7 @@ Dump an indirect base class entry, for debug purposes.
       bcdp = bcdp->next;
       if (bcdp == NULL) break;
       fputs("; ", f_debug);
-    }  /* if */
+    }  /* for */
   }  /* if */
 }  /* db_indirect_base_class */
 
@@ -3326,27 +3316,21 @@ There must be a derivation so marked.
 }  /* preferred_virtual_derivation_of */
 
 
-a_base_class_derivation_ptr direct_virtual_derivation_of(
-                                                     a_base_class_ptr  bcp)
+a_base_class_derivation_ptr direct_virtual_derivation_of(a_base_class_ptr  bcp)
 /*
-Return a pointer to the base class derivation entry associated with virtual
-base class bcp that is marked "direct".  It will return NULL if there is
-no direct derivation.
+bcp is virtual base class assumed to have its direct flag set to TRUE.  Return
+a pointer to the associated base class derivation entry that also has direct
+set to TRUE.
 */
 {
-  a_base_class_derivation_ptr  bcdp;
+  a_base_class_derivation_ptr  bcdp = bcp->derivation;
 
-  if (bcp->direct) {
-    bcdp = bcp->derivation;
-    while (!bcdp->direct) {
-      bcdp = bcdp->next;
-      /* Assertion will fail if direct flag has not been set. */
-      check_assertion_str(bcdp != NULL,
-                         "direct_virtual_derivation_of: no direct derivation");
-    }  /* while */
-  } else {
-    bcdp = NULL;
-  }  /* if */
+  while (!bcdp->direct) {
+    bcdp = bcdp->next;
+    /* Assertion will fail if direct flag has not been set. */
+    check_assertion_str(bcdp != NULL,
+                       "direct_virtual_derivation_of: no direct derivation");
+  }  /* while */
   return bcdp;
 }  /* direct_virtual_derivation_of */
 
