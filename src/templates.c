@@ -9942,14 +9942,14 @@ and create the template symbol supplement for the class.
     class_type->variant.class_struct_union.is_template_class = TRUE;
     if (parent_type->variant.class_struct_union.is_in_class_specialization) {
       /* This will be true for a Microsoft in-class specialization.  Such
-         classes, and classes nested within them are treated as template
+         classes, and classes nested within them, are treated as template
          classes, but they don't have template symbol supplements. */
       /* Propagate the is_specialized flag to the nested class. */
       class_type->variant.class_struct_union.is_specialized = TRUE;
     } else {
       /* During the prototype instantiation save the token sequence number
-         associated with this position in the class symbol supplement
-         this will be used during real instantiations to determine which
+         associated with this position in the class symbol supplement.
+         This will be used during real instantiations to determine which
          declaration in the real instantiation matches this one. */
       cssp->prototype_token_sequence_number = curr_token_sequence_number;
       tssp = alloc_template_symbol_supplement(sym->kind);
