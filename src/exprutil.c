@@ -329,10 +329,15 @@ address taken, and if not issue an error.
   if (sym->kind == (a_symbol_kind)sk_variable) {
     a_variable_ptr var = sym->variant.variable.ptr;
     if (C_mode() &&
-        var->storage_class == (a_storage_class)sc_register) {
-      /* Cannot take the address of a register variable in C. 
-         This is allowed in C++, and is allowed (with a warning) in
-	 C (except in strict error mode). */
+        (var->storage_class == (a_storage_class)sc_register
+#if NAMED_REGISTERS_ALLOWED
+         || var->named_register_storage_class
+#endif /* NAMED_REGISTERS_ALLOWED */
+                                             )) {
+      /* Cannot take the address of a register variable in C (this includes
+         variables with named-register storage class in Embedded C).  This
+         is allowed in C++, and is allowed (with a warning) in C (except in
+         strict error mode). */
       if (SVR4_C_mode || strict_ansi_error_severity != es_error) {
 	pos_warning(ec_address_of_register_variable, &rep->position);
       } else {
