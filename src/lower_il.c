@@ -171,6 +171,86 @@ static unsigned long
 		num_return_memos_allocated;
 #endif /* DEBUG && DO_IL_LOWERING */
 
+#if 0
+#else /* 0 */
+
+static an_object_lifetime_ptr *myown_addr_of_lifetime_ptr(
+                                         an_il_entry_kind         entity_kind,
+                                         char                     *entity_ptr,
+                                         an_object_lifetime_kind  kind)
+/*
+Given an IL entry kind and a pointer to the entry, return the address of the
+field of that entry that points to an object lifetime.  Scope entries have
+two such pointers, and for that case the flag ctor_init is used to decide
+which address to return -- it is set to TRUE if lifetime_of_constructor_inits
+is required and to FALSE otherwise.
+*/
+{
+  an_object_lifetime_ptr *lifetime_addr;
+
+  switch (entity_kind) {
+    case iek_scope:
+      if (kind == (an_object_lifetime_kind)olk_constructor_init) {
+        lifetime_addr = &((a_scope_ptr)entity_ptr)->
+                              variant.routine.lifetime_of_constructor_inits;
+      } else if (kind == (an_object_lifetime_kind)olk_function_static) {
+        lifetime_addr = &((a_scope_ptr)entity_ptr)->
+                              variant.routine.lifetime_of_local_static_vars;
+      } else {
+        lifetime_addr = &((a_scope_ptr)entity_ptr)->lifetime;
+      }  /* if */
+      break;
+    case iek_expr_node:
+      check_assertion(((an_expr_node_ptr)entity_ptr)->kind ==
+                                  (an_expr_node_kind)enk_object_lifetime);
+      lifetime_addr = &((an_expr_node_ptr)entity_ptr)->
+                                              variant.object_lifetime.ptr;
+      break;      
+    case iek_label:
+      lifetime_addr = &((a_label_ptr)entity_ptr)->lifetime_following_label;
+      break;
+    case iek_block:
+      lifetime_addr = &((a_block_ptr)entity_ptr)->lifetime;
+      break;
+    case iek_try_supplement:
+      lifetime_addr = &((a_try_supplement_ptr)entity_ptr)->lifetime;
+      break;
+    case iek_new_delete_supplement:
+      lifetime_addr = &((a_new_delete_supplement_ptr)entity_ptr)->
+                                        lifetime_of_uninitialized_storage;
+      break;
+    case iek_dynamic_init:
+      lifetime_addr = &((a_dynamic_init_ptr)entity_ptr)->init_expr_lifetime;
+      break;
+#if CHECKING
+    default:
+      internal_error("addr_of_lifetime_ptr: bad il entry kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return lifetime_addr;
+}  /* myown_addr_of_lifetime_ptr */
+
+
+void myown_unbind_object_lifetime(an_object_lifetime_ptr  olp)
+/*
+Undo the binding between an object lifetime entry and the IL entry to which
+it points.
+*/
+{
+  an_object_lifetime_ptr  *lifetime_addr;
+
+  /* Get the address of the appropriate field of the IL entry so that the
+     lifetime pointer can be cleared. */
+  lifetime_addr = myown_addr_of_lifetime_ptr(
+                                       (an_il_entry_kind)olp->entity.kind,
+                                       olp->entity.ptr, olp->kind);
+  *lifetime_addr = NULL;
+  /* Clear the fields in the object lifetime, too. */
+  olp->entity.kind = (a_byte_il_entry_kind)iek_none;
+  olp->entity.ptr = NULL;
+}  /* myown_unbind_object_lifetime */
+
+#endif /* 0 */
 
 char *alloc_lowered_name_string(sizeof_t size)
 /*
@@ -8069,6 +8149,62 @@ next_kind:;
 }  /* lower_orphaned_entries */
 
 
+static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
+/*
+Eliminate the indicated object lifetime and all its children.  "Eliminate"
+means to detach them from the IL tree so they're not reachable.  Do nothing
+if olp is NULL.
+*/
+{
+  an_object_lifetime_ptr child_olp;
+
+  if (olp != NULL) {
+    /* Visit all children. */
+    for (child_olp = olp->child_lifetime;
+         child_olp != NULL;
+         child_olp = child_olp->next) {
+      eliminate_object_lifetime_tree(child_olp);
+    }  /* if */
+    /* Unbind this object lifetime from its attached entity. */
+    myown_unbind_object_lifetime(olp);
+  }  /* if */
+}  /* eliminate_object_lifetime_tree */
+
+
+static void eliminate_all_object_lifetimes(a_scope_ptr scope)
+/*
+Eliminate all object lifetime entries attached to the indicated scope and
+its subtree, because they're not supposed to be passed on to the back end.
+This is done late so that the object lifetimes are available during the
+entire lowering process.  The scope is the top scope in a memory region.
+*/
+{
+  eliminate_object_lifetime_tree(scope->lifetime);
+  if (scope->kind == (a_scope_kind)sck_function) {
+    eliminate_object_lifetime_tree(
+                         scope->variant.routine.lifetime_of_constructor_inits);
+    eliminate_object_lifetime_tree(
+                         scope->variant.routine.lifetime_of_local_static_vars);
+  } else {
+    /* File scope. */
+#if ORPHAN_PROCESSING_NEEDED
+    /* Clear the orphan list for object lifetimes. */
+    char                      *entry_ptr, *next_entry_ptr;
+    an_orphaned_il_entry_list *orphan_header =
+                     &orphaned_file_scope_il_entries[(int)iek_object_lifetime];
+    for (entry_ptr = orphan_header->first_entry;
+         entry_ptr != NULL; 
+         entry_ptr = next_entry_ptr) {
+      next_entry_ptr = fs_orphan_pointer_of(entry_ptr);
+      fs_orphan_pointer_of(entry_ptr) = NULL;
+    }  /* for */
+    orphan_header->first_entry = NULL;
+    orphan_header->last_entry = NULL;
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  }  /* if */
+}  /* eliminate_all_object_lifetimes */
+
+
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
 Rewrite the intermediate language in memory region region_number from
@@ -8139,6 +8275,11 @@ C++ to C, so that a C back end can handle it without change.
        This must be done late so that all the required typeinfo variables
        will have been created already. */
     define_scope_class_typeinfo_vars(scope);
+    if (!keep_object_lifetime_info_in_lowered_il) {
+      /* We're not supposed to pass object lifetime information to the back
+         end, so unlink all object lifetimes from the IL tree. */
+      eliminate_all_object_lifetimes(scope);
+    }  /* if */
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
@@ -8217,6 +8358,23 @@ of the front end.
 */
 {
   /* Variables in lower_il.h: */
+  /* Object lifetime information is only kept if it will be needed by the
+     back end.  It's only needed if exception handling is enabled. */
+#if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
+  keep_object_lifetime_info_in_lowered_il = exceptions_enabled;
+#else /* ! KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+  keep_object_lifetime_info_in_lowered_il = FALSE;
+#endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+#if CHECKING && ASSIGNMENT_TO_THIS_ALLOWED
+  /* lower_dynamic_init can't handle preserving an object lifetime
+     for a constructor init in an assignment to "this".  Assignment to
+     "this" is disabled when exception handling is enabled.  Don't allow
+     the combination that can't be handled. */
+  if (!exceptions_enabled && keep_object_lifetime_info_in_lowered_il) {
+    unexpected_condition_str2("ASSIGNMENT_TO_THIS must be disabled",
+                              "to keep object lifetimes when EH is disabled");
+  }  /* if */
+#endif /* CHECKING && ASSIGNMENT_TO_THIS_ALLOWED */
   avail_init_pos_modifiers = NULL;
   num_conditional_exprs_inside_of = 0;
   curr_full_expression = NULL;
