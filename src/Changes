@@ -1,5 +1,18 @@
 Version 2.46
 
+12/15/01 Spurious warning on use of template template parameter
+
+A spurious "template parameter not used" warning was sometimes issued
+when a template template parameter was used as a template template
+argument of a class template in a function template declaration.  This
+has been fixed.
+
+  template <template <class> class T> struct A {
+    A(){}
+    template <template <class> class T2> void f(A<T2>&){}
+    template <template <class> class T2> A(A<T2>&){}  // warning here
+  };
+
 12/13/01 Spurious conversion template ambiguity
 
 A derived class conversion template should hide a base class conversion

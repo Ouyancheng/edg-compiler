@@ -3970,8 +3970,8 @@ equivalent template parameter lists.
 }  /* equiv_templates_given_supplement */
 
 
-static a_boolean equiv_templates(a_template_ptr	templ1,
-				 a_template_ptr	templ2)
+a_boolean equiv_templates(a_template_ptr	templ1,
+			  a_template_ptr	templ2)
 /*
 Return TRUE if the templates specified by templ1 and templ2 are equivalent.
 templ1 and/or templ2 are permitted to be NULL (in which case, they match

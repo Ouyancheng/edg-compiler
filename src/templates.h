@@ -315,6 +315,9 @@ extern a_boolean equiv_template_param_lists(
 				a_boolean		issue_errors,
 				a_source_position	*error_pos);
 
+extern a_boolean equiv_templates(a_template_ptr	templ1,
+				 a_template_ptr	templ2);
+
 extern a_boolean equiv_templates_given_supplement(
 				a_template_symbol_supplement_ptr	tssp1,
 				a_template_symbol_supplement_ptr	tssp2);

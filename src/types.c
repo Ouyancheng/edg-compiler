@@ -6262,7 +6262,7 @@ by specific_template_template_param.
   if (template_sym != NULL) {
     a_template_ptr	templ_ptr;
     templ_ptr = template_sym->variant.template_info->il_template_entry;
-    if (templ_ptr == specific_template_template_param) {
+    if (equiv_templates(templ_ptr, specific_template_template_param)) {
       *force_end_of_traversal = found = TRUE;
     }  /* if */
   }  /* if */
@@ -6275,7 +6275,8 @@ by specific_template_template_param.
            tap != NULL;
            tap = tap->next) {
         if (is_template_templ_arg(tap)) {
-          if (tap->variant.templ == specific_template_template_param) {
+          if (equiv_templates(tap->variant.templ,
+                               specific_template_template_param)) {
             *force_end_of_traversal = found = TRUE;
             break;
           }  /* if */
