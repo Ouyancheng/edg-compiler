@@ -3337,6 +3337,9 @@ enum a_scope_kind_tag {
                         /* Used during the instantiation of class and function
                            templates to make the template arguments visible
                            (C++ only).  Used only in the front end.  */
+  sck_pragma,
+			/* Used while processing certain #pragma directives
+			   to affect the visibility of other scopes. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */
