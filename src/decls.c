@@ -1707,8 +1707,7 @@ called by id_linkage.
        match amongst the instances of the name.  Even if it was an
        sk_routine symbol, we may want to overload the two functions. */
     if (C_dialect == C_dialect_cplusplus && is_function &&
-        other_decl->kind != (a_symbol_kind)sk_variable &&
-        !idlbp->func_info->is_main_function) {
+        other_decl->kind != (a_symbol_kind)sk_variable) {
       /* C++ function -- type compatibility check is required. */
       if (decls_at_same_scope) {
         /* *overload_symbol is set for cases in which the current symbol

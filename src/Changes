@@ -1,5 +1,18 @@
 Version 2.44
 
+5/2/00   Redeclaring an overloaded ::main
+
+The front end used to abort when encountering the redeclaration of the
+::main() function in a context where it was overloaded with a using-
+declaration.
+
+  int main();
+  namespace N { void main(); }
+  using N::main;
+  int main() {}  // Used to abort processing
+
+This is now fixed.
+
 5/1/00   Breaking long strings in generated code
 
 Long string constants in the generated C or C++ code are now broken
