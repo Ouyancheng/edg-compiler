@@ -1,5 +1,24 @@
 Version 2.32
 
+2/24/96   IL lowering: qualification mismatch nit on constructor call
+
+A cast to adjust the qualification of a pointer type was missing from
+the result of a constructor call when it is used in a context that
+requires a qualified object.  This will not cause problems in most
+back ends, but it's wrong anyway and has been fixed.  The following
+example demonstrates the problem when the 2.28 ABI is chosen:
+
+  struct String {
+    String(const String&);
+    String(const char*);
+  };
+  extern void f(const String);
+  extern const char* p;
+  void g() {
+    f(p);  // Returned value from String constructor needs cast to make it
+           // const before it's passed to f
+  }
+
 2/23/96   C++-generating back end: suppress leading "::" on all tag
           declarations
 

@@ -4256,6 +4256,14 @@ Do IL lowering of an enk_temp_init expression node.
           (result_is_addr ? is_variable_address_node(second_operand) :
                             is_variable_node(second_operand))) {
         /* The optimization is possible. */
+        /* If necessary, add a cast to adjust qualification.  We check the
+           second level for compatibility because the first is likely to be
+           a pointer in one case and a reference in the other. */
+        if (!result_is_not_used &&
+            !types_are_compatible(type_pointed_to(expr->type),
+                                  type_pointed_to(first_operand->type))) {
+          first_operand = add_cast(first_operand, expr->type);
+        }  /* if */
         overwrite_node(expr, first_operand);
       }  /* if */
     }  /* if */
