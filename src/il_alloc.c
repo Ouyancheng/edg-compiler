@@ -311,7 +311,7 @@ to by trace_alloc_ptr.
 */
 {
 #if DEBUG
-  fprintf(f_debug, "Created node at %x.\n", (unsigned)trace_alloc_ptr);
+  fprintf(f_debug, "Created node at %p.\n", (unsigned)trace_alloc_ptr);
 #endif /* DEBUG */
 }  /* alloc_intercept */
 

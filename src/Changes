@@ -1,5 +1,11 @@
 Version 3.5
 
+10/11/04 Tweak for alloc_intercept debug function
+
+The alloc_intercept function (which can be useful to determine when a certain
+IL entry or symbol is allocated) was tweaked to produce better output in
+environments with pointers types larger than the unsigned int type.
+
 10/8/04  GNU compatibility: Register asm names for nonregister variables
 
 In configurations with ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS set to FALSE,
