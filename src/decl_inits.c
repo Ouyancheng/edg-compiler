@@ -1619,11 +1619,7 @@ scan_arg_for_scan_initialization:
           }  /* if */
           continue;
         }  /* if */
-        rp = select_default_constructor(
-                     (cip->kind == (a_constructor_init_kind)cik_field) ?
-                         cip->variant.field->type :
-                         cip->variant.base_class->type,
-                     &error_position);
+        rp = select_default_constructor(tp, &error_position);
         if (rp == NULL) {
           /* Error in trying to find a default constructor. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
