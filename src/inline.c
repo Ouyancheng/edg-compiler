@@ -39,7 +39,7 @@ IL lowering, does not do inlining of C code.
 #include "folding.h"
 
 #if !DO_FULL_PORTABLE_EH_LOWERING
- #error -- Inlining requires full portable lowering of excection handling.
+ #error -- Inlining requires full portable lowering of exception handling.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
 
