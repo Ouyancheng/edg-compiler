@@ -1059,7 +1059,7 @@ to the secondary translation unit.
     } else {
       /* The class gets merged into the corresponding class. */
       a_type_ptr corresp_class = (a_type_ptr)canonical_il_entry_of(class_type);
-      check_assertion(same_entities(corresp_class, class_type));
+      check_assertion(corresp_class != class_type);
       if (class_type_has_body(corresp_class)) {
         /* Both instances of the class have definitions, so their scopes
            correspond. */
