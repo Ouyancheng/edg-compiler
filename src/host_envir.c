@@ -1679,19 +1679,95 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
-#if __WIN32__ || __MSDOS__
 static void chdir_with_check(char	*dir_name)
 /*
 Change to the specified directory, make sure the operation
-succeeded.
+succeeded.  This routine is not used in some configurations.
 */
 {
   if (chdir(dir_name) != 0) {
     str_catastrophe(ec_cannot_chdir, dir_name);
+    /* This routine is only used in certain configurations.  The
+       following call suppresses the not-used warning when this
+       routine is not used. */
+    chdir_with_check(dir_name);
   }  /* if */
 }  /* chdir_with_check */
-#endif /* __WIN32__ || __MSDOS__ */
 
+/* Header comment for is_directory */
+/*
+Determine whether the specified path name is the name of a valid
+directory.
+*/
+#if defined(S_ISDIR) || defined(S_IFDIR)
+/*
+UNIX Version.
+
+When the macro S_ISDIR is defined, we assume that the stat system call
+is available and can be used to determine whether a file name is
+a directory.
+*/
+a_boolean is_directory(char   *file_name)
+{
+  a_boolean	result = FALSE;
+  struct stat   buf;
+
+  /* Check the file type.  Use the stat call instead of fstat because some
+     implementations do not have the _file field in the structure. */
+  if (stat(file_name, &buf) == 0) {
+    /* Use the POSIX S_ISDIR if it is defined.  Otherwise use the
+       non-POSIX test using S_IFDIR. */
+#ifdef S_ISDIR
+    result = S_ISDIR(buf.st_mode);
+#else /* ifndef S_ISDIR */
+    result = ((buf.st_mode & S_IFDIR) != 0);
+#endif /* ifdef S_ISDIR */
+  }  /* if */
+  return result;
+}  /* is_directory */
+
+/* Define a flag that indicates that a definition of is_directory has
+   been supplied. */
+#define IS_DIRECTORY_DEFINED
+
+#else /* defined(S_ISDIR) || defined(S_IFDIR) */
+#if __WIN32__
+/*
+WIN32 (e.g., Windows-NT) version.
+*/
+a_boolean is_directory(char *file_name)
+{
+  DWORD    attr;
+
+  attr = GetFileAttributes(file_name);
+  return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}  /* is_directory */
+/* Define a flag that indicates that a definition of is_directory has
+   been supplied. */
+#define IS_DIRECTORY_DEFINED
+
+#endif /* __WIN32__ */
+#endif /* defined(S_ISDIR) || defined(S_IFDIR) */
+
+#ifndef IS_DIRECTORY_DEFINED
+a_boolean is_directory(char *file_name)
+/*
+This is a portable version of is_directory that should work on any
+system that supports chdir.
+*/
+{
+  a_boolean  result = FALSE;
+
+  /* Try to change to the specified directory. */
+  if (chdir(file_name) == 0) {
+    /* The operation succeeded. */
+    result = TRUE;
+  }  /* if */
+  /* Return to the original directory. */
+  chdir_with_check(current_directory_name);
+  return result;
+}  /* is_directory */
+#endif /* ifndef IS_DIRECTORY_DEFINED */
 
 
 /* Header comment for get_file_name_from_dir. */
@@ -2420,13 +2496,28 @@ a memory fault.
 
 void host_envir_one_time_init(void)
 /*
-Do one-time initialization related to host specific processing.
+Do one-time initialization related to host specific processing.  This
+is done after command line processing.
 */
 {
+}  /* host_envir_one_time_init */
+
+
+void host_envir_startup_init(void)
+/*
+One time initialization that must take place early on in the front end.
+This is done before command line processing.
+*/
+{
+  char  *ptr;
 #if SVR4_TRAP_NULL_POINTER_REFERENCES
   svr4_trap_null_pointer_references();
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
-}  /* host_envir_one_time_init */
+  /* Get the current directory name. */
+  ptr = get_curr_dir_name();
+  current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
+  (void)strcpy(current_directory_name, ptr);
+}  /* host_envir_startup_init */
 
 
 void host_envir_init(void)

@@ -826,6 +826,9 @@ The string is allocated in general storage, not IL storage.
 */
 EXTERN char	*object_file_name;
 
+EXTERN char	*current_directory_name /* = NULL */;
+			/* String containing the current directory name. */
+
 /*
 Data structure that defines a list of directory names (as for a search
 path for include file opens).
@@ -989,6 +992,9 @@ extern a_boolean get_file_modification_time(char   *file_name,
 /* Is the specified file a regular (e.g., not directory) file. */
 extern a_boolean is_regular_file(char *file_name);
 
+/* Is the specified file a directory. */
+extern a_boolean is_directory(char *file_name);
+
 /* Open a source file. */
 extern FILE *open_source_file(char          *file_name,
                               a_boolean     *not_found,
@@ -1123,6 +1129,8 @@ extern char *make_module_id(void);
 #endif /* MODULE_ID_NEEDED */
 
 extern void host_envir_one_time_init(void);
+
+extern void host_envir_startup_init(void);
 
 extern void host_envir_init(void);
 

@@ -88,9 +88,6 @@ static int	num_of_saved_variable_lists /* = 0 */;
 			/* Number of entries in the saved variable array list
 			   that have been used. */
 
-static char	*curr_dir_name /* = NULL */;
-			/* String containing the current directory name. */
-
 static an_error_code
 		mismatch_reason;
 			/* An error code that specifies why a given
@@ -1389,7 +1386,7 @@ current point.
   flag_position = ftell(f_pch_output);
   pch_write_value(is_complete);
   /* Current directory name. */
-  pch_write_string(curr_dir_name);
+  pch_write_string(current_directory_name);
   /* Write the event list that will be used for PCH file matching. */
   write_file_section_id(pfs_cmd_line_events);
   write_pch_events(pch_cmd_line_event_list_head);
@@ -1574,7 +1571,7 @@ the current directory.
   char		*ptr;
   a_boolean	result;
   ptr = pch_read_string();
-  result = strcmp(ptr, curr_dir_name) == 0;
+  result = strcmp(ptr, current_directory_name) == 0;
   if (!result) {
     mismatch_reason = ec_pch_curr_directory_changed;
   }  /* if */
@@ -1837,7 +1834,7 @@ directory.  Return TRUE if an applicable PCH was found.
   for (first = TRUE;;first = FALSE) {
     a_pch_event_ptr	last_matching_event;
     file_name = get_file_name_from_dir(first, pch_dir_name, PCH_FILE_SUFFIX,
-                                       curr_dir_name);
+                                       current_directory_name);
     /* A NULL pointer indicates there are no more matching file names. */
     if (file_name == NULL) break;
     /* If we've found an optimal PCH file, don't bother looking at more
@@ -2164,15 +2161,10 @@ Initialize variables used by the precompiled header routines.
 
 void pch_one_time_init(void)
 {
-  char	*ptr;
   pch_buffer = (char *)alloc_general(PCH_BUFFER_INITIAL_ALLOCATION);
   size_pch_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
   /* Do initial allocation of the file name buffer. */
   ensure_file_name_buffer_space(file_name_buffer, 1);
-  /* Get the current directory name. */
-  ptr = get_curr_dir_name();
-  curr_dir_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
-  (void)strcpy(curr_dir_name, ptr);
 }  /* pch_one_time_init */
 
 

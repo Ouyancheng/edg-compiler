@@ -1235,6 +1235,9 @@ Process the arguments on the command line that invoked the compiler.
       case optk_pch_dir:
         /* Directory to be used for PCH files. */
         pch_dir_name = opt_arg;
+        if (!is_directory(pch_dir_name)) {
+          str_command_line_error(ec_cl_invalid_pch_directory, pch_dir_name);
+        }  /* if */
         break;
 #if RESTRICT_ALLOWED
       case optk_restrict:

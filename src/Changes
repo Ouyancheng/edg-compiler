@@ -1,5 +1,11 @@
 Version 2.29
 
+3/24/95  Handling of invalid PCH directory
+
+Formerly, if an invalid directory name was specified as the argument to
+the --pch_dir option an internal error would result when the directory was
+accessed.  An error message is now issued instead.
+
 3/24/95  Template instantiations using typedefs from prototype instantiations
 
 A bug has been fixed that could cause either an abort or the generation

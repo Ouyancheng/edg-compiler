@@ -68,6 +68,8 @@ int edg_main(int argc, char *argv[])
   get_timer(&start_time);
   /* Set handlers for unusual abort signals. */
   set_signal_handlers();
+  /* Do host-specific initialization. */
+  host_envir_startup_init();
   /* Process the command line. */
   proc_command_line(argc, argv);
   /* Initialize values that apply to the entire compilation in multiple
