@@ -4469,8 +4469,8 @@ on for use in generating cross-reference output describing this declaration.
     check_assertion_str(srk_flags & SRK_DEFINITION,
                         "decl_routine: missing SRK_DEFINITION");
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!C_mode()) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     /* When the declared_type was created (in declarator), the default args
        were ignored.  If appropriate, copy them from type_ptr to the
        declared_type now (i.e., before composite_type is called). */
@@ -4483,27 +4483,14 @@ on for use in generating cross-reference output describing this declaration.
                                 variant.routine.extra_info->prototyped) {
       copy_routine_type_default_args(type_ptr, func_info->declared_type);
     }  /* if */
-  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (func_info->is_inline) {
-    if (extern_inline_allowed) {
-      if (c99_mode && storage_class == (a_storage_class)sc_unspecified) {
-        /* In C99 mode, if a function is declared "inline" every time it is
-           declared in a given translation unit and is never declared with
-           an explicitly specified storage class, then its definition is
-           regarded as an "inline definition" instead of an "external
-           definition" (see 6.9, 6.7.4).  An inline function with an "inline
-           definition", even though it has external linkage, is not visible
-           outside the current translation unit. */
-        suppress_inline_body = TRUE;
-      }  /* if */
-    } else {
+#if CHECKING
+    if (func_info->is_inline && !extern_inline_allowed) {
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
                           "decl_routine: bad storage class for inline");
     }  /* if */
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
+#endif /* CHECKING */
     /* Verify that we are not declaring a const or volatile function through
        a typedef (other cases are caught while parsing). */
     if (type_ptr->kind == (a_type_kind)tk_typeref &&
@@ -4518,6 +4505,20 @@ on for use in generating cross-reference output describing this declaration.
                                    locator);
     report_bad_new_or_delete(locator, storage_class,
                              &invalid_scope_for_new_or_delete);
+  } else if (c99_mode) {
+    /* In C99 mode, if a function is declared "inline" every time it is
+       declared in a given translation unit and is never declared with an
+       explicitly specified storage class, then its definition is regarded
+       as an "inline definition" instead of an "external definition" (see
+       6.9, 6.7.4).  An inline function with an "inline definition", even
+       though it has external linkage, is not visible outside the current
+       translation unit. */
+    if (func_info->is_inline &&
+        storage_class == (a_storage_class)sc_unspecified) {
+      /* "inline" was present in the declaration, but no storage class was
+         specified. */
+      suppress_inline_body = TRUE;
+    }  /* if */
   }  /* if */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
@@ -9840,6 +9841,10 @@ continue_with_declaration:
             /* Not a static function named "main".  This is not an option
                in C++ (ARM 3.4). */
             func_info.is_main_function = is_main_function = TRUE;
+            if (c99_mode && inline_specified) {
+              pos_error(ec_inline_main, &locator.source_position);
+              inline_specified = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else if (declared_storage_class == (a_storage_class)sc_typedef &&

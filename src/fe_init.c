@@ -228,6 +228,8 @@ Install the keywords in the symbol table.
   if (c99_mode) {
     /* Enable keywords required in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");
+    /* "__generic" is used in the implementation of type-generic functions. */
+    enter_keyword((a_token_kind)tok_generic, "__generic");
   }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type.
      __INTADDR__(addr_expr) scans its argument as an initializer
