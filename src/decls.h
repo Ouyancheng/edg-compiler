@@ -256,6 +256,11 @@ typedef int a_decl_flag_set;
 			/* If this bit is set then no declaration specifiers
 			   were found before the first non-type-name
 			   identifier was encountered. */
+#define DSO_ELABORATED_TYPE_SPECIFIER 0x800
+                        /* If this bit is set the the declaration specifiers
+                           consist of (1) a keyword class, struct, union, or
+                           enum and (2) an identifier (and optionally (3) the
+                           keyword friend). */
 
 extern a_boolean decl_specifiers(a_decl_flag_set input_flags,
 				 a_decl_flag_set *output_flags,
