@@ -129,6 +129,23 @@ function parameter and return types.
 
 extern a_boolean simplify_curr_class_qualified_name(void);
 
+extern void report_missing_type_specifier(
+                                     a_source_position  *err_pos,
+                                     a_boolean          is_function,
+                                     a_boolean          is_function_def,
+                                     a_boolean          any_decl_specifiers);
+
+/*
+Report use of "implicit int" in a declaration.  This macro is not called for
+function declarations (call f_report_missing_type_specifiers directly) or
+when all decl-specifiers are missing.
+*/
+#define report_implicit_int(pos)                                      \
+  report_missing_type_specifier(pos, /*is_function=*/FALSE,           \
+                                /*is_function_def=*/FALSE,            \
+                                /*any_decl_specifiers=*/TRUE)
+
+
 extern void type_name(a_type_ptr *type_ptr);
 
 extern void new_type_name(a_boolean         is_parenthesized,

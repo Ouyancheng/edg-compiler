@@ -5291,6 +5291,96 @@ nonstandard, but it is allowed by cfront.
 }  /* simplify_curr_class_qualified_name */
 
 
+void report_missing_type_specifier(a_source_position  *err_pos,
+                                   a_boolean          is_function,
+                                   a_boolean          is_function_def,
+                                   a_boolean          any_decl_specifiers)
+/*
+No type was explicitly specified for the current declaration.  Issue the
+appropriate diagnostic at the source position given by *err_pos.  is_function
+is TRUE if this is a function declaration; is_function_def is TRUE if it is
+a function declaration that is also a definition.  any_decl_specifiers is
+TRUE if at least one decl-specifier was seen (e.g., a storage class or
+cv-qualifier).
+*/
+{
+  an_error_code      error_code = ec_no_error;
+  an_error_severity  severity;
+
+  if (!any_decl_specifiers && !is_function) {
+    /* This is a non-function declaration for which the decl-specifiers are
+       missing altogether.  Issue an error in all all modes. */
+    error_code = ec_missing_decl_specifiers;
+    severity = es_discretionary_error;
+  } else {
+    /* It must be a function declaration or else there is at least some type
+       specifier (even if the type itself is implicit). */
+    if (C_dialect == C_dialect_pcc) {
+      /* No diagnostic is issued. */
+    } else if (is_function) {
+      /* In general, issue a message about the implicit int return type,
+         which deserves at least a remark in C mode and is now an error in
+         strict C++ mode. */
+      if (C_mode()) {
+        /* Function declaration in C mode. */
+        if (!any_decl_specifiers && !is_function_def) {
+          /* Something like "f();". */
+          error_code = ec_missing_decl_specifiers;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode) {
+            /* Allowed in Microsoft C mode. */
+            severity = es_warning;
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          severity = es_discretionary_error;
+        } else {
+          /* Something like "static f();" or "f() { ... }".  The message
+             indicates that "int" is implicit. */
+          error_code = ec_missing_type_specifier;
+          severity = es_remark;
+        }  /* if */
+      } else {
+        /* Function declaration in C++ mode.  Unlike in C mode, issue the
+           same message whether or not any_decl_specifiers is TRUE and
+           whether this is a definition or merely a declaration.  That is,
+           all the following are treated the same way:
+             a();
+             b(){}
+             extern c();
+             extern d(){}
+        */
+        error_code = ec_nonstd_implicit_int;
+        if (any_cfront_mode()) {
+          severity = es_remark;
+        } else if (strict_ansi_mode) {
+          severity = strict_ansi_discretionary_severity;
+        } else {
+          /* Default mode. */
+          severity = es_warning;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Non-function declaration with at some some decl-specifiers -- e.g.,
+         "const i;" or "typedef const CI;".  Use a different message and
+         severity in C++ than in C, since it's a standards violation in C++. */
+      if (C_mode()) {
+        error_code = ec_missing_type_specifier;
+        severity = es_remark;
+      } else {
+        error_code = ec_nonstd_implicit_int;
+        severity = strict_ansi_mode ?
+                     strict_ansi_discretionary_severity : es_warning;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Unless the error is suppressed (e.g., in pcc mode), put out the
+     diagnostic. */
+  if (error_code != ec_no_error) {
+    pos_diagnostic(severity, error_code, err_pos);
+  }  /* if */
+}  /* report_missing_type_specifier */
+
+
 void type_name(a_type_ptr *type_ptr)
 /*
 Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
@@ -5322,9 +5412,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    diagnostic((!C_mode() && strict_ansi_mode) ?
-                  strict_ansi_error_severity : es_warning,
-               ec_missing_type_specifier);
+    report_implicit_int(&start_pos);
   }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
@@ -5404,8 +5492,7 @@ within this routine if is_parenthesized comes in FALSE.
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-               ec_missing_type_specifier);
+    report_implicit_int(&error_position);
   }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
@@ -5572,8 +5659,7 @@ is no parent.
       pos_error(ec_type_definition_not_allowed, &type_pos);
     } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
       /* Missing type specifier. */
-      diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                 ec_missing_type_specifier);
+      report_implicit_int(&error_position);
     }  /* if */
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
@@ -5972,9 +6058,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           type_ptr = error_type();
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* Implicit int. */
-          pos_diagnostic(strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning,
-                         ec_missing_type_specifier, &pos_curr_token);
+          report_implicit_int(&pos_curr_token);
         }  /* if */
         sym = NULL;
         if (is_abstract_or_real_declarator_start()) {
@@ -6337,9 +6421,7 @@ Return a pointer to the variable that is declared.
     pos_error(ec_type_definition_not_allowed, &decl_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Implicit int. */
-    pos_diagnostic(strict_ansi_mode ?
-                     strict_ansi_error_severity : es_warning,
-                   ec_missing_type_specifier, &pos_curr_token);
+    report_implicit_int(&pos_curr_token);
   }  /* if */
   if (storage_class == (a_storage_class)sc_unspecified) {
     storage_class = (a_storage_class)sc_auto;
@@ -7453,7 +7535,9 @@ of local variables (and types, etc.) of functions and in blocks.
   if (!is_decl_start(/*expr_context=*/FALSE,
                      /*real_declarator_allowed=*/TRUE)) {
     if (function_definition_allowed && is_declarator_start()) {
-      /* Function definition with omitted specifiers. */
+      /* At file or namespace scope, a declarator with no decl-specifiers,
+         apparently.  In C mode this could be a legal function definition.
+         In C++ mode a diagnostic will be issued (usually just a warning). */
 #if ASM_FUNCTION_ALLOWED
     } else if (curr_token == tok_asm) {
       /* The start of an asm function declaration.  ("asm" is not checked
@@ -7464,8 +7548,11 @@ of local variables (and types, etc.) of functions and in blocks.
       /* Look for some cases that are obviously not the start of a declaration,
          and give a more specific "Expected a declaration" message. */
       if (curr_token == tok_semicolon) {
-        /* An empty declaration is ignored (as an extension in ANSI mode). */
-        if (strict_ansi_mode) {
+        if (extern_implied) {
+          /* Something like: ``extern "C";'' -- Issue an error. */
+          diagnostic(es_discretionary_error, ec_exp_declaration);
+        } else if (strict_ansi_mode) {
+          /* An empty declaration is ignored (as an extension in ANSI mode). */
           diagnostic(strict_ansi_discretionary_severity, ec_extra_semicolon);
         } else {
           remark(ec_extra_semicolon);
@@ -7494,7 +7581,14 @@ continue_with_declaration:
   err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
                         &qualifiers, &decl_modifiers);
   has_explicit_type_specifier = dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
-  if (dso_flags & DSO_NO_DECL_SPECIFIERS) decl_specifiers_omitted = TRUE;
+  if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
+    if (extern_implied) {
+      /* This is something like ``extern "C" f();'' -- treat the linkage
+         specifier like a decl-specifier, for the purposes of diagnostics. */
+    } else {
+      decl_specifiers_omitted = TRUE;
+    }  /* if */
+  }  /* if */
   /* The declaration can end at this point (";" is next). */
   if (!decl_specifiers_omitted &&
       check_for_missing_declarator(dso_flags, type_ptr, storage_class,
@@ -7812,20 +7906,12 @@ continue_with_declaration:
             /* Function with no explicitly specified return type.  Issue a
                remark (except in pcc mode and except for C++ constructors,
                destructors, and conversion operators). */
-            if (C_dialect != C_dialect_pcc) {
-              if (C_dialect != C_dialect_cplusplus ||
-                  (!is_constructor_or_destructor &&
-                   !locator.is_conversion_name)) {
-                an_error_severity  severity = es_remark;
-                if (C_dialect == C_dialect_cplusplus && !any_cfront_mode()) {
-                  /* In default C++ mode issue at least a warning, since
-                     omission of a type specifier violates WP 7.1.5. */
-                  severity = strict_ansi_mode ?
-                               strict_ansi_error_severity : es_warning;
-                }  /* if */
-                pos_diagnostic(severity, ec_missing_type_specifier,
-                               &declarator_start_pos);
-              }  /* if */
+            if (C_dialect != C_dialect_pcc && !is_constructor_or_destructor &&
+                !locator.is_conversion_name) {
+              report_missing_type_specifier(&declarator_start_pos,
+                                            /*is_function=*/TRUE,
+                                            /*is_function_def=*/TRUE,
+                                            !decl_specifiers_omitted);
             }  /* if */
           }  /* if */
           remove_all_local_stop_tokens();
@@ -7899,52 +7985,11 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       /* Issue diagnostics on missing type specifiers, etc. */
-      if (!is_main_function) {
-        an_error_severity  severity;
-        if (decl_specifiers_omitted && C_mode()) {
-          /* In ANSI C declaration specifiers can only be entirely omitted in
-             a function definition.  This is possibly an undefined typedef
-             name at the start of a declaration, so enter an error symbol
-             instead of the name given.  In pcc mode the declaration is taken
-             as a declaration of an int variable. */
-          if (C_dialect == C_dialect_pcc) {
-            pos_warning(ec_missing_decl_specifiers, &declarator_start_pos);
-          } else {
-            pos_error(ec_missing_decl_specifiers, &declarator_start_pos);
-          }  /* if */
-        } else if (!has_explicit_type_specifier) {
-          if (is_function) {
-            /* Function with no explicitly specified return type.  Issue a
-               diagnostic (except in pcc mode and except for C++ constructors,
-               destructors, and conversion operators). */
-            if (C_dialect != C_dialect_pcc) {
-              if (C_dialect != C_dialect_cplusplus ||
-                  (!is_constructor_or_destructor &&
-                   !locator.is_conversion_name)) {
-                if (C_dialect == C_dialect_cplusplus && !any_cfront_mode()) {
-                  /* In default C++ mode issue at least a warning, since
-                     omission of a type specifier violates WP 7.1.5. */
-                  severity = strict_ansi_mode ?
-                               strict_ansi_error_severity : es_warning;
-                } else {
-                  severity = es_remark;
-                }  /* if */
-                pos_diagnostic(severity, ec_missing_type_specifier,
-                               &declarator_start_pos);
-              }  /* if */
-            }  /* if */
-          } else {
-            /* For implicitly typed nonfunction declarations (variables,
-               typedefs, etc.) issue at least a warning in all modes. */
-            if (C_dialect == C_dialect_cplusplus && strict_ansi_mode) {
-              severity = strict_ansi_error_severity;
-            } else {
-              severity = es_warning;
-            }  /* if */
-            pos_diagnostic(severity, ec_missing_type_specifier,
-                           &declarator_start_pos);
-          }  /* if */
-        }  /* if */
+      if (!has_explicit_type_specifier && !is_main_function
+          && !is_constructor_or_destructor && !locator.is_conversion_name) {
+        report_missing_type_specifier(&declarator_start_pos, is_function,
+                                      /*is_function_def=*/FALSE,
+                                      !decl_specifiers_omitted);
       }  /* if */
       if (top_declarator_type_is_function &&
           func_info.param_id_list != NULL) {

@@ -8705,9 +8705,10 @@ following the member declaration.
         } else {
           /* Type specifier is missing.  The type defaults to int, but issue
              a diagnostic. */
-          pos_diagnostic(strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning,
-                         ec_missing_type_specifier, &declarator_start_pos);
+          report_missing_type_specifier(&declarator_start_pos,
+                                        /*is_function=*/TRUE,
+                                        function_def_present,
+                                        !no_decl_specifiers);
         }  /* if */
       }  /* if */
       if (local_type == member_type) {
@@ -8935,20 +8936,11 @@ following the member declaration.
         }  /* if */
       }  /* if */
       if (!type_explicitly_specified) {
-        /* No type was specified.  Issue different diagnostics for different
-           cases:
-             typedef X;                 // error
-             typedef const Y;           // warning (or error in -A mode)
-             typedef const *Z;          // warning (or error in -A mode)
-        */
-        an_error_severity severity = es_warning;
-        if (qualifiers == TQ_NONE) {
-          severity = es_error;
-        } else if (strict_ansi_mode) {
-          severity = strict_ansi_error_severity;
-        }  /* if */
-        pos_diagnostic(severity, ec_missing_type_specifier,
-                       &declarator_start_pos);
+        /* Omitted type specifier. */
+        report_missing_type_specifier(&declarator_start_pos,
+                                      /*is_function=*/FALSE,
+                                      /*is_function_def=*/FALSE,
+                                      !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
       decl_typedef(&locator, local_type, class_type, &decl_info.member_sym,
@@ -8977,18 +8969,10 @@ following the member declaration.
         pos_error(ec_mutable_not_allowed, &decl_start_pos);
       }  /* if */
       if (!type_explicitly_specified) {
-        an_error_severity  severity;
-
-        if (C_dialect == C_dialect_cplusplus) {
-          severity = strict_ansi_mode ? strict_ansi_error_severity :
-                                        es_warning;
-        } else if (qualifiers == TQ_NONE) {
-          severity = es_warning;
-        } else {
-          severity = es_remark;
-        }  /* if */
-        pos_diagnostic(severity, ec_missing_type_specifier,
-                       &declarator_start_pos);
+        report_missing_type_specifier(&declarator_start_pos,
+                                      /*is_function=*/FALSE,
+                                      /*is_function_def=*/FALSE,
+                                      !no_decl_specifiers);
       }  /* if */
       if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */

@@ -1082,17 +1082,7 @@ issue an error if a default argument expression is encountered.
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* No type specifier (aside from const or volatile) appeared among
              the decl_specifiers.  Issue a diagnostic. */
-          an_error_severity  severity;
-
-          if (C_dialect == C_dialect_cplusplus) {
-            severity = strict_ansi_mode ?
-                         strict_ansi_error_severity : es_warning;
-          } else if (qualifiers == TQ_NONE) {
-            severity = es_warning;
-          } else {
-            severity = es_remark;
-          }  /* if */
-          pos_diagnostic(severity, ec_missing_type_specifier, &pos_curr_token);
+          report_implicit_int(&pos_curr_token);
         } else {
           /* Mark the type as referenced.  This is important for a
              parameter declaration like "struct s {int a;} p;" --
