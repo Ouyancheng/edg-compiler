@@ -3347,6 +3347,12 @@ apply that would make one better than the other, and return
             }  /* if */
           }  /* if */
         }  /* if */
+        if (any_cfront_mode() || microsoft_mode || sun_mode) {
+          /* Older compilers allow comparing a pointer under a reference
+             with a pointer. */
+          param_type1 = base_param_type1;
+          param_type2 = base_param_type2;
+        }  /* if */
         if (cmp != 0) {
           /* There was a reference cv-qualifier tiebreaker, so no further
              testing is necessary. */
