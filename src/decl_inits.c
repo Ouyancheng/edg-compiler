@@ -632,6 +632,7 @@ The syntax is:
         /* Constant.  Check the constant type to see if it is legal,
            change the constant type if necessary. */
         check_constant_initializer(&constant, &vp_type, &err);
+        cp = alloc_unshared_constant(&constant);
         init_kind = (a_dynamic_init_kind)dik_constant;
         expression = NULL;
       } else {
@@ -640,6 +641,7 @@ The syntax is:
         node_prepare_assignment(&expression, vp_type, ec_bad_initializer_type,
                                 &err);
         init_kind = (a_dynamic_init_kind)dik_expression;
+        cp = NULL;
       }  /* if */
       if (!err && put_init_in_variable) {
         /* Generate a dynamic initialization entry and attach it to the
@@ -649,7 +651,7 @@ The syntax is:
            Since the variable is not static, it has no linkage.  Thus, a
            second declaration would be an error whether or not it contains
            another initializer. */
-        gen_dynamic_initialization(vp, init_kind, &constant, expression);
+        gen_dynamic_initialization(vp, init_kind, cp, expression);
       }  /* if */
     }  /* if */
     /* If an extra opening brace was ignored earlier, ignore the matching
