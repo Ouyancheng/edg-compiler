@@ -2533,6 +2533,7 @@ vp had an incomplete array type that has been completed by an initializer.
   a_symbol_locator     locator, ext_locator;
 
   db_enter(5, "put_type_back_into_variable");
+  check_assertion(vp->type->incomplete && is_array_type(vp->type));
   /* See if the variable has linkage. */
   if (symbol_ptr->kind == (a_symbol_kind)sk_variable && linkage != idl_none) {
     /* The type of a variable with linkage has been adjusted because it
