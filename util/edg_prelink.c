@@ -1092,6 +1092,7 @@ Execute the command to recompile a file.
   command = (char *)pl_malloc_with_check(length);
   sprintf(command, shell_format_string, command_line);
   fprintf(stdout, "edg_prelink: executing: %s\n", command);
+  fflush(stdout);
   return system(command_line);
 }  /* pl_recompile_file */
 
