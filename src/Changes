@@ -1,5 +1,14 @@
 Version 2.28
 
+2/16/95  New qualification conversion implemented
+
+The new qualification conversion that allows conversions such as
+T** to T const * const * is now implemented.  Currently, this conversion
+is only supported at compile time.  The EH runtime has not been
+modified to support this conversion yet because such a modification
+will require a link incompatible change to the way typeinfo
+information is represented.
+
 2/16/95  Name of an unnamed class defined in a typedef declaration
 
 An unnamed class defined in a typedef declaration takes on the typedef
