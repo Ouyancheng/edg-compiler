@@ -71,10 +71,11 @@ typedef struct a_base_class_traversal_block {
 			/* The source type of the cast. */
   void		*downcast_source_ptr;
 			/* The pointer to the source subobject. */
-  a_boolean	downcast_dest_found;
-			/* TRUE if we've found an eligible destination class
+  void		*downcast_dest_ptr;
+			/* If we've found an eligible destination class
 			   and should begin looking for a matching source
-			   subobject. */
+			   subobject, this points to the destination subobject
+			   that was found. */
   void		*downcast_result;
 			/* The result of the downcast, or NULL if no result
 			   was found. */
@@ -119,7 +120,7 @@ Initialize the fields of a base class traversal block.
   bctbp->downcast_dest_tiip = NULL;
   bctbp->downcast_source_tiip = NULL;
   bctbp->downcast_source_ptr = NULL;
-  bctbp->downcast_dest_found = NULL;
+  bctbp->downcast_dest_ptr = NULL;
   bctbp->downcast_result = NULL;
 }  /* clear_base_class_traversal_block */
 
@@ -712,7 +713,7 @@ See try_downcast for more information.
     /* We have found a matching destination class and should begin looking
        for the source subobject.  The source subobject must be a public base
        so only consider public classes. */
-    bctbp->downcast_dest_found = TRUE;
+    bctbp->downcast_dest_ptr = ptr;
     bctbp->public_only = TRUE;
 #if DEBUG
     if (__debug_level >= 4) {
@@ -720,7 +721,8 @@ See try_downcast for more information.
               type_info_for_impl(class_info)->name(), ptr);
     }  /* if */
 #endif /* DEBUG */
-  } else if (bctbp->downcast_dest_found && ptr == bctbp->downcast_source_ptr &&
+  } else if (bctbp->downcast_dest_ptr != NULL &&
+             ptr == bctbp->downcast_source_ptr &&
              matching_type_info(class_info, bctbp->downcast_source_tiip)) {
     /* We have found the matching subobject. */
     if (bctbp->downcast_result != NULL) {
@@ -730,7 +732,7 @@ See try_downcast for more information.
       bctbp->terminate = TRUE;
     } else {
       /* A result has been found (for the first time). */
-      bctbp->downcast_result = ptr;
+      bctbp->downcast_result = bctbp->downcast_dest_ptr;
       /* If the base class is not virtual, we can terminate the search. */
       if (!is_virtual(curr_base_info)) bctbp->terminate = TRUE;
     }  /* if */
@@ -754,7 +756,7 @@ have been processed.
   if (matching_type_info(bctbp->downcast_dest_tiip, class_info)) {
     /* We're leaving the part of the hierarchy under the destination class.
        Reset the flags set when we entered the class. */
-    bctbp->downcast_dest_found = FALSE;
+    bctbp->downcast_dest_ptr = NULL;
     bctbp->public_only = FALSE;
 #if DEBUG
     if (__debug_level >= 4) {
