@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -4417,8 +4417,7 @@ IL lowering for exceptions.
 void eh_lower_one_time_init(void)
 /*
 Do one-time initialization of variables related to lowering of structures
-involved in exception handling.  (Variables that need to be reinitialized
-with each new translation unit are handled in eh_lower_init.)
+involved in exception handling.
 */
 {
   /* Save variables from lower_eh.h and lower_eh.c that are needed for
@@ -4430,44 +4429,44 @@ with each new translation unit are handled in eh_lower_init.)
 #if ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(typeinfo_tinfo_field),
       pch_saved_var_array_elem(user_type_info_type),
-      pch_saved_var_array_elem(vtbl_for_type_info),
       pch_saved_var_array_elem(get_typeid_routine),
+      pch_saved_var_array_elem(vtbl_for_type_info),
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if GENERATE_EH_TABLES
-      pch_saved_var_array_elem(region_descr_type),
       pch_saved_var_array_elem(array_descr_type),
+      pch_saved_var_array_elem(region_descr_type),
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
+      pch_saved_var_array_elem(eh_curr_region_var),
+      pch_saved_var_array_elem(curr_eh_stack_entry_var),
+      pch_saved_var_array_elem(catch_clause_number_var),
+      pch_saved_var_array_elem(caught_object_address_var),
+      pch_saved_var_array_elem(exception_type_spec_type),
+      pch_saved_var_array_elem(jmp_buf_type),
+      pch_saved_var_array_elem(eh_stack_entry_type),
+      pch_saved_var_array_elem(ehse_next_field),
+      pch_saved_var_array_elem(ehse_kind_field),
+      pch_saved_var_array_elem(ehse_variant_field),
+      pch_saved_var_array_elem(ehse_try_field),
+      pch_saved_var_array_elem(ehse_try_setjmp_buffer_field),
+      pch_saved_var_array_elem(ehse_try_catch_entries_field),
+      pch_saved_var_array_elem(ehse_try_rtinfo_field),
+      pch_saved_var_array_elem(ehse_try_region_number_field),
+      pch_saved_var_array_elem(ehse_function_field),
+      pch_saved_var_array_elem(ehse_function_regions_field),
+      pch_saved_var_array_elem(ehse_function_obj_table_field),
+      pch_saved_var_array_elem(ehse_function_array_table_field),
+      pch_saved_var_array_elem(ehse_function_saved_region_number_field),
+      pch_saved_var_array_elem(ehse_throw_spec_field),
+      pch_saved_var_array_elem(free_thrown_object_routine),
+      pch_saved_var_array_elem(setjmp_routine),
+      pch_saved_var_array_elem(suppress_optim_on_vars_in_try_routine),
       pch_saved_var_array_elem(throw_setup_routine),
       pch_saved_var_array_elem(throw_setup_dtor_routine),
       pch_saved_var_array_elem(throw_setup_ptr_routine),
       pch_saved_var_array_elem(throw_routine),
       pch_saved_var_array_elem(rethrow_routine),
       pch_saved_var_array_elem(internal_rethrow_routine),
-      pch_saved_var_array_elem(jmp_buf_type),
-      pch_saved_var_array_elem(exception_type_spec_type),
-      pch_saved_var_array_elem(eh_stack_entry_type),
-      pch_saved_var_array_elem(ehse_function_array_table_field),
-      pch_saved_var_array_elem(ehse_function_field),
-      pch_saved_var_array_elem(ehse_function_obj_table_field),
-      pch_saved_var_array_elem(ehse_function_regions_field),
-      pch_saved_var_array_elem(ehse_function_saved_region_number_field),
-      pch_saved_var_array_elem(ehse_kind_field),
-      pch_saved_var_array_elem(ehse_next_field),
-      pch_saved_var_array_elem(ehse_throw_spec_field),
-      pch_saved_var_array_elem(ehse_try_catch_entries_field),
-      pch_saved_var_array_elem(ehse_try_field),
-      pch_saved_var_array_elem(ehse_try_region_number_field),
-      pch_saved_var_array_elem(ehse_try_rtinfo_field),
-      pch_saved_var_array_elem(ehse_try_setjmp_buffer_field),
-      pch_saved_var_array_elem(ehse_variant_field),
-      pch_saved_var_array_elem(eh_curr_region_var),
-      pch_saved_var_array_elem(curr_eh_stack_entry_var),
-      pch_saved_var_array_elem(catch_clause_number_var),
-      pch_saved_var_array_elem(caught_object_address_var),
-      pch_saved_var_array_elem(setjmp_routine),
-      pch_saved_var_array_elem(suppress_optim_on_vars_in_try_routine),
-      pch_saved_var_array_elem(free_thrown_object_routine),
 #if ABI_COMPATIBILITY_VERSION >= 233
       pch_saved_var_array_elem(exception_caught_routine),
       pch_saved_var_array_elem(exception_started_routine),
@@ -4477,55 +4476,122 @@ with each new translation unit are handled in eh_lower_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(typeinfo_type);
+  register_trans_unit_variable(base_class_spec_type);
+#if ABI_CHANGES_FOR_RTTI
+  register_trans_unit_variable(typeinfo_tinfo_field);
+  register_trans_unit_variable(user_type_info_type);
+  register_trans_unit_variable(get_typeid_routine);
+  register_trans_unit_variable(vtbl_for_type_info);
+#endif /* ABI_CHANGES_FOR_RTTI */
+#if GENERATE_EH_TABLES
+  register_trans_unit_variable(array_descr_type);
+  register_trans_unit_variable(region_descr_type);
+#endif /* GENERATE_EH_TABLES */
+#if DO_FULL_PORTABLE_EH_LOWERING
+  register_trans_unit_variable(eh_curr_region_var);
+  register_trans_unit_variable(curr_eh_stack_entry_var);
+  register_trans_unit_variable(catch_clause_number_var);
+  register_trans_unit_variable(caught_object_address_var);
+  register_trans_unit_variable(exception_type_spec_type);
+  register_trans_unit_variable(jmp_buf_type);
+  register_trans_unit_variable(eh_stack_entry_type);
+  register_trans_unit_variable(ehse_next_field);
+  register_trans_unit_variable(ehse_kind_field);
+  register_trans_unit_variable(ehse_variant_field);
+  register_trans_unit_variable(ehse_try_field);
+  register_trans_unit_variable(ehse_try_setjmp_buffer_field);
+  register_trans_unit_variable(ehse_try_catch_entries_field);
+  register_trans_unit_variable(ehse_try_rtinfo_field);
+  register_trans_unit_variable(ehse_try_region_number_field);
+  register_trans_unit_variable(ehse_function_field);
+  register_trans_unit_variable(ehse_function_regions_field);
+  register_trans_unit_variable(ehse_function_obj_table_field);
+  register_trans_unit_variable(ehse_function_array_table_field);
+  register_trans_unit_variable(ehse_function_saved_region_number_field);
+  register_trans_unit_variable(ehse_throw_spec_field);
+  register_trans_unit_variable(free_thrown_object_routine);
+  register_trans_unit_variable(setjmp_routine);
+  register_trans_unit_variable(suppress_optim_on_vars_in_try_routine);
+  register_trans_unit_variable(throw_setup_routine);
+  register_trans_unit_variable(throw_setup_dtor_routine);
+  register_trans_unit_variable(throw_setup_ptr_routine);
+  register_trans_unit_variable(throw_routine);
+  register_trans_unit_variable(rethrow_routine);
+  register_trans_unit_variable(internal_rethrow_routine);
+#if ABI_COMPATIBILITY_VERSION >= 233
+  register_trans_unit_variable(exception_caught_routine);
+  register_trans_unit_variable(exception_started_routine);
+#endif /* ABI_COMPATIBILITY_VERSION >= 233 */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* eh_lower_one_time_init */
 
 
-void eh_lower_init(void)
+void eh_lower_trans_unit_init(void)
 /*
-Initialize static variables related to IL lowering of exceptions.
-This is done as a subroutine (rather than relying on static initialization)
-so that it can be redone to compile more than one source file in a single
-invocation of the front end.
+Initialize static variables related to IL lowering of exceptions that
+must be initialized for each translation unit.
 */
 {
-  /* Static variables in lower_eh.c: */
   typeinfo_type = NULL;
   base_class_spec_type = NULL;
 #if ABI_CHANGES_FOR_RTTI
   typeinfo_tinfo_field = NULL;
   user_type_info_type = NULL;
   get_typeid_routine = NULL;
+  vtbl_for_type_info = NULL;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if GENERATE_EH_TABLES
-  region_descr_type = NULL;
   array_descr_type = NULL;
+  region_descr_type = NULL;
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
+  eh_curr_region_var = NULL;
+  curr_eh_stack_entry_var = NULL;
+  catch_clause_number_var = NULL;
+  caught_object_address_var = NULL;
+  exception_type_spec_type = NULL;
+  jmp_buf_type = NULL;
+  eh_stack_entry_type = NULL;
+  ehse_next_field = NULL;
+  ehse_kind_field = NULL;
+  ehse_variant_field = NULL;
+  ehse_try_field = NULL;
+  ehse_try_setjmp_buffer_field = NULL;
+  ehse_try_catch_entries_field = NULL;
+  ehse_try_rtinfo_field = NULL;
+  ehse_try_region_number_field = NULL;
+  ehse_function_field = NULL;
+  ehse_function_regions_field = NULL;
+  ehse_function_obj_table_field = NULL;
+  ehse_function_array_table_field = NULL;
+  ehse_function_saved_region_number_field = NULL;
+  ehse_throw_spec_field = NULL;
+  free_thrown_object_routine = NULL;
+  setjmp_routine = NULL;
+  suppress_optim_on_vars_in_try_routine = NULL;
   throw_setup_routine = NULL;
   throw_setup_dtor_routine = NULL;
   throw_setup_ptr_routine = NULL;
   throw_routine = NULL;
   rethrow_routine = NULL;
   internal_rethrow_routine = NULL;
-  jmp_buf_type = NULL;
-  exception_type_spec_type = NULL;
-  eh_stack_entry_type = NULL;
-  eh_curr_region_var = NULL;
-  curr_eh_stack_entry_var = NULL;
-  catch_clause_number_var = NULL;
-  caught_object_address_var = NULL;
-  setjmp_routine = NULL;
-  suppress_optim_on_vars_in_try_routine = NULL;
-  free_thrown_object_routine = NULL;
 #if ABI_COMPATIBILITY_VERSION >= 233
   exception_caught_routine = NULL;
   exception_started_routine = NULL;
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  /* Variables in lower_eh.h: */
-#if ABI_CHANGES_FOR_RTTI
-  vtbl_for_type_info = NULL;
-#endif /* ABI_CHANGES_FOR_RTTI */
+}  /* eh_lower_trans_unit_init */
+
+
+void eh_lower_init(void)
+/*
+Initialize static variables related to IL lowering of exceptions that
+must be initialized for each compilation.
+*/
+{
 #if GENERATE_EH_TABLES
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
@@ -4542,6 +4608,7 @@ invocation of the front end.
     }  /* if */
   }
 #endif /* GENERATE_EH_TABLES */
+  /* eh_lower_trans_unit_init is called from il_lower_trans_unit_init. */
 }  /* eh_lower_init */
 
 #endif /* DO_IL_LOWERING */
@@ -4552,6 +4619,6 @@ invocation of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

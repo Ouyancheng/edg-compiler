@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -8921,64 +8921,98 @@ associated class or enum was declared.
 void init_lower_one_time_init(void)
 /*
 Do one-time initialization of static variables declared in lower_init.c.
-(Variables that need to be reinitialized with each new translation unit
-are handled in il_lower_init.)
 */
 {
   /* Save variables from lower_init.c that are needed for precompiled
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(vec_cctor_routine),
-      pch_saved_var_array_elem(vec_cctor_eh_routine),
-      pch_saved_var_array_elem(record_needed_destruction_routine),
-      pch_saved_var_array_elem(vec_delete_routine),
-      pch_saved_var_array_elem(array_delete_routine),
       pch_saved_var_array_elem(vec_new_routine),
       pch_saved_var_array_elem(vec_new_eh_routine),
       pch_saved_var_array_elem(array_new_routine),
       pch_saved_var_array_elem(placement_array_new_routine),
+      pch_saved_var_array_elem(vec_cctor_routine),
+      pch_saved_var_array_elem(vec_cctor_eh_routine),
+      pch_saved_var_array_elem(vec_delete_routine),
+      pch_saved_var_array_elem(array_delete_routine),
       pch_saved_var_array_elem(memzero_routine),
+      pch_saved_var_array_elem(record_needed_destruction_routine),
       pch_saved_var_array_elem(needed_destruction_type),
       pch_saved_var_array_elem(needed_destruction_object_field),
       pch_saved_var_array_elem(array_new_prefix_size_var),
+#if !USE_INIT_SECTION_IN_GENERATED_C
+      pch_saved_var_array_elem(linkl_type),
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(guid_type),
       pch_saved_var_array_elem(guid_array_type),
       pch_saved_var_array_elem(null_guid_variable),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if !USE_INIT_SECTION_IN_GENERATED_C
-      pch_saved_var_array_elem(linkl_type),
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(vec_new_routine);
+  register_trans_unit_variable(vec_new_eh_routine);
+  register_trans_unit_variable(array_new_routine);
+  register_trans_unit_variable(placement_array_new_routine);
+  register_trans_unit_variable(vec_cctor_routine);
+  register_trans_unit_variable(vec_cctor_eh_routine);
+  register_trans_unit_variable(vec_delete_routine);
+  register_trans_unit_variable(array_delete_routine);
+  register_trans_unit_variable(memzero_routine);
+  register_trans_unit_variable(record_needed_destruction_routine);
+  register_trans_unit_variable(needed_destruction_type);
+  register_trans_unit_variable(needed_destruction_object_field);
+  register_trans_unit_variable(array_new_prefix_size_var);
+#if !USE_INIT_SECTION_IN_GENERATED_C
+  register_trans_unit_variable(linkl_type);
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(guid_type);
+  register_trans_unit_variable(guid_array_type);
+  register_trans_unit_variable(null_guid_variable);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_lower_one_time_init */
 
 
-void init_lower_init(void)
+void init_lower_trans_unit_init(void)
 /*
-Initialize static variables related to this file.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Initialize static variables related to this file that must be initialized
+for each translation unit.
 */
 {
-  /* Variable in lower_init.h: */
-  processing_file_scope_init_routine = FALSE;
-  /* Static variables in lower_init.c: */
   vec_new_routine = vec_new_eh_routine = NULL;
-  array_new_routine = vec_cctor_routine = vec_cctor_eh_routine = NULL;
+  array_new_routine = NULL;
+  placement_array_new_routine = NULL;
+  vec_cctor_routine = vec_cctor_eh_routine = NULL;
   vec_delete_routine = array_delete_routine = NULL;
   memzero_routine = NULL;
   record_needed_destruction_routine = NULL;
   needed_destruction_type = NULL;
+  needed_destruction_object_field = NULL;
   array_new_prefix_size_var = NULL;
-  placement_array_new_routine = NULL;
 #if !USE_INIT_SECTION_IN_GENERATED_C
   linkl_type = NULL;
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  guid_type = NULL;
+  guid_array_type = NULL;
+  null_guid_variable = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* init_lower_trans_unit_init */
+
+
+void init_lower_init(void)
+/*
+Initialize static variables related to this file that must be initialized
+for each compilation.
+*/
+{
+  processing_file_scope_init_routine = FALSE;
+  /* init_lower_trans_unit_init is called from il_lower_trans_unit_init. */
 }  /* init_lower_init */
 
 #endif /* DO_IL_LOWERING */
@@ -8989,6 +9023,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

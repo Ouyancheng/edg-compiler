@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -12769,8 +12769,6 @@ Do initialization at the beginning of lowering a function.
 void il_lower_one_time_init(void)
 /*
 Do one-time initialization of variables related to IL lowering.
-(Variables that need to be reinitialized with each new translation unit
-are handled in il_lower_init.)
 */
 {
   /* Save variables from lower_il.h and lower_il.c that are needed for
@@ -12807,6 +12805,19 @@ are handled in il_lower_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(pure_virtual_called_routine);
+  register_trans_unit_variable(vptp_type);
+  register_trans_unit_variable(mptr_type);
+  register_trans_unit_variable(mptr_d_field);
+  register_trans_unit_variable(mptr_i_field);
+  register_trans_unit_variable(mptr_f_field);
+#if ABI_CHANGES_FOR_RTTI
+  register_trans_unit_variable(dynamic_cast_ref_routine);
+  register_trans_unit_variable(dynamic_cast_routine);
+#endif /* ABI_CHANGES_FOR_RTTI */
+  il_lowering_underway = FALSE;
   init_lower_one_time_init();
   eh_lower_one_time_init();
 #if MINIMAL_INLINING
@@ -12821,16 +12832,36 @@ are handled in il_lower_init.)
 }  /* il_lower_one_time_init */
 
 
-void il_lower_init(void)
+void il_lower_trans_unit_init(void)
 /*
-Initialize static variables related to IL lowering.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Initialize static variables related to IL lowering that must be initialized
+for each translation unit.
 */
 {
-  /* Variables in lower_il.h: */
-  il_lowering_underway = FALSE;
+  lowering_file_scope = FALSE;
+  curr_context = NULL;
+  return_value_pointer_variable = NULL;
+  pure_virtual_called_routine = NULL;
+  vptp_type = NULL;
+  mptr_type = NULL;
+  mptr_d_field = NULL;
+  mptr_i_field = NULL;
+  mptr_f_field = NULL;
+#if ABI_CHANGES_FOR_RTTI
+  dynamic_cast_ref_routine = NULL;
+  dynamic_cast_routine = NULL;
+#endif /* ABI_CHANGES_FOR_RTTI */
+  init_lower_trans_unit_init();
+  eh_lower_trans_unit_init();
+}  /* il_lower_trans_unit_init */
+
+
+void il_lower_init(void)
+/*
+Initialize static variables related to IL lowering that must be initialized
+for each compilation.
+*/
+{
   /* Object lifetime information is only kept if it will be needed by the
      back end.  It's only needed if exception handling is enabled. */
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
@@ -12844,7 +12875,7 @@ of the front end.
      "this" is disabled when exception handling is enabled.  Don't allow
      the combination that can't be handled. */
   if (!exceptions_enabled && keep_object_lifetime_info_in_lowered_il) {
-    unexpected_condition_str2("ASSIGNMENT_TO_THIS must be disabled",
+    unexpected_condition_str2("ASSIGNMENT_TO_THIS_ALLOWED must be disabled",
                               "to keep object lifetimes when EH is disabled");
   }  /* if */
 #endif /* CHECKING && ASSIGNMENT_TO_THIS_ALLOWED */
@@ -12859,19 +12890,10 @@ of the front end.
   num_construction_vtbls_allocated = 0;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DEBUG */
-  return_value_pointer_variable = NULL;
   code_pos_for_lowering = null_source_position;
-  /* Static variables in lower_il.c: */
   avail_return_memos = NULL;
   avail_temporary_list_entries = NULL;
   avail_scopeless_compound_stmts = NULL;
-  pure_virtual_called_routine = NULL;
-  vptp_type = NULL;
-  mptr_type = NULL;
-#if ABI_CHANGES_FOR_RTTI
-  dynamic_cast_ref_routine = NULL;
-  dynamic_cast_routine = NULL;
-#endif /* ABI_CHANGES_FOR_RTTI */
 #if DEBUG
   allocated_name_string_length  = 0;
   num_return_memos_allocated    = 0;
@@ -12894,6 +12916,7 @@ of the front end.
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_init();
 #endif /* MINIMAL_INLINING */
+  il_lower_trans_unit_init();
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
@@ -12905,6 +12928,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
