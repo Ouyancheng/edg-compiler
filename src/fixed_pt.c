@@ -404,8 +404,8 @@ the value is already known to be too large.  Set *err on overflow.  Set
     nonfract_bits = non_fractional_bits_for_fixed_point(fxp_descr);
     value_bits = value_bits_for_fixed_point(fxp_descr);
     shift_count = nonfract_bits - exponent;
-    if (shift_count > 0) {
-      shift_right_mantissa(mp, shift_count);
+    if (shift_count >= 0) {
+      if (shift_count > 0) shift_right_mantissa(mp, shift_count);
       /* See if the result value has more bits of precision than fit int
          the destination type. */
       if (number_of_bits_in_mantissa(mp) > value_bits) *inexact = TRUE;
@@ -498,7 +498,7 @@ to be issued; otherwise set err_code to ec_no_error.
     /* The conversion results in a negative value being converted to
        unsigned. */
     *err_code = ec_fixed_sign_change;
-    *err_severity = es_warning;
+    *err_severity = es_error;
   }  /* if */
 }  /* conv_integer_to_fixed_point */
 
@@ -550,7 +550,7 @@ to be issued; otherwise set err_code to ec_no_error.
     /* The conversion results in a negative value being converted to
        unsigned. */
     *err_code = ec_fixed_sign_change;
-    *err_severity = es_warning;
+    *err_severity = es_error;
   }  /* if */
 }  /* conv_float_to_fixed_point */
 
