@@ -3780,10 +3780,10 @@ the latter will be NULL for variables.
     }  /* if */
     /* See if there is already an external symbol with this name and belonging
        to the appropriate namespace. */
-    if (!C_mode() && !location->is_file_scope_qualified_name) {
+    if (!C_mode() && !location->is_file_scope_qualified_name &&
+        linkage != (a_name_linkage_kind)nlk_external) {
       nsp = qualifier_namespace_ptr(*location);
       if (nsp == NULL &&
-          linkage != (a_name_linkage_kind)nlk_external &&
           depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
         nsp = scope_stack[depth_innermost_namespace_scope].
                                            il_scope->variant.assoc_namespace;
