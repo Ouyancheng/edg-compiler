@@ -700,7 +700,8 @@ extern void record_start_of_source_file(a_source_file_ptr parent_file,
 			                char              *name_as_written,
 			                a_source_file_ptr *new_file,
                                         a_boolean	  is_include_file,
-					a_boolean         is_system_include);
+					a_boolean         is_system_include,
+                                        a_boolean         is_preinclude);
 
 extern void record_end_of_source_file(a_source_file_ptr curr_file,
 			              a_seq_number      seq_number);

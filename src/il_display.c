@@ -572,6 +572,15 @@ Display a_source_file entry.
     disp_boolean("related_file_implicit_include_done", TRUE);
   }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  if (ptr->is_include_file) {
+    disp_boolean("is_include_file", TRUE);
+  }  /* if */
+  if (ptr->included_by_system_include) {
+    disp_boolean("included_by_system_include", TRUE);
+  }  /* if */
+  if (ptr->included_by_preinclude) {
+    disp_boolean("included_by_preinclude", TRUE);
+  }  /* if */
 }  /* disp_source_file */
 
 

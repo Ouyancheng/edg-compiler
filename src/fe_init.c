@@ -867,7 +867,8 @@ first line of the file.
                       primary_source_file_name),
                /*use_search_path=*/FALSE,
                /*is_include_file=*/FALSE,
-               /*is_system_include=*/FALSE);
+               /*is_system_include=*/FALSE,
+               /*is_preinclude=*/FALSE);
   if (preinclude_file_name != NULL) {
     /* There is a preinclude file to be included at the beginning of
        compilation. */
@@ -876,7 +877,8 @@ first line of the file.
                       preinclude_file_name),
                /*use_search_path=*/FALSE,
                /*is_include_file=*/TRUE,
-               /*is_system_include=*/FALSE);
+               /*is_system_include=*/FALSE,
+               /*is_preinclude=*/TRUE);
   }  /* if */
   /* Read the first line. */
   (void)read_logical_source_line(TRUE);

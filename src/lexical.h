@@ -731,7 +731,8 @@ typedef struct an_input_stack_entry {
 			   maintained for diagnostic generation. */
   a_bit_field	is_include_file:1;
 			/* TRUE if this file was added to the input stack
-			   as the result of a #include directive.  FALSE
+			   as the result of a #include directive or a
+			   --preinclude command-line directive.  FALSE
 			   for all other cases including implicitly included
 			   source files. */
   a_bit_field	nested_inclusion:1;
@@ -746,7 +747,7 @@ typedef struct an_input_stack_entry {
                            determine whether subsequent inclusions of this
                            file may be suppressed. */
   an_include_file_history_ptr
-               include_history;
+		include_history;
                         /* Pointer to the structure that preserves information
                            used for include file guard processing. */
 } an_input_stack_entry;
@@ -1624,7 +1625,8 @@ expression.
 extern void open_file_and_push_input_stack (char      *file_name,
                                             a_boolean use_search_path,
                                             a_boolean is_include_file,
-                                            a_boolean is_system_include);
+                                            a_boolean is_system_include,
+                                            a_boolean is_preinclude);
 extern FILE *open_file_for_input(char      *file_name,
                                  a_boolean use_search_path,
                                  a_boolean is_system_include,
@@ -1637,6 +1639,7 @@ extern void push_input_stack (FILE      		  *new_input_file,
                               char     			  *full_file_name,
 			      a_boolean                   is_include_file,
 			      a_boolean                   is_system_include,
+                              a_boolean                   is_preinclude,
 			      an_include_file_history_ptr ifhp);
 
 extern void pop_input_stack(void);

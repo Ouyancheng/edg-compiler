@@ -11051,7 +11051,7 @@ file we simply return.
 	  } else {
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
-                             is_system_include, ifhp);
+                             is_system_include, /*is_preinclude=*/FALSE, ifhp);
             scan_implicitly_included_template_definition_file();
             if (in_instantiation_wrapup ) {
               /* Set a flag if this implicit inclusion was done during

@@ -844,7 +844,8 @@ Scan and process a #include directive.
       open_file_and_push_input_stack(name_start_pos,
                                      /*use_search_path=*/TRUE,
                                      /*is_include_file=*/TRUE,
-                                     is_system_include);
+                                     is_system_include,
+                                     /*is_preinclude=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* proc_include */
@@ -983,7 +984,8 @@ may have extra operand at end).
                                 &(curr_ise->assoc_il_file),
                                 (a_boolean)actual_sfp->is_include_file,
                                 (a_boolean)actual_sfp->
-                                                   included_by_system_include);
+                                                   included_by_system_include,
+                                (a_boolean)actual_sfp->included_by_preinclude);
   }
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing

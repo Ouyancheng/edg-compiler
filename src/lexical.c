@@ -2868,7 +2868,8 @@ static void db_include_guard_info(void)
 void open_file_and_push_input_stack (char      *file_name,
                                      a_boolean use_search_path,
 				     a_boolean is_include_file,
-                                     a_boolean is_system_include)
+                                     a_boolean is_system_include,
+                                     a_boolean is_preinclude)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
@@ -2876,9 +2877,11 @@ generate a catastrophic error and do not return.  use_search_path
 is TRUE if the search path of include directories should be used
 when trying the open.  file_name must be allocated in IL storage.
 is_include_file is TRUE if the file is being read as the result of a
-#include directive.  It is FALSE for implicitly included files.
-is_system_include is TRUE for files included with the #include <file.h>
-notation and FALSE for all other files.
+#include directive or a --preinclude command-line-option.  It is
+FALSE for implicitly included files.  is_system_include is TRUE for
+files included with the #include <file.h> notation and FALSE for
+all other files.  is_preinclude is TRUE for files included via the
+--preinclude command-line option.
 */
 {
   char				*full_file_name;
@@ -2916,7 +2919,7 @@ notation and FALSE for all other files.
     goto done;
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
-                   is_include_file, is_system_include, ifhp);
+                   is_include_file, is_system_include, is_preinclude, ifhp);
 done:
   db_exit();
 }  /* open_file_and_push_input_stack */
@@ -3141,9 +3144,17 @@ void push_input_stack(FILE     				*new_input_file,
                       char     				*full_file_name,
 		      a_boolean				is_include_file,
 		      a_boolean		 		is_system_include,
+                      a_boolean                         is_preinclude,
 		      an_include_file_history_ptr	ifhp)
 /*
-Push the indicated file onto the input stack.
+Push the indicated file onto the input stack.  name_as_written,
+display_name, and full_file_name are various forms of the file name.
+is_include_file is TRUE if the file is being read as the result of a
+#include directive or a --preinclude command-line-option.  It is
+FALSE for implicitly included files.  is_system_include is TRUE for
+files included with the #include <file.h> notation and FALSE for
+all other files.  is_preinclude is TRUE for files included via the
+--preinclude command-line option.
 */
 {
   int                times_name_appears;
@@ -3243,7 +3254,7 @@ Push the indicated file onto the input stack.
                               (a_line_number)1, display_name,
                               full_file_name, name_as_written,
                               &(curr_ise->assoc_il_file), is_include_file,
-                              is_system_include);
+                              is_system_include, is_preinclude);
   /* The two il file pointers start out the same.  They will be made to
      point to distinct entries if a #line directive is processed:
      assoc_il_file will point to the entry for the #line, and
@@ -3331,8 +3342,8 @@ at the next level down.
 {
   a_boolean	is_end_of_primary_source_file = FALSE;
   a_byte	ifg_state;
-  db_enter(2, "pop_input_stack");
 
+  db_enter(2, "pop_input_stack");
 #if DEBUG
   if (debug_level >= 4) {
     db_include_guard_info();
@@ -3471,6 +3482,7 @@ at the next level down.
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (list_makefile_dependencies && do_preprocessing_only &&
 	prev_ise->is_include_file &&
+        !prev_ise->assoc_actual_il_file->included_by_preinclude &&
         !prev_ise->nested_inclusion && !C_mode() &&
         implicit_template_inclusion_mode) {
       /* When generating makefile dependency information in C++ mode, and
@@ -3526,7 +3538,7 @@ at the next level down.
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              (a_boolean)sfp->included_by_system_include,
-			     ifhp);
+			     /*is_preinclude=*/FALSE, ifhp);
           }  /* if */
         }  /* if */
       }  /* if */

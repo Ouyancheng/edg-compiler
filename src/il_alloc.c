@@ -327,6 +327,7 @@ Allocate a source file entry, initialize it, and return a pointer to it.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   sfp->is_include_file = FALSE;
   sfp->included_by_system_include = FALSE;
+  sfp->included_by_preinclude = FALSE;
 
   return sfp;
 }  /* alloc_source_file */
