@@ -6710,10 +6710,16 @@ rewritten) for use in error messages.
       }  /* if */
     } else {
       /* The conversion is not legal. */
-      /* The "opt_ty2" routine puts in the types if the specific error
-         message has fill-ins for them, and otherwise ignores the types. */
-      pos_opt_ty2_error(incompatible_err, err_pos,
-                        source_type, orig_dest_type);
+      if (std_conv.conv_failed_because_of_exception_specifications) {
+        /* Special message for a conversion that failed because of
+           a difference in exception specifications. */
+        pos_error(ec_incompatible_exception_specs, err_pos);
+      } else {
+        /* The "opt_ty2" routine puts in the types if the specific error
+           message has fill-ins for them, and otherwise ignores the types. */
+        pos_opt_ty2_error(incompatible_err, err_pos,
+                          source_type, orig_dest_type);
+      }  /* if */
       conv_to_error_operand(source_operand);
     }  /* if */
   }  /* if */

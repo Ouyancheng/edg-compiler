@@ -813,9 +813,9 @@ ec_cl_special_subscript_cost_option_only_in_cplusplus;;"special_subscript_cost o
 ec_cl_typename_option_only_in_cplusplus;;"typename option can be used only when compiling C++"
 ec_cl_implicit_typename_option_only_in_cplusplus;;"implicit typename option can be used only when compiling C++"
 ec_nonstd_character_at_start_of_macro_def;;"nonstandard character at start of object-like macro definition"
-ec_exception_spec_override_incompat;;"exception specification for virtual %n1 must be at least as restrictive as for overridden %n2"
+ec_exception_spec_override_incompat;;"exception specification for virtual %n1 is incompatible with that of overridden %n2"
 ec_pointer_conversion_loses_bits;;"conversion from pointer to smaller integer"
-ec_generated_exception_spec_override_incompat;;"exception specification for implicitly declared virtual %n1 is less restrictive than for overridden %n2"
+ec_generated_exception_spec_override_incompat;;"exception specification for implicitly declared virtual %n1 is incompatible with that of overridden %n2"
 ec_implicit_call_of_ambiguous_name;;"%no1, implicitly called from %np2, is ambiguous"
 ec_cl_explicit_option_only_in_cplusplus;;"option \"explicit\" can be used only when compiling C++"
 ec_explicit_not_allowed;;"\"explicit\" is not allowed"
@@ -882,6 +882,7 @@ ec_useless_placement_delete;;"useless placement-delete declaration"
 ec_no_appropriate_delete;;"no appropriate operator delete is visible"
 ec_ptr_or_ref_to_incomplete_type;;"pointer or reference to incomplete type is not allowed"
 ec_bad_partial_specialization;;"invalid partial specialization -- %n is already fully specialized"
+ec_incompatible_exception_specs;;"incompatible exception specifications"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

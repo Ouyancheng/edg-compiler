@@ -484,6 +484,11 @@ typedef struct a_std_conv_descr {
 		ptr_or_pm_to_bool;
 			/* TRUE if this conversion is from a pointer or
 			   pointer to member to bool. */
+  a_byte_boolean
+		conv_failed_because_of_exception_specifications;
+			/* TRUE if the conversion could not be done because
+			   of an incompatibility of exception
+			   specifications. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this conversion is done. */

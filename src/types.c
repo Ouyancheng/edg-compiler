@@ -2773,6 +2773,7 @@ Clear a standard conversion description to default values.
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
   std_conv->ptr_or_pm_to_bool = FALSE;
+  std_conv->conv_failed_because_of_exception_specifications = FALSE;
   std_conv->warning_suggested = ec_no_error;
 }  /* clear_std_conv_descr */
 
@@ -3254,6 +3255,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* In pointer-to-function assignment and initialization, any exception
            allowed by the source type must be allowed by the destination
            type; but that's not the case here, so return FALSE. */
+        std_conv->conv_failed_because_of_exception_specifications = TRUE;
       } else {
         /* The types pointed to are compatible, ignoring the type qualifiers.
            ANSI C 3.3.6 (pointer - pointer: caller will check that types are
