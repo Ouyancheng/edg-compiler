@@ -12156,13 +12156,17 @@ information).  See the definition of a_tmpl_decl_state for details.
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        template_decl = make_template_decl(decl_state->decl_info->parameters);
-        template_decl->template_pos = template_pos;
-        if (decl_state->il_template_entry != NULL) {
-          template_decl->parent = decl_state->il_template_entry->template_decl;
-          decl_state->il_template_entry->template_decl = template_decl;
+        if (prototype_instantiations_in_il) {
+          template_decl =
+                        make_template_decl(decl_state->decl_info->parameters);
+          template_decl->template_pos = template_pos;
+          if (decl_state->il_template_entry != NULL) {
+            template_decl->parent =
+                                 decl_state->il_template_entry->template_decl;
+            decl_state->il_template_entry->template_decl = template_decl;
+          }  /* if */
+          decl_state->template_decl = template_decl;
         }  /* if */
-        decl_state->template_decl = template_decl;
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } else if (is_template_param) {
         /* A template parameter declaration with a missing template
@@ -12182,13 +12186,16 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Bypass the ">". */
         (void)get_token();
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        template_decl = make_template_decl(/*tp_list=*/NULL);
-        template_decl->template_pos = template_pos;
-        if (decl_state->il_template_entry != NULL) {
-          template_decl->parent = decl_state->il_template_entry->template_decl;
-          decl_state->il_template_entry->template_decl = template_decl;
+        if (prototype_instantiations_in_il) {
+          template_decl = make_template_decl(/*tp_list=*/NULL);
+          template_decl->template_pos = template_pos;
+          if (decl_state->il_template_entry != NULL) {
+            template_decl->parent =
+                                 decl_state->il_template_entry->template_decl;
+            decl_state->il_template_entry->template_decl = template_decl;
+          }  /* if */
+          decl_state->template_decl = template_decl;
         }  /* if */
-        decl_state->template_decl = template_decl;
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
     } else {
