@@ -77,6 +77,20 @@ EXTERN a_type_ptr
 			   by a #pragma define_type_info that immediately
 			   precedes the class definition of type_info. */
 
+EXTERN a_boolean
+		okay_to_eliminate_unneeded_il_entries;
+			/* When TRUE unneeded entities may be pruned from the
+			   IL tree; otherwise, pruning is suppressed even if
+			   entities are determined to be unneeded. Always
+			   FALSE when MAINTAIN_NEEDED_FLAGS is FALSE.
+			   Otherwise, controlled by command line option
+			   --[no_]remove_unneeded_entities; also FALSE if
+			   templates appear in the source program and
+			   template instantiation is not under the control
+			   of the front end (e.g., when the C++-generating
+			   back end is used).  */
+
+
 /*
 Macro that generates a unique unsigned long identifier from an IL pointer.
 This is useful for generating names for unnamed symbols, for cross-reference
