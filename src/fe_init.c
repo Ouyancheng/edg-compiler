@@ -70,10 +70,6 @@ been included by the inclusion of fe_common.h.
 #include "sys_predef.h"
 #include "templates.h"
 
-#if ASM_FUNCTION_ALLOWED
-#include "asm_func.h"
-#endif /* ASM_FUNCTION_ALLOWED */
-
 #if IL_WALK_NEEDED
 #include "il_walk.h"
 #endif /* IL_WALK_NEEDED */
@@ -247,6 +243,11 @@ Install the keywords in the symbol table.
   } else {
     enter_keyword((a_token_kind)tok_asm,       "asm");
   }  /* if */
+#if ASM_FUNCTION_ALLOWED
+  /* Enter "__asm" as a synonym for "asm" -- it too maps to tok_asm.  Note
+     that in strict ANSI C mode, "__asm" is recognized but "asm" is not. */
+  enter_keyword((a_token_kind)tok_asm,         "__asm");
+#endif /* ASM_FUNCTION_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */
     enter_keyword((a_token_kind)tok_catch,     "catch");
