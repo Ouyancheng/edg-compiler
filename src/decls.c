@@ -7960,7 +7960,7 @@ continue_with_declaration:
               /* Check for an uninitialed variable that has members that
                  ought to be initialized.  Issue a warning in such cases. */
               a_type_ptr        tp = local_type_ptr;
-              a_base_class_ptr  next_bcp = NULL;
+
               if (is_array_type(tp)) tp = underlying_array_element_type(tp);
               if (is_class_struct_union_type(tp)) {
                 /* The variable is a class-struct-union type or an array
