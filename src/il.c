@@ -4139,17 +4139,17 @@ initialization entry.
 
 void add_to_dynamic_inits_list(a_dynamic_init_ptr dip)
 /*
-Add the given dynamic initialization entry to the dynamic_inits list for
-the current scope.
+Add the given dynamic initialization entry to the file-scope dynamic_inits
+list.
 */
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp;
 
-  /* Get pointer to current scope entry. */
-  ssep = &scope_stack[decl_scope_level];
-  /* Create the IL scope if necessary (for block scopes). */
-  sp = ensure_il_scope_exists(ssep);
+  /* Only the file scope has a dynamic-inits list -- in function and block
+     scopes dynamic initialization is handled by statements. */
+  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  sp = ssep->il_scope;
   if (sp->dynamic_inits == NULL) {
     sp->dynamic_inits = dip;
   } else {
@@ -5322,9 +5322,6 @@ set *temp_init_node to NULL.
     /* force_temp_init is TRUE, or the temp_type is a class with a
        destructor. */
     dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type);
-#if 0
-    add_to_dynamic_inits_list(dip);
-#endif
     dip->variable = temp_var;
     /* Make an enk_temp_init node that points at the dynamic init
        entry. */
