@@ -8533,10 +8533,11 @@ The routine body is not generated until it is known to be needed.
   if (!user_declared_copy_assignment_op) {
     /* An implicit assignment operator is generated if the class does not
        contain a user-declared copy assignment operator. */
+    a_type_ptr this_type;
     const_okay = default_assignment_of_const_object_okay(class_type);
     qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-    ptp = alloc_param_type(make_reference_type(
-                                 make_qualified_type(class_type, qualifiers)));
+    this_type = make_qualified_type(class_type, qualifiers);
+    ptp = alloc_param_type(make_reference_type(this_type));
     /* Set a flag in the param type entry if its associated type is or
        contains a template parameter. */
     ptp->type_involves_deduced_template_param =
@@ -8544,18 +8545,23 @@ The routine body is not generated until it is known to be needed.
     initialize_member_decl_info(&decl_info, pos);
     generate_special_function(class_type, class_state, &decl_info, ptp);
 #if NEAR_AND_FAR_ALLOWED
-    if (near_and_far_enabled() && !il_header.far_data_pointers) {
+    if (near_and_far_enabled()) {
       /* Generate also an operator= that can copy a "far" object. */
-      a_param_type_ptr ptp2;
-      ptp2 = alloc_param_type(
-                       make_reference_type(
-                            make_qualified_type(class_type, TQ_CONST|TQ_FAR)));
-      /* Set a flag in the param type entry if its associated type is or
-         contains a template parameter. */
-      ptp2->type_involves_deduced_template_param =
+      a_param_type_ptr ptp_far;
+      a_type_ptr       this_type_far;
+      this_type_far = make_qualified_type(class_type, TQ_CONST|TQ_FAR);
+      /* Don't create the "far" operator= if the default one is "far"
+         (e.g., because the class is declared "far"). */
+      if (!identical_types(this_type_far, this_type)) {
+        ptp_far = alloc_param_type(make_reference_type(this_type_far));
+        /* Set a flag in the param type entry if its associated type is or
+           contains a template parameter. */
+        ptp_far->type_involves_deduced_template_param =
                                      ptp->type_involves_deduced_template_param;
-      initialize_member_decl_info(&decl_info, pos);
-      generate_special_function(class_type, class_state, &decl_info, ptp2);
+        initialize_member_decl_info(&decl_info, pos);
+        generate_special_function(class_type, class_state, &decl_info,
+                                  ptp_far);
+      }  /* if */
     }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
   }  /* if */
