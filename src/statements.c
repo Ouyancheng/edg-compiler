@@ -4016,6 +4016,7 @@ statement.
     }  /* if */
     decl_statement();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+    sssep = &struct_stmt_stack[depth_stmt_stack];
     if (sssep->curr_decl_statement != NULL) {
       /* Add a source sequence entry marking the end of the for-init
          declaration.  This marker is necessary in case what immediately
@@ -4034,6 +4035,7 @@ statement.
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
   /* Restore the for_init flag to its default value. */
+  sssep = &struct_stmt_stack[depth_stmt_stack];
   sssep->for_init = FALSE;
   /* Clear the fields that will have been updated if the for-init required
      more than one stmk_init statement, e.g.:

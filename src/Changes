@@ -1,5 +1,14 @@
 Version 2.46
 
+5/9/01   Abort on processing "for" statement with complex embedded
+         declaration
+
+The code that scans "for" statements held a pointer to an entry
+in the structured statement stack over the scanning of a complex
+declaration that caused a storage reallocation.  The consequence
+was an abort in the C-generating back end, but any number of
+disastrous outcomes were possible.  Now fixed.
+
 5/2/01   Abort on mem-initializer for nonreal base class, with
          prototype instantiations
 
