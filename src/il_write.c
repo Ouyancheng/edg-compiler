@@ -50,8 +50,8 @@ static an_il_entry_number
 		max_entry_number;
 			/* Maximum allowed entry number, used for overflow
 			   checking. */
+#ifdef __CENTERLINE__
 #if CHECKING && DEBUG
-#if __CENTERLINE__
 /* CenterLine debugging variables used to locate a missing (unwritten) IL entry
    by entry kind and entry number within that kind in a specific memory
    region.  By setting the variables centerline_memory_region_number,
@@ -85,8 +85,8 @@ a_memory_region_number
 			/* Variable used by write_memory_region()
 			   to record the memory region number currently
 			   being written. */
-#endif /* __CENTERLINE__ */
 #endif /* CHECKING && DEBUG */
+#endif /* ifdef __CENTERLINE__ */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 
@@ -108,10 +108,10 @@ triggering an internal error.
                 (long)entry_kind, s);
   (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n",
                 (unsigned long)entry_ptr);
-#if __CENTERLINE__
+#ifdef __CENTERLINE__
   (void)fprintf(f_debug, "         memory region = %4ld\n",
                 centerline_region_being_written);
-#endif /* __CENTERLINE__ */
+#endif /* ifdef __CENTERLINE__ */
 }  /* display_il_entry_kind_and_ptr */
 
 #endif /* CHECKING && DEBUG */
@@ -268,14 +268,16 @@ end_of_routine:
   /* Return the encoded form of the entry number in *encoded_number. */
   *encoded_number = entry_number;
   if (!epp->file_scope) *encoded_number |= FUNC_ENTRY_NUMBER_BIT;
-#if __CENTERLINE__ && CHECKING && DEBUG
+#ifdef __CENTERLINE__
+#if CHECKING && DEBUG
   /* Stop if the entry being examined is the one we're looking for. */
   if (entry_kind == centerline_entry_kind &&
       entry_number == centerline_entry_number &&
       centerline_region_being_written == centerline_memory_region_number) {
     centerline_stop();
   }  /* if */
-#endif /* __CENTERLINE__ && CHECKING && DEBUG */
+#endif /* CHECKING && DEBUG */
+#endif /* ifdef __CENTERLINE__ */
   return epp;
 }  /* assign_entry_number */
 
@@ -701,9 +703,11 @@ Write the indicated memory region to the file f_il_output.
     writing_file_scope_il = (region_number == FILE_SCOPE_REGION_NUMBER);
 #if ALTERNATE_IL_FILE_FORMAT
     /* Alternate file format. */
-#if CHECKING && DEBUG && __CENTERLINE__
+#ifdef __CENTERLINE__
+#if CHECKING && DEBUG
     centerline_region_being_written = region_number;
-#endif /* CHECKING && DEBUG && __CENTERLINE__ */
+#endif /* CHECKING && DEBUG */
+#endif /* ifdef __CENTERLINE__ */
     { a_file_position  count_array_pos;
       int              int_entry_kind;
       char             zero = 0;
