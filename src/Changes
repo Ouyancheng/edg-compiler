@@ -1,5 +1,17 @@
 Version 3.1
 
+10/1/02  Microsoft compatibility: abort when using --parse_templates
+         and Microsoft version > 1200
+
+An abort could occur using --parse_templates in Microsoft mode when
+Microsoft version is greater than 1200.  The abort would occur if a
+template function used an array new operation with a dependent type.
+This has been fixed.
+
+  template <class T> struct A {
+    void f() { new T[5]; }
+  };
+
 9/27/02  Specializations first declared in an enclosing namespace
 
 The standard requires that an explicit specialization be declared in

@@ -6792,7 +6792,7 @@ specification allow a variable-sized array as the top type.
          looking for a non-array operator new.  Do a tentative match
          on the array new, and if that fails fall back to the non-array
          new.*/
-      if ((operator_new_symbol == NULL && !unknown_dependent_new) ||
+      if (operator_new_symbol != NULL && !unknown_dependent_new &&
           !overloaded_function_match_possible(
                                       operator_new_symbol,
                                       /*is_template_id=*/FALSE,
