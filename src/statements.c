@@ -2514,7 +2514,7 @@ being created to surround a dependent statement in C++.
   if (!dependent_statement) {
     /* This is a block statement introduced by a left brace (which should be
        the next token).  Process any pragmas that are meant to bind to the
-       the block statement as a whole. */
+       block statement as a whole. */
     process_curr_construct_pragmas((a_symbol_ptr)NULL, block_stmt);
   } else {
     /* This is a dependent statement with no surrounding braces.  Any pragmas
