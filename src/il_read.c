@@ -905,14 +905,18 @@ build the in-memory version.
      in standalone utility programs. */
   int_kind_is_signed[(int)ik_char] = il_header.plain_chars_are_signed;
   /* Ditto for C_dialect.  Setting this allows "back end" software to
-     use C_mode(). */
+     use C_mode().  Also set global variable default_routine_name_linkage,
+     which may be needed in outputting function types. */
   switch (il_header.source_language) {
     case sl_C:
       C_dialect = il_header.pcc_compatibility_mode ? C_dialect_pcc :
                                                      C_dialect_ANSI;
+      default_routine_name_linkage = (a_name_linkage_kind)nlk_external;
       break;
     case sl_Cplusplus:
       C_dialect = C_dialect_cplusplus;
+      default_routine_name_linkage =
+                               (a_name_linkage_kind)nlk_cplusplus_external;
       break;
     default:
       catastrophe(ec_bad_il_file);
