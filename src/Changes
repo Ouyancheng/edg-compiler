@@ -1,5 +1,14 @@
 Version 3.4
 
+10/9/03  C99: internal error on invalid hexadecimal floating-point constant
+
+An internal error could result when an invalid hexadecimal floating-point
+constant appeared in a context that is processed as pp-tokens.  Now fixed.
+
+  #define MACRO 0x7.
+  // extra line is necessary
+  MACRO
+
 10/9/03  C99: Rounding of hexadecimal floating-point constants
 
 When converting a hexadecimal floating point value, the front end always
