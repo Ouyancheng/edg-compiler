@@ -2026,14 +2026,6 @@ scope is that of a class definition.
      is mainly useful for managing param_id entries properly. */
   if (func_info == NULL) func_info = &local_func_info_block;
   clear_func_info(func_info);
-#if 0
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (locator != NULL && !is_error_locator(*locator) &&
-      func_info != &local_func_info_block) {
-    func_info->declarator_ssep = add_source_sequence_entry_for_routine();
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif /* if 0 */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
@@ -2116,7 +2108,9 @@ scope is that of a class definition.
       last_param_type = NULL;
       switch_to_file_scope_region(&region_to_switch_back_to);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      ss_entry_start_prev = init_param_source_sequence_sublist();
+      if (func_info != &local_func_info_block) {
+        ss_entry_start_prev = init_param_source_sequence_sublist();
+      }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       do {
         add_stop_token(tok_comma);
@@ -2236,26 +2230,23 @@ scope is that of a class definition.
           func_info->any_prototype_names_omitted = TRUE;
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (param_ssep == NULL) {
-          /* Declarator was not called or param_ssep was not created for
-             some other reason.  Still, if this is a function definition, it
-             will be needed (in C++ unnamed parameters are allowed). */
+        /* Make adjustments on the param source sequence entry before it is
+           bound to the param_id entry. */
+        if (func_info == &local_func_info_block) {
+          /* If a parameter id was specified in a non-top-level function
+             declarator, a source sequence entry created for it is useless. */
+          if (param_ssep != NULL) {
+            a_src_seq_sublist_ptr  dummy = NULL;
+            remove_from_source_sequence_list(param_ssep, &dummy);
+            param_ssep = NULL;
+          }  /* if */
+        } else if (param_ssep == NULL) {
+          /* Declarator was not called or param_ssep was not created for some
+             some other reason.  Still, if this turns out to be a function
+             definition, it will be needed (in C++ unnamed parameters are
+             allowed). */
           param_ssep = add_empty_source_sequence_entry();
         }  /* if */
-#if 0
-        if (param_ssep != NULL) {
-          update_source_sequence_list((char *)ptp,
-                                      (an_il_entry_kind)iek_param_type,
-                                      (is_error_locator(param_locator) ?
-                                         &param_type_pos :
-                                         &param_locator.source_position),
-                                      param_ssep);
-          /* Record the param type as an orphan, in case it's not pointed to
-             anywhere else. */
-          add_orphaned_file_scope_il_entry((char *)ptp,
-                                           (an_il_entry_kind)iek_param_type);
-        }  /* if */
-#endif /* if 0 */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
@@ -2470,13 +2461,6 @@ scope is that of a class definition.
         }  /* if */
         remove_stop_token(tok_comma);
       } while (!done);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Add a source sequence entry marking the end of the function
-         prototype scope. */
-      add_end_of_type_source_sequence_entry(*new_type_ptr);
-      /* Record the end of the prototype scope. */
-      terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Save the list of symbols for the prototype scope (usually NULL, but
          can have symbols for named types declared within the prototype). */
       if (func_info != &local_func_info_block) {
@@ -2485,6 +2469,14 @@ scope is that of a class definition.
            reallocated in the interim. */
         func_info->prototype_scope_symbols =
                                         scope_stack[depth_scope_stack].symbols;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Add a source sequence entry marking the end of the function
+           prototype scope. */
+        add_end_of_type_source_sequence_entry(*new_type_ptr);
+        /* Record the start and end of the prototype scope. */
+        terminate_param_source_sequence_sublist(func_info,
+                                                ss_entry_start_prev);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       switch_back_to_original_region(region_to_switch_back_to);
       /* Pop the function prototype scope. */
@@ -2532,34 +2524,6 @@ scope is that of a class definition.
     if (local_func_info_block.param_id_list != NULL) {
       /* Free the list of parameter identifiers -- they're not needed
          if there's no definition. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if 0
-    param_id = func_info->param_id_list;
-    ptp = rtsp->param_type_list;
-    /* Be sure param-id and param-type lists are in sync. */
-    check_assertion((param_id == NULL) == (ptp == NULL));
-    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-      /* Declare each parameter identifier to have the associated type
-         from the parameter type list. */
-      decl_parameter(param_id, ptp, is_instantiation);
-      /* Be sure param-id and param-type lists are in sync. */
-      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
-    }  /* for */
-
-
-      a_param_id_ptr  pip = local_func_info_block.param_id_list;
-      a_param_type_ptr  ptp = rtsp->param_list_list;
-      /* Be sure param-id and param-type lists are in sync. */
-      check_assertion((pip == NULL) == (ptp == NULL));
-      for (; pip != NULL; pip = pip->next, ptp = ptp->next) {
-        if (pip->source_sequence_entry != NULL) {
-          remove_from_source_sequence_list(pip->source_sequence_entry);
-          pip->source_sequence_entry = NULL;
-        }  /* if */
-        check_assertion((pip->next == NULL) == (ptp->next == NULL));
-      }  /* for */
-#endif /* if 0 */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       free_param_id_list(&(local_func_info_block.param_id_list));
     }  /* if */
   }  /* if */
@@ -6065,16 +6029,12 @@ function_lparen:
                           member_parent_type, is_nonstatic_member_function,
                           is_constructor, is_destructor);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (*declarator_ssep != NULL) {
-        if (func_info != NULL) {
-          if (locator != NULL && !is_error_locator(*locator)) {
-            func_info->declarator_ssep = *declarator_ssep;
-          } else {
-            a_src_seq_sublist_ptr  sublist = NULL;
-            remove_from_source_sequence_list(*declarator_ssep, &sublist);
-            *declarator_ssep = NULL;
-          }  /* if */
-        }  /* if */
+      if (func_info != NULL) {
+        /* Record the source sequence entry in func_info even if there was
+           an error in the declarator (i.e., even if the locator is an error
+           locator).  This could mean an empty source sequence entry is in
+           the list when there's an error, but that should be okay. */
+        func_info->declarator_ssep = *declarator_ssep;
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (is_member_def) {
