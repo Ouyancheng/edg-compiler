@@ -86,7 +86,12 @@ typedef struct a_symbol_locator {
 			   to the proper symbol. */
   unsigned int	is_global_qualified_name:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
-			   that begins with a unary "::" (e.g., "::y"). */
+			   that begins with a unary "::" (e.g., "::y" or
+			   ::A::x). */
+  unsigned int  is_file_scope_qualified_name:1;
+			/* TRUE if the "identifier" is a C++ qualified-name
+			   that refers to a file scope entity (e.g., ::y
+			   but not ::A::x). */
   unsigned int  is_operator_name:1;
 			/* TRUE if the "identifier" is a C++ overloaded
 			   operator name, of the form "operator<token>",

@@ -6282,6 +6282,7 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_locator.source_position.column = SP_COL_UNKNOWN;
   cleared_locator.is_qualified_name = FALSE;
   cleared_locator.is_global_qualified_name = FALSE;
+  cleared_locator.is_file_scope_qualified_name = FALSE;
   cleared_locator.is_operator_name = FALSE;
   cleared_locator.is_conversion_name = FALSE;
   cleared_locator.is_destructor_name = FALSE;
