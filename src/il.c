@@ -28,6 +28,7 @@ il.c -- Construction of intermediate language trees.
 #include "float_pt.h"
 #include "exprutil.h"
 #include "folding.h"
+#include "templates.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
@@ -5131,6 +5132,7 @@ an error node is returned for that case.
   }  /* if */
 #endif /* CHECKING */
   /* Return type may not be incomplete (but void is okay). */
+  check_for_uninstantiated_template_class(return_type);
   if (is_incomplete_type(return_type) && !is_void_type(return_type)) {
     pos_error(ec_incomplete_return_type_not_allowed, err_pos);
     call_node = error_node();
