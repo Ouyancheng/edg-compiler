@@ -3822,32 +3822,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       switch (expr->variant.operation.kind) {
         /* One-operand operators. */
         case eok_indirect:
-          if (operand_1->implicit_reference_indirection) {
-            /* An indirection over a node with an implicit reference
-               indirection.  The two can be cancelled out. */
-            operand_1->implicit_reference_indirection = FALSE;
-            gen_expression(operand_1);
-            operand_1->implicit_reference_indirection = TRUE;
-            goto done_with_operation;
-          } else if (is_operation_node(operand_1) &&
-                     operand_1->variant.operation.kind ==
-                                            (an_expr_operator_kind)eok_field) {
-            an_expr_node_ptr sel_operand_1 =
-                                         operand_1->variant.operation.operands;
-            /* Optimize "*" on top of an eok_field. */
-            gen_simple_field_selection(sel_operand_1, sel_operand_1->next);
-            goto done_with_operation;
-          } else if (is_operation_node(operand_1) &&
-                     operand_1->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_pm_field) {
-            an_expr_node_ptr sel_operand_1 =
-                                         operand_1->variant.operation.operands;
-            /* Optimize "*" on top of an eok_pm_field. */
-            gen_pm_simple_field_selection(sel_operand_1, sel_operand_1->next);
-            goto done_with_operation;
-          }  /* if */
-          opstr = "*";
-          break;
+          gen_lvalue(operand_1);
+          goto done_with_operation;
         case eok_inegate:
         case eok_fnegate:
           opstr = "-";
