@@ -1076,7 +1076,7 @@ memory or with an IL file.
     check_assertion(scope != NULL);
     if (scope->kind == (a_scope_kind)sck_function) {
 #if MAINTAIN_NEEDED_FLAGS
-      if (scope->variant.routine.ptr->source_corresp.needed) {
+      if (!scope->variant.routine.ptr->source_corresp.needed) {
         /* This is the memory region for function scope that may not be
            needed.  As an optimization to keep the IL file from growing too
            large, don't write it out.  If we later discover that it's needed,
