@@ -4123,6 +4123,8 @@ called in C++ mode.
         }  /* if */
         class_scope = NO_SCOPE_NUMBER;
       } else {
+        /* Record the reference on the symbol. */
+        mark_referenced(class_symbol, &pos_curr_token);
         /* Determine the scope number for the class. */
         class_scope = class_type_scope_number(
                                 class_symbol->variant.class_struct_union.type);
