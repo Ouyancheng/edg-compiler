@@ -1218,6 +1218,13 @@ typedef struct an_id_linkage_block {
 		linkage;
 			/* The linkage (none, internal, external) computed
 			   for the current declaration. */
+  a_name_linkage_kind
+		name_linkage;
+			/* The name linkage for the current declaration. */
+  a_byte_boolean
+		name_linkage_is_explicit;
+			/* TRUE if the name linkage for the current
+			   declaration was explicitly specified. */
 } an_id_linkage_block;
 
 
@@ -1244,6 +1251,8 @@ static void clear_id_linkage_block(an_id_linkage_block *idlbp)
   idlbp->namespace_reactivated = FALSE;
   idlbp->templ_param_list = NULL;
   idlbp->linkage = idl_none;
+  idlbp->name_linkage = (a_name_linkage_kind)nlk_none;
+  idlbp->name_linkage_is_explicit = FALSE;
 }  /* clear_id_linkage_block */
 
 
@@ -1359,6 +1368,61 @@ declaration scope will have been pushed).
     }  /* if */
   }  /* if */
 }  /* set_linkage_environment */
+
+
+static void compute_name_linkage(an_id_linkage_block  *idlbp)
+/*
+Based on the current state of the indicated id-linkage block, set the
+fields describing the name-linkage for the current declaration.  This
+routine can be called more than once for a given declaration (e.g., when
+an entity initially declared with external linkage is redeclared to have
+internal linkage).
+*/
+{
+  a_scope_stack_entry_ptr   ssep = &scope_stack[depth_scope_stack];
+  a_symbol_ptr              prior_decl;
+  a_source_correspondence   *scp;
+
+  idlbp->name_linkage_is_explicit = FALSE;
+  if (idlbp->linkage == idl_external) {
+    if (C_mode()) {
+      /* External entity in C mode. */ 
+      idlbp->name_linkage = (a_name_linkage_kind)nlk_external;
+    } else if (idlbp->func_info != NULL &&
+               idlbp->func_info->is_main_function) {
+      /* In C++ "main" gets C++ linkage. */
+      idlbp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+    } else if (ssep->name_linkage_is_explicit) {
+      /* Use the explicitly specified name-linkage even when there is a
+         prior declaration with different linkage. */
+      idlbp->name_linkage = ssep->default_name_linkage;
+      idlbp->name_linkage_is_explicit = TRUE;
+    } else {
+      /* No explicit linkage specification.  Use the prior declaration (if
+         there is one), or else the default. */
+      prior_decl = idlbp->linked_symbol;
+      if (prior_decl == NULL) {
+        /* A block extern declaration for which there is a visible prior
+           declaration. */
+        prior_decl = idlbp->prior_decl_in_enclosing_scope;
+      }  /* if */
+      if (prior_decl != NULL &&
+          (idlbp->func_info == NULL) ==
+                     (prior_decl->kind == (a_symbol_kind)sk_variable)) {
+       /* Use the linkage specifier from the prior declaration. */
+        scp = source_corresp_entry_for_symbol(prior_decl);
+        idlbp->name_linkage = scp->name_linkage;
+      } else {
+        /* Use the default. */
+        idlbp->name_linkage = ssep->default_name_linkage;
+      }  /* if */
+    }  /* if */
+  } else if (idlbp->linkage == idl_internal) {
+    /* Internal linkage is easy -- ignore the default linkage specifier and
+       the linkage of prior declarations. */
+    idlbp->name_linkage = (a_name_linkage_kind)nlk_internal;
+  }   /* if */
+}  /* compute_name_linkage */
 
 
 static void find_linked_symbol(an_id_linkage_block *idlbp)
@@ -1958,6 +2022,9 @@ specified id-linkage block.
         idlbp->storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */
+    /* Based on the linkage that has been determined, figure out what the
+       "name linkage" should be. */
+    compute_name_linkage(idlbp);
   }  /* if */
   db_exit();
 }  /* id_linkage */
@@ -3064,55 +3131,41 @@ the routine-name-linkages of the two declarations are compatible.
 }  /* routine_name_linkages_are_compatible */
 
 
-static void set_name_linkage(an_id_linkage_kind      linkage,
+static void set_name_linkage(an_id_linkage_block     *idlbp,
                              a_symbol_ptr            sym,
                              a_source_correspondence *scp,
                              a_symbol_ptr            ext_sym,
                              a_source_position       *error_pos)
 /*
 Called from decl_variable and decl_routine, this function sets the name
-linkage of the IL entry.  linkage is the id_linkage (internal, external,
-none) that has been assigned.  sym is the symbol for the variable or routine
-whose name linkage is to be set, and scp points to the source correspondence
-of the associated IL entry.  ext_sym is the associated sk_external_variable
-or sk_external_routine symbol, if any.  *error_pos is the source position
-of the identifier.
+linkage of the IL entry.  The indicated id linkage block indicates the
+linkage (internal, external, none) that has been assigned.  sym is the symbol
+for the variable or routine whose name linkage is to be set, and scp points
+to the source correspondence of the associated IL entry.  ext_sym is the
+associated sk_external_variable or sk_external_routine symbol, if any.
+*error_pos is the source position of the identifier.
 */
 {
   a_boolean                is_function =
                                    (sym->kind == (a_symbol_kind)sk_routine);
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_boolean                err;
+  a_type_ptr               tp;
 
-  if (linkage == idl_external) {
-    /* Indicate in the IL entry that the name is externally visible by
-       assigning the external linkage kind that is the default for the current
-       context. */
-    if (C_dialect != C_dialect_cplusplus) {
-      scp->name_linkage = (a_name_linkage_kind)nlk_external;
-      sym->explicit_linkage_specifier = FALSE;
-    } else if (is_function &&
-               sym->variant.routine.ptr == il_header.main_routine) {
-      /* Note that "main" is always given "C++" linkage. */
-      scp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
-      sym->explicit_linkage_specifier = FALSE;
-    } else if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
-      /* No prior declaration, so there's no conflict. */
-      scp->name_linkage = ssep->default_name_linkage;
-      sym->explicit_linkage_specifier = ssep->name_linkage_is_explicit;
-      ext_sym->explicit_linkage_specifier = ssep->name_linkage_is_explicit;
+  if (idlbp->linkage != idl_none) {
+    if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
+      scp->name_linkage = idlbp->name_linkage;
+      sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
+      ext_sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
     } else {
-      /* Multiple specifications of external linkage must be the same
-         (ARM 7.4).  But it's a little trickier than that.  We will not
-         override the previous specification, but we need to be sure the
-         current one is consistent with it. */
-      a_boolean  err = FALSE;
-      if (scp->name_linkage == ssep->default_name_linkage) {
+      err = FALSE;
+      if (scp->name_linkage == idlbp->name_linkage) {
         /* The linkage kinds (C or C++) are the same; however, the ARM states,
            "A function declaration without a linkage specification may not
            precede the first linkage specification for that function." */
-        if (ssep->name_linkage_is_explicit) {
+        if (idlbp->name_linkage_is_explicit) {
           err = (scp->name_linkage !=
-                        (a_name_linkage_kind)nlk_cplusplus_external &&
+                          (a_name_linkage_kind)nlk_cplusplus_external &&
                  !sym->explicit_linkage_specifier &&
                  !ext_sym->explicit_linkage_specifier);
           /* Mark the symbols as having an explicit linkage specifier to
@@ -3124,43 +3177,49 @@ of the identifier.
         /* Linkage is not the same, but it's no error as long as the current
            specification is implicit. */
         err = ssep->name_linkage_is_explicit;
+        /* Reset the name linkage in certain cases: when the current
+           linkage was explicitly specified whereas the previous one was not,
+           or when one of the declarations specified internal linkage and the
+           other didn't (in which case the later declaration is favored). */
+        if ((idlbp->name_linkage_is_explicit &&
+             !sym->explicit_linkage_specifier) ||
+            scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
+            idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+          scp->name_linkage = idlbp->name_linkage;
+          sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
+          ext_sym->explicit_linkage_specifier =
+                     idlbp->name_linkage_is_explicit;
+        }  /* if */
       }  /* if */
       if (err) {
         /* Neither functions nor variables are supposed to have inconsistent
            linkage specifications, but it's more of a problem for functions.
            Issue an error for functions, a warning for variables. */
         pos_sy_diagnostic(is_function ? (an_error_severity)es_error :
-                                        (strict_ansi_mode ?
-                                            strict_ansi_error_severity :
-                                            (an_error_severity)es_warning),
+                                          (strict_ansi_mode ?
+                                              strict_ansi_error_severity :
+                                              (an_error_severity)es_warning),
                           ec_incompatible_linkage_specifier,
                           error_pos, ext_sym);
       }  /* if */
     }  /* if */
-  } else if (linkage == idl_internal) {
-    /* Internal linkage. */
-    scp->name_linkage = (a_name_linkage_kind)nlk_internal;
-  } else {
-    /* No linkage -- e.g., an automatic variable. */
-    check_assertion(scp->name_linkage == (a_name_linkage_kind)nlk_none);
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    /* A variable or routine with linkage should not be declared in terms of
-       a local type. */
-    if (scp->name_linkage != (a_name_linkage_kind)nlk_none &&
-        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-      /* We're inside a function body and the entity has linkage -- must be
-         a block extern declaration. */
-      a_type_ptr  tp = is_function ? sym->variant.routine.ptr->type :
-                                     sym->variant.variable.ptr->type;
-      if (is_or_contains_local_type(tp)) {
-        /* A block extern declaration that involves a local type.  Issue an
-           error (except in cfront or Microsoft compatibility mode). */
-        pos_diagnostic((any_cfront_mode() || microsoft_mode) ? es_warning :
-                                                               es_error,
-                       is_function ? ec_local_type_in_function :
-                                     ec_local_type_in_nonlocal_var,
-                       error_pos);
+    if (C_dialect == C_dialect_cplusplus) {
+      /* A variable or routine with linkage should not be declared in terms of
+         a local type. */
+      if (idlbp->is_block_extern_decl) {
+        /* We're inside a function body and the entity has linkage -- must be
+           a block extern declaration. */
+        tp = is_function ? sym->variant.routine.ptr->type :
+                           sym->variant.variable.ptr->type;
+        if (is_or_contains_local_type(tp)) {
+          /* A block extern declaration that involves a local type.  Issue an
+             error (except in cfront or Microsoft compatibility mode). */
+          pos_diagnostic((any_cfront_mode() || microsoft_mode) ? es_warning :
+                                                                 es_error,
+                         is_function ? ec_local_type_in_function :
+                                       ec_local_type_in_nonlocal_var,
+                         error_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3390,6 +3449,10 @@ namespace-extension scope.
     idlbp->linkage = idl_none;
     idlbp->overload_symbol = NULL;
     idlbp->homonym_symbol = NULL;
+  } else if (idlbp->linkage != idl_none) {
+    /* Based on the linkage that has been determined, figure out what the
+       "name linkage" should be. */
+    compute_name_linkage(idlbp);
   }  /* if */
   db_exit();
 }  /* qualified_name_redecl_sym */
@@ -3624,6 +3687,11 @@ cross-reference output describing this declaration.
                                &linkage, &storage_class,
                                &locator->source_position,
                                /*suppress_diagnostic=*/linked_redecl_error);
+    if (linkage != idlb.linkage) {
+      /* The linkage has been changed, so change the "name linkage", too. */
+      idlb.linkage = linkage;
+      compute_name_linkage(&idlb);
+    }  /* if */
     /* Modify the storage class if necessary (an unspecified storage 
        class on the new declaration indicates a tentative definition --
        see 3.7.2).  Do not force anything but sc_unspecified on the
@@ -3720,7 +3788,9 @@ cross-reference output describing this declaration.
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(variable_ptr, decl_modifiers,
                                  &locator->source_position, redeclaration);
-  set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
+  /* The name linkage has already been determined.  Apply it to the current
+     declaration, and report inconsistencies, if appropriate. */
+  set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
   if (source_corresp_ptr->name_linkage == (a_name_linkage_kind)nlk_external) {
     /* An extern "C" declaration.  Clear the namespace parent pointer. */
@@ -4600,6 +4670,11 @@ skip_overloading:;
       check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
                                  &storage_class, &locator->source_position,
                                  suppress_diagnostic);
+      if (linkage != idlb.linkage) {
+        /* The linkage has been changed, so change the "name linkage", too. */
+        idlb.linkage = linkage;
+        compute_name_linkage(&idlb);
+      }  /* if */
     }  /* if */
     if (is_function_def) {
       a_boolean      saved_referenced_flag;
@@ -4740,7 +4815,9 @@ skip_overloading:;
                           "decl_routine: main redeclared");
     }  /* if */
   }  /* if */
-  set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
+  /* The name linkage has already been determined.  Apply it to the current
+     declaration, and report inconsistencies, if appropriate. */
+  set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
   if (source_corresp_ptr->name_linkage == (a_name_linkage_kind)nlk_external) {
     /* An extern "C" declaration.  Clear the namespace parent pointer. */
