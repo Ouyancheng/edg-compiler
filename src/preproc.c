@@ -42,12 +42,12 @@ typedef struct a_pp_if_stack_entry {
 } a_pp_if_stack_entry;
 
 static a_pp_if_stack_entry_ptr
-		pp_if_stack = NULL;
+		pp_if_stack;
 			/* Stack of preprocessing ifs.  Dynamically allocated;
 			   can be expanded if necessary.  size_pp_if_stack
 			   gives the number of elements currently allocated.
 			   Allocation is not per-file. */
-static sizeof_t	size_pp_if_stack = 0;
+static sizeof_t	size_pp_if_stack;
 			/* Allocated size in elements of pp_if_stack.
 			   Not per-file. */
 #define PP_IF_STACK_INCREMENTAL_ALLOCATION 30
@@ -1234,7 +1234,7 @@ generate_pp_output is TRUE.
 Dynamically allocated buffer used to contain preprocessing directives
 that are being recorded as character strings.
 */
-static char	*pp_dir_string_buffer = NULL;
+static char	*pp_dir_string_buffer;
 			/* Not allocated on a per-file basis. */
 
 static sizeof_t	pp_directive_string_length;
@@ -2097,10 +2097,23 @@ is asked to act like cpp.
 }  /* cpp_driver */
 
 
-void preproc_init(void)
+void preproc_one_time_init(void)
 /*
-Initialize things related to preprocessing.  (Predefined macros are
-established by init_predefined_macros.)
+One-time initialization for preproc.c and preproc.h variables.
+*/
+{
+  /* Global variables declared in preproc.h. */
+  size_pp_dir_string_buffer = 0;
+  /* Static variables declared in this file. */
+  pp_if_stack = NULL;
+  size_pp_if_stack = 0;
+  pp_dir_string_buffer = NULL;
+}  /* preproc_one_time_init */
+
+
+void preproc_trans_unit_init(void)
+/*
+
 */
 {
   /* Most of these variables control lexical functions, but they are defined
@@ -2123,6 +2136,15 @@ established by init_predefined_macros.)
   pp_if_stack_depth = -1;
   base_pp_if_stack_depth = -1;
   is_header_stop_dir = FALSE;
+}  /* preproc_trans_unit_init */
+
+void preproc_init(void)
+/*
+Initialize things related to preprocessing.  (Predefined macros are
+established by init_predefined_macros.)
+*/
+{
+  preproc_trans_unit_init();
 }  /* preproc_init */
 
 

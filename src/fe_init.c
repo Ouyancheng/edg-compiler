@@ -636,6 +636,7 @@ after the command-line processing has been done.
   macro_one_time_init();
   mem_manage_one_time_init();
   pragma_one_time_init();
+  preproc_one_time_init();
   statements_one_time_init();
   symbol_tbl_one_time_init();
   scope_stk_one_time_init();
@@ -1027,6 +1028,7 @@ calls symbol_tbl_trans_unit_init.
   class_decl_trans_unit_init();
   layout_trans_unit_init();
   macro_trans_unit_init();
+  preproc_trans_unit_init();
 #if DO_IL_LOWERING
   il_lower_trans_unit_init();
 #if DO_C99_IL_LOWERING

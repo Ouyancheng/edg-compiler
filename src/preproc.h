@@ -225,7 +225,7 @@ EXTERN long	base_pp_if_stack_depth;
 			   each #if must be closed within the file in
 			   which it was opened.  In pcc mode, always -1. */
 
-EXTERN sizeof_t	size_pp_dir_string_buffer /* = 0*/;
+EXTERN sizeof_t	size_pp_dir_string_buffer;
 			/* Current allocated size of
                            pp_dir_string_buffer.  Not per-file.
                            See preproc.c for the definition of
@@ -257,6 +257,10 @@ extern void stdc_pragma(a_pending_pragma_ptr	ppp);
 extern void once_pragma(a_pragma_kind kind);
 
 extern void hdrstop_or_no_pch_pragma(a_pragma_kind kind);
+
+extern void preproc_one_time_init(void);
+
+extern void preproc_trans_unit_init(void);
 
 extern void preproc_init(void);
 
