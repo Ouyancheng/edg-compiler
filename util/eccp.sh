@@ -1163,7 +1163,7 @@ process_option()
 #     Options that require additional processing
       case $arg in
         -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4 | \
-	--gcc | --no_gcc)
+	--gcc | --no_gcc | --upc)
           c_mode=1
           if [ $arg = "--c99" -a \
                "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
