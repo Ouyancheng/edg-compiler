@@ -1,5 +1,11 @@
 Version 2.35
 
+2/13/97 When reading in binary mode, control-Z is not EOF on Windows NT
+
+The front end incorrectly treated control-Z as an end-of-file marker
+when reading a file in binary mode on Windows NT and Windows 95.  This has
+been fixed.
+
 2/13/97 Missing error on type definition in function template return type
 
 No diagnostic was issued when a type definition appeared in the return type
