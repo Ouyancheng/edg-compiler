@@ -317,6 +317,11 @@ typedef int a_decl_flag_set;
 			/* If this bit is set the declaration specifiers are
 			   part of the type declaration associated with a
 			   "new" operator. */
+#define DSI_VACUOUS_TAG_DECL_ALLOWED 0x100
+			/* If this bit is set a class, struct, union, or enum
+			   declaration with no associated definition may be
+			   interpreted as introducing a new tag name, not
+			   referring to an existing one from outer scope. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
