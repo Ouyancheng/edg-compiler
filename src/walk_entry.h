@@ -757,7 +757,19 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         walk_string_ptr(ptr->name, iek_id_name, 0);
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-        walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
+#if DO_IL_LOWERING
+        /* When IL lowering gets done default_arg_expr is set to NULL, so
+           do not follow it unless we're in a secondary translation unit
+           (where lowering is not done).  This suppression is important
+           if we're processing a call in a function memory region and the
+           type of the function, in the file scope, has not been lowered
+           yet. */
+        if (walking_secondary_trans_unit)
+#endif /* DO_IL_LOWERING */
+        /* Do not add code here. */
+        {
+          walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
+        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);

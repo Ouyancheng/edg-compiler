@@ -1,5 +1,12 @@
 Version 3.5
 
+5/17/04  Inline function referenced only in default argument not removed
+
+An inline function referenced only in a default argument expression,
+and successfully inlined each time the default argument is used, isn't
+needed in the IL when unneeded entities are removed.  However, such
+routines were not always removed.  Now fixed.
+
 5/14/04  Microsoft compatibility: Initializers optional on const enum variables
 
 Variables of const enum types (and arrays of const enum) can now be left
