@@ -461,24 +461,6 @@ Initialize things related to preprocessing.
 }  /* preproc_init */
 
 
-static void expr_init(void)
-/* 
-Initialize things related to expression scanning.
-*/
-{
-#if CHECKING && DEBUG
-  /* Check that the table of operator names is correctly initialized.  This
-     guards against someone changing the enumeration and forgetting to update
-     db_operator_names. */
-  if (db_operator_names[(int)eok_last] == NULL ||
-      strcmp(db_operator_names[(int)eok_last], "last") != 0) {
-    internal_error(
-              "expr_init: initialization of db_operator_names is not correct");
-  }  /* if */
-#endif /* CHECKING && DEBUG */
-}  /* expr_init */
-
-
 static void target_init(void)
 /*
 Initialize target machine characteristics.
@@ -606,9 +588,6 @@ Initialize everything that has to do with the front end.
   in_old_style_param_decl_list = FALSE;
   /* error.h: */
   total_remarks = total_warnings = total_errors = total_catastrophes = 0;
-  /* exprutil.h: */
-  avail_xref_entries = NULL;
-  curr_expr_xref_entries = NULL;
   /* host_envir.h: */
   dir_name_list = NULL;
   /* statements.h: */
