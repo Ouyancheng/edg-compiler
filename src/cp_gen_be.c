@@ -2565,8 +2565,11 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
        A(arg1, arg2, ...).  dik_zero is for cases like "A()". */
     /* Note that parentheses are not put around this, because that would
        make the expression look like a cast. */
-    gen_type_name(dip->variant.constructor.ptr->
-                                       source_corresp.class_of_which_a_member);
+    a_type_ptr temp_type = expr->type;
+    if (expr->variant.init.result_is_addr) {
+      temp_type = type_pointed_to(temp_type);
+    }  /* if */
+    gen_type_name(temp_type);
     gen_dynamic_init(dip,
                      (a_type_ptr)NULL, /* Not a reference, not needed. */
                      /*parenthesized_init=*/TRUE,
