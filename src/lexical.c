@@ -41,6 +41,10 @@ and parsing of them into tokens.
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 #include "func_def.h"
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+#ifdef lint
+/* Include the definition of an_arg_operand to suppress lint errors. */
+#include "exprutil.h"
+#endif /* ifdef lint */
 
 
 /*
