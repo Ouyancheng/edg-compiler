@@ -1,5 +1,10 @@
 Version 2.32
 
+5/17/96  Added guard around definition of CFRONT_COMPATIBILITY_MODE
+
+In config.h, CFRONT_COMPATIBILITY_MODE is only defined if it was
+not already defined.
+
 5/15/96  Added missing #define to guard code in eh.h
 
 The eh.h was missing a #define of _EH_H.  This has been fixed.

@@ -47,7 +47,9 @@ For example, cfront passes eight NULL pointers to constructors called
 from vec_new.  The NULL pointers initialize parameters that point to
 virtual base classes.  We only do this in cfront compatibility mode.
 */
+#ifndef CFRONT_COMPATIBILITY_MODE
 #define CFRONT_COMPATIBILITY_MODE TRUE
+#endif /* ifndef CFRONT_COMPATIBILITY_MODE */
 
 
 /*
