@@ -1,5 +1,15 @@
 Version 3.4
 
+9/11/03  C++-generating back end: Avoid line break between template name
+         and "<" for MSVC++
+
+To work around a bug in MSVC++ up to 7.0, the C++-generating back end
+now avoids breaking an output line between the name of a template and
+the "<" that begins its argument list.  MSVC++ gets confused if
+a #line directive appears at that point.  The workaround is done
+only if msvc_is_generated_code_target is true and
+msvc_target_version_number is <= 1300.
+
 9/10/03  C++-generating back end: addition to MSVC++ 7.0 workaround
 
 The MSVC++ 7.0 workaround described in the entry of 10/17/02 turns

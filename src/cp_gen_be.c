@@ -114,6 +114,11 @@ static unsigned int
 #define disable_line_wrapping() (line_wrapping_disabled++)
 #define enable_line_wrapping() (line_wrapping_disabled--)
 
+static unsigned long
+		disable_line_wrapping_until_column;
+			/* If non-zero, output line wrapping is disabled
+			   until the indicated column is reached. */
+
 /* Current output position -- file, line, sequence number, column: */
 static a_source_file_ptr
 		curr_output_file;
@@ -1293,6 +1298,7 @@ End the current line of output.
   }  /* if */
   curr_output_line++;
   curr_output_column = 0;
+  disable_line_wrapping_until_column = 0;
 }  /* end_output_line */
 
 /*
@@ -1341,6 +1347,7 @@ Write a #line directive for the indicated line number and file.
   }  /* if */
   (void)putc('\n', f_C_output);
   curr_output_column = 0;
+  disable_line_wrapping_until_column = 0;
 }  /* write_line_directive */
 
 
@@ -1485,7 +1492,10 @@ Continue the current line of output on the next line (probably because
 it is too long).  If line wrapping is disabled, do nothing.
 */
 {
-  if (!line_wrapping_disabled) {
+  if (!line_wrapping_disabled &&
+      (disable_line_wrapping_until_column == 0 ||
+       curr_output_column >= disable_line_wrapping_until_column)) {
+    disable_line_wrapping_until_column = 0;
     if (curr_output_pos_known) {
       /* Continue by emitting a #line directive to repeat the current line
          number. */
@@ -1785,6 +1795,16 @@ Output the template arguments of the entity associated with scp.
   a_template_arg_ptr tap = template_arguments_for_name(scp, entry_kind,
                                                          &insert_space);
   if (tap != NULL) {
+    if (msvc_is_generated_code_target && msvc_target_version_number <= 1300) {
+      /* MSVC++ up to version 7.0 has a bug when a qualified template name
+         is separated from the following "<" by a "#line" directive, so
+         make sure we do not wrap the line at this point. */
+      unsigned long new_disable_column = curr_output_column +
+                                         (insert_space ? 2 : 1);
+      if (new_disable_column > disable_line_wrapping_until_column) {
+        disable_line_wrapping_until_column = new_disable_column;
+      }  /* if */
+    }  /* if */
     if (insert_space) write_space();
     /* Put out the template argument list, e.g., "<int, float>". */
     form_template_args(tap, &octl);
@@ -10786,6 +10806,7 @@ Initialize for the C++/C-generating back end.
 */
 {
   line_wrapping_disabled = 0;
+  disable_line_wrapping_until_column = 0;
   f_C_output = NULL;
   /* Set the position for errors to "unknown". */
   error_position.seq = 0;
