@@ -1421,7 +1421,7 @@ Returns TRUE if there is an error in the specifiers.
   a_symbol_ptr       curr_token_type_symbol;
   a_boolean          err = FALSE;
   a_boolean          bad_combination_of_type_specifiers = FALSE;
-  a_source_position  start_pos;
+  a_source_position  start_pos, qualifier_pos;
   a_type_kind        kind;
   an_integer_kind    ikind;
   a_float_kind       fkind;
@@ -1563,10 +1563,7 @@ Returns TRUE if there is an error in the specifiers.
           if (es == es_error) err = TRUE;
         } else {
           is_const_qualified = TRUE;
-          /* Set the output_flags bit, for the case where only type qualifiers
-	     are acceptable, and therefore there is no type entry in which to
-	     return the const qualifier. */
-	  *output_flags |= DSO_CONST_QUALIFIED;
+          if (!is_volatile_qualified) qualifier_pos = pos_curr_token;
         }  /* if */
         break;
       case tok_volatile:
@@ -1580,10 +1577,7 @@ Returns TRUE if there is an error in the specifiers.
           if (es == es_error) err = TRUE;
         } else {
           is_volatile_qualified = TRUE;
-          /* Set the output_flags bit, for the case where only type qualifiers
-	     are acceptable, and therefore there is no type entry in which to
-	     return the const qualifier. */
-	  *output_flags |= DSO_VOLATILE_QUALIFIED;
+          if (!is_const_qualified) qualifier_pos = pos_curr_token;
         }  /* if */
         break;
       case tok_friend:
@@ -2637,6 +2631,13 @@ exit_loop:
              identically qualified is okay, so don't even bother checking for
              an error.  Note that make_qualified_type will not actually add
              superfluous qualifiers. */
+          /* However, adding a qualifier to a typedef for a reference type
+             is not allowed.  More precisely, the qualifier is ignored.
+             Issue a diagnostic. */
+          if (is_reference_type(*type_ptr)) {
+            is_const_qualified = is_volatile_qualified = FALSE;
+            pos_warning(ec_qualified_reference_type, &qualifier_pos);
+          }  /* if */        
         } else {
           /* In C we check for duplicate qualifiers on a declaration, even
              if, in the case of an array type, one is a top-level qualifier
@@ -2660,17 +2661,24 @@ exit_loop:
           }  /* if */
         }  /* if */
       }  /* if */
-      /* Add the qualifiers if necessary.  make_qualified_type understands the
-         strange array case too. */
-      *type_ptr = make_qualified_type(*type_ptr,
-                                      is_const_qualified,
-                                      is_volatile_qualified);
+      if (is_const_qualified || is_volatile_qualified) {
+        /* Add the qualifiers if necessary.  make_qualified_type understands
+           the strange array case too. */
+        *type_ptr = make_qualified_type(*type_ptr,
+                                        is_const_qualified,
+                                        is_volatile_qualified);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* If there was an error, assume something was declared.  Who knows what the
      correct code should have done. */
   if (err || declares_something) *output_flags |= DSO_DECLARES_SOMETHING;
   if (defines_something) *output_flags |= DSO_DEFINES_SOMETHING;
+  /* Set the output_flags bit, for the case where only type qualifiers are
+     acceptable, and therefore there is no type entry in which to return the
+     qualifier. */
+  if (is_const_qualified) *output_flags |= DSO_CONST_QUALIFIED;
+  if (is_volatile_qualified) *output_flags |= DSO_VOLATILE_QUALIFIED;
 #if DEBUG
   if (debug_level >= 3) {
     fputs("type_ptr: ", f_debug);
