@@ -3190,6 +3190,8 @@ function symbols.
   a_symbol_ptr  sym, new_sym = NULL;
   an_error_code error_code;
   a_boolean     suppress_redecl_error = FALSE;
+  a_boolean     template_case = 
+                          (symbol_kind == (a_symbol_kind)sk_function_template);
 
   db_enter(4, "symbol_for_member_function");
   *overload_sym = NULL;
@@ -3245,7 +3247,8 @@ function symbols.
         /* Overloading is not allowed for operator delete() (ARM 12.5). */
         pos_error(ec_delete_already_declared, &locator->source_position);
         suppress_redecl_error = TRUE;
-      } else if (!overload_distinguishable(sym, type, &error_code)) {
+      } else if (!overload_distinguishable(sym, type, template_case,
+                                           &error_code)) {
         pos_error(error_code, &locator->source_position);
         suppress_redecl_error = TRUE;
       } else {
