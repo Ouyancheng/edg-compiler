@@ -97,6 +97,9 @@ an enum type).
 
 #define is_unknown_type(tp) ((tp)->kind == (a_type_kind)tk_unknown)
 
+/*
+Return TRUE or FALSE about the qualifiers of a tk_typeref type.
+*/
 #define typeref_is_qualified(tp)                                      \
  ((tp)->variant.typeref.qualifiers != TQ_NONE)
 #define typeref_is_const_qualified(tp)                                \
@@ -107,6 +110,16 @@ an enum type).
 #define typeref_is_restrict_qualified(tp)                             \
  (((tp)->variant.typeref.qualifiers & TQ_RESTRICT) != 0)
 #endif /* RESTRICT_ALLOWED */
+
+/*
+Return TRUE if a tk_typeref type represents a typedef name.  Note that this
+is not identical to !typeref_is_qualified -- though typeref_is_qualified
+and typeref_is_typedef can never be true at the same time -- since there
+are cases in which typerefs are produced that are empty, with neither name
+nor qualifier.
+*/
+#define typeref_is_typedef(tp)                                        \
+ ((tp)->source_corresp.name != NULL)
 
 /*
 Return TRUE if the type pointed to is a tk_typeref that indicates type
