@@ -5508,6 +5508,8 @@ yet.
   entry_routine = alloc_routine();
   mark_as_not_visited(entry_routine);
   entry_routine->compiler_generated = TRUE;
+  entry_routine->source_corresp.referenced =
+                                overriding_function->source_corresp.referenced;
   /* Give the new routine the same linkage as the overriding routine,
      except that because the function is not defined yet it gets
      sc_extern storage class if the overriding routine has
