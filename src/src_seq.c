@@ -96,6 +96,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           db_type_name((a_type_ptr)sseocp->entity.ptr);
           fputc('"', f_debug);
           break;
+        case iek_template:
+          fputc('"', f_debug);
+          db_template_name((a_template_ptr)sseocp->entity.ptr);
+          fputc('"', f_debug);
+          break;
         case iek_namespace:
           fputc('"', f_debug);
           db_name(&((a_namespace_ptr)sseocp->entity.ptr)->source_corresp);
