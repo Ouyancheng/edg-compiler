@@ -2432,6 +2432,9 @@ so it can go into the IL.
       switch_to_file_scope_region(&region_to_switch_back_to);
       tap->variant.constant = alloc_shareable_constant(&constant);
       switch_back_to_original_region(region_to_switch_back_to);
+    } else if (tap->kind == (a_templ_arg_kind)tak_type) {
+      /* Eliminate any local or nonreal typedefs. */
+      tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type);
     }  /* if */
   }  /* if */
 }  /* prep_generic_template_argument_list */
