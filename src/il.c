@@ -9769,32 +9769,31 @@ it needs to be marked as autonomous.
 
 
 static a_source_sequence_entry_ptr src_seq_check_for_non_autonomous_tag(
-                                             a_source_sequence_entry_ptr ssep)
+                                        a_source_sequence_entry_ptr orig_ssep)
 /*
-ssep points to a source sequence entry encountered while removing unneeded IL
-entries; it is not itself to be removed from the IL.  If it is the end of a
-definition of a tag and if the type with which it is associated is not marked
-autonomous (or if it is a nonautonomous secondary tag declaration) the
-definition (or declaration) is part of the declaration of another entity.
-But if it turns out that the latter should be removed from the IL, the tag
-itself (if this is a definition, otherwise the secondary declaration entry)
-should be marked autonomous: that is the purpose of this routine.  Since it
-may skip unneeded entities, it returns a pointer to the next in the list.
-Even if it does nothing in terms of setting the autonomous flag, it at least
-returns the successor of ssep.
+orig_ssep points to a source sequence entry encountered while removing
+unneeded IL entries; it is not itself to be removed from the IL.  If it is
+the end of a definition of a tag and if the type with which it is associated
+is not marked autonomous (or if it is a nonautonomous secondary tag
+declaration) the definition (or declaration) is part of the declaration of
+another entity. But if it turns out that the latter should be removed from
+the IL, the tag itself (if this is a definition, otherwise the secondary
+declaration entry) should be marked autonomous: that is the purpose of this
+routine.  Since it may skip unneeded entities, it returns a pointer to the
+next in the list. Even if it does nothing in terms of setting the autonomous
+flag, it at least returns the successor of orig_ssep.
 */
 {
-  a_source_sequence_entry_ptr     next_ssep = ssep->next;
+  a_source_sequence_entry_ptr     ssep;
   a_src_seq_end_of_construct_ptr  sseocp;
   a_src_seq_secondary_decl_ptr    sssdp = NULL;
   a_type_ptr                      tag_type = NULL, tp;
-  an_il_entry_kind                prev_il_entry_kind;
 
-  switch (ss_entry_kind(ssep)) {
+  switch (ss_entry_kind(orig_ssep)) {
     case iek_src_seq_end_of_construct:
-      sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+      sseocp = ss_entry_ptr(orig_ssep, a_src_seq_end_of_construct_ptr);
       if (sseocp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-        /* ssep is the end of a tag definition. */
+        /* orig_ssep is the end of a tag definition. */
         tag_type = (a_type_ptr)sseocp->entity.ptr;
         if (tag_type->autonomous_primary_tag_decl ||
             tag_type->declared_in_function_prototype) {
@@ -9803,10 +9802,10 @@ returns the successor of ssep.
       }  /* if */
       break;
     case iek_src_seq_secondary_decl:
-      sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      sssdp = ss_entry_ptr(orig_ssep, a_src_seq_secondary_decl_ptr);
       if (!sssdp->autonomous_tag_decl) {
         if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-          /* ssep is a nonautonomous secondary declaration of a tag or
+          /* orig_ssep is a nonautonomous secondary declaration of a tag or
              typedef.  We're only interested in the former. */
           tag_type = (a_type_ptr)sssdp->entity.ptr;
           if (tag_type->kind == (a_type_kind)tk_typeref) {
@@ -9823,6 +9822,7 @@ returns the successor of ssep.
     default:;
       /* Leave tag_type NULL. */
   }  /* switch */
+  ssep = orig_ssep->next;
   if (tag_type != NULL) {
     /* This is a nonautonomous tag declaration (possibly a definition).  The
        tag is kept in the IL -- but what if the entity to whose declaration it
@@ -9832,7 +9832,8 @@ returns the successor of ssep.
        the IL we have to mark the entry for struct S as defined in an
        autonomous declaration.  In C++ and usually in C, the entity is
        next in the list. */
-    a_boolean  make_autonomous = FALSE;
+    a_boolean                    make_autonomous = FALSE;
+    a_source_sequence_entry_ptr  prev_ssep = NULL;
 #if CHECKING
     a_boolean  okay_if_not_found = C_mode() ||
                                    (sssdp != NULL &&
@@ -9842,20 +9843,19 @@ returns the successor of ssep.
 #if DEBUG
     if (debug_level >= 4) {
       fputs("checking nonautonomous tag: ", f_debug);
-      db_source_sequence_entry(ssep);
+      db_source_sequence_entry(orig_ssep);
     }  /* if */
 #endif /* DEBUG */
-    prev_il_entry_kind = (an_il_entry_kind)iek_none;
     for (;;) {
-      if (next_ssep == NULL) {
+      if (ssep == NULL) {
         check_assertion_str2(okay_if_not_found,
                              "src_seq_check_for_non_autonomous_tag:",
                              "no next entry");
         make_autonomous = TRUE;
         break;
-      } else if (ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_pragma
+      } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma
 #if RECORD_MACROS_IN_IL
-                 || ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_macro
+                 || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
 #endif /* RECORD_MACROS_IN_IL */
                                                                            ) {
         /* No macros or pragmas that are added to the IL are eliminated;
@@ -9864,14 +9864,15 @@ returns the successor of ssep.
 #if DEBUG
         if (debug_level >= 4) {
           fputs("skipping: ", f_debug);
-          db_source_sequence_entry(next_ssep);
+          db_source_sequence_entry(ssep);
         }  /* if */
 #endif /* DEBUG */
-        next_ssep = next_ssep->next;
-      } else if (prev_il_entry_kind != (an_il_entry_kind)iek_none &&
-                 ss_entry_kind(next_ssep) != prev_il_entry_kind) {
-        /* We assume a comma list of declarators will all be of the same
-           kind.  This allows us to handle this sort of case correctly:
+        ssep = ssep->next;
+      } else if (prev_ssep != NULL &&
+                 ((ss_entry_kind(ssep) == (an_il_entry_kind)iek_type) !=
+                  (ss_entry_kind(prev_ssep) == (an_il_entry_kind)iek_type))) {
+        /* We assume a comma list of declarators will not mix typedefs and
+           non-typedefs, so that this sort of case can be handled correctly:
              typedef struct S { int i; } *T;   // T is not needed
              struct S x;
            The source-sequence entry for the typedef is eliminated, and the
@@ -9892,7 +9893,7 @@ returns the successor of ssep.
       } else {
         /* See what kind of entity follows the tag definition; get the type
            with which it was declared. */
-        tp = type_from_src_seq_declaration(next_ssep);
+        tp = type_from_src_seq_declaration(ssep);
         if (tp == NULL || find_bottom_of_type(tp) != tag_type) {
           /* This is not an entity that was declared with the tag; the tag
              should be marked as autonomous.  Sometimes this will not be
@@ -9904,18 +9905,18 @@ returns the successor of ssep.
                                "type of next entry does not match");
           make_autonomous = TRUE;
           break;
-        } else if (il_entry_prefix_of(next_ssep).keep_in_il) {
+        } else if (il_entry_prefix_of(ssep).keep_in_il) {
           /* make_autonomous = FALSE; */
           break;
         } else {
 #if DEBUG
           if (debug_level >= 4) {
             fputs("dropping: ", f_debug);
-            db_source_sequence_entry(next_ssep);
+            db_source_sequence_entry(ssep);
           }  /* if */
 #endif /* DEBUG */
-          prev_il_entry_kind = ss_entry_kind(next_ssep);
-          next_ssep = drop_from_fs_src_seq_list(next_ssep);
+          prev_ssep = ssep;
+          ssep = drop_from_fs_src_seq_list(ssep);
           /* We continue searching the source sequence list.  In a case like
                struct S { int i; } x, y, z;
              it may be that x and y are both eliminated but z is not.  It's
@@ -9943,12 +9944,12 @@ returns the successor of ssep.
 #if DEBUG
       if (debug_level >= 4) {
         fputs("marked autonomous: ", f_debug);
-        db_source_sequence_entry(ssep);
+        db_source_sequence_entry(orig_ssep);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
-  return next_ssep;
+  return ssep;
 }  /* src_seq_check_for_non_autonomous_tag */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
