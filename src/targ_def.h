@@ -1992,7 +1992,8 @@ designated initializers can be enabled.  Having this TRUE means the back
 end is prepared to accept designated initializers, either in the
 unlowered form or the lowered form (see LOWER_DESIGNATED_INITIALIZERS).
 The C-generating and C++-generating back ends can handle designated
-initializers.
+initializers (but that's useful only if the downstream compiler also
+handles them).
 */
 #ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
