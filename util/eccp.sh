@@ -522,6 +522,8 @@ do
          --no_array_new_and_delete | \
          --namespaces | \
          --no_namespaces | \
+         --using_std | \
+         --no_using_std | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
