@@ -3791,6 +3791,7 @@ not lowered at this time (see lower_constructor_code).
   a_param_type_ptr first_param, added_param, prev_param;
   a_base_class_ptr bcp;
 
+  routine_type = skip_typerefs(routine_type);
   /* Get the "this" parameter entry.  The routine type has already been
      lowered, so it's the first on the list. */
   first_param = routine_type->variant.routine.extra_info->param_type_list;
@@ -3834,6 +3835,7 @@ not lowered at this time (see lower_destructor_code).
   a_type_ptr       class_type;
   a_param_type_ptr first_param, added_param;
 
+  routine_type = skip_typerefs(routine_type);
   /* Get the "this" parameter entry.  The routine type has already been
      lowered, so it's the first on the list. */
   first_param = routine_type->variant.routine.extra_info->param_type_list;
