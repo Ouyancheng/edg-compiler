@@ -4940,9 +4940,10 @@ type if necessary.
 */
 {
   a_routine_type_supplement_ptr  rtsp;
-  a_type_ptr                     tp = skip_typerefs(member_type);
+  a_type_ptr                     tp;
 
   check_assertion(class_type != NULL && member_type != NULL);
+  tp = skip_typerefs(member_type);
   if (is_function_type(tp)) {
     rtsp = tp->variant.routine.extra_info;
     if (rtsp->implicit_this_param_type == NULL) {
