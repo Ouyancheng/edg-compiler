@@ -3134,7 +3134,8 @@ is done, is that all the classes have to have been marked first.
 static set_needed_flags_for_anon_union_parent_vars(a_scope_ptr  scope)
 /*
 Ensure that the "parent variables" associated with nonmember anonymous unions
-are marked as "needed" if associated type entry is so marked.
+of the indicated scope are marked as "needed" if the associated type entry is
+so marked.
 */
 {
   a_namespace_ptr  nsp;
@@ -3160,7 +3161,7 @@ are marked as "needed" if associated type entry is so marked.
         set_needed_flags_for_anon_union_parent_vars(sp);
       }  /* for */
 check_variables:
-      /* Traverse the linked list of variables associated with current
+      /* Traverse the linked list of variables associated with the current
          scope. */
       for (vp = scope->variables; vp != NULL; vp = vp->next) {
         if (vp->is_anonymous_parent_object) {
@@ -3172,13 +3173,13 @@ check_variables:
                  static union { typedef int T; };
                  T x;
                This is no longer allowed in strict mode, but we need to do
-               do this for backward compatibility. */
+               this for backward compatibility. */
             vp->source_corresp.needed = TRUE;
           }  /* if */
         }  /* if */
       }  /* for */
       break;
-    default:
+    default:;
       /* Ignore it. */
   }  /* switch */
 }  /* set_needed_flags_for_anon_union_parent_vars */
@@ -3192,7 +3193,9 @@ static void set_needed_flags_at_end_of_file_scope(
 scope is a pointer to the file scope, a namespace scope, or a class scope.
 Set the "needed" flags on classes, variables, and static data members now
 that processing for the file scope (including IL lowering, if applicable) has
-been completed.
+been completed.  Return *check_anon_union_parent_vars TRUE if, in scanning
+the variables of this scope, an anonymous union parent was encountered that
+was not marked as needed; it will be subject to a fixup pass later.
 */
 {
   a_type_ptr                   tp;
@@ -3292,14 +3295,6 @@ been completed.
        too. */
     set_needed_flags_for_typedefs(scope);
   }  /* if */
-#if !DO_IL_LOWERING
-  if (*check_anon_union_parent_vars) {
-    /* There is at least one anonymous union parent variable that was not
-       yet marked as needed when it was encountered.  In case it and others
-       subsequently turn out to be needed, make a separate pass for them. */
-    set_needed_flags_for_anon_union_parent_vars(scope);
-  }  /* if */
-#endif /* !DO_IL_LOWERING */
 #if BACK_END_IS_CP_GEN_BE
   if (scope->templates != NULL) {
     /* The very presence of templates in the IL means pruning the IL of
@@ -3655,6 +3650,14 @@ End a name scope by popping an entry off the scope stack.
     end_of_file_scope_needed_flags_phase = TRUE;
     set_needed_flags_at_end_of_file_scope(il_scope,
                                           &check_anon_union_parent_vars);
+#if !DO_IL_LOWERING
+    if (check_anon_union_parent_vars) {
+      /* There is at least one anonymous union parent variable that was not
+         yet marked as needed when it was encountered.  In case it and others
+         subsequently turn out to be needed, make a separate pass for them. */
+      set_needed_flags_for_anon_union_parent_vars(scope);
+    }  /* if */
+#endif /* !DO_IL_LOWERING */
     end_of_file_scope_needed_flags_phase = FALSE;
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
