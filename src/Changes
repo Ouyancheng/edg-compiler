@@ -1,5 +1,25 @@
 Version 3.1
 
+6/19/02  C-generating back end: Sequencing of C99 STDC pragmas
+
+The C-generating back end used to emit all the file scope C99 STDC pragmas
+prior to emitting the routine definitions to which the pragmas apply.  This
+resulted in incorrect C code.  For example:
+
+  #pragma FP_CONTRACT OFF
+  void f1() {}  // floating-point contraction disabled
+  #pragma FP_CONTRACT ON
+  void f2() {}
+
+was compiled to the equivalent of
+
+  #pragma FP_CONTRACT OFF
+  #pragma FP_CONTRACT ON
+  void f1() {}  // floating-point contraction enabled
+  void f2() {}
+
+This is now fixed.
+
 6/19/02  Missing ambiguity error on ctor-initializer
 
 The front end failed to diagnose an ambiguous name used as a base class

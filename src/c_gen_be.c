@@ -316,6 +316,24 @@ static a_boolean
 			   output directly to f_C_output instead of to
 			   a temporary file. */
 
+static a_stdc_pragma_value
+		curr_default_fp_contract;
+			/* The value of the last STDC FP_CONTRACT pragma
+			   emitted in file scope (stdc_pv_default if none was
+			   emitted so far). */
+
+static a_stdc_pragma_value
+		curr_default_fenv_access;
+			/* The value of the last STDC FENV_ACCESS pragma
+			   emitted in file scope (stdc_pv_default if none was
+			   emitted so far). */
+
+static a_stdc_pragma_value
+		curr_default_cx_limited_range;
+			/* The value of the last STDC CX_LIMITED_RANGE pragma
+			   emitted in file scope (stdc_pv_default if none was
+			   emitted so far). */
+
 #if UPC_EXTENSIONS_ALLOWED
 static a_upc_access_method
 		curr_default_upc_access_method;
@@ -2035,24 +2053,52 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 }  /* dump_type */
 
 
-static void dump_stdc_pragma(a_pragma_ptr pp)
+static void dump_stdc_pragma(a_stdc_pragma_kind   kind,
+                             a_stdc_pragma_value  value)
 /*
-Dump one of the predefined C99 pragmas.
+Dump one of the predefined C99 pragmas (which pragma to emit is determined
+by "kind", while "value" specifies whether the pragma should be "ON", "OFF"
+or "DEFAULT").
 */
 {
+  unsigned long  saved_indent = indent;
+
+  end_output_line_if_begun();
+  indent = 0;
+  disable_line_wrapping();
   write_str("#pragma ");
-  switch (pp->variant.stdc.kind) {
-    case stdc_pk_fp_contract: write_str("FP_CONTRACT "); break;
-    case stdc_pk_fenv_access: write_str("FENV_ACCESS "); break;
-    case stdc_pk_cx_limited_range: write_str("CX_LIMITED_RANGE "); break;
-    default: unexpected_condition_str("dump_stdc_pragma: bad kind"); break;
+  switch (kind) {
+    case stdc_pk_fp_contract:
+      write_str("FP_CONTRACT ");
+      if (innermost_function_scope == NULL) {
+        curr_default_fp_contract = value;
+      }  /* if */
+      break;
+    case stdc_pk_fenv_access:
+      write_str("FENV_ACCESS ");
+      if (innermost_function_scope == NULL) {
+        curr_default_fenv_access = value;
+      }  /* if */
+      break;
+    case stdc_pk_cx_limited_range:
+      write_str("CX_LIMITED_RANGE ");
+      if (innermost_function_scope == NULL) {
+        curr_default_cx_limited_range = value;
+      }  /* if */
+      break;
+    default:
+      unexpected_condition_str("dump_stdc_pragma: bad kind");
+      break;
   }  /* switch */
-  switch (pp->variant.stdc.value) {
+  switch (value) {
     case stdc_pv_on: write_str("ON"); break;
     case stdc_pv_off: write_str("OFF"); break;
     case stdc_pv_default: write_str("DEFAULT"); break;
     default: unexpected_condition_str("dump_stdc_pragma: bad value"); break;
   }  /* switch */
+  enable_line_wrapping();
+  end_output_line();
+  indent = saved_indent;
 }  /* dump_stdc_pragma */
 
 #if UPC_EXTENSIONS_ALLOWED
@@ -2098,7 +2144,7 @@ Dump a single #pragma from the IL entry.
     disable_line_wrapping();
     octl.suppress_line_breaking = TRUE;
     if (pp->kind == (a_pragma_kind)pk_stdc) {
-      dump_stdc_pragma(pp);
+      dump_stdc_pragma(pp->variant.stdc.kind, pp->variant.stdc.value);
 #if UPC_EXTENSIONS_ALLOWED
     /* Check for #pragma upc. */
     } else if (pp->kind == (a_pragma_kind)pk_upc) {
@@ -7433,15 +7479,29 @@ if this routine has a body (dump nothing if it has no body).
        of the routine if it has one, otherwise on the declaration. */
     if (is_definition || !has_defn) {
       dump_decl_associated_pragmas(&rout->source_corresp);
-    }  /* if */
+      if (is_definition) {
+        /* Generate any needed standard C99 pragma. */
+        if (rout->fp_contract != curr_default_fp_contract) {
+          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fp_contract,
+                           rout->fp_contract);
+        }  /* if */
+        if (rout->fenv_access != curr_default_fenv_access) {
+          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fenv_access,
+                           rout->fenv_access);
+        }  /* if */
+        if (rout->cx_limited_range != curr_default_cx_limited_range) {
+          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_cx_limited_range,
+                           rout->cx_limited_range);
+        }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
-    if (is_definition &&
-        rout->upc_access_method !=
+        if (rout->upc_access_method !=
                                 (a_upc_access_method)upc_access_unspecified &&
-        rout->upc_access_method != curr_default_upc_access_method) {
-      dump_upc_pragma(rout->upc_access_method);
-    }  /* if */
+            rout->upc_access_method != curr_default_upc_access_method) {
+          dump_upc_pragma(rout->upc_access_method);
+        }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+      }  /* if */
+    }  /* if */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
     /* Determine the proper storage class to display. */
@@ -7968,6 +8028,9 @@ The IL is already available when this routine is called.
      because C99 lowering rewrites _Bool.  But if that were turned off, we
      would want _Bool to be output. */
   octl.render_c99_bool = c99_mode;
+  curr_default_fp_contract = (a_stdc_pragma_value)stdc_pv_default;
+  curr_default_fenv_access = (a_stdc_pragma_value)stdc_pv_default;
+  curr_default_cx_limited_range = (a_stdc_pragma_value)stdc_pv_default;
 #if UPC_EXTENSIONS_ALLOWED
   curr_default_upc_access_method = il_header.default_upc_strict_access ?
                                      (a_upc_access_method)upc_access_strict :
