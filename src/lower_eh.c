@@ -53,13 +53,6 @@ static a_boolean
 			/* TRUE if there are any try blocks in the current
 			   function. */
 
-static a_constant_ptr
-		last_destructor_wrapper_cleanup_region_prev_region_constant;
-			/* If non-NULL, points at the previous region constant
-			   in the region table entry for the last region
-			   generated for a destructor wrapper cleanup.
-			   This is used to patch that value when another
-			   wrapper cleanup is processed. */
 static a_boolean
 		destructor_wrapper_region_set_fixup_needed;
 			/* If TRUE, there is an assignment to the current eh
@@ -1658,18 +1651,15 @@ pointer can be examined.
      case the list runs backwards, so link the previous last entry to
      this one and link this one to null for now. */
   prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  cap->prev_cleanup_region_constant = prev_con;
   if (cap->destructor_wrapper_cleanup) {
-    if (last_destructor_wrapper_cleanup_region_prev_region_constant != NULL) {
+    if (cap->next != NULL) {
       /* Fix the "previous region" value in the last entry of the table so
          it points at this new entry. */
-      set_unsigned_integer_value(
-                 &last_destructor_wrapper_cleanup_region_prev_region_constant->
+      set_unsigned_integer_value(&cap->next->prev_cleanup_region_constant->
                                                          variant.integer_value,
-                 (unsigned long)cleanup_region_number(cap));
+                                 (unsigned long)cleanup_region_number(cap));
     }  /* if */
-    /* Remember this constant so it can be fixed up if there is another
-       wrapper cleanup following this one. */
-    last_destructor_wrapper_cleanup_region_prev_region_constant = prev_con;
     /* The previous region number on this new entry is null (for now; it
        will be fixed up if there is another wrapper cleanup region after
        this one). */
@@ -1697,7 +1687,7 @@ pointer can be examined.
   /* Return to the memory region that was current when this routine was
      entered. */
   switch_back_to_original_region(region_to_switch_back_to);
-}  /* region_table_entry */
+}  /* make_region_table_entry */
 
 
 static a_variable_ptr make_exception_type_spec_array_var(void)
@@ -2383,7 +2373,6 @@ routine).
     next_region_number = 0;
   }  /* if */
   any_try_blocks_in_function = FALSE;
-  last_destructor_wrapper_cleanup_region_prev_region_constant = NULL;
   destructor_wrapper_region_set_fixup_needed = FALSE;
 }  /* eh_function_lower_init */
 

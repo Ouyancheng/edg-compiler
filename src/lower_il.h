@@ -149,6 +149,12 @@ typedef struct a_cleanup_action {
 		region_number;
 			/* Destructible object region number for exception
 			   handling. */
+  a_constant_ptr
+		prev_cleanup_region_constant;
+			/* For actions with an associated exception cleanup
+			   region, this points to the constant for the
+			   "previous region" pointer in the region entry,
+			   so it can be relinked if necessary. */
   a_cleanup_action_kind
 		kind;	/* Kind of entry. */
   union {

@@ -265,6 +265,7 @@ in the cleanup entry.
   cap->applies_on_exception_cleanup = applies_on_exception_cleanup;
   cap->destructor_wrapper_cleanup = FALSE;
   cap->region_number = NULL_EH_REGION_NUMBER;
+  cap->prev_cleanup_region_constant = NULL;
   cap->kind = kind;
   switch (kind) {
     case cak_catch:
