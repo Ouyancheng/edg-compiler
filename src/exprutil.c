@@ -3642,12 +3642,18 @@ the variable's value.  Otherwise, return NULL.
 
 static an_expr_node_ptr conv_lvalue_expr_to_rvalue(
                                                an_expr_node_ptr node,
-                                               a_boolean        *constant_case)
+                                               a_boolean        *constant_case,
+                                               a_constant_ptr   *con_value)
 /*
 mode is an expression that is the address for an lvalue.  Create an
 expression for the corresponding rvalue, and return a pointer to it.
 If the difference between the two is only that a constant variable was
-replaced by its value, return *constant_case TRUE.
+replaced by its value, return *constant_case TRUE.  If con_value is non-NULL
+and *is_constant is returned TRUE and the entire expression has a constant
+value because it was a constant variable that was replaced by its value,
+return a pointer to the constant value in *con_value, do not build an
+updated expression tree, and return NULL.  Otherwise, if con_value is
+non-NULL return *con_value == NULL.
 */
 {
   a_boolean             optimized_case = FALSE;
@@ -3657,7 +3663,8 @@ replaced by its value, return *constant_case TRUE.
   a_boolean             constant_case2, constant_case3;
   a_constant_ptr        con_var_value = NULL;
 
- *constant_case = FALSE;
+  *constant_case = FALSE;
+  if (con_value != NULL) *con_value = NULL;
   if (C_dialect == C_dialect_cplusplus) {
     /* Look for constant-valued variables in C++. */
     con_var_value = value_of_constant_var_lvalue_expr(node);
@@ -3667,7 +3674,15 @@ replaced by its value, return *constant_case TRUE.
        variable.  Substitute the constant value. */
     optimized_case = TRUE;
     *constant_case = TRUE;
-    node = alloc_node_for_constant(con_var_value);
+    if (con_value != NULL) {
+      /* The caller wants the constant instead of an expression node for
+         the constant. */
+      *con_value = con_var_value;
+      node = NULL;
+    } else {
+      /* The caller wants an expression node for the constant. */
+      node = alloc_node_for_constant(con_var_value);
+    }  /* if */
   } else if (is_variable_address_node(node)) {
     /* A variable address node.  Change to the value of the variable. */
     optimized_case = TRUE;
@@ -3704,8 +3719,10 @@ replaced by its value, return *constant_case TRUE.
         optimized_case = TRUE;
         op2 = op1->next;
         op3 = op2->next;
-        op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2);
-        op2->next = conv_lvalue_expr_to_rvalue(op3, &constant_case3);
+        op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
+                                                     (a_constant_ptr *)NULL);
+        op2->next = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
+                                               (a_constant_ptr *)NULL);
         *constant_case = constant_case2 && constant_case3;
       } else if (op == (an_expr_operator_kind)eok_comma) {
         /* Comma operator.  Apply the transformation to the second operand
@@ -3714,7 +3731,8 @@ replaced by its value, return *constant_case TRUE.
         */
         optimized_case = TRUE;
         op2 = op1->next;
-        op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2);
+        op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
+                                               (a_constant_ptr *)NULL);
         *constant_case = constant_case2;
       } else {
         /* The operation is an assignment or prefix ++/-- that returns an
@@ -3724,18 +3742,22 @@ replaced by its value, return *constant_case TRUE.
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
     }  /* if */
   }  /* if */
-  if (optimized_case) {
-    /* For the optimized cases, set the node type to the type pointed to. */
-    node->type = type_pointed_to(orig_type);
-  } else {
-    /* Not an optimized case.  Just add an indirection. */
-    node = add_indirection_to_node(node);
-  }  /* if */
-  /* Drop type qualifiers because they are meaningless on rvalues.
-     Note that no cast is needed to drop the qualifiers: an IL shorthand
-     applies in this case. */
-  if (is_qualified_type(node->type)) {
-    node->type = make_unqualified_type(node->type);
+  /* If a constant is being returned instead of an updated expression tree,
+     node is NULL and nothing further should be done. */
+  if (node != NULL) {
+    if (optimized_case) {
+      /* For the optimized cases, set the node type to the type pointed to. */
+      node->type = type_pointed_to(orig_type);
+    } else {
+      /* Not an optimized case.  Just add an indirection. */
+      node = add_indirection_to_node(node);
+    }  /* if */
+    /* Drop type qualifiers because they are meaningless on rvalues.
+       Note that no cast is needed to drop the qualifiers: an IL shorthand
+       applies in this case. */
+    if (is_qualified_type(node->type)) {
+      node->type = make_unqualified_type(node->type);
+    }  /* if */
   }  /* if */
   return node;
 }  /* conv_lvalue_expr_to_rvalue */
@@ -3755,6 +3777,7 @@ not an lvalue, it is left alone.
   an_expr_node_ptr operand_node, cast_node;
   a_type_ptr       cast_orig_type, unqualified_type;
   a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
+  a_constant_ptr   con_value;
 
   /* Ignore non-lvalues. */
   if (is_an_lvalue(operand)) {
@@ -3850,9 +3873,16 @@ not an lvalue, it is left alone.
         } else {
           /* Normal expression case (not an lvalue cast). */
           /* Convert the expression to an rvalue. */
-          operand->variant.expression =
-                              conv_lvalue_expr_to_rvalue(node, &constant_case);
-          operand->state = (an_operand_state)os_rvalue;
+          node = conv_lvalue_expr_to_rvalue(node, &constant_case, &con_value);
+          if (con_value != NULL) {
+            /* The value of the expression is a constant.  Make a constant
+               operand instead of the expression operand. */
+            make_constant_operand(con_value, operand);
+          } else {
+            /* The value of the expression is not a constant. */
+            operand->variant.expression = node;
+            operand->state = (an_operand_state)os_rvalue;
+          }  /* if */
           /* The subroutine handles dropping type qualifiers. */
           qualifiers_dropped = TRUE;
         }  /* if */
