@@ -3615,34 +3615,13 @@ NULL.
       /* Variable or parameter. */
       var_ptr = sym->variant.variable;
       storage_class = var_ptr->storage_class;
-      /* Check for a file-scope variable with no storage class and
-         an incomplete type, as in "struct incomplete v;".  Issue an
-         error.  The case of an incomplete array is handled by the
-         sk_extern_variable case, below (a file-scope variable always
-         has linkage, so it will always have an sk_extern_variable
-         entry). */
-      /* sc_unspecified implies file scope, so no need to check that. */
-      /* Note also that if this test succeeds (i.e., the variable has
-         storage class sc_unspecified), we do not do the test for
-         referenced.  That's because an external variable can be assumed
-         to be referenced from another compilation unit.  The referenced
-         flag in the IL entry is set slightly later, in the
-         sk_extern_variable processing. */
       if (storage_class == (a_storage_class)sc_unspecified) {
-        var_type = skip_typerefs(var_ptr->type);
-        if (is_completable_type(var_type)) {
-          if (is_array_with_complete_element_type(var_type)) {
-            /* Array type.  The test for complete element type disallows
-               arrays of incomplete struct/unions (which are an
-               extension).  Ignore this case here; it's handled by the
-               sk_extern_variable case. */
-          } else {
-            /* Something other than an array -- an error. */
-            /* E.g., struct xyz v; where struct xyz is never resolved. */
-            pos_st_error(ec_var_retained_incomp_type, &sym->decl_position,
-                         sym->header->identifier);
-          }  /* if */
-        }  /* if */
+        /* Note that if this test succeeds (i.e., the variable has
+           storage class sc_unspecified), we do not do the test for
+           referenced.  That's because an external variable can be assumed
+           to be referenced from another compilation unit.  The referenced
+           flag in the IL entry is set slightly later, in the
+           sk_extern_variable processing. */
       } else if (!sym->referenced) {
         /* An unreferenced variable or parameter. */
         if (var_ptr->is_parameter) {
@@ -3785,54 +3764,61 @@ check_routine:
       break;
     case sk_extern_variable:
       /* Symbol for a variable with linkage. */
-      /* Check for a file-scope incomplete array with no storage class,
-         for example "int a[];" at file scope.  Such an array is
-         defined by the standard (3.7.2 semantics) to be equivalent
-         to "int a[] = {0};"; change the size to 1 here.  However, if
-         the extern_variable entry has more complete type information
-         (i.e., an exact dimension), use that. */
       var_ptr = sym->variant.extern_symbol_descr->variant.variable;
-      /* sc_unspecified implies file scope, so no need to check that. */
-      if (var_ptr->storage_class == (a_storage_class)sc_unspecified) {
-        var_type = skip_typerefs(var_ptr->type);
-        if (is_completable_type(var_type)) {
-          if (is_array_with_complete_element_type(var_type)) {
-            /* Array type.  The test for complete element type disallows
-               arrays of incomplete struct/unions (which are an
-               extension). */
-            if (!is_incomplete_type(sym->variant.extern_symbol_descr->type)) {
-              /* The external symbol entry has a dimension for the array.
-                 Use it.  This would happen for
-                   int a[];
-                   main () {extern int a[5];}
-              */
-              var_ptr->type = sym->variant.extern_symbol_descr->type;
+      storage_class = var_ptr->storage_class;
+      var_type = skip_typerefs(var_ptr->type);
+      /* Look for variables that have retained an incomplete type
+         that isn't just plain "void". */
+      if (is_completable_type(var_type)) {
+        if (storage_class == (a_storage_class)sc_unspecified &&
+            is_array_with_complete_element_type(var_type)) {
+          /* A file-scope incomplete array with no storage class,
+             for example "int a[];" at file scope.  Such an array is
+             defined by the standard (3.7.2 semantics) to be equivalent
+             to "int a[] = {0};"; change the size to 1 here.  However, if
+             the extern_variable entry has more complete type information
+             (i.e., an exact dimension), use that. */
+         /* The test for complete element type disallows arrays of
+             incomplete struct/unions (which are an extension). */
+          if (!is_incomplete_type(sym->variant.extern_symbol_descr->type)){
+            /* The external symbol entry has a dimension for the array.
+               Use it.  This would happen for
+                 int a[];
+                 main () {extern int a[5];}
+            */
+            var_ptr->type = sym->variant.extern_symbol_descr->type;
+          } else {
+            /* There is no additional information; the array has an
+               unknown size. */
+            if (C_dialect != C_dialect_pcc) {
+              /* Change the array size to 1. */
+              a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
+              copy_type(var_type, array_type);
+              array_type->variant.array.number_of_elements = 1;
+              set_type_size(array_type);
+              var_ptr->type = array_type;
+              /* No need to call check_linked_entity_type here.  We
+                 know elem[] and elem[1] are compatible. */
             } else {
-              /* There is no additional information; the array has an
-                 unknown size. */
-              if (C_dialect != C_dialect_pcc) {
-                /* Change the array size to 1. */
-                a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
-                copy_type(var_type, array_type);
-                array_type->variant.array.number_of_elements = 1;
-                set_type_size(array_type);
-                var_ptr->type = array_type;
-                /* No need to call check_linked_entity_type here.  We
-                   know elem[] and elem[1] are compatible. */
-              } else {
-                /* pcc mode.  Leave the size as zero but change the
-                   storage class to extern. */
-                var_ptr->storage_class = (a_storage_class)sc_extern;
-              }  /* if */
+              /* pcc mode.  Leave the size as zero but change the
+                 storage class to extern. */
+              var_ptr->storage_class = (a_storage_class)sc_extern;
             }  /* if */
           }  /* if */
+        } else if (storage_class != (a_storage_class)sc_extern) {
+          /* A file-scope variable that defines storage and has
+             an incomplete type, as in "struct incomplete v;".  Issue an
+             error.  Note that arrays like this, except for static arrays,
+             were handled above. */
+          pos_st_error(ec_var_retained_incomp_type, &sym->decl_position,
+                       sym->header->identifier);
         }  /* if */
-        /* If the storage class remains sc_unspecified, set the
-           referenced flag now to indicate possible references from other
-           compilation units. */
-        if (var_ptr->storage_class == (a_storage_class)sc_unspecified) {
-          var_ptr->source_corresp.referenced = TRUE;
-        }  /* if */
+      }  /* if */
+      /* If the storage class remains sc_unspecified, set the
+         referenced flag now to indicate possible references from other
+         compilation units. */
+      if (var_ptr->storage_class == (a_storage_class)sc_unspecified) {
+        var_ptr->source_corresp.referenced = TRUE;
       }  /* if */
       break;
 #if CHECKING
