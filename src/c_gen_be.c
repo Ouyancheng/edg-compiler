@@ -370,7 +370,8 @@ static void dump_expr(an_expr_node_ptr expr,
 #define dump_expr_with_parens(expr) dump_expr(expr, /*need_parens=*/TRUE)
 #define dump_expression(expr)       dump_expr(expr, /*need_parens=*/FALSE)
 static void dump_boolean_controlling_expression(an_expr_node_ptr node);
-static void dump_compound_literal(an_expr_node_ptr expr);
+static void dump_compound_literal(an_expr_node_ptr expr,
+                                  a_boolean        suppress_address_of);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void dump_asm_function_body(char *p);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2744,6 +2745,11 @@ of an assignment).  It's also used for a normal "*" for indirection.
       write_tok_ch(')');
       processed = TRUE;
     }  /* if */
+  } else if (kind == (an_expr_node_kind)enk_temp_init &&
+             node->variant.init.result_is_addr) {
+    /* C9X compound literals. */
+    dump_compound_literal(node, /*suppress_address_of=*/TRUE);
+    processed = TRUE;
   }  /* if */
   if (!processed) {
     /* Not a special case: write "*expression". */
@@ -3838,7 +3844,7 @@ done_with_operation:
       break;
     case enk_temp_init:
       /* Used for C9X compound literals. */
-      dump_compound_literal(expr);
+      dump_compound_literal(expr, /*suppress_address_of=*/FALSE);
       break;
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* This code is here as a debugging aid.  Normally, these nodes are
@@ -4972,10 +4978,12 @@ it will be rendered as executable code.
 }  /* dump_initializer */
 
 
-static void dump_compound_literal(an_expr_node_ptr expr)
+static void dump_compound_literal(an_expr_node_ptr expr,
+                                  a_boolean        suppress_address_of)
 /*
 Generate code for a compound literal (a C9X feature), which is represented
-as an enk_temp_init expression.
+as an enk_temp_init expression.  If the expression indicates the address of
+the compound literal, precede it by "&" unless suppress_address_of is TRUE.
 */
 {
   a_dynamic_init_ptr    dip = expr->variant.init.dynamic_init;
@@ -4987,9 +4995,11 @@ as an enk_temp_init expression.
   /* An example of the form of a compound literal:
        (int []){1, 2, 3}
   */
+  write_tok_ch('(');
   temp_type = expr->type;
   if (expr->variant.init.result_is_addr) {
     temp_type = type_pointed_to(temp_type);
+    if (!suppress_address_of) write_tok_ch('&');
   }  /* if */
   dump_cast(temp_type);
   clear_initialization_flags(&icb);
@@ -5006,6 +5016,7 @@ as an enk_temp_init expression.
                         &icb);
   check_assertion(!gen_assignments);
   if (is_scalar) initializer_close_brace(&icb);
+  write_tok_ch(')');
 }  /* dump_compound_literal */
 
 
