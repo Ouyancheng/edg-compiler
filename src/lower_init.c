@@ -3202,7 +3202,8 @@ needed.
   a_memory_region_number region_to_switch_back_to;
 
   /* Make the guard variable at the file scope. */
-  test_var = make_instantiation_info_var("__SDG__", &variable->source_corresp);
+  test_var = make_instantiation_var("__SDG__", (an_integer_kind)ik_int,
+                                    &variable->source_corresp);
   if (variable->specific_def) {
     /* This variable is a specialization of a template entity, so its
        initialization should take precedence over any initialization code

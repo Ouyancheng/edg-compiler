@@ -1039,29 +1039,27 @@ it.  The variable has no name.
   return param_var;
 }  /* make_lowered_param_variable */
 
-/* Determine whether or not we need make_instantiation_info_var, and if
+/* Determine whether or not we need make_instantiation_var, and if
    so, whether or not it needs to be external. */
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-#define MAKE_INSTANTIATION_INFO_VAR_LINKAGE /*external*/
+#define MAKE_INSTANTIATION_VAR_LINKAGE /*external*/
 #else /* !TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-#define MAKE_INSTANTIATION_INFO_VAR_LINKAGE static
+#define MAKE_INSTANTIATION_VAR_LINKAGE static
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-#ifdef MAKE_INSTANTIATION_INFO_VAR_LINKAGE
+#ifdef MAKE_INSTANTIATION_VAR_LINKAGE
 
-MAKE_INSTANTIATION_INFO_VAR_LINKAGE
-a_variable_ptr make_instantiation_info_var(
-                                       char                    *prefix,
-                                       a_source_correspondence *source_corresp)
+MAKE_INSTANTIATION_VAR_LINKAGE
+a_variable_ptr make_instantiation_var(char                    *prefix,
+                                      an_integer_kind         ikind,
+                                      a_source_correspondence *source_corresp)
 /*
-Create a variable whose name records information on instantiation of some
-entity.  Such variables are used as part of the automatic instantiation scheme.
-source_corresp identifies the entity (variable or routine) for which some
-information is to be encoded.  The name of the generated variable encodes
-the information about that entity; it consists of the indicated prefix
-(e.g., something like "__DNI__" to indicate "do not instantiate") followed
-by the mangled name of the entity.  The variable has type int.
+Create a variable related to instantiation of some template entity,
+and return a pointer to it.  source_corresp identifies the template
+entity (variable or routine).  The name of the generated variable
+consists of the indicated prefix followed by the mangled name of the
+entity.  The variable has the integral type indicated by ikind.
 */
 {
   a_variable_ptr var;
@@ -1083,12 +1081,32 @@ by the mangled name of the entity.  The variable has type int.
   (void)strcpy(info_name+prefix_length, mangled_name);
   /* Make the variable.  Note that it is a definition of an external name. */  
   var = make_lowered_variable(info_name, /*already_il_name=*/TRUE,
-                              integer_type((an_integer_kind)ik_int),
+                              integer_type(ikind),
                               (a_storage_class)sc_unspecified);
   return var;
+}  /* make_instantiation_var */
+
+#endif /* ifdef MAKE_INSTANTIATION_VAR_LINKAGE */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+
+static void make_instantiation_info_var(
+                                       char                    *prefix,
+                                       a_source_correspondence *source_corresp)
+/*
+Create a variable whose name records information on instantiation of some
+entity.  Such variables are used as part of the automatic instantiation scheme.
+source_corresp identifies the entity (variable or routine) for which some
+information is to be encoded.  The name of the generated variable encodes
+the information about that entity; it consists of the indicated prefix
+(e.g., something like "__DNI__" to indicate "do not instantiate") followed
+by the mangled name of the entity.  The variable has type char (arbitrarily).
+*/
+{
+  (void)make_instantiation_var(prefix, (an_integer_kind)ik_char,
+                               source_corresp);
 }  /* make_instantiation_info_var */
 
-#endif /* ifdef MAKE_INSTANTIATION_INFO_VAR_LINKAGE */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant)
 /*
@@ -3831,15 +3849,15 @@ Do IL lowering of the indicated variable and everything under it.
       /* Static data member. */
       if (variable->instance_required) {
         /* This variable is template-based. */
-        (void)make_instantiation_info_var("__TIR__",&variable->source_corresp);
+        make_instantiation_info_var("__TIR__", &variable->source_corresp);
       }  /* if */
       if (variable->do_not_instantiate) {
         /* This variable cannot be instantiated. */
-        (void)make_instantiation_info_var("__DNI__",&variable->source_corresp);
+        make_instantiation_info_var("__DNI__", &variable->source_corresp);
       }  /* if */
       if (variable->can_be_instantiated) {
         /* This variable can be instantiated. */
-        (void)make_instantiation_info_var("__CBI__",&variable->source_corresp);
+        make_instantiation_info_var("__CBI__", &variable->source_corresp);
       }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -3986,15 +4004,15 @@ Do IL lowering of the indicated routine and everything under it.
          names that encode instantiation information. */
       if (routine->instance_required) {
         /* This routine is template-based. */
-        (void)make_instantiation_info_var("__TIR__", &routine->source_corresp);
+        make_instantiation_info_var("__TIR__", &routine->source_corresp);
       }  /* if */
       if (routine->do_not_instantiate) {
         /* This routine cannot be instantiated. */
-        (void)make_instantiation_info_var("__DNI__", &routine->source_corresp);
+        make_instantiation_info_var("__DNI__", &routine->source_corresp);
       }  /* if */
       if (routine->can_be_instantiated) {
         /* This routine can be instantiated. */
-        (void)make_instantiation_info_var("__CBI__", &routine->source_corresp);
+        make_instantiation_info_var("__CBI__", &routine->source_corresp);
       }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */

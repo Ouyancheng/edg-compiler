@@ -365,8 +365,9 @@ extern a_variable_ptr make_lowered_variable(char            *var_name,
 extern a_variable_ptr make_lowered_param_variable(a_type_ptr type);
 
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-extern a_variable_ptr make_instantiation_info_var(
+extern a_variable_ptr make_instantiation_var(
                                       char                    *prefix,
+                                      an_integer_kind         ikind,
                                       a_source_correspondence *source_corresp);
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
