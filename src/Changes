@@ -110,7 +110,7 @@ Now fixed.
 A warning is now issued (instead of an error) in Microsoft C compatibility
 mode for declarations with no decl-specifiers at all -- for example:
 
-  x;                  // Now accepted with a warning in Microsoft C mode
+  x;              /* Now accepted with a warning in Microsoft C mode */
 
 6/23/97   Invalid IL if conversion operator declaration is first in comma-list
 
@@ -119,8 +119,8 @@ in IL lowering and elsewhere) when a conversion operator is the first
 declaration in a comma-list -- for example:
 
   struct S {
-    operator int(), i;     // An error is still issued for the missing type
-  };                       //   on "i" but the internal error is fixed
+    operator int(), i;     // A diagnostic is still issued for the missing
+  };                       //   type on "i" but the internal error is fixed
 
 6/23/97   Microsoft compatibility: extern inline allowed
 
