@@ -116,6 +116,31 @@ Merge the reachability information from "reachability" into
 }  /* merge_reachability */
 
 
+static a_struct_stmt_stack_entry_ptr find_enclosing_block_struct_stmt(void)
+/*
+Return a pointer to the structure statement stack entry corresponding to the
+nearest enclosing compound statement.
+*/
+{
+  a_struct_stmt_stack_entry_ptr sssep;
+
+  for (sssep = &struct_stmt_stack[depth_stmt_stack]; ; sssep--) {
+    if (sssep->kind == ssk_compound) {
+      /* The structured statement is a compound statement. */
+      break;
+    }  /* if */
+    check_assertion(sssep != &struct_stmt_stack[0]);
+  }  /* for */
+  return sssep;
+}  /* find_enclosing_block_struct_stmt */
+
+/*
+Return a pointer to the nearest enclosing compound statement.
+*/
+#define nearest_enclosing_compound_statement()                        \
+    find_enclosing_block_struct_stmt()->statement;
+
+
 a_statement_ptr add_statement(a_statement_kind kind)
 /*
 Allocate a statement of the indicated kind, and link it onto the end of
@@ -277,6 +302,8 @@ the current statement sequence.
      that an executable statement has been seen in the current block. */
   if (kind != (a_statement_kind)stmk_init) {
     struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
+  } else {
+    ++(find_enclosing_block_struct_stmt()->init_count);
   }  /* if */
 
   db_exit();
@@ -315,25 +342,6 @@ via branch from the bottom.
     }  /* if */
   }  /* if */
 }  /* check_loop_unreachable_code */
-
-
-static a_statement_ptr nearest_enclosing_compound_statement(void)
-/*
-Return a pointer to the nearest enclosing compound statement.
-*/
-{
-  a_struct_stmt_stack_entry_ptr sssep;
-  a_statement_ptr               stmt;
-
-  for (sssep = &struct_stmt_stack[depth_stmt_stack]; ; sssep--) {
-    if (sssep->kind == ssk_compound) {
-      /* The structured statement is a compound statement. */
-      stmt = sssep->statement;
-      break;
-    }  /* if */
-  }  /* for */
-  return stmt;
-}  /* nearest_enclosing_compound_statement */
 
 
 static a_label_ptr alloc_temp_label(void)
@@ -500,6 +508,7 @@ the associated il statement.
   sssep->any_exec_statement_seen
                               = FALSE;
   sssep->for_init             = FALSE;
+  sssep->init_count           = 0;
   if (kind != ssk_compound || sp->dependent_statement) {
     /* For statements other than blocks, copy down the any_exec_statement_seen
        flag.  It's really being maintained for the block containing this
@@ -1188,6 +1197,366 @@ either an expression statement or a declaration statement.
 
   db_exit();
 }  /* for_statement */
+
+
+static a_statement_ptr find_parent_statement_for_block(a_statement_ptr  block)
+/*
+*/
+{
+  a_statement_ptr  sp, parent_stmt = NULL;
+
+  for (sp = block->variant.block.extra_info->
+                            parent_block->variant.block.statements;
+       parent_stmt == NULL ;
+       sp = sp->next) {
+    check_assertion (sp != NULL);
+    switch (sp->kind) {
+      case stmk_block:
+        if (sp == block) parent_stmt = sp;
+        break;
+      case stmk_if: 
+        if (sp->variant.if_stmt.then_statement == block ||
+            sp->variant.if_stmt.else_statement == block) parent_stmt = sp;
+        break;
+      case stmk_while:
+      case stmk_end_test_while:
+        if (sp->variant.loop_statement == block) parent_stmt = sp;
+        break;
+      case stmk_for:
+        if (sp->variant.for_loop.statement == block) parent_stmt = sp;
+        break;
+      case stmk_switch:
+        if (sp->variant.switch_stmt.body_statement == block) {
+          parent_stmt = sp;
+        } else {
+          a_switch_clause_ptr  scp = sp->variant.switch_stmt.clause_list;
+          a_statement_ptr      clause_sp;
+
+          for (; parent_stmt == NULL && scp != NULL; scp = scp->next) {
+            clause_sp = scp->statements;
+            for (; clause_sp != NULL; clause_sp = clause_sp->next) {
+              if (clause_sp == block) {
+#if 0
+/* When should the parent statement be the switch statement itself and when
+   should it be the statement within the clause?  Does other info have to be
+   returned to the caller if the stmt in the clause is returned? */
+#else
+                parent_stmt = sp;
+#endif /* if 0 */
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* for */
+        }  /* if */
+        break;
+      case stmk_try_block:
+        if (sp->variant.try_block.statement == block) {
+          parent_stmt = sp;
+        } else {
+          a_handler_ptr  hp = sp->variant.try_block.handlers;
+          for (; hp != NULL; hp = hp->next) {
+            if (hp->statement == block) {
+              parent_stmt = sp;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        break;
+      default:;
+    }  /* switch */
+  }  /* for */
+  return parent_stmt;
+}  /* find_parent_statement */
+
+
+void check_for_stmk_init_in_statement_list(a_statement_ptr    start_stmt,
+                                           a_statement_ptr    start_block,
+                                           a_statement_ptr    curr_block,
+                                           a_label_ptr        label,
+                                           a_statement_ptr    end_block,
+                                           a_source_position  *error_pos,
+                                           a_boolean          *stmk_init_seen)
+/*
+*/
+{
+  a_statement_ptr  sp, last_stmt_to_check_in_curr_block = NULL;
+  a_statement_ptr  first_stmt_to_check_in_curr_block, curr_block_parent;
+  a_variable_ptr   vp;
+
+  if (start_block != curr_block) {
+    curr_block_parent = curr_block->variant.block.extra_info->parent_block;
+    check_for_stmk_init_in_statement_list(start_stmt, start_block,
+                                          curr_block_parent, (a_label_ptr)NULL,
+                                          curr_block, error_pos,
+                                          stmk_init_seen);
+    first_stmt_to_check_in_curr_block = curr_block->variant.block.statements;
+  } else if (start_stmt == NULL) {
+    first_stmt_to_check_in_curr_block = curr_block->variant.block.statements;
+  } else {
+    first_stmt_to_check_in_curr_block = start_stmt->next;
+  }  /* if */
+  if (label == NULL) {
+    last_stmt_to_check_in_curr_block =
+                            find_parent_statement_for_block(end_block);
+  }  /* if */
+  for (sp = first_stmt_to_check_in_curr_block; sp != NULL; sp = sp->next) {
+    if (sp == last_stmt_to_check_in_curr_block ||
+        (sp->kind == (a_statement_kind)stmk_label &&
+         sp->variant.label == label)) {
+      break;
+    }  /* if */
+    vp = NULL;
+    if (sp->kind == (a_statement_kind)stmk_init) {
+      vp = sp->variant.dynamic_init->variable;
+      check_assertion(vp != NULL);
+    } else if (sp->kind == (a_statement_kind)stmk_for) {
+      a_statement_ptr  init = sp->variant.for_loop.extra_info->initialization;
+      if (init != NULL && init->kind == (a_statement_kind)stmk_init) {
+        vp = init->variant.dynamic_init->variable;
+        check_assertion(vp != NULL);
+      }  /* if */
+    }  /* if */
+    if (vp != NULL) {
+      if (!*stmk_init_seen) {
+        *stmk_init_seen = TRUE;
+        pos_start_error(ec_jumping_over_init, error_pos);
+      }  /* if */
+      sym_add_diag_info(ec_name_at_decl_position,
+                        (a_symbol_ptr)vp->source_corresp.assoc_info);
+    }  /* if */
+  }  /* for */
+}  /* check_for_stmk_init_in_statement_list */
+
+
+static a_boolean block_is_on_parent_list(a_statement_ptr block,
+                                         a_statement_ptr block2)
+/*
+Return TRUE if the block statement "block" is on the list of parent blocks
+of block2. */
+{
+  a_statement_ptr  parent;
+  a_boolean        on_list = FALSE;
+
+  for (parent = block2->variant.block.extra_info->parent_block;
+       parent != NULL;
+       parent = parent->variant.block.extra_info->parent_block) {
+    if (block == parent) {
+      on_list = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return on_list;
+}  /* block_is_on_parent_list */
+
+
+static void check_forwards_goto(a_statement_ptr   label_statement,
+                                a_goto_entry_ptr  gep)
+/*
+*/
+{
+  a_label_ptr      label;
+  a_statement_ptr  goto_block, label_block, sp;
+  a_statement_ptr  start_statement, start_block;
+  unsigned long    goto_block_init_count, label_block_init_count;
+  a_boolean        stmk_init_seen = FALSE;
+  a_boolean        do_check = TRUE;
+
+  db_enter(4, "check_forwards_goto");
+  goto_block = gep->assoc_block;
+  goto_block_init_count = gep->block_init_count;
+  label = label_statement->variant.label;
+  label_block = label->parent_block;
+  check_assertion(label->parent_block ==
+                     find_enclosing_block_struct_stmt()->statement);
+  label_block_init_count = find_enclosing_block_struct_stmt()->init_count;
+  if (label_block == goto_block) {
+    /* goto forwards within same block. */
+    if (label_block_init_count > goto_block_init_count) {
+      /* Error. */
+      start_statement = gep->goto_statement;
+      start_block = goto_block;
+    } else {
+      do_check = FALSE;
+    }  /* if */
+  } else if (block_is_on_parent_list(goto_block, label_block)) {
+    /* A forward goto from an outer block to a label in an inner block, the
+       latter enclosed within the former. */
+    start_statement = gep->goto_statement;
+    start_block = goto_block;
+  } else if (block_is_on_parent_list(label_block, goto_block)) {
+    /* A forward goto from an inner block to a label in an enclosing block. */
+    sp = goto_block;
+    while (sp->variant.block.extra_info->parent_block != label_block) {
+      sp = sp->variant.block.extra_info->parent_block;
+      check_assertion(sp != NULL);
+    }  /* while */
+    start_statement = find_parent_statement_for_block(sp);
+    start_block = label_block;
+  } else {
+    /* A forward goto from a block to another block, neither block contained
+       within the other. */
+    a_statement_ptr  common_parent;
+
+    common_parent = label_block->variant.block.extra_info->parent_block;
+    while (!block_is_on_parent_list(common_parent, goto_block)) {
+      common_parent = common_parent->variant.block.extra_info->parent_block;
+      check_assertion(common_parent != NULL);
+    }  /* while */
+    sp = goto_block;
+    while (sp->variant.block.extra_info->parent_block != common_parent) {
+      sp = sp->variant.block.extra_info->parent_block;
+      check_assertion(sp != NULL);
+    }  /* while */
+    start_statement = find_parent_statement_for_block(sp);
+    start_block = common_parent;
+  }  /* if */
+  if (do_check) {
+    check_for_stmk_init_in_statement_list(start_statement, start_block,
+                                          label_block, label,
+                                          label_block, &gep->source_position,
+                                          &stmk_init_seen);
+    if (stmk_init_seen) end_error();
+  }  /* if */
+  db_exit();
+}  /* check_forwards_goto */
+
+
+static void check_backwards_goto(a_statement_ptr   goto_statement)
+/*
+*/
+{
+  a_label_ptr                    label;
+  a_statement_ptr                goto_block, label_block, sp;
+  a_statement_ptr                start_statement, start_block;
+#if 0
+  a_symbol_ptr                   label_sym;
+  unsigned long                  goto_block_init_count, label_block_init_count;
+#endif /* if 0 */
+  a_struct_stmt_stack_entry_ptr  sssep;
+  a_boolean                      stmk_init_seen = FALSE;
+  a_boolean                      do_check = TRUE;
+
+  db_enter(4, "check_backwards_goto");
+  sssep = find_enclosing_block_struct_stmt();
+  goto_block = sssep->statement;
+  label = goto_statement->variant.label;
+  label_block = label->parent_block;
+#if 0
+  goto_block_init_count = sssep->init_count;
+  label_sym = (a_symbol_ptr)label->source_corresp.assoc_info;
+  label_block_init_count =
+               label_sym->variant.label.variant.curr_block_init_count;
+#endif /* if 0 */
+  if (label_block == goto_block) {
+    /* goto backwards within same block -- no error if this a the function
+       scope. */
+    if (label_block->variant.block.extra_info->parent_block == NULL) {
+      /* No error */
+      do_check = FALSE;
+    } else {
+      start_statement = NULL;
+      start_block = goto_block;
+    }  /* if */
+  } else if (block_is_on_parent_list(label_block, goto_block)) {
+    /* goto backwards to a containing block -- no error. */
+    do_check = FALSE;
+  } else if (block_is_on_parent_list(goto_block, label_block)) {
+    /* goto backward from an outer block to an inner block. */
+    sp = label_block;
+    while (sp->variant.block.extra_info->parent_block != goto_block) {
+      sp = sp->variant.block.extra_info->parent_block;
+      check_assertion(sp != NULL);
+    }  /* while */
+    start_statement = NULL;
+    start_block = sp;
+  } else {
+    /* goto backward from one block to another, with common parent. */
+    a_statement_ptr  common_parent;
+
+    common_parent = label_block->variant.block.extra_info->parent_block;
+    while (!block_is_on_parent_list(common_parent, goto_block)) {
+      common_parent = common_parent->variant.block.extra_info->parent_block;
+      check_assertion(common_parent != NULL);
+    }  /* while */
+    sp = label_block;
+    while (sp->variant.block.extra_info->parent_block != common_parent) {
+      sp = sp->variant.block.extra_info->parent_block;
+      check_assertion(sp != NULL);
+    }  /* while */
+    start_statement = NULL;
+    start_block = sp;
+  }  /* if */
+  if (do_check) {
+    check_for_stmk_init_in_statement_list(start_statement, start_block,
+                                          label_block, label,
+                                          label_block, &error_position,
+                                          &stmk_init_seen);
+    if (stmk_init_seen) end_error();
+  }  /* if */
+  db_exit();
+}  /* check_backwards_goto */
+
+
+static void check_jump_over_initialization(a_statement_ptr  sp)
+/*
+*/
+{
+  a_label_ptr                    label;
+  a_symbol_ptr                   label_sym;
+  a_goto_entry_ptr               gep, end_of_list;
+  a_struct_stmt_stack_entry_ptr  sssep;
+
+
+  check_assertion (sp->kind == (a_statement_kind)stmk_label ||
+                   sp->kind == (a_statement_kind)stmk_goto);
+  label = sp->variant.label;
+  label_sym = (a_symbol_ptr)label->source_corresp.assoc_info;
+  if (sp->kind == (a_statement_kind)stmk_label) {
+    /* This is the definition of the label. */
+    gep = label_sym->variant.label.variant.goto_list;
+    if (gep != NULL) {
+      /* There was at least one forward goto referencing this label.  For
+         each check whether it jumped over any initializing declarations. */
+      do {
+        check_forwards_goto(sp, gep);
+        gep = gep->next;
+      } while (gep != NULL);
+      /* Free the list of goto entries for reuse. */
+      free_goto_entry_list(&label_sym->variant.label.variant.goto_list);
+    }  /* if */
+    /* Record the number initializing declarations seen so far in the current
+       block. */
+    label_sym->variant.label.variant.curr_block_init_count =
+                       find_enclosing_block_struct_stmt()->init_count;
+  } else {
+    if (label_sym->defined) {
+      /* This is a backwards goto -- i.e., it references a label that has
+         already been defined.  Check whether it jumps over any initializing
+         declarations. */
+      check_backwards_goto(sp);
+    } else {
+      /* This is a forwards goto -- i.e., it references a label that has not
+         yet been defined.  Record information about it so that, when the
+         label definition is reached, a check can made whether it involves
+         jumping over any initializing declarations. */
+      /* Allocate and fill in a goto entry. */
+      gep = alloc_goto_entry();
+      gep->goto_statement = sp;
+      sssep = find_enclosing_block_struct_stmt();
+      gep->assoc_block = sssep->statement;
+      gep->source_position = error_position;
+      gep->block_init_count = sssep->init_count;
+      /* Add it to the end of the goto-entry list of the label symbol. */
+      if (label_sym->variant.label.variant.goto_list == NULL) {
+        label_sym->variant.label.variant.goto_list = gep;
+      } else {
+        end_of_list = label_sym->variant.label.variant.goto_list;
+        while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+        end_of_list->next = gep;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_jump_over_initialization */
 
 
 static void goto_statement(void)
