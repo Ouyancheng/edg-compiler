@@ -3762,6 +3762,7 @@ to NULL.
         sym->variant.routine.instance_ptr->specific_decl = TRUE;
         if (is_function_def) {
           sym->variant.routine.instance_ptr->specific_def = TRUE;
+          sym->variant.routine.ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->instantiation_required = FALSE;
         }  /* if */
         routine_ptr = sym->variant.routine.ptr;
@@ -4356,6 +4357,12 @@ the symbol and its linkage (which is always "none").
       /* Set the IL referenced flag since, as an externally visible variable,
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;
+      /* If this is a member of an instantiation of a class
+         template, set the specific_def flag in the instance entry. */
+      if (sym->variant.variable.instance_ptr != NULL) {
+        sym->variant.variable.instance_ptr->specific_def = TRUE;
+        sym->variant.variable.ptr->specific_def = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
@@ -4565,6 +4572,7 @@ on a prior declaration.
        template, set the specific_def flag in the instance entry. */
     if (sym->variant.routine.instance_ptr != NULL) {
       sym->variant.routine.instance_ptr->specific_def = TRUE;
+      sym->variant.routine.ptr->specific_def = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
   }  /* if */
