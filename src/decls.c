@@ -9515,8 +9515,12 @@ continue_with_declaration:
          (for example, "array of x" becomes "pointer to x"). */
       if (local_is_old_style_param_decl) {
         if (local_storage_class == (a_storage_class)sc_typedef) {
-          pos_error(ec_decl_should_be_of_param, &decl_start_pos);
-          set_to_error_locator(locator);
+          if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+            pos_error(ec_decl_should_be_of_param, &decl_start_pos);
+            set_to_error_locator(locator);
+          } else {
+            pos_warning(ec_decl_should_be_of_param, &decl_start_pos);
+          }  /* if */
           local_is_old_style_param_decl = FALSE;
         } else {
           param_id = param_id_on_list(&locator, param_id_list);
