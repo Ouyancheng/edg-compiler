@@ -11992,7 +11992,7 @@ static void adjust_void_operand_for_microsoft_void_vs_scalar_conditional(
                                                         an_operand *operand,
                                                         a_type_ptr result_type)
 /*
-Microsoft mode allows a void and a scalar operand to be supplied as the
+Microsoft C mode allows a void and a scalar operand to be supplied as the
 second and third operands of the "?" operator.  "operand" is the void
 operand of such a case, and result_type is the type of the other operand.
 Turn "operand" into "(operand, (result_type)0)" so it will match the other
@@ -12403,10 +12403,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          so use the type of the second. */
       /* result_type = operand_2.type; -- already set. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && !curr_expr_kind_is_const() &&
+    } else if (microsoft_mode && C_mode() && microsoft_version <= 1200 &&
+               !curr_expr_kind_is_const() &&
                is_void_type(operand_2.type) &&
                is_scalar_type(operand_3.type)) {
-      /* Microsoft mode allows void operands mixed with scalar.
+      /* Microsoft C mode up to version 6.0 allows void operands mixed
+         with scalar.  The result type is the scalar type.
          The second operand is a void expression and the third is not
          (because if they both were, they would have the same types),
          so use the type of the third. */
@@ -12415,10 +12417,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                       operand_2.type, operand_3.type);
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_2,
                                                                   result_type);
-    } else if (microsoft_mode && !curr_expr_kind_is_const() &&
+    } else if (microsoft_mode && C_mode() && microsoft_version <= 1200 &&
+               !curr_expr_kind_is_const() &&
                is_void_type(operand_3.type) &&
                is_scalar_type(operand_2.type)) {
-      /* Microsoft mode allows void operands mixed with scalar.
+      /* Microsoft C mode up to version 6.0 allows void operands mixed
+         with scalar.  The result type is the scalar type.
          The third operand is a void expression and the second is not,
          so use the type of the second. */
       /* result_type = operand_2.type; -- already set. */
@@ -12427,10 +12431,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
                                                                   result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (gcc_mode &&
+    } else if ((gcc_mode || (microsoft_mode && !C_mode())) &&
                (is_void_type(operand_2.type) ||
                 is_void_type(operand_3.type))) {
-      /* gcc allows mixed void/non-void operands.  The result type is void. */
+      /* gcc mode and Microsoft C++ mode allow mixed void/non-void operands.
+         The result type is void. */
       result_type = void_type();
       if (!is_void_type(operand_2.type)) {
         cast_operand_to_void(&operand_2, result_type);
