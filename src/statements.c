@@ -5292,8 +5292,14 @@ See also 3.6.6.3.
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (sssep != NULL) {
-    if (sssep->kind == ssk_switch &&
-        sssep->curr_switch_clause != NULL) {
+    a_boolean  top_level_break = sssep->kind == ssk_switch &&
+                                 sssep->curr_switch_clause != NULL &&
+                                 sssep->curr_switch_clause ==
+                       struct_stmt_stack[depth_stmt_stack].curr_switch_clause;
+    if (top_level_break) {
+      /* This is a break statement that appears at the top level of the
+         current switch clause (i.e., it is not part of a statement within
+         the current switch clause). */
       set_stmt_source_position(sssep->curr_switch_clause->break_position,
                                start_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5301,10 +5307,7 @@ See also 3.6.6.3.
                                end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
-    if (sssep->kind == ssk_switch &&
-        sssep->curr_switch_clause != NULL &&
-        sssep->curr_switch_clause ==
-                     struct_stmt_stack[depth_stmt_stack].curr_switch_clause &&
+    if (top_level_break &&
         !(vla_enabled && parent_block_has_vla_variable())) {
       /* This break statement exits a switch clause in a way that can
          be represented implicitly as the default action at the end of
