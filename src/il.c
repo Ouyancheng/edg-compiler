@@ -12888,7 +12888,8 @@ in il_init.)
   register_trans_unit_array(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
   /* Global variables declared in il.h. */
-  register_trans_unit_array(orphaned_file_scope_il_entries);
+  register_trans_unit_array_with_field(orphaned_file_scope_il_entries,
+                                       orphaned_file_scope_il_entries);
   register_trans_unit_variable(type_of_type_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(type_of_guid);

@@ -93,6 +93,12 @@ typedef struct a_translation_unit {
 			   translation unit specified on the command line, the
 			   exported template file entry is created while
 			   the translation unit is being processed. */
+#if ORPHAN_PROCESSING_NEEDED
+  an_orphaned_il_entry_list
+		**orphaned_file_scope_il_entries;
+			/* Pointer to the orphaned file scope IL entry array
+			   for this translation unit. */
+#endif /* ORPHAN_PROCESSING_NEEDED */
   a_byte_boolean
 		specified_on_command_line;
 			/* TRUE if the translation unit was specified on the
@@ -208,7 +214,13 @@ extern void pop_translation_unit_stack(void);
 extern a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym);
 
 extern void f_register_trans_unit_variable(a_void_ptr	var,
-					   sizeof_t	size);
+					   sizeof_t	size,
+					   sizeof_t	field_offset);
+
+extern void f_register_trans_unit_variable_with_field(
+					a_void_ptr	var,
+					sizeof_t	size,
+					sizeof_t	field_offset);
 
 extern a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void);
 
@@ -227,8 +239,7 @@ unit.  This is used to save and restore the contents of the variable when
 switching between translation units.
 */
 #define register_trans_unit_variable(var)				\
-  (f_register_trans_unit_variable((a_void_ptr)&var, sizeof(var)))
-
+  (f_register_trans_unit_variable((a_void_ptr)&var, sizeof(var), 0))
 
 /*
 Macro used to register an array that is related to a specific translation
@@ -236,7 +247,32 @@ unit.  This is used to save and restore the contents of the array when
 switching between translation units.
 */
 #define register_trans_unit_array(var)				\
-  (f_register_trans_unit_variable((a_void_ptr)var, sizeof(var)))
+  (f_register_trans_unit_variable((a_void_ptr)var, sizeof(var), 0))
+
+/*
+This is like register_trans_unit_variable except that the translation
+unit data structure contains a field whose name is specified by
+trans_unit_field.  That field points to the active version of "var".
+That is, while the translation unit is active, the field points to
+the "var" and while the translation unit is inactive, it points to
+memory in the variables_block of the translation unit entry.
+
+Fields managed by this mechanism must also be explicitly initialized
+in alloc_translation_unit.
+*/
+#define register_trans_unit_variable_with_field(var, trans_unit_field)	\
+  (f_register_trans_unit_variable(				\
+                            (a_void_ptr)&var, sizeof(var),		\
+                            offsetof(a_trans_unit, trans_unit_field)))
+
+/*
+Array version of register_trans_unit_variable_with_field.
+*/
+#define register_trans_unit_array_with_field(var, trans_unit_field)	\
+  (f_register_trans_unit_variable(				\
+                            (a_void_ptr)var, sizeof(var),		\
+                            offsetof(a_translation_unit, trans_unit_field)))
+
 
 #if DEBUG
 unsigned long db_show_trans_unit_space_used(unsigned long grand_total);

@@ -55,6 +55,14 @@ typedef struct a_variable_registration {
   sizeof_t	offset;
 			/* The location in the variables block at which this
 			   variable is stored. */
+  sizeof_t	field_offset;
+			/* The offset within the translation unit data
+			   structure of a field that contains a pointer to the
+			   current version of the data being used for a given
+			   translation unit.  That field points either to the
+			   global variable or to a location within the
+			   variables_block of the translation unit.  Contains
+			   zero if there is no translation unit field. */
 } a_variable_registration;
 
 
@@ -192,12 +200,14 @@ a pointer to the entry created.
   vrp->ptr = NULL;
   vrp->size = 0;
   vrp->offset = 0;
+  vrp->field_offset = 0;
   return vrp;
 }  /* alloc_variable_registration */
 
 
 void f_register_trans_unit_variable(a_void_ptr	var,
-				    sizeof_t	size)
+				    sizeof_t	size,
+				    sizeof_t	field_offset)
 /*
 Register a variable that is specific to a given translation unit.
 */
@@ -223,6 +233,7 @@ Register a variable that is specific to a given translation unit.
   vrp->ptr = var;
   vrp->size = size;
   vrp->offset = trans_unit_var_block_size;
+  vrp->field_offset = field_offset;
   if (trans_unit_variables == NULL) trans_unit_variables = vrp;
   if (trans_unit_variables_tail != NULL) {
     trans_unit_variables_tail->next = vrp;
@@ -300,6 +311,13 @@ pointed to by the translation unit entry.
     src = vrp->ptr;
     dest = (a_void_ptr)(((char*)var_block) + vrp->offset);
     memcpy(dest, src, size_t_arg(vrp->size));
+    /* If there is an associated translation unit field, set it to point
+       to the copy in the variables block. */
+    if (vrp->field_offset != 0) {
+      a_void_ptr	*field;
+      field = (a_void_ptr)((char *)tup + vrp->field_offset);
+      *field = (a_void_ptr)dest;
+    }  /* if */
   }  /* for */
   /* Save several per-translation-unit fields of il_header. */
   tup->il_header.main_routine = il_header.main_routine;
@@ -335,6 +353,13 @@ pointed to by the translation unit entry.
     dest = vrp->ptr;
     src = (a_void_ptr)(((char*)var_block) + vrp->offset);
     memcpy(dest, src, size_t_arg(vrp->size));
+    /* If there is an associated translation unit field, set it to point
+       to the global variable. */
+    if (vrp->field_offset != 0) {
+      a_void_ptr	*field;
+      field = (a_void_ptr)((char *)tup + vrp->field_offset);
+      *field = (a_void_ptr)dest;
+    }  /* if */
   }  /* for */
   /* Restore several per-translation-unit fields of il_header. */
   il_header.primary_scope = tup->primary_scope;
@@ -510,6 +535,15 @@ a pointer to the entry created.
   tup->based_type_fixup_list = NULL;
   tup->exported_template_file = NULL;
   tup->specified_on_command_line = FALSE;
+  /* Translation unit fields that are maintained by the mechanism that
+     saves and restores translation unit variables.  They point to whichever
+     copy of the information is currently active (either the global variable
+     or the copy in the variables block of the translation unit entry).
+     These should be initialized with a pointer to the global variable. */
+#if ORPHAN_PROCESSING_NEEDED
+  tup->orphaned_file_scope_il_entries =
+                   (an_orphaned_il_entry_list**)orphaned_file_scope_il_entries;
+#endif /* ORPHAN_PROCESSING_NEEDED */
   return tup;
 }  /* alloc_translation_unit */
 
