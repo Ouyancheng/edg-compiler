@@ -10,7 +10,7 @@
 /*
 
 il_display.h -- Declarations related to il_display (display the IL
-                in human-readble form).
+                in human-readable form).
 
 */
 
