@@ -5538,8 +5538,7 @@ expression node.  options is a set of options for the copy.
        put on a destruction list in the current context. */
     an_object_lifetime_kind kind = dip->lifetime->kind;
     a_boolean               static_lifetime =
-                        (kind == (an_object_lifetime_kind)olk_global_static ||
-                         kind == (an_object_lifetime_kind)olk_function_static);
+                                          is_static_object_lifetime_kind(kind);
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
     record_end_of_lifetime_destruction(new_dip, static_lifetime,
@@ -6351,6 +6350,16 @@ a set of options for the copy.
       expr_copy->variant.init.dynamic_init =
                              copy_dynamic_init(expr->variant.init.dynamic_init,
                                                options);
+      /* If the dynamic initialization is attached to a static object lifetime,
+         make the temporary static too. */
+      { an_object_lifetime_ptr lifetime =
+                                expr_copy->variant.init.dynamic_init->lifetime;
+        if (lifetime != NULL) {
+          if (is_static_object_lifetime_kind(lifetime->kind)) {
+            expr_copy->variant.init.static_temp = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       break;
     case enk_new_delete:
       /* Copy the subtree and dynamic init for a new/delete operation. */

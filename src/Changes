@@ -1,5 +1,22 @@
 Version 2.34
 
+10/10/96 Failure to destroy temporary in default argument in long lifetime
+         temporaries mode
+
+A temporary created in a default argument for a constructor call on a
+file-scope initialization with long lifetime temporaries enabled was
+not being destroyed.  Now fixed.
+
+  struct X {
+    X(const char* other);
+    ~X();
+  };
+  struct Y {
+    Y(const X& name="foo");
+    ~Y();
+  };
+  Y y;  // X temporary created here was not destroyed
+
 10/9/96 Misleading error message on overload resolution corrected
 
 A misleading error message came out in some cases where overload resolution
