@@ -171,6 +171,41 @@ exceptions_disabled, which can be modified by the "-x" command line option.
 #define DEFAULT_EXCEPTIONS_DISABLED TRUE
 #endif /* ifndef DEFAULT_EXCEPTIONS_DISABLED */
 
+/*
+Flag that is TRUE to enable automatic instantiation support for templates.
+This flag determines whether the code for automatic instantiation is
+to be compiled.
+*/
+#ifndef AUTOMATIC_TEMPLATE_INSTANTIATION
+#define AUTOMATIC_TEMPLATE_INSTANTIATION TRUE
+#endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+/*
+Flag that is TRUE if automatic instantiation processing is to be performed
+by default.  This flag does not affect whether code is compiled but
+rather determines whether the automatic instantiation processing is
+to be performed when the compiler is executed.
+*/
+#ifdef AUTOMATIC_TEMPLATE_INSTANTIATION
+#ifndef DEFAULT_AUTOMATIC_INSTANTIATION_MODE
+#define DEFAULT_AUTOMATIC_INSTANTIATION_MODE TRUE
+#endif /* !defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+/*
+There are two conventions used for template instantiation.  One mode
+requires that the bodies for noninline template functions and static
+data members to be explicitly included by the user.  The other
+causes a source file (e.g., a .c file ) to be implicitly included
+to provide the definitions of the noninline template functions and
+static data members.  If INSTANTIATION_BY_IMPLICIT_INCLUSION is TRUE
+the implicit inclusion is performed.  If it is FALSE implicit
+inclusion is not performed. 
+*/
+#ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION
+#define INSTANTIATION_BY_IMPLICIT_INCLUSION FALSE
+#endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************

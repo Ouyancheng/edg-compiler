@@ -3919,12 +3919,14 @@ specific definition that made it unnecessary.
     }  /* if */
   }  /* for */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Reset the flag that indicates that we are doing instantiation wrapup
-     processing.  During automatic instantiation processing we once again
-     want entries added to the instantiation required list. */
-  in_instantiation_wrapup = FALSE;
-  /* Do processing related to automatic instantiation processing. */
-  automatic_instantiation();
+  if (automatic_instantiation_mode) {
+    /* Reset the flag that indicates that we are doing instantiation wrapup
+       processing.  During automatic instantiation processing we once again
+       want entries added to the instantiation required list. */
+    in_instantiation_wrapup = FALSE;
+    /* Do processing related to automatic instantiation processing. */
+    automatic_instantiation();
+  }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   db_exit();

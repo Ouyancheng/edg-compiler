@@ -270,6 +270,16 @@ EXTERN FILE	*f_instantiation_information /* = NULL */;
 			   read.  Only valid when do_auto_instantiation is
 			   TRUE. */
 
+EXTERN a_boolean
+                automatic_instantiation_mode
+#if VAR_INITIALIZERS
+                          = DEFAULT_AUTOMATIC_INSTANTIATION_MODE
+#endif /* VAR_INITIALIZERS */
+                                                      ;
+                        /* Should automatic instantiation processing be
+			   performed.  This includes both the generation of
+ 			   the instantiation flags and the processing of the
+			   instantiation list. */
 
 
 /* Process the command line arguments. */

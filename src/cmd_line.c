@@ -255,7 +255,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "ACEHKMNOPabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:T:"
+#define COMMAND_LIST "ACEHKMNOPTabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:F:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -367,7 +367,18 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
       case 'T':
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+        /* Enable or disable automatic instantiation processing. */
+        automatic_instantiation_mode = !DEFAULT_AUTOMATIC_INSTANTIATION_MODE;
+        break;
+#else /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
+	optarg = "-T";
+        goto unknown_option;
+#define DID_GOTO_UNKNOWN_OPTION
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+      case 'F':
         {
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
           /* Specify file containing a list of names of template functions
              and static data members to be instantiated.  Intended to be
              used for linker feedback mechanisms for automatic
@@ -386,6 +397,11 @@ Process the arguments on the command line that invoked the compiler.
           }  /* if */
         }
         break;
+#else /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
+	optarg = "-F";
+        goto unknown_option;
+#define DID_GOTO_UNKNOWN_OPTION
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
       case 'u':
         /* Use unsigned chars. */
         targ_has_signed_chars = FALSE;
@@ -559,10 +575,16 @@ unknown_option:
       command_line_error(
       "instantiation mode (-t) can only be used when compiling C++");
     }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (do_auto_instantiation) {
       command_line_error(
-      "instantiation information file (-T) can only be used when compiling C++");
+      "instantiation information file (-F) can only be used when compiling C++");
     }  /* if */
+    if (automatic_instantiation_mode != DEFAULT_AUTOMATIC_INSTANTIATION_MODE) {
+      command_line_error(
+      "automatic instantiation mode (-T) can only be used when compiling C++");
+    }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     if (exceptions_disabled != DEFAULT_EXCEPTIONS_DISABLED) {
       if (exceptions_disabled) {
         command_line_error(
