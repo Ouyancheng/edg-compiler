@@ -1,5 +1,13 @@
 Version 2.29
 
+3/31/95  Promotion cost of enum --> int on operand to builtin in overload
+         resolution
+
+When considering a builtin operator in overload resolution, and given an
+enum operand, the cost for the operand is always a promotion, because
+the enum --> int promotion must be done to make the operand suitable for
+the builtin operator.  2.28 had made the cost an exact match sometimes.
+
 3/31/95  IL lowering promotion of local entities done after EH tables
          generated
 

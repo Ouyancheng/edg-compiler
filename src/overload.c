@@ -4138,11 +4138,17 @@ match, promotion, etc.) for the operand.
        but this is used in jcool and tools.h++. */
     match_level = aml_std_conversion;
   } else {
-    if (type_code == PROMOTED_INTEGRAL_TYPE_CODE ||
-        type_code == PROMOTED_ARITH_TYPE_CODE) {
+    a_type_ptr operand_type = operand->type;
+    if (!any_cfront_mode() && is_enum_type(operand_type)) {
+      /* An enum type is not an integral type, so there's always at least
+         a promotion cost.  There's also always at most a promotion cost,
+         because the type after promotion is both a promoted integral type
+         and a promoted arithmetic type. */
+      match_level = aml_promotion;
+    } else if (type_code == PROMOTED_INTEGRAL_TYPE_CODE ||
+               type_code == PROMOTED_ARITH_TYPE_CODE) {
       /* A promoted type is required.  See if the operand type is an integral
          type affected by promotion. */
-      a_type_ptr operand_type = operand->type;
       if (is_integral_type(operand_type)) {
         if (!types_are_compatible(
                                 operand_type_after_integral_promotion(operand),
