@@ -878,7 +878,8 @@ consistent with that of the previous declaration.
       unexpected_condition_str(
                             "check_exception_specification: bad symbol kind");
   }  /* switch */
-  if (is_or_contains_error_type(prev_type)) {
+  if (is_or_contains_error_type(prev_type) ||
+      is_or_contains_error_type(new_rout_type)) {
     /* Something went wrong earlier on; do not attempt to issue more
        diagnostics. */
     goto done;
@@ -886,15 +887,20 @@ consistent with that of the previous declaration.
   if (rp == NULL) {
     /* Not a routine type, but a pointer-to, reference-to or pointer-to-member
        function. */
-    if (is_ptr_to_member_type(prev_type)) {
+    if (is_ptr_to_member_type(prev_type) &&
+        is_ptr_to_member_type(new_rout_type)) {
       prev_type = pm_member_type(skip_typerefs(prev_type));
       new_rout_type = pm_member_type(skip_typerefs(new_rout_type));
-    } else {
-      check_assertion_str(is_ptr_or_ref_type(prev_type),
-                          "check_exception_specification: bad type");
+    } else if (is_ptr_or_ref_type(prev_type) &&
+               is_ptr_or_ref_type(new_rout_type)) {
       prev_type = type_pointed_to(skip_typerefs(prev_type));
       new_rout_type = type_pointed_to(skip_typerefs(new_rout_type));
     }  /* if */
+  }  /* if */
+  if (!(is_function_type(prev_type) && is_function_type(new_rout_type))) {
+    /* Something must have gone wrong earlier on.  Skip this processing. */
+    check_assertion(total_errors != 0);
+    goto done;
   }  /* if */
   if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
     old_tsp = skip_typerefs(prev_type)->
