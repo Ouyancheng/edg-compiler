@@ -641,14 +641,12 @@ static a_boolean check_for_branch_into_try_or_catch_block(
                                       a_control_flow_descr_ptr  label_cfdp,
                                       a_control_flow_descr_ptr  goto_cfdp)
 /*
-
 Check for an attempt to branch into a try block or a catch clause (an
 exception handler).  Either label_cfdp points to a label entry and goto_cfdp
 to a goto entry, or else label_cfdp points to a case label entry and
 goto_cfdp is NULL (in which case we need to find the switch with which the
 case label is associated).  If an error is found, issue the diagnostic and
 return TRUE.
-
 */
 {
   a_boolean                 err = FALSE;
@@ -680,6 +678,12 @@ return TRUE.
       /* The catch or try block is a parent (or grandparent, etc.) of the
          block where the goto occurs.  A local branch within a single
          catch clause or try block is allowed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_bugs && cfdp->variant.block.is_try_block) {
+      /* Just a warning for branching into a try-block in Microsoft bugs
+         mode. */
+      pos_warning(ec_branch_into_try_block, &goto_cfdp->source_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* It's a branch into the catch or try block from outside. */
       pos_error(cfdp->variant.block.is_catch_block ?

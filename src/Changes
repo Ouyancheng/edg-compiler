@@ -1,5 +1,10 @@
 Version 2.38
 
+12/8/97   Branching into a try-block in Microsoft bugs mode
+
+Branching into a try block is now permitted in Microsoft bugs mode.
+A warning is issued.
+
 12/8/97   Unrecognized __declspec attribute in Microsoft mode
 
 In Microsoft-compatibility mode a warning is now issued (instead of an
