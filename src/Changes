@@ -1,5 +1,11 @@
 Version 3.4
 
+4/13/04  Missing code for base_class field of a_vcall_offset_entry in
+         IL walk
+
+The IL entry walk code in walk_entry.h was missing processing for
+the base_class field of the a_vcall_offset_entry IL entry.
+
 4/13/04  Compound literal not lowered in C89 mode with compound literals
          manually enabled
 

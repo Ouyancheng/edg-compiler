@@ -2445,7 +2445,8 @@ end_sizeof:;
         a_vcall_offset_entry_ptr ptr = (a_vcall_offset_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_vcall_offset_entry_ptr, 
                        iek_vcall_offset_entry);
-        walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
+        remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
+        remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
       }
       break;
 #endif /* DO_IL_LOWERING && IA64_ABI */
