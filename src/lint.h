@@ -277,11 +277,26 @@ extern int fileno(FILE *);
 #endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if IA64_ABI
 /*lint -esym(755,first_derivation_is_direct)*/
+/*lint -esym(759,repr_for_ptr_to_data_member_constant)*/
+/*lint -esym(765,repr_for_ptr_to_data_member_constant)*/
+/*lint -esym(759,repr_for_ptr_to_member_function_constant)*/
+/*lint -esym(765,repr_for_ptr_to_member_function_constant)*/
+/*lint -esym(759,make_typeinfo_type)*/
+/*lint -esym(765,make_typeinfo_type)*/
+#else /* !IA64_ABI */
+/*lint -esym(759,add_cast_to_char_star)*/
+/*lint -esym(765,add_cast_to_char_star)*/
+/*lint -esym(759,type_info_names)*/
+/*lint -esym(765,type_info_names)*/
 #endif /* IA64_ABI */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 /*lint -esym(769,ec_cfront_multiple_nested_types)*/
 /*lint -esym(769,ec_cfront_global_defined_after_nested_type)*/
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#if !LOWER_EXTERN_INLINE
+/*lint -esym(759,make_file_scope_temporary)*/
+/*lint -esym(765,make_file_scope_temporary)*/
+#endif /* !LOWER_EXTERN_INLINE */
 
 /******************************************************************************
 *                                                             \  ___  /       *
