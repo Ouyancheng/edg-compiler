@@ -131,15 +131,18 @@ static void form_template(a_template_ptr	tp,
                           an_il_to_str_output_control_block_ptr octl)
 
 /*
-Output a string for a template.  Do the output in the way described by octl.
+Output a string for a template name.  Do the output in the way described
+by octl.
 */
 {
+  /* If there is a special output routine for template names, use that.
+     Otherwise go through the normal processing. */
   if (octl->output_template_name != NULL) {
     octl->output_template_name((char *)&tp->source_corresp, iek_template);
   } else {
     form_name(&tp->source_corresp, iek_template, octl);
   }  /* if */
-}
+}  /* form_template */
 
 
 void form_a_template_arg(a_template_arg_ptr                    tap,
@@ -848,10 +851,11 @@ static a_template_nesting_depth template_param_map_max_level = 0;
 			   template nesting depth for which a parameter
 			   coordinate has been mapped). */
 
+
 void remap_template_param(a_template_param_coordinate_ptr  coord,
                           a_source_correspondence_ptr      scp)
 /*
-Associate the give template parameter coordinate with the given source
+Associate the given template parameter coordinate with the given source
 correspondence entry.
 */
 {
@@ -910,7 +914,7 @@ for the template parameter to be used.
 */
 {
   remap_template_param(coord, /*scp=*/NULL);
-}  /* a_template_param_coordinate_ptr */
+}  /* unmap_template_param */
 
 
 static a_source_correspondence_ptr source_corresp_for_template_param(
@@ -918,7 +922,8 @@ static a_source_correspondence_ptr source_corresp_for_template_param(
 /*
 Look up the given template parameter coordinates in the template parameter map
 to find a source correspondence entry that will produce a meaningful name in
-the current context.
+the current context.  Return NULL if the template parameter is not remapped
+in the current context.
 */
 {
   a_source_correspondence_ptr     result;
