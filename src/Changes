@@ -1,5 +1,22 @@
 Version 2.32
 
+2/26/96   >>= and <<= operators: integral promotions not usual arithmetic
+          conversions
+
+The >>= and <<= operations are supposed to apply the integral promotions
+to their operands, not the usual arithmetic conversions.  The difference
+is visible in something like
+
+  long long f(long long t0) {
+    t0 = t0 >> 8;  // 1
+    t0 >>= 8;      // 2
+    return t0;
+  }
+
+//1 and //2 should have the same semantics, in particular with regard
+to the fact that the constant "8" should not be converted to long long.
+But the >>= operator converted the constant to long long.
+
 2/24/96   IL lowering: qualification mismatch nit on constructor call
 
 A cast to adjust the qualification of a pointer type was missing from

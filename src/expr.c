@@ -8234,6 +8234,12 @@ See section 3.3.16 of the standard.
              like the processing for pointer + integer and
              pointer - integer. */
           operation_type = operand_1->type;
+        } else if (save_token == tok_shift_left_assign ||
+                   save_token == tok_shift_right_assign) {
+          /* These operations do integral promotions instead of the usual
+             arithmetic conversions. */
+          operation_type = operand_1->type;
+          promote_operand(&operand_2);
         } else {
           /* Normal case. */
           operation_type = determine_arithmetic_conversions(operand_1,
