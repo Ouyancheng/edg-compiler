@@ -1,5 +1,10 @@
 Version 2.28
 
+1/10/95 Duplicate size and sign specifiers in a declaration
+
+Except in cfront mode, we now issue an error (rather than a warning) when a
+declaration has duplicate size or sign specifiers.
+
 1/9/95  Bug in make_temporary_in_scope
 
 A stupid bug introduced in version 2.27 caused some problems in linkage

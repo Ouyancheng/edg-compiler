@@ -2283,7 +2283,8 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_type_specifier_not_allowed);
           err = TRUE;
 #if LONG_LONG_ALLOWED
-        } else if (size == size_long && curr_token == tok_long) {
+        } else if (size == size_long && curr_token == tok_long &&
+                   !any_cfront_mode()) {
           /* long long.  This is an extension. */
           size = size_long_long;
           if (strict_ansi_mode) {
@@ -2292,18 +2293,13 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* LONG_LONG_ALLOWED */
         } else if (size != size_none) {
           /* Size has already been specified in some way. */
-          if ((size == size_short) == (curr_token == tok_short)) {
-            /* "short short" or "long long". */
-            if (any_cfront_mode() && curr_token == tok_short) {
-              /* Cfront allows the redundancy.  It issues a warning on
-                 "long long", so we do too. */
-            } else {
-              /* Since the redundancy is harmless, just issue a warning
-                 (except in -A mode). */
-              diagnostic((strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning),
-                         ec_dupl_decl_specifier);
-            }  /* if */
+          if ((size == size_short && curr_token == tok_short) ||
+              (size == size_long && curr_token == tok_long)) {
+            /* "short short" or "long long".  Issue an error, except in
+               cfront mode, which is silent about "short short" and warns
+               about "long long". */
+            diagnostic((any_cfront_mode() ? es_warning : es_error),
+                       ec_dupl_decl_specifier);
           } else {
             /* Mixing size specifications. */
             bad_combination_of_type_specifiers = TRUE;
@@ -2328,16 +2324,10 @@ Returns TRUE if there is an error in the specifiers.
         } else if (sign != sign_none) {
           /* Sign has already been specified in some way. */
           if ((sign == sign_signed) == (curr_token == tok_signed)) {
-            /* Either "signed signed" or "unsigned unsigned". */
-            if (any_cfront_mode()) {
-              /* Cfront allows the redundancy. */
-            } else {
-              /* Since the redundancy is harmless, just issue a warning
-                 (except in -A mode). */
-              diagnostic((strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning),
-                         ec_dupl_decl_specifier);
-            }  /* if */
+            /* Either "signed signed" or "unsigned unsigned".  Issue an error,
+               except in cfront mode. */
+            diagnostic((any_cfront_mode() ? es_warning : es_error),
+                       ec_dupl_decl_specifier);
           } else {
             /* Mixing signs. */
             bad_combination_of_type_specifiers = TRUE;
