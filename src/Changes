@@ -1,5 +1,12 @@
 Version 3.1
 
+12/23/02 Multiple translation units, abort in trans_copy.c
+
+An abort in trans_copy.c (line 1126 in the 3.0 source) has been
+corrected.  It came up in C mode with multiple translation units,
+where the declaration of a function is unprototyped in one
+translation unit and prototyped in another.
+
 12/23/02 Microsoft mode: pointer minus void *
 
 In Microsoft mode (C and C++), a pointer minus a void * is
