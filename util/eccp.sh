@@ -420,7 +420,7 @@ do
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
-    *\.so | *\.so.*)
+    *\.so | *\.so\.*)
 #     Collect a list of library shared object names (.so) files.
       lfiles=$lfiles" "$1
       any_l_or_o_files=1
