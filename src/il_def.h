@@ -77,7 +77,7 @@ typedef struct a_scope       *a_scope_ptr;
 Macro used to add a 2-bit bit field after any sequence of bit fields.
 By clearing this bit field to zero we can avoid warnings about
 uninitialized values from CodeCenter on those bit fields (because the
-value used for "uninitialized" has no two adjacent zero bits). */
+value used for "uninitialized" has no two adjacent zero bits).
 */
 #define bitfield_to_avoid_codecenter_warnings() \
   unsigned int	avoid_codecenter_warnings:2;
