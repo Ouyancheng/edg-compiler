@@ -8594,12 +8594,6 @@ specified (rather than defaulted to "int").
                     /*is_old_style_param_decl=*/TRUE,
                     func_info->param_id_list);
       }  /* while */
-      /* Parameter symbols are not actually entered in the function
-         prototype scope, but other symbols (in consequence of an error or
-         a type declaration) may be.  Record them so that they can be
-         transferred to the function scope later. */
-      func_info->prototype_scope_symbols =
-                                      scope_stack[depth_scope_stack].symbols;
       /* Scan the list of identifiers, assigning types to any that remain
          undeclared, and create the param type entries. */
       for (param_id = func_info->param_id_list;
@@ -8636,6 +8630,12 @@ specified (rather than defaulted to "int").
       extra_info->param_type_list = old_style_param_types;
       extra_info->prototyped = FALSE;
       extra_info->old_style_params_scanned = TRUE;
+      /* Parameter symbols are not actually entered in the function
+         prototype scope, but other symbols (in consequence of an error or
+         a type declaration) may be.  Record them so that they can be
+         transferred to the function scope later. */
+      func_info->prototype_scope_symbols =
+                                      scope_stack[depth_scope_stack].symbols;
       /* Pop the function prototype scope. */
       pop_scope();
     }  /* if */
