@@ -667,7 +667,7 @@ curr_max_member_alignment.
     val = value_of_integer_constant(&const_for_curr_token, &err);
     if (is_show && microsoft_mode) {
       /* Ignore the constant. */
-    } else if (gnu_mode && val == 0) {
+    } else if (gnu_mode && !err && val == 0) {
       /* In GNU modes, "#pragma pack(0)" is equivalent to "#pragma pack()". */
       curr_max_member_alignment = 0;
       updated = TRUE;
