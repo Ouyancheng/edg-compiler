@@ -1,17 +1,5 @@
 Version 2.32
 
-6/20/96 Constructor overloading bug
-
-A bug has been fixed in building constructor overload sets.  In the
-following case, it used to be that no error was reported on what looks
-like a bogus constructor declaration, and an abort would also occur:
-
-  struct S {
-    S();
-    int S(int);           // Error is now issued
-  };
-  S s;                    // Assertion failure no longer occurs
-
 6/20/96 Pointer-to-member-function using typedef
 
 An error is now issued for declaring a pointer-to-member-function using a
