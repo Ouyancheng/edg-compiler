@@ -9023,14 +9023,14 @@ prep_elision_initializer_operand.
         conversion_to_temp_done = TRUE;
       }  /* if */
       if (!err) {
-        if (dropping_qualifiers) {
+        if (dropping_qualifiers && !cfront_compatibility_mode) {
           /* Type qualifiers were dropped. */
           error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
           err = TRUE;
         } else if (ref_to_nonconst) {
-        /* The reference must be to a const object (otherwise the user might
-           change the temporary thinking he is changing the original
-           object). */
+          /* The reference must be to a const object (otherwise the user might
+             change the temporary thinking he is changing the original
+             object). */
           /* A reference to non-const; this is an error according to the ARM
              (8.4.3), but we allow it as an anachronism. */
           if (allow_anachronisms) {
