@@ -500,7 +500,7 @@ static void check_defeatable_base_inaccessibility(
                                               a_base_class_ptr  bcp)
 /*
 If a base class bcp is inaccessible (privately but not directly inherited),
-the C++ generating back-end can not access it using an unqualified name in the
+the C++ generating back-end cannot access it using an unqualified name in the
 class scope of class_type.  Therefore, we treat the base type as hidden in the
 scope of the class class_type and mark it as needing qualified access.
 This allows the following example to work:
@@ -536,7 +536,7 @@ This allows the following example to work:
     hnp->entity.ptr = il_entry_for_symbol(hidden_sym, &kind);
     hnp->entity.kind = (a_byte_il_entry_kind)kind;
     hnp->qualification_needed = TRUE;
-    /* Add it to the start of the hiden_names list for the current scope. */
+    /* Add it to the start of the hidden_names list for the current scope. */
     hnp->next = scope->hidden_names;
     scope->hidden_names = hnp;
   }  /* if */
