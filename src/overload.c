@@ -2108,6 +2108,16 @@ the parameter is a "this" parameter.
         param_type = underlying_array_element_type(param_type);
       }  /* if */
     }  /* if */
+    /* Drop any pointer types.  This is required for a case like
+         typedef int A[9];
+         void g(A env);
+         void g(const A& env);
+         extern const A env;			
+         void f() { g(env); }
+       which is accepted by cfront 3.0.2. */
+    while (is_pointer_type(param_type)) {
+      param_type = type_pointed_to(param_type);
+    }  /* while */
   }  /* if */
   return param_type;
 }  /* drop_tiebreaker_ref_ptr_types */
