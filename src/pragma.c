@@ -540,13 +540,20 @@ static void add_pragma_to_il(a_pending_pragma_ptr  ppp,
 ppp points to the front-end representation of a pragma.  When the pragma
 binding kind is pbk_next, entity_ptr is a pointer to the IL entry of the
 specified entity_kind with which the pragma is associated; otherwise,
-entity_ptr is NULL.  at_file_scope is TRUE if the pragma IL entry should be
-allocated in the file-scope memory region and added to the file-scope
-pragmas list; it is FALSE when the current IL scope should be used.
-The at_file_scope flag passed by the caller is only used when no entity
-has been provided.  When an entity is supplied, the pragma is added
-to the scope associated with class_type, or if class_type is NULL,
-to the current scope.  class_type points to the class of which the entity
+entity_ptr is NULL.
+
+When adding a pragma to the IL, it is necessary to determine the
+memory region in which the pragma entry should be allocated and the
+scope list onto which the pragma entry should be added.  For pragmas
+that are not bound to entities, both the memory region and scope
+are determined by the at_file_scope flag.  For pragmas bound to
+entities, the memory region is always the same as the memory
+region of the entity to which the pragma is bound.  The scope for
+pragmas bound to entities is the scope of the class of which the entity
+is a member (for class members), the file scope (for entities in the file
+scope memory region) or the current scope (for other entities).
+
+class_type points to the class of which the entity
 is a member, or NULL if the entity is not a member of a class.
 
 This routine (1) allocates the IL pragma entry and initializes it, (2)
@@ -564,7 +571,7 @@ there is additional processing to be done.
     /* If we are binding to an entity, the IL pragma entry should be allocated
        in the current memory if class_type is NULL, or at file scope if
        a class_type is specified. */
-    at_file_scope = class_type != NULL;
+    at_file_scope = class_type != NULL || in_file_scope(entity_ptr);
   }  /* if */
   if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
   pp = alloc_pragma(ppp->descr_ptr->kind);
@@ -1036,6 +1043,32 @@ Initialize the pragma description table.
 
      This definition may be modified (except as noted below), but some
      description must be provided. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* When source sequence lists are being generated, unrecognized pragmas
+     are treated as immediate pragmas.  The source sequence information can
+     be used to output the pragmas in the right location (when the C++
+     generating back end is used, for example).   Immediate pragmas are
+     preferable to next-construct pragmas for representing unrecognized
+     pragmas because next-construct pragmas are only valid in certain
+     contexts. */
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_unrecognized,
+                 (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,  /* Do not change. */
+                 /*make_text_not_tokens=*/TRUE,         /* Do not change. */
+                 /*expand_macros=*/FALSE,		/* Do not change. */
+                 /*processing_C_code_in_pragma=*/FALSE, /* Do not change. */
+		 /*ignore_in_back_end=*/FALSE,
+                 es_warning);
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* When source sequence lists are not being generated, unrecognized pragmas
+     are treated as next-construct pragmas.  This allows the C generating
+     back end to output the pragma along with the entity to which it is
+     bound but also means that unrecognized pragmas may only appear in
+     contexts in which next-construct pragmas are allowed (i.e., immediately
+     before a declaration or statement). */
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
                  (a_next_construct_pragma_function_ptr)NULL,
@@ -1048,6 +1081,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE, /* Do not change. */
 		 /*ignore_in_back_end=*/FALSE,
                  es_warning);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
   db_exit();
 }  /* pragma_init */
