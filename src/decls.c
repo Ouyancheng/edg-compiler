@@ -2631,7 +2631,7 @@ add the new routine entry to the routines list.
   /* Always allocate routines at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
   rp = alloc_routine();
-  rp->type = skip_typerefs(type_ptr);
+  rp->type = type_ptr;
   rp->storage_class = storage_class;
   if (add_to_list) add_to_routines_list(rp, at_file_scope);
   switch_back_to_original_region(region_to_switch_back_to);
@@ -8449,6 +8449,7 @@ and for the instantiation of template functions.
 
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
+  /* Type on a function should never be a typedef. */
   check_assertion(rout_ptr->type->kind == (a_type_kind)tk_routine);
   rout_type = skip_typerefs(rout_ptr->type);
   /* Issue an error if this is an invalid return type. */
@@ -9913,6 +9914,7 @@ continue_with_declaration:
         func_info.is_definition = TRUE;
         func_info.function_type_from_typedef =
                                     !top_declarator_type_is_function;
+        func_info.declarator_ssep = declarator_ssep;
         function_definition(&locator, local_type_ptr, &func_info,
                             local_storage_class, has_explicit_type_specifier);
         goto return_point;
