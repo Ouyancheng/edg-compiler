@@ -578,7 +578,7 @@ indicates the source position at which the error should be put out.
 }  /* check_inheritance_kind */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+#if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
   
 #if !DECL_MODIFIERS_IN_USE
 /*ARGSUSED*/ /* err_pos is used only if DECL_MODIFIERS_IN_USE is set. */
@@ -694,6 +694,8 @@ is a pointer to a source position used for diagnostics.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_extended_decl_info_for_class */
 
+#endif /* DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* is_member_decl and err are used only if
