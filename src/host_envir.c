@@ -274,7 +274,7 @@ static a_directory_name_entry_ptr
 #if STACK_REFERENCED_INCLUDE_DIRECTORIES
 static void free_directory_name_entry(a_directory_name_entry_ptr dnep)
 /*
-Add dnep to the avilable list of directory name entries.
+Add dnep to the available list of directory name entries.
 */
 {
   dnep->next = avail_directory_name_entries;
