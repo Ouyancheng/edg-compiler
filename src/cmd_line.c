@@ -306,11 +306,13 @@ Process the arguments on the command line that invoked the compiler.
         error_threshold = es_error;
         break;
       case 'N':
-#if DO_IL_LOWERING
-	/* Suppress IL-lowering */
+#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+	/* Suppress IL lowering and write an unlowered IL file. */
 	suppress_il_lowering = TRUE;
+        suppress_back_end = TRUE;
+        /* Note that suppress_il_file_write is not set. */
 	break;
-#else /* !DO_IL_LOWERING */
+#else /* !(DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE) */
 	optarg = "-N";
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
@@ -328,8 +330,15 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         break;
       case 'n':
-        /* Suppress execution of back end. */
+        /* Run just the front end to do syntax checking; do not run the back
+           end. */
         suppress_back_end = TRUE;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+        suppress_il_file_write = TRUE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if DO_IL_LOWERING
+	suppress_il_lowering = TRUE;
+#endif /* DO_IL_LOWERING */
         break;
       case 's':
         /* Use signed chars. */
@@ -580,14 +589,20 @@ unknown_option:
     /* Doing preprocessing only suppresses running the back end (and
        generating an IL file). */
     suppress_back_end = TRUE;
-    /* If preprocessing output is being generated, the output file
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    suppress_il_file_write = TRUE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if DO_IL_LOWERING
+    suppress_il_lowering = TRUE;
+#endif /* DO_IL_LOWERING */
+    /* Since preprocessing output is being generated, the output file
        name can be specified by a -o option. */
     pp_file_name = ofile_name;
     ofile_name = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   } else {
     /* Establish the intermediate file name (if it is needed). */
-    if (!suppress_back_end) {
+    if (!suppress_il_file_write) {
       /* The intermediate language should be written to a file; the file
          name can be specified by a -o option. */
       il_file_name = ofile_name;

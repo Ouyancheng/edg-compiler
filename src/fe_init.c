@@ -695,7 +695,7 @@ Initialize everything that has to do with the front end.
     open_pp_output_file();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   } else {
-    if (!suppress_back_end) {
+    if (!suppress_il_file_write) {
       /* Open the IL file. */
       open_il_file();
     }  /* if */

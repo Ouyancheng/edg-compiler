@@ -10649,10 +10649,10 @@ C++ to C, so that a C back end can handle it without change.
   a_scope_ptr scope;
 
   db_enter(1, "lower_il_memory_region");
-  /* The lowering is only needed if the source language is C++, if the back
-     end is to be run, and if there have been no errors. */
+  /* The lowering is only needed if the source language is C++, if the
+     lowering phase is to be run, and if there have been no errors. */
   if (C_dialect == C_dialect_cplusplus && 
-      !suppress_back_end &&
+      !suppress_il_lowering &&
       total_errors == 0) {
 #if DEBUG
     if (debug_level >= 1) {

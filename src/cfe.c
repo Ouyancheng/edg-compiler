@@ -60,11 +60,7 @@ main (int argc, char *argv[])
 
 #if BACK_END_SHOULD_BE_CALLED
     /* Run the back end if required, if there are no errors. */
-    if (total_errors == 0 &&
-#if DO_IL_LOWERING
-        !suppress_il_lowering &&
-#endif /* DO_IL_LOWERING */
-        !suppress_back_end) {
+    if (total_errors == 0 && !suppress_back_end) {
       back_end();
     }  /* if */
 #endif /* BACK_END_SHOULD_BE_CALLED */

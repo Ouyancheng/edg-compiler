@@ -4791,9 +4791,8 @@ End a name scope by popping an entry off the scope stack.
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
 #if DO_IL_LOWERING
-    if (!suppress_il_lowering) {
-      lower_il_memory_region(old_memory_region_number);
-    }  /* if */
+    /* Do IL lowering (change the C++ IL into C IL). */
+    lower_il_memory_region(old_memory_region_number);
 #endif /* DO_IL_LOWERING */
     /* Clear out the shareable constants table for the file scope or a
        function scope. */

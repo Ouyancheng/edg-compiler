@@ -117,11 +117,14 @@ EXTERN a_boolean
 #if DO_IL_LOWERING
 EXTERN a_boolean
 		suppress_il_lowering /* = FALSE */;
-			/* TRUE if IL-lowering should not be done.  The -l
-			   option sets this to TRUE, and is only valid for
-			   a front end in which IL_SHOULD_BE_WRITTEN_TO_FILE
-			   is TRUE and DO_IL_LOWERING is TRUE. */
+			/* TRUE if IL lowering should not be done. */
 #endif /* DO_IL_LOWERING */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+EXTERN a_boolean
+		suppress_il_file_write /* = FALSE */;
+			/* TRUE if the writing of the IL file should be
+			   suppressed. */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 EXTERN a_boolean
 		suppress_virtual_function_table_definition /* FALSE */;
 			/* If the heuristic used to determine whether a virtual
