@@ -7340,9 +7340,13 @@ none is needed.  The operand is built in *operand.  It's an lvalue for
 the field.
 */
 {
-  a_variable_ptr union_var = sym_ptr->variant.field.anonymous_union_variable;
+  a_symbol_ptr   union_sym = sym_ptr->variant.field.anonymous_parent_object;
+  a_variable_ptr union_var;
   an_operand     operand_1;
 
+  check_assertion(union_sym != NULL &&
+                  union_sym->kind == (a_symbol_kind)sk_variable);
+  union_var = union_sym->variant.variable.ptr;
   /* Start with an operand for the base anonymous union variable. */
   make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL);
   /* Add a field selection to get to the field. */
@@ -7384,18 +7388,14 @@ The symbol may be a member of an anonymous union.
       if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
         var = sym_ptr->variant.variable.ptr;
       } else {
-#if CHECKING
-        if (sym_ptr->kind != (a_symbol_kind)sk_field) {
-          internal_error("bad_nested_function_variable_ref: bad sym kind");
-        }  /* if */
-#endif /* CHECKING */
-        var = sym_ptr->variant.field.anonymous_union_variable;
-#if CHECKING
-        if (var == NULL) {
-          internal_error(
-                 "bad_nested_function_variable_ref: field var not anon union");
-        }  /* if */
-#endif /* CHECKING */
+        a_symbol_ptr union_sym;
+        check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_field,
+                            "bad_nested_function_variable_ref: bad sym kind");
+        union_sym = sym_ptr->variant.field.anonymous_parent_object;
+        check_assertion_str(union_sym != NULL &&
+                            union_sym->kind == (a_symbol_kind)sk_variable,
+                           "bad_nested_function_variable_ref: bad anon union");
+        var = union_sym->variant.variable.ptr;
       }  /* if */
       /* Find the scope of the variable in the scope stack. */
       for (sd = depth_scope_stack; ; sd--) {
@@ -7661,7 +7661,7 @@ normal_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
-          } else if (sym_ptr->variant.field.anonymous_union_variable != NULL) {
+          } else if (sym_ptr->variant.field.anonymous_parent_object != NULL) {
             /* This field is a member of a top-level anonymous union. */
             /* If we're inside a local class, we are not allowed to reference
                non-static variables of the containing function.  If we're
