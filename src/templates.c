@@ -9215,10 +9215,7 @@ to be used.
          error. */
       err = TRUE;
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
-      /* Both are types.  Make sure the types match. */
-      a_type_ptr        old_type = old_tpp->variant.type;
-      a_type_ptr        new_type = new_tpp->variant.type;
-      err = !identical_types(old_type, new_type);
+      /* Both are types.  No further checking is needed. */
     } else if (old_sym->kind == (a_symbol_kind)sk_constant) {
       /* Both are constants.  Make sure the values are the same. */
       err = !eq_constants(old_tpp->variant.constant.ptr,
