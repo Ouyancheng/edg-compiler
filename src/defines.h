@@ -19,6 +19,8 @@ Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
 */
 
+/* temporary: */
+#define RUNTIME_USES_NAMESPACES 0
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 
 #ifdef CP_GEN_BE_VERSION
