@@ -88,7 +88,6 @@ introduce a definition or a declaration of the form
     <class-key> <name>;
 is not in fact a redeclaration (standard par. 3.4.4).
 
-
 6/3/99   Default template arguments on class template member declarations
 
 A default template argument can only be specified on the declaration of
