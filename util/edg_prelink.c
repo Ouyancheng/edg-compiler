@@ -2563,6 +2563,12 @@ if any errors were detected.
     /* Look up the nonspecialized symbol. */
     nonspec_psp = pl_find_symbol(nonspec_name, (a_pl_symbol_ptr)NULL,
                                  /*add=*/TRUE, &is_new);
+#if DEBUG
+    if (debug_level >= 1) {
+      fprintf(stderr, "original name: %s\n", psp->name);
+      fprintf(stderr, "nonspecialized name: %s\n", nonspec_name);
+    }  /* if */
+#endif /* DEBUG */
     if (nonspec_psp != NULL &&
         (nonspec_psp->referenced || nonspec_psp->defined)) {
       pl_error_with_exit(pl_ec_specialized_and_instantiated,
