@@ -1673,12 +1673,10 @@ determine_linkage:
         pos_sy_warning(ec_incompatible_inline_specifier_on_specific_decl,
                        &locator->source_position, other_decl);
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (!microsoft_mode) {
         func_info->is_inline = templ_is_inline;
         local_storage_class = templ_storage_class;
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (!at_file_or_namespace_scope && !is_template_instance &&
         local_storage_class != (a_storage_class)sc_extern) {
@@ -5392,8 +5390,8 @@ return a pointer to it in *symbol_ptr.
       tp = type_symbol_type(sym);
       if ((identical_types(tp, type_ptr)
 #if NEAR_AND_FAR_ALLOWED
-           /* When near/far qualifiers appear, they have to match in what
-              was explicitly specified. */
+           /* When near/far qualifiers appear, they have to match what was
+              explicitly specified. */
            && (!near_and_far_enabled() ||
                (get_original_type_qualifiers(tp) ==
                    get_original_type_qualifiers(type_ptr)))
