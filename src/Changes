@@ -220,9 +220,9 @@ specifies a base class constructor or destructor.
 
   class B { B(); ~B(); };
   class D : public B {
-    using B::B();           // Error
-    using B::~B();          // Error
-  }
+    using B::B;           // Error
+    using B::~B;          // Error
+  };
 
 6/12/97   Spurious error on local-class friend function declaration
 
