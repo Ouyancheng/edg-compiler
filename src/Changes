@@ -1,5 +1,19 @@
 Version 3.6
 
+4/1/05   Abort while processing nested class of a class template
+
+In somewhat unusual situations (usually involving strict mode), the front end
+sometimes aborted with an internal error in find_copy_assignment_operator when
+processing a nested class of a class template.  For example:
+
+  template<int *> struct B {};
+  template<typename T> struct S {
+    static int si;
+    struct D: B<&si> {};  // Caused an abort in strict mode during prototype
+  };                      // instantiation of S<T>::D.
+
+This is now fixed.
+
 3/31/05  Microsoft compatibility: visibility of template parameters in
          explicit specializations
 
@@ -14,20 +28,6 @@ microsoft_version is >= 1310.
   template <> struct A<int> {
     T t;  // T visible to VC++ 7.0 and earlier
   };
-
-3/31/05  Processing of prototype instantiations of class templates
-
-Some processing that applies to normal class types (like the generation of
-special member functions not declared in the source) is no longer performed
-for prototype instantiations of class templates.  Previously this unneeded
-processing was also performed for prototype instantiation, and in some cases
-lead to internal errors.  For example:
-
-  template<int *> struct B {};
-  template<typename T> struct S {
-    static int si;
-    struct D: B<&si> {};  // Caused an abort in strict mode during prototype
-  };                      // instantiation of S<T>::D.
 
 3/31/05  Microsoft compatibility: explicit instantiation in class scope
 

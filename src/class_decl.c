@@ -7542,7 +7542,8 @@ is set to NULL by this function.
                        &locator->source_position, sym);
       }  /* if */
     }  /* if */
-    if (exceptions_enabled && compiler_generated) {
+    if (exceptions_enabled && compiler_generated &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* A compiler generated constructor, destructor, or assignment
          operator is assumed to throw any exception that can be thrown
          a base-class function it will call. */
