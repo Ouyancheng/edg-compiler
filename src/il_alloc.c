@@ -793,6 +793,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->friend_classes                    = NULL;
   ctsp->assoc_scope                       = NULL;
   ctsp->template_arg_list                 = NULL;
+  ctsp->partial_spec_template_arg_list    = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   ctsp->assoc_operator_new_routine        = NULL;
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */

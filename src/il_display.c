@@ -3333,6 +3333,10 @@ Display the indicated class type supplement entry.
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
+  if (ptr->partial_spec_template_arg_list != NULL) {
+    disp_template_arg_list("partial_spec_template_arg_list",
+                           ptr->template_arg_list);
+  }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   disp_ptr("assoc_operator_new_routine",
            (char *)ptr->assoc_operator_new_routine, iek_routine);

@@ -243,7 +243,10 @@ template, dump the template arguments, too.
   db_name(&tp->source_corresp);
   if (is_immediate_class_type(tp)) {
     ctsp = tp->variant.class_struct_union.extra_info;
-    if (ctsp != NULL) db_template_arg_list(ctsp->template_arg_list);
+    if (ctsp != NULL) {
+      db_template_arg_list(ctsp->template_arg_list);
+      db_template_arg_list(ctsp->partial_spec_template_arg_list);
+    }  /* if */
   }  /* if */
 }  /* db_type_name */
 
@@ -10054,7 +10057,9 @@ entry into one representing a nondefining declaration.
     eliminate_member_function_default_arg_object_lifetimes(class_type);
     /* Clear the pointers in the class_type_supplement, including the
        assoc_scope pointer; however, the template arg list and the list of
-       befriending classes should be preserved. */
+       befriending classes should be preserved.
+       partial_spec_template_arg_list does not need to be saved because it
+       is only present for fully instantiated partial specializations. */
     ctsp = class_type->variant.class_struct_union.extra_info;
     template_arg_list = ctsp->template_arg_list;
     befriending_classes = ctsp->befriending_classes;

@@ -2824,8 +2824,21 @@ typedef struct a_class_type_supplement {
 			/* For classes that are instantiations of a class
 			   template, a list of entries describing the "actual
 			   arguments" on which the instantiation is based.
+			   If the class is an instantiation of a partial
+			   specialization, this argument list corresponds with
+			   the template parameter list of the primary template.
 			   This pointer is NULL for ordinary classes that are
 			   not generated from a template. */
+  a_template_arg_ptr
+		partial_spec_template_arg_list;
+			/* For classes that are instantiations of partial
+			   specializations of a class template, a list of
+			   entries describing the arguments on which the
+			   instantiation is based, with respect to the
+			   template parameter list of the partial
+			   specialization.  This is NULL for ordinary classes
+			   and for classes generated from the primary template
+			   (i.e., not from a partial specialization). */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   a_routine_ptr	assoc_operator_new_routine;
 			/* The operator new() routine to be used for the class.
