@@ -171,14 +171,6 @@ optimization is suppressed.
   } else if (is_type_start()) {
     /* Is start of type. */
     is_start = TRUE;
-#if 0
-/* It's not clear whether "namespace" and "using" should be included.  It's
-   at least clear that they should not be accepted in all contexts. */
-  } else if (curr_token == tok_namespace || curr_token == tok_using) {
-    /* A namespace or namespace-alias declaration, a using-directive, or
-       a using-declaration. */
-    is_start = TRUE;
-#endif /* if 0 */
   } else if (curr_token == tok_identifier &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
@@ -1079,8 +1071,7 @@ a_variable_ptr make_variable(a_type_ptr      type_ptr,
 /*
 Allocate an entry for a variable with type type_ptr and storage class
 storage_class, and return a pointer to it.  Add the variable to the
-innermost namespace scope if at_file_or_namespace_scope is TRUE (in that
-case, type_ptr must be in the file scope).
+innermost namespace scope if at_file_or_namespace_scope is TRUE.
 */
 {
   a_variable_ptr          vp;
@@ -4305,7 +4296,7 @@ void decl_function_template(a_symbol_locator     *locator,
                             a_scope_depth        orig_decl_level)
 /*
 Roughly speaking, this routine does for function templates what
-decl_routine does for ordinary functions.  Lookup and reuse or else
+decl_routine does for ordinary functions.  Look up and reuse or else
 create a function template symbol; for new symbols also create a routine
 entry (though one that is not added to the IL).  *locator represents the
 current identifier, type_ptr is the function type, storage_class is the
@@ -6644,7 +6635,7 @@ caller.
       }  /* if */
     }  /* if */
   } else {
-    /* A named namespace definition or a namespace alias.  Lookup the
+    /* A named namespace definition or a namespace alias.  Look up the
        identifier (which should be the current token) and see if it is
        already a namespace name in the current scope. */
     if (!err) {
