@@ -1,5 +1,12 @@
 Version 3.1
 
+10/21/02 Problem with GNU asm operand list IL entry "next" pointer
+
+The "next" pointer in the IL an_asm_operand IL entry (used when GNU
+extensions are enabled) was not properly handled in some cases.  One 
+consequence is that in configurations that write an IL file lists of more 
+than one operand did not work correctly.
+
 10/17/02 GNU C++ compatibility: Field with array type of unspecified length
 
 In GNU C++ mode (but not in GNU C mode) a field whose type is an array of

@@ -2612,6 +2612,7 @@ after_entry_from_class:
     case iek_asm_operand:
       {
         an_asm_operand_ptr ptr = (an_asm_operand_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_asm_operand_ptr, iek_asm_operand);
         walk_list(ptr->constraints,
                   an_asm_operand_constraint_ptr, iek_asm_operand_constraint);
         walk_ptr(ptr->expression, an_expr_node_ptr, iek_expr_node);
