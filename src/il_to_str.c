@@ -825,7 +825,7 @@ static a_template_param_map_level_ptr template_param_map = NULL;
 static a_template_nesting_depth template_param_map_max_level = 0;
 			/* The size of the first level (i.e., the maximum
 			   template nesting depth for which a parameter
-			   coordinate has been mapped. */
+			   coordinate has been mapped). */
 
 void remap_template_param(a_template_param_coordinate_ptr  coord,
                           a_source_correspondence_ptr      scp)
