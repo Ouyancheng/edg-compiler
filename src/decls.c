@@ -3961,7 +3961,8 @@ a pointer to it in *symbol_ptr.
           if (C_dialect != C_dialect_cplusplus) {
             /* Allowing a benign redeclaration is an extension in C, so issue
                a warning. */
-            pos_warning(ec_duplicate_typedef, &locator->source_position);
+            pos_diagnostic(strict_ansi_error_severity,
+                           ec_duplicate_typedef, &locator->source_position);
           }  /* if */
           mark_declared(sym, &locator->source_position,
                         /*save_as_decl_position=*/FALSE);
