@@ -88,6 +88,9 @@ int EDG_MAIN(int argc, char *argv[])
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
     /* Get the front end starting time. */
     if (display_compilation_time) get_timer(&fe_start_time);
+    /* Initialize the per-compilation variables related to translation
+       unit processing. */
+    trans_unit_init();
     /* Process the source file. */
     process_translation_unit(primary_source_file_name, /*is_primary=*/TRUE,
                              (an_exported_template_file_ptr)NULL);

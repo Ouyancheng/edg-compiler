@@ -785,7 +785,6 @@ source file's compilation.
   layout_init();
   def_arg_init();
   templates_init();
-  trans_unit_init();
   corresp_init();
   expr_init();
   lookup_init();
