@@ -154,6 +154,15 @@ Constructors return "pointer to class", and destructors return
 #endif /* ifndef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 
 /*
+TRUE to select the variant rule for determining the key function
+(decider function) for virtual function tables in the IA-64 ABI.
+See 3.1 in the ARM EABI document.
+*/
+#ifndef IA64_ABI_VARIANT_KEY_FUNCTION
+#define IA64_ABI_VARIANT_KEY_FUNCTION FALSE
+#endif /* ifndef IA64_ABI_VARIANT_KEY_FUNCTION */
+
+/*
 The early GNU implementations of the IA-64 ABI (e.g., versions 3.2 and 3.3)
 had several bugs.  Set the following FLAG to TRUE if those bugs should be
 emulated by this implementation.  This is the initial value of the global

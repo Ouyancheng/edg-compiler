@@ -63,6 +63,9 @@ by IA64_ABI_USE_GUARD_ACQUIRE_RELEASE.  Now, we have added:
     IA64_ABI_USE_VARIANT_ARRAY_COOKIES.
   - Support for having constructors and destructors return "this",
     which is selected by IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS.
+  - Support for the alternate rule for determining the key function
+    for a virtual function table, which is selected by
+    IA64_ABI_VARIANT_KEY_FUNCTION.
 
 The runtime has also been updated to support these features.
 

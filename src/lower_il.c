@@ -4928,17 +4928,17 @@ have one yet.
              a function to see whether it is really inline. */
           (routine->is_template_function ?
                        !rout_is_inline_template_function(routine,
-#if IA64_ABI
+#if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
                                                          /*in_class=*/TRUE
-#else /* !IA64_ABI */
+#else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
                                                          /*in_class=*/FALSE
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
                                                                             ) :
-#if IA64_ABI
+#if IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION
                        !routine->inline_in_class_definition
-#else /* !IA64_ABI */
+#else /* !(IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION) */
                        !routine->is_inline
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI && !IA64_ABI_VARIANT_KEY_FUNCTION */
                                                             )) {
         /* This is the first non-inline virtual non-pure member function in
            the class.  If it is defined in this compilation, we should put
