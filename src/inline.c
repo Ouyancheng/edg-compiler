@@ -1778,9 +1778,12 @@ versions of those routines.
       /* If the routine's address was taken, an out of line copy is needed. */
       if (routine->address_taken) routine->need_out_of_line_copy = TRUE;
       if (routine->storage_class == (a_storage_class)sc_unspecified &&
+          (instantiate_extern_inline || c99_mode || gcc_mode) &&
           !routine->suppress_inline_body) {
         /* For extern inline functions we need to put out an out-of-line
-           copy when told to do so via the suppress_inline_body flag. */
+           copy when told to do so via the suppress_inline_body flag.
+           The suppress_inline_body flag is meaningful when instantiating
+           extern inlines and in C99 and GNU C modes. */
         routine->need_out_of_line_copy = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
         mark_as_needed((char *)routine, (an_il_entry_kind)iek_routine);
