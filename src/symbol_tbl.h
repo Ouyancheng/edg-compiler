@@ -1459,6 +1459,12 @@ typedef struct a_template_symbol_supplement {
 			   instantiations that can be generated for a given
 			   function.  This field records the number of unused
 			   instantiations that have been performed so far. */
+      a_bit_field
+		template_param_not_in_function_type:1;
+			/* TRUE if the function template has template
+			   parameters that are not used in the function
+			   type. */
+      bitfield_to_avoid_codecenter_warnings()
     } function;
     /* When symbol kind = sk_static_data_member: */
     struct {

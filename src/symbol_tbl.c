@@ -1734,6 +1734,10 @@ and return a pointer to it.
                           /*reusable=*/TRUE);
       tssp->variant.function.substituted_types = FALSE;
       tssp->variant.function.unused_instantiations = 0;
+      tssp->variant.function.template_param_not_in_function_type = FALSE;
+#if CHECKING 
+      tssp->variant.function.avoid_codecenter_warnings = FALSE;
+#endif /* CHECKING */
       break;
     case sk_static_data_member:
       tssp->variant.static_data_member.definitions = NULL;

@@ -663,10 +663,10 @@ Display the parameter list of the function template specified by sym.
   a_template_decl_info_ptr		decl_info;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
-  /* Don't display the parameter list for conversion functions or constructors,
-     as they do not permit explicit argument lists to be supplied. */
-  if (!is_constructor_symbol(sym) && !is_conversion_function_symbol(sym)) {
-    tssp = sym->variant.template_info;
+  tssp = sym->variant.template_info;
+  /* Only display the parameter list if the function template makes use
+     of template parameters that are not part of the function signature. */
+  if (tssp->variant.function.template_param_not_in_function_type) {
     decl_info = tssp->variant.function.decl_cache.decl_info;
     tpp = decl_info->parameters;
     if (tpp != NULL) {
@@ -803,10 +803,12 @@ level.
       /* Only display the parent information if the parent class of the
          template is a prototype instantiation.  This suppresses the
          template argument information for the levels at which the
-         template has been specialized.  The level is only incremented
-         if there is a template argument list to be displayed at this level. */
+         template has been specialized.  This is also suppressed if the
+         parent_sym is a prototype instantiation, to avoid output like
+         "[with T=T]" */
       if (parent_template_sym != NULL &&
-          is_prototype_instantiation_symbol(parent_template_sym)) {
+          is_prototype_instantiation_symbol(parent_template_sym) &&
+          !is_prototype_instantiation_symbol(parent_sym)) {
         form_template_arg_info(parent_sym, parent_template_sym, seg_ptr,
                                any_args);
       }  /* if */
@@ -1142,7 +1144,16 @@ symbol_name:
       }  /* if */
       if (distinct_template_signatures) {
         /* Display the template argument information, if any. */
-        form_template_arg_info(fund_sym, corresp_template_sym, seg_ptr,
+        a_symbol_ptr	templ_arg_sym;
+        /* If a template name was displayed above, use the fundamental
+           symbol to produce the appropriate template arguments.  Otherwise,
+           use the symbol whose name was output above. */
+        if (corresp_template_sym != NULL) {
+          templ_arg_sym = fund_sym;
+        } else {
+          templ_arg_sym = sym_to_display;
+        }  /* if */
+        form_template_arg_info(templ_arg_sym, corresp_template_sym, seg_ptr,
                               (a_boolean*)NULL);
       }  /* if */
       break;

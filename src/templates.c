@@ -8716,26 +8716,29 @@ done here.
   a_type_ptr	        rout_type = skip_typerefs(type);
   a_boolean		is_conversion_operator;
   a_boolean		is_constructor;
-  a_boolean		usage_check_needed = FALSE;
   an_error_severity	severity;
 
   is_conversion_operator = is_conversion_function_symbol(sym);
   is_constructor = is_constructor_symbol(sym);
   if (distinct_template_signatures) {
-    /* The test is not needed because there is no requirement for template
-       parameters to be used in a function signature when templates get
-       the appropriate mangling.  The test is still done for functions
-       that cannot be called with an explicit template argument list, but
-       only a warning is issued. */
+    /* When distinct template signatures are used there is no requirement
+       for template parameters to be used in the function signature.  We
+       still perform the test to set template_param_not_in_functino_type
+       appropriately.  This is used in determining how to display diagnostics
+       involving the template.  A remark is issued because, in most cases,
+       this will indicate the use of the wrong name in the function template
+       declaration.  A warning is issued for constructors and conversion
+       operators because there is no way to call such functions (because
+       explicit argument lists can't be supplied). */
     if (is_conversion_operator || is_constructor) {
-      usage_check_needed = TRUE;
       severity = es_warning;
+    } else {
+      severity = es_remark;
     }  /* if */
   } else {
     /* All templates must use their template parameters in the function
        signature when old template mangling is used.  Otherwise, duplicate
        mangled named would be generated. */
-    usage_check_needed = TRUE;
     severity = es_error;
   }  /* if */
   /* Go through the loop anyway, to check for function template parameters
@@ -8747,23 +8750,24 @@ done here.
       pos_error(ec_default_template_arg_not_allowed,
                 &param_sym->decl_position);
     }  /* if */
-    if (usage_check_needed) {
-      if (is_conversion_operator) {
-        /* For conversion operator functions, the template parameters must be
-           used in the return type. */
-        param_used =  template_param_used_in_type(
-                            param_sym, rout_type->variant.routine.return_type);
-      } else {
-        /* Determine whether all template parameters are used by
-           function parameter types. */
-        param_used = template_param_appears_in_param_list(param_sym,
-                                                          rout_type);
-      }  /* if */
-      if (!param_used) {
-        pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
-                           &param_sym->decl_position, param_sym, sym);
-      } /* if */
+    if (is_conversion_operator) {
+      /* For conversion operator functions, the template parameters must be
+         used in the return type. */
+      param_used =  template_param_used_in_type(
+                          param_sym, rout_type->variant.routine.return_type);
+    } else {
+      /* Determine whether all template parameters are used by
+         function parameter types. */
+      param_used = template_param_appears_in_param_list(param_sym,
+                                                        rout_type);
     }  /* if */
+    if (!param_used) {
+      a_template_symbol_supplement_ptr	tssp;
+      tssp = template_supplement_for_symbol(sym);
+      tssp->variant.function.template_param_not_in_function_type = TRUE;
+      pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
+                         &param_sym->decl_position, param_sym, sym);
+    } /* if */
   } /* for */
 }  /* check_function_template_param_usage */
 
