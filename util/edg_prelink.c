@@ -1,0 +1,1337 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+Prelink utility for template instantiation.
+
+*/
+
+#include <stdio.h>
+#include <ctype.h>
+#include <malloc.h>
+#include "basics.h"
+#include "host_envir.h"
+#include "edg_prelink.h"
+
+#define DEBUG 1
+
+typedef struct a_pl_input_file *a_pl_input_file_ptr;
+typedef struct a_pl_object_file *a_pl_object_file_ptr;
+
+/* An element of a list of input files that can instantiation a
+   given symbol. */
+typedef struct a_pl_instantiation_site *a_pl_instantiation_site_ptr;
+typedef struct a_pl_instantiation_site {
+  a_pl_instantiation_site_ptr
+		next;
+  a_pl_input_file_ptr
+		input_file;
+			/* Pointer to an input file that can generate
+			   the instantiation. */
+} a_pl_instantiation_site;
+
+
+/* Description of a symbol from an object file. */
+typedef struct a_pl_symbol *a_pl_symbol_ptr;
+typedef struct a_pl_symbol {
+  a_pl_symbol_ptr
+		next;
+			/* The next symbol associated with an object file. */
+  a_pl_symbol_ptr
+		next_in_symbol_table;
+			/* The next symbol in the global symbol table list. */
+  a_pl_symbol_ptr
+		next_in_info_file;
+			/* The next symbol in an instantiation info file. */
+  a_pl_input_file_ptr
+		instantiation_file;
+			/* The input file responsible for instantiating this
+			   symbol. */
+  a_pl_instantiation_site_ptr
+		possible_instantiation_sites;
+			/* List of input files capable of instantiating a
+			   template. */
+  a_pl_symbol_ptr
+		global_sym;
+			/* Pointer to the global symbol table entry for this
+			   name. */
+  char		*name;
+			/* Name of the symbol. */
+  a_byte_boolean
+		referenced;
+  a_byte_boolean
+		defined;
+  a_byte_boolean
+		tentative_definition;
+  a_byte_boolean
+		multiple_definition;
+  a_byte_boolean
+		is_template;
+  a_byte_boolean
+		can_be_instantiated;
+  a_byte_boolean
+		do_not_instantiate;
+  a_byte_boolean
+		instantiated;
+  a_pl_input_file_ptr
+		defined_in;
+			/* The input file in which the symbol was defined. */
+  a_pl_object_file_ptr
+		object_file;
+} a_pl_symbol;
+
+
+
+/* Structure that represents a single object file.  This could be a
+   normal object file or an object within an archive. */
+typedef struct a_pl_object_file {
+  a_pl_object_file_ptr
+		next;
+			/* For an archive, points to the next object file
+			   in the archive. */
+  char		*filename;
+			/* Name of the object file.  Same as the input
+			   filename for an object (.o) file. */
+  a_pl_symbol_ptr
+		symbols;
+			/* Points to a list of symbols associated with this
+			   object file. */
+  a_byte_boolean
+		included_in_output;
+			/* TRUE when the file is part of the resulting
+			   output.  This is always TRUE for .o files but
+			   is only TRUE for objects in an archive if the
+			   object is needed to resolve a reference. */
+} a_pl_object_file;
+
+
+/* Structure that represents a single input (.o or .a) file. */
+typedef struct a_pl_input_file {
+  a_pl_input_file_ptr
+		next;
+			/* Next entry on the list. */
+  char		*filename;
+			/* Name of the input file. */
+  char		*info_filename;
+			/* Name of the instantiation information file
+			   associated with this file (if one exists).
+			   NULL otherwise. */
+  a_pl_object_file_ptr
+		objects;
+			/* When is_archive is FALSE this points to a single
+			   object file.  When is_archive is TRUE this points
+			   to a list of object files. */
+  a_pl_symbol_ptr
+		info_list;
+			/* List of symbols to be instantiated in this file. */
+  a_byte_boolean
+		is_archive;
+			/* TRUE if the input file is an archive (.a) file. */
+  a_byte_boolean
+		info_file_updated;
+			/* TRUE if the instantiation information file needs
+			   to be rewritten because changes have been made
+			   to the info list. */
+  a_byte_boolean
+		recompile;
+			/* TRUE if, because of changes in the instantiation
+			   list, the file needs to be recompiled. */
+  
+} a_pl_input_file;
+
+/* Available lists for dynamically allocated structures. */
+static a_pl_input_file_ptr		avail_pl_input_files = NULL;
+static a_pl_object_file_ptr		avail_pl_object_files = NULL;
+static a_pl_symbol_ptr			avail_pl_symbols = NULL;
+static a_pl_instantiation_site_ptr	avail_pl_instantiation_sites = NULL;
+
+/* List of input files to be processed. */
+static a_pl_input_file_ptr	pl_input_files = NULL;
+static a_pl_input_file_ptr	pl_input_file_tail = NULL;
+
+/* Pointer to the file where the "nm" command output can be read. */
+static FILE			*pl_command_output;
+
+/* Pointer to the head of the global symbol list. */
+static a_pl_symbol_ptr		pl_symbol_table_head = NULL;
+
+/* Pointer to a dynamically allocated buffer in which filenames can
+   be manipulated.  The actual size is based on the longest filename
+   specified on the command line. */
+static char			*pl_filename_buffer;
+
+#if DEBUG
+static int pl_debug_level = 0;
+static void pl_db_symbol(a_pl_symbol_ptr psp,
+                         char            *prefix_string);
+#endif /* DEBUG */
+
+/*
+Lines from "nm" are read into this buffer for analysis.
+*/
+#define PL_INPUT_LINE_SIZE 32767
+typedef char		a_pl_input_line[PL_INPUT_LINE_SIZE];
+static a_pl_input_line	pl_input_line;
+static int		pl_line_size;
+                	/* Number of characters in the input line not including
+	                   the final null. */
+
+/* The symbol table used for simulating the link. */
+#define PL_SYMBOL_TABLE_SIZE	10007
+static a_pl_symbol_ptr	pl_symbol_table[PL_SYMBOL_TABLE_SIZE];
+
+/* The multiplier used in the hash algorithm that generates an index
+   in the hash table from an identifier name string.  Do not change
+   without investigating the hash table performance that results.
+   Prime values are likely to work better than non-prime values. */
+#define PL_HASH_FACTOR 73
+
+
+static void pl_error(char*   error_string)
+/*
+Prints an error message and exits with an error exit status.
+*/
+{
+  fprintf(stderr, "edg_prelink error: %s\n", error_string);
+  exit (RC_ERROR);
+}
+
+
+void pl_internal_error(char*   error_string)
+/*
+Prints an internal error message and exits with a catastrophic error
+exit status.
+*/
+{
+  fprintf(stderr, "edg_prelink: %s\n", error_string);
+  exit (RC_CATASTROPHE);
+}
+
+
+static char *pl_malloc_with_check(sizeof_t size)
+/*
+Interface to malloc that allocates "size" bytes.  Checks for failure of 
+allocation and generates a catastrophic error.
+*/
+{
+  char *ptr;
+
+  if ((ptr = (char *)malloc(size)) == NULL) {
+    pl_error("out of memory");
+  } /* if */
+  return (ptr);
+}  /* pl_malloc_with_check */
+
+
+static a_pl_input_file_ptr alloc_pl_input_file(void)
+/*
+Allocate an input file, initialize it, and return a pointer to it.
+*/
+{
+  a_pl_input_file_ptr		pifp;
+
+  if (avail_pl_input_files != NULL) {
+    pifp = avail_pl_input_files;
+    avail_pl_input_files = pifp->next;
+  } else {
+    pifp = (a_pl_input_file_ptr)pl_malloc_with_check(sizeof(a_pl_input_file));
+  }  /* if */
+  pifp->next = NULL;
+  pifp->filename = NULL;
+  pifp->info_filename = NULL;
+  pifp->info_list = NULL;
+  pifp->objects = NULL;
+  pifp->is_archive = FALSE;
+  pifp->info_file_updated = FALSE;
+  pifp->recompile = FALSE;
+  return pifp;
+}  /* alloc_pl_input_file */
+
+
+static void free_pl_input_file(a_pl_input_file_ptr pifp)
+/*
+Return an input file to the available list.
+*/
+{
+  pifp->next = avail_pl_input_files;
+  avail_pl_input_files = pifp;
+}  /* free_pl_input_file */
+
+
+static a_pl_object_file_ptr alloc_pl_object_file(void)
+/*
+Allocate an object file, initialize it, and return a pointer to it.
+*/
+{
+  a_pl_object_file_ptr		pofp;
+
+  if (avail_pl_object_files != NULL) {
+    pofp = avail_pl_object_files;
+    avail_pl_object_files = pofp->next;
+  } else {
+    pofp =
+          (a_pl_object_file_ptr)pl_malloc_with_check(sizeof(a_pl_object_file));
+  }  /* if */
+  pofp->next = NULL;
+  pofp->filename = NULL;
+  pofp->symbols = NULL;
+  pofp->included_in_output = FALSE;
+  return pofp;
+}  /* alloc_pl_object_file */
+
+
+static void free_pl_object_file(a_pl_object_file_ptr pofp)
+/*
+Return an object file to the available list.
+*/
+{
+  pofp->next = avail_pl_object_files;
+  avail_pl_object_files = pofp;
+}  /* free_pl_object_file */
+
+
+static a_pl_symbol_ptr alloc_pl_symbol(void)
+/*
+Allocate a symbol, initialize it, and return a pointer to it.
+*/
+{
+  a_pl_symbol_ptr		psp;
+
+  if (avail_pl_symbols != NULL) {
+    psp = avail_pl_symbols;
+    avail_pl_symbols = psp->next;
+  } else {
+    psp = (a_pl_symbol_ptr)pl_malloc_with_check(sizeof(a_pl_symbol));
+  }  /* if */
+  psp->next = NULL;
+  psp->next_in_symbol_table = NULL;
+  psp->next_in_info_file = NULL;
+  psp->global_sym = NULL;
+  psp->instantiation_file = NULL;
+  psp->possible_instantiation_sites = NULL;
+  psp->referenced = FALSE;
+  psp->defined = FALSE;
+  psp->tentative_definition = FALSE;
+  psp->multiple_definition = FALSE;
+  psp->is_template = FALSE;
+  psp->can_be_instantiated = FALSE;
+  psp->do_not_instantiate = FALSE;
+  psp->instantiated = FALSE;
+  psp->defined_in = NULL;
+  psp->object_file = NULL;
+  return psp;
+}  /* alloc_pl_symbol */
+
+
+static a_pl_instantiation_site_ptr alloc_pl_instantiation_site(void)
+/*
+Allocate an instantiation_site, initialize it, and return a pointer to it.
+*/
+{
+  a_pl_instantiation_site_ptr		pisp;
+
+  if (avail_pl_instantiation_sites != NULL) {
+    pisp = avail_pl_instantiation_sites;
+    avail_pl_instantiation_sites = pisp->next;
+  } else {
+    pisp = (a_pl_instantiation_site_ptr)
+                       pl_malloc_with_check(sizeof(a_pl_instantiation_site));
+  }  /* if */
+  pisp->next = NULL;
+  pisp->input_file = NULL;
+  return pisp;
+}  /* alloc_pl_instantiation_site */
+
+
+static void free_pl_symbol(a_pl_symbol_ptr psp)
+/*
+Return an input file to the available list.
+*/
+{
+  psp->next = avail_pl_symbols;
+  avail_pl_symbols = psp;
+}  /* free_pl_symbol */
+
+
+a_boolean pl_read_input_line(FILE* input_file)
+/*
+Reads a line of input from input_file.  Returns TRUE if a line of
+input is being returned.  Returns FALSE at end-of-file.  Sets "line_size"
+to the number of characters read not including the trailing null character.
+*/
+{
+  register char*    buffer_pos = &pl_input_line[0];
+  register int      size = 0;
+  register char     ch;
+  a_boolean         result;
+
+  while (ch = getc(input_file), ch != EOF && ch != '\n') {
+    if (++size > PL_INPUT_LINE_SIZE) {
+      pl_internal_error("pl_read_input_line: input line too long.");
+    }  /* if */
+    *buffer_pos++ = ch;
+  }  /* while */
+  
+  /* Terminate string with a null character. */
+  *buffer_pos++ = '\0';
+
+  /* Determine whether to return end-of-file (FALSE). */
+  result = TRUE;
+  if (ch == EOF && size == 0) result = FALSE;
+
+  /* Save the number of characters read. */
+  pl_line_size = size;
+
+  return (result);
+}  /* pl_read_input_line */
+
+
+
+static char *pl_copy_string(char *source)
+/*
+Allocate space for a copy of the string and make a copy.  Return a pointer
+to the copy.
+*/
+{
+  char	*dest;
+  dest = (char *)malloc(strlen(source) + 1);
+  strcpy(dest, source);
+  return dest;
+}  /* pl_copy_string */
+
+
+static void pl_read_nm_output(void)
+/*
+Read the output of the nm command.  The output for an object (.o) file
+is expected to look like:
+
+xxx.o:01230123 T _name1
+xxx.o:01230124 T _name2
+
+The output for an archive file (.a) is expected to look like:
+<blank line>
+xxx.a:
+xxx.a:x1.o:01230123 T _name1
+xxx.a:x1.o:01230124 T _name2
+xxx.a:x2.o:01230123 T _name3
+xxx.a:x2.o:01230124 T _name4
+*/
+{
+  char			*input_filename = NULL;
+  char			*object_filename = NULL;
+  a_boolean		is_archive = FALSE;
+  a_boolean		archive_start = FALSE;
+  a_pl_object_file_ptr	objects_tail;
+  a_pl_object_file_ptr	pofp;
+  a_pl_input_file_ptr	pifp;
+
+  while (pl_read_input_line(pl_command_output)) {
+    char		*pos;
+    char		*name;
+    char		type;
+    a_pl_symbol_ptr	psp;
+    int			i;
+    char		ch;
+    char		*curr_filename;
+    char		*rest_of_line;
+    char	        *first_colon;
+#if DEBUG
+    if (pl_debug_level >= 4) {
+      fprintf(stderr, "%s\n", pl_input_line);
+    }  /* if */
+#endif /* DEBUG */
+    /* Find the first colon and replace it with a null.  Build pointers to
+       the two portions of the string. */
+    first_colon = strchr(pl_input_line, ':');
+    if (first_colon != NULL) {
+      *first_colon = '\0';
+      curr_filename = pl_input_line;
+      rest_of_line = first_colon + 1;
+    } else {
+      curr_filename = NULL;
+      rest_of_line = pl_input_line;
+    }  /* if */
+
+    /* A blank line marks the start of an archive. */
+    if (pl_input_line[0] == '\0') {
+      archive_start = TRUE;
+      continue;
+    }  /* if */
+    /* See if this is the start of a new input file. */
+    if (input_filename == NULL ||
+        strcmp(input_filename, curr_filename) != 0) {
+      /* The start of a new input file. */
+      input_filename = pl_copy_string(curr_filename);
+      pifp = alloc_pl_input_file();
+      pifp->is_archive = archive_start;
+      pifp->filename = input_filename;
+      is_archive = archive_start;
+      archive_start = FALSE;
+      objects_tail = NULL;
+      /* Add this entry to the list of input files. */
+      if (pl_input_files == NULL) pl_input_files = pifp;
+      if (pl_input_file_tail != NULL) pl_input_file_tail->next = pifp;
+      pl_input_file_tail = pifp;
+      if (is_archive) {
+        object_filename = NULL;
+        /* Continue execution with the next line which will be the
+           first object file in the archive. */
+        continue;
+      } else {
+        /* Allocate an object file structure and link it to the input
+           file. */
+        pofp = alloc_pl_object_file();
+        pifp->objects = pofp;
+        pofp->filename = pl_copy_string(input_filename);
+      }  /* if */
+    }  /* if */
+    /* See if this is the start of a new object file within an archive. */
+    if (is_archive) {
+      char	*first_colon;
+      char	*curr_object_filename;
+      /* Find the colon that terminates the object filename.  rest_of_line
+         already points to beginning of the object file name not the
+         beginning of the archive name. */
+      first_colon = strchr(rest_of_line, ':');
+      if (first_colon != NULL) {
+        *first_colon = '\0';
+        curr_object_filename = rest_of_line;
+        rest_of_line = first_colon + 1;
+      } else {
+        curr_filename = NULL;
+      }  /* if */
+      if (object_filename == NULL ||
+          strcmp(object_filename, curr_object_filename) != 0) {
+        /* This is a new object file within the archive. */
+        object_filename = pl_copy_string(curr_object_filename);
+        pofp = alloc_pl_object_file();
+        pofp->filename = object_filename;
+        /* Add this object file to the list of objects pointed to by the
+           input file entry. */
+        if (pifp->objects == NULL) pifp->objects = pofp;
+        if (objects_tail != NULL) objects_tail->next = pofp;
+        objects_tail = pofp;
+      }  /* if */
+    }  /* if */
+    /* Extract the symbol information from the remainder of the line.
+       Verify that the line has the proper format. */
+    /* Look for 8 hex characters or blanks at the start of the line. */
+    pos = rest_of_line;
+    for (i = 0; i < 8; ++i) {
+      ch = *pos++;
+      if ((!isxdigit(ch)) && (ch != ' ')) goto invalid_input;
+    }  /* for */
+    /* Look for blank after value. */
+    if (*pos++ != ' ') goto invalid_input;
+    /* Get the type code. */
+    type = *pos++;
+    if (!isalpha(type)) goto invalid_input;
+    /* Look for blank after type. */
+    if (*pos++ != ' ') goto invalid_input;
+#if UNDERSCORE_PREFIX
+    /* Skip passed extra underscore at the start of every symbol if an
+       underscore is present.  */
+    if (*pos == '_') pos++;
+#endif /* UNDERSCORE_PREFIX */
+    if (type != 'B' &&
+        type != 'D' &&
+        type != 'T' &&
+        type != 'U' &&
+        type != 'C') {
+       /* Not a type of symbol that we need to process. */
+     } else {
+      /* Save the position of the start of the name. */
+      name = pos;
+      psp = alloc_pl_symbol();
+      psp->name = pl_copy_string(name);
+      psp->object_file = pofp;
+      /* Set symbol flags. */
+      switch (type) {
+        case 'B':  /* BSS symbol */
+        case 'D':  /* data symbol */
+        case 'T':  /* text symbol */
+          psp->defined = TRUE;
+          break;
+        case 'U':  /* undefined symbol */
+          psp->referenced = TRUE;
+          break;
+        case 'C':  /* common (tentative definition) */
+          psp->tentative_definition = TRUE;
+          break;
+        default:
+          break;
+      }  /* switch */
+      /* Link onto front of list associated with the current object file. */
+      psp->next = pofp->symbols;
+      pofp->symbols = psp;
+    }  /* if */
+  }  /* while */
+  return;
+invalid_input:
+  pl_error("invalid input format");
+  /*NOTREACHED*/
+}  /* pl_read_nm_output */
+
+
+static void add_possible_instantiation_site(a_pl_symbol_ptr	psp,
+					    a_pl_input_file_ptr	pifp)
+/*
+Add an input file to a list of files that can instantiate a given symbol.
+*/
+{
+  a_pl_instantiation_site_ptr	pisp;
+
+  pisp = alloc_pl_instantiation_site();
+  pisp->input_file = pifp;
+  pisp->next = psp->possible_instantiation_sites;
+  psp->possible_instantiation_sites = pisp;
+}  /* add_possible_instantiation_site */
+
+
+static a_pl_symbol_ptr pl_find_symbol(char		*name,
+                                      a_pl_symbol_ptr	other_sym,
+				      a_boolean		add)
+/*
+Find a symbol entry with the specified name.  Add the name to the
+list if an entry does not already exist.
+*/
+{
+  register unsigned            hash_value = 0;
+  register char                *ptr;
+  a_pl_symbol_ptr	       prev_sym_ptr;
+  a_pl_symbol_ptr              sym_ptr    = NULL;
+  int                          bucket_number;
+  int			       length;
+
+  /* If the symbol pointer passed from the caller already contains a pointer
+     to the global symbol then simply return that value.  Otherwise,
+     look it up in the symbol table. */
+  if (other_sym != NULL && other_sym->global_sym != NULL) {
+    sym_ptr = other_sym->global_sym;
+    goto symbol_found;
+  }  /* if */
+  length = strlen(name);
+  /* Hash the symbol's name.  This involves taking the name's
+     first, last, and middle 3 characters.  Of course, if the name has
+     fewer than 5 characters, take the entire name. */
+  if (length > 5) {
+    ptr = name + (length >> 1) - 1;
+    hash_value = (int)*name;
+    hash_value = (hash_value * PL_HASH_FACTOR) +
+                                             (int)*(name + length - 1);
+    hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr++;
+    hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr;
+  } else {
+    register int i;
+    ptr = name;
+    for (i = 0; i < length; i++) {
+      hash_value = (hash_value * PL_HASH_FACTOR) + (int)*ptr++;
+    }  /* for */
+  }  /* if */
+
+  /* Look in the symbol bucket saving the position in case this symbol needs
+     to be added. */
+  bucket_number = hash_value % PL_SYMBOL_TABLE_SIZE;
+  if ((sym_ptr = pl_symbol_table[bucket_number]) != NULL) {
+    prev_sym_ptr = NULL;
+    do {
+      if (strcmp(name, sym_ptr->name) == 0) {
+        /* We have a match. */
+        /* Relink the symbol header at the front of the list of headers,
+           so that frequently-used headers will be found quickly. */
+        if (prev_sym_ptr != NULL) {
+          prev_sym_ptr->next = sym_ptr->next;
+          sym_ptr->next = pl_symbol_table[bucket_number];
+          pl_symbol_table[bucket_number] = sym_ptr;
+        }  /* if */
+        goto symbol_found;
+      }  /* if */
+      prev_sym_ptr = sym_ptr;
+    } while ((sym_ptr = sym_ptr->next) != NULL);
+  }  /* if */
+
+  /* Exiting this loop indicates that the symbol does not exist in the table;
+     allocate a symbol header for it. */
+  if (add) {
+    sym_ptr = alloc_pl_symbol();
+    /* Add this to the list of symbols in the global symbol table. */
+    sym_ptr->next_in_symbol_table = pl_symbol_table_head;
+    pl_symbol_table_head = sym_ptr;
+
+    /* Link the new header onto the front of the appropriate bucket of the
+       symbol table. */
+    sym_ptr->next = pl_symbol_table[bucket_number];
+    pl_symbol_table[bucket_number] = sym_ptr;
+    sym_ptr->name = pl_copy_string(name);
+  }  /* if */
+
+symbol_found:
+  if (sym_ptr != NULL) {
+    if (other_sym != NULL && other_sym->global_sym == NULL) {
+      /* Record a pointer to the global symbol in the symbol passed by the
+         caller. */
+      other_sym->global_sym = sym_ptr;
+    }  /* if */
+  }  /* if */
+  return sym_ptr;
+}  /* pl_find_symbol */
+
+
+static void pl_add_predefined_names(void)
+{
+  char			*name;
+  int			pos = 0;
+  a_pl_symbol_ptr	sym;
+
+  for (;;) {
+    name = pl_predefined_names[pos++]; 
+    if (name == NULL) break;
+    sym = pl_find_symbol(name, (a_pl_symbol_ptr)NULL, /*add=*/TRUE);
+    sym->defined = TRUE;
+  }  /* for */
+}  /* pl_add_predefined_names */
+
+
+static void pl_add_symbols_from_object(a_pl_object_file_ptr pofp,
+				       a_pl_input_file_ptr  input_file)
+/*
+Add all of the symbols from a given object file to the global symbol
+table.
+*/
+{
+  a_pl_symbol_ptr	psp;
+
+  psp = pofp->symbols;
+  while (psp != NULL) {
+    a_pl_symbol_ptr	sym;
+    a_boolean		is_special_symbol = FALSE;
+    if (!input_file->is_archive &&
+        psp->name[0] == '_' && psp->name[1] == '_') {
+      /* If the object file is not coming from an archive then process
+         special symbols used to pass information from the compiler to
+         the prelinker.  Files from archives are ignored because the
+         prelinker cannot use the archive files to generate instantiations. */
+      if (strncmp(psp->name, PL_INSTANCE_REQUIRED_PREFIX,
+                  PL_INSTANCE_REQUIRED_PREFIX_LEN) == 0) {
+        is_special_symbol = TRUE;
+        sym = pl_find_symbol(&psp->name[PL_INSTANCE_REQUIRED_PREFIX_LEN],
+                             psp, /*add=*/TRUE);
+        sym->is_template = TRUE;
+      } else if (strncmp(psp->name, PL_DO_NOT_INSTANTIATE_PREFIX,
+                  PL_DO_NOT_INSTANTIATE_PREFIX_LEN) == 0) {
+        is_special_symbol = TRUE;
+        sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN],
+                             psp, /*add=*/TRUE);
+        sym->do_not_instantiate = TRUE;
+      } else if (strncmp(psp->name, PL_FIRST_VIRTUAL_FUNCTION_PREFIX,
+                  PL_FIRST_VIRTUAL_FUNCTION_PREFIX_LEN) == 0) {
+        /* The "first virtual function" prefix indicates that a given name
+           is the first noninline virtual function of a class.  The prelinker
+           treats this as a name that is referenced and could have been
+	   instantiated in the file.  This will cause the function to be
+           instantiated which will in turn cause a vtable to be generated.
+	   This will ultimately result in all of the virtual functions for the
+	   class to be instantiated. */
+        is_special_symbol = TRUE;
+        sym = pl_find_symbol(&psp->name[PL_FIRST_VIRTUAL_FUNCTION_PREFIX_LEN],
+                             psp, /*add=*/TRUE);
+        sym->referenced = TRUE;
+        sym->can_be_instantiated = TRUE;
+	sym->is_template = TRUE;
+        add_possible_instantiation_site(sym, input_file);
+      } else if (strncmp(psp->name, PL_CAN_BE_INSTANTIATED_PREFIX,
+                  PL_CAN_BE_INSTANTIATED_PREFIX_LEN) == 0) {
+        is_special_symbol = TRUE;
+        sym = pl_find_symbol(&psp->name[PL_CAN_BE_INSTANTIATED_PREFIX_LEN],
+                             psp, /*add=*/TRUE);
+        sym->can_be_instantiated = TRUE;
+#if !AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION
+        /* Add the current input file to the list of files that could
+	   instantiate the symbol. */
+        add_possible_instantiation_site(sym, input_file);
+#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION */
+      }  /* if */
+    }  /* if */
+    if (!is_special_symbol) {
+      sym = pl_find_symbol(psp->name, psp, /*add=*/TRUE);
+      sym->referenced |= psp->referenced;
+      if (psp->defined) {
+        if (sym->defined) {
+         sym->multiple_definition = TRUE;
+        } else {
+          sym->defined_in = input_file;
+          sym->defined = TRUE;
+       }  /* if */
+      }  /* if */
+      sym->tentative_definition |= psp->tentative_definition;
+    }  /* if */
+    psp = psp->next;
+  }  /* while */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION
+  if (!input_file->is_archive) {
+    /* Go back through the symbols looking for symbols that are template
+       based.  For template based symbols add this file to the list of
+       possible instantiation sites. */
+    psp = pofp->symbols;
+    while (psp != NULL) {
+      a_pl_symbol_ptr	sym = psp->global_sym;
+      if (sym != NULL) {
+        if (sym->is_template) {
+          /* Add the current input file to the list of files that could
+             instantiate the symbol. */
+          add_possible_instantiation_site(sym, input_file);
+          sym->can_be_instantiated = TRUE;
+        }  /* if */
+      }  /* if */
+      psp = psp->next;
+    }  /* while */
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  pofp->included_in_output = TRUE;
+}  /* pl_add_symbols_from_object */
+
+
+static a_boolean pl_any_symbols_referenced(a_pl_object_file_ptr pofp)
+/*
+Determine whether any of the symbols from an object file is needed
+to resolve an undefined reference or a tentative definition.
+*/
+{
+  a_pl_symbol_ptr	psp;
+  a_boolean		result = FALSE;
+
+  psp = pofp->symbols;
+  while (psp != NULL) {
+    a_pl_symbol_ptr	sym;
+    if (psp->defined || psp->tentative_definition) {
+      /* Only look the symbol up if this is a definition. */
+      sym = pl_find_symbol(psp->name, psp, /*add=*/FALSE);
+      if (sym != NULL && !sym->defined) {
+        /* A previously undefined symbol may be resolved by a definition or
+           a tentative definition.  A tentative defintion may only be
+           resolved by a nontenative definition. */
+        if (sym->referenced ||
+            (sym->tentative_definition && psp->defined)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    psp = psp->next;
+  }  /* while */
+  return result;
+}  /* pl_any_symbols_referenced */
+
+
+static void pl_prelink(void)
+/*
+Simulate a link operation.  For each object (.o) file add all of
+the names to the symbol table.
+*/
+{
+  a_pl_input_file_ptr	pifp;
+
+  pifp = pl_input_files;
+  while (pifp != NULL) {
+    a_pl_object_file_ptr	pofp;
+    a_boolean			file_used_from_archive = FALSE;
+    pofp = pifp->objects;
+    if (!pifp->is_archive) {
+      /* This is a .o file.  Add all of its symbols to the symbol table. */
+      pl_add_symbols_from_object(pofp, pifp);
+    } else {
+      while (pofp != NULL) {
+        if (!pofp->included_in_output) {
+          /* If the object file is not already part of the linked object
+             check whether any of its symbols resolve previously
+             unresolved references. */
+          if (pl_any_symbols_referenced(pofp)) {
+            /* This file is needed.  Add the symbols to the global symbol
+               table and set the flag that indicates a new file has been
+               added from this archive. */
+            pl_add_symbols_from_object(pofp, pifp);
+            file_used_from_archive = TRUE;
+          }  /* if */
+        }  /* if */
+        pofp = pofp->next;
+      }  /* while */
+    }  /* if */
+    /* If a file was added from this archive then rescan the files in
+       the archive to see if any additional files need to be added.
+       This would be needed when a file in an archive references an
+       file earlier in the archive. */
+    if (!file_used_from_archive) pifp = pifp->next;
+  }  /* while */
+}  /* pl_prelink */
+
+
+static void pl_read_instantiation_info_files(void)
+/*
+Read the existing instantiation assignment information from the
+.ii files associated with the object files being processed.
+*/
+{
+  a_pl_input_file_ptr	pifp;
+  FILE			*ii_file;
+
+  pifp = pl_input_files;
+  while (pifp != NULL) {
+    if (!pifp->is_archive) {
+      /* Build the name of the instantiation info file.  The input filename
+         is expected to be something like xyz.o.  We strip off the suffix
+         and add the suffix for the instantiation information file. */
+      char	*last_dot;
+      strcpy(pl_filename_buffer, pifp->filename);
+      last_dot = strrchr(pl_filename_buffer, '.');
+      if (last_dot == NULL) {
+        /* No suffix -- set last_dot as if a suffix had followed the name. */
+        last_dot = pl_filename_buffer + strlen(pl_filename_buffer);
+      }  /* if */
+      strcpy(last_dot, INSTANTIATION_INFO_SUFFIX);
+      ii_file = fopen(pl_filename_buffer, "r");
+#if DEBUG
+      if (pl_debug_level >= 2) {
+        fprintf(stderr, "Opening %s, result=%p\n", pl_filename_buffer,
+                (void *)ii_file);
+      }  /* if */
+#endif /* DEBUG */
+      if (ii_file != NULL) {
+        pifp->info_filename = pl_copy_string(pl_filename_buffer);
+        /* Read line 1 that contains the command line. */
+	pl_read_input_line(ii_file);
+        /* Read the instantiation list. */
+        while (pl_read_input_line(ii_file)) {
+          a_pl_symbol_ptr	sym;
+          sym = pl_find_symbol(pl_input_line, (a_pl_symbol_ptr)NULL,
+			       /*add=*/TRUE);
+          if (sym->instantiation_file != NULL) {
+            /* The symbol is in the instantiation list of more than one file.
+	       This should not happen. */
+	    pl_error("bad instantiation information file -- instantiation assigned to more than one file");
+          }  /* if */
+          sym->instantiation_file = pifp;
+          /* Add this to the front of the list of instantiation entries
+             associated with this file. */
+          sym->next_in_info_file = pifp->info_list;
+          pifp->info_list = sym;
+        }  /* while */
+        fclose(ii_file);
+      }  /* if */
+    }  /* if */
+    pifp = pifp->next;
+  }  /* while */
+}  /* pl_read_instantiation_info_files */
+
+
+static a_boolean pl_determine_actions(void)
+/*
+*/
+{
+  a_pl_input_file_ptr	pifp;
+  a_boolean		done = TRUE;
+
+  pifp = pl_input_files;
+  while (pifp != NULL) {
+    if (!pifp->is_archive) {
+      a_pl_symbol_ptr	psp;
+      a_pl_symbol_ptr	prev_psp;
+      /* For each of the entries on the instantiations list, see if the
+         symbol is defined in the file. */
+      psp = pifp->info_list;
+      prev_psp = NULL;
+      while (psp != NULL) {
+        a_boolean	remove_from_info_file = FALSE;
+        a_boolean	recompile_file = FALSE;
+        if (psp->multiple_definition || psp->do_not_instantiate) {
+          /* An existing instantiation should be removed.  A symbol will
+	     be multiply defined when a new specialization has been
+             supplied for an instantiation previously assigned to a file.
+             The do_not_instantiate flag may now be set (because a pragma
+             was added to a file).  Remove the instantiation from
+	     the list and recompile the file. */
+          remove_from_info_file = TRUE;
+          recompile_file = TRUE;
+        } else if (psp->defined_in != NULL && psp->defined_in != pifp) {
+          /* Either the symbol is undefined or it is now defined in a
+             different file.  In either case it should be removed from the
+             instantiation list for this file.  This will be the case
+             when a file that was assigned a given instantiation no
+             longer requires that particular instantiation. */
+          remove_from_info_file = TRUE;
+        } else if (!psp->is_template) {
+          /* The symbol no longer represents a template.  Remove it from the
+             instantiation information file. */
+          remove_from_info_file = TRUE;
+        }  /* if */
+        if (!remove_from_info_file) {
+          /* Mark this symbol has having been instantiated. */
+          psp->instantiated = TRUE;
+        } else {
+          /* Either the symbol is undefined or it is now defined in a
+             different file.  In either case it should be removed from the
+             instantiation list for this file.  This will be the case
+             when a file that was assigned a given instantiation no
+             longer requires that particular instantiation.  Remove the
+             symbol from the info list for this input file. */
+          if (prev_psp != NULL) {
+            prev_psp->next_in_info_file = psp->next_in_info_file;
+          } else {
+            pifp->info_list = psp->next_in_info_file;
+          }  /* if */
+          psp->instantiation_file = NULL;
+          pifp->info_file_updated = TRUE;
+          pifp->recompile = recompile_file;
+          done = FALSE;
+#if DEBUG
+          if (pl_debug_level >= 0) {
+            fprintf(stderr, "%s no longer needed in %s\n", psp->name,
+                    pifp->filename);
+          }  /* if */
+#endif /* DEBUG */
+        }  /* if */
+        /* Don't update the previous pointer if the current item was
+           actually removed from the list. */
+        if (!remove_from_info_file) prev_psp = psp;
+        psp = psp->next_in_info_file;
+      }  /* while */
+      /* Do a very simple assignment of instantiations to files.  Just
+         go through the list of possible instantiations and instantiate
+         anything that hasn't already been handled. */
+      psp = pifp->objects->symbols;
+      while (psp != NULL) {
+        a_pl_symbol_ptr	sym = psp->global_sym;
+#if DEBUG
+        if (pl_debug_level >= 4) {
+          fprintf(stderr, "File: %s, Symbol: %s\n", pifp->filename,
+		  sym == NULL ? "null" : sym->name);
+          pl_db_symbol(sym, "        ");
+        }  /* if */
+#endif /* DEBUG */
+        if (sym != NULL && sym->is_template &&
+             !sym->instantiated && !sym->do_not_instantiate &&
+             sym->can_be_instantiated &&
+            (sym->referenced || sym->tentative_definition) && !sym->defined) {
+          /* Add this symbol to the list of symbols in the info file list.
+             Set the instantiation flag and indicate the the info file has
+             been updated and the source file associated with the info
+             file must be recompiled. */
+          sym->next_in_info_file = pifp->info_list;
+          pifp->info_list = sym;
+          sym->instantiated = TRUE;
+          pifp->info_file_updated = TRUE;
+          pifp->recompile = TRUE;
+          done = FALSE;
+#if DEBUG
+          if (pl_debug_level >= 0) {
+            fprintf(stderr, "%s assigned to file %s\n", sym->name,
+                    pifp->filename);
+          }  /* if */
+#endif /* DEBUG */
+        }  /* if */
+        psp = psp->next;
+      }  /* while */
+    }  /* if */
+    pifp = pifp->next;
+  }  /* while */
+  return done;
+}  /* pl_determine_actions */
+
+
+static int pl_recompile_file(char		 *command_line)
+/*
+Execute the command to recompile a file.
+*/
+{
+  static char	*shell_format_string = "%s";
+  int		length;
+  char		*command;
+
+  length = strlen(shell_format_string) + strlen(command_line);
+  command = (char *)pl_malloc_with_check(length);
+  sprintf(command, shell_format_string, command_line);
+#if DEBUG
+  if (pl_debug_level >= 0) {
+    fprintf(stderr, "Executing: %s\n", command);
+  }  /* if */
+#endif /* DEBUG */
+  return system(command_line);
+}  /* pl_recompile_file */
+
+
+static int pl_update_info_files(void)
+/*
+If the list of instantiates for a given instantiation information file
+has changed then write the updated list of instantiations to the file.
+*/
+{
+
+  a_pl_input_file_ptr		pifp;
+  static a_pl_input_line	command_line_buffer;
+  int				return_status = 0;
+
+  pifp = pl_input_files;
+  while (pifp != NULL) {
+    if (pifp->info_file_updated) {
+      a_pl_symbol_ptr	psp;
+      FILE		*ii_file;
+      /* Open the input file in read mode to read the header information. */
+      if (pifp->info_filename == NULL) {
+        fprintf(stderr, "Input file %s has instantiations but no instantiation information file.\n", pifp->filename);
+        pl_internal_error("Instantiation information file is missing");
+      }  /* if */
+      ii_file = fopen(pifp->info_filename, "r");
+      if (ii_file == NULL) {
+        fprintf(stderr, "File %s is missing\n", pifp->info_filename);
+        pl_internal_error("Instantiation information file is missing");
+      }  /* if */
+      /* Read the command line and save it. */
+      pl_read_input_line(ii_file);
+      strcpy(command_line_buffer, pl_input_line);
+      /* Truncate the original file so that it can be rewritten. */
+      ii_file = fopen(pifp->info_filename, "w");
+      if (ii_file == NULL) {
+        pl_internal_error("Could not reopen instantiation information file.");
+      }  /* if */
+      fprintf(ii_file, "%s\n", command_line_buffer);
+      /* Write the instantiation list to the file. */
+      psp = pifp->info_list;
+      while (psp != NULL) {
+        fprintf(ii_file, "%s\n", psp->name);
+        psp = psp->next_in_info_file;
+      }  /* while */
+      fclose(ii_file);
+      return_status = pl_recompile_file(command_line_buffer);
+      /* Stop if an error occurs. */
+      if (return_status != 0) break;
+    }  /* if */
+    pifp = pifp->next;
+  }  /* while */
+  return return_status;
+}  /* pl_update_info_files */
+
+
+#if DEBUG
+static void pl_db_symbol(a_pl_symbol_ptr psp,
+                         char            *prefix_string)
+/*
+Display a symbol.
+*/
+{
+  a_pl_instantiation_site_ptr	pisp;
+  fprintf(stderr, "%sSymbol: %s", prefix_string, psp->name);
+  if (psp->defined) fprintf(stderr, " defined");
+  if (psp->referenced) fprintf(stderr, " referenced");
+  if (psp->tentative_definition) {
+    fprintf(stderr, " tentative_definition");
+  }  /* if */
+  if (psp->multiple_definition) {
+    fprintf(stderr, " multiple_definition");
+  }  /* if */
+  if (psp->is_template) fprintf(stderr, " is_template");
+  if (psp->can_be_instantiated) fprintf(stderr, " can_be_instaniated");
+  if (psp->do_not_instantiate) fprintf(stderr, " do_not_instaniate");
+  pisp = psp->possible_instantiation_sites;
+  if (pisp != NULL) {
+    fprintf(stderr, " Instantiation sites:");
+    for (; pisp != NULL; pisp = pisp->next) {
+      fprintf(stderr, " %s", pisp->input_file->filename);
+    }  /* for */
+  }  /* if */
+  fprintf(stderr, "\n");
+}  /* pl_db_symbol */
+
+
+static void pl_db_input_files(void)
+/*
+Display the internal representation of the "nm" output.
+*/
+{
+  a_pl_input_file_ptr	pifp;
+
+  pifp = pl_input_files;
+  while (pifp != NULL) {
+    a_pl_object_file_ptr	pofp;
+    a_pl_symbol_ptr		psp;
+    fprintf(stderr, "Input file: %s\n", pifp->filename);
+    pofp = pifp->objects;
+    while (pofp != NULL) {
+      fprintf(stderr, "  Object file: %s\n", pofp->filename);
+      psp = pofp->symbols;
+      while (psp != NULL) {
+        pl_db_symbol(psp, "    ");
+        psp = psp->next;
+      }  /* while */
+      pofp = pofp->next;
+    }  /* while */
+    psp = pifp->info_list;
+    if (psp != NULL) {
+      fprintf(stderr, "  Instantiation list:\n");
+    }  /* if */
+    while (psp != NULL) {
+      pl_db_symbol(psp, "    ");
+      psp = psp->next_in_info_file;
+    }  /* while */
+    pifp = pifp->next;
+  }  /* while */
+}  /* pl_db_input_files */
+
+
+static void pl_db_global_symbols(a_boolean	all)
+/*
+Display all of the symbols in the global symbol table.
+*/
+{
+  a_pl_symbol_ptr	psp;
+
+  fprintf(stderr, "Global symbol table:\n");
+  psp = pl_symbol_table_head;
+  while (psp != NULL) {
+    if (all ||
+        (((psp->referenced && !(psp->defined || psp->tentative_definition)) ||
+          psp->multiple_definition) && psp->is_template)
+#if 0
+        /* Enabling this code displays symbols that are unreferenced or
+           referenced only from the file in which they are defined. */
+                                 ||
+        (psp->defined && !psp->referenced && !psp->tentative_definition)
+#endif /* 0 */
+                                                                        ) {
+      pl_db_symbol(psp, "  ");
+    }  /* if */
+    psp = psp->next_in_symbol_table;
+  }  /* while */
+}  /* pl_db_global_symbols */
+#endif /* DEBUG */
+
+
+static void pl_free_all(void)
+/*
+Free all dynamically allocated data.
+*/
+{
+  a_pl_input_file_ptr	pifp;
+  a_pl_input_file_ptr	last_pifp;
+
+  pifp = pl_input_files;
+  while (pifp != NULL) {
+    a_pl_object_file_ptr	pofp;
+    a_pl_object_file_ptr	last_pofp;
+    pofp = pifp->objects;
+    while (pofp != NULL) {
+      a_pl_symbol_ptr	psp;
+      a_pl_symbol_ptr	last_psp;
+      psp = pofp->symbols;
+      while (psp != NULL) {
+        last_psp = psp;
+        psp = psp->next;
+        free(last_psp->name);
+        free_pl_symbol(last_psp);
+      }  /* while */
+      last_pofp = pofp;
+      pofp = pofp->next;
+      free(last_pofp->filename);
+      free_pl_object_file(last_pofp);
+    }  /* while */
+    last_pifp = pifp;
+    pifp = pifp->next;
+    free(last_pifp->filename);
+    free_pl_input_file(last_pifp);
+  }  /* while */
+}  /* pl_free_all */
+
+
+int main(int argc, char *argv[])
+{
+  char		*filename;
+  char		*command;
+  int		arg;
+  int		cmd_line_size = 0;
+  int		longest_filename = 0;
+  int		return_status = 0;
+  a_boolean	done = FALSE;
+
+  /* Add to the symbol table any names that the linker predefines. */
+  pl_add_predefined_names();
+  /* The command line must include at least two arguments. */
+  if (argc <= 2) pl_error("at least two filename must be specified");
+  /* Determine the length of the command line. */
+  for (arg = 1; arg < argc; arg++) {
+    int	arg_size = strlen(argv[arg]);
+    cmd_line_size += arg_size + 1;
+    if (arg_size > longest_filename) longest_filename = arg_size;
+  }  /* for */
+  cmd_line_size += strlen(nm_command);
+  /* Allocate a buffer for the command line. */
+  command = (char *)pl_malloc_with_check(cmd_line_size + 1);
+  /* Allocate a buffer than can be used to manipulate filenames.  The
+     buffer is 32 characters longer than the longest filename on the
+     command line.  The extra space is provided to allow substitution
+     of suffixes, etc. */
+  pl_filename_buffer = (char *)pl_malloc_with_check(longest_filename + 32);
+  strcpy(command, nm_command);
+  for (arg = 1; arg < argc; arg++) {
+    filename = argv[arg];
+    strcat(command, " ");
+    strcat(command, filename);
+  }  /* for */
+#if DEBUG
+  if (pl_debug_level >= 2) fprintf(stderr, "%s\n", command);
+#endif /* DEBUG */
+
+  do {
+    pl_input_files = NULL;
+    pl_input_file_tail = NULL;
+    pl_symbol_table_head = NULL;
+    memzero(pl_symbol_table, sizeof(pl_symbol_table));
+
+    pl_command_output = popen(command, "r");
+
+    pl_read_nm_output();
+    pclose(pl_command_output);
+
+    /* Read the information from any existing .ii files. */
+    pl_read_instantiation_info_files();
+
+#if DEBUG
+    if (pl_debug_level >= 3) {
+      pl_db_input_files();
+    }  /* if */
+#endif /* DEBUG */
+
+    pl_prelink();
+
+#if DEBUG
+    if (pl_debug_level >= 2) {
+      pl_db_global_symbols(/*all=*/FALSE);
+    }  /* if */
+#endif /* DEBUG */
+
+    /* Determine what actions, if any, are needed. */
+    done = pl_determine_actions();
+
+    /* Write the modified info files back to the disk. */
+    return_status = pl_update_info_files();
+    if (!done) pl_free_all();
+  } while (!done || return_status != 0);
+
+  return (return_status);
+}  /* main */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
