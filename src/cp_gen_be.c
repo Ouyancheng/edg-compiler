@@ -4712,7 +4712,7 @@ sequence entry.
       var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
     write_tok_str("\"C\" ");
   }  /* if */
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   /* Microsoft-specific keywords. */
   if (var->decl_modifiers & DM_DLLIMPORT) {
@@ -4727,7 +4727,7 @@ sequence entry.
     write_tok_str("__declspec(thread) ");
   }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_declaration_using_type(var_type,
@@ -5007,7 +5007,7 @@ declaration or definition.
   /* Generate other leading specifiers. */
   if (rout->is_inline) write_tok_str("inline ");
   if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   /* Microsoft-specific keywords. */
   if (rout->decl_modifiers & DM_DLLIMPORT) {
@@ -5025,7 +5025,7 @@ declaration or definition.
     }  /* if */
   }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
   if (rout_type->kind == (a_type_kind)tk_typeref) {
     /* If the function type comes from a typedef, handle the declaration
