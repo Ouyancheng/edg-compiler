@@ -6390,12 +6390,15 @@ be embedded in other mangled names.
     start_mangling(&mctl);
     /* Name mangling is needed. */
 #if !IA64_ABI
-    { unsigned long scope_number;
+    { unsigned long        scope_number;
+      a_length_reservation length_reservation;
       /* The encoding is the original name, followed by "__Lnn", where "nn"
          is the scope number within the function, followed by two underscores,
          followed by the mangled name of the routine. */
       if (kind == iek_type) {
+        /* For types, add a prefix and a length. */
         add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+        reserve_space_for_length(&length_reservation, &mctl);
       }  /* if */
       if (!is_string) {
         /* Develop a scope number for the scope in which the entity appears.
@@ -6419,6 +6422,10 @@ be embedded in other mangled names.
         scope_number = sequence_number;
       }  /* if */
       add_local_name_suffix(scope_number, routine, &mctl);
+      if (kind == iek_type) {
+        /* Fill in the length for a type. */
+        fill_in_length(&length_reservation, &mctl);
+      }  /* if */
     }
 #else /* IA64_ABI */
     add_mangled_name_prefix(&mctl);

@@ -1,5 +1,29 @@
 Version 3.3
 
+7/11/03  Incorrect mangling for promoted local types
+
+The mangled names generated in the Cfront-like ABI for types
+promoted out of functions were broken by a change in version 3.1
+(see changes entry of 12/8/02).  The names were "broken" in
+that they were missing a length, which meant that the demangler
+could not demangle them.  Since these names are local to functions,
+this was not an ABI breakage.  However, debuggers that use
+demangling to convert object-file names to user-readable
+names would have had problems.  Now fixed.
+
+  int main() {
+    struct A {
+      struct B {
+        void f(B) {}
+      };
+    };
+    A::B b;
+    b.f(b);
+  }
+
+Correct mangled name for f: f__Q2_15A__L0__main__Fv1BFQ2_15A__L0__main__Fv1B
+Bad     mangled name for f: f__Q2_A__L0__main__Fv1BFQ2_A__L0__main__Fv1B
+
 7/11/03  Error on throw of pointer-to-incomplete type
 
 An error is now issued on a throw of an expression with pointer-to-
