@@ -8921,11 +8921,10 @@ In C++ mode an error is issued if a type definition appears in a type-name
                         (a_decl_pos_block_ptr)NULL, (a_upc_block_size*)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) &&
-      (!gpp_mode ||
-       (gnu_version > 30400 && !is_immediate_class_type(*type_ptr)))) {
+      (!gpp_mode || gnu_version >= 30400)) {
     /* Definition of a class, struct, union, or enum type is not allowed
-       in non-GNU C++ mode.  In GNU C++ mode, a definition is allowed if
-       it is not followed by a declarator. */
+       in non-GNU C++ mode.  Older GNU C++ compilers did allow such
+       definitions. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
@@ -8963,12 +8962,6 @@ In C++ mode an error is issued if a type definition appears in a type-name
            one of its dimensions. */
         pos_error(ec_vla_with_unspecified_bound_not_allowed, &start_pos);
       }  /* if */
-    }  /* if */
-    if (gpp_mode && gnu_version >= 30400 &&
-        (dso_flags & DSO_DEFINES_SOMETHING)) {
-      /* A class type definition was followed by a declarator component.
-         Recent versions of GNU C++ no longer accept this. */
-      pos_error(ec_type_definition_not_allowed, &start_pos);
     }  /* if */
   }  /* if */
   if ((any_cfront_mode() &&
