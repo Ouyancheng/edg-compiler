@@ -1,5 +1,20 @@
 Version 2.46
 
+1/28/01  Abort on "?" operator with
+         ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS set to TRUE
+
+When ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS is TRUE and
+a "?" operation is replaced by one of its operands and the result of
+the "?" operator is an lvalue, a flag was set incorrectly, which
+might flip a bit of a memory address and cause an abort later (in
+other words, whether you get an abort is dependent on what that
+bit was in the original address, so such cases didn't always abort).
+Now fixed.
+
+  int func(int n) {
+    return n ? n : 1 ? n: n;
+  }
+
 1/26/01  Abort when parsing members of classes nested in templates for
          some configurations
 

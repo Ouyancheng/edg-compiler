@@ -5580,15 +5580,25 @@ void do_question_operation(an_operand *operand_1,
                            an_operand *operand_2,
                            an_operand *operand_3,
                            a_type_ptr result_type,
+                           a_boolean  result_is_an_lvalue,
                            an_operand *result)
 /*
 Build an operand for a "?" operation.  operand_1, operand_2, and operand_3
-are the operands.  result_type is the result type.  The operand is built
-in *result.  Constant operations are not folded.
+are the operands.  result_type is the result type.  The result is an lvalue
+if result_is_an_lvalue is TRUE.  The operand is built in *result.
+Constant operations are folded if appropriate.
 */
 {
-  a_boolean operand_1_is_const, do_folding = FALSE;
+  a_boolean  operand_1_is_const, do_folding = FALSE;
+  a_type_ptr operation_type;
 
+  if (result_is_an_lvalue) {
+    /* If the result is an lvalue, the type of the "?" node must be a
+       pointer. */
+    operation_type = make_pointer_type(result_type);
+  } else {
+    operation_type = result_type;
+  }  /* if */
   /* If the first operand is a known constant, the operation can be
      folded. */
   operand_1_is_const = is_constant_operand(operand_1) &&
@@ -5642,7 +5652,8 @@ in *result.  Constant operations are not folded.
         /* Create an expression to be recorded in the constant. */
         an_operand result_expr;
         build_question_result_operand(operand_1, operand_2, operand_3,
-                                      result_type, &result_expr);
+                                      operation_type, &result_expr);
+        check_assertion(is_expression_operand(&result_expr));
         result->variant.constant.expr = result_expr.variant.expression;
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -5655,7 +5666,13 @@ in *result.  Constant operations are not folded.
   } else {
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
-                                  result_type, result);
+                                  operation_type, result);
+    if (result_is_an_lvalue) {
+      check_assertion(is_expression_operand(result) &&
+                      is_operation_node(result->variant.expression));
+      result->variant.expression->variant.operation.
+                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
+    }  /* if */
     if (is_template_param_constant_operand(operand_1) ||
         is_template_param_constant_operand(operand_2) ||
         is_template_param_constant_operand(operand_3)) {
@@ -5664,6 +5681,15 @@ in *result.  Constant operations are not folded.
          constant for the result. */
       make_template_param_expr_constant_operand(make_node_from_operand(result),
                                                 result);
+    }  /* if */
+    if (result_is_an_lvalue) {
+      /* Adjust the operand to make it an lvalue. */
+      if (is_function_type(result_type)) {
+        result->state = (an_operand_state)os_function_designator;
+      } else {
+        result->state = (an_operand_state)os_lvalue;
+      }  /* if */
+      result->type = result_type;
     }  /* if */
   }  /* if */
 }  /* do_question_operation */
@@ -5700,7 +5726,7 @@ it happens in prototype instantiations.
   }  /* if */
   do_question_operation(operand_1, operand_2, operand_3,
                         type_of_unknown_templ_param_nontype,
-                        result);
+                        /*result_is_an_lvalue=*/FALSE, result);
 }  /* template_question_operation */
 
 

@@ -1057,6 +1057,7 @@ extern void do_question_operation(an_operand *operand_1,
                                   an_operand *operand_2,
                                   an_operand *operand_3,
                                   a_type_ptr result_type,
+                                  a_boolean  result_is_an_lvalue,
                                   an_operand *result);
 
 extern void template_question_operation(an_operand *operand_1,

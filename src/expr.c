@@ -10569,27 +10569,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     /* Already processed. */
   } else {
     /* Build the expression. */
+    do_question_operation(operand_1, &operand_2, &operand_3, result_type,
+                          result_is_an_lvalue, result);
     if (result_is_an_lvalue) {
-      /* If the result is an lvalue, the type of the "?" node must be a
-         pointer. */
-      operation_type = make_pointer_type(result_type);
-    } else {
-      operation_type = result_type;
-    }  /* if */
-    do_question_operation(operand_1, &operand_2, &operand_3, operation_type,
-                          result);
-    /* The result is an lvalue in C++ if the second and third operands are. */
-    if (result_is_an_lvalue) {
-      if (is_function_type(result_type)) {
-        result->state = (an_operand_state)os_function_designator;
-      } else {
-        result->state = (an_operand_state)os_lvalue;
-      }  /* if */
-      result->type = result_type;
-      if (is_expression_operand(result)) {
-        result->variant.expression->variant.operation.
-                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
-      }  /* if */
+      /* The result is an lvalue, so its reference list is the union
+         of the operand 2 and operand 3 reference lists. */
       result->ref_entries_list = merge_ref_lists(operand_2.ref_entries_list,
                                                  operand_3.ref_entries_list);
     }  /* if */
