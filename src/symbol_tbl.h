@@ -1408,6 +1408,9 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if this is the first scope that
 			   affects the declarative level after a template
 			   instantiation scope. */
+  unsigned int	is_loop_scope:1;
+			/* TRUE if this scope is associated with the compound
+			   statement of a for, do, or while loop. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -1580,6 +1583,13 @@ typedef struct a_scope_stack_entry {
 			   symbol.  Note that for declarations within an
 			   sck_block scope the sequence number is based on
 			   that of the nearest enclosing function scope. */
+  a_decl_sequence_number
+		last_label_decl_seq;
+			/* When kind == sck_function, the declaration sequence
+			   number of the last label defined (so far) in the
+			   current scope; 0 if this is not a function scope
+			   or if there are no label definitions.  The value
+			   is updated each time a label definition is seen. */
 } a_scope_stack_entry;
 
 
