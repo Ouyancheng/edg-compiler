@@ -1002,7 +1002,13 @@ EXTERN char	*pch_dir_name /* = NULL*/;
 			   NULL if no directory has been specified. */
 
 EXTERN a_boolean
-		restrict_enabled
+		restrict_enabled /* = FALSE */;
+			/* TRUE if support for the restricted pointers is
+			   provided.  This is TRUE if any form of the
+			   restrict keyword is allowed. */
+
+EXTERN a_boolean
+		restrict_keyword_enabled
 #if VAR_INITIALIZERS
                                  = DEFAULT_RESTRICT_ENABLED
 #endif /* VAR_INITIALIZERS */
@@ -1012,7 +1018,7 @@ EXTERN a_boolean
 			   as a keyword. */
 
 EXTERN a_boolean
-		gnu_restrict_enabled /* = FALSE */;
+		gnu_restrict_keyword_enabled /* = FALSE */;
 			/* TRUE if the GNU __restrict variant of the restrict
 			   keyword is recognized. */
 

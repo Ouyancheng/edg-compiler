@@ -325,10 +325,10 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_alignof, "__ALIGNOF__");
   enter_keyword((a_token_kind)tok_alignof, "__alignof__");
   enter_keyword((a_token_kind)tok_intaddr, "__INTADDR__");
-  if (restrict_enabled) {
+  if (restrict_keyword_enabled) {
     enter_keyword((a_token_kind)tok_restrict, "restrict");
   }  /* if */
-  if (gnu_restrict_enabled) {
+  if (gnu_restrict_keyword_enabled) {
     enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
   }  /* if */
   if (c99_mode || gnu_mode) {

@@ -1774,7 +1774,7 @@ Set the various flags appropriate to C99 mode.
 #endif /* VLA_ALLOWED */
   if (!(option_kind_used[(int)optk_restrict])) {
     /* Support for restricted pointers is turned on by default in C99 mode. */
-    restrict_enabled = TRUE;
+    restrict_keyword_enabled = TRUE;
   }  /* if */
 #if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   if (!(option_kind_used[(int)optk_designators])) {
@@ -2314,7 +2314,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!(option_kind_used[(int)optk_restrict])) {
       /* Support for restricted pointers is turned off by default except
          in strict C99 mode. */
-      restrict_enabled = FALSE;
+      restrict_keyword_enabled = FALSE;
     }  /* if */
   }  /* if */
   if (C_mode()) {
@@ -2583,7 +2583,7 @@ exclude the GNU modes already.  Hence those are not checked again here.)
      GCC_BUILTIN_VARARGS is TRUE). */
   pass_stdarg_references_to_generated_code = FALSE;
   /* Enable the use of __restrict__ in GNU mode. */
-  gnu_restrict_enabled = TRUE;
+  gnu_restrict_keyword_enabled = TRUE;
   /* Enable flexible array member support. */
   flexible_array_members_allowed = TRUE;
   /* Enable // comments. */
@@ -3473,7 +3473,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_restrict:
         /* Enables or disables recognition of the restrict token. */
-        restrict_enabled = opt_value;
+        restrict_keyword_enabled = opt_value;
         break;
       case optk_long_lifetime_temps:
         /* Long or short lifetime temporaries. */
@@ -4093,6 +4093,8 @@ enable_microsoft_mode:
     check_upc_mode();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  /* Set restrict_enabled if any form of the restrict keyword is allowed. */
+  restrict_enabled = restrict_keyword_enabled || gnu_restrict_keyword_enabled;
   if (ignore_std_namespace) {
     /* In the g++ compatibility mode in which the std namespace is an alias
        for the global namespace, the va_list type should not be entered in
