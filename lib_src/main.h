@@ -53,8 +53,8 @@ The AT&T munch utility creates arrays of pointers to static constructor
 and destructor pointers.
 */
 typedef void (*func_ptr)();
-func_ptr _ctors[];
-func_ptr _dtors[];
+extern func_ptr _ctors[];
+extern func_ptr _dtors[];
 
 #define TRUE 1
 #define FALSE 0
