@@ -1171,17 +1171,17 @@ data members for which no explicit initializers were specified and for which
 constructor initialization is required; in such cases default constructors
 are invoked.
 
-In addition, when ctor_rout refers to a copy constructor, all nonstatic data
-members are initialized (for bitwise copy at least) and all implicitly
-invoked constructors for member and base class subobjects must also be copy
-constructors.
+In addition, when ctor_rout refers to a generated copy constructor, all
+nonstatic data members are initialized (for bitwise copy at least) and all
+implicitly invoked constructors for member and base class subobjects must
+also be copy constructors.
 
 There are rules governing order of initialization, virtual base classes, and
 which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
-  a_boolean                     err, is_cctor;
+  a_boolean                     err, is_generated_cctor;
   a_boolean                     const_object_okay, volatile_object_okay;
   a_type_ptr                    class_type, init_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym, member_or_base_sym;
@@ -1201,8 +1201,10 @@ initialized.  These are addressed in the course of the processing.
 #if CHECKING
   if (class_type == NULL) internal_error("ctor_initializer: NULL class type");
 #endif /* if CHECKING */
-  is_cctor = is_copy_constructor(ctor_rout, class_type, &const_object_okay,
-                                 &volatile_object_okay);
+  is_generated_cctor = !user_defined &&
+                       is_copy_constructor(ctor_rout, class_type,
+                                           &const_object_okay,
+                                           &volatile_object_okay);
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -1267,9 +1269,10 @@ initialized.  These are addressed in the course of the processing.
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether constructor initialization
          is required. */
-      if (is_cctor) {
-        /* All fields are explicitly listed for a copy constructor, since even
-           if there is no constructor at least a bitwise copy is required. */
+      if (is_generated_cctor) {
+        /* All fields are explicitly listed for a generated copy constructor,
+           since even if there is no constructor at least a bitwise copy is
+           required. */
       } else {
         /* This is not a copy constructor.  See if this is a field that
            requires an initializer. */
@@ -1600,11 +1603,11 @@ scan_arg_for_scan_initialization:
       }  /* if */
       cssp = is_class_struct_union_type(tp) ? symbol_supplement_for_class(tp) :
                                               NULL;
-      if (is_cctor) {
-        /* The constructor for the object as a whole is a copy constructor.
-           Any subobject constructors must also be copy constructors, and
-           fields and base classes that have no constructor must be
-           accounted for, too. */
+      if (is_generated_cctor) {
+        /* The constructor for the object as a whole is a generated copy
+           constructor.  Any subobject constructors must also be copy
+           constructors, and fields and base classes that have no constructor
+           must be accounted for, too. */
         if (cssp == NULL || cssp->constructor == NULL) {
           /* No constructor for field or base class.  Record the necessity
              for a bitwise copy. */
