@@ -1119,13 +1119,6 @@ Display a_param_type entry.
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (ptr->rout_src_seq_entry_for_default_arg_decl != NULL) {
-    disp_ptr("rout_src_seq_entry_for_default_arg_decl",
-             (char *)ptr->rout_src_seq_entry_for_default_arg_decl,
-             iek_source_sequence_entry);
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CFE */
 }  /* disp_param_type */
 

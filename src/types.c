@@ -3230,10 +3230,6 @@ is allocated, it is allocated in the file scope.
   a_type_ptr       param_1_type, param_2_type;
   a_routine_type_supplement_ptr
                    rtsp1, rtsp2;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-                   comp_rout_src_seq_entry_for_default_arg_decl;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(5, "composite_type");
 
@@ -3441,12 +3437,6 @@ is allocated, it is allocated in the file scope.
                                                      param2->default_arg_expr;
 	      comp_has_default_arg = param1->has_default_arg ||
 				     param2->has_default_arg;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-              comp_rout_src_seq_entry_for_default_arg_decl =
-                   (param1->rout_src_seq_entry_for_default_arg_decl != NULL) ?
-                              param1->rout_src_seq_entry_for_default_arg_decl :
-                              param2->rout_src_seq_entry_for_default_arg_decl;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               /* Compare the two parameter types against their composite
                  type.  Stop if it is no longer true that one of the original
                  parameter lists can serve as the composite list. */
@@ -3454,21 +3444,11 @@ is allocated, it is allocated in the file scope.
 		  comp_has_default_arg != (a_boolean)param1->has_default_arg ||
                   comp_default_arg_expr != param1->default_arg_expr) {
                 comp_equals_list1 = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-              } else if (comp_rout_src_seq_entry_for_default_arg_decl !=
-                          param1->rout_src_seq_entry_for_default_arg_decl) {
-                comp_equals_list1 = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               }  /* if */
               if (comp_param_type != param2->type ||
 		  comp_has_default_arg != (a_boolean)param2->has_default_arg ||
                   comp_default_arg_expr != param2->default_arg_expr) {
                 comp_equals_list2 = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-              } else if (comp_rout_src_seq_entry_for_default_arg_decl !=
-                          param2->rout_src_seq_entry_for_default_arg_decl) {
-                comp_equals_list2 = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               }  /* if */
               if (!comp_equals_list1 && !comp_equals_list2) break;
             }  /* for */
@@ -3521,17 +3501,9 @@ is allocated, it is allocated in the file scope.
                 if (param1->has_default_arg) {
                   comp_param->has_default_arg = TRUE;
                   comp_param->default_arg_expr = param1->default_arg_expr;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                  comp_param->rout_src_seq_entry_for_default_arg_decl =
-                            param1->rout_src_seq_entry_for_default_arg_decl;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                 } else if (param2->has_default_arg) {
                   comp_param->has_default_arg = TRUE;
                   comp_param->default_arg_expr = param2->default_arg_expr;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                  comp_param->rout_src_seq_entry_for_default_arg_decl =
-                            param2->rout_src_seq_entry_for_default_arg_decl;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                 }  /* if */
                 if (param1->type_involves_template_param ||
                     param2->type_involves_template_param) {

@@ -281,10 +281,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_param_type_ptr, iek_param_type);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        remap_ptr(ptr->rout_src_seq_entry_for_default_arg_decl,
-                  a_source_sequence_entry_ptr, iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
     case iek_routine_type_supplement:

@@ -3113,7 +3113,9 @@ of the function, and again overloading is a possibility.
           /* Do throw specification compatibility checking. */
           check_throw_specification(func_info, rp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          set_rout_src_seq_entry_for_default_arg_decl(rp, func_info);
+          /* Since this is a non-defining entry, it is represented by a
+             secondary-decl entry in the source sequence list.  Enter the
+             current function type. */
           set_src_seq_secondary_decl_type((char *)rp, function_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -3540,7 +3542,6 @@ special function kind (e.g., constructor, destructor), if any.
       } else {
         rtn->declared_type = member_type;
       }  /* if */
-      set_rout_src_seq_entry_for_default_arg_decl(rtn, func_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (func_info->is_definition) {
         /* Since this is a definition, record the current lint argsused and

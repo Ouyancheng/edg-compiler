@@ -1341,19 +1341,6 @@ typedef struct a_param_type {
 			   to be used as the actual argument on a function
 			   call when the actual argument corresponding to
 			   this parameter is omitted (C++ only). */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-		rout_src_seq_entry_for_default_arg_decl;
-			/* If has_default_arg is TRUE, a pointer to the source
-			   sequence entry identifying the routine declaration
-			   where the default argument associated with this
-			   parameter was declared; NULL otherwise, either if
-			   there is no default argument or if the default arg
-			   declaration appeared in a type declaration instead
-			   of a routine declaration.  The entity kind of the
-			   source sequence entry pointed to will be either
-			   iek_routine or iek_src_seq_secondary_decl. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CIL */
 } a_param_type;
 

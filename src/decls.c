@@ -3884,65 +3884,6 @@ not be TRUE.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-void set_rout_src_seq_entry_for_default_arg_decl(a_routine_ptr      rp,
-                                                 a_func_info_block  *func_info)
-/*
-rp is a pointer to a function for which a declaration has just been seen.
-Set the rout_src_seq_entry_for_default_arg_decl pointer in each param-type
-entry for which a default argument was declared in the current function
-declaration.
-*/
-{
-  a_source_sequence_entry_ptr  rout_ssep;
-  a_param_id_ptr               param_id;
-  a_param_type_ptr             ptp;
-
-  if (source_sequence_entries_disallowed) {
-    /* We are in a context in which source sequence entries are not being
-       created.  No further action is required. */
-  } else if (!func_info->any_default_args) {
-    /* No default arguments were declared on this function declaration. */
-  } else {
-    check_assertion(rp->source_corresp.source_sequence_entry != NULL);
-    check_assertion(!func_info->function_type_from_typedef);
-    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
-    check_assertion(rp->type->variant.routine.extra_info->prototyped);
-    /* Scan the param-id entries looking for cases in which a default
-       argument appeared in the current function declaration. */
-    rout_ssep = NULL;
-    param_id = func_info->param_id_list;
-    ptp = rp->type->variant.routine.extra_info->param_type_list;
-    /* Be sure param-id and param-type lists are in sync. */
-    check_assertion((param_id == NULL) == (ptp == NULL));
-    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-      if (param_id->has_default_arg) {
-        check_assertion(ptp->has_default_arg);
-        /* A default argument was declared for this parameter. */
-        if (rout_ssep == NULL) {
-          /* We have delayed finding the source-sequence entry for the routine
-             declaration until we we sure we'd need it. */
-          if (func_info->is_definition) {
-            /* This must be the primary declaration of the function -- use the
-               source sequence entry pointed to the routine entry. */
-            rout_ssep = rp->source_corresp.source_sequence_entry;
-            check_assertion(rout_ssep ==
-                             last_matching_source_sequence_entry((char *)rp));
-          } else {
-            /* Check the source-sequence list for the current scope, searching
-               from the back. */
-            rout_ssep = last_matching_source_sequence_entry((char *)rp);
-            check_assertion(rout_ssep != NULL);
-          }  /* if */
-        }  /* if */
-        ptp->rout_src_seq_entry_for_default_arg_decl = rout_ssep;
-      }  /* if */
-      /* Be sure param-id and param-type lists are in sync. */
-      check_assertion((param_id->next == NULL) == (ptp->next == NULL));
-    }  /* for */
-  }  /* if */
-}  /* set_rout_src_seq_entry_for_default_arg_decl */
-
-
 void set_src_seq_secondary_decl_type(char        *il_entry_ptr,
                                      a_type_ptr  type)
 /*
@@ -4686,10 +4627,6 @@ skip_overloading:;
          secondary declaration entry. */
       set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type);
     }  /* if */
-    if (!C_mode()) {
-      /* Check for default arguments, which require special handling. */
-      set_rout_src_seq_entry_for_default_arg_decl(routine_ptr, func_info);
-    }  /* if */
   } else {
     if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
       /* A function declaration but not a definition. */
@@ -5248,7 +5185,6 @@ on a prior declaration.
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &locator->source_position,
                               func_info->declarator_ssep);
-    set_rout_src_seq_entry_for_default_arg_decl(rp, func_info);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &locator->source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
