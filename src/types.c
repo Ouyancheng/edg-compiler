@@ -2797,8 +2797,9 @@ cumulative over all the parameters).
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
   }  /* if */
-  /* Now compare the types. */
-  if (!types_are_compatible(type_1, type_2)) {
+  /* Now compare the types.  If any error types appear in the type tree, that
+     will be enought to distinguish the types. */
+  if (!types_are_strictly_compatible(type_1, type_2)) {
     /* The two types are distinguishable. */
     distinguishable = TRUE;
   } else {
@@ -2806,7 +2807,7 @@ cumulative over all the parameters).
        compatible (meaning the same type, roughly).  This is useful to know
        in issuing the right error message. */
     if (*params_all_compatible &&
-        !types_are_compatible(orig_type_1, orig_type_2)) {
+        !types_are_strictly_compatible(orig_type_1, orig_type_2)) {
       *params_all_compatible = FALSE;
     }  /* if */
   }  /* if */
