@@ -2067,7 +2067,11 @@ static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
                                      a_source_position     *qualifier_pos,
                                      a_source_position     *restrict_pos)
 /*
-Add the type qualifiers specified
+Add the type qualifiers specified by *qualifiers to the type specified by
+*type_ptr.  *qualifier_pos is the source position of the first of the type
+qualifiers (if any), not counting restrict.  *restrict_pos is the source
+position of the restrict keyword (if it's there).  This function is called
+from decl_specifiers only.
 */
 {
   a_boolean  err = FALSE;
