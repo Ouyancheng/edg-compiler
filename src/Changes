@@ -1,5 +1,9 @@
 Version 2.22
 
+1/20/94  Default object file suffix under MS-DOS
+
+The default object file suffix for MS-DOS has been changed from .o to .obj.
+
 1/19/94  Cross-reference info on access declarations
 
 Cross-reference information and/or source sequence entries are now put out
