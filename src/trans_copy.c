@@ -1750,34 +1750,6 @@ the secondary translation unit IL).
 }  /* overwrite_primary_routine */
 
 
-static void ensure_routine_is_on_inline_list(a_routine_ptr routine)
-/*
-The indicated routine has been copied or merged from the secondary
-translation unit IL to the primary IL.  routine points to the copy in the
-secondary translation unit.  Update the "instantiation" lists for
-extern inline functions, if appropriate.
-*/
-{
-  a_routine_ptr primary_routine;
-
-  /* This routine runs while switched to the primary translation unit. */
-  check_assertion(instantiate_extern_inline &&
-                  is_primary_translation_unit &&
-                  in_secondary_trans_unit(routine));
-  primary_routine = (a_routine_ptr)transitive_copy_address_of(routine);
-  if (primary_routine->is_inline &&
-      primary_routine->storage_class == (a_storage_class)sc_unspecified &&
-      !primary_routine->source_corresp.static_used_by_instantiation) {
-    if (primary_routine->on_inline_function_list) {
-      /* There is already a list entry for the routine in the primary IL. */
-    } else {
-      /* Add an entry for the routine. */
-      add_to_inline_function_list(primary_routine);
-    }  /* if */
-  }  /* if */
-}  /* ensure_routine_is_on_inline_list */
-
-
 /*
 Change a pointer to the corresponding address in the primary IL.
 */
@@ -2277,26 +2249,140 @@ end_of_routine_list_add:;
       update_namespace_pointers_block(scope);
     }  /* if */
   }  /* if */
+}  /* finish_trans_unit_copy */
+
+
+static void merge_il_headers(a_translation_unit_ptr tup)
+/*
+Do merging of the il_header of the indicated secondary translation unit
+into the primary translation unit il_header.
+*/
+{
+  check_assertion(is_primary_translation_unit);
+  if (tup->il_header.main_routine != NULL) {
+    /* "main" is defined in the secondary translation unit.  Indicate
+       that it is now defined in the primary translation unit. */
+    check_assertion(il_header.main_routine == NULL);
+    il_header.main_routine =
+        (a_routine_ptr)transitive_copy_address_of(tup->il_header.main_routine);
+  }  /* if */
+}  /* merge_il_headers */
+
+
+static void ensure_routine_is_on_inline_list(a_routine_ptr routine)
+/*
+The indicated routine has been copied or merged from the secondary
+translation unit IL to the primary IL.  routine points to the copy in the
+secondary translation unit except for members of local class scopes.
+Update the "instantiation" lists for extern inline functions, if appropriate.
+*/
+{
+  /* This routine runs while switched to the primary translation unit. */
+  check_assertion(is_primary_translation_unit);
   if (instantiate_extern_inline) {
-    /* Look for routines that are inline that need to be added to the
-       inline functions list.  This can't be done in the loop above because
-       members of non-merged scopes aren't seen there. */
-    a_routine_ptr routine;
-    for (routine = scope->routines;
-         routine != NULL;
-         routine = routine->next) {
-      ensure_routine_is_on_inline_list(routine);
+    a_routine_ptr primary_routine;
+    if (in_secondary_trans_unit(routine)) {
+      primary_routine = (a_routine_ptr)transitive_copy_address_of(routine);
+    } else {
+      check_assertion(routine->source_corresp.is_local_to_function);
+      primary_routine = routine;
+    }  /* if */
+    if (primary_routine->is_inline &&
+        primary_routine->storage_class == (a_storage_class)sc_unspecified &&
+        !primary_routine->source_corresp.static_used_by_instantiation) {
+      if (primary_routine->on_inline_function_list) {
+        /* There is already a list entry for the routine in the primary IL. */
+      } else {
+        /* Add an entry for the routine. */
+        add_to_inline_function_list(primary_routine);
+#if DEBUG
+        if (db_trace("trans_copy", primary_routine, iek_routine)) {
+          fprintf(f_debug, "ensure_routine_is_on_inline_list: adding:\n");
+          db_entity_info((char *)primary_routine, iek_routine);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* ensure_routine_is_on_inline_list */
+
+
+static void finish_moved_entity_processing(a_scope_ptr scope);
+
+
+static void finish_type_list_moved_entity_processing(a_type_ptr type_list)
+/*
+Finish processing in the indicated type list and its subscopes for any
+entities that were moved or merged from the secondary translation unit IL
+to the primary IL.
+*/
+{
+  a_type_ptr type;
+
+  if (!C_mode()) {
+    /* Look for class types and process their member functions. */
+    for (type = type_list; type != NULL; type = type->next) {
+      if (is_immediate_class_type(type)) {
+        a_scope_ptr class_scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+        if (class_scope != NULL) {
+          finish_moved_entity_processing(class_scope);
+        }  /* if */
+      }  /* if */
     }  /* for */
   }  /* if */
+}  /* finish_type_list_moved_entity_processing */
+
+
+static void finish_moved_entity_processing(a_scope_ptr scope)
+/*
+Finish processing in the indicated scope and its subscopes for any
+entities that were moved or merged from the secondary translation unit IL
+to the primary IL.  The scope passed in is from the secondary translation
+unit except for local class and block scopes.  The processing done here
+differs from that done in finish_trans_unit_copy in that all entities, even
+those that are members of non-merged scopes (e.g., local classes) are
+processed here.  If some processing needs to be done on every entity
+moved or merged from the secondary IL, it must be done here.
+*/
+{
+  a_routine_ptr   routine;
+  a_namespace_ptr nsp;
+  a_scope_ptr     sub_scope;
+  a_boolean       is_class_scope = (scope->kind ==
+                                         (a_scope_kind)sck_class_struct_union);
+
+  check_assertion(in_secondary_trans_unit(scope) ||
+                  (is_class_scope &&
+                   scope->variant.assoc_type->source_corresp.
+                                                        is_local_to_function));
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      finish_moved_entity_processing(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  finish_type_list_moved_entity_processing(scope->types);
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    ensure_routine_is_on_inline_list(routine);
+  }  /* for */
+  for (sub_scope = scope->scopes;
+       sub_scope != NULL;
+       sub_scope = sub_scope->next) {
+    finish_moved_entity_processing(sub_scope);
+  }  /* for */
 #if ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS
-  { a_variable_ptr variable;
-    /* Do some processing on variables that must be done for all variables,
-       even members of non-merged scopes that aren't seen in the loop above. */
+  { a_variable_ptr  variable;
     for (variable = scope->variables;
          variable != NULL;
          variable = variable->next) {
-      a_variable_ptr primary_variable =
-                          (a_variable_ptr)transitive_copy_address_of(variable);
+      a_variable_ptr primary_variable;
+
+      if (in_secondary_trans_unit(variable)) {
+        primary_variable= (a_variable_ptr)transitive_copy_address_of(variable);
+      } else {
+        check_assertion(variable->source_corresp.is_local_to_function);
+        primary_variable = variable;
+      }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
       if (one_instantiation_per_object && is_class_scope) {
         /* Assign one-instantiation-per-object needed bit numbers to
@@ -2316,24 +2402,7 @@ end_of_routine_list_add:;
     }  /* for */
   }
 #endif /* ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS */
-}  /* finish_trans_unit_copy */
-
-
-static void merge_il_headers(a_translation_unit_ptr tup)
-/*
-Do merging of the il_header of the indicated secondary translation unit
-into the primary translation unit il_header.
-*/
-{
-  check_assertion(is_primary_translation_unit);
-  if (tup->il_header.main_routine != NULL) {
-    /* "main" is defined in the secondary translation unit.  Indicate
-       that it is now defined in the primary translation unit. */
-    check_assertion(il_header.main_routine == NULL);
-    il_header.main_routine =
-        (a_routine_ptr)transitive_copy_address_of(tup->il_header.main_routine);
-  }  /* if */
-}  /* merge_il_headers */
+}  /* finish_moved_entity_processing */
 
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
@@ -2456,6 +2525,7 @@ therefore will not be copied.
     top_scope = tup->primary_scope;
     finish_trans_unit_copy(top_scope);
     merge_il_headers(tup);
+    finish_moved_entity_processing(top_scope);
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     finish_scope_orphaned_list_processing(
                                    tup->il_header.scope_orphaned_list_headers);
