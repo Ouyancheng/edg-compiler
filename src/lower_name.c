@@ -255,11 +255,11 @@ store_at != NULL, and (always) return the length of the encoding.
     this_param_type = type_pointed_to(this_param_type);
     /* Add any qualifiers on the "this" parameter type (actually, the type
        pointed to by the "this" parameter). */
-    if (is_top_level_const_qualified_type(this_param_type)) {
+    if (is_const_qualified_type(this_param_type)) {
       mangled_name_length++;
       if (store_at != NULL) *store_at++ = 'C';
     }  /* if */
-    if (is_top_level_volatile_qualified_type(this_param_type)) {
+    if (is_volatile_qualified_type(this_param_type)) {
       mangled_name_length++;
       if (store_at != NULL) *store_at++ = 'V';
     }  /* if */
