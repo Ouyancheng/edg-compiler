@@ -4325,7 +4325,7 @@ do_assignment:;
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
       if ((static_var_init && !variable->source_corresp.is_local_to_function &&
-           force_variable_definition_via_zeroing
+           force_variable_definition_via_zeroing && !C_mode()
 #if LOWER_EXTERN_INLINE
            && !local_static_promoted_out_of_extern_inline
 #endif /* LOWER_EXTERN_INLINE */
