@@ -66,6 +66,16 @@ at the beginning of get_token need to be done.
                                         cached_token_rescan_list != NULL || \
                                         reusable_cache_stack != NULL)	   \
 
+/* Get a C++ operator name, like "operator+". */
+#define get_opname(class_type)                                        \
+  ((curr_token == tok_operator) ? f_get_opname(class_type) : FALSE)
+
+/* Macro to check prevent calling the error checking function unless some
+   error flags have been specified. */
+#define check_for_generalized_identifier_errors(options, pos)		\
+  (((options & GID_ERROR_FLAGS) != 0) ?					\
+	f_check_for_generalized_identifier_errors(options, pos) : FALSE)
+
 
 /*
 Variables pertaining to the input stack (for include files and the
@@ -5246,7 +5256,7 @@ only in C++ mode.
 }  /* f_get_destructor_name */
 
 
-a_boolean f_get_opname(a_type_ptr class_type)
+static a_boolean f_get_opname(a_type_ptr class_type)
 /*
 The current token is the token "operator" at the start of an operator name,
 like "operator+".  Scan the name and build a locator for the operator name
@@ -5316,7 +5326,7 @@ This routine is called only in C++ mode.
 }  /* f_get_opname */
 
 
-a_boolean is_global_new_or_delete(void)
+static a_boolean is_global_new_or_delete(void)
 /*
 Return TRUE if the current and next token form ":: new" or ":: delete".
 These look like qualified names but aren't.
@@ -5703,7 +5713,7 @@ skip_processing:
 }  /* coalesce_template_class_reference */
 
 
-a_boolean f_check_for_generalized_identifier_errors
+static a_boolean f_check_for_generalized_identifier_errors
 		(an_identifier_options_set options,
                  a_source_position         *pos)
 /*
@@ -6878,8 +6888,8 @@ Allocate a file suffix entry, initialize it, and return a pointer to it.
 }  /* alloc_file_suffix */
 
 
-void add_to_instantiation_file_suffix_list(char* suffix,
-                                           int   length)
+static void add_to_instantiation_file_suffix_list(char* suffix,
+                                                  int   length)
 /*
 Add a new entry to the end of the implicit instantiation file suffix list.
 If the entry is already on the list the new entry is ignored.
@@ -6923,7 +6933,7 @@ If the entry is already on the list the new entry is ignored.
 }  /* add_to_instantiation_file_suffix_list */
 
 
-void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list)
+static void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list)
 /*
 Add the members of a colon separated list of file suffixes to the
 instantiation file suffix list.

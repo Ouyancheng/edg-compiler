@@ -1001,10 +1001,6 @@ extern void rescan_cached_tokens(a_token_cache *cache);
 extern void rescan_reusable_cache(a_token_cache *cache);
 /* Rescan a copy of a token cache. */
 extern void rescan_copy_of_cache(a_token_cache *cache);
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-/* Add a list of suffixes to the instantiation suffix list. */
-extern void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list);
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
 Data structure used in deciding where to put extra blanks to separate
@@ -1091,12 +1087,8 @@ extern void unget_token(void);
 extern a_boolean f_get_destructor_name(void);
 #define get_destructor_name()			                      \
   ((curr_token == tok_compl) ? f_get_destructor_name() : FALSE)
-/* Get a C++ operator name, like "operator+". */
-extern a_boolean f_get_opname(a_type_ptr class_type);
-#define get_opname(class_type)                                        \
-  ((curr_token == tok_operator) ? f_get_opname(class_type) : FALSE)
-/* Test for ":: new" and ":: delete". */
-extern a_boolean is_global_new_or_delete(void);
+/* get_opname is in lexical.c. */
+
 
 extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
@@ -1109,15 +1101,6 @@ extern void begin_rescan_of_pragma_tokens(struct a_pending_pragma *ppp,
 extern void wrapup_rescan_of_pragma_tokens(a_boolean          error_in_pragma,
                                            a_stop_token_array stop_tokens);
 
-/* Macro to check prevent calling the error checking function unless some
-   error flags have been specified. */
-#define check_for_generalized_identifier_errors(options, pos)		\
-  (((options & GID_ERROR_FLAGS) != 0) ?					\
-	f_check_for_generalized_identifier_errors(options, pos) : FALSE)
-
-extern a_boolean f_check_for_generalized_identifier_errors
-			(an_identifier_options_set options,
-                         a_source_position         *pos);
 extern a_boolean f_is_generalized_identifier_start
                      (an_identifier_options_set options);
 extern a_boolean coalesce_and_lookup_qualified_name
