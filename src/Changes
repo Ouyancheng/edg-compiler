@@ -19,12 +19,13 @@ in version 2.43 and is now fixed.
 
 1/11/01  Error issued on types declared as members of anonymous unions
 
-The front end now emits an error when a type is declared as a member of 
-an anonymous union (except in Sun, Microsoft and Cfront modes).
+The front end now emits an error (in strict mode) or warning (in default mode)
+when a type is declared as a member of an anonymous union (except in Sun,
+Microsoft and Cfront modes).
 
   struct S {
-    union { class C {} c; };  // Error (accepted in Sun, Microsoft
-  };                          //        and Cfront modes)
+    union { class C {} c; };  // Error or warning (accepted in Sun, Microsoft
+  };                          //                   and Cfront modes)
 
 1/11/01  Setting assoc_template for prototype instantiations of function
          templates
