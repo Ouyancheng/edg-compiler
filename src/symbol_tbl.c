@@ -7416,6 +7416,7 @@ for space tracking purposes.
   db_space_used("symbol", num_symbols_allocated, a_symbol);
   db_space_used("symbol header", num_symbol_headers_allocated,
                 a_symbol_header);
+  db_space_used_general("scope stack", size_scope_stack, a_scope_stack_entry);
   db_space_used("conversion header", num_conversion_headers_allocated,
                 a_conversion_header);
   db_space_used("Name strings", symbol_name_string_space, char);
