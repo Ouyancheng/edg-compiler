@@ -1,5 +1,30 @@
 Version 3.3
 
+7/20/03  Overloaded operator-> return value can have any type
+
+Years ago, the Working Paper for the C++ standard required that
+the value returned by an overloaded operator-> have class type,
+pointer to class type, or reference to class type.  That
+requirement was dropped before the standard was issued, but
+we failed to remove the check.  It's now gone.  Most of the
+time this change simply results in a different error message,
+but when the "->" turns out to be a pseudo-destructor call,
+it eliminates a spurious error.
+
+  template<class T> struct PTR {
+    T& operator*() const;
+    T* operator->() const;
+  };
+  template<class T> void f() {
+    PTR<T> p = PTR<T>();
+    p->~T();  // Formerly got error when T is int
+  }
+  struct A {};
+  int main() {
+    f<A>();
+    f<int>();
+ }
+
 7/18/03  Microsoft mode: explicit overriding
 
 In Microsoft mode, the front end now accepts declarations of virtual

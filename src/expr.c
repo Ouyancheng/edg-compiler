@@ -1696,38 +1696,6 @@ The result is placed in *result.
 }  /* do_field_selection_operation */
 
 
-static a_boolean is_valid_op_arrow_return_type(a_type_ptr return_type)
-/*
-Return TRUE if return_type is a valid return type for an operator-> function
-that is called.
-*/
-{
-  a_boolean  err = FALSE;
-
-  if (is_error_type(return_type)) {
-    /* No action. */
-  } else if (is_pointer_type(return_type)) {
-    /* It's a pointer type -- be sure it's a pointer to a class. */
-    if (!is_class_struct_union_type(type_pointed_to(return_type))) {
-      /* Not a pointer-to-class type. */
-      err = TRUE;
-    }  /* if */
-  } else {
-    /* Not a pointer type.  Be sure the type is a class type or a
-       reference to a class type. */
-    if (is_reference_type(return_type)) {
-      return_type = type_pointed_to(return_type);
-    }  /* if */
-    return_type = skip_typerefs(return_type);
-    if (!is_immediate_class_type(return_type)) {
-      /* Not a class type. */
-      err = TRUE;
-    }  /* if */
-  }  /* if */
-  return !err;
-}  /* is_valid_op_arrow_return_type */
-
-
 /*
 Data structure used by process_overloaded_operator_arrow to check for
 loops in operator-> conversions.
@@ -1795,25 +1763,18 @@ is the "->".
                                      &result, &processed);
     }  /* if */
     if (processed) {
+      an_operator_arrow_block block;
       /* An operator-> function was found and applied. */
       set_operand_position(&result, &operand->position, &end_pos_curr_token,
                            &pos_curr_token);
       copy_operand(&result, operand);
-      /* Check that the return type of the operator-> function is valid. */
-      if (!is_valid_op_arrow_return_type(result.type)) {
-        pos_ty2_error(ec_bad_return_type_for_op_arrow,
-                      &operand->position, class_type, result.type);
-        conv_to_error_operand(operand);
-      } else {
-        /* If the operator function returns a class object or reference to
-           class object, look for another operator->() function.  Maintain
-           a list of classes already encountered to allow checking for
-           loops. */
-        an_operator_arrow_block block;
-        block.parent = parent;
-        block.class_type = qual_class_type;
-        process_overloaded_operator_arrow(operand, tsn, &block);
-      } /* if */
+      /* If the operator function returns a class object or reference to
+         class object, look for another operator->() function.  Maintain
+         a list of classes already encountered to allow checking for
+         loops. */
+      block.parent = parent;
+      block.class_type = qual_class_type;
+      process_overloaded_operator_arrow(operand, tsn, &block);
     }  /* if */
   }  /* if */
 end_of_routine:;
