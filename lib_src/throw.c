@@ -494,71 +494,36 @@ static void db_throw_stack(char* str)
 #endif /* DEBUG */
 
 
-static void set_base_class_flags(a_typeinfo_ptr	       class_info,
-				 a_boolean	       set_flag,
-				 an_access_flag_string access_flags)
+static
+a_boolean derived_to_base_conversion(void**		   p_ptr,
+				     void**                p_new_ptr,
+				     a_typeinfo_ptr	   class_info,
+				     a_typeinfo_ptr	   base_info,
+				     an_access_flag_string *access_flags)
 /*
-Go through all of the base classes (direct and indirect) of the class
-indicated by class_info and set the base class flags in the unique
-ID.  This is used later to determine whether a catch clause refers to
-a base class of the class being thrown.  set_flag is TRUE if the flags
-are to be set and FALSE if they are to be cleared.
+Converts p_ptr from a pointer to a derived class (described by class_info)
+to a pointer to a base class (described by base_info) and stores
+the resulting pointer in p_new_ptr.  Returns TRUE if the base class was
+found and the conversion was done; otherwise returns FALSE. 
+
+p_ptr may be NULL when this routine is called simply to determine whether
+the conversion is possible.  This is the case when exception specifications
+are being tested.
 
 The access_flags string contains one byte for each base class.  The
-byte contains either "y" (the base class is accessible) or "n" (the
+byte contains either "Y" (the base class is accessible) or "N" (the
 base class is not accessible).  The base class may be inaccessible
 either because of access protection or because the base class
 is ambiguous.
 */
 {
-  a_base_class_spec_ptr	bcsp = class_info->base_class_entries;
-
-  if (bcsp != NULL) {
-    /* A base class list is present. */
-    a_boolean	done = FALSE;
-    do {
-      a_typeinfo_ptr	base_typeinfo = bcsp->typeinfo;
-      a_unique_id	new_value;
-      /* Set the flags for this base class and then call this routine
-         recursively. */
-      if (set_flag) {
-        check_assertion(access_flags == NULL ||
-                        (*access_flags == BASE_ACCESSIBLE ||
-                         *access_flags == BASE_NOT_ACCESSIBLE));
-        new_value = access_flags != NULL && *access_flags++ == BASE_ACCESSIBLE;
-      } else {
-        new_value = BCS_NO_FLAGS;
-      }  /* if */
-      *(base_typeinfo->unique_id) = new_value;
-      if (base_typeinfo->base_class_entries != NULL) {
-        /* This base class has its own bases.  Call this routine
-	   recursively. */
-        set_base_class_flags(base_typeinfo, set_flag, access_flags);
-      }  /* if */
-      /* The last entry in the array will have the BCS_LAST flag set. */
-      done = bcsp->flags & BCS_LAST;
-      /* Advance the pointer to the next element in the array of base
-         class specifications. */
-      bcsp++;
-    } while (!done);
-  }  /* if */
-}  /* set_base_class_flags */
-
-
-static a_boolean derived_to_base_conversion(void**		ptr_param,
-	       			            a_typeinfo_ptr	class_info,
-				            a_typeinfo_ptr	base_info)
-/*
-Converts ptr from a pointer to a derived class (described by class_info)
-to a pointer to a base class (described by base_info).  Returns TRUE
-if the base class was found and the conversion was done; otherwise
-returns FALSE.
-*/
-{
   a_boolean		result = FALSE;
   a_base_class_spec_ptr	bcsp = class_info->base_class_entries;
-  void*			ptr = *ptr_param;
+  void                  *ptr;
 
+  /* Get the actual derived class pointer.  If no pointer was provided,
+     use NULL. */
+  ptr = p_ptr == NULL ? NULL : *p_ptr;
   if (bcsp != NULL) {
     /* A base class list is present. */
     a_boolean	done = FALSE;
@@ -568,25 +533,33 @@ returns FALSE.
        We want to make sure that we find the virtual base classes at
        the top level when possible. */
     do {
-      void*		new_ptr = ptr;
+      void*		new_ptr;
       a_typeinfo_ptr	test_info = bcsp->typeinfo;
-      /* Adjust the pointer by the offset provided in the base class
-         specification. */
-      new_ptr = (void*) (((char *) ptr) + bcsp->offset);
-      if (matching_typeinfo(test_info, base_info)) {
+      char              access_flag;
+      if (ptr != NULL) {
+        /* Adjust the pointer by the offset provided in the base class
+           specification. */
+        new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+      }  /* if */
+      access_flag = **access_flags;
+      (*access_flags)++;
+      if (access_flag == BASE_ACCESSIBLE &&
+	  matching_typeinfo(test_info, base_info)) {
         /* We have found a match. */
         result = TRUE;
-        if (bcsp->flags & BCS_VIRTUAL) {
-          /* If this is a virtual base class then the offset provides the
-             location of a pointer to the base class.  Dereference the
-             pointer and return that value. */
-          *ptr_param = *((void **)new_ptr);
-        } else {
-	  /* A nonvirtual base class.  new_ptr has already been adjusted to
-             point to the start of the base class.  Return this value
-	     to the caller. */
-          *ptr_param = new_ptr;
-        }  /* if */
+        if (ptr != NULL) {
+          if (bcsp->flags & BCS_VIRTUAL) {
+            /* If this is a virtual base class then the offset provides the
+               location of a pointer to the base class.  Dereference the
+               pointer and return that value. */
+            *p_new_ptr = *((void **)new_ptr);
+          } else {
+	    /* A nonvirtual base class.  new_ptr has already been adjusted to
+	       point to the start of the base class.  Return this value
+	       to the caller. */
+	    *p_new_ptr = new_ptr;
+	  }  /* if */
+	}  /* if */
       }  /* if */
       /* The last entry in the array will have the BCS_LAST flag set. */
       done = bcsp->flags & BCS_LAST;
@@ -599,20 +572,26 @@ returns FALSE.
          Search the indirect base classes. */
       bcsp = class_info->base_class_entries;
       do {
-        void*		new_ptr = ptr;
+        void*		new_ptr = NULL;
         a_typeinfo_ptr	test_info = bcsp->typeinfo;
-        /* Adjust the pointer by the offset provided in the base class
-           specification. */
-        new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+	if (ptr != NULL) {
+	  /* Adjust the pointer by the offset provided in the base class
+	     specification. */
+	  new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+	}  /* if */
         /* This is not the base class we are looking for.  Look at the
            base classes of this base class. */
         if (test_info->base_class_entries != NULL) {
           /* This base class has its own bases.  Call this routine
              recursively. */
-          if (derived_to_base_conversion(&new_ptr, test_info, base_info)) {
-            /* We have found a match.  Update the pointer passed to us
-               to reflect the value found by the recursive call. */
-            *ptr_param = new_ptr;
+	  void* local_new_ptr;
+          if (derived_to_base_conversion(&new_ptr, &local_new_ptr, test_info,
+					 base_info, access_flags)) {
+	    if (ptr != NULL) {
+	      /* We have found a match.  Update the pointer passed to us
+		 to reflect the value found by the recursive call. */
+	      *p_new_ptr = local_new_ptr;
+	    }  /* if */
             result = TRUE;
             break;
           }  /* if */
@@ -735,6 +714,7 @@ static int check_exception_type_specifications
                         (an_exception_type_specification_ptr	etsp,
                          a_typeinfo_ptr				typeinfo,
 			 an_ETS_flag_set			flags,
+			 an_access_flag_string                  access_flags,
 			 void**					object_ptr,
 			 an_exception_type_specification_ptr*	etsp_found)
 /*
@@ -746,17 +726,19 @@ index plus 1).  A pointer to the exception type specification of the matching
 entry is returned in etsp_found.
 */
 {
-  int					result = 0;
-  int					index = 0;
-  a_boolean				done = FALSE;
+  int		        result = 0;
+  int		        index = 0;
+  a_boolean	        done = FALSE;
 
   *etsp_found = NULL;
   do {
-    a_boolean	match = FALSE;
+    a_boolean	          match = FALSE;
+    void*                 new_ptr;
+    an_access_flag_string local_access_flags = access_flags;
+#if DEBUG
+    void* orig_ptr = object_ptr != NULL ? *object_ptr : NULL;
+#endif /* DEBUG */
     index++;
-#if 0
-    /* Anything special for references? */
-#endif /* 0 */
     if (etsp->flags & ETS_IS_ELLIPSIS) {
       match = TRUE;
     } else if (!qualifiers_acceptable(etsp->flags, flags)) {
@@ -772,30 +754,31 @@ entry is returned in etsp_found.
     } else if (etsp->typeinfo->unique_id == NULL) {
       /* No unique ID -- don't check any further.  No match. */
     } else if ((is_pointer(etsp->flags) == is_pointer(flags)) &&
-               *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
+	       derived_to_base_conversion(object_ptr, &new_ptr, typeinfo,
+					  etsp->typeinfo,
+					  &local_access_flags)) {
       /* A base class of the class that was thrown.  If the base class
 	 is ambiguous or inaccessible then the base class flag will not
-         be set. */
+         be set.  The pointer is converted from a pointer to the derived 
+	 class to a pointer to the base class.  Object_ptr will be NULL
+	 when this routine is call to check throw specifications and no
+	 object is involved, in which case the pointer conversion will not be
+	 done, but derived_to_base_conversion will return TRUE to indicate
+	 that such a conversion is possible. */
       match = TRUE;
+      /* If a derived to base conversion was done, update the object pointer
+	 to point to the base class. */
+      if (object_ptr != NULL) *object_ptr = new_ptr;
+#if DEBUG
       if (object_ptr != NULL && *object_ptr != NULL) {
-        /* Convert the pointer from a pointer to the derived class to a pointer
-           to the base class.  Object_ptr will be NULL when this routine is
-           call to check throw specifications and no object is involved.
-	   Don't attempt the conversion of the pointer passed by the caller
-           is NULL. */
-#if DEBUG
-        void* orig_ptr = *object_ptr;
-#endif /* DEBUG */
-        derived_to_base_conversion(object_ptr, typeinfo, etsp->typeinfo);
-#if DEBUG
         if (__debug_level >= 3) {
           if (orig_ptr != *object_ptr) {
             fprintf(__f_debug, "Orig ptr=%p, new ptr=%p\n", orig_ptr,
                     *object_ptr);
           }  /* if */
         }  /* if */
-#endif /* DEBUG */
       }  /* if */
+#endif /* DEBUG */
     }  /* if */
     if (match) {
       result = index;
@@ -825,6 +808,7 @@ a try block with a catch that matches the type of the object thrown.
   an_eh_stack_entry		throw_processing_marker;
   an_exception_type_specification_ptr
 				etsp_found;
+  an_access_flag_string         access_flags;
 
   /* When __throw is called we know that the object has been copied and
      must be destroyed when the throw stack entry is popped. */
@@ -833,6 +817,7 @@ a try block with a catch that matches the type of the object thrown.
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
   throw_flags = curr_throw_stack_entry->flags;
+  access_flags = curr_throw_stack_entry->access_flags;
   /* If the throw object is a pointer we copy the pointer into a separate
      buffer whose address is passed to the catch.  This is done because
      the pointer may undergo a conversion (such as derived to base) and we
@@ -870,8 +855,8 @@ a try block with a catch that matches the type of the object thrown.
         /* Skip over try blocks for which a catch is active. */
         int result = check_exception_type_specifications
 				(ehsep->variant.try_block.catch_entries,
-				 thrown_typeinfo, throw_flags, &object_ptr,
-				 &etsp_found);
+				 thrown_typeinfo, throw_flags, access_flags,
+				 &object_ptr, &etsp_found);
         if (result != 0) {
           destination_ehsep = ehsep;
           destination_catch_value = result;
@@ -889,8 +874,8 @@ a try block with a catch that matches the type of the object thrown.
         an_exception_type_specification_ptr	dummy_etsp;
         result = check_exception_type_specifications
 				  (ehsep->variant.throw_specification,
-				   thrown_typeinfo, throw_flags, (void**)NULL,
-				   &dummy_etsp);
+				   thrown_typeinfo, throw_flags, access_flags,
+				   (void**)NULL, &dummy_etsp);
       }  /* if */
       if (result == 0) {
         destination_ehsep = ehsep;
@@ -1099,17 +1084,9 @@ the type being thrown.
 {
   void*				object_address;
 
-  if (curr_throw_stack_entry != NULL) {
-    /* If a throw is already in process, reset the base class flags from the
-       previous throw. */
-    set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/FALSE,
-                         /*access_flags=*/NULL);
-  }  /* if */
   object_address = (void *)eh_alloc_on_stack(size);
   push_throw_stack(typeinfo, flags, access_flags, object_address,
                    /*is_rethrow=*/FALSE);
-  /* Set the base class flags for the thrown type. */
-  set_base_class_flags(typeinfo, /*set_flag=*/TRUE, access_flags);
   return object_address;
 }  /* __throw_alloc */
 
@@ -1132,9 +1109,6 @@ the completion of a catch clause.
     void*			object_address;
     /* Unlink this entry from the throw stack. */
     curr_throw_stack_entry = tsep->next;
-    /* Clear the base class flags from the previous throw. */
-    set_base_class_flags(tsep->typeinfo, /*set_flag=*/FALSE,
-                         /*access_flags=*/NULL);
     is_rethrow = tsep->is_rethrow;
     object_address = tsep->object_address;
     /* Call the destructor for the object if needed. */
@@ -1152,13 +1126,6 @@ the completion of a catch clause.
     if (!is_rethrow) {
       /* Free the space used for the copy of the object. */
       eh_free_on_stack(object_address);
-    }  /* if */
-    if (curr_throw_stack_entry != NULL) {
-      /* Set the base class flags for the thrown type that is now on the top
-         of the throw stack. */
-      set_base_class_flags(curr_throw_stack_entry->typeinfo,
-                           /*set_flag=*/TRUE,
-                           curr_throw_stack_entry->access_flags);
     }  /* if */
   }  /* while */
 #if DEBUG

@@ -1,3 +1,21 @@
+Version 2.27
+
+2/27/95   EH runtime updated to simplify use in a threaded environment
+
+The way in which base class accessibility is checked has been changed
+to make porting to a threaded environment simpler.  Formerly, at the
+initiation of a throw operation, the runtime would update flags in the
+typeinfo structure indicating the accessible base classes of the object
+being thrown.  Instead, the more expensive operation of checking the
+base classes for each class found in a catch clause or exception
+specification is used.
+
+2/27/95   Accessible base class bug in the EH runtime
+
+A bug has been fixed that could cause the runtime to use an
+incorrect value to determine whether a base class of a thrown
+object is accessible.
+
 Version 2.27, December 22, 1994
 
 12/23/94  Bug in handling of condition flags in exception handling
