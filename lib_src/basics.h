@@ -23,6 +23,15 @@ parameters for this version.
    
 #include "defines.h"
 
+#ifdef __linux__
+/* Linux improperly defined NULL as "(void*)0".  Undefine it if it has
+   already been defined, and define it to the proper value. */
+#ifdef NULL
+#undef NULL
+#endif /* ifdef NULL */
+#define NULL 0
+#endif /* ifdef __linux__ */
+
 /*
 EXTERN is defined usually as "extern"; in the translation unit that
 actually defines storage for external variables, it is defined as an

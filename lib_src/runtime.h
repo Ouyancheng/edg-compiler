@@ -21,6 +21,15 @@ Miscellaneous declarations for all runtime routines.
 #include <stdio.h>
 #include <new.h>
 
+#ifdef __linux__
+/* Linux improperly defined NULL as "(void*)0".  Undefine it if it has
+   already been defined, and define it to the proper value. */
+#ifdef NULL
+#undef NULL
+#endif /* ifdef NULL */
+#define NULL 0
+#endif /* ifdef __linux__ */
+
 #ifndef DEBUG
 /* Include debugging code. */
 #define DEBUG 0
