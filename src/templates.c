@@ -1327,7 +1327,7 @@ included in the search.
   if (prototype_allowed && prototype_sym != NULL) {
     /* Old list is the template argument list from a template class that has
        already been created.  See if the list passed in matches it. */
-    old_list = prototype_sym->variant.type->
+    old_list = prototype_sym->variant.class_struct_union.type->
                      variant.class_struct_union.extra_info->template_arg_list;
     if (equiv_template_arg_lists(old_list, *new_list,
                                  /*is_func_template=*/FALSE,
