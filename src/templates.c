@@ -6649,6 +6649,40 @@ to the newly created list.
 } /* create_prototype_arg_list */
 
 
+static void rename_prototype_arg_list(
+		a_template_symbol_supplement_ptr	tssp,
+		a_template_param_ptr			templ_param_list)
+/*
+Rename the template argument list for the prototype instantiation with
+the names of the template parameters specified by templ_param_list.
+*/
+{
+  a_template_arg_ptr		tap;
+  a_template_param_ptr		tpp;
+  a_symbol_ptr			param_sym;
+  a_type_ptr			prototype_type;
+  a_symbol_ptr			prototype_sym;
+  a_class_type_supplement_ptr	ctsp;
+
+  prototype_sym = tssp->variant.class_template.prototype_instantiation;
+  prototype_type = prototype_sym->variant.class_struct_union.type;
+  ctsp = prototype_type->variant.class_struct_union.extra_info;
+  /* If this is a partial specialization, update the partial specialization
+     argument list. */
+  tap = ctsp->partial_spec_template_arg_list;
+  if (tap == NULL) tap = ctsp->template_arg_list;
+  for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+    check_assertion(tap != NULL);
+    param_sym = tpp->param_symbol;
+    if (param_sym->kind == (a_symbol_kind)sk_type) {
+      tap->variant.type = param_sym->variant.type;
+    } else {
+      tap->variant.constant = param_sym->variant.constant;
+    }  /* if */
+  }  /* for */
+} /* rename_prototype_arg_list */
+
+
 static void create_prototype_type(
         a_tmpl_decl_state_ptr			decl_state,
 	a_symbol_ptr				sym,
@@ -7568,6 +7602,12 @@ instantiation.
        cache the tokens. */
   }  /* if */
   if (sym != NULL) {
+    if (is_definition && tssp->cache.decl_info != NULL) {
+      /* This is a definition of a previously declared template.  Update
+         the names of the prototype instantiation arguments to reflect
+         the template parameter names used on the definition. */
+      rename_prototype_arg_list(tssp, decl_state->decl_info->parameters);
+    }  /* if */
     if (is_definition || tssp->cache.decl_info == NULL) {
       /* Save the information needed to create an instantiation based
          on the definition of the template.  This information is saved

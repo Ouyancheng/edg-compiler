@@ -23,6 +23,7 @@ error.c -- Error reporting routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #include "err_data.h"
+#include "templates.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
@@ -645,6 +646,133 @@ return_point:
 }  /* is_overloaded_function */
 
 
+static void form_function_template_param_list(a_symbol_ptr	sym,
+                                   	      a_msg_segment_ptr	seg_ptr)
+/*
+Display the parameter list of the function template specified by sym.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_param_ptr			tpp;
+  a_template_decl_info_ptr		decl_info;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+  tssp = sym->variant.template_info;
+  decl_info = tssp->variant.function.decl_cache.decl_info;
+  tpp = decl_info->parameters;
+  if (tpp != NULL) {
+    add_string_to_segment("<", seg_ptr);
+    for (; tpp != NULL; tpp = tpp->next) {
+      add_string_to_segment(tpp->param_symbol->header->identifier, seg_ptr);
+      if (tpp->next != NULL) add_string_to_segment(",", seg_ptr);
+    }  /* for */
+    add_string_to_segment(">", seg_ptr);
+  }  /* if */
+}  /* form_function_template_param_list */
+
+
+static void form_template_arg_info(a_symbol_ptr			sym,
+				   a_symbol_ptr			template_sym,
+                                   a_msg_segment_ptr		seg_ptr,
+				   int				level)
+/*
+sym is an instance of the template specified by template_sym.  Display
+the template argument lists associated with the each of the nonspecialized
+templates specified by sym and the parent classes of sym.  level is the
+recursion level when this routine calls itself (0 is the outermost level).
+decl_info is the template declaration information to be used for the
+template parameter information.  If decl_info is NULL, the declaration
+information is extracted from the symbol provided.
+*/
+{
+  a_boolean				sym_is_specialized = FALSE;
+  a_template_arg_ptr			tap = NULL;
+  a_template_param_ptr			tpp;
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_decl_info_ptr		decl_info;
+
+  /* Get the template argument list and the is_specialized flag for the
+     entity. */
+  tssp = template_supplement_for_symbol(template_sym);
+  switch (sym->kind) {
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      {
+        a_type_ptr	tp = sym->variant.class_struct_union.type;
+        sym_is_specialized = tp->variant.class_struct_union.is_specialized;
+        tap = templ_arg_list_for_class(tp);
+        decl_info = tssp->cache.decl_info;
+      }
+      break;
+    case sk_routine:
+    case sk_member_function:
+      {
+        a_routine_ptr	rp = sym->variant.routine.ptr;
+        tap = rp->template_arg_list;
+        decl_info = tssp->variant.function.decl_cache.decl_info;
+      }
+      break;
+    case sk_static_data_member:
+      {
+        decl_info = tssp->cache.decl_info;
+      }
+      break;
+    default:
+      unexpected_condition_str2("form_template_arg_info:",
+                                "unexpected symbol kind");
+  }  /* switch */
+  if (sym_is_specialized) {
+    /* There is no information to be displayed for fully specialized
+       instances. */
+  } else {
+    /* Display the template argument information for the parent classes,
+       then display the template arguments for this entity. */
+    if (tap != NULL && level == 0) {
+      add_string_to_segment(" [with ", seg_ptr);
+    }  /* if */
+    if (sym->is_class_member) {
+      a_symbol_ptr		parent_sym;
+      a_symbol_ptr		parent_template_sym;
+      check_assertion(template_sym->is_class_member);
+      parent_sym = (a_symbol_ptr)sym->parent.class_type->
+                                                     source_corresp.assoc_info;
+      parent_template_sym = (a_symbol_ptr)template_sym->parent.class_type->
+                                                     source_corresp.assoc_info;
+      /* Only display the parent information if the parent class of the
+         template is a prototype instantiation.  This suppresses the
+         template argument information for the levels at which the
+         template has been specialized.  The level is only incremented
+         if there is a template argument list to be displayed at this level. */
+      if (is_prototype_instantiation_symbol(parent_template_sym)) {
+        form_template_arg_info(parent_sym, parent_template_sym, seg_ptr,
+                               level+(tap != NULL));
+      }  /* if */
+    }  /* if */
+    if (tap != NULL) {
+      /* Display the argument list for this entity. */
+      tpp = decl_info->parameters;
+      for (; tap != NULL; tap = tap->next, tpp = tpp->next) {
+        /* Display "parameter=value". */
+        add_string_to_segment(tpp->param_symbol->header->identifier,
+                              seg_ptr);
+        add_string_to_segment("=", seg_ptr);
+        form_a_template_arg(tap, &octl);
+        /* Add ", " if this is not the last argument. */
+        if (tap->next != NULL) add_string_to_segment(", ", seg_ptr);
+      }  /* for */
+      if (level != 0) {
+        /* There are template arguments to be output at other levels.
+           Insert a ", " separator. */
+        add_string_to_segment(", ", seg_ptr);
+      } else {
+        /* This is the end of the last list. */
+        add_string_to_segment("]", seg_ptr);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* form_template_arg_info */
+
+
 static void form_symbol_summary(a_symbol_ptr        sym,
                                 a_source_position   *error_pos,
                                 a_msg_segment_ptr   seg_ptr)
@@ -661,9 +789,13 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_symbol_ptr  fund_sym;	/* Pointer to the fundamental symbol of
 				   argument sym if it exists.  Otherwise,
 				   the value will be that of sym. */
-  char		*entity_kind;
-  a_boolean	force_function_params = FALSE, return_type_needed = TRUE;
-  a_boolean	is_declaration_like = FALSE;
+  char				*entity_kind;
+  a_boolean			force_function_params = FALSE;
+  a_boolean			return_type_needed = TRUE;
+  a_boolean			is_declaration_like = FALSE;
+  a_symbol_ptr			sym_to_display = NULL;
+  a_boolean			display_template_arg_info = FALSE;
+  a_template_instance_ptr	tip;
 
   curr_output_msg_segment = seg_ptr;
   /* Determine the fundamental symbol of this symbol. */
@@ -694,22 +826,25 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
     case sk_class_or_struct_tag:
     case sk_union_tag:
-      if (C_dialect == C_dialect_cplusplus &&
-          fund_sym->variant.class_struct_union.extra_info->
-                                                is_prototype_instantiation) {
-        /* This is a symbol for a prototype instantiation of a class template.
-           It is preferable to display "class template X<T>" instead of
-           "class X<T>", so fall through to code for sk_class_template. */
-      } else {
-        if (fund_sym->kind == (a_symbol_kind)sk_union_tag) {
-          entity_kind = "union ";
-        } else if (C_dialect == C_dialect_cplusplus) {
-          entity_kind = "class ";
+      { a_class_symbol_supplement_ptr	cssp;
+        cssp = fund_sym->variant.class_struct_union.extra_info;
+        if (C_dialect == C_dialect_cplusplus &&
+            cssp->is_prototype_instantiation) {
+          /* This is a symbol for a prototype instantiation of a class
+             template.  It is preferable to display "class template X<T>"
+             instead of "class X<T>", so fall through to code for
+             sk_class_template. */
         } else {
-          entity_kind = "struct ";
+          if (fund_sym->kind == (a_symbol_kind)sk_union_tag) {
+            entity_kind = "union ";
+          } else if (C_dialect == C_dialect_cplusplus) {
+            entity_kind = "class ";
+          } else {
+            entity_kind = "struct ";
+          }  /* if */
+          goto symbol_name;
         }  /* if */
-        goto symbol_name;
-      }  /* if */
+      }
     case sk_class_template:
       entity_kind = "class template ";
       goto symbol_name;
@@ -752,7 +887,31 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
     case sk_routine:
     case sk_member_function:
-      type = routine_symbol_type(fund_sym);
+      tip = fund_sym->variant.routine.instance_ptr;
+      if (tip != NULL && distinct_template_signatures) {
+        /* When a template function, or member function of a template class
+           is displayed, it is done by displaying the template itself
+           (or the member function of the prototype instantiation) and the
+           template arguments used for each template parameter list.  Get
+           the template symbol to be displayed. */
+        /* Get the type of the template itself. */
+        a_symbol_ptr				template_sym;
+        a_template_symbol_supplement_ptr	tssp;
+        template_sym = fund_sym->variant.routine.instance_ptr->template_sym;
+        if (is_template_symbol(template_sym)) {
+          template_sym = prototype_template_of(template_sym);
+        }  /* if */
+        tssp = template_supplement_for_symbol(template_sym);
+        sym_to_display = template_sym;
+        if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+          type = tssp->variant.function.routine->type;
+        } else {
+          type = routine_symbol_type(template_sym);
+        }  /* if */
+        display_template_arg_info = TRUE;
+      } else {
+        type = routine_symbol_type(fund_sym);
+      }  /* if */
       routine = fund_sym->variant.routine.ptr;
       entity_kind = "function ";
       is_declaration_like = TRUE;
@@ -769,9 +928,18 @@ declaration position to eliminate redundant file names in a diagnostic.
          be expressed as a declaration. */
       goto symbol_name;
     case sk_static_data_member:
+      tip = fund_sym->variant.static_data_member.instance_ptr;
       type = fund_sym->variant.static_data_member.variable->type;
       entity_kind = "member ";
       is_declaration_like = TRUE;
+      if (tip != NULL && distinct_template_signatures) {
+        /* When a static data member of a template class is displayed, it
+           is done by displaying the static data member of the prototype
+           instantiation and the template arguments used for each template
+           parameter list.  Get the template symbol to be displayed. */
+        sym_to_display = tip->template_sym;
+        display_template_arg_info = TRUE;
+      }  /* if */
       goto symbol_name;
     case sk_field:
       type = fund_sym->variant.field.ptr->type;
@@ -835,7 +1003,10 @@ symbol_name:
          symbol.  Otherwise, use the fundamental symbol. */
       { a_boolean	use_orig_sym;
         use_orig_sym = sym->is_class_member || sym->ambiguous;
-        form_symbol_name(use_orig_sym ? sym : fund_sym, &octl);
+        if (sym_to_display == NULL) {
+          sym_to_display = use_orig_sym ? sym : fund_sym;
+        }  /* if */
+        form_symbol_name(sym_to_display, &octl);
       }
       /* Put out the second part of the type if needed.  Don't put it
          out in name-only mode.  Do put it out in full-type mode, or
@@ -843,6 +1014,13 @@ symbol_name:
       if (type != NULL &&
           !seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || force_function_params) ) {
+        if (sym_to_display->kind == (a_symbol_kind)sk_function_template &&
+            distinct_template_signatures) {
+          /* If the symbol being displayed is a function template, display
+             the template's parameter list in the form of an explicit
+             function template parameter list. */
+          form_function_template_param_list(sym_to_display, seg_ptr);
+        }  /* if */
         if (routine != NULL && !return_type_needed) {
           /* For constructors, destructors, and conversion functions,
              put out the function type but not the return type. */
@@ -852,6 +1030,10 @@ symbol_name:
           form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE,
                                        &octl);
         }  /* if */
+      }  /* if */
+      /* Display the template argument information, if any. */
+      if (display_template_arg_info) {
+        form_template_arg_info(fund_sym, sym_to_display, seg_ptr, /*level=*/0);
       }  /* if */
       break;
 #if CHECKING

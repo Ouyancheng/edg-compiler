@@ -129,6 +129,9 @@ typedef int a_form_type_options_set;
 extern void clear_il_to_str_output_control_block(
                                    an_il_to_str_output_control_block_ptr octl);
 
+extern void form_a_template_arg(a_template_arg_ptr                    tap,
+                                an_il_to_str_output_control_block_ptr octl);
+
 extern void form_template_args(a_template_arg_ptr                    tap,
                                an_il_to_str_output_control_block_ptr octl);
 

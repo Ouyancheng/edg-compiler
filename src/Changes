@@ -1,5 +1,29 @@
 Version 2.37
 
+9/23/97   New representation for template entities in diagnostic output
+
+A new means of representing template entities in diagnostics has been
+added.  The new representation is used when distinct template
+signatures are enabled.  Now that explicit template argument lists are
+accepted, it is possible to have template parameters that are not
+included in the function type of instances of a function template.
+The new representation makes it possible to see the values of all of
+the template parameters, even those that are not included in the
+function type.  The new output is similar to the output produced by
+the prelinker when using distinct template signatures.
+
+  template <class T> struct A {
+    template <int I, class T2> int f(T2){int i; return 0;}
+  };
+  A<int> ai;
+  int x = ai.f<1>('c');
+
+  "ex.c", line 2: warning: variable "i" was declared but never referenced
+          template <int I, class T2> int f(T2){int i; return 0;}
+                                                 ^
+            detected during instantiation of
+                  "int A<T>::f<I,T2>(T2) [with T=int, I=1, T2=char]" at line 6
+
 9/22/97   IL lowering exception handling for freeing of storage allocated
           in "new"
 
