@@ -306,14 +306,14 @@ Dump the name from a source correspondence (if any).
 }  /* db_name */
 
 
-static void db_name_linkage(a_source_correspondence *sc)
+static void db_name_linkage(a_name_linkage_kind nlk)
 /*
-Dump the name linkage from a source correspondence.
+Dump the indicated name linkage kind.
 */
 {
   char *str;
 
-  switch (sc->name_linkage) {
+  switch (nlk) {
     case nlk_none:                str = "no"; break;
     case nlk_internal:            str = "int'l"; break;
     case nlk_external:            str = "ext'l"; break;
@@ -405,7 +405,7 @@ Dump a static data member (a variable entry), for debug purposes.
   fputs(" static data member \"", f_debug);
   db_name(&vp->source_corresp);
   fputs("\" (", f_debug);
-  db_name_linkage(&vp->source_corresp);
+  db_name_linkage((a_name_linkage_kind)vp->source_corresp.name_linkage);
   fprintf(f_debug, "), sc_%s, type = ",
                    db_storage_class_names[(int)vp->storage_class]);
   db_abbreviated_type(vp->type);
@@ -429,7 +429,7 @@ Dump a member function (a routine entry), for debug purposes.
   fputs(" member function \"", f_debug);
   db_name(&rp->source_corresp);
   fputs("\" (", f_debug);
-  db_name_linkage(&rp->source_corresp);
+  db_name_linkage((a_name_linkage_kind)rp->source_corresp.name_linkage);
   fprintf(f_debug, ")%s, sc_%s,\n    type = ",
                    (rp->is_inline) ? ", inline" : "",
                    db_storage_class_names[(int)rp->storage_class]);
@@ -858,8 +858,11 @@ class_struct_union:
       fputs("function", f_debug);
       if (rtsp->assoc_routine != NULL) {
         fputs(" ", f_debug);
-	db_name(&rtsp->assoc_routine->source_corresp);
+        db_name(&rtsp->assoc_routine->source_corresp);
       }  /* if */
+      fputs(" (", f_debug);
+      db_name_linkage((a_name_linkage_kind)rtsp->routine_name_linkage);
+      fputs(")", f_debug);
       if (!rtsp->prototyped) {
         fputs(" unprototyped", f_debug);
       }  /* if */
@@ -4170,7 +4173,7 @@ to default values.
       rtsp->assoc_routine_is_ctor    = FALSE;
       rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
-      rtsp->assoc_routine_name_linkage = (a_name_linkage_kind)nlk_none;
+      rtsp->routine_name_linkage     = (a_name_linkage_kind)nlk_none;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if MICROSOFT_KEYWORDS_ALLOWED
