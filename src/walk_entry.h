@@ -590,6 +590,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_constant);
             break;
           case ck_designator:
+            remap_ptr(ptr->variant.designator.field, a_field_ptr, iek_field);
             break;
 #ifdef FFE
           case ck_init_position:
