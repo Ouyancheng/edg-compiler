@@ -1,5 +1,19 @@
 Version 2.32
 
+2/27/96   "explicit" keyword (nonconverting constructors)
+
+The "explicit" keyword is now supported.  A constructor declared "explicit"
+is a nonconverting constructor and is not used for implicit conversions.
+The command-line options --explicit and --no_explicit turn that feature
+on and off.
+
+2/27/96   Copy-initialization more like Working Paper
+
+The Working Paper [dcl.init] indicates that in a copy-initialization of a
+class object, if the source type is the same class type as the destination,
+or a derived class thereof, only copy constructors should be considered,
+and not conversion functions.  Now implemented.
+
 2/26/96   Source position for class template instances
 
 The "declaration position" recorded for instances of class templates is
