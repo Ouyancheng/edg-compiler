@@ -145,8 +145,8 @@ typedef struct an_error_info {
 } an_error_info;
 
 
-static int compare_error_info(void *arg1,
-                              void *arg2)
+static int compare_error_info(a_const_void_ptr arg1,
+                              a_const_void_ptr arg2)
 /*
 Function called by qsort to compare two error_info records based on
 the enumeration name.
@@ -171,8 +171,8 @@ typedef struct a_tag_info {
 } a_tag_info;
 
 
-static int compare_tag_info(void *arg1,
-                              void *arg2)
+static int compare_tag_info(a_const_void_ptr arg1,
+                            a_const_void_ptr arg2)
 /*
 Function called by qsort to compare two tag_info records based on
 the tag.
@@ -347,8 +347,8 @@ int main(int argc, char *argv[])
   fprintf(data_output_file, "\n};\n");
   /* Sort the error information by enumeration code so that the enumerations
      can be looked up while processing the tag file. */
-  qsort((void *)error_info, (size_t)number_of_errors, sizeof(an_error_info),
-        compare_error_info);
+  qsort((a_void_ptr)error_info, (size_t)number_of_errors,
+         sizeof(an_error_info), compare_error_info);
   /* Process the tag file.  The tag file contains line of the form
 
 	enumeration;tag
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
     tag_start = ptr;
     /* Look up the enumeration code in the error_info table. */
     error_info_to_find.enumerator = enumerator_start;
-    if (!bsearch((void*)&error_info_to_find, (void*)error_info,
+    if (!bsearch((a_void_ptr)&error_info_to_find, (a_void_ptr)error_info,
                  (size_t)number_of_errors, sizeof(an_error_info),
                  compare_error_info)) {
       me_error("%s is not a valid error code", enumerator_start);
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
   }  /* while */
   fclose(tag_input_file);
   /* Sort the tag information by tag. */
-  qsort((void *)tag_info, (size_t)number_of_tags, sizeof(a_tag_info),
+  qsort((a_void_ptr)tag_info, (size_t)number_of_tags, sizeof(a_tag_info),
         compare_tag_info);
   /* Output the number of tags to the error code file. */
   fprintf(data_output_file, "#define NUMBER_OF_ERROR_TAGS %0d\n",
