@@ -8004,6 +8004,7 @@ nsk_other name space are considered.  This routine is used for the unary
    class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
+   !(sym)->synthesized_namespace_projection &&                        \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&      \
    (!must_be_tag || is_tag_symbol(fund_sym)))
