@@ -2250,11 +2250,7 @@ types; just put out the base encoded name.
   mangled_name_length = 0;
   if (routine->special_kind == (a_special_function_kind)sfk_none) {
     /* Normal name. */
-    if (routine->source_corresp.name_has_been_mangled) {
-      name = routine->source_corresp.unmangled_name;
-    } else {
-      name = routine->source_corresp.name;
-    }  /* if */
+    name = unmangled_name_of(&routine->source_corresp);
 #if CHECKING
     if (name == NULL) {
       internal_error("mangled_function_name: unnamed routine");
@@ -2474,7 +2470,7 @@ variable is a template static data member specialization.
      The same encoding is used for members of namespaces.
   */
   mangled_name_length = 0;
-  name = scp->name;
+  name = unmangled_name_of(scp);
 #if CHECKING
   if (name == NULL) internal_error("mangled_member_name: unnamed member");
 #endif /* CHECKING */

@@ -1,5 +1,20 @@
 Version 2.36
 
+3/31/97   Double name mangling on static data member
+
+In some cases, the mangled name for a static data member had double name
+mangling.  This could cause a prelinker loop.  Now fixed.
+
+  struct B {static int v[1];};
+  int B::v[1];
+  template<int* x> struct A {};
+  template<int* x> void f( A<x>& cfl ) {}
+  int main() {
+    A<B::v> clA;
+    f(clA);
+    return 0;
+  }
+
 3/27/97   Internal error in object-lifetime management for default argument
 
 An assertion failure could be provoked when instantiation of a template
