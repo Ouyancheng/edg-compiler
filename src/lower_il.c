@@ -8714,13 +8714,20 @@ Generate any cleanup actions required preceding the indicated goto statement.
     if (outer_lifetime == common_lifetime) {
       /* No lifetimes are being exited. */
       if (long_lifetime_temps) {
-        /* Destroy any long lifetime temporaries.  If the statement is turned
-           into a block, statement will be updated to point to the original
-           statement. */
-        a_boolean          any_temps_destroyed;
-        an_insert_location insert_location;
-        destroy_curr_lifetime_temporaries(&statement, &any_temps_destroyed,
-                                          &insert_location);
+        /* Destroy any long lifetime temporaries.  This is needed for
+           gotos that implement a fallthrough in a switch, but it is not
+           wanted for gotos to break and continue labels.  A real label
+           would start a new lifetime if the current lifetime has any
+           temporaries, so this code is not reached for real labels.
+           If the statement is turned into a block, statement will be
+           updated to point to the original statement. */
+        if (!statement->variant.label.ptr->break_label &&
+            !statement->variant.label.ptr->continue_label) {
+          a_boolean          any_temps_destroyed;
+          an_insert_location insert_location;
+          destroy_curr_lifetime_temporaries(&statement, &any_temps_destroyed,
+                                            &insert_location);
+        }  /* if */
       }  /* if */
     } else {
       /* Some lifetimes are being exited. */
