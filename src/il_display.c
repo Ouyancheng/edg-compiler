@@ -2214,6 +2214,8 @@ Display the indicated hidden-name entry.
     case (templk_static_data_member):
       (void)printf("templk_static_data_member\n");
       break;
+    default:
+      (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
 }  /* disp_template */
@@ -2241,6 +2243,26 @@ Display the indicated object lifetime.
 {
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
+  disp_name("kind");
+  switch (ptr->kind) {
+    olk_global_static:
+      (void)printf("olk_global_static\n");
+      break;
+    olk_local:
+      (void)printf("olk_local\n");
+      break;
+    olk_function_static:
+      (void)printf("olk_function_static\n");
+      break;
+    olk_expr_temporary:
+      (void)printf("olk_expr_temporary\n");
+      break;
+    olk_constructor_init:
+      (void)printf("olk_constructor_init\n");
+      break;
+    default:
+      (void)printf("**BAD OBJECT LIFETIME KIND**\n");
+  }  /* switch */
   disp_ptr("destructions", (char *)ptr->destructions, iek_dynamic_init);
   disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
            iek_object_lifetime);
@@ -2295,6 +2317,9 @@ do_assoc_type:
                iek_constructor_init);
       disp_ptr("lifetime_of_constructor_inits",
                (char *)ptr->variant.routine.lifetime_of_constructor_inits,
+               iek_object_lifetime);
+      disp_ptr("lifetime_of_local_static_vars",
+               (char *)ptr->variant.routine.lifetime_of_local_static_vars,
                iek_object_lifetime);
       if (ptr->variant.routine.this_param_variable != NULL) {
         disp_ptr("this_param_variable",
