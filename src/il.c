@@ -6333,8 +6333,11 @@ variable can be diagnosed.
     pos_error(ec_aliased_variable_cannot_have_register_storage_class, pos);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   } else if (register_id != 0) {
-    if (named_register_variables[register_id] != NULL) {
-      pos_error(ec_register_in_use, pos);
+    a_variable_ptr  prev_var = named_register_variables[register_id];
+    if (prev_var != NULL) {
+      if (var != prev_var) {
+        pos_error(ec_register_in_use, pos);
+      }  /* if */
     } else if (is_array_type(var->type)) {
       pos_error(ec_no_named_register_for_array, pos);
     } else if (is_void_type(var->type)) {

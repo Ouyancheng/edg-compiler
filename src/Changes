@@ -1,5 +1,19 @@
 Version 3.5
 
+10/13/04 Embedded C: Spurious error on block-extern named-register declaration
+
+In Embedded C mode (and any other modes accepting named-register storage class
+specifiers) the front end used to emit an error if a named-register variable
+was declared in block scope while another declaration of the same variable had
+already been seen.  For example:
+
+  register _EDG_REG_1 x;
+  void f() {
+    register _EDG_REG_1 x;  // Previously an error; now accepted as referring
+  }                         // to the file scope variable.
+
+This is now fixed.
+
 10/13/04 Embedded C: Named-register variables of void type
 
 In Embedded C mode (and any other modes accepting named-register storage
