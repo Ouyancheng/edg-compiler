@@ -1,5 +1,13 @@
 Version 2.18
 
+5/20/93 Non-aggregate base class with no default constructor
+
+A superfluous warning has been eliminated when a class is declared that
+requires generation of a default constructor but has a nonaggregate base
+class that lacks a default constructor.  An error is still issued at the
+point where the default constructor for the derived class is actually
+generated.
+
 5/19/93 Incorrect warning no longer issued
 
 A warning about a temporary being used for the initial value of a ref to
@@ -15,7 +23,6 @@ non-const is no longer issued for:
       int foo() { A ns; return insert(ns); }
   };
 
-
 5/18/93 Fixed infinite loop bug
 
 The following caused an infinite loop while recovering from an error
@@ -29,7 +36,6 @@ Now fixed.
   void m() {
     (a1+a2)->i = 1;
   }
-
 
 5/17/93 Taking the address of a bit field
 
