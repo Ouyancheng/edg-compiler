@@ -3200,6 +3200,8 @@ fields, and return a pointer to it.
   tp->coordinates.depth = NO_NESTING_DEPTH;
   tp->template_decl = NULL;
   tp->prototype_instantiation.type = NULL;
+  tp->prototype_instantiation.routine = NULL;
+  tp->prototype_instantiation.variable = NULL;
   tp->canonical_template = NULL;
   tp->definition_template = NULL;
   tp->prototype_template = NULL;
