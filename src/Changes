@@ -1,5 +1,18 @@
 Version 3.4
 
+3/3/04   Recorded expression for constant, boolean expression in C mode
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the original
+expressions that gave rise to constants are retained in the IL.
+In C mode, this was not done for expressions with a constant value
+tested in a boolean controlling expression context.  The underlying
+expression is now preserved.
+
+  void foo(void) {
+    if (4 > sizeof(int)) {  // Expression now preserved under constant
+    }
+  }
+
 3/3/04   GNU C++ compatibility: call returning class treated as lvalue
 
 IN GNU C++ mode, a function call returning a class value is now

@@ -9745,6 +9745,9 @@ If validate_only is TRUE, no conversions or normalizations are performed.
                        (a_host_large_integer)(!op_is_false_constant(operand)));
               con->null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+              con->expr = orig_operand.variant.constant.expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             }  /* if */
           }
           break;
