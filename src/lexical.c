@@ -12288,7 +12288,7 @@ selection operator, in which case it points to the type of the left operand.
     set_err_pos_to_curr_token();
     /* Process the identifier after the optional qualifier.  Coalesce
        multi-token identifiers (such as "operator +").  This is done
-       my scanning the tokens of the identifier, updating the locator
+       by scanning the tokens of the identifier, updating the locator
        to reflect what was scanned, and setting curr_token to
        tok_identifier.  Most of this processing is actually done by
        get_destructor_name and get_opname.  */
