@@ -1,5 +1,12 @@
 Version 2.33
 
+9/3/96  Default for for-init semantic in Microsoft mode
+
+Because the Microsoft MSVC++ compiler does not yet support the new for-init
+scoping semantics, --old_for_init should be the default in Microsoft mode.
+MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE has been added to control
+that.
+
 8/29/96 Integral promotion of wchar_t when wchar_t is already a promoted type
 
 When wchar_t was configured as a type that is already a promoted integral

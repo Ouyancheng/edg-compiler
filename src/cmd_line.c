@@ -1907,6 +1907,10 @@ common_cfront_mode_settings:
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     allow_nonstandard_anonymous_unions = TRUE;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+    if (!option_kind_used[(int)optk_old_for_init]) {
+      use_nonstandard_for_init_scope =
+                              MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
+    }  /* if */
   } else {
     il_header.microsoft_16_mode = FALSE;
   }  /* if */
