@@ -773,8 +773,8 @@ such pointer is found, NULL is returned.
 }  /* find_out_of_scope_declaration */
 
 
-static a_boolean symbols_are_lookup_equivalent(a_symbol_ptr	sym1,
-				               a_symbol_ptr	sym2)
+a_boolean symbols_are_lookup_equivalent(a_symbol_ptr	sym1,
+                                        a_symbol_ptr	sym2)
 /*
 Returns TRUE if sym1 is the same as sym2 or if sym1 and sym2 point
 to the same IL entities.  The latter check is used, for example, to
