@@ -4417,56 +4417,28 @@ Only the first form is accepted in C.
            pointer to a pointer type or a reference to a pointer type). */
         a_type_ptr  temp_type = skip_typerefs(complete_type);
         if (curr_token == tok_star) {
-          if (cfront_compatibility_mode && is_function_type(temp_type) &&
-              temp_type != complete_type &&
-              (temp_type->variant.routine.extra_info->
-                                        implicit_this_param_type != NULL ||
-               complete_type->source_corresp.
-                                        class_of_which_a_member != NULL)) {
-            /* We have a situation in which a typedef has been declared
-               like this:
+          if (cfront_compatibility_mode && temp_type != complete_type &&
+              is_function_type(temp_type) &&
+              temp_type->variant.routine.extra_info->
+                                        implicit_this_param_type != NULL) {
+            /* We have a situation in which a typedef has previously been
+               declared like this:
                       typedef void A::t(int);  // Nonstandard typedef
                (meaning "t" names a routine type taking an int argument and
                returning void and having an implicit this-param type of
-               const-ptr-to-A) or like this:
-                      struct A {
-                        typedef void t(int);   // Okay
-                      };
-               (meaning "t" names a routine type taking an int argument and
-               returning void).  Cfront treats "t*" (both when t is declared
-               inside the class and when it is declared outside) as though
-               it had been a ptr-to-member declaration -- e.g.,
-                      t* pm = &A::f(int);
+               const-ptr-to-A).  Cfront treats "t*" as though it had been a
+               ptr-to-member declaration -- e.g.,
+                      t* pm = &A::f(int);      // Nonstd ptr-to-member decl
                and
                       void A::*pm(int) = &A::f(int);
                have the very same meaning for cfront.  Although this is not
                part of the language defined in the ARM, it is support for
                cfront compatibility. */
-            a_type_ptr  class_type, tp, old_type;
+            a_type_ptr  class_type;
 
-            /* Check for a this-param type in the routine type pointed to by
-               the typedef type. */
-            tp = temp_type->variant.routine.extra_info->
-                                       implicit_this_param_type;
-            if (tp != NULL) {
-              /* There was a this-param type.  Remove the pointer. */
-              class_type = type_pointed_to(tp);
-            } else {
-              /* There was no this-param type, so this is a typedef declared
-                 within a class.  Use the class to form the this-param type,
-                 and attach it to a clone of the original routine type. */
-              old_type = temp_type;
-              class_type = complete_type->
-                                      source_corresp.class_of_which_a_member;
-              temp_type = alloc_type((a_type_kind)tk_routine);
-              copy_routine_type_with_param_types(old_type, temp_type);
-              tp = make_pointer_type(class_type);
-              tp = make_qualified_type(tp, /*is_const=*/TRUE,
-                                       /*is_volatile=*/FALSE);
-              temp_type->variant.routine.extra_info->
-                                            implicit_this_param_type = tp;
-            }  /* if */
-            /* Form the pointer-to-member type. */
+            class_type = type_pointed_to(temp_type->
+                                            variant.routine.extra_info->
+                                            implicit_this_param_type);
             complete_type = ptr_to_member_type(temp_type, class_type);
           } else {
             if (is_reference_type(temp_type)) {
