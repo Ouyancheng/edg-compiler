@@ -420,17 +420,17 @@ extern int fileno(FILE *);
 /*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
 /*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
+/*lint -esym(759, fixed_point_type_used_in_primary_IL)*/
+/*lint -esym(765, fixed_point_type_used_in_primary_IL)*/
+/*lint -esym(759, make_lvalue_reusable_copy_full)*/
+/*lint -esym(765, make_lvalue_reusable_copy_full)*/
+#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
 #endif /* DO_IL_LOWERING */
 #if !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
 /*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
 /*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
 #endif /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATOR */
-#if !LOWER_FIXED_POINT
-/*lint -esym(759, fixed_point_type_used_in_primary_IL)*/
-/*lint -esym(765, fixed_point_type_used_in_primary_IL)*/
-/*lint -esym(759, make_lvalue_reusable_copy_full)*/
-/*lint -esym(765, make_lvalue_reusable_copy_full)*/
-#endif /* !LOWER_FIXED_POINT */
 
 
 /******************************************************************************
