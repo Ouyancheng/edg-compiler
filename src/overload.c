@@ -5986,7 +5986,8 @@ Only used in C++.
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, orig_dest_type,
                                     /*is_initialization=*/TRUE,
-                                    incompatible_err, try_user_conversions,
+                                    try_user_conversions,
+                                    incompatible_err,
                                     &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
