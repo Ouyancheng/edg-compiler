@@ -1162,22 +1162,27 @@ the file scope, do not process it (but record an orphan in the latter case).
         /* The lifetime pointer needs to be walked and not remapped in
            the file scope and function scopes. */
         walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+        /* Constants are walked in some cases when setting the "needed" flag;
+           see below. */
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #endif /* !NEEDED_FLAG_WALK */
 #ifdef CFE
 #if DO_SUBTREE_WALK
 #if NEEDED_FLAG_WALK
-        /* Note that we don't walk the types or variables lists.  Types
-           aren't needed unless they are referenced, and variables aren't
-           needed unless they are referenced or they are external; the
-           external part is handled elsewhere.  Note that dynamic inits
-           are walked, which will cause dynamically initialized static
-           variables to be retained.  Inside a function, variables and
-           types are walked to avoid orphan problems. */
+        /* For some cases, we do not want to walk variable, routine,
+           and type lists; they should be marked as needed only if
+           referenced (or if external, but that's handled elsewhere).
+           But functions and classes are kept in the IL or excluded
+           as a unit, so anything in them is needed if the containing
+           entity is needed. */
         if (ptr->kind == (a_scope_kind)sck_function ||
-            ptr->kind == (a_scope_kind)sck_block) {
+            ptr->kind == (a_scope_kind)sck_block ||
+            ptr->kind == (a_scope_kind)sck_class_struct_union) {
+          walk_list(ptr->constants, a_constant_ptr, iek_constant);
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
+          walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
+          walk_list(ptr->routines, a_routine_ptr, iek_routine);
         }  /* if */
 #else /* !NEEDED_FLAG_WALK */
         if (walking_file_scope) {
@@ -1199,19 +1204,21 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->types, a_type_ptr, iek_type);
         remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* DO_SUBTREE_WALK */
-#if NEEDED_FLAG_WALK
-        /* Nonstatic variables are always inside a function, so they
-           are always walked to avoid orphan problems. */
-#endif /* NEEDED_FLAG_WALK */
+#if !NEEDED_FLAG_WALK
+        /* Nonstatic variables are walked in some cases when setting the
+           "needed" flag; see above. */
         walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
+#endif /* !NEEDED_FLAG_WALK */
 #else /* ifndef CFE */
         /* Not the C/C++ front end. */
         walk_list(ptr->types, a_type_ptr, iek_type);
         walk_list(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* ifdef CFE */
 #if !NEEDED_FLAG_WALK
-        /* Labels and routines aren't needed unless they are referenced. */
+        /* Labels aren't needed unless they are referenced. */
         walk_list(ptr->labels, a_label_ptr, iek_label);
+        /* Routines are walked in some cases when setting the "needed" flag;
+           see above. */
         walk_list(ptr->routines, a_routine_ptr, iek_routine);
 #endif /* !NEEDED_FLAG_WALK */
 #ifdef CFE
