@@ -4098,8 +4098,19 @@ skip_base_class:
          "float up" to before the class definition because of dependency on
          a type declared within a class currently being defined. */
       a_type_ptr  tp;
-      check_assertion(ss_entry_kind(ssep->next) == (an_il_entry_kind)iek_type);
-      tp = ss_entry_ptr(ssep->next, a_type_ptr);
+      a_source_sequence_entry_ptr  next_ssep = ssep->next;
+
+      while (ss_entry_kind(next_ssep) != (an_il_entry_kind)iek_type) {
+        /* This can come up when the base class declaration triggers an
+           instantiation that itself triggers another instantiation -- e.g.,
+              class X : Y<Z<int> > { }
+           where both Z<int> and Y<Z<int>> have not yet been instantiated. */
+        check_assertion(ss_entry_kind(ssep->next) ==
+                          (an_il_entry_kind)iek_src_seq_secondary_decl);
+        next_ssep = next_ssep->next;
+        check_assertion(next_ssep != NULL);
+      }  /* while */
+      tp = ss_entry_ptr(next_ssep, a_type_ptr);
       check_assertion(tp->variant.class_struct_union.is_template_class);
       check_assertion(find_direct_base_class_of(type_ptr, tp) != NULL);
       check_assertion(is_or_contains_member_of_uncompleted_class(tp));
