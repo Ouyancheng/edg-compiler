@@ -1058,6 +1058,7 @@ ec_recursive_def_arg_instantiation;;"recursive instantiation of default argument
 ec_dependent_type_in_templ_templ_param;;"a parameter of a template template parameter cannot depend on the type of another template parameter"
 ec_bad_template_name;;"%n is not an entity that can be defined"
 ec_destructor_name_must_be_qualified;;"destructor name must be qualified"
+ec_no_typename_in_friend_class_decl;;"friend class name should not be introduced with \"typename\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

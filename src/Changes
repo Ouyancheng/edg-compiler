@@ -1,5 +1,18 @@
 Version 2.43
 
+11/22/99 Keyword typename in friend class declaration
+
+The front end now diagnoses the use of the keyword typename to declare a
+friend class.  In the past this was accepted, but would lead to an internal
+error when upon instantiation the designated type turned out not to name a
+class type.
+
+  template<class T> class C {
+    friend typename T::X;  // Error.  Used to be accepted, unless T::X was
+  };                       // instantiated to a non-class (internal error).
+  struct S { typedef int X; };
+  C<S> x;  // Causes T::X to resolve to int -> internal error.
+
 11/19/99 Error on repeated default arguments on function templates
 
 Default arguments on function templates and members functions of class

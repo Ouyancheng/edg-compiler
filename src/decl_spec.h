@@ -224,6 +224,10 @@ extern void decl_spec_one_time_init(void);
                            linkage specifier; this is only accepted in
                            Microsoft mode (and only under restricted
                            circumstances). */
+#define DSO_TYPENAME		((a_decl_flag_set)0x8000)
+			/* This bit is set if and only if the keyord typename
+			   introduced an elaborated type specifier (i.e.,
+			   DSO_ELABORATED_TYPE_SPECIFIER must also be set). */
 #define DSO_LAST DSO_LINKAGE_SPEC_DECL
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSO_LAST)*/

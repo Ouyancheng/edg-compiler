@@ -5388,6 +5388,7 @@ exit_loop:
         !(decl_specifiers_seen & (DS_STORAGE_CLASS | DS_INLINE |
                                   DS_VIRTUAL | DS_TYPE_QUALIFIER))) {
       *output_flags |= DSO_ELABORATED_TYPE_SPECIFIER;
+      if (basic_type == bt_typename) { *output_flags |= DSO_TYPENAME; }
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

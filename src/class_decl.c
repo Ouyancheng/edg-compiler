@@ -9630,7 +9630,12 @@ moreover, several fields of *decl_info may be updated by this routine.
         /* This is a friend class declaration, of the form:
                    friend class A;
            which is the only form the ARM (see 11.4) allows. */
-        decl_friend_class(class_type, member_type);
+        if (dso_flags & DSO_TYPENAME) {
+          /* "friend typename ..." is not allowed. */
+          pos_error(ec_no_typename_in_friend_class_decl, err_pos);
+        } else {
+          decl_friend_class(class_type, member_type);
+        }  /* if */
       } else if (!is_error_type(member_type)) {
         /* Invalid friend declaration. */
         pos_error(ec_bad_friend_decl, err_pos);
