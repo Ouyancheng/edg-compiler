@@ -574,7 +574,9 @@ type is legal.
 }  /* add_to_derived_type_list */
 
 
-static void scan_exception_specification(a_func_info_block_ptr  func_info)
+static void scan_exception_specification(
+                                    a_func_info_block_ptr  func_info,
+                                    a_boolean              disallow_local_type)
 /*
 Scan a throw specification, which may be empty or take either of two forms:
 
@@ -592,6 +594,9 @@ specification entry.
 Diagnostics are issued on redundant types on a list, but if this is a
 redeclaration of a routine, reconciliation with the previously throw
 specification is handled later (see check_exception_specification).
+
+disallow_local_type is set to TRUE for block-extern declarations, for
+which a local type may not appear in the exception specification list.
 */
 {
   an_exception_specification_ptr       esp;
@@ -658,6 +663,13 @@ specification is handled later (see check_exception_specification).
       estp->type = error_type();
     } else {
       type_name(&estp->type);
+      if (disallow_local_type) {
+        /* This must be a block extern declaration. */
+        if (is_or_contains_local_type(estp->type)) {
+          pos_error(ec_local_type_used_in_exception, &type_pos);
+          estp->type = error_type();
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (exceptions_enabled) {
       /* Add esp to the list. */
@@ -1407,6 +1419,7 @@ scope is that of a class definition.
 #if RESTRICT_ALLOWED
     a_boolean             restrict_qualified = FALSE;
 #endif /* RESTRICT_ALLOWED */
+    a_boolean             disallow_local_type;
 
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1500,7 +1513,13 @@ scope is that of a class definition.
       /* Error?  Warning? */
     }  /* if */
 #endif /* if 0 */
-    scan_exception_specification(func_info);
+    /* Scan exception specifications.  Set the flag to force checking for
+       and disallowing local types if this is a block-extern function
+       declaration.  (Note that local types are allowed for member functions
+       of local classes.) */
+    disallow_local_type = (member_function_parent_type == NULL &&
+                           depth_innermost_function_scope != NO_SCOPE_DEPTH);
+    scan_exception_specification(func_info, disallow_local_type);
   }  /* if */
   done_with_func_info(local_func_info_block);
   copy_source_position(start_pos, error_position);
