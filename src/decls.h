@@ -70,13 +70,12 @@ typedef struct a_param_id {
 			/* When declaration_processed is TRUE, this points
 			   to the symbol for an old-style parameter.  The
 			   a_variable entry is not yet attached to it. */
-  a_type_ptr	type;
+  a_param_type_ptr
+		param_type;
 			/* For a new- or old-style function parameter, this
-			   is its type.  This is usually the same as the
-			   information in the function type parameter list,
-			   but is kept here also so we can be sure of
-			   associating the proper identifier and type
-			   in error cases. */
+			   points the the param type entry for the function.
+			   It is NULL in an old-style parameter declaration
+			   until the parameter's type declaration is seen. */
   a_storage_class
 		storage_class;
 			/* For a new- or old-style style function parameter,
