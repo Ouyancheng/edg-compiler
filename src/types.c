@@ -7352,7 +7352,12 @@ i.e., rewrite them as though they had been declared with [*].
 }  /* remove_assoc_vla_dimensions */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-char *uuid_string_of_type(a_type_ptr  type) {
+char *uuid_string_of_type(a_type_ptr  type)
+/*
+Return the uuid specification of a class or enum type.  If the given type is
+not a class or enum type, return NULL.
+*/
+{
   char  *result;
 
   type = skip_typerefs(type);
