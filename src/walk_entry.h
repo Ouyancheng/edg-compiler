@@ -741,7 +741,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        remap_ptr(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
+        walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
@@ -1874,23 +1874,26 @@ end_sizeof:;
     case iek_ms_attribute:
       {
         an_ms_attribute_ptr ptr = (an_ms_attribute_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_ms_attribute_ptr, iek_ms_attribute);
+        remap_ptr(ptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
         walk_string_ptr(ptr->name, iek_other_text, 0);
         walk_string_ptr(ptr->string, iek_other_text, 0);
         walk_list(ptr->arg_list, an_ms_attribute_arg_ptr,
                   iek_ms_attribute_arg);
-        remap_next_ptr(ptr->next, an_ms_attribute_ptr, iek_ms_attribute);
-        remap_ptr(ptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
         conditionally_clear_fe_pointer(ptr->kind_descr);
       }
       break;
     case  iek_ms_attribute_arg:
       {
         an_ms_attribute_arg_ptr ptr = (an_ms_attribute_arg_ptr)entry_ptr;
-        walk_string_ptr(ptr->param_name, iek_other_text, 0);
         remap_next_ptr(ptr->next, an_ms_attribute_arg_ptr,
                       iek_ms_attribute_arg);
+        walk_string_ptr(ptr->param_name, iek_other_text, 0);
         switch (ptr->kind) {
           case msaak_string:
+          case msaak_other:
             walk_string_ptr(ptr->variant.string, iek_other_text, 0);
             break;
           case msaak_uuid:

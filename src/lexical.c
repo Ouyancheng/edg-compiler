@@ -8513,7 +8513,7 @@ stop_token_array.
 void flush_tokens_without_warning(void)
 /*
 This routine is like flush_tokens, except that the warning that is sometimes
-issues when several lines are flushed is suppressed.
+issued when several lines are flushed is suppressed.
 */
 {
   flush_tokens_with_stop_tokens_and_warning_flag(

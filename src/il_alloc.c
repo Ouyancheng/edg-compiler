@@ -465,7 +465,7 @@ Make a copy of the specified string in the memory region indicated by
   if (region == FRONT_END_REGION_NUMBER) {
     new_string = (char *)alloc_fe(length+1);
   } else {
-    check_assertion(region == FILE_SCOPE_REGION_NUMBER);
+    check_assertion(region == file_scope_region_number);
     new_string = alloc_il(length+1);
   }  /* if */
   (void)strcpy(new_string, string);
@@ -487,7 +487,7 @@ file scope region number).
   if (region == FRONT_END_REGION_NUMBER) {
     new_string = (char *)alloc_fe(length+1);
   } else {
-    check_assertion(region == FILE_SCOPE_REGION_NUMBER);
+    check_assertion(region == file_scope_region_number);
     new_string = alloc_il(length+1);
   }  /* if */
   (void)strncpy(new_string, string, length);

@@ -4118,6 +4118,8 @@ Display the indicated Microsoft attribute entry.
   }  /* switch */
   disp_ptr("next", (char *)ptr->next, iek_ms_attribute);
   disp_ptr("next_in_block", (char *)ptr->next_in_block, iek_ms_attribute);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
   disp_string_ptr("name", ptr->name, iek_other_text, (sizeof_t)0);
   disp_string_ptr("string", ptr->string, iek_other_text, (sizeof_t)0);
   disp_source_position("position", &ptr->position);
@@ -4134,6 +4136,7 @@ Display the indicated Microsoft attribute entry.
       case msaak_boolean:
         disp_boolean(buffer, (a_boolean)arg->variant.bool_value);
         break;
+      case msaak_other:
       case msaak_string:
         disp_string_ptr(buffer, arg->variant.string, iek_other_text,
                        (sizeof_t)0);

@@ -9769,13 +9769,14 @@ Value that identifies the kind of argument value accepted for a given
 Microsoft attribute argument.
 */
 enum an_ms_attribute_arg_kind_tag {
-  msaak_none,
-  msaak_integer,
-  msaak_boolean,
-  msaak_string,
-  msaak_uuid,
-  msaak_enumeration,
-  msaak_other
+  msaak_none,		/* No argument kind has been specified yet. */
+  msaak_integer,	/* An integer constant. */
+  msaak_boolean,	/* A boolean constant. */
+  msaak_string,		/* A character string. */
+  msaak_uuid,		/* A UUID string. */
+  msaak_enumeration,	/* A member of an enumerated set of values. */
+  msaak_other		/* Some other kind of entity.  Saved as the string
+			   version of a set of tokens. */
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -9801,7 +9802,10 @@ typedef struct an_ms_attribute_arg {
 			/* The boolean value specified. */
     /* When kind is msaak_string or msaak_other. */
     char	*string;
-			/* The string specified. */
+			/* The null-terminated string value.  Can contain any
+			   string that can be expressed as a string literal.
+			   Any characters after an embedded NULL character are
+			   ignored. */
     /* When kind is msaak_uuid. */
     char	*uuid_string;
 			/* String representation of the uuid value. */
@@ -9826,15 +9830,22 @@ typedef struct an_ms_attribute {
 		next_in_block;
 			/* Pointer to the next attribute in an attribute
 			   block, or NULL if there are no more attributes in
-			   the block. */
+			   the block.  An attribute block is a group of
+			   attributes specified in the same set of brackets
+			   (e.g., "[coclass, aggregatable(Always)]"). */
   a_tagged_pointer
 		entity;
 			/* Information about the entity to which the
-			   attribute applies. */
+			   attribute applies.  If there is no associated
+			   entity, entity.ptr will be NULL. */
   char		*name;
 			/* The name of the attribute. */
   char		*string;
-			/* A textual representation of the attribute. */
+			/* A textual representation of the attribute.  This is
+			   a null-terminated string.  Note that this represents
+			   a single attribute and not an attribute block
+			   (see next_in_block), so the string does not contain
+			   the opening or closing brackets. */
   an_ms_attribute_arg_ptr
 		arg_list;
 			/* The arguments, if any, specified for this

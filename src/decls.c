@@ -12012,7 +12012,7 @@ continue_with_declaration:
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ms_attributes != NULL) {
-        pos_error(ec_ms_attribute_not_allowed, &decl_start_pos);
+        pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
         ms_attributes = NULL;
       }  /* if */
       last_ms_attribute_ptr = &ms_attributes;

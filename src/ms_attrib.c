@@ -56,7 +56,7 @@ static an_ms_attribute_kind_descr_ptr
 		unrecognized_attribute;
 			/* A special attribute kind entry that represents
 			   an unrecognized attribute.  This is used even when
-			   unrecognized attribute are not accepted, for
+			   unrecognized attributes are not accepted, for
 			   error recovery purposes. */
 
 static an_ms_attribute_kind_descr_ptr
@@ -71,7 +71,7 @@ static a_token_cache
 			/* Token cache containing the tokens of the current
 			   attribute block. */
 
-#define ATTRIBUTE_LOOKUP_TABLE_SIZE 63
+#define ATTRIBUTE_LOOKUP_TABLE_SIZE 61
 			/* The number of buckets in the template lookup table.
 			   This number should be prime. */
 
@@ -79,7 +79,7 @@ static an_ms_attribute_kind_descr_ptr
 		attribute_lookup_table[ATTRIBUTE_LOOKUP_TABLE_SIZE];
 			/* Table used to determine the attribute kind for a
 			   given attribute name.  Each element of the
-			   array points to  a list of entries for attributes
+			   array points to a list of entries for attributes
 			   that hash to a given group. */
 
 #define HASH_FACTOR ((unsigned int)73)

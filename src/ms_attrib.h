@@ -25,11 +25,27 @@ ms_attrib.h -- Declarations related to ms_attrib.c (Microsoft attribute
 Value that identifies the kind of entity to which a given attribute kind
 applies.
 */
-#define MSAT_NONE	0x0
-#define MSAT_STANDALONE	0x1
-#define MSAT_CLASS	0x2
-#define MSAT_METHOD	0x4
-#define MSAT_PARAMETER	0x8
+#define MSAT_NONE		0x0
+			/* No target has been specified. */
+
+#define MSAT_STANDALONE		0x1
+			/* A standalone attribute (not associated with an
+			   entity). */
+
+#define MSAT_CLASS		0x2
+			/* Applies to a class or struct. */
+
+#define MSAT_INTERFACE		0x4
+			/* Applies to a Microsoft interface. */
+
+#define MSAT_METHOD		0x8
+			/* Applies to a member function. */
+
+#define MSAT_PARAMETER		0x10
+			/* Applies to a function parameter. */
+
+#define MSAT_DATA_MEMBER	0x20
+			/* Applies to a class data member. */
 
 /*
 Storage size used to represent a target bit set.
