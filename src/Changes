@@ -1,6 +1,7 @@
 Version 3.6
 
-11/29/04 C++-generating back end: Microsoft compatibility
+11/29/04 C++-generating back end: Microsoft compatibility for qualified names
+         in using-declarations
 
 Microsoft compilers prior to version 7.0 issued an error when the qualifier
 in a using-declaration began with a namespace name.  Now fixed: with

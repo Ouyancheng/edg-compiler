@@ -317,9 +317,11 @@ typedef int a_gen_name_options_set;
 			   "A::B::x"). */
 #define GN_BOUND_MEMBER 0x10
 			/* gen_name is invoked to emit the name of a member
-			   function or field.  When generating code for
-			   Microsoft versions before 7.0, such a name cannot
-			   be qualified with a namespace name. */
+			   (the name of the flag is historical; it also
+			   applies to names in using-declarations).  When
+			   generating code for Microsoft versions before 7.0,
+			   such a name cannot be qualified with a namespace
+			   name. */
 #define GN_DEPENDENT 0x20
 			/* The name to generate depends on a template
 			   parameter. */
@@ -8835,7 +8837,10 @@ Generate code for a class member or nonmember using-declaration.
        USING_DECLARATIONS_IN_GENERATED_CODE should be set to FALSE. */
     write_tok_str("using ");
 #endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
-    /* Write the access declaration, which is just a qualified name. */
+    /* Write the access declaration, which is just a qualified name. (Note:
+       although this is not a "bound member" access, names in
+       using-declarations are subject to the same restrictions on the form
+       of qualification as those of bound members.)  */
     gen_class_qualifier(udp->qualifier.class_type,
                         GN_BOUND_MEMBER, (a_boolean *)NULL);
   } else {
