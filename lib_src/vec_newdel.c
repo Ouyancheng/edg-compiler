@@ -385,7 +385,12 @@ use.
 #if EXCEPTION_HANDLING
   an_eh_stack_entry		ehse;
   an_array_alloc_eh_info	aaehi;
-  if (dtor != NULL) {
+  a_boolean			create_eh_stack_entry;
+  /* An entry is created on the EH stack if the class for which the
+     array is being created has a destructor, or if the object is
+     dynamically allocated. */
+  create_eh_stack_entry = dtor != NULL || array_ptr == NULL;
+  if (create_eh_stack_entry) {
     add_vec_new_or_delete_eh_stack_entry(&ehse, &aaehi, /*is_vec_new=*/TRUE);
     aaehi.free_memory_on_cleanup = array_ptr == NULL;
     aaehi.number_of_elements     = number_of_elements;
@@ -406,7 +411,7 @@ use.
     if (err) goto error_exit;
   }  /* if */
 #if EXCEPTION_HANDLING
-  if (dtor != NULL) {
+  if (create_eh_stack_entry) {
     aaehi.array_ptr = array_ptr;
   }  /* if */
 #endif /* EXCEPTION_HANDLING */
@@ -450,7 +455,7 @@ use.
     }  /* for */
   }  /* if */
 #if EXCEPTION_HANDLING
-  if (dtor != NULL) {
+  if (create_eh_stack_entry) {
     /* Unlink the vec_new EH stack entry. */
     __curr_eh_stack_entry = __curr_eh_stack_entry->next;
   }  /* if */
