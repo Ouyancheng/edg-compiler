@@ -90,6 +90,10 @@ typedef enum /*an_option_kind*/ {
 #if DEBUG
   optk_debug,
 #endif /* DEBUG */
+  optk_diag_suppress,
+  optk_diag_remark,
+  optk_diag_warning,
+  optk_diag_error,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -280,6 +284,14 @@ Initialize the option information table.
   add_option_description(optk_debug, "db", 'd',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
 #endif /* DEBUG */
+  add_option_description(optk_diag_suppress, "diag_suppress", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(optk_diag_remark, "diag_remark", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(optk_diag_warning, "diag_warning", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
+  add_option_description(optk_diag_error, "diag_error", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE);
 }  /* initialize_option_descriptions */
 
 
@@ -481,6 +493,66 @@ The following option formats are supported:
 end_of_routine:
   return odp;
 }  /* get_option */
+
+
+static void process_diag_override_option(an_option_kind kind,
+					 char		*optarg)
+/*
+Go through a comma separated list of error tags and call an error
+processing routine to update the severity.
+*/
+{
+  char			*local_optarg;
+  int			number_of_arguments = 0;
+  int			i;
+  an_error_severity	severity;
+  char			*ptr;
+
+  /* Make a local copy of the option string.  Remove any blanks and replace
+     commas with null characters. */
+  local_optarg = (char *)alloc_general(strlen(optarg) + 1);
+  {
+    char	*src = optarg;
+    char	*dest = local_optarg;
+    char	ch;
+    do {
+      ch = *src;
+      /* Remove blanks. */
+      if (ch == ' ') continue;
+      /* Replace commas with null characters. */
+      if (ch == ',') ch = '\0';
+      /* Keep track of the number of arguments found. */
+      if (ch == '\0') number_of_arguments++;
+      *dest++ = ch;
+    } while (*src++ != '\0');
+  }
+  /* Convert the option kind into an error severity. */
+  switch (kind) {
+    case optk_diag_suppress: severity = es_none;    break;
+    case optk_diag_remark:   severity = es_remark;  break;
+    case optk_diag_warning:  severity = es_warning; break;
+    case optk_diag_error:    severity = es_error;   break;
+    default: unexpected_condition();
+  }  /* switch */
+  /* Loop through the arguments and call a routine to update the
+     error severity for the specified tag. */
+  ptr = local_optarg;
+  for (i = 0; i < number_of_arguments; ++i) {
+    char	*opt_start = ptr;
+    char	*opt_end = strchr(ptr, '\0');
+    a_boolean	error;
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Setting error severity for tag: %s\n", opt_start);
+    }  /* if */
+#endif /* DEBUG */
+    error = set_severity_for_error_tag(opt_start, severity);
+    if (error) {
+      str_command_line_error(ec_cl_invalid_error_tag, opt_start);
+    }  /* if */
+    ptr = opt_end + 1;
+  }  /* for */
+}  /* process_diag_override_option */
 
 
 static void add_to_def_undef_list(char *str,
@@ -868,6 +940,14 @@ Process the arguments on the command line that invoked the compiler.
         init_debug_level = debug_level;
         break;
 #endif /* DEBUG */
+      case optk_diag_suppress:
+      case optk_diag_remark:
+      case optk_diag_warning:
+      case optk_diag_error:
+        /* Options that override the severity of a given diagnostic.  The
+           option argument contains a comma separated list of error tags. */
+        process_diag_override_option(kind, optarg);
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

@@ -297,6 +297,17 @@ typedef true_size_t
 typedef int     a_ptrdiff;
 #endif /* __ANSIC__ */
 
+/* Define typedefs to be used for "void *" and "const void *".  When
+   using an ANSI C compiler these are just typedefs to the appropriate
+   types.  When compiling with an old-style C compiler, "char *" is used. */
+#ifdef __STDC__
+typedef void * a_void_ptr;
+typedef const void * a_const_void_ptr;
+#else /* !__STDC__ */
+typedef char * a_void_ptr;
+typedef char * a_const_void_ptr;
+#endif /* __STDC__ */
+
 /*
 Definition of a generic byte.  Always "unsigned char".
 */

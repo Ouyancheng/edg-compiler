@@ -13,6 +13,7 @@ error.c -- Error reporting routines.
 
 */
 
+#include <stdlib.h>
 #include "basics.h"
 #include "target.h"
 #include "error.h"
@@ -235,6 +236,13 @@ static a_msg_segment_ptr
 	error_message_head = NULL;
 				/* Pointer to the first segment in the current
 				   error message being formatted. */
+
+static an_error_severity
+		severity_for_error_code[(int)ec_last + 1];
+				/* Array of error severities associated
+				   with error codes.  Static initialization
+				   results in the array being set to
+				   es_default. */
 
 #if !STANDALONE_UTILITY_PROGRAM
 /*
@@ -2978,14 +2986,34 @@ return_point:;
 #endif /* CHECKING */
 
 
-static a_boolean check_severity(a_source_position          **error_pos,
+static void check_for_overridden_severity(an_error_code     error_code,
+					  an_error_severity *severity)
+/*
+Determine whether this error code has should have its severity
+overridden by a value specified on the command line.  Diagnostics
+may have their severity increased or decreased using this mechanism,
+but diagnostics with a severity greater then es_discretionary_error
+may not have their severity altered.
+*/
+{
+  if (*severity <= es_discretionary_error) {
+    an_error_severity	new_severity;
+    new_severity = severity_for_error_code[(int)error_code];
+    if (new_severity != es_default) *severity = new_severity;
+  }  /* if */
+}  /* check_for_overridden_severity */
+
+
+static a_boolean check_severity(an_error_code		   error_code,
+                                a_source_position          **error_pos,
                                 an_error_severity          *severity,
                                 a_diagnostic_category_kind diag_kind)
 /*
-Compare the current error severity with the threshold setting to see if
-this diagnostic should be issued.  If this is a multi-message diagnostic,
-it may be necessary to save the current source position and severity or
-restore the previously saved settings.
+Determine whether this message should have its severity overridden by a
+value specified on the command line.  Compare the resulting error severity
+with the threshold setting to see if this diagnostic should be issued.
+If this is a multi-message diagnostic, it may be necessary to save the
+current source position and severity or restore the previously saved settings.
 */
 {
   static a_source_position  saved_error_position;
@@ -3004,10 +3032,12 @@ restore the previously saved settings.
 #endif /* CHECKING */
   if (diag_kind == (a_diagnostic_category_kind)dck_standalone) {
     /* Just use the severity and error position specified. */
+    check_for_overridden_severity(error_code, severity);
   } else if (diag_kind == (a_diagnostic_category_kind)dck_primary ||
              diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
     /* The principal message of a multiple message diagnostic.  Save the
        arguments for later calls. */
+    check_for_overridden_severity(error_code, severity);
     copy_source_position(**error_pos, saved_error_position);
     saved_severity = *severity;
   } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
@@ -3113,8 +3143,7 @@ and doing any required expansions, the diagnostic is written.
 #endif /* CHECKING */
   /* This variable does not have to be reset by fe_init. */
   static a_boolean   catastrophe_loop = FALSE;
-
-  if (check_severity(&error_pos, &severity, diag_kind)) {
+  if (check_severity(error_code, &error_pos, &severity, diag_kind)) {
     if (severity == es_catastrophe &&
         (diag_kind == dck_standalone || diag_kind == dck_primary)) {
       /* Make sure that if catastrophic error leads to another, we abort
@@ -3286,6 +3315,50 @@ and doing any required expansions, the diagnostic is written.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   }  /* if */
 }  /* diag_message */
+
+
+static int compare_tag_info(a_const_void_ptr arg1,
+                            a_const_void_ptr arg2)
+/*
+Function called by bsearch to compare two error_tag_entry records based on
+the tag.
+*/
+{
+  an_error_tag_entry_ptr	eip1;
+  an_error_tag_entry_ptr	eip2;
+
+  eip1 = (an_error_tag_entry_ptr)arg1;
+  eip2 = (an_error_tag_entry_ptr)arg2;
+  return strcmp(eip1->tag, eip2->tag);
+}  /* compare_tag_info */
+
+
+a_boolean set_severity_for_error_tag(char		*tag,
+				     an_error_severity	severity)
+/*
+Given an error tag string, this routine looks up the error tag and updates
+the table used to override the error severity of diagnostic messages.
+If the tag cannot be found return TRUE, otherwise return FALSE.
+*/
+{
+  an_error_tag_entry	        ete_to_find;
+  an_error_tag_entry_ptr	etep_found;
+  an_error_code			error_code;
+
+  ete_to_find.tag = tag;
+  /* Look up the enumeration code in the error_info table. */
+  etep_found = (an_error_tag_entry_ptr)
+                    bsearch((a_void_ptr)&ete_to_find, (a_void_ptr)error_tags,
+                            size_t_arg(NUMBER_OF_ERROR_TAGS),
+                            sizeof(an_error_tag_entry),
+                            compare_tag_info);
+  if (etep_found != NULL) {
+    error_code = etep_found->code;
+    severity_for_error_code[error_code] = severity;
+  }  /* if */
+  /* Return TRUE if the tag could not be found. */
+  return etep_found == NULL;
+}  /* set_severity_for_error_tag */
 
 
 void pos_st_diagnostic(an_error_severity error_severity,

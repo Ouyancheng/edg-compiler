@@ -24,7 +24,7 @@ error.h -- Declarations related to error reporting.
 Internal coding used for error severities.
 */
 typedef enum /*an_error_severity*/ {
-  es_default,
+  es_default,	/* Must be zero. */
   es_none,
   es_remark,
   es_warning,
@@ -51,6 +51,7 @@ Structure used to map error tags into error codes.  An array of these
 entries is used.  The array is sorted by tag so that a binary search
 may be used to look up a given tag.
 */
+typedef struct an_error_tag_entry *an_error_tag_entry_ptr;
 typedef struct an_error_tag_entry {
   char		*tag;
 			/* The character string to be used as a tag
