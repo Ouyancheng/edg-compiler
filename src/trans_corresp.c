@@ -691,11 +691,16 @@ its corresponding primary template supplement will be used instead.
 */
 {
   a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+  a_template_ptr           templ = tssp->il_template_entry;
 
-  if (is_type_symbol(inst)) {
-    tssp = primary_template_of((a_symbol_ptr)tssp->il_template_entry
-                                             ->source_corresp.assoc_info)
-                                                      ->variant.template_info;
+  if (templ != NULL) {
+    a_symbol_ptr  templ_sym;
+    templ = (a_template_ptr)canonical_il_entry_of(templ);
+    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+    if (is_type_symbol(inst)) {
+      templ_sym = primary_template_of(templ_sym);
+    }  /* if */
+    tssp = templ_sym->variant.template_info;
   }  /* if */
   slep->next = tssp->all_instantiations;
   tssp->all_instantiations = slep;
@@ -1952,11 +1957,14 @@ given enum type.
     a_constant_ptr  corresp_enumerator = 
                         corresp_type->variant.integer.enum_info.constant_list;
 
-    for (; enumerator != NULL && corresp_enumerator != NULL;
-         enumerator = enumerator->next,
-                              corresp_enumerator = corresp_enumerator->next) {
-      record_trans_unit_corresp(enumerator, corresp_enumerator);
-    }
+    for (; enumerator != NULL; enumerator = enumerator->next) {
+      if (corresp_enumerator != NULL) {
+        record_trans_unit_corresp(enumerator, corresp_enumerator);
+        corresp_enumerator = corresp_enumerator->next;
+      } else {
+        set_no_trans_unit_corresp(enumerator);
+      }  /* if */
+    }  /* for */
   }  /* for */
 }  /* establish_trans_unit_correspondences_for_enum */
 
@@ -1971,9 +1979,17 @@ are not checked.
                                (a_type_ptr)trans_unit_corresp_pointer_of(type)
                              : NULL;
 
-  if (corresp_type != NULL  && corresp_type != type &&
-      is_immediate_class_type(corresp_type) &&
-      class_type_has_body(type) && class_type_has_body(corresp_type)) {
+  if (corresp_type == NULL  || corresp_type == type) {
+    /* No corresponding entry: nothing to be done. */
+  } else if (!is_immediate_class_type(corresp_type)) {
+    /* An error: caught elsewhere. */
+  } else if (!class_type_has_body(type)) {
+    /* No members to traverse. */
+  } else if (!class_type_has_body(corresp_type)) {
+    /* The corresponding entry has no definition: mark the members as
+       visited. */
+    set_no_class_type_correspondence(type);
+  } else {
     /* Traverse fields: */
     {
       a_field_ptr  field = skip_generated_field(
@@ -2015,8 +2031,25 @@ are not checked.
         a_template_ptr  corresp_templ = corresp_scope->templates;
         for (; templ != NULL && corresp_templ != NULL;
              templ = templ->next, corresp_templ = corresp_templ->next) {
-          a_symbol_ptr  templ_sym =
-                               (a_symbol_ptr)templ->source_corresp.assoc_info;
+          a_symbol_ptr
+               templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
+               corresp_sym =
+                       (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+          a_template_symbol_supplement_ptr
+               tssp = templ_sym->variant.template_info,
+               corresp_tssp = corresp_sym->variant.template_info;
+          if (tssp->all_instantiations != NULL) {
+            /* The canonical entry is changing: the list of all instantiations
+               should be reattached to the new canonical entry. */
+            check_assertion(corresp_tssp->all_instantiations == NULL);
+#if DEBUG
+            if (db_flag_is_set("trans_corresp")) {
+              fprintf(f_debug, "DBG> *** all_instantiations transferred\n");
+            }  /* if */
+#endif /* DEBUG */
+            corresp_tssp->all_instantiations = tssp->all_instantiations;
+            tssp->all_instantiations = NULL;
+          }  /* if */
           templ_sym = is_class_template_symbol(templ_sym) ?
                                       prototype_template_of(templ_sym) : NULL;
           if (templ_sym != NULL && templ_sym->defined) {
@@ -2506,7 +2539,7 @@ supplement for an instantiation that matches inst.
 {
   a_type_ptr  class_type = type_symbol_type(inst);
   a_symbol_list_entry_ptr
-              sym_entry = tssp->all_instantiations;
+              sym_entry;
   a_class_type_supplement_ptr
               ctsp = class_type->variant.class_struct_union.extra_info;
   char *saved_corresp = NULL;
@@ -2514,6 +2547,12 @@ supplement for an instantiation that matches inst.
   if (in_secondary_trans_unit(class_type)) {
     saved_corresp = trans_unit_corresp_pointer_of(class_type);
   }  /* if */
+  if (is_type_symbol(inst)) {
+    tssp = primary_template_of((a_symbol_ptr)tssp->il_template_entry
+                                             ->source_corresp.assoc_info)
+                                                      ->variant.template_info;
+  }  /* if */
+  sym_entry = tssp->all_instantiations;
   for (; sym_entry != NULL; sym_entry = sym_entry->next) {
     a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
     a_class_type_supplement_ptr
@@ -2669,7 +2708,7 @@ symbol supplement.
     add_instantiation(corresp_tssp, inst->instance_sym);
     /* There was no correspondence for that routine. */
     set_no_trans_unit_corresp(routine);
-  } else {
+  } else if (routine != sym_entry->symbol->variant.routine.ptr) {
     record_trans_unit_corresp(routine,
                               sym_entry->symbol->variant.routine.ptr);
   }  /* if */
