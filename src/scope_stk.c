@@ -177,12 +177,16 @@ void db_scope_stack(void)
 Dump the entire scope stack (for debugging).
 */
 {
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  if (depth_scope_stack == NO_SCOPE_DEPTH) {
+    fputs("Scope stack is empty.\n", f_debug);
+  } else {
+    a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
-  for (; ssep != NULL;
-       ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
-    db_scope_stack_entry(ssep);
-  }  /* for */
+    for (; ssep != NULL;
+         ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
+      db_scope_stack_entry(ssep);
+    }  /* for */
+  }  /* if */
 }  /* db_scope_stack */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -344,12 +348,8 @@ or NULL otherwise.
 */
 {
   a_scope_pointers_block *pointers_block = NULL;
-  a_scope_depth          depth = scope->depth_in_scope_stack;
 
-  if (depth != NO_SCOPE_DEPTH) {
-    /* The scope is on the scope stack. */
-    pointers_block = assoc_pointers_block_of(&scope_stack[depth]);
-  } else if (scope->kind == (a_scope_kind)sck_file) {
+  if (scope->kind == (a_scope_kind)sck_file) {
     if (scope == il_header.primary_scope) {
       /* The file scope of the current translation unit. */
       pointers_block = &curr_translation_unit->file_scope_pointers_block;
@@ -369,6 +369,17 @@ or NULL otherwise.
     /* A namespace scope. */
     a_namespace_ptr nsp = scope->variant.assoc_namespace;
     pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
+  } else {
+    /* For scopes other than file and namespace, the scope must be on the
+       scope stack (of the current translation unit). */
+    a_scope_depth depth = scope->depth_in_scope_stack;
+
+    check_assertion_str(depth != NO_SCOPE_DEPTH &&
+                        trans_unit_for_scope[scope->number] ==
+                                                         curr_translation_unit,
+                        "get_pointers_block_for_scope: scope not available");
+    /* The scope is on the scope stack. */
+    pointers_block = assoc_pointers_block_of(&scope_stack[depth]);
   }  /* if */
   return pointers_block;
 }  /* get_pointers_block_for_scope */
