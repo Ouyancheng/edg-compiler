@@ -79,11 +79,10 @@ predicates.
 /* The floating types comprise all sizes of float. */
 #define is_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
 
-/* Arithmetic types are the integral types plus the floating types. */
 #define is_arithmetic(tp) (is_integral(tp) || is_floating(tp))
 
-/* is_arithmetic and is_arithmetic_or_enum are equivalent in C mode but
-   return different values in C++ mode if tp is an enum type. */
+/* Arithmetic types are the integral types plus the floating types; in C++
+   mode enum types are not integral. */
 #define is_arithmetic_or_enum(tp) (is_integral_or_enum(tp) || is_floating(tp))
 
 /* The pointer type is simply the pointer type. */
@@ -315,16 +314,6 @@ Return TRUE if the given type is a floating type (3.1.2.5).
   tp = skip_typerefs(tp);
   return(is_floating(tp));
 }  /* is_floating_type */
-
-
-a_boolean is_arithmetic_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is an arithmetic type (3.1.2.5).
-*/
-{
-  tp = skip_typerefs(tp);
-  return(is_arithmetic(tp));
-}  /* is_arithmetic_type */
 
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
