@@ -472,8 +472,8 @@ Macro to compare two source positions.
 */
 #define cmp_source_positions(pos1, pos2)				\
   (((pos1).seq != (pos2).seq)						\
-       ?  (pos1).seq - (pos2).seq					\
-       :  (pos1).column - (pos2).column)
+       ?  (long)((pos1).seq) - ((long)(pos2).seq)			\
+       :  ((long)(pos1).column) - ((long)(pos2).column))
  
 EXTERN a_source_position
 		null_source_position
