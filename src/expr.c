@@ -1520,7 +1520,7 @@ Syntax:
          point (other than for error cases) are const/non-const differences. */
       selector_match_with_this_param(bound_function_selector,
                                      /*selector_is_object_pointer=*/TRUE,
-                                     /*conversion_function_case=*/FALSE,
+                                     /*operator_function_case=*/FALSE,
                                      routine_type, &this_match_summary);
       if (this_match_summary.match_level != aml_none) {
         /* The types are compatible.  No cast is required; if there's a
