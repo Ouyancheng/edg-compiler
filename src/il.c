@@ -94,6 +94,7 @@ static unsigned long
 		num_for_loops_allocated,
 		num_statements_allocated,
 		num_constructor_inits_allocated,
+		num_pragmas_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
@@ -6597,6 +6598,66 @@ pointer to it.
 }  /* alloc_ctor_init */
 
 
+a_pragma_ptr alloc_pragma(a_pragma_kind  kind)
+/*
+Allocate a pragma entry of the required kind, initialize it, and return a
+pointer to it.
+*/
+{
+  a_pragma_ptr  pp;
+
+  pp = (a_pragma_ptr)alloc_cil(sizeof(a_pragma));
+#if DEBUG
+  num_pragmas_allocated++;
+#endif /* DEBUG */
+  pp->next        = NULL;
+  pp->kind        = (a_pragma_kind)pk_none;
+  pp->entity.kind = (a_byte_il_entry_kind)iek_none;
+  pp->entity.ptr  = NULL;
+  switch (kind) {
+    case pk_none:
+#if 0
+#else
+    case pk_test_next_statement:
+    case pk_test_next_decl:
+      pp->variant.dummy = 0;
+#endif /* if 0 */
+      break;
+#if CHECKING
+    default:
+      internal_error("alloc_pragma: bad pragma kind");
+#endif /* CHECKING */
+  }  /* switch */
+
+  return pp;
+}  /* alloc_pragma */
+
+
+void add_to_pragma_list(a_pragma_ptr   pragma,
+                        a_scope_depth  scope_depth)
+/*
+Add pragma to the end of the pragma_list associated with the scope entry
+at scope_depth.
+*/
+{
+  a_scope_ptr              sp;
+  a_scope_stack_entry_ptr  ssep;
+
+  ssep = &scope_stack[scope_depth];
+  sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL, "add_to_pragma_list: NULL IL scope");
+  check_assertion_str(in_file_scope(pragma) ==
+                         (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER),
+                      "add_to_pragma_list: memory region mismatch");
+  if (sp->pragma_list == NULL) {
+    sp->pragma_list = pragma;
+  } else {
+    ssep->last_pragma->next = pragma;
+  }  /* if */
+  ssep->last_pragma = pragma;
+}  /* add_to_pragma_list */
+
+
 a_scope_ptr alloc_scope(a_scope_kind   kind,
                         a_scope_number number,
                         a_routine_ptr  assoc_routine)
@@ -7771,6 +7832,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used("statement", num_statements_allocated, a_statement);
   db_space_used("constructor init", num_constructor_inits_allocated,
                 a_constructor_init);
+  db_space_used("pragma", num_pragmas_allocated, a_pragma);
   db_space_used("scope", num_scopes_allocated, a_scope);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   db_space_used("source sequence entry", num_source_sequence_entries_allocated,
@@ -7956,6 +8018,7 @@ of the front end.
   num_for_loops_allocated                = 0;
   num_statements_allocated               = 0;
   num_constructor_inits_allocated        = 0;
+  num_pragmas_allocated                  = 0;
   num_scopes_allocated                   = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
