@@ -34,7 +34,6 @@
 # 
 # gcc no  __GXX_ABI_VERSION 102
 # gpp no  __DBL_DENORM_MIN__ 4.9406564584124654e-324
-# gnu no  __GNUC_PATCHLEVEL__ 0
 # 
 # The file may also contain comments (lines that begin with a #) and
 # empty lines.  The fields of each line are separated by white space.
@@ -99,6 +98,7 @@ delete_unneeded_entries()
   unneeded="$unneeded __VERSION__"
   unneeded="$unneeded __STDC_HOSTED__"
   unneeded="$unneeded __STDC__"
+  unneeded="$unneeded __GNUC_PATCHLEVEL__"
   for name in $unneeded
   do
     sed -e "/:$name:/ d" output.tmp >$$
