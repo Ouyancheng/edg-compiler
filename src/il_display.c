@@ -1165,7 +1165,7 @@ Display a_routine_type_supplement.
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
   }  /* if */
-  if (ptr->arg_pragma != (an_arg_pragma_kind)apk_none) {
+  if (ptr->arg_pragma != (a_pragma_kind)pk_none) {
     disp_name("arg_pragma");
     disp_pragma_kind_name(ptr->arg_pragma);
   }  /* if */
