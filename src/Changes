@@ -1,5 +1,32 @@
 Version 2.35
 
+2/11/97 Concatenation of adjacent string literals
+
+When wchar_t is configured to have the same underlying representation as
+char, and when wchar_t is a keyword in C++, the front end erroneously
+assigned a type of "array of wchar_t" to the concatenated string in this
+example:
+
+  void f(char *);
+  int main(void) {
+    f("T" "r");
+  }
+
+That's now fixed.  As part of this change, the previous behavior of
+concatenating adjacent wide and non-wide string literals in C++ when
+wchar_t is char and wchar_t is a keyword has been eliminated.  That
+is not acceptable behavior under modern C++ rules, because wchar_t is
+a distinct type from char even if it has the same representation.
+
+2/11/97 bool and wchar_t not character types
+
+bool and wchar_t (as keywords in C++) are no longer considered character
+types even if they happen to have the same representation as a character
+type.
+
+  bool x[] = "abc";     // Error even if bool is represented as char
+  wchar_t y[] = "abc";  // Error even if wchar_t is represented as char
+
 2/10/97 Stop tokens reset during template instantiation
 
 Error recovery during template instantiation could be affected by the
