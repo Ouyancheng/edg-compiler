@@ -33,7 +33,7 @@ typedef struct a_source_line_modif *a_source_line_modif_ptr;
 
 /*
 Token kinds.  See 3.1, 3.1.1, 3.1.5, 3.1.6 in standard.
-If this enumeration is changed, be sure to change db_token_names below.
+If this enumeration is changed, be sure to change token_names below.
 */
 typedef enum /*a_token_kind*/ {
   /* Complex tokens: */
@@ -111,11 +111,10 @@ typedef enum /*a_token_kind*/ {
 /* More compact form: */
 typedef a_byte a_byte_token_kind;
 
-#if DEBUG
 /*
-Table of names corresponding to token kinds, for debug purposes.
+Table of names corresponding to token kinds.
 */
-EXTERN char	*db_token_names[(int)tok_last+1]
+EXTERN char	*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {"identifier", "float constant", "int constant", "char constant",
    "string literal", "end of source", "newline", "header name",
@@ -138,7 +137,6 @@ EXTERN char	*db_token_names[(int)tok_last+1]
   }
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* DEBUG */
 
 
 /* These includes are placed here so that a_token_kind will be defined
@@ -773,6 +771,14 @@ extern a_boolean required_token(a_token_kind  token,
 extern a_boolean loop_token(a_token_kind token);
 /* Look ahead at the token following the current one. */
 extern a_token_kind next_token(void);
+/* Get a C++ destructor name, like "~A". */
+extern a_boolean f_get_destructor_name();
+#define get_destructor_name()                                         \
+  ((curr_token == tok_compl) ? f_get_destructor_name() : FALSE)
+/* Get a C++ operator name, like "operator+". */
+extern a_boolean f_get_opname();
+#define get_opname()                                         \
+  ((curr_token == tok_operator) ? f_get_opname() : FALSE)
 /* Get a C++ class-qualifier, like "A::". */
 extern a_boolean get_class_qualifier(a_type_ptr *class_type,
                                      a_boolean  *is_file_scope_qualifier,

@@ -3883,7 +3883,7 @@ return_from_token_scan:
     /* Write out the current token. */
     fprintf(f_debug, "get_token: pos = %lu/%2d, %-10s",
                      pos_curr_token.seq, pos_curr_token.column,
-                     db_token_names[(int)ctoken]);
+                     token_names[(int)ctoken]);
     if (start_of_curr_token != NULL) {
       /* Print token string if valid. */
       fprintf(f_debug, ", \"%.*s\"", len_of_curr_token,
@@ -4227,6 +4227,105 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
+a_boolean f_get_destructor_name(void)
+/*
+The current token is the "~" at the start of a destructor name.  Scan the
+name and build a locator for the destructor name in locator_for_curr_id.
+Return TRUE always (this routine is called from the macro get_destructor_name;
+it handles the FALSE case).  This routine is called only in C++ mode.
+*/
+{
+  /* Skip past the "~", check for an identifier. */
+  if (get_token() != tok_identifier) {
+    /* syntax_error is deliberately not called. */
+    error(ec_exp_identifier);
+    /* Put back the current token and make a fake error identifier. */
+    unget_token();
+    curr_token = tok_identifier;
+    make_specific_symbol_error_locator(&locator_for_curr_id);
+  } else {
+    /* Convert the locator to a locator for the destructor. */
+    tildize_locator(&locator_for_curr_id);
+  }  /* if */
+  return TRUE;
+}  /* f_get_destructor_name */
+
+
+static a_boolean is_operator_token(a_token_kind token)
+/*
+Return TRUE if the indicated token is an operator token.  See ARM 13.4.
+*/
+{
+  a_boolean is_operator;
+
+  switch (token) {
+    case tok_new: case tok_delete:
+    case tok_plus: case tok_minus: case tok_star: case tok_divide:
+    case tok_remainder: case tok_excl_or: case tok_ampersand: case tok_or:
+    case tok_compl: case tok_not: case tok_assign: case tok_lt: case tok_gt:
+    case tok_plus_assign: case tok_minus_assign: case tok_times_assign:
+    case tok_divide_assign: case tok_remainder_assign: case tok_excl_or_assign:
+    case tok_and_assign: case tok_or_assign: case tok_shift_left:
+    case tok_shift_right: case tok_shift_right_assign:
+    case tok_shift_left_assign: case tok_eq: case tok_ne: case tok_le:
+    case tok_ge: case tok_and_and: case tok_or_or: case tok_plus_plus:
+    case tok_minus_minus: case tok_comma: case tok_arrow_star:
+    case tok_arrow:
+    /* Following two are two-token operators: () and []. */
+    case tok_lparen: case tok_lbracket:
+      is_operator = TRUE;
+      break;
+    default:
+      is_operator = FALSE;
+  }  /* if */
+  return is_operator;
+}  /* is_operator_token */
+
+
+a_boolean f_get_opname(void)
+/*
+The current token is the token "operator" at the start of an operator name,
+like "operator+".  Scan the name and build a locator for the operator name
+in locator_for_curr_id.  Return TRUE always (this routine is called from the
+macro get_opname; it handles the FALSE case).  This routine is called
+only in C++ mode.
+*/
+{
+  a_source_position start_position;
+
+  start_position = pos_curr_token;
+  /* Skip past the "operator", check for an operator. */
+  if (!is_operator_token(get_token())) {
+    /* syntax_error is deliberately not called. */
+    error(ec_exp_operator);
+    /* Put back the current token and make a fake error identifier. */
+    unget_token();
+    curr_token = tok_identifier;
+    make_specific_symbol_error_locator(&locator_for_curr_id);
+  } else {
+    /* Convert the locator to a locator for the operator. */
+    make_opname_locator(curr_token, &locator_for_curr_id, &start_position);
+    /* For () and [], check the second token.  Do not use required_token
+       because we want to stay on the final token. */
+    if (curr_token == tok_lparen) {
+      if (get_token() != tok_rparen) {
+        error(ec_exp_rparen);
+        unget_token();
+      }  /* if */
+    } else if (curr_token == tok_lbracket) {
+      if (get_token() != tok_rbracket) {
+        error(ec_exp_rbracket);
+        unget_token();
+      }  /* if */
+    }  /* if */
+    /* Convert the locator to a locator for the operator. */
+    make_opname_locator(curr_token, &locator_for_curr_id, &start_position);
+    curr_token = tok_identifier;
+  }  /* if */
+  return TRUE;
+}  /* f_get_opname */
+
+
 a_boolean get_class_qualifier(a_type_ptr *class_type,
                               a_boolean  *is_file_scope_qualifier,
                               a_boolean  *has_global_qualifier,
@@ -4344,7 +4443,6 @@ the error on the final identifier not being found on lookup.
 */
 {
   a_boolean         is_qualified_name = FALSE, qualifier_err, okay;
-  a_boolean         is_destructor;
   a_boolean         is_file_scope_qualifier, has_global_qualifier;
   a_type_ptr        class_type;
   a_source_position start_position;
@@ -4372,15 +4470,16 @@ the error on the final identifier not being found on lookup.
           start_position = error_position;
           set_err_pos_to_curr_token();
           okay = FALSE;
-          is_destructor = FALSE;
           if (!is_file_scope_qualifier) {
-            /* There can be a "~" next when the name is for a destructor, as
-               in "A::~A". */
-            is_destructor = (curr_token == tok_compl);
-            if (is_destructor) (void)get_token();
+            /* The name can be a destructor name like "~A". */
+            (void)get_destructor_name();
           }  /* if */
+          /* The name can be an operator name like "operator+". */
+          (void)get_opname();
           /* The current token must now be the final identifier of the
-             qualified name, e.g., "x" in "A::B::x". */
+             qualified name, e.g., "x" in "A::B::x".  In the destructor and
+             operator name cases, curr_token has been changed to
+             tok_identifier. */
           if (curr_token != tok_identifier) {
             /* The final identifier is missing.  Unget the current token
                and construct a fake tok_identifier token. */
@@ -4399,8 +4498,6 @@ the error on the final identifier not being found on lookup.
                 err_code = ec_name_not_found_in_file_scope;
               } else {
                 /* Look up the id in the class scope. */
-                /* For a destructor, add the "~" to the name in the locator. */
-                if (is_destructor) tildize_locator(&locator_for_curr_id);
                 okay = (class_qualified_id_lookup(&locator_for_curr_id,
                                                   class_type,
                                                   options) != NULL);
@@ -4591,16 +4688,16 @@ of the front end.
     clear_raw_listing_buffer();
   }  /* if */
 
-#if CHECKING && DEBUG
+#if CHECKING
   /* Check that the table of token names is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to
-     update db_token_names. */
-  if (db_token_names[(int)tok_last] == NULL ||
-      strcmp(db_token_names[(int)tok_last], "last") != 0) {
+     update token_names. */
+  if (token_names[(int)tok_last] == NULL ||
+      strcmp(token_names[(int)tok_last], "last") != 0) {
     internal_error(
-              "lexical_init: initialization of db_token_names is not correct");
+                 "lexical_init: initialization of token_names is not correct");
   }  /* if */
-#endif /* CHECKING && DEBUG */
+#endif /* CHECKING */
   /* Initialize is_id_char to the characters that can appear in an identifier
      after the first character (i.e., a-z, A-Z, 0-9, and "_").
      See standard, 3.1.2.  Also used in scanning pp-numbers; the same
