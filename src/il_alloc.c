@@ -380,6 +380,8 @@ ck_template_param constant.
     case tpck_member:
       cp->variant.template_param.variant.is_address = FALSE;
       break;
+    case tpck_unknown_function:
+      break;
     case tpck_cast:
       cp->variant.template_param.variant.constant = NULL;
       break;
