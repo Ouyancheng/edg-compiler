@@ -1739,10 +1739,20 @@ Output the indicated constant.
       } else if (il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
-        a_boolean ovflo;
+        a_boolean       ovflo, cast_used = FALSE;
+        an_integer_kind ikind = con_type->variant.integer.int_kind;
+        /* Use a cast if the constant is signed or unsigned, e.g.,
+           (unsigned char)'a'. */
+        if (ikind == (an_integer_kind)ik_signed_char ||
+            ikind == (an_integer_kind)ik_unsigned_char) {
+          write_tok_ch('(');
+          gen_cast(orig_type);
+          cast_used = TRUE;
+        }  /* if */
         write_ch('\'');
         gen_char((char)value_of_integer_constant(constant, &ovflo));
         write_ch('\'');
+        if (cast_used) write_tok_ch(')');
       } else {
         /* A normal integer constant. */
         gen_integer_constant(constant, /*suppress_cast=*/FALSE);
