@@ -9701,7 +9701,9 @@ may do fixup on entities pointed to by source-sequence entries it removes.
           /* Not a definition. */
           prev_ssep = ssep;
           prev_link_addr = &ssep->next;
-          tp->autonomous_primary_tag_decl = TRUE;
+          /* Mark it as autonomous -- it was probably part of a declaration
+             that is being eliminated. */
+          sssdp->autonomous_tag_decl = TRUE;
         } else {
           ssep = ssep->next;
           for (;;) {
@@ -9739,14 +9741,29 @@ may do fixup on entities pointed to by source-sequence entries it removes.
       if (ss_entry_kind(ssep) ==
                     (an_il_entry_kind)iek_src_seq_secondary_decl) {
         sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-        if (sssdp->friend_decl &&
-            sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
-          a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
-          if (rp->source_corresp.source_sequence_entry == ssep) {
-            rp->source_corresp.source_sequence_entry =
+        if (sssdp->friend_decl) {
+          if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+            a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
+            if (rp->source_corresp.source_sequence_entry == ssep) {
+              rp->source_corresp.source_sequence_entry =
                    find_src_seq_secondary_decl_entry(ssep, sssdp->entity.ptr);
-
+            }  /* if */
           }  /* if */
+        } else if (sssdp->first_declaration &&
+                   il_entry_prefix_of(ssep).keep_in_il) {
+          /* Link around a needed type declaration that appears inside this
+             class/struct/union body. */
+          check_assertion(sssdp->entity.kind ==
+                                          (a_byte_il_entry_kind)iek_type &&
+                          !((a_type_ptr)sssdp->entity.ptr)->
+                                              source_corresp.is_class_member);
+          *prev_link_addr = ssep;
+          ssep->prev = prev_ssep;
+          prev_ssep = ssep;
+          prev_link_addr = &ssep->next;
+          /* Mark it as autonomous -- it was probably part of a declaration
+             that is being eliminated. */
+          sssdp->autonomous_tag_decl = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -10178,10 +10195,11 @@ entry into one representing a nondefining declaration.
       class_type->source_corresp.source_sequence_entry = ssep;
     } else {
       check_assertion(ss_entry_ptr(ssep, a_type_ptr) == class_type);
-      /* This is a nested class defined within the definition of its parent
-         class.  This time, remove the entries representing the definition
-         *except* the first, which will be transformed to represent a
-         secondary declaration now that the definition has been eliminated. */
+      /* This is either a non-nested class or a nested class defined within
+         the definition of its parent class.  This time, remove the entries
+         representing the definition *except* the first, which will be
+         transformed to represent a secondary declaration now that the
+         definition has been eliminated. */
       (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/TRUE);
       /* Turn what was originally a definition into a secondary declaration
          (a nondefining class declaration) as far as the source-sequence
@@ -10193,6 +10211,8 @@ entry into one representing a nondefining declaration.
       sssdp->decl_position = class_type->source_corresp.decl_position;
       sssdp->declared_type = class_type;
       sssdp->autonomous_tag_decl = TRUE;
+      sssdp->first_declaration =
+          symbol_supplement_for_class(class_type)->definition_is_first_decl;
     }  /* if */
   }  /* if */
   }
