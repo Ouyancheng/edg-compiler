@@ -4159,6 +4159,7 @@ declaration following this one is such a continuation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   if (field->get_property_name != NULL ||
       field->put_property_name != NULL) {
     /* This field is declared with __declspec(property(...)). */
@@ -4176,6 +4177,7 @@ declaration following this one is such a continuation.
   }  /* if */
   gen_microsoft_deprecated_spec(&field->source_corresp);
   gen_microsoft_align_declspec(field->alignment);
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
