@@ -4674,7 +4674,7 @@ symbols when looking up a correspondence: if none is found, return NULL.
 static void find_template_correspondence(a_template_ptr  templ,
                                          a_boolean       parent_found)
 /*
-Look for the given type in another translation unit and set the translation
+Look for the given template in another translation unit and set the translation
 unit correspondence pointer if one is found.  When parent_found is TRUE,
 this procedure should not attempt to seek correspondences for parent
 entities.
@@ -5074,23 +5074,28 @@ way, determine to which other IL entry this might correspond.
        type is processed.  In those cases we look for the outermost parent
        type without a correspondence. */
     if (scp->is_class_member) {
-      if ((kind == (an_il_entry_kind)iek_type &&
-           type_is_top_level_prototype_instantiation((a_type_ptr)scp)) ||
-          kind == (an_il_entry_kind)iek_template) {
+      if (kind == (an_il_entry_kind)iek_type &&
+          type_is_top_level_prototype_instantiation((a_type_ptr)scp)) {
         /* Prototype instantiations are not always recorded in the IL.
            Therefore, set root to NULL so that the symbol table will be used
-           to find the named member instead.  Similar problems can occur
-           with member templates when their correspondence is needed before
-           the enclosing class has all its member correspondences set. */
-        root = NULL;
+           to find the named member instead. */
       } else {
         /* Make sure the parent class has been processed. */
         determine_correspondence(&scp->parent.class_type->source_corresp,
                                  (an_il_entry_kind)iek_type);
-        /* Search for the outermost parent class, but stop at a class type
-           that has no correspondence or at one that is a prototype
-           instantiation of a true class template. */
-        root = outer_class_without_correspondence(scp);
+        if (kind == (an_il_entry_kind)iek_template) {
+          /* For member class templates we can end up with ordering problems
+             if we assume that setting the parent correspondences will also
+             set the member template's correspondence in time.  Therefore,
+             find the member template's correspondence through the symbol
+             table. */
+          root = NULL;
+        } else {
+          /* Search for the outermost parent class, but stop at a class type
+             that has no correspondence or at one that is a prototype
+             instantiation of a true class template. */
+          root = outer_class_without_correspondence(scp);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (root == NULL) {
