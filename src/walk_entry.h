@@ -687,7 +687,8 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #ifdef CFE
           case tk_array:
-            if (ptr->variant.array.is_variable_size_array) {
+            if (ptr->variant.array.is_variable_size_array &&
+                !ptr->variant.array.is_vla) {
               walk_ptr(ptr->variant.array.variant.element_count_expr,
                        an_expr_node_ptr, iek_expr_node);
             }  /* if */
