@@ -6822,7 +6822,8 @@ typedef struct a_routine {
 			   The body of this routine will be simply a return
 			   statement with an expression that is the proper
 			   cast on top of an enk_result_of_overriding_function
-			   node. */
+			   node.  Also used in the IA-64 ABI for thunks
+			   used to call virtual functions. */
 #if IA64_ABI
   a_targ_ptrdiff_t
 		delta;	/* The offset that must be added to the "this" pointer
