@@ -1,5 +1,18 @@
 Version 2.42
 
+5/14/99  Improvement on FORCE_VARIABLE_DEFINITION_VIA_ZEROING
+
+The configuration option FORCE_VARIABLE_DEFINITION_VIA_ZEROING (see
+Changes entry of 10/16/97) now applies also to cases where IL lowering
+generates code for the initialization of a variable, e.g., with
+FORCE_VARIABLE_DEFINITION_VIA_ZEROING set to FALSE the variable in
+the following will not be explicitly initialized to zero:
+
+  struct A {
+    A() {}
+    char* p;
+  } a;
+
 5/13/99  Microsoft compatibility: allow __declspec on explicit specialization
          of template
 

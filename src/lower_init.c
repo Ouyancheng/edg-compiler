@@ -4197,7 +4197,8 @@ do_assignment:;
          are aggregates: if the initialization was partial, we have to be
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
-      if ((static_var_init && !variable->source_corresp.is_local_to_function
+      if ((static_var_init && !variable->source_corresp.is_local_to_function &&
+           force_variable_definition_via_zeroing
 #if LOWER_EXTERN_INLINE
            && !local_static_promoted_out_of_extern_inline
 #endif /* LOWER_EXTERN_INLINE */
