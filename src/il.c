@@ -15641,6 +15641,7 @@ entered into the symbol table.
   a_type_ptr  predeclared_type;
 
   predeclared_type = alloc_type(kind);
+  predeclared_type->is_incomplete = TRUE;
   /* Default name-linkage for classes is C++ external linkage. */
   predeclared_type->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;

@@ -2005,14 +2005,13 @@ Compute and set the size of the type pointed to by type_ptr.  If it is already
 set, leave it alone.  Also compute and set the alignment requirement.
 */
 {
-  a_targ_size_t    size;
+  a_targ_size_t    size = type_ptr->size;
   a_targ_alignment alignment;
 
   db_enter(5, "set_type_size");
-  size = type_ptr->size;
   /* If the size is set already, leave it alone.  (Zero-length arrays still
      need their alignment set even though their size is already set.) */
-  if (type_ptr->size == 0
+  if (size == 0
 #if GNU_EXTENSIONS_ALLOWED
       && !(gnu_mode && is_immediate_class_type(type_ptr))
 #endif /* GNU_EXTENSIONS_ALLOWED */
