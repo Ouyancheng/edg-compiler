@@ -3454,6 +3454,8 @@ constructor, but may instead be after an assignment to "this".
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
   an_expr_node_ptr       vaddr_node, vbptr_node, vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
+  a_required_destructor_call_ptr
+                         required_destructor_calls_before;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -3502,6 +3504,10 @@ constructor, but may instead be after an assignment to "this".
            initialization).
      [endfor]
   */
+  /* Remember the last required destruction at this point.  Anything
+     added within the wrapper should be generated and removed at
+     the end of the wrapper. */
+  required_destructor_calls_before = curr_context->required_destructor_calls;
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
      initialization supplied by the front end.  Every base class and member
@@ -3671,6 +3677,11 @@ constructor, but may instead be after an assignment to "this".
     lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
                     class_type, insert_location);
   }  /* for */
+  /* Generate any required destructor calls for temporaries built within
+     the wrapper code. */
+  gen_and_remove_required_destructor_calls_up_to(
+                                              required_destructor_calls_before,
+                                              insert_location);
 }  /* add_constructor_wrapper_code */
 
 
