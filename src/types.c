@@ -579,6 +579,11 @@ used instead of calling this routine directly.
     } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
       /* Check the array element type. */
       tp = tp->variant.array.element_type;
+      if (tp == NULL) {
+        /* Array-of-NULL is a possible temporay state during construction of
+           a derived type. */
+        break;
+      }  /* if */
     } else {
       break;
     }  /* if */
@@ -603,7 +608,7 @@ that tp2 is a tk_typeref or tk_array.
     /* tp2 has no qualifiers, so it can't have any that tp1 doesn't have. */
     any_missing = FALSE;
   } else {
-    tp1_qualifiers = get_top_level_type_qualifiers(tp1);
+    tp1_qualifiers = get_type_qualifiers(tp1);
     any_missing = ((tp1_qualifiers & tp2_qualifiers) != tp2_qualifiers);
   }  /* if */
   return any_missing;
