@@ -6967,12 +6967,7 @@ the current memory region only if proxy_allowed is TRUE.
     /* We may need to change this for prototype instantiations, however. */
 #endif /* if 0 */
     ssep = NULL;
-  } else if (scope_stack[depth_scope_stack].kind ==
-                                   (a_scope_kind)sck_template_declaration ||
-             (scope_stack[depth_scope_stack].kind ==
-                                   (a_scope_kind)sck_func_prototype &&
-              scope_stack[depth_scope_stack-1].kind ==
-                                   (a_scope_kind)sck_template_declaration)) {
+  } else if (depth_template_declaration_scope != NO_SCOPE_DEPTH) {
 #if 0
     /* This should be changed when we add support for source sequence entries
        for template declarations. */
