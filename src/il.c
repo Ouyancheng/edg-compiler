@@ -4546,6 +4546,9 @@ return a pointer to it.
   node = field_lvalue_selection_expr(node, field);
   /* Add an indirection to turn the lvalue into an rvalue. */
   node = add_indirection_to_node(node);
+  /* Drop any type qualifiers on the type because rvalues do not have
+     type qualifiers. */
+  node->type = make_unqualified_type(node->type);
   return node;
 }  /* field_rvalue_selection_expr */
 
