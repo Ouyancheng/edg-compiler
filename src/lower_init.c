@@ -3342,11 +3342,11 @@ If any code is needed, it is inserted at *insert_location.
 
   check_assertion(dip->destruction_is_for_partially_constructed_aggregate &&
                   dedp != NULL);
+#if GENERATE_EH_TABLES
   /* The partial-construction-cleanup entry that appears last in initialization
      order doesn't have a conditional flag because nothing follows it and
      therefore its cleanup never needs to be done. */
   if (dedp->conditional_flag_var != NULL) {
-#if GENERATE_EH_TABLES
     check_assertion(partial_aggr_cond_var != NULL);
     /* All the entries for partial cleanup should share the same conditional
        flag.  Set it nonzero on the first entry under a given variable. */
@@ -3356,7 +3356,9 @@ If any code is needed, it is inserted at *insert_location.
     }  /* if */
 #endif /* GENERATE_EH_TABLES */
     add_dyn_init_cleanup(dip, ipdp, set_cond_flag, context, insert_location);
+#if GENERATE_EH_TABLES
   }  /* if */
+#endif /* GENERATE_EH_TABLES */
 }  /* add_partial_aggregate_cleanup */
 
 
