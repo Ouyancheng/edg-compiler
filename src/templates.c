@@ -6395,7 +6395,7 @@ associated parameter.
                                                      templ_param_list,
                                                      source_pos, options,
                                                      copy_error);
-        /* Make sure the new type is a valid type for a a nontype template
+        /* Make sure the new type is a valid type for a nontype template
            parameter. */
         if (const_type != new_const_type &&
             (is_void_type(new_const_type) ||
