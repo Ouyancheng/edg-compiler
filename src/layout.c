@@ -3426,8 +3426,9 @@ empty base class is virtual and indirect.
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
     if (is_empty_class_type(bcp->type) && 
         bcp->offset + bcp->type->size > lob->byte_offset &&
-        !(emulate_gnu_abi_bugs && !bcp->direct &&
-          any_virtual_steps_in_derivation(bcp))) {
+        !(emulate_gnu_abi_bugs && any_virtual_steps_in_derivation(bcp) &&
+        (!bcp->direct || (bcp->derivation != NULL &&
+                          bcp->derivation->next != NULL)))) {
       lob->byte_offset = bcp->offset + bcp->type->size;
       lob->bit_offset = 0;
     }  /* if */
