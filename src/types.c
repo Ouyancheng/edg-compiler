@@ -1635,6 +1635,70 @@ Return TRUE if the two array types have identical bounds.
 }  /* identical_array_type_level */
 
 
+static a_boolean equiv_class_types(a_type_ptr type_1,
+                                   a_type_ptr type_2,
+                                   a_boolean  error_matches_anything)
+/*
+type_1 and type_2 are class/struct/union types.  Return TRUE if they are
+equivalent types.  In general, classes, structs, and unions that aren't
+the same type aren't equivalent.  The exception is with template classes
+involving template parameters (i.e., nonreal template classes).  Two
+nonreal template classes are identical if they are based on the same
+class template and have identical template arguments.
+If error_matches_anything is TRUE, consider an error type or constant in
+a template argument to match anything (that's appropriate for compatibility
+checking instead of equivalence checking).
+*/
+{
+  a_boolean                     equiv = FALSE;
+  a_class_symbol_supplement_ptr cssp_1, cssp_2;
+
+  /* If the pointers are identical, the types are equivalent. */
+  if (type_1 == type_2) {
+    equiv = TRUE;
+  } else {
+    /* The pointers aren't the same, so the classes probably aren't
+       equivalent, but do some special checking. */
+    /* Go to the class symbol supplements for the types. */
+    /* Watch out for types created by IL lowering, which do not have the
+       assoc_info pointer. */
+    if (type_1->source_corresp.assoc_info != NULL &&
+        type_2->source_corresp.assoc_info != NULL) {
+      cssp_1 = symbol_supplement_for_class(type_1);
+      cssp_2 = symbol_supplement_for_class(type_2);
+      if (cssp_1->template_param_for_proxy_class != NULL &&
+          cssp_2->template_param_for_proxy_class != NULL) {
+        /* Both types are proxy classes for template parameters.  See if the
+           underlying parameters are the same. */
+        if (identical_types(cssp_1->template_param_for_proxy_class,
+                            cssp_2->template_param_for_proxy_class)) {
+          equiv = TRUE;
+        }  /* if */
+      } else if (cssp_1->class_template != NULL &&
+                 cssp_2->class_template == cssp_1->class_template) {
+        /* Both types are template classes, and they are based on the same
+           class template.  Check further if (a) they are both nonreal
+           template classes, or (b) error arguments are to be considered
+           equivalent to anything. */
+        if ((cssp_1->is_nonreal_class && cssp_2->is_nonreal_class) ||
+            error_matches_anything) {
+          if (equiv_template_arg_lists(
+                             type_1->variant.class_struct_union.extra_info->
+                                                            template_arg_list,
+                             type_2->variant.class_struct_union.extra_info->
+                                                            template_arg_list,
+                             /*is_func_template=*/FALSE,
+                             error_matches_anything)) {
+            equiv = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return equiv;
+}  /* equiv_class_types */
+
+
 a_boolean f_identical_types(a_type_ptr type_1,
                             a_type_ptr type_2,
                             a_boolean  il_identical)
@@ -1730,40 +1794,12 @@ which do the initial test for exact pointer equality.
         case tk_struct:
         case tk_union:
           /* In general, classes, structs, and unions that aren't the same
-             type aren't identical.  The exception is with template classes
-             involving template parameters (i.e., nonreal template classes).
-             Two nonreal template classes are identical if they are based on
-             the same class template and have identical template arguments. */
-          /* Watch out for types created by IL lowering, which do not have
-             the assoc_info pointer. */
-          if (C_dialect == C_dialect_cplusplus &&
-              type_1->source_corresp.assoc_info != NULL &&
-              type_2->source_corresp.assoc_info != NULL) {
-            a_class_symbol_supplement_ptr cssp_1, cssp_2;
-            cssp_1 = symbol_supplement_for_class(type_1);
-            cssp_2 = symbol_supplement_for_class(type_2);
-            if (cssp_1->class_template != NULL &&
-                cssp_2->class_template == cssp_1->class_template &&
-                cssp_1->is_nonreal_class && cssp_2->is_nonreal_class) {
-              /* Both types are nonreal template classes, and they are based
-                 on the same class template.  They are identical if their
-                 template arg lists are identical. */
-              if (equiv_template_arg_lists(
-                             type_1->variant.class_struct_union.extra_info->
-                                                            template_arg_list,
-                             type_2->variant.class_struct_union.extra_info->
-                                                            template_arg_list,
-                             /*if_func_template=*/FALSE)) {
-                identical = TRUE;
-              }  /* if */
-            } else if (cssp_1->template_param_for_proxy_class != NULL &&
-                       cssp_2->template_param_for_proxy_class != NULL) {
-              if (f_identical_types(cssp_1->template_param_for_proxy_class,
-                                    cssp_2->template_param_for_proxy_class,
-                                    il_identical)) {
-                identical = TRUE;
-              }  /* if */
-            }  /* if */
+             type aren't identical.  There are some exceptions with template
+             classes.  Check for those. */
+          if (!C_mode() &&
+              equiv_class_types(type_1, type_2,
+                                /*error_matches_anything=*/FALSE)) {
+            identical = TRUE;
           }  /* if */
           break;
         case tk_routine:
@@ -2020,6 +2056,8 @@ for exact pointer equality.
   register a_boolean            compat = FALSE;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_boolean                     ignore_type_qualifiers = FALSE;
+  a_boolean                     error_matches_anything = 
+                        (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
 
   db_enter(5, "f_types_are_compatible");
 
@@ -2043,10 +2081,9 @@ for exact pointer equality.
     }  /* if */
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
-    if ((flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
-        (is_error(type_1) || is_error(type_2))) {
+    if (error_matches_anything && (is_error(type_1) || is_error(type_2))) {
       /* An error type is compatible with anything under the right setting
-         of TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING. */
+         of the input flags. */
       compat = TRUE;
     } else if (qualifier_mismatch) {
       /* The type qualifiers do not match, so the types are not compatible. */
@@ -2128,16 +2165,12 @@ for exact pointer equality.
         case tk_class:
         case tk_struct:
         case tk_union:
-          /* Classes, structs, and unions that aren't the same type
-             aren't compatible. */
-          if (C_dialect != C_dialect_cplusplus) {
-            /* The simple type comparison was enough. */
-          } else {
-            /* There's a complication with template classes.  Use the code
-               in f_identical_types to determine whether two apparently
-               distinct template classes are actually the same. */
-            compat = f_identical_types(type_1, type_2,
-                                       /*il_compatible=*/FALSE);
+          /* In general, classes, structs, and unions that aren't the same
+             type aren't compatible.  There are some exceptions with template
+             classes.  Check for those. */
+          if (!C_mode() &&
+              equiv_class_types(type_1, type_2, error_matches_anything)) {
+            compat = TRUE;
           }  /* if */
           break;
         case tk_routine:
