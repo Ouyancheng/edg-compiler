@@ -1555,11 +1555,18 @@ nested class names.
   for (type = type_list; type != NULL; type = type->next) {
     /* If the type is a class, process it and its scope. */
     if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
       mangle_class_name(type);
-      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
         do_type_list_class_name_mangling(class_scope->types);
       }  /* if */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+      /* If some local types of member functions were promoted into the
+         class on their way to the file scope, mangle them now too. */
+      do_type_list_class_name_mangling(ctsp->promoted_local_types);
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     }  /* if */
   }  /* for */
 }  /* do_type_list_class_name_mangling */
@@ -1626,13 +1633,20 @@ thereunder.
   for (type = type_list; type != NULL; type = type->next) {
     /* If the type is a class, do its scope. */
     if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
       /* Make sure the type-as-subobject for a class gets the class name
          before it is changed, if it is a nested class name. */
       prelower_class_type(type);
-      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
         do_scope_other_name_mangling(class_scope);
       }  /* if */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+      /* If some local types of member functions were promoted into the
+         class on their way to the file scope, mangle them now too. */
+      do_type_list_other_name_mangling(ctsp->promoted_local_types);
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     } else if (is_immediate_enum_type(type) &&
                type->source_corresp.class_of_which_a_member != NULL) {
       /* Mangle the names of member enum constants. */
@@ -1811,10 +1825,17 @@ and subscopes thereunder.
   for (type = type_list; type != NULL; type = type->next) {
     /* If the type is a class, do its scope. */
     if (is_immediate_class_type(type)) {
-      class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
         do_type_list_nested_type_name_mangling(class_scope->types);
       }  /* if */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+      /* If some local types of member functions were promoted into the
+         class on their way to the file scope, mangle them now too. */
+      do_type_list_nested_type_name_mangling(ctsp->promoted_local_types);
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     }  /* if */
     /* Do name mangling on the type. */
     /* Note that the call here must be done after all subscopes have been
@@ -2149,8 +2170,8 @@ that need to be reinitialized with each new translation unit are handled in
 name_lower_init.)
 */
 {
-  /* Save variables from lower_il.h and lower_il.c that are needed for
-     precompiled headers */
+  /* Save variables from lower_name.c that are needed for precompiled
+     headers */
   if (exceptions_enabled && precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(unnamed_class_name_seed),
