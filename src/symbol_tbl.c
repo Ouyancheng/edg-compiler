@@ -7676,7 +7676,7 @@ found must meet the criteria indicated by "options".  If
 tentative_type_lookup is TRUE, a projection symbol is only created if
 the symbol returned by find_progenitor_symbol is a type.  Likewise, if
 tentative_template_lookup is TRUE, a projection symbol is only created
-if the symbol returned by find_progentor_symbol is a template.  If
+if the symbol returned by find_progenitor_symbol is a template.  If
 hidden_name_lookup is TRUE the creation of a projection symbol is
 unconditionally suppressed.  Note that "options" and
 tentative_type_lookup are handled differently: a symbol that fails the
