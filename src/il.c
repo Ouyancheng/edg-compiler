@@ -7228,7 +7228,7 @@ top of the object lifetime stack) is used.
 
   db_enter(4, "record_end_of_lifetime_destruction");
   if (dip->destructor != NULL) {
-    /* This is a destructable entity. */
+    /* This is a destructible entity. */
     if (static_lifetime) {
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
         /* The object is a local static variable.  Use the list on the
@@ -7716,6 +7716,43 @@ with it.  Entries associated with scopes must also have no child entries.
 }  /* is_useless_object_lifetime */
 
 
+void remove_from_destruction_list(a_dynamic_init_ptr  dip)
+/*
+If the specified dynamic init entry is associated with an object lifetime,
+unlink it from the latter's destructions list, and clear the pointer in
+the dynamic init entry to the object lifetime.
+*/
+{
+  an_object_lifetime_ptr  olp = dip->lifetime;
+  a_dynamic_init_ptr      prev;
+
+  if (olp != NULL) {
+    /* There is an assocated object lifetime. */
+    if (olp->destructions == dip) {
+      /* dip is the head of the destructions list. */
+      olp->destructions = dip->next_in_destruction_list;
+    } else {
+      /* It's not the head; link around it once the previous entry in the
+         list has been located. */
+      prev = olp->destructions;
+      for (;;) {
+        check_assertion_str2(prev != NULL, "remove_from_destruction_list:",
+                             "dynamic init not on list of assoc lifetime");
+        if (prev->next_in_destruction_list == dip) {
+          prev->next_in_destruction_list = dip->next_in_destruction_list;
+          break;
+        }  /* if */
+        prev = prev->next_in_destruction_list;
+      }  /* for */
+    }  /* if */
+    dip->next_in_destruction_list = NULL;
+    /* Clear the lifetime pointer in the dynamic init entry.  Note: it should
+       be set if and only if it is on the list of the entry pointed to. */
+    dip->lifetime = NULL;
+  }  /* if */
+}  /* remove_from_destruction_list */
+
+
 void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp)
 /*
 An object lifetime may be rendered useless by clearing its destructions
@@ -7731,7 +7768,12 @@ pointer.
     internal_error("mark_object_lifetime_as_useless: bad entity kind");
   }  /* if */
 #endif /* CHECKING */
-  olp->destructions = NULL;
+  /* Clear the destructions pointer by removing the entries and resetting
+     their own pointers properly. */
+  while (olp->destructions != NULL) {
+    check_assertion(olp->destructions->lifetime == olp);
+    remove_from_destruction_list(olp->destructions);
+  }  /* while */
 }  /* mark_object_lifetime_as_useless */
 
 
