@@ -3086,7 +3086,7 @@ on function_type.  *call_pos gives the source position of the call.
 
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             call_pos);
+                             curr_expr_is_evaluated(), call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -3433,7 +3433,9 @@ is used only in C++ mode.
   ctor_symbol = (a_symbol_ptr)(ctor_routine->source_corresp.assoc_info);
   reference_to_implicitly_invoked_function(ctor_symbol, &error_position,
 					   ctor_routine->source_corresp.
-                                                      class_of_which_a_member);
+                                                       class_of_which_a_member,
+                                           /*honor_virtual=*/FALSE,
+                                           curr_expr_is_evaluated());
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
      constructor. */
@@ -3504,7 +3506,9 @@ is used only in C++ mode.
   this_param_type = routine_type->variant.routine.extra_info->
                                                       implicit_this_param_type;
   reference_to_implicitly_invoked_function(conversion_symbol, &error_position,
-					   operand->type);
+					   operand->type,
+                                           /*honor_virtual=*/FALSE,
+                                           curr_expr_is_evaluated());
   /* Convert the operand to the proper type to be an argument of the
      conversion function. */
 #if CHECKING
@@ -3557,6 +3561,7 @@ operand for the value (result_is_addr == FALSE) or address (result_is_addr
      enk_temp_init node.  find_class_rvalue_var_node recognizes
      the form of the expression created here. */
   temp_var = create_expr_temporary(class_type, /*force_temp_init=*/TRUE,
+                                   curr_expr_is_evaluated(),
                                    &temp_init_node);
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
@@ -3613,7 +3618,8 @@ will have been changed to an rvalue for the address of the temporary.
                                      is_const_qualified_type(operand->type),
                                      is_volatile_qualified_type(operand->type),
                                      &operand->position, temp_type,
-				     &class_bitwise_copy);
+				     &class_bitwise_copy,
+                                     curr_expr_is_evaluated());
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
         /* cctor_case = FALSE;  -- already set */
@@ -3637,6 +3643,7 @@ will have been changed to an rvalue for the address of the temporary.
     /* Allocate the temporary, the dynamic initialization entry, and the
        enk_temp_init node. */
     temp_var = create_expr_temporary(temp_type, /*force_temp_init=*/TRUE,
+                                     curr_expr_is_evaluated(),
                                      &temp_init_node);
     dip = temp_init_node->variant.init.dynamic_init;
     conv_lvalue_to_rvalue(operand);
@@ -9032,7 +9039,8 @@ always be TRUE in C mode.
                               is_const_qualified_type(source_operand->type),
                               is_volatile_qualified_type(source_operand->type),
                               &source_operand->position, class_type,
-			      class_bitwise_copy);
+			      class_bitwise_copy,
+                              curr_expr_is_evaluated());
     }  /* if */
   }  /* if */
   if (*conversion_routine != NULL) {

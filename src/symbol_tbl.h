@@ -1640,10 +1640,13 @@ extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 extern a_routine_ptr select_default_constructor
 					(a_type_ptr        class_type,
                                          a_source_position *err_pos,
-					 a_type_ptr	    object_class_type);
+					 a_type_ptr	   object_class_type,
+                                         a_boolean         evaluated);
 
 extern a_routine_ptr select_destructor(a_type_ptr class_type,
-				       a_type_ptr object_class_type);
+				       a_type_ptr object_class_type,
+                                       a_boolean  honor_virtual,
+                                       a_boolean  evaluated);
 
 extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
                                           a_boolean  const_object_required,
@@ -1657,7 +1660,8 @@ extern a_routine_ptr select_copy_constructor(
                                     a_boolean         volatile_object_required,
                                     a_source_position *err_pos,
 				    a_type_ptr	      object_class_type,
-                                    a_boolean         *class_bitwise_copy);
+                                    a_boolean         *class_bitwise_copy,
+                                    a_boolean         evaluated);
 
 extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);
