@@ -6710,85 +6710,6 @@ is_full_expr is TRUE.
 }  /* lower_boolean_controlling_expr */
 
 
-static void lower_condition(a_statement_ptr *p_statement)
-/*
-*p_statement is a statement that has a controlling condition (i.e., it is an
-if, while, for, or switch).  Lower the condition expression (whether it
-is an enk_condition or a normal expression).  On return *p_statement is
-updated to point at the new location of the statement (the statement
-is copied in the condition declaration case).
-*/
-{
-  a_statement_ptr  statement = *p_statement;
-  an_expr_node_ptr expr = statement->expr;
-  a_context        context;
-  a_boolean        is_switch_stmt =
-                            (statement->kind == (a_statement_kind)stmk_switch);
-
-  if (expr->kind != (an_expr_node_kind)enk_condition) {
-    /* Normal expression. */
-    if (!is_switch_stmt) {
-      /* If, while, and for statements. */
-      lower_boolean_controlling_expr(expr, /*is_full_expr=*/TRUE);
-    } else {
-      /* Switch statement. */
-      lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
-    }  /* if */
-  } else {
-    /* A condition declaration, e.g.,
-         while (A *p = f()) { ... }
-    */
-    a_condition_supplement_ptr
-                       csp = expr->variant.condition;
-    a_scope_ptr        scope = csp->scope;
-    an_expr_node_ptr   value_expr = csp->expr;
-    an_insert_location insert_location;
-    a_statement_ptr    statement_copy;
-    an_init_pos_descr  ipd;
-
-    /* Put the original statement inside a block. */
-    turn_statement_into_block(statement, &insert_location, &statement_copy);
-    *p_statement = statement_copy;
-#if 0
-    /* Mark the block statement with added_for_condition. */
-#endif /* 0 */
-    /* Move the condition scope into the block. */
-    statement->variant.block.extra_info->assoc_scope = scope;
-    /* Activate the scope and object lifetime for the condition. */
-    push_context(&context, scope, (an_object_lifetime_ptr)NULL);
-    if (scope->lifetime != NULL) {
-      begin_object_lifetime(scope->lifetime, &insert_location);
-    }  /* if */
-    /* Lower the value expression. */
-    if (bool_is_keyword && !is_switch_stmt) {
-      /* For boolean cases (i.e., not switch), adjust the result types of
-         boolean operations. */
-      a_boolean adjusted;
-      adjust_bool_operation_types(value_expr, &adjusted,
-                                  /*see_if_possible=*/FALSE);
-    }  /* if */
-    lower_full_expr(value_expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
-    /* Put the condition value expression under the original statement. */
-    statement_copy->expr = value_expr;
-    /* Insert code for the initialization preceding that condition value
-       expression. */
-    set_expr_insert_location(value_expr, &insert_location);
-    set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
-    lower_dynamic_init(csp->dynamic_init, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL,
-                       /*is_full_expr=*/TRUE,
-                       &insert_location, (a_boolean *)NULL);
-    if (scope->lifetime != NULL) {
-      /* Generate the destruction for the condition variable if necessary. */
-      set_insert_location(statement_copy, &insert_location);
-      gen_cleanup_actions(scope->lifetime, &insert_location);
-    }  /* if */
-    pop_context();
-  }  /* if */
-}  /* lower_condition */
-
-
 static void add_conditional_flag(a_dynamic_init_ptr dip)
 /*
 Add a conditional flag to a dynamic initialization (pointed to by dip).
@@ -7769,6 +7690,296 @@ Lower an stmk_return statement.
 }  /* lower_return_statement */
 
 
+static void lower_if_dependent_statements(a_statement_ptr statement)
+/*
+Lower the dependent statements of the indicated "if" statement.
+*/
+{
+  lower_statement(statement->variant.if_stmt.then_statement);
+  lower_statement(statement->variant.if_stmt.else_statement);
+}  /* lower_if_dependent_statements */
+
+
+static void lower_switch_dependent_statement(a_statement_ptr statement)
+/*
+Lower the dependent statement of the indicated "switch" statement.
+*/
+{
+  a_statement_ptr body_statement =
+                                 statement->variant.switch_stmt.body_statement;
+  a_statement_ptr statement_list, last_statement;
+  a_context       context;
+  a_boolean       context_pushed, new_lifetime;
+
+  /* If there is a body statement that is a block, push a context
+     around the processing of the switch clauses. */
+  if (body_statement != NULL &&
+      body_statement->kind == (a_statement_kind)stmk_block) {
+    /* The body statement is a block. */
+    /* Save the statement list pointer early in case code is inserted
+       to initialize conditional flags. */
+    statement_list = body_statement->variant.block.statements;
+    push_block_statement_context(body_statement, &context,
+                                 &context_pushed, &new_lifetime);
+    lower_statement_list(statement_list, &last_statement);
+    lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
+                             new_lifetime ? curr_context->lifetime :
+                                            (an_object_lifetime_ptr)NULL);
+    pop_block_statement_context(body_statement, last_statement,
+                                context_pushed, new_lifetime);
+  } else {
+    /* There is no body statement, or the body statement is something
+       other than a block statement. */
+    lower_statement(body_statement);
+    lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
+                             (an_object_lifetime_ptr)NULL);
+  }  /* if */
+}  /* lower_switch_dependent_statement */
+
+
+static void lower_condition(a_statement_ptr statement)
+/*
+statement is a statement that has a controlling condition (i.e., it is an
+if, while, for, or switch).  Lower the condition expression (whether it
+is an enk_condition or a normal expression), and lower the dependent
+statement(s) of the statement.  For a "for" loop, also lower the increment
+expression, if any (the initialization expression has already been
+handled).
+*/
+{
+  an_expr_node_ptr expr = statement->expr;
+  a_statement_kind statement_kind = statement->kind;
+  a_boolean        is_switch_stmt =
+                             (statement_kind == (a_statement_kind)stmk_switch);
+
+  if (expr == NULL || expr->kind != (an_expr_node_kind)enk_condition) {
+    /* Normal expression.  Lower the expression and the dependent
+       statement(s). */
+    if (!is_switch_stmt) {
+      /* If, while, and for statements. */
+      /* "for" allows a null expression. */
+      if (expr != NULL) {
+        lower_boolean_controlling_expr(expr, /*is_full_expr=*/TRUE);
+      }  /* if */
+      /* Lower the dependent statement(s). */
+      if (statement_kind == (a_statement_kind)stmk_if) {
+        lower_if_dependent_statements(statement);
+      } else if (statement_kind == (a_statement_kind)stmk_while) {
+        lower_statement(statement->variant.loop_statement);
+      } else {
+        a_for_loop_ptr loop_info;
+        check_assertion(statement_kind == (a_statement_kind)stmk_for);
+        lower_statement(statement->variant.for_loop.statement);
+        loop_info = statement->variant.for_loop.extra_info;
+        if (loop_info->increment != NULL) {
+          lower_full_expr(loop_info->increment, /*is_lvalue=*/FALSE,
+                          (a_statement_ptr)NULL);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Switch statement. */
+      lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+      lower_switch_dependent_statement(statement);
+    }  /* if */
+  } else {
+    /* A condition declaration.  Non-loop cases like
+         if (A x = y) { ... }
+       are transformed into
+         {
+           A x = y;
+           if (x) { ... }
+         }
+       The test in the "if" actually uses the expression from the "expr"
+       field of the condition, which is the value of the declared variable
+       converted to a testable type if necessary.  Loop cases like
+         for (w; A x = y; z) { ... }    or  while (A x = y) { ... }
+       are transformed into
+         {                                  {
+           for (w;;) {                        while (1) {
+             A x = y;                           A x = y;
+             if (!x) {                          if (!x) {
+               destroy x if necessary;            destroy x if necessary;
+               goto break_label;                  goto break_label;
+             }                                  }
+             { ... } // Original statement      { ... } // Original statement
+             z;      // Increment code
+             destroy x if necessary;            destroy x if necessary;
+           }                                  }
+           break_label:;                      break_label:;
+         }                                  }
+       Again, the x in "!x" is the value of the declared variable converted
+       to a testable type if necessary.  If the break_label exists already,
+       it and the block around the for/while are not added. */
+    a_condition_supplement_ptr
+                       csp = expr->variant.condition;
+    a_scope_ptr        scope;
+    an_expr_node_ptr   value_expr;
+    an_insert_location insert_location;
+    a_statement_ptr    block_stmt, dep_statement;
+    a_context          context;
+    an_init_pos_descr  ipd;
+    a_label_ptr        break_label;
+    a_boolean          is_loop_stmt = 
+                             (statement_kind == (a_statement_kind)stmk_while ||
+                              statement_kind == (a_statement_kind)stmk_for);
+
+    /* Create a new block statement that will be associated with the
+       scope for the condition.  For loops, also create the break label. */
+    if (!is_loop_stmt) {
+      /* For the non-loop statements, the new block statement is made to
+         surround the condition statement. */
+      block_stmt = statement;
+      turn_statement_into_block(statement, &insert_location, &statement);
+    } else {
+      /* For the loop statements, the new block statement is made to
+         surround the dependent statement of the loop. */
+      if (statement_kind == (a_statement_kind)stmk_for) {
+        dep_statement = statement->variant.for_loop.statement;
+      } else {
+        check_assertion(statement_kind == (a_statement_kind)stmk_while);
+        dep_statement = statement->variant.loop_statement;
+      }  /* if */
+      block_stmt = dep_statement;
+      turn_statement_into_block(dep_statement, &insert_location,
+                                &dep_statement);
+      /* Create a break label for the loop.  If the loop has a break statement
+         already, use it instead of creating a new one. */
+      { a_statement_ptr next_statement = statement->next;
+        if (next_statement != NULL &&
+            next_statement->kind == (a_statement_kind)stmk_label &&
+            next_statement->variant.label.ptr->break_label) {
+          /* There is already a break label. */
+          break_label = next_statement->variant.label.ptr;
+        } else {
+          /* Create a break label.  This involves wrapping the loop statement
+             inside a block statement and putting the label inside the block,
+             following the loop.  Note that this must be done before the
+             context for the condition is pushed, since the surrounding
+             object lifetime must be recorded in the label. */
+          an_insert_location insert_location2;
+          turn_statement_into_block(statement, &insert_location2,
+                                    &statement);
+          set_insert_location(statement, &insert_location2);
+          break_label = insert_temp_label(&insert_location2);
+          break_label->break_label = TRUE;
+        }  /* if */
+      }
+      /* Here, break_label points to the break label, found or created. */
+    }  /* if */
+    /* Here, statement points to the statement containing the condition,
+       block_stmt points to the block added, and insert_location is set
+       to insert at the beginning of that block. */
+    /* Attach the condition scope and the block statement to one another. */
+    scope = csp->scope;
+    block_stmt->variant.block.extra_info->assoc_scope = scope;
+    /* Change the condition scope into a normal block scope. */
+    set_scope_kind(scope, (a_scope_kind)sck_block, (a_routine_ptr)NULL);
+    scope->assoc_block = block_stmt;
+    /* Activate the scope and object lifetime for the condition. */
+    push_context(&context, scope, (an_object_lifetime_ptr)NULL);
+    if (scope->lifetime != NULL) {
+      begin_object_lifetime(scope->lifetime, &insert_location);
+    }  /* if */
+    /* Generate code for the initialization, and insert it at the beginning
+       of the new block. */
+    set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
+    lower_dynamic_init(csp->dynamic_init, &ipd,
+                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                       (a_constructor_init_ptr)NULL,
+                       /*is_full_expr=*/TRUE,
+                       &insert_location, (a_boolean *)NULL);
+    /* Lower the value expression. */
+    value_expr = csp->expr;
+    if (bool_is_keyword && !is_switch_stmt) {
+      /* For boolean cases (i.e., not switch), adjust the result types of
+         boolean operations. */
+      a_boolean adjusted;
+      adjust_bool_operation_types(value_expr, &adjusted,
+                                  /*see_if_possible=*/FALSE);
+    }  /* if */
+    lower_full_expr(value_expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+    /* Here, the condition initialization has been lowered and placed at the
+       beginning of the created block statement.  insert_location gives the
+       insert position following that code.  The value expression for the
+       condition has also been lowered, though not inserted anywhere.  It is
+       pointed to by value_expr. */
+    if (!is_loop_stmt) {
+      /* Non-loop cases.  Put the value expression into the original
+         condition statement in place of the enk_condition node. */
+      statement->expr = value_expr;
+      /* Lower the dependent statement(s) of the condition. */
+      if (is_switch_stmt) {
+        lower_switch_dependent_statement(statement);
+      } else {
+        check_assertion(statement_kind == (a_statement_kind)stmk_if);
+        lower_if_dependent_statements(statement);
+      }  /* if */
+      /* Set the insert location to insert any required destruction code
+         following the condition statement. */
+      set_insert_location(statement, &insert_location);
+    } else {
+      /* Loop cases. */
+      /* Insert
+           if (!value_expr) goto break_label;
+      */
+      { a_statement_ptr goto_stmt, if_stmt;
+        goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
+        goto_stmt->variant.label.ptr = break_label;
+        /* The common lifetime for the goto and label is the lifetime of the
+           label. */
+        goto_stmt->variant.label.lifetime =
+                        break_label->variant.exec_stmt->variant.label.lifetime;
+        if_stmt = alloc_statement((a_statement_kind)stmk_if);
+        /* The "if" statement tests the "not" of the value expression. */
+        if_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
+                                           value_expr->type, value_expr);
+        /* The dependent statement of the "if" is the "goto break_label". */
+        if_stmt->variant.if_stmt.then_statement = goto_stmt;
+        /* Insert the "if" statement following the initialization code and
+           preceding the dependent statement of the loop. */
+        insert_statement(if_stmt, &insert_location);
+        /* If the condition variable requires destruction, put destruction
+           code in preceding the goto. */
+        gen_goto_cleanup_actions(goto_stmt);
+      }
+      /* Lower the dependent statement of the loop. */
+      lower_statement(dep_statement);
+      set_insert_location(dep_statement, &insert_location);
+      /* Adjust the expression of the loop statement. */
+      if (statement_kind == (a_statement_kind)stmk_for) {
+        a_for_loop_ptr loop_info = statement->variant.for_loop.extra_info;
+        /* The test expression is not needed. */
+        statement->expr = NULL;
+        /* Move the increment expression to a separate statement following
+           the dependent statement. */
+        if (loop_info->increment != NULL) {
+          a_statement_ptr incr_stmt =
+                                    insert_expr_statement(loop_info->increment,
+                                                          &insert_location);
+          lower_full_expr(loop_info->increment, /*is_lvalue=*/FALSE,
+                          incr_stmt);
+          loop_info->increment = NULL;
+        }  /* if */
+      } else {
+        check_assertion(statement->kind == (a_statement_kind)stmk_while);
+        /* A "while" statement.  The test expression is replaced by "1" to
+           make an infinite loop until break. */
+        statement->expr = node_for_integer_constant(1L,
+                                                    (an_integer_kind)ik_int);
+      }  /* if */
+      /* Note that insert_location is set to insert at the end of the loop. */
+    }  /* if */
+    /* Here, insert_location is set for insertion at the end of the block
+       inserted for the condition.  Generate the destruction for the
+       condition variable if necessary. */
+    if (scope->lifetime != NULL) {
+      gen_cleanup_actions(scope->lifetime, &insert_location);
+    }  /* if */
+    pop_context();
+  }  /* if */
+}  /* lower_condition */
+
+
 void lower_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated statement and everything under it.
@@ -7778,7 +7989,7 @@ Do IL lowering of the indicated statement and everything under it.
   a_scope_ptr          scope;
   an_insert_location   insert_location;
   a_statement_ptr      statement_list;
-  a_statement_ptr      last_statement, body_statement;
+  a_statement_ptr      last_statement;
   an_expr_node_ptr     stmt_expr;
   a_source_position    saved_error_position, saved_code_pos;
   a_block_ptr          block;
@@ -7820,13 +8031,8 @@ Do IL lowering of the indicated statement and everything under it.
         lower_return_statement(statement);
         break;
       case stmk_if:
-        lower_condition(&statement);
-        lower_statement(statement->variant.if_stmt.then_statement);
-        lower_statement(statement->variant.if_stmt.else_statement);
-        break;
       case stmk_while:
-        lower_condition(&statement);
-        lower_statement(statement->variant.loop_statement);
+        lower_condition(statement);
         break;
       case stmk_end_test_while:
         /* Note that this is *not* a condition. */
@@ -7850,14 +8056,7 @@ Do IL lowering of the indicated statement and everything under it.
               init_stmt->next = init_stmt_next;
             }  /* if */
           }  /* if */
-          if (stmt_expr != NULL) {
-            lower_condition(&statement);
-          }  /* if */
-          lower_statement(statement->variant.for_loop.statement);
-          if (extra_info->increment != NULL) {
-            lower_full_expr(extra_info->increment, /*is_lvalue=*/FALSE,
-                            (a_statement_ptr)NULL);
-          }  /* if */
+          lower_condition(statement);
         }
         break;
       case stmk_block:
@@ -7883,31 +8082,7 @@ Do IL lowering of the indicated statement and everything under it.
                                     context_pushed, new_lifetime);
         break;
       case stmk_switch:
-        lower_condition(&statement);
-        /* If there is a body statement that is a block, push a context
-           around the processing of the switch clauses. */
-        body_statement = statement->variant.switch_stmt.body_statement;
-        if (body_statement != NULL &&
-            body_statement->kind == (a_statement_kind)stmk_block) {
-          /* The body statement is a block. */
-          /* Save the statement list pointer early in case code is inserted
-             to initialize conditional flags. */
-          statement_list = body_statement->variant.block.statements;
-          push_block_statement_context(body_statement, &context,
-                                       &context_pushed, &new_lifetime);
-          lower_statement_list(statement_list, &last_statement);
-          lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                                   new_lifetime? curr_context->lifetime :
-                                                 (an_object_lifetime_ptr)NULL);
-          pop_block_statement_context(body_statement, last_statement,
-                                      context_pushed, new_lifetime);
-        } else {
-          /* There is no body statement, or the body statement is something
-             other than a block statement. */
-          lower_statement(body_statement);
-          lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                                   (an_object_lifetime_ptr)NULL);
-        }  /* if */
+        lower_condition(statement);
         break;
       case stmk_init:
         lower_stmk_init(statement);
