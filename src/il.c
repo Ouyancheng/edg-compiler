@@ -41,9 +41,12 @@ il.c -- Construction of intermediate language trees.
 #if DEBUG
 #include "class_decl.h"
 #endif /* DEBUG */
+#if DO_IL_LOWERING
+#include "lower_il.h"
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
+#endif /* DO_IL_LOWERING */
 
 /*
 Pointers to shared types.  These are cleared by il_init.
@@ -4868,6 +4871,7 @@ are not already present.
 a_type_ptr make_unqualified_type(a_type_ptr type)
 /*
 Return a type that is the unqualified version of the type given by type.
+This differs from skip_typerefs in that it preserves typedefs where possible.
 Note that this is not the routine to use to drop qualifiers when changing
 to an rvalue type, except possibly for C-mode-only code; see rvalue_type
 instead.
@@ -4913,10 +4917,21 @@ would have.  That is, drop type qualifiers as appropriate.  Array-to-pointer
 and function-to-pointer decay are not considered.
 */
 {
+  /* In C++, class rvalues can have cv-qualified type, so the cv-qualifiers
+     are kept.  In all other cases, they are removed. */
+  if (C_mode() ||
+#if DO_IL_LOWERING
+      /* Force C semantics for things created by IL lowering. */
+      il_lowering_underway ||
+#endif /* DO_IL_LOWERING */
+      !is_class_struct_union_type(type)) {
+    type = make_unqualified_type(type);
 #if 0
-  /* In C++, class rvalues can have cv-qualified type. */
+#else /* 0 */
+  } else {
+    type = make_unqualified_type(type);
 #endif /* 0 */
-  type = make_unqualified_type(type);
+  }  /* if */
   return type;
 }  /* rvalue_type */
 
@@ -6299,7 +6314,7 @@ for variables with reference type.
 
   node = alloc_expr_node((an_expr_node_kind)enk_variable);
   /* Drop any type qualifiers on the variable type as appropriate. */
-  node->type = make_unqualified_type(var->type);
+  node->type = rvalue_type(var->type);
   node->variant.variable = var;
   return node;
 }  /* var_rvalue_expr */
@@ -6364,11 +6379,11 @@ the same effect), and return a pointer to the new expression.
     }  /* if */
     /* The new type for the node is the type pointed to. */
     new_type = type_pointed_to(node->type);
-    /* Drop type qualifiers because they are meaningless on rvalues.
-       Note that no cast is needed to drop the qualifiers: an IL shorthand
-       applies in this case. */
+    /* Drop type qualifiers as appropriate on rvalues.  Note that no cast
+       is needed to drop the qualifiers: an IL shorthand applies in this
+       case. */
     if (is_qualified_type(new_type)) {
-      new_type = make_unqualified_type(new_type);
+      new_type = rvalue_type(new_type);
     }  /* if */
     if (optimized_case) {
       /* For the optimized cases, just set the node type. */
@@ -6455,7 +6470,7 @@ selections for anonymous unions.
   /* Make the expression node for an lvalue reference. */
   node = field_lvalue_selection_expr(node, field);
   /* Add an indirection to turn the lvalue into an rvalue.  That also
-     drops any type qualifiers. */
+     drops any type qualifiers, as appropriate. */
   node = add_indirection_to_node(node);
   return node;
 }  /* field_rvalue_selection_expr */
