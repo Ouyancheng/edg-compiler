@@ -196,7 +196,6 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 
 static a_boolean init_remaining_array_elements(a_type_ptr     array_type,
                                                a_targ_size_t  curr_element,
-                                               a_boolean      static_lifetime,
                                                a_constant_ptr *con_list,
                                                a_constant_ptr *end_of_con_list,
                                                a_boolean      *incomplete_init)
@@ -335,7 +334,6 @@ any member of reference type is encountered.
 
 
 static a_boolean init_remaining_fields(a_field_ptr    *curr_field,
-                                       a_boolean      static_lifetime,
                                        a_constant_ptr *con_list,
                                        a_constant_ptr *end_of_con_list,
                                        a_boolean      *incomplete_init)
@@ -345,7 +343,6 @@ class object is only partially initialized.  It checks whether any of the
 uninitialized fields is itself of class (or array of class) type and if so
 does the appropriate default initialization (i.e., looks for and calls the
 default constructor).  *curr_field is the first of the uninitialized fields.
-If static_lifetime is TRUE, the underlying entity has static storage duration.
 *con_list is a list of constant entries that represents the initialization of
 the array; *end_of_con_list points to the terminal entry on the list.
 *incomplete_init is set to TRUE if a reference or const member remains
@@ -542,7 +539,7 @@ static a_constant_ptr get_initializer(
                     a_boolean           top_level,
                     a_boolean           static_lifetime,
                     a_boolean           *any_member_uninitialized,
-                    a_boolean           *any_const_or_ref_member_uninitialized,
+                    a_boolean           *any_uninit_const_or_ref_member,
                     a_boolean           *any_dynamic_initialization,
                     a_boolean           *nothing_taken)
 /*
@@ -837,7 +834,7 @@ ref field of a class object (or an array of same) remains uninitialized.
         member_con = get_initializer(&member_type, /*top_level=*/FALSE,
                                      static_lifetime,
                                      any_member_uninitialized,
-                                     any_const_or_ref_member_uninitialized,
+                                     any_uninit_const_or_ref_member,
                                      any_dynamic_initialization,
                                      &local_nothing_taken);
         remove_stop_token(tok_comma);
@@ -972,18 +969,16 @@ ref field of a class object (or an array of same) remains uninitialized.
                such that a constructor is required to initialize the elements,
                we are required to provide default initialization by calling
                the default constructor. */
-            if (init_remaining_array_elements(
-                                  local_type, curr_array_element,
-                                  static_lifetime, &con_list, &end_of_con_list,
-                                  any_const_or_ref_member_uninitialized)) {
+            if (init_remaining_array_elements(local_type, curr_array_element,
+                                              &con_list, &end_of_con_list,
+                                             any_uninit_const_or_ref_member)) {
               any_more_members = FALSE;
               *any_dynamic_initialization = TRUE;
             }  /* if */
           } else if (kind == (a_type_kind)tk_struct ||
                      kind == (a_type_kind)tk_class) {
-            if (init_remaining_fields(&curr_field, static_lifetime,
-                                      &con_list, &end_of_con_list,
-                                      any_const_or_ref_member_uninitialized)) {
+            if (init_remaining_fields(&curr_field, &con_list, &end_of_con_list,
+                                      any_uninit_const_or_ref_member)) {
               if (curr_field == NULL) any_more_members = FALSE;
               *any_dynamic_initialization = TRUE;
             }  /* if */
@@ -3013,7 +3008,7 @@ entries are used because of the similarity to constructor processing, even
 though neither constructors nor initialization is involved here.)
 */
 {
-  a_type_ptr                    class_type, tp, array_type;
+  a_type_ptr                    class_type, tp;
   a_symbol_ptr                  sym, class_sym;
   a_constructor_init_ptr        cip;
   a_boolean                     is_virtual_pass;
@@ -3095,15 +3090,12 @@ though neither constructors nor initialization is involved here.)
        sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether a destructor exists. */
-      array_type = NULL;
-      tp = skip_typerefs(sym->variant.field.ptr->type);
       /* For arrays get the element type, allowing for multidimensional
-         arrays.  Keep track of the array type for later. */
-      if (is_array_type(tp)) {
-        array_type = tp;
-        tp = skip_typerefs(underlying_array_element_type(tp));
-      }  /* if */
-      if (is_class_struct_union_type(tp)) {
+         arrays. */
+      tp = sym->variant.field.ptr->type;
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      tp = skip_typerefs(tp);
+      if (is_immediate_class_type(tp)) {
         rp = select_destructor(tp, tp, &source_pos,
                                /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
                                /*suppress_access_check=*/FALSE);
