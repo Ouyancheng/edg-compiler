@@ -1624,15 +1624,8 @@ do_set_proper_definition_needed_flag:
             break;
           case templk_class:
           case templk_member_class:
-<<<<<<< walk_entry.h
             remap_ptr(ptr->prototype_instantiation.type, a_type_ptr,
-                     iek_type);
-=======
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-            remap_ptr(ptr->prototype_instantiation.type, a_type_ptr,
-                     iek_type);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
->>>>>>> 1.318
+                      iek_type);
             break;
           case templk_static_data_member:
             remap_ptr(ptr->prototype_instantiation.variable, a_variable_ptr,
