@@ -1150,6 +1150,17 @@ Display the indicated variable.
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  if (ptr->dllimport_used) {
+    disp_boolean("dllimport_used", TRUE);
+  }  /* if */
+  if (ptr->dllexport_used) {
+    disp_boolean("dllexport_used", TRUE);
+  }  /* if */
+  if (ptr->thread_used) {
+    disp_boolean("thread_used", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   disp_initializer(ptr->init_kind, &ptr->initializer);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
@@ -1460,6 +1471,20 @@ Display the indicated routine.
   if (ptr->contains_try_block) {
     disp_boolean("contains_try_block", TRUE);
   }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  if (ptr->dllimport_used) {
+    disp_boolean("dllimport_used", TRUE);
+  }  /* if */
+  if (ptr->dllexport_used) {
+    disp_boolean("dllexport_used", TRUE);
+  }  /* if */
+  if (ptr->naked_used) {
+    disp_boolean("naked_used", TRUE);
+  }  /* if */
+  if (ptr->microsoft_inline_used) {
+    disp_boolean("microsoft_inline_used", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
