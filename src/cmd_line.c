@@ -1513,11 +1513,10 @@ by a command line option.
     if (!option_kind_used[(int)optk_class_name_injection]) {
       class_name_injection_enabled = TRUE;
     }  /* if */
-    if (!option_kind_used[(int)optk_arg_dependent_lookup] &&
-        microsoft_version < 1310) {
+    if (!option_kind_used[(int)optk_arg_dependent_lookup]) {
       /* MSVC++ versions before 7.1 did not support argument-dependent
          lookup. */
-      arg_dependent_lookup_enabled = FALSE;
+      arg_dependent_lookup_enabled = (microsoft_version >= 1310);
     }  /* if */
     if (!option_kind_used[(int)optk_friend_injection]) {
       friend_injection_enabled = TRUE;
