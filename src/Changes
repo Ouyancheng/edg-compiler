@@ -1,5 +1,13 @@
 Version 2.42
 
+7/2/99  Multiple carriage returns ignored before newline
+
+When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE, all carriage returns that
+appear immediately before the end of line are ignored.  Formerly, only
+one such carriage return would be ignored.  There are Microsoft header
+files that have carriage-return/carriage-return/line-feed at the ends
+of some lines.
+
 7/1/99  Variadic macros
 
 Two variants of macro definitions that can be invoked with a variable number
