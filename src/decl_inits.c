@@ -4609,7 +4609,10 @@ scan_paren:
             olp->destructions = NULL;
           }  /* if */
           dip = cip->initializer;
-          if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+          if (dip->kind == (a_dynamic_init_kind)dik_expression &&
+              dip->variant.expression->kind ==
+                                      (an_expr_node_kind)enk_object_lifetime &&
+              dip->variant.expression->variant.object_lifetime.ptr == olp) {
             /* Link around the enk_object_lifetime expression -- it's not
                needed any longer. */
             dip->variant.expression =
