@@ -4391,7 +4391,6 @@ Perform any initializations necessary for error.c functions at the beginning
 of each compilation.
 */
 {
-  error_trans_unit_init();
   catastrophe_has_occurred = FALSE;
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));

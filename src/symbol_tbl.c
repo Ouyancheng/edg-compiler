@@ -10252,8 +10252,6 @@ of the front end.
   /* Clear the operator name symbol table.  Note that this assumes that
      NULL is a zero bit pattern. */
   memzero((char *)opname_symbol_table, sizeof(opname_symbol_table));
-  /* Initialize the variables specific to a given translation unit. */
-  symbol_tbl_trans_unit_init();
   /* scope_stack is not per-file and should not be reset. */
   depth_scope_stack = NO_SCOPE_DEPTH;
   decl_scope_level = NO_SCOPE_DEPTH;

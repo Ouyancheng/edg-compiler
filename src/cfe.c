@@ -90,6 +90,7 @@ int EDG_MAIN(int argc, char *argv[])
     if (display_compilation_time) get_timer(&fe_start_time);
     /* Initialize the front end. */
     fe_init_part_1();
+    fe_translation_unit_init();
     if (do_preprocessing_only) {
       /* Compiler is to operate like cpp, and do just preprocessing. */
       fe_init_part_2();

@@ -12386,7 +12386,6 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-  lexical_trans_unit_init();
   /* Variables in lexical.h: */
   avail_orig_line_modifs = NULL;
   avail_source_line_modifs = NULL;

@@ -601,6 +601,9 @@ line processing is done.
   il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;
   il_header.far_code_pointers = DEFAULT_FAR_CODE_POINTERS;
 #endif /* NEAR_AND_FAR_ALLOWED */
+  /* Early initialization of the translation unit information.  This must
+     be done before fe_one_time_init is started. */
+  trans_unit_early_init();
 }  /* fe_early_init */
 
 
@@ -738,29 +741,9 @@ source file's compilation.
      independently of the rest of IL lowering. */
   name_lower_init();
 #endif /* NEED_NAME_MANGLING */
-  /* Initialize the symbol table (keywords and predefined macros).  Note that
-     keyword_init is called first, so that predefined macros will have
-     priority over keywords.  Also, macro_init must have been called, so
-     that predefined #assert predicates (if any) are entered after
-     assert_predicates has been cleared.  Also, in Microsoft mode,
-     target_init must have been called for correct handling of __int32 and
-     __int64. */
-  keyword_init();
 #if RECORD_MACROS_IN_IL
   il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */
-  init_predefined_macros(curr_date_time);
-  if (!C_mode()) {
-    /* This is done even when RTTI is not enabled because the type_info
-       struct may still be defined when RTTI is disabled. */
-    type_of_type_info = init_predeclared_class((a_type_kind)tk_class,
-                                               "type_info");
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will
@@ -788,14 +771,6 @@ source file's compilation.
   debug_level = save_debug_level;
 #endif /* DEBUG */
 
-  /* Push an entry for the file scope onto the scope stack, saving the
-     pointer to the scope in the IL header.  This is done after the entry
-     of keywords and predefined macros, because they do not belong to the
-     file scope. */
-  il_header.primary_scope =
-                    push_scope((a_scope_kind)sck_file,
-                               NO_SCOPE_NUMBER, (a_type_ptr)NULL,
-                               (a_routine_ptr)NULL);
   il_header.main_routine = NULL;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   il_header.scope_orphaned_list_headers = NULL;
@@ -854,52 +829,6 @@ source file's compilation.
     start_il_file();
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  if (C_dialect == C_dialect_cplusplus) {
-    a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
-#if RUNTIME_USES_NAMESPACES
-    need_std = TRUE;
-#endif /* RUNTIME_USES_NAMESPACES */
-    if (need_std || ignore_std_namespace) {  /*lint !e774*/
-      /* Predeclare namespace "std" and create a symbol for it.  Note that
-         the symbol is not actually added to the symbol table until namespace
-         "std" is explicitly declared (unless the --ignore_std option is
-         used). */
-      make_symbol_for_namespace_std();
-      if (ignore_std_namespace) {
-        clear_locator(&locator_for_curr_id, &null_source_position);
-        enter_symbol_for_namespace_std(&locator_for_curr_id);
-      }  /* if */
-    }  /* if */
-    /* Add symbols for ::operator new and ::operator delete to the symbol
-       table.  This is delayed till now (rather than done with other symbol
-       table initialization) because routine entries are also created. */
-    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
-    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
-    if (!microsoft_mode && array_new_and_delete_enabled) {
-      /* Add symbols for the array versions, too. */
-      make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
-      make_global_operator_new_or_delete_symbol(
-                                             (an_opname_kind)onk_array_delete);
-    }  /* if */
-  }  /* if */
-  /* Enter other predeclared symbols, as required by the implementation. */
-  enter_system_specific_predeclared_symbols();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    if (C_mode()) {
-      /* Add a symbol for predeclared _alloca. */
-      make_predeclared_alloca_symbol();
-    }  /* if */
-    /* Add a symbol for predeclared size_t. */
-    make_predeclared_size_t_symbol();
-    if (bool_is_keyword) {
-      /* In Microsoft mode, "bool" is not really a keyword.  It's a typedef
-         name in the global scope.  This means it can be redeclared to
-         something else in other scopes. */
-      make_predeclared_bool_symbol();
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The primary source file pointer is updated when the file is opened. */
   il_header.primary_source_file = NULL;
 
@@ -1035,6 +964,80 @@ calls symbol_tbl_trans_unit_init.
   lower_c99_trans_unit_init();
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
+  /* Initialize the symbol table (keywords and predefined macros).  Note that
+     keyword_init is called first, so that predefined macros will have
+     priority over keywords.  Also, macro_init must have been called, so
+     that predefined #assert predicates (if any) are entered after
+     assert_predicates has been cleared.  Also, in Microsoft mode,
+     target_init must have been called for correct handling of __int32 and
+     __int64. */
+  keyword_init();
+  /* Push an entry for the file scope onto the scope stack, saving the
+     pointer to the scope in the IL header.  This is done after the entry
+     of keywords and predefined macros, because they do not belong to the
+     file scope. */
+  il_header.primary_scope =
+                    push_scope((a_scope_kind)sck_file,
+                               NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+                               (a_routine_ptr)NULL);
+  init_predefined_macros(curr_date_time);
+  if (!C_mode()) {
+    /* This is done even when RTTI is not enabled because the type_info
+       struct may still be defined when RTTI is disabled. */
+    type_of_type_info = init_predeclared_class((a_type_kind)tk_class,
+                                               "type_info");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
+#if RUNTIME_USES_NAMESPACES
+    need_std = TRUE;
+#endif /* RUNTIME_USES_NAMESPACES */
+    if (need_std || ignore_std_namespace) {  /*lint !e774*/
+      /* Predeclare namespace "std" and create a symbol for it.  Note that
+         the symbol is not actually added to the symbol table until namespace
+         "std" is explicitly declared (unless the --ignore_std option is
+         used). */
+      make_symbol_for_namespace_std();
+      if (ignore_std_namespace) {
+        clear_locator(&locator_for_curr_id, &null_source_position);
+        enter_symbol_for_namespace_std(&locator_for_curr_id);
+      }  /* if */
+    }  /* if */
+    /* Add symbols for ::operator new and ::operator delete to the symbol
+       table.  This is delayed till now (rather than done with other symbol
+       table initialization) because routine entries are also created. */
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
+    if (!microsoft_mode && array_new_and_delete_enabled) {
+      /* Add symbols for the array versions, too. */
+      make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
+      make_global_operator_new_or_delete_symbol(
+                                             (an_opname_kind)onk_array_delete);
+    }  /* if */
+  }  /* if */
+  /* Enter other predeclared symbols, as required by the implementation. */
+  enter_system_specific_predeclared_symbols();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    if (C_mode()) {
+      /* Add a symbol for predeclared _alloca. */
+      make_predeclared_alloca_symbol();
+    }  /* if */
+    /* Add a symbol for predeclared size_t. */
+    make_predeclared_size_t_symbol();
+    if (bool_is_keyword) {
+      /* In Microsoft mode, "bool" is not really a keyword.  It's a typedef
+         name in the global scope.  This means it can be redeclared to
+         something else in other scopes. */
+      make_predeclared_bool_symbol();
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* fe_translation_unit_init */
 
 

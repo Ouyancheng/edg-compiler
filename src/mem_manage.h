@@ -124,7 +124,12 @@ execution of the front end.
 #define alloc_fe(size) alloc_in_region(NULL_region_number, size)
 
 /*
-Macro that allocates an entry for the specified type in the general memory.
+Macro that allocates an entry for the specified type in front end memory.
+*/
+#define alloc_fe_of_type(type) (type*)alloc_fe(sizeof(type))
+
+/*
+Macro that allocates an entry for the specified type in general memory.
 */
 #define alloc_general_of_type(type) (type*)alloc_general(sizeof(type))
 

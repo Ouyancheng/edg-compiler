@@ -96,6 +96,9 @@ incorporated:
 /* Type system support. */
 #include "types.h"
 
+/* Translation unit data structures. */
+#include "trans_unit.h"
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* Source sequence list management */
 #include "src_seq.h"
