@@ -7864,6 +7864,8 @@ routine; this happens for casts involving unknown template types, in which
 case a generic cast using the operator cast_op is generated.
 */
 {
+  a_type_ptr orig_type_cast_to = *type_cast_to;
+
   *processed = FALSE;
   *type_cast_to = make_pointer_type(type_pointed_to(*type_cast_to));
   if (is_template_dependent_context() &&
@@ -7892,8 +7894,9 @@ case a generic cast using the operator cast_op is generated.
        temporary. */
     a_dynamic_init_ptr dip;
     an_expr_node_ptr   temp_init_node;
+    a_type_ptr         temp_type = type_pointed_to(orig_type_cast_to);
 
-    temp_init_node = create_expr_temporary(operand->type,
+    temp_init_node = create_expr_temporary(temp_type,
                                            /*result_is_addr=*/TRUE,
                                            /*is_explicit_cast=*/TRUE,
                                            /*suppress_abstract_test=*/FALSE,
