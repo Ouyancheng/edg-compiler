@@ -78,6 +78,7 @@ typedef struct an_il_walk_state {
 		walk_remap_func;
   a_boolean	walking_file_scope;
   int		flag_value_meaning_visited;
+  a_boolean	clear_fe_pointers_during_walk;
 } an_il_walk_state;
 
 
@@ -92,6 +93,8 @@ the variable saved_state for later restoration.
   (saved_state).walk_remap_func            = walk_remap_func;         \
   (saved_state).walking_file_scope         = walking_file_scope;      \
   (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
+  (saved_state).clear_fe_pointers_during_walk = \
+                                       clear_fe_pointers_during_walk; \
 }  /* save_il_walk_state */
 
 /*
@@ -105,6 +108,8 @@ from the saved values in the variable saved_state.
   walk_remap_func            = (saved_state).walk_remap_func;         \
   walking_file_scope         = (saved_state).walking_file_scope;      \
   flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
+  clear_fe_pointers_during_walk = \
+                         (saved_state).clear_fe_pointers_during_walk; \
 }  /* restore_il_walk_state */
 
 #if IL_WALK_NEEDED
@@ -170,7 +175,8 @@ void walk_file_scope_il(
             an_entry_process_function_ptr        entry_process_function,
             a_string_entry_process_function_ptr  string_entry_process_function,
             a_remap_function_ptr                 remap_function,
-            a_walk_termination_test_function_ptr termination_test_function)
+            a_walk_termination_test_function_ptr termination_test_function,
+            a_boolean                            clear_fe_pointers)
 /*
 Walk the intermediate language tree for the file scope.  Begin with il_header
 and visit the whole file-scope tree, but do not go down into the information
@@ -182,6 +188,8 @@ an entry and not continuing deeper into the tree) by calling
 termination_test_function.  entry_process_function,
 string_entry_process_function, remap_function, or termination_test_function
 can be NULL to indicate that the corresponding function is unnecessary.
+If clear_fe_pointers is TRUE, pointers to front end data structures
+are cleared as the traversal is done.
 
 The remapping function is used when reading in an IL file.  The IL tree
 was in memory in some way, and was written out exactly the way it
@@ -201,6 +209,7 @@ That is what the remap function does.
   string_entry_process_func = string_entry_process_function;
   walk_termination_test_func = termination_test_function;
   walk_remap_func = remap_function;
+  clear_fe_pointers_during_walk = clear_fe_pointers;
   walking_file_scope = TRUE;
 #ifdef FFE
   array_bound_walk_index = 0;
@@ -249,7 +258,8 @@ void walk_routine_scope_il(
             an_entry_process_function_ptr        entry_process_function,
             a_string_entry_process_function_ptr  string_entry_process_function,
             a_remap_function_ptr                 remap_function,
-            a_walk_termination_test_function_ptr termination_test_function)
+            a_walk_termination_test_function_ptr termination_test_function,
+            a_boolean                            clear_fe_pointers)
 /*
 Walk the intermediate language tree for a routine scope.  Begin with the
 scope entry for region region_number, and visit the whole scope tree.
@@ -260,6 +270,8 @@ Test for termination (not processing an entry and not continuing deeper
 into the tree) by calling termination_test_function.  entry_process_function,
 string_entry_process_function, remap_function, or termination_test_function
 can be NULL to indicate that the corresponding function is unnecessary.
+If clear_fe_pointers is TRUE, pointers to front end data structures
+are cleared as the traversal is done.
 */
 {
   a_scope_ptr      scope;
@@ -274,6 +286,7 @@ can be NULL to indicate that the corresponding function is unnecessary.
   string_entry_process_func = string_entry_process_function;
   walk_termination_test_func = termination_test_function;
   walk_remap_func = remap_function;
+  clear_fe_pointers_during_walk = clear_fe_pointers;
   /* Walking a routine scope, not the file scope. */
   walking_file_scope = FALSE;
   scope = il_header.region_scope_entry[region_number];
@@ -730,6 +743,7 @@ references.
   string_entry_process_func = NULL;
   walk_termination_test_func = prune_needed_flag_il_walk;
   walk_remap_func = NULL;
+  clear_fe_pointers_during_walk = FALSE;
   /* walking_file_scope need not be set. */
 
   /* Walk the IL tree. */
@@ -1237,6 +1251,7 @@ only the entries marked as "needed" are marked to keep in the IL.
   string_entry_process_func = NULL;
   walk_termination_test_func = prune_keep_in_il_walk;
   walk_remap_func = NULL;
+  clear_fe_pointers_during_walk = FALSE;
   /* walking_file_scope need not be set. */
   if (entry_kind == iek_scope &&
       ((a_scope_ptr)entry_ptr)->kind == (a_scope_kind)sck_file) {
@@ -1530,7 +1545,7 @@ which these are local declarations.
 /*
 Macro to remap an orphan IL entry pointer from an "old" value to a "new"
 value.  This macro is similar to remap_ptr, but all pointers are processed
-as (char *),  ptr is the pointer, and entry_kind is the kind of entry
+as (char *), ptr is the pointer, and entry_kind is the kind of entry
 pointed to.
 */
 #define remap_orphan_ptr(ptr, entry_kind) \
@@ -1769,6 +1784,7 @@ of the front end.
 {
   /* Variables in il_walk.h: */
   walk_remap_func = NULL;
+  clear_fe_pointers_during_walk = FALSE;
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
   end_of_file_scope_needed_flags_phase = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */

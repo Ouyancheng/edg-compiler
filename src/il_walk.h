@@ -82,6 +82,10 @@ EXTERN a_remap_function_ptr
 			/* The function to be used to remap each pointer
 			   from an old value to a new value.  NULL if no
 			   remapping is to be done. */
+EXTERN a_boolean
+		clear_fe_pointers_during_walk;
+			/* If TRUE, pointers to front end information should
+			   be cleared during the IL walk. */
 
 #if IL_WALK_NEEDED 
 
@@ -90,7 +94,8 @@ extern void walk_file_scope_il(
             an_entry_process_function_ptr        entry_process_function,
             a_string_entry_process_function_ptr  string_entry_process_function,
             a_remap_function_ptr                 remap_function,
-            a_walk_termination_test_function_ptr termination_test_function);
+            a_walk_termination_test_function_ptr termination_test_function,
+            a_boolean                            clear_fe_pointers);
 
 /* Walk the intermediate language tree for a routine scope. */
 extern void walk_routine_scope_il(
@@ -98,7 +103,8 @@ extern void walk_routine_scope_il(
             an_entry_process_function_ptr        entry_process_function,
             a_string_entry_process_function_ptr  string_entry_process_function,
             a_remap_function_ptr                 remap_function,
-            a_walk_termination_test_function_ptr termination_test_function);
+            a_walk_termination_test_function_ptr termination_test_function,
+            a_boolean                            clear_fe_pointers);
 
 #endif /* IL_WALK_NEEDED */
 

@@ -324,15 +324,15 @@ Process the source correspondence field pointed to by ptr.
 #endif /* ifdef CFE */
 
 /*
-Clear a pointer (to avoid passing it to the next phase) when remapping
-pointers.
+Clear a front end pointer (to avoid passing it to the next phase) if
+necessary.
 */
-#undef clear_pointer_if_remapping
+#undef conditionally_clear_fe_pointer
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-#define clear_pointer_if_remapping(ptr) /* Nothing */
+#define conditionally_clear_fe_pointer(ptr) /* Nothing */
 #else /* !(NEEDED_FLAG_WALK && ...) */
-#define clear_pointer_if_remapping(ptr) \
-{ if (walk_remap_func != NULL) (ptr) = NULL; }
+#define conditionally_clear_fe_pointer(ptr) \
+{ if (clear_fe_pointers_during_walk) (ptr) = NULL; }
 #endif /* NEEDED_FLAG_WALK && ... */
 
 #undef remap_source_sequence_entry
@@ -378,7 +378,7 @@ pointers.
   walk_unmangled_name(ptr); \
   remap_parent(ptr); \
   remap_source_sequence_entry(ptr); \
-  clear_pointer_if_remapping((ptr).assoc_info); \
+  conditionally_clear_fe_pointer((ptr).assoc_info); \
   walk_per_instantiation_needed_flags(ptr); \
   walk_decl_position_supplement(ptr); \
 }  /* walk_source_corresp */
@@ -617,7 +617,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                 walk_ptr(ptr->variant.template_param.variant.unknown_function.
                                                                conversion_type,
                          a_type_ptr, iek_type);
-                clear_pointer_if_remapping(ptr->variant.template_param.
+                conditionally_clear_fe_pointer(ptr->variant.template_param.
                                               variant.unknown_function.symbol);
                 break;
               case tpck_cast:
@@ -758,7 +758,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_string_ptr(ptr->variant.integer.uuid_string,
                             iek_other_text, 0);
 #if DO_IL_LOWERING
-            clear_pointer_if_remapping(ptr->variant.integer.uuid_variable);
+            conditionally_clear_fe_pointer(ptr->variant.integer.uuid_variable);
 #endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
@@ -829,7 +829,7 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_typeref:
             walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
-            clear_pointer_if_remapping(ptr->variant.typeref.orig_type);
+            conditionally_clear_fe_pointer(ptr->variant.typeref.orig_type);
 #endif /* DO_IL_LOWERING */
             break;
           case tk_ptr_to_member:
@@ -1681,7 +1681,7 @@ end_sizeof:;
         remap_ptr(ptr->definition_template, a_template_ptr, iek_template);
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
-        clear_pointer_if_remapping(ptr->template_info);
+        conditionally_clear_fe_pointer(ptr->template_info);
       }
       break;
 #if RECORD_MACROS_IN_IL
@@ -2159,7 +2159,7 @@ end_sizeof:;
                               "walk_entry_and_subtree: bad dynamic init kind");
         }  /* switch */
 #if DO_IL_LOWERING
-        clear_pointer_if_remapping(ptr->destructible_entity_descr);
+        conditionally_clear_fe_pointer(ptr->destructible_entity_descr);
 #endif /* DO_IL_LOWERING */
       }
       break;
@@ -2236,7 +2236,7 @@ end_sizeof:;
                              an_overriding_virtual_function_ptr,
                              iek_overriding_virtual_function);
 #if DO_IL_LOWERING
-        clear_pointer_if_remapping(ptr->virtual_function_table_var);
+        conditionally_clear_fe_pointer(ptr->virtual_function_table_var);
 #endif /* DO_IL_LOWERING */
       }
       break;
@@ -2334,13 +2334,13 @@ after_entry_from_class:
 #endif /* !DO_IL_LOWERING */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
-          clear_pointer_if_remapping(ptr->virtual_function_table_var);
-          clear_pointer_if_remapping(ptr->type_as_subobject);
+          conditionally_clear_fe_pointer(ptr->virtual_function_table_var);
+          conditionally_clear_fe_pointer(ptr->type_as_subobject);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          clear_pointer_if_remapping(ptr->uuid_variable);
+          conditionally_clear_fe_pointer(ptr->uuid_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-          clear_pointer_if_remapping(ptr->promoted_local_types);
+          conditionally_clear_fe_pointer(ptr->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #else /* !DO_IL_LOWERING */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
@@ -2422,7 +2422,7 @@ after_entry_from_class:
           /* A template template argument. */
           walk_ptr(ptr->variant.templ, a_template_ptr, iek_template);
         }  /* if */
-        clear_pointer_if_remapping(ptr->arg_operand);
+        conditionally_clear_fe_pointer(ptr->arg_operand);
       }
       break;
     case iek_new_delete_supplement:
@@ -2858,7 +2858,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef remap_source_sequence_entry
 #undef walk_source_corresp
 #undef walk_unmangled_name
-#undef clear_pointer_if_remapping
+#undef conditionally_clear_fe_pointer
 #undef report_bad_init_kind
 #undef walk_initializer
 #undef walk_orphan_entry_list
