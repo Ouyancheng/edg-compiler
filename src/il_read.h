@@ -45,9 +45,16 @@ EXTERN char	*entry_array_base_array[(int)iek_last],
 			   from this array.  The "fs_" array is for the file
 			   scope, the other is for a function scope. */
 
-extern sizeof_t entry_length_with_prefix(an_il_entry_kind entry_kind,
-                                         a_boolean        is_in_file_scope,
-                                         sizeof_t         *offset_to_entry);
+EXTERN sizeof_t	entry_length_with_prefix[(int)iek_last],
+		fs_entry_length_with_prefix[(int)iek_last];
+			/* The each IL entry kind, the length of the IL
+			   entry including any prefix, in function scopes
+			   and (the fs_ version) in the file scope. */
+EXTERN sizeof_t	length_of_entry_prefix[(int)iek_last],
+		fs_length_of_entry_prefix[(int)iek_last];
+			/* For each IL entry kind, the length of the prefix
+			   preceding the entry, in function scopes and
+			   (the fs_ version) in the file scope. */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 /* Read the intermediate language for the file scope. */
