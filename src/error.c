@@ -1750,6 +1750,9 @@ error code.
     case ec_nonconst_ref_init_from_rvalue:
       m = "initial value of reference to non-const must be an lvalue";
       break;
+    case ec_implicit_static_data_member_definition:
+      m = "%simplicit definition of %nf %p";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -4204,14 +4207,18 @@ is set to point to a symbol that provides the context information and
   if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
     /* Template instantiations (except for prototype instantiations)
        need additional context information. */
-    if (ssep->assoc_instantiation == NULL) {
-      sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-      result = !sym->variant.class_struct_union.extra_info->is_nonreal_class;
-    } else {
-      sym = ssep->assoc_instantiation->routine_sym;
+    sym = ssep->instance_sym;
+    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       result = TRUE;
+      error_code = ec_implicit_static_data_member_definition;
+    } else {
+      error_code = ec_template_instantiation_context;
+      if (is_class_symbol(sym)) {
+        result = !sym->variant.class_struct_union.extra_info->is_nonreal_class;
+      } else {
+        result = TRUE;
+      }  /* if */
     }  /* if */
-    error_code = ec_template_instantiation_context;
   } else if (ssep->kind == (a_scope_kind)sck_function) {
     /* Compiler generated functions need additional information. */
     if (ssep->assoc_routine->compiler_generated) {
