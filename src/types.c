@@ -2980,56 +2980,60 @@ catch a B.
   if (exceptions_enabled) {
     type1 = skip_typerefs(type1);
     type2 = skip_typerefs(type2);
-    check_assertion(type1->kind == (a_type_kind)tk_routine &&
-                    type2->kind == (a_type_kind)tk_routine);
-    esp1 = type1->variant.routine.extra_info->exception_specification;
-    esp2 = type2->variant.routine.extra_info->exception_specification;
-    if (esp2 == NULL) {
-      /* The function associated with type2 can throw any exception; type1
-         cannot be less restrictive than that. */
-      /* is_less_restrictive = FALSE; */
-    } else if (esp1 == NULL) {
-      /* Type1's function can can throw any exception, and type2's function
-         has at least some restriction, so the former is less restrictive. */
-      is_less_restrictive = TRUE;
+    if (is_error(type1) || is_error(type2)) {
+      /* No action -- return FALSE. */
     } else {
-      /* If any type on the exception specification list of type1's function
-         does not match a type on the list of type2, the former is less
-         restrictive. Corollary 1: if the list of the type1's function is
-         empty (i.e., if its exception specification is maximally
-         restrictive), there is no way it can be less restrictive; in this
-         case, the outer loop stops before it even gets started.  Corollary 2:
-         if there is anything on the list for type1 and the list for type2 is
-         empty, type1 has to be less restrictive; in this case it is the inner
-         loop that doesn't run. */
-      /* The outer loop traverses the types specified for type1. */
-      estp1 = esp1->exception_specification_type_list;
-      for (; estp1 != NULL; estp1 = estp1->next) {
-        /* Ignore entries marked "redundant" -- the type has already been
-           seen on the list. */
-        if (estp1->redundant) continue;
-        /* The inner loop traverses the types specified for type2, looking
-           for an entry that matches the current entry from type1's list. */
-        estp2 = esp2->exception_specification_type_list;
-        for (; estp2 != NULL; estp2 = estp2->next) {
+      check_assertion(type1->kind == (a_type_kind)tk_routine &&
+                      type2->kind == (a_type_kind)tk_routine);
+      esp1 = type1->variant.routine.extra_info->exception_specification;
+      esp2 = type2->variant.routine.extra_info->exception_specification;
+      if (esp2 == NULL) {
+        /* The function associated with type2 can throw any exception; type1
+           cannot be less restrictive than that. */
+        /* is_less_restrictive = FALSE; */
+      } else if (esp1 == NULL) {
+        /* Type1's function can can throw any exception, and type2's function
+           has at least some restriction, so the former is less restrictive. */
+        is_less_restrictive = TRUE;
+      } else {
+        /* If any type on the exception specification list of type1's function
+           does not match a type on the list of type2, the former is less
+           restrictive. Corollary 1: if the list of the type1's function is
+           empty (i.e., if its exception specification is maximally
+           restrictive), there is no way it can be less restrictive; in this
+           case, the outer loop stops before it even gets started.  Corollary
+           2: if there is anything on the list for type1 and the list for
+           type2 is empty, type1 has to be less restrictive; in this case it
+           is the inner loop that doesn't run. */
+        /* The outer loop traverses the types specified for type1. */
+        estp1 = esp1->exception_specification_type_list;
+        for (; estp1 != NULL; estp1 = estp1->next) {
           /* Ignore entries marked "redundant" -- the type has already been
              seen on the list. */
-          if (estp2->redundant) continue;
-          /* The types "match" if a handler for estp1->type can catch
-             estp2->type -- e.g., if the types are identical or estp1->type
-             is a public and unambiguous base class of estp2->type. */
-          if (type_is_catchable_by_handler_for_other_type(estp2->type,
-                                                          estp1->type)) {
-            /* Match. */
-            goto continue_outer_loop;
-          }  /* if */
-        }  /* for */
-        /* Falling through to here means a match was not found. */
-        is_less_restrictive = TRUE;
-        break;
+          if (estp1->redundant) continue;
+          /* The inner loop traverses the types specified for type2, looking
+             for an entry that matches the current entry from type1's list. */
+          estp2 = esp2->exception_specification_type_list;
+          for (; estp2 != NULL; estp2 = estp2->next) {
+            /* Ignore entries marked "redundant" -- the type has already been
+               seen on the list. */
+            if (estp2->redundant) continue;
+            /* The types "match" if a handler for estp1->type can catch
+               estp2->type -- e.g., if the types are identical or estp1->type
+               is a public and unambiguous base class of estp2->type. */
+            if (type_is_catchable_by_handler_for_other_type(estp2->type,
+                                                            estp1->type)) {
+              /* Match. */
+              goto continue_outer_loop;
+            }  /* if */
+          }  /* for */
+          /* Falling through to here means a match was not found. */
+          is_less_restrictive = TRUE;
+          break;
 continue_outer_loop:;
-        /* A match was found.  Move on to the next type in type1's list. */
-      }  /* for */
+          /* A match was found.  Move on to the next type in type1's list. */
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_less_restrictive;
