@@ -87,9 +87,11 @@ extern a_symbol_ptr find_defined_macro(a_symbol_header_ptr sym_hdr);
 
 /* Adjust addresses in the curr_source_line structure after something
    has been realloc'd. */
-extern void adjust_curr_source_line_structure_after_realloc(char *old_ptr,
-                                                     char *old_after_end_ptr,
-                                                     char *new_ptr);
+extern void adjust_curr_source_line_structure_after_realloc(
+                                          char      *old_ptr,
+                                          char      *old_after_end_ptr,
+                                          char      *new_ptr,
+                                          a_boolean adjust_source_line_modifs);
 
 /* Expand a macro invocation. */
 extern a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,

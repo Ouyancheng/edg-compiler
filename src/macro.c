@@ -56,6 +56,29 @@ static char	*next_avail_in_macro_buffer;
 			   for allocation.  Reset at the start of a macro
 			   definition or a top-level macro expansion.  Not
 			   set outside of macro processing. */
+static sizeof_t num_compacted_macro_buffer_chars;
+			/* Number of characters in macro_buffer that have
+			   already been compacted as a result of previous
+			   reallocations.  Except for cases where source line
+			   modifications are inserted in this region because
+			   of rescanning, these characters cannot be compacted
+			   further and, as an optimization, can thus just be
+			   memcpy'ed during further macro_buffer
+			   reallocations. */
+static sizeof_t num_chars_deleted_in_macro_buffer;
+			/* Number of characters in the uncompacted portion of
+			   macro_buffer that have been logically deleted via
+			   source line modifications. */
+static char	*macro_buffer_region_in_progress;
+			/* If non-NULL, points to the start of a section at
+			   the end of macro_buffer that is in the process of
+			   being built incrementally (e.g., by proc_define).
+			   Set by begin_macro_buffer_region() and by
+			   release_macro_buffer_region().  This allows the
+			   region to be copied by expand_macro_buffer, even
+			   though the region is not associated with a source
+			   line modification at the time that macro_buffer is
+			   reallocated. */
 static char	*aux_buffer_for_pcc_macros;
 			/* Auxiliary buffer allocated in pcc mode only and
 			   used to construct the full text of a first-level
@@ -226,16 +249,20 @@ static a_symbol_ptr
 			   macros "__DATE__" and "__TIME__". */
 
 
-void adjust_curr_source_line_structure_after_realloc(char *old_ptr,
-                                                     char *old_after_end_ptr,
-                                                     char *new_ptr)
+void adjust_curr_source_line_structure_after_realloc(
+                                           char      *old_ptr,
+                                           char      *old_after_end_ptr,
+                                           char      *new_ptr,
+                                           a_boolean adjust_source_line_modifs)
 /*
 Walk the data structure associated with curr_source_line, and change any
 pointers that point in the range old_ptr..old_after_end_ptr (the latter
 pointer pointing to just after the last byte) to point instead to the
 area following new_ptr.  This is necessary because the area that was
 at old_ptr has been realloc'd (to change its size), and new_ptr is the
-new address for the area.
+new address for the area.  A caller that needs special processing of source
+line modifications can pass adjust_source_line_modifs as FALSE; otherwise,
+the pointers in all source line modifications will be adjusted as needed.
 */
 {
   an_orig_line_modif_ptr     olmp;
@@ -274,18 +301,20 @@ new address for the area.
     for (olmp = orig_line_modif_list; olmp != NULL; olmp = olmp->next) {
       fix_ptr(olmp->line_loc);
     }  /* for */
-    /* Walk the source line modif list (which represents macro expansions
-       and comment deletions). */
-    for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
-      if (slmp->line_loc != NULL &&
-          ptr_in_range(slmp->line_loc, old_ptr, old_after_end_plus_1)) {
-        rem_source_line_modif_from_hash_table(slmp);
-        fix_ptr(slmp->line_loc);
-        add_source_line_modif_to_hash_table(slmp);
-      }  /* if */
-      fix_ptr(slmp->inserted_text);
-      fix_ptr(slmp->end_inserted_text);
-    }  /* for */
+    if (adjust_source_line_modifs) {
+      /* Walk the source line modif list (which represents macro expansions
+         and comment deletions). */
+      for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+        if (slmp->line_loc != NULL &&
+            ptr_in_range(slmp->line_loc, old_ptr, old_after_end_plus_1)) {
+          rem_source_line_modif_from_hash_table(slmp);
+          fix_ptr(slmp->line_loc);
+          add_source_line_modif_to_hash_table(slmp);
+        }  /* if */
+        fix_ptr(slmp->inserted_text);
+        fix_ptr(slmp->end_inserted_text);
+      }  /* for */
+    }  /* if */
     /* Fix pointers in the macro argument entries. */
     for (map = macro_arg_list; map != NULL; map = map->next) {
       fix_ptr(map->initial_raw_text_not_in_primary_source_line);
@@ -308,14 +337,64 @@ new address for the area.
 }  /* adjust_curr_source_line_structure_after_realloc */
 
 
+static char* copy_attention_markers(a_source_line_modif_ptr slmp,
+                                    char                    *next_avail)
+/*
+Scan the deleted text of the specified source line modification for
+ATTENTION_MARKERs and copy them into the buffer designated by next_avail.
+(The one at slmp->line_loc has already been copied into the destination
+buffer).  If a nested ATTENTION_MARKER is found, this routine copies it into
+the destination buffer and then calls itself recursively for the corresponding
+source line modification.  Finally, the supplied source line modification's
+line_loc is relocated to point to the copy and slmp->num_chars_to_delete is
+adjusted to be the number of ATTENTION_MARKERs copied (directly or indirectly)
+to the destination buffer, effectively compacting this source line
+modification's deleted text to the minimum necessary to traverse nested
+source line modifications (e.g., to detect inert macros).  The return value
+is the address of the character in the destination buffer immediately
+following the last copied ATTENTION_MARKER.
+*/
+{
+  char *src = slmp->line_loc + 1;
+  char *this_target = next_avail - 1;
+
+  while (src < slmp->line_loc + slmp->num_chars_to_delete) {
+    if (*src == ATTENTION_MARKER) {
+      a_source_line_modif_ptr slmp2 = nested_source_line_modif(src);
+      src += slmp2->num_chars_to_delete;
+      *next_avail++ = ATTENTION_MARKER;
+      next_avail = copy_attention_markers(slmp2, next_avail);
+    } else {
+      ++src;
+    }  /* if */
+  }  /* while */
+  rem_source_line_modif_from_hash_table(slmp);
+  slmp->line_loc = this_target;
+  add_source_line_modif_to_hash_table(slmp);
+  slmp->num_chars_to_delete = next_avail - this_target;
+  return next_avail;
+}  /* copy_attention_markers */
+
+
 static void expand_macro_buffer(sizeof_t needed)
 /*
-Expand the macro_buffer by reallocating it.  Called by
+Expand the macro_buffer by reallocating it.  As a side effect, to reduce
+memory overhead, remove all deleted text (except ATTENTION_MARKERs) while
+copying from the old buffer to the new one.  Called by
 ensure_macro_buffer_space.
 */
 {
-  sizeof_t old_size, new_size, increment;
-  char     *new_macro_buffer;
+  sizeof_t                old_size, new_size, increment;
+  char                    *new_macro_buffer;
+  register char           *src;
+  register char           *dst;
+  register char           ch;
+  char                    *old_start_for_remapping;
+  char                    *new_start_for_remapping;
+  a_source_line_modif_ptr slmp;
+  a_source_line_modif_ptr nested_slmp;
+  char                    *old_start_of_uncompacted;
+  sizeof_t                num_chars_to_copy;
 
   db_enter(4, "expand_macro_buffer");
   old_size = after_end_of_macro_buffer - macro_buffer;
@@ -323,7 +402,12 @@ ensure_macro_buffer_space.
      little bit more. */
   increment = needed + needed/10 -
               (after_end_of_macro_buffer - next_avail_in_macro_buffer);
-  if (increment < old_size) {
+  if (num_chars_deleted_in_macro_buffer > increment &&
+      num_chars_deleted_in_macro_buffer > old_size/4) {
+    /* Avoid memory growth by using same size buffer -- there's plenty of
+       room after compaction. */
+    increment = 0;
+  } else if (increment < old_size) {
     /* At least double the current allocation. */
     increment = old_size;
   }  /* if */
@@ -331,17 +415,114 @@ ensure_macro_buffer_space.
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
-  new_macro_buffer = realloc_general(macro_buffer, (sizeof_t)(old_size+1),
-                                                   (sizeof_t)(new_size+1));
-  /* Update any pointers to the old macro_buffer in the curr_source_line
-     data structure. */
-  adjust_curr_source_line_structure_after_realloc(macro_buffer,
-                                                  after_end_of_macro_buffer,
-                                                  new_macro_buffer);
-  next_avail_in_macro_buffer = next_avail_in_macro_buffer - macro_buffer +
-                               new_macro_buffer;
+  new_macro_buffer = alloc_general((sizeof_t)(new_size+1));
+  if (num_compacted_macro_buffer_chars > 0) {
+    /* Text that has already been compacted in a previous reallocation can
+       simply be memcpy'ed and pointers into it adjusted directly, rather
+       than going through the compaction process again.  This can leave some
+       uncompacted deletions (when a source line modification is added inside
+       the already-compacted space as a result of rescanning), but the time
+       saved makes this a good tradeoff. */
+    (void)memcpy(new_macro_buffer, macro_buffer,
+                 num_compacted_macro_buffer_chars);
+    adjust_curr_source_line_structure_after_realloc(macro_buffer,
+                           macro_buffer + num_compacted_macro_buffer_chars - 1,
+                           new_macro_buffer,
+                           /*adjust_source_line_modifs=*/FALSE);
+  }  /* if */
+  old_start_of_uncompacted = macro_buffer + num_compacted_macro_buffer_chars;
+  dst = new_macro_buffer + num_compacted_macro_buffer_chars;
+  /* Scan through all source line modifications.  For each modification
+     whose line_loc is in the already-compacted (and already-copied) part of
+     the buffer, relocate it appropriately; the same for modifications whose
+     inserted_text is in that region.  Modifications whose inserted text is
+     in the new (uncompacted) region are copied to the new buffer, scanning
+     for and compacting deleted text.  The compaction process relocates the
+     line_loc for the associated source line modification of each deletion,
+     and adjust_curr_source_line_structure_after_realloc is called for each
+     block of text copied into the new buffer.  Note also that text in the
+     macro_buffer whose associated source line modification has been removed
+     will not be copied, further reducing memory usage. */
+  for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+    if (slmp->line_loc != NULL &&
+        ptr_in_range(slmp->line_loc, macro_buffer, old_start_of_uncompacted)) {
+      /* slmp->line_loc has already been copied in the compacted portion of
+         the buffer; just relocate the pointer. */
+      rem_source_line_modif_from_hash_table(slmp);
+      slmp->line_loc = slmp->line_loc - macro_buffer + new_macro_buffer;
+      add_source_line_modif_to_hash_table(slmp);
+    }  /* if */
+    if (ptr_in_range(slmp->inserted_text, macro_buffer,
+                     old_start_of_uncompacted)) {
+      /* The inserted text has already been copied in the compacted portion
+         of the buffer; just relocate the start and end pointers. */
+      slmp->inserted_text =
+                         slmp->inserted_text - macro_buffer + new_macro_buffer;
+      slmp->end_inserted_text =
+                     slmp->end_inserted_text - macro_buffer + new_macro_buffer;
+    } else if (ptr_in_range(slmp->inserted_text, old_start_of_uncompacted,
+                            next_avail_in_macro_buffer)) {
+      /* The inserted text is in the portion of the buffer to be compacted.
+         Scan through it, copying undeleted text and only the
+         ATTENTION_MARKERs of deleted parts. */
+      src = slmp->inserted_text;
+      slmp->inserted_text = dst;
+      for (;;) {
+        old_start_for_remapping = src;
+        new_start_for_remapping = dst;
+        while ((ch = (*dst++ = *src++)) != ATTENTION_MARKER &&
+               ch != LE_END_OF_INSERTION) {}
+        /* Having copied some number of characters from the old buffer to the
+           new one, update any pointers into that region to reflect the
+           movement. */
+        adjust_curr_source_line_structure_after_realloc(
+                                          old_start_for_remapping, src,
+                                          new_start_for_remapping,
+                                          /*adjust_source_line_modifs=*/FALSE);
+        if (ch == ATTENTION_MARKER) {
+          /* This is the location of a macro replacement or deleted text.  Copy
+             only the ATTENTION_MARKER to the new buffer and adjust the source
+             pointer appropriately. */
+          nested_slmp = nested_source_line_modif(src - 1);
+          src += nested_slmp->num_chars_to_delete - 1;
+          dst = copy_attention_markers(nested_slmp, dst);
+        } else if (src > old_start_for_remapping + 1 && src[-2] == LE_ESCAPE) {
+          /* This is an end-of-insertion marker (and not just a stray
+             LE_END_OF_INSERTION character, hence the retroactive check for a
+             preceding LE_ESCAPE character -- there will typically be lots of
+             LE_ESCAPEs that are not end-of-insertions (because of token-ends),
+             so it's much faster to scan for LE_END_OF_INSERTION in the
+             character-copying loop and then check for the preceding
+             character). */
+          check_assertion(slmp->end_inserted_text == src - 2);
+          slmp->end_inserted_text = dst - 2;
+          break;
+        }  /* if */
+      }  /* while */
+    }  /* if */
+  }  /* for */
+  num_compacted_macro_buffer_chars = dst - new_macro_buffer;
+  if (macro_buffer_region_in_progress != NULL) {
+    /* The end of the old buffer contains data that is not referred to by a
+       source line modification and thus must be copied specially into the
+       new buffer. */
+    check_assertion(ptr_in_range(macro_buffer_region_in_progress, macro_buffer,
+                                 next_avail_in_macro_buffer + 1));
+    num_chars_to_copy =
+                  next_avail_in_macro_buffer - macro_buffer_region_in_progress;
+    (void)memcpy(dst, macro_buffer_region_in_progress, num_chars_to_copy);
+    adjust_curr_source_line_structure_after_realloc(
+                                          macro_buffer_region_in_progress,
+                                          next_avail_in_macro_buffer, dst,
+                                          /*adjust_source_line_modifs=*/FALSE);
+    macro_buffer_region_in_progress = dst;
+    dst += num_chars_to_copy;
+  }  /* if */
+  free_general((a_void_ptr)macro_buffer, (sizeof_t)(old_size+1));
   macro_buffer = new_macro_buffer;
   after_end_of_macro_buffer = macro_buffer + new_size;
+  next_avail_in_macro_buffer = dst;
+  num_chars_deleted_in_macro_buffer = 0;
   db_exit();
 }  /* expand_macro_buffer */
 
@@ -357,6 +538,34 @@ If not, expand macro_buffer by reallocating it.
     expand_macro_buffer(temp_needed);                                 \
   }  /* if */                                                         \
 }  /* ensure_macro_buffer_space */
+
+
+static char* begin_macro_buffer_region()
+/*
+Mark the existence and beginning location of a region at the tail of the
+macro_buffer that must be copied specially upon macro_buffer reallocation.
+This routine must be called whenever a data structure will be built in the
+macro_buffer incrementally, i.e., with the possibility of a reallocation
+occurring before the structure is complete.  For convenience, it returns
+next_avail_in_macro_buffer, where the structure being built will begin.
+*/
+{
+  check_assertion(macro_buffer_region_in_progress == NULL);
+  macro_buffer_region_in_progress = next_avail_in_macro_buffer;
+  return next_avail_in_macro_buffer;
+}  /* begin_macro_buffer_region */
+
+
+static void release_macro_buffer_region()
+/*
+Unmark the region at the end of the macro_buffer for special handling upon
+buffer reallocation.  This routine must be called once the data structure in
+the space marked by begin_macro_buffer_region() is complete and either copied
+elsewhere or registered as the inserted_text of a source line modification.
+*/
+{
+  macro_buffer_region_in_progress = NULL;
+}  /* release_macro_buffer_region */
 
 
 static void expand_aux_buffer_for_pcc_macros(sizeof_t needed,
@@ -393,7 +602,8 @@ the pointer to the next available position in that buffer.
      local pointers that might point into the aux. buffer. */
   adjust_curr_source_line_structure_after_realloc(aux_buffer_for_pcc_macros,
                                         after_end_of_aux_buffer_for_pcc_macros,
-                                        new_aux_buffer_for_pcc_macros);
+                                        new_aux_buffer_for_pcc_macros,
+                                        /*adjust_source_line_modifs=*/TRUE);
   /* Note that pos_in_aux_buffer is now unusable, since it has not been
      updated here.  However, the caller has the variable it passed registered
      as a local pointer, and that will have been updated. */
@@ -470,8 +680,9 @@ have_space:
   /* Update any pointers to the old raw_text in the curr_source_line
      data structure. */
   adjust_curr_source_line_structure_after_realloc(map->raw_text,
-                                                  map->raw_text+old_size,
-                                                  new_raw_text);
+                                           map->raw_text+old_size,
+                                           new_raw_text,
+                                           /*adjust_source_line_modifs=*/TRUE);
   map->raw_text = new_raw_text;
   map->raw_alloc_len = new_size;
   db_exit();
@@ -544,8 +755,9 @@ have_space:
   /* Update any pointers to the old expanded_text in the curr_source_line
      data structure. */
   adjust_curr_source_line_structure_after_realloc(map->expanded_text,
-                                                  map->expanded_text+old_size,
-                                                  new_expanded_text);
+                                           map->expanded_text+old_size,
+                                           new_expanded_text,
+                                           /*adjust_source_line_modifs=*/TRUE);
   map->expanded_text = new_expanded_text;
   map->expanded_alloc_len = new_size;
   db_exit();
@@ -2164,6 +2376,8 @@ associated global variables will also have been set).
   }  /* for */
   /* No source line modifications from macros. */
   next_avail_in_macro_buffer = macro_buffer;
+  num_chars_deleted_in_macro_buffer = 0;
+  num_compacted_macro_buffer_chars = 0;
 end_scan_for_macro_modifs:;
   /* Normal case is that the macro expansion is rescanned after this routine
      exits. */
@@ -3010,6 +3224,14 @@ copy_done:
                                (sizeof_t)(curr_char_loc -
                                                        delete_source_from_loc),
                                rescan_loc, rescan_loc+repl_text_len);
+  if (ptr_in_range(delete_source_from_loc,
+                   macro_buffer + num_compacted_macro_buffer_chars,
+                   after_end_of_macro_buffer)) {
+    /* Keep count of storage in macro_buffer no longer needed ("-1" allows
+       for the ATTENTION_MARKER, which must remain). */
+    num_chars_deleted_in_macro_buffer +=
+                                    curr_char_loc - delete_source_from_loc - 1;
+  }  /* if */
   slmp->assoc_macro = mdp;
   slmp->source_position = start_pos;
   /* Can't set the parent modification here without looking it up.  In
@@ -3798,8 +4020,10 @@ Scan and process a #define directive.
        argument list. */
     if (line_start_source_line_modif == NULL && macro_depth == 0) {
       next_avail_in_macro_buffer = macro_buffer;
+      num_chars_deleted_in_macro_buffer = 0;
+      num_compacted_macro_buffer_chars = 0;
     }  /* if */
-    buffer_start = next_avail_in_macro_buffer;
+    buffer_start = begin_macro_buffer_region();
     /* Not inside a cpp string. */
     end_of_cpp_string = NULL;
     /* Last section in replacement text is not raw text. */
@@ -4044,6 +4268,7 @@ def_done:;
     }  /* if */
   }  /* if */
   /* Drop any local pointer registrations. */
+  release_macro_buffer_region();
   registered_pointers = save_registered_pointers;
   db_exit();
 }  /* proc_define */

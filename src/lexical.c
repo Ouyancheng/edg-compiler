@@ -4301,8 +4301,9 @@ reallocate curr_source_line to make it bigger.
   /* Update any pointers to the old curr_source_line in the
      curr_source_line data structure. */
   adjust_curr_source_line_structure_after_realloc(curr_source_line,
-                                                 after_end_of_curr_source_line,
-                                                  new_curr_source_line);
+                                           after_end_of_curr_source_line,
+                                           new_curr_source_line,
+                                           /*adjust_source_line_modifs=*/TRUE);
   curr_source_line = new_curr_source_line;
   after_end_of_curr_source_line = curr_source_line + new_size;
   db_exit();

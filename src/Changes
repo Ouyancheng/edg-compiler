@@ -1,5 +1,13 @@
 Version 3.6
 
+2/18/05  Preprocessor memory usage
+
+Deeply-nested pseudo-recursive macro expansions, such as found in the BOOST
+preprocessor library, formerly required large amounts of memory to process.
+The memory requirements of such macro expansions have been greatly reduced
+by compacting the macro_buffer each time it is extended as a result of
+overflow.
+
 2/17/05  GNU compatibility: Spurious error on asm names
 
 In GNU modes, with configurations with ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
