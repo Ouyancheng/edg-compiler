@@ -10,15 +10,20 @@ instantiations in more than one file.  When no external symbol is
 available for use in the module ID, the compilation time and current
 directory are now included.
 
-10/8/97   Applying a type qualifier to a function type is not allowed
+10/8/97   Applying a cv-qualifier to a function type is not allowed in C++
 
 A discretionary error (a warning in Microsoft and cfront compatibility
-modes) is now issued when a cv-qualifier is applied to a function type.
-For instance:
+modes) is now issued when a cv-qualifier is applied to a function type
+in C++ mode.  For instance:
 
   typedef void F(int);
   typedef const F CF;               // Error
   void g(const F *pf) { ... }       // Error
+
+In a related change, a pointer-to-member selection (using the ".*" or
+"->*" operator) with a second operand that is a pointer-to-member-function
+no longer adds the cv-qualifiers of the first operand to the result
+function type.
 
 10/8/97   Spurious error on operator name followed by "<"
 
