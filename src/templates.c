@@ -10307,12 +10307,14 @@ inline) cannot be instantiated.  Pure virtual functions cannot be
 instantiated.
 */
 {
-  a_boolean	result = TRUE;
-  a_routine_ptr	routine;
+  a_boolean			result = TRUE;
+  a_routine_ptr			routine;
+  a_template_instance_ptr	tip = NULL;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
 		  sym->kind == (a_symbol_kind)sk_member_function);
   routine = sym->variant.routine.ptr;
+  tip = sym->variant.routine.instance_ptr;
   if (routine->compiler_generated) {
     result = FALSE;
     if (issue_errors) {
@@ -10332,7 +10334,7 @@ instantiated.
     if (issue_errors) {
       sym_error(ec_instantiation_requested_and_specialized, sym);
     }  /* if */
-  } else if (routine->is_inline) {
+  } else if (is_inline_template_function(tip)) {
     /* An inline function is allowed in an explicit instantiation, but not
        in a pragma. */
     result = !is_pragma;

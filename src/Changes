@@ -1,5 +1,20 @@
 Version 2.36
 
+5/5/97    Instantiation pragmas should not apply to inline functions
+
+When an instantiation pragma (instantiate, do_not_instantiate,
+can_instantiate) is used to instantiate (or suppress instantiation of)
+all members of a class, inline functions should not be affected.  A
+bug was introduced in version 2.32 that caused such pragmas to affect
+the instantiation of inline functions.  This has been fixed.
+
+  template <class T> struct A { void f(){} };
+  #pragma do_not_instantiate A<int>  // should not affect A<int>::f
+  int main() {
+     A<int> a;
+     a.f(); // should be instantiated here
+  }
+
 5/5/97    Disabling alternative tokens in strict mode
 
 It is now possible to disable the recognition of the alternative tokens
