@@ -2978,6 +2978,9 @@ See conversion_possible.
   }  /* if */
 #endif /* DEBUG */
   clear_std_conv_descr(std_conv);
+  /* Assume a nontrivial conversion; the flag will be cleared later if in
+     fact there is nothing nontrivial. */
+  std_conv->nontrivial_conversion = TRUE;
   /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
