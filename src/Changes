@@ -1,5 +1,13 @@
 Version 2.13
 
+1/18/93 Checking for function templates that are too similar
+
+There is now an error check for function templates that are too similar
+or that differ only in return type, e.g.,
+
+  template <class T> void f(T){}
+  template <class T> int f(T){}
+
 1/18/93 Fixed pointer-to-member-function bug
 
 A bug has been fixed in representing the type of the implicit "this"
