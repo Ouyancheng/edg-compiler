@@ -2224,6 +2224,8 @@ extern a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym);
 
 extern a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym);
 
+extern a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr sym);
+
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

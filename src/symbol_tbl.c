@@ -4048,13 +4048,91 @@ class-specific operator delete(), and therefore might be a projection symbol.
 }  /* find_default_operator_delete_sym */
 
 
-#if 0
-a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr sym)
+a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr op_new_sym)
 /*
+op_new_sym is a symbol for an operator new function.  Find and return the
+corresponding operator delete function (i.e., the operator delete function
+with identical parameter types as the operator new function, excluding the
+first parameter in each).  Return NULL if no match is found.
 */
 {
+  a_symbol_ptr      sym;
+  a_routine_ptr     rp;
+  an_opname_kind    delete_opname_kind;
+  a_param_type_ptr  op_new_param_type_list, op_new_ptp, ptp;
+  a_boolean         is_overloaded;
+
+  db_enter(4, "find_corresponding_operator_delete_sym");
+  check_assertion(op_new_sym->kind == (a_symbol_kind)sk_routine ||
+                  op_new_sym->kind == (a_symbol_kind)sk_member_function);
+  rp = op_new_sym->variant.routine.ptr;
+  delete_opname_kind = (rp->opname_kind == (an_opname_kind)onk_new) ?
+                         (an_opname_kind)onk_delete :
+                         (an_opname_kind)onk_array_delete;
+  if (op_new_sym->is_class_member) {
+    /* Class member. */
+    sym = opname_member_function_symbol(delete_opname_kind,
+                                        op_new_sym->parent.class_type);
+  } else {
+    /* Global operator new. */
+    sym = opname_function_symbol(delete_opname_kind);
+  }  /* if */
+  op_new_param_type_list = skip_typerefs(rp->type)->
+                                 variant.routine.extra_info->param_type_list;
+  if (op_new_param_type_list->next == NULL) {
+    /* This is default (single-argument) operator new, so find the default
+       operator delete. */
+    sym = find_default_operator_delete_sym(sym);
+  } else {
+    /* Placement new.  We need to examine all the delete operators and look
+       for a type match. */
+    reduce_projection_symbol_to_fundamental_symbol(sym);
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_overloaded = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_overloaded = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+      /* Ignore function templates. */
+      if (is_function_symbol(sym)) {
+        ptp = skip_typerefs(sym->variant.routine.ptr->type)->
+                                  variant.routine.extra_info->param_type_list;
+        check_assertion(ptp != NULL);
+        ptp = ptp->next;
+        op_new_ptp = op_new_param_type_list->next;
+        for (ptp = ptp->next, op_new_ptp = op_new_param_type_list->next;
+             ptp != NULL && op_new_ptp != NULL;
+             ptp = ptp->next, op_new_ptp = op_new_ptp->next) {
+          if (!identical_types(ptp->type, op_new_ptp->type)) {
+            /* No match. */
+            goto next_delete_symbol;
+          }  /* if */
+          /* Keep looping as long as the types are identical and as long as
+             there are still entries to compare on both lists. */
+        }  /* for */
+        if (ptp == NULL && op_new_ptp == NULL) {
+          /* Both lists were the same length: a match was found, so exit the
+             loop. */
+          break;
+        }  /* if */
+      }  /* if */
+next_delete_symbol:;
+    }  /* for */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    db_symbol(op_new_sym, "", 2);
+    if (sym == NULL) {
+      fputs("no corresponding operator delete was found\n", f_debug);
+    } else {
+      db_symbol(sym, "found: ", 2);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return sym;
 }  /* find_corresponding_operator_delete_sym */
-#endif /* if 0 */
 
 
 static a_symbol_ptr make_predeclared_function_symbol(
