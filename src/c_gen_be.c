@@ -58,6 +58,7 @@ instead of K&R C.
 /* Additional header files. */
 #include "c_gen_be.h"
 
+#include "il_walk.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
 #include "il_read.h"
@@ -70,7 +71,6 @@ instead of K&R C.
 /* Include files needed only to define storage for global variables
    in the main program. */
 #include "lexical.h"
-#include "il_walk.h"
 #include "expr.h"
 #endif /* STANDALONE_C_GEN_BE */
 
