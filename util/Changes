@@ -1,5 +1,12 @@
 Version 2.24
 
+6/27/94 required_buffer_size parameter on decode_identifier
+
+There is now a required_buffer_size parameter in decode_identifier,
+which returns the buffer size needed.  That is useful when a buffer
+overflow occurs (it tells you how big a buffer must be allocated to
+try again).
+
 6/10/94 Changes in command line handling
 
 The eccp script has been changed to accommodate the same command line
