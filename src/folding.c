@@ -1337,9 +1337,9 @@ casts between unrelated classes.
                                             is_implicit_cast,
                                             is_reinterpret_cast, err_pos,
                                             &err_code, &err_severity);
-        } else {
-          *did_not_fold = TRUE;
-        }
+      } else {
+        *did_not_fold = TRUE;
+      }
       break;
 
     case tk_error:
