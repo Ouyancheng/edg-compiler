@@ -1,5 +1,14 @@
 Version 3.6
 
+2/17/05  GNU C++ compatibility: In-class pointer initializers
+
+In GNU C++ mode with gnu_version < 30300 the front end now accepts in-class
+initializers for static data members of a const pointer type.  For example:
+
+  struct S {
+    static int * const p = 0;  // Okay in some GNU C++ modes.
+  };
+
 2/16/05  GNU C++ compatibility: storage specifiers on explicit instantiations
 
 In GNU C++ mode, storage specifiers are now sometimes accepted (and ignored,
@@ -1369,18 +1378,6 @@ fixed.
     A<int (*)()> a2;
     a = a2;  // should result in an error
   }
-
-11/30/04 GNU C++ compatibility: In-class pointer initializers
-
-In GNU C++ mode with gnu_version < 30300 the front end now accepts in-class
-initializers for static data members of a const pointer type.  For example:
-
-  struct S {
-    static int * const p = 0;  // Okay in some GNU C++ modes.
-  };
-
-References to such a member are not considered to be address constant
-expressions, however.
 
 11/30/04 Microsoft compatibility: Out-of-class member enum definitions
 
