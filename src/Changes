@@ -1,5 +1,11 @@
 Version 2.45
 
+12/6/00  Abort in do_conversions_on_operands_of_copied_template_expr
+
+Some uses of "&&" and "||" operators in constant expressions in
+nontype template arguments could result in an abort in
+do_conversions_on_operands_of_copied_template_expr.  Now fixed.
+
 12/4/00  Diagnostic on invalid long long suffix
 
 A diagnostic is now issued in strict mode when a long long suffix of

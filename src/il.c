@@ -7661,6 +7661,9 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_shiftr:
         do_promotion = TRUE;
         break;
+      case eok_land:
+      case eok_lor:
+        break;
       default:
         unexpected_condition_str2(
                          "do_conversions_on_operands_of_copied_template_expr:",
