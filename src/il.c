@@ -9539,6 +9539,22 @@ forced only if instantiate is TRUE.
     microsoft_friend_function_fixup(routine->routine_fixup);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (instantiate && translation_unit_needed_only_for_exported_templates) {
+    /* In a secondary translation unit that is being used only for
+       exported templates, the bodies of noninline external functions are
+       discarded.  If this reference is from such a routine, do not
+       mark any functions called as required for instantiation purposes. */
+    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      /* This reference is from within a template.  Record this reference. */
+    } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* We are processing the body of a nontemplate function.  Do not record
+         the reference unless the function is inline. */
+      a_routine_ptr	curr_routine;
+      curr_routine = scope_stack[depth_innermost_function_scope].assoc_routine;
+      check_assertion(curr_routine != NULL);
+      if (!curr_routine->is_inline) instantiate = FALSE;
+    }  /* if */
+  }  /* if */
   /* If the function is an instance of a function template, mark it
      as requiring an instantiation.  This is also done for extern inline
      functions when inline functions are instantiated using a
