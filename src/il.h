@@ -1195,6 +1195,8 @@ typedef struct a_translation_unit a_translation_unit_dummy_typedef;
 #if !STANDALONE_UTILITY_PROGRAM
 struct a_translation_unit *trans_unit_for_source_corresp(
                                                  a_source_correspondence *scp);
+
+extern a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG

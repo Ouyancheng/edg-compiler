@@ -840,8 +840,6 @@ extern a_variable_ptr make_global_var_with_prefixed_name(
                                       an_integer_kind         ikind,
                                       a_source_correspondence *source_corresp);
 
-extern a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type);
-
 extern a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
