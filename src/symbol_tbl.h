@@ -2069,7 +2069,7 @@ happen once the function scope and its associated memory region are created:
     have to be in the scope of the function, but when the expression is
     originally scanned, the function's IL scope does not yet exist, so the
     fixup involves copying the expression node into the function scope memory
-    region and allocaing the VLA-dimension entry to point to it.
+    region and allocating the VLA-dimension entry to point to it.
 When no function definition is associated with the function prototype
 declaration, the fixup entries are discarded.
 */

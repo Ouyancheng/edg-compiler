@@ -1096,7 +1096,7 @@ the way described by octl.
     } else {
       /* Variable-length array with an associated expression. */
       if (octl->output_vla_expression == NULL) {
-        /* No routine to do the expression routput.  Do default
+        /* No routine to do the expression output.  Do default
            non-compilable output. */
         check_assertion(!octl->gen_compilable_code);
         octl->output_str("*");

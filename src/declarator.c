@@ -1154,7 +1154,7 @@ issue an error if a default argument expression is encountered.
                      DI_REAL_DECLARATOR_ALLOWED |
                      DI_ABSTRACT_DECLARATOR_ALLOWED;
           if (vla_enabled) {
-            /* Permit a variable lenth array declaration. */
+            /* Permit a variable length array declaration. */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
           declarator(di_flags, &do_flags, param_type_ptr,
