@@ -43,11 +43,18 @@ EXTERN_C double strtod(char *, char **);
    a_host_fp_value (typically double or long double). */
 #if EDG_WIN32
 /* Windows NT, 95, etc. */
-/* Note that MSVC has long double the same size as double so _finite
-   will work for long double also. */
 #include <float.h>
 #define is_NaN(x) (_isnan(x))
+/* Note that MSVC has long double the same size as double so _finite
+   will work for long double also. */
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || DBL_MAX_EXP == LDBL_MAX_EXP
 #define is_finite(x) (_finite(x))
+#else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
+/* This must be a compiler other than MSVC++ on Windows, one that uses
+   80-bit long doubles. */
+#define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
+#define NEED_LONG_DOUBLE_IS_FINITE 1
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 #else /* !EDG_WIN32 */
 #ifdef sun
 /* SunOS, Solaris, including Solaris on Intel X86. */
