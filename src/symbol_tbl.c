@@ -31,6 +31,11 @@ symbol_tbl.c - Symbol table management routines.
 #endif /* DO_IL_LOWERING */
 /* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
 #include "exprutil.h"
+#ifdef GUARD_MACRO_FOR_VA_LIST
+/* macro.h is needed for enter_predef_macro. */
+#include "macro.h"
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
