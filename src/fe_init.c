@@ -49,7 +49,7 @@ declarations in the include files will become external definitions for the
 symbols.  il.h, symbol_tbl.h, lexical.h, and types.h will already have
 been included by the inclusion of fe_common.h.
 */
-
+/*lint --e{766}*/ /* <-- No warning in this file on unneeded includes. */
 #include "class_decl.h"
 #include "decl_inits.h"
 #include "decls.h"

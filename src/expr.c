@@ -28,7 +28,9 @@ expr.c -- Expression scanning routines.
 #include "decl_inits.h"
 #include "disambig.h"
 #include "decl_spec.h"
+#if DO_IL_LOWERING
 #include "func_def.h"
+#endif /* DO_IL_LOWERING */
 
 
 /* Forward declarations. */

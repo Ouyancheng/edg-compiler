@@ -27,7 +27,9 @@ decl_inits.c -- Scanning of initializers in declarations.
 /* Additional header files. */
 #include "expr.h"
 #include "statements.h"
+#if DO_IL_LOWERING
 #include "lower_init.h"
+#endif /* DO_IL_LOWERING */
 
 
 #define array_element_count(array_type, elem_type)                      \
@@ -2069,7 +2071,7 @@ returned set to TRUE.
       a_statement_ptr init_stmt;
       gen_dynamic_initialization(vp, init_dip, &local_static_var_init,
                                  source_pos, &init_stmt);
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
       /* Note that if microsoft_mode and C_mode() are TRUE, *vp may be an
          automatic variable with a nonconstant aggregate initializer.  The
@@ -2085,7 +2087,7 @@ returned set to TRUE.
         struct_stmt_stack[depth_stmt_stack].last_dep_statement = NULL;
       }  /* if */
 #endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING */
     } else if (has_static_storage_duration(vp->storage_class) &&
                vp->source_corresp.is_local_to_function) {
       /* This must be a non-dynamic initialization of a local static
