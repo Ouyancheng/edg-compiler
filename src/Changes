@@ -1,5 +1,11 @@
 Version 2.33
 
+7/17/96 Size of empty class when TARG_MINIMUM_STRUCT_ALIGNMENT > 1
+
+A bug has been fixed in computing the size of an (e.g., empty) class when
+TARG_MINIMUM_STRUCT_ALIGNMENT is configured to be greater than 1 -- the
+size of a class will be adjusted to be no less than its alignment.
+
 7/16/96 IL lowering: missing cast to adjust cv-qualifiers when passing
         argument via a copy constructor to parameter of cv-qualified class type
 
