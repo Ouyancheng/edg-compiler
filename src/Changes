@@ -1,5 +1,11 @@
 Version 2.11
 
+10/4/92  Fixed loop on error diagnosis
+
+If a source file containing both #line directives and #include directives
+contained an error, the error diagnosis routines could loop while trying
+to retrieve the source line to be printed.  Fixed.
+
 10/1/92  Fixed error recovery bug with pointer-to-member types
 
 When there is no class named "A", a declaration like
@@ -93,8 +99,8 @@ in the IL.
 9/28/92  Duplicate typedef
 
 An error (rather than a warning) is now issued for duplicate typedef
-declarations in C mode when the typedef name remains bound to the same
-type.
+declarations in strict ANSI C mode when the typedef name remains bound
+to the same type.
 
 9/28/92  Initialization of arrays of C-style structs in C++ mode
 
