@@ -1879,6 +1879,10 @@ typedef struct a_scope_stack_entry {
 			   used to restore the value when the scope is
 			   popped. */
   an_object_lifetime_ptr
+		curr_scope_object_lifetime;
+			/* A pointer to the object lifetime created for this
+			   scope. */
+  an_object_lifetime_ptr
 		saved_curr_object_lifetime;
 			/* The value of curr_object_lifetime when the scope
 			   is pushed onto the stack, and the value to which
