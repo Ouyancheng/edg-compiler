@@ -5389,8 +5389,15 @@ interleaved with the variables.
       }  /* for */
     }  /* if */
     check_membership_info(var_ptr, scope);
-    dump_variable_decl(var_ptr, dump_vars_without_initializers,
-                       dump_initializers);
+    if (il_header.source_language != sl_Cplusplus &&
+        var_ptr->has_variably_modified_type) {
+      /* The variable has a variably modified type.  Do not put it out
+         now; it will be put out where the corresponding stmk_vla_decl
+         statement appears. */
+    } else {
+      dump_variable_decl(var_ptr, dump_vars_without_initializers,
+                         dump_initializers);
+    }  /* if */
   }  /* for */
   if (interleave_asm_decls) {
     /* Put out asm declarations (if any) that follow all variable
@@ -5406,7 +5413,7 @@ interleaved with the variables.
        var_ptr = var_ptr->next) {
     if (il_header.source_language != sl_Cplusplus &&
         var_ptr->has_variably_modified_type) {
-      /* The variable has a variably modified type.  Do not put it out now;
+      /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
          statement appears. */
     } else {
@@ -6085,7 +6092,7 @@ Generate C for a statement.
     case stmk_vla_decl:
       if (statement->variant.vla.is_typedef_decl) {
         /* Dump out the declaration of a typedef for a variably-modified type
-           at the point where is occurs in the executable code sequence. */
+           at the point where it occurs in the executable code sequence. */
         dump_type_decl(statement->variant.vla.variant.typedef_type,
                        /*pass=*/2);
       } else {
