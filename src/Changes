@@ -1,5 +1,11 @@
 Version 2.26
 
+9/19/94  temp_text_buffer
+
+The dynamically-allocated buffers templ_str_buffer (in templates.c) and
+mangled_name_buffer (in lower_name.c) have been replaced by a generic
+buffer for short-lived text, temp_text_buffer (in il.c).
+
 9/19/94  Internal error on use of template parameter that references an
          incomplete type
 
