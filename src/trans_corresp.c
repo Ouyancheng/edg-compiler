@@ -4111,6 +4111,27 @@ translation unit correspondence pointer if one is found.
 }  /* find_namespace_correspondence */
 
 
+static a_boolean tag_conflicts_with_type(a_symbol_ptr  tag_sym,
+                                         a_symbol_ptr  sym)
+/*
+tag_sym is a symbol for a tag type and sym is a symbol for an entity of the
+same name in the same scope (though not necessarily a type entity).  Return
+TRUE if sym represents a type that conflicts with tag_sym.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_tag_symbol(sym)) {
+    result = TRUE;
+  } else if (!C_mode() && sym->kind == (a_symbol_kind)sk_type) {
+    /* A typedef symbol conflicts with a homonym tag symbol if it has
+       linkage. */
+    result = may_have_correspondence(sym);
+  }  /* if */
+  return result;
+}  /* tag_conflicts_with_type */
+
+
 static void find_type_correspondence(a_type_ptr  type,
                                      a_boolean   parent_found)
 /*
@@ -4170,10 +4191,12 @@ entities.
         } else if (type_sym->is_class_member) {
           /* A conflict, but errors are reported elsewhere for class
              members. */
-        } else if (is_tag_symbol(type_sym) &&
-                   !(is_type_symbol(sym) ||
-                     is_namespace_symbol(sym) ||
-                     symbol_is_or_contains_template(sym))) {
+        } else if ((is_tag_symbol(type_sym) &&
+                    !(tag_conflicts_with_type(type_sym, sym) ||
+                      is_namespace_symbol(sym) ||
+                      symbol_is_or_contains_template(sym))) ||
+                   (is_tag_symbol(sym) &&
+                    !tag_conflicts_with_type(sym, type_sym))) {
           /* Tag names have their own name space. */
         } else {
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);

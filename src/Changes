@@ -1,5 +1,20 @@
 Version 3.6
 
+1/17/05  Spurious C mode compatibility error across translation units
+
+When simultaneously processing multiple translation units in C mode, the front
+end sometimes emitted a spurious compatibility error between a tag name in a
+secondary translation unit and a typedef name in a primary translation unit.
+For example:
+
+  // File 1:
+  typedef struct { char x; } S;
+
+  // File 2:
+  struct S { int x; };
+
+This is now fixed. 
+
 1/17/05  Abort on incompatible C mode declarations across translation units
 
 When simultaneously processing multiple translation units in C mode, the front
