@@ -3442,7 +3442,7 @@ typedef struct a_routine {
 			/* TRUE if the function was defined using the
 			   Microsoft __declspec(dllexport) specifier. */
   unsigned int	naked_used:1;
-			/* TRUE if the function was declared using the
+			/* TRUE if the function was defined using the
 			   Microsoft __declspec(naked) specifier. */
   unsigned int	microsoft_inline_used:1;
 			/* TRUE if the function was defined using the
