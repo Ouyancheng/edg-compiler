@@ -6498,10 +6498,12 @@ to indicate whether the class/struct/union is actually defined.
   a_boolean               err = FALSE;
   a_scope_depth           effective_decl_level = decl_scope_level;
   a_boolean               is_class_definition;
+  a_source_position       decl_start_pos;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
   *defines_something = FALSE;
+  decl_start_pos = pos_curr_token;
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
   if (scope_stack[depth_scope_stack].kind ==
@@ -6569,6 +6571,22 @@ to indicate whether the class/struct/union is actually defined.
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution);
+    if (tag_sym != NULL) {
+      /* Check for tag mismatch.  This can only happen when an instance of a
+         class template is being referenced in an elaborated type specifier. */
+      if (tag_sym->kind != tag_kind) {
+#if CHECKING
+        if (!is_template_class_symbol(tag_sym)) {
+          internal_error("class_specifier: unexpected tag mismatch");
+        }  /* if */
+#endif /* CHECKING */
+        /* Error -- tag-kind mismatch in a specialization. */
+        pos_st_error(ec_tag_mismatch_in_template_instance, &decl_start_pos,
+                     tag_sym->header->identifier);
+        set_to_error_locator(locator);
+        tag_sym = NULL;
+      }  /* if */
+    }  /* if */    
     if (is_error_locator(locator)) err = TRUE;
   } else {
     /* No tag identifier present. */
