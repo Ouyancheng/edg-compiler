@@ -2868,12 +2868,15 @@ final semicolon if output_final_semi is TRUE.
         write_unsigned_num((a_host_large_unsigned)padding);
         write_tok_str("];");
       } else if (padding == 1 ||
-                 next_initializable_field(
-                        type->variant.class_struct_union.field_list) == NULL) {
+                 (!(il_header.gcc_mode && gcc_is_generated_code_target) &&
+                  next_initializable_field(
+                       type->variant.class_struct_union.field_list) == NULL)) {
         /* One byte of padding needed, or... */
         /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
            (which is undefined behavior) and for fieldless classes from C++
-           passed through IL lowering. */
+           passed through IL lowering.  However, GNU C does accept empty
+           struct types and gives them size zero (and it also gives size
+           zero to "struct { int:0; }"). */
         write_tok_str("char __dummy;");
       }  /* if */
     }

@@ -1,5 +1,14 @@
 Version 3.6
 
+11/16/04 GNU C compatibility: Zero-sized structs and C-generating back end
+
+The C-generating back end always avoided generating empty struct types (which
+are not valid in standard C) by adding a dummy char field when needed.
+However, GNU C compilers do accept empty struct types and treat them as
+zero-sized types.  The C-generating back end therefore no longer emits the
+dummy char field for empty structs in GNU C mode if the target dialect is
+also GNU C.
+
 11/16/04 Warning on sequence of casts that truncates address of local variable
 
 A warning is now issued on a sequence of casts that casts the address of
