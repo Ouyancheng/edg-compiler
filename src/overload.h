@@ -212,7 +212,7 @@ typedef struct a_candidate_function {
 		is_user_conversion;
 			/* TRUE if this function is a user-defined conversion
 			   being examined to resolve an implicit conversion.
-			   user_conversion is meaningful in that case.
+			   The field "conversion" is meaningful in that case.
 			   This will have the same setting in all candidate
 			   function entries being considered as a set. */
   a_conv_descr	conversion;
