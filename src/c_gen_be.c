@@ -6863,6 +6863,18 @@ Generate the code for a switch statement.
         write_tok_ch(':');
       } while ((constant = constant->next) != NULL);
     }  /* if */
+#if VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS
+    /* If we're in a function with VLAs, there is a chance that the
+       next statement to output will be a VLA definition.  In C99 that is
+       not a problem, but in C89 + VLA extensions, a label cannot be
+       followed by a declaration.  To avoid any problems, we issue an
+       empty statement if the current function contains unlowered VLA
+       declarations. */
+    check_assertion(innermost_function_scope != NULL);
+    if (innermost_function_scope->vla_dimensions != NULL) {
+      write_tok_ch(';');
+    }  /* if */
+#endif /* VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS */
     /* Indent for the dependent statements. */
     indent += 2;
     dump_statement_list(switch_clause->statements,

@@ -1,5 +1,21 @@
 Version 3.5
 
+7/8/04   C-generating back end: VLA declarations following labels
+
+GNU C compilers allow declarations after executable statements, but not
+immediately following a label.  The C-generating back, however, sometimes
+produced VLA declarations immediately following switch labels.  For example:
+
+  void f(int n) {
+    switch (n) {
+      case 1: ;    // Semicolon previously dropped in C-generating back end.
+        float f[n];
+        break;
+    }
+  }
+
+This is now fixed.
+
 7/8/04   GNU C compatibility: Flexible arrays when C99 features enabled
 
 In nonstrict C99 mode a struct may include a member whose type contains a
