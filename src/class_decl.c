@@ -5083,46 +5083,51 @@ The routine symbol is returned (but not linked into the symbol table).
 */
 {
   a_symbol_ptr  sym = NULL;
-
-  if (func_info->declarator_ssep != NULL) {
-    a_symbol_kind                 sym_kind;
-    a_routine_ptr                 rp;
-    a_src_seq_secondary_decl_ptr  sssdp;
-    a_source_sequence_entry_ptr   ssep = func_info->declarator_ssep;
-    a_memory_region_number        region_to_switch_back_to;
-
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    /* First create a symbol for this function (though it will not be linked
-       into the symbol table. */
-    sym_kind = (a_symbol_kind)
-                 (locator->is_class_member ? sk_member_function : sk_routine);
-    sym = alloc_symbol(sym_kind, locator->symbol_header,
-                       &locator->source_position);
-    /* Make a routine entry for this member: */
-    rp = make_routine(function_type, (a_storage_class)sc_extern,
-                      depth_innermost_namespace_scope);
-    sym->variant.routine.ptr = rp;
-    set_source_corresp(&rp->source_corresp, sym);
-    if (locator->is_class_member) {
-      set_class_membership(sym, &rp->source_corresp,
-                           locator->parent.class_type);
-    } else if (locator->parent.namespace_ptr != NULL) {
-      set_namespace_membership(sym, &rp->source_corresp,
-                               locator->parent.namespace_ptr);
-    }  /* if */
-    if (locator->template_arg_list != NULL) {
-      rp->template_arg_list = locator->template_arg_list;
-      rp->expl_template_arg_list_used = TRUE;
-    }  /* if */
-    if (func_info->is_definition) {
-      rp->defined = sym->defined = TRUE;
-      rp->defined_in_friend_decl = TRUE;
-      rp->is_inline = TRUE;
+  a_symbol_kind                 sym_kind;
+  a_routine_ptr                 rp;
+  a_memory_region_number        region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      rp->declared_type = func_info->declared_type;
+  a_src_seq_secondary_decl_ptr  sssdp;
+  a_source_sequence_entry_ptr   ssep = func_info->declarator_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* First create a symbol for this function (though it will not be linked
+     into the symbol table. */
+  sym_kind = (a_symbol_kind)
+               (locator->is_class_member ? sk_member_function : sk_routine);
+  sym = alloc_symbol(sym_kind, locator->symbol_header,
+                     &locator->source_position);
+  /* Make a routine entry for this member: */
+  rp = make_routine(function_type, (a_storage_class)sc_extern,
+                    depth_innermost_namespace_scope);
+  sym->variant.routine.ptr = rp;
+  set_source_corresp(&rp->source_corresp, sym);
+  if (locator->is_class_member) {
+    set_class_membership(sym, &rp->source_corresp,
+                         locator->parent.class_type);
+  } else if (locator->parent.namespace_ptr != NULL) {
+    set_namespace_membership(sym, &rp->source_corresp,
+                             locator->parent.namespace_ptr);
+  }  /* if */
+  if (locator->template_arg_list != NULL) {
+    rp->template_arg_list = locator->template_arg_list;
+    rp->expl_template_arg_list_used = TRUE;
+  }  /* if */
+  if (func_info->is_definition) {
+    rp->defined = sym->defined = TRUE;
+    rp->defined_in_friend_decl = TRUE;
+    rp->is_inline = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    rp->declared_type = func_info->declared_type;
+    if (ssep != NULL) {
       ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
       ssep->entity.ptr  = (char *)rp;
-    } else {
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (ssep != NULL) {
       /* Point to it from a secondary source sequence_entry: */
       sssdp = make_source_sequence_secondary_decl((char*)rp, iek_routine,
                                                   func_info->declared_type);
@@ -5130,10 +5135,10 @@ The routine symbol is returned (but not linked into the symbol table).
       sssdp->friend_decl = TRUE;
       ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
       ssep->entity.ptr  = (char *)sssdp;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    switch_back_to_original_region(region_to_switch_back_to);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
   return sym;
 }  /* decl_dependent_friend_function */
 
@@ -5159,22 +5164,6 @@ of the function, and again overloading is a possibility.
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
   db_enter(3, "decl_friend_function");
-  if (!is_error_locator(*locator)) {
-    if (!prototype_instantiations_in_il && is_template_dependent_context()) {
-      /* Scan past friend functions during prototype instantiation. */
-      set_to_named_error_locator(*locator);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (func_info->declarator_ssep != NULL) {
-        /* In certain configurations source sequence entries are put out for
-           prototype instantiations.  However, friend declarations are not
-           processed at all: there is no routine entry, so there can be no
-           source sequence entry. */
-        remove_from_src_seq_list(func_info->declarator_ssep);
-        func_info->declarator_ssep = NULL;
-      }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    }  /* if */
-  }  /* if */
   if (!is_error_locator(*locator)) {
     sym = locator->specific_symbol;
     if (sym == NULL && locator->is_template_id) {
