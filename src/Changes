@@ -10,8 +10,9 @@ functions.  This is now fixed.
 
 When source sequence lists and prototype instantiations are recorded in the
 IL (i.e., GENERATE_SOURCE_SEQUENCE_LISTS and PROTOTYPE_INSTANTIATIONS_IN_IL
-are both TRUE), the front end sometimes aborted with an internal error if a
+are both TRUE), the front end sometimes aborted with an internal error if an
 unused class template contained a dependent friend class declaration.
+(This problem only appears when removal of unneeded entities is enabled.)
 For example:
 
   template<class T> class S;
