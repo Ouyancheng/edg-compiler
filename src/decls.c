@@ -4541,7 +4541,7 @@ to indicate whether an enumeration is actually defined.
        type list at the end of the prototype scope, so do not add them
        again. */
     if (!prototype_tag_resolution) {
-      add_to_types_list(enum_type, /*at_file_scope=*/TRUE,
+      add_to_types_list(enum_type, DEPTH_OF_FILE_SCOPE,
                         /*in_old_style_param_decl_list=*/FALSE);
       if (tag_sym != NULL && tag_sym->variant.type != enum_type) {
         add_to_types_list(tag_sym->variant.type, effective_decl_level,
