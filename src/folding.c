@@ -1845,7 +1845,11 @@ Return TRUE if the given constant is a null pointer constant.
   if (constant->kind == (a_constant_repr_kind)ck_integer) {
     /* A null pointer constant has the value zero, perhaps cast to "void *"
        in C.  Only certain kinds of casts are allowed. */
-    if (!constant->null_pointer_constant_ruled_out &&
+    if ((!constant->null_pointer_constant_ruled_out ||
+         /* g++/gcc allows (int)(int *)0 as a null pointer constant. */
+         (gnu_mode && (is_integral_type(constant->type) ||
+         /* gcc allows (void*)(int *)0 as a null pointer constant. */
+                       (gcc_mode && is_void_star_type(constant->type))))) &&
         cmplit_integer_constant(constant, (a_host_large_integer)0) == 0) {
       if (!enum_type_is_integral && is_enum_type(constant->type)) {
         /* In C++ (except for cfront compatibility) an enumerator with value

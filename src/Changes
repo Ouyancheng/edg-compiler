@@ -1,5 +1,11 @@
 Version 3.2
 
+3/5/03   GNU C and C++ modes: nonstandard casts allowed in null pointer
+         constants
+
+GNU C and C++ modes now allow some nonstandard casts in null pointer
+constants, e.g., (int)(int *)0 and, in C mode, (void *)(int *)0.
+
 3/5/03   GNU C++ mode: Redeclared function template default arguments
 
 In GNU C++ mode, a function template default argument may be redeclared.
