@@ -2520,10 +2520,12 @@ nonidentical.
 static a_boolean identical_constants(a_constant *cp1,
                                      a_constant *cp2)
 /*
-Return TRUE if the two constants are identical.
+Return TRUE if the two constants are identical.  This routine is called
+to decide whether two constant entries are sufficiently alike to be
+shared, such that only one of them need appear in the IL.
 */
 {
-  a_boolean  eq;
+  a_boolean  eq = FALSE;
 
   if (cp1 == cp2) {
     /* Same pointer implies same constant. */
@@ -2539,10 +2541,12 @@ Return TRUE if the two constants are identical.
 a_boolean eq_constants(a_constant *cp1,
                        a_constant *cp2)
 /*
-Return TRUE if the two constants are equivalent.
+Return TRUE if the two constants are equivalent, i.e., represent the same
+value.  Thus, "(int)5" and "(const int)5" are equivalent -- even though they
+would not be considered "identical", since the type qualifiers are different.
 */
 {
-  a_boolean  eq;
+  a_boolean  eq = FALSE;
 
   if (cp1 == cp2) {
     /* Same pointer implies same constant. */
