@@ -2420,7 +2420,7 @@ determination.
     a_type_ptr class2 = field2->source_corresp.parent.class_type;
     for (;;) {
       if (class2 == class1) {
-        /* We've found the the innermost class/struct/union that the
+        /* We've found the innermost class/struct/union that the
            fields have in common.  If it is a union, they conflict. */
         are_disjoint_members = (class1->kind == (a_type_kind)tk_union);
         goto end_of_routine;
@@ -2951,30 +2951,18 @@ scan_paren:
                  expression, remove it temporarily from the object lifetime
                  tree and restore it in the correct position later. */
               detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
-
+              /* If this is the initialization of an array, the dynamic init
+                 entry at this point represents the initialization of an
+                 element of the array, not of the array as a whole.  The
+                 remaining processing is done later, along with members of
+                 array type that are not explicitly specified in the
+                 mem-initializer list. */
+#if CHECKING
               if (array_type != NULL) {
-                /* We have an array of objects with constructors.  Create a
-                   dynamic init entry to handle the aggregate. */
                 check_assertion(dip->kind ==
                                   (a_dynamic_init_kind)dik_constructor);
-                dip->is_constructor_init = TRUE;
-                ctor_dip = dip;
-                dip = alloc_dynamic_init(
-                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
-                repeat_nonconstant_init(ctor_dip, array_type, init_type, dip,
-                                        array_element_count(
-                                                     array_type, init_type));
-                if (exceptions_enabled && ctor_dip->destructor != NULL) {
-                  /* Set up the representation to deal with the possibility of
-                     an exception being thrown before the entire construction
-                     of the array is complete. */
-                  ctor_dip->destruction_is_for_partially_constructed_aggregate
-                                                                        = TRUE;
-                  record_end_of_lifetime_destruction(ctor_dip,
-                                                     /*static_lifetime=*/FALSE,
-                                                     /*block_lifetime=*/FALSE);
-                }  /* if */
               }  /* if */
+#endif /* CHECKING */
             }  /* if */
           } else if (curr_token == tok_rparen && cssp != NULL &&
                      reference_to_trivial_default_constructor(
@@ -2991,7 +2979,7 @@ scan_paren:
               if (is_reference_type(init_type)) {
                 /* Error.  A reference type may not be default-initialized
                    (8.5 [dcl.init], which says it's a no-op, and 8.5.3
-                   [dcl.init.ref], which says the that the initializer must
+                   [dcl.init.ref], which says that the initializer must
                    be an object. */
                 a_constant_ptr  cp;
 
@@ -3071,6 +3059,25 @@ scan_paren:
     end_of_virtual_list->next = cip_list;
     cip_list = virtual_list;
   }  /* if */
+  /* The following loop proceeds through the merged constructor-init list,
+     which now reflects the canonical order of base-class and member
+     initializations (i.e., as required by the language definition, not the
+     order that appeared in the source).  The body of the loop does several
+     things:
+       (1) For explicit initializations, it restores to the IL an object
+           lifetime entry that was generated for the initializer expression
+           but then removed.
+       (2) It does the processing for implicit initializations:
+           (a) special handling for generated copy constructor; or
+           (b) processing for user-defined constructor or generated default
+               constructor.
+           Note: unneeded ctor-init entries are removed from the list.
+       (3) If exceptions are enabled, the destructor is recorded in the
+           dynamic init entry (in case an exception is thrown during
+           construction of the object).
+       (4) If the member is an array, the dynamic init for the array as a
+           whole is built.
+  */
   prev_cip = NULL;
   for (cip = cip_list; cip != NULL; cip = next_cip) {
     a_boolean          is_const_qualified;
@@ -3083,7 +3090,10 @@ scan_paren:
     a_type_ptr            object_class_type;
 
     next_cip = cip->next;
-    if (cip->initializer != NULL) {
+    dip = cip->initializer;
+    /* If this was an explicit specialization, check whether an object
+       lifetime needs to be restored to the IL. */
+    if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
       /* If the initializer had produced an object lifetime for the full
          expression, it was temporarily removed from the object lifetime tree;
          Now that we are reconsidering the initializers in the canonical order
@@ -3115,50 +3125,51 @@ scan_paren:
           free_object_lifetime(olp);
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (cip->initializer == NULL ||
-        cip->initializer->kind == (a_dynamic_init_kind)dik_none ||
-        exceptions_enabled) {
-      /* Either no initializer was explicitly specified or a destructor, if
-         any, has to be entered for exception handling support. */
-      array_type = NULL;
-      object_class_type = NULL;
-      object_qualifiers = TQ_NONE;
-      cssp = NULL;
-      dip = NULL;
-      is_const_qualified = FALSE;
-      if (user_defined) err_pos = pos_curr_token;
-      if (cip->kind == (a_constructor_init_kind)cik_field) {
-        /* Get the field type.  For arrays, we want the element type. */
-        tp = cip->variant.field->type;
-        object_qualifiers = get_type_qualifiers(tp);
-        if (is_const_qualified_type(tp)) is_const_qualified = TRUE;
-        tp = skip_typerefs(tp);
-        if (is_array_type(tp)) {
-          array_type = tp;
-          tp = skip_typerefs(underlying_array_element_type(tp));
-        }  /* if */
-        object_class_type = tp;
-        if (is_class_struct_union_type(tp)) {
-          cssp = symbol_supplement_for_class(tp);
-        }  /* if */
-        if (!user_defined) {
-          err_pos = cip->variant.field->source_corresp.decl_position;
-        }
+      /* Unless this is an array type or exception processing is enabled, this
+         all that's required for explicit initializations. */
+      if (exceptions_enabled ||
+          (cip->kind == (a_constructor_init_kind)cik_field &&
+           is_array_type(cip->variant.field->type))) {
+        /* Further processing of explicit initializations is needed. */
       } else {
-        /* Get the type of the base class. */
-        tp = cip->variant.base_class->type;
-        cssp = symbol_supplement_for_class(tp);
-        object_class_type = class_type;
-        if (!user_defined) err_pos = cip->variant.base_class->decl_position;
+        /* Proceed on through the ctor-init list. */
+        prev_cip = cip;
+        continue;
       }  /* if */
-      if (cip->initializer != NULL &&
-          cip->initializer->kind != (a_dynamic_init_kind)dik_none) {
-        /* This must be a special exception handling case -- the initializer
-           has already been processed, and the destructor, if any, has to
-           recorded. */
-        dip = cip->initializer;
-      } else if (is_generated_cctor) {
+    }  /* if */
+    array_type = NULL;
+    object_class_type = NULL;
+    object_qualifiers = TQ_NONE;
+    cssp = NULL;
+    is_const_qualified = FALSE;
+    if (user_defined) err_pos = pos_curr_token;
+    if (cip->kind == (a_constructor_init_kind)cik_field) {
+      /* Get the field type.  For arrays, we want the element type. */
+      tp = cip->variant.field->type;
+      object_qualifiers = get_type_qualifiers(tp);
+      if (is_const_qualified_type(tp)) is_const_qualified = TRUE;
+      tp = skip_typerefs(tp);
+      if (is_array_type(tp)) {
+        array_type = tp;
+        tp = skip_typerefs(underlying_array_element_type(tp));
+      }  /* if */
+      object_class_type = tp;
+      if (is_class_struct_union_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
+      }  /* if */
+      if (!user_defined) {
+        err_pos = cip->variant.field->source_corresp.decl_position;
+      }
+    } else {
+      /* Get the type of the base class. */
+      tp = cip->variant.base_class->type;
+      cssp = symbol_supplement_for_class(tp);
+      object_class_type = class_type;
+      if (!user_defined) err_pos = cip->variant.base_class->decl_position;
+    }  /* if */
+    /* Do processing for implicit initializations. */
+    if (dip == NULL || dip->kind == (a_dynamic_init_kind)dik_none) {
+      if (is_generated_cctor) {
         /* The constructor for the object as a whole is a generated copy
            constructor.  Any subobject constructors must also be copy
            constructors, and fields and base classes that have no constructor
@@ -3294,50 +3305,66 @@ scan_paren:
           copy_ctor_default_args_to_dynamic_init(dip);
         }  /* if */
       }  /* if */
-      if (exceptions_enabled && cssp != NULL) {
-        if (cssp->destructor != NULL) {
-          /* If exception handling is enabled, record the destructor in the
-             constructor initializer.  This is required if an exception
-             occurs in the middle of constructing an object of this type --
-             the information is used to register which destructors need to be
-             called for a partially constructed object. */
-          dip->destructor = select_destructor(tp, object_class_type, &err_pos,
-                                              /*honor_virtual=*/FALSE,
-                                              /*evaluated=*/TRUE,
-                                              /*suppress_access_check=*/FALSE);
-          /* Now, in case a destructor was found, record the need for a
-             destruction in the context of the current lifetime. */
-          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                             /*block_lifetime=*/TRUE);
-        }  /* if */
-      }  /* if */
-      if (array_type != NULL &&
-          dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        /* We have an array of objects with constructors, for which there was
-           no explicit ctor-initializer (that case would have been handled
-           above).  Create a dynamic init entry to handle the aggregate. */
-        dip->is_constructor_init = TRUE;
-        if (dip->destructor != NULL) {
-          dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-        }  /* if */
-        ctor_dip = dip;
-        dip =
-           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-        /* Build the looping constant entry. */
-        repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
-                                array_element_count(array_type, tp));
-        if (ctor_dip->destructor != NULL) {
-          /* There is a destructor for the array element, so the dynamic
-             init for the array should also indicate destruction. */
-          dip->destructor = ctor_dip->destructor;
-          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                             /*block_lifetime=*/TRUE);
-        }  /* if */
-      }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       dip->is_constructor_init = TRUE;
       cip->initializer = dip;
     }  /* if */
+    /* Do processing for both implicitly and explicitly initialized members
+       when exception handling is enabled. */
+    if (exceptions_enabled) {
+      if (cssp != NULL && cssp->destructor != NULL) {
+        /* Since an exception could be thrown after this subobject is
+           constructed but before construction of the entire object is
+           complete, record the destructor in the dynamic-init entry. */
+        if (dip->destructor != NULL) {
+          /* This must be an entry for an explicit initialization, for which
+             the destructor will already have been filled in. */
+        } else {
+          /* Implicit initialization -- the destructor has not yet been
+             looked up. */
+          dip->destructor = select_destructor(tp, object_class_type, &err_pos,
+                                              /*honor_virtual=*/FALSE,
+                                              /*evaluated=*/TRUE,
+                                              /*suppress_access_check=*/FALSE);
+        }  /* if */
+        /* Record the need for a destruction in the context of the current
+           lifetime.   Note: when the field is an array, it is the dynamic
+           init entry for the array element that is being handled at this
+           time; the array as a whole is dealt with below. */
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                           /*block_lifetime=*/TRUE);
+      }  /* if */
+    }  /* if */
+    /* Do processing for both implicitly and explicitly initialized members
+       when the field is an array of constructible elements. */
+    if (array_type != NULL &&
+        dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      /* We have an array whose elements are constructible.  dip is the
+         dynamic init entry for the element.  Create a dynamic init entry to
+         represent the initialization of array as a whole. */
+      check_assertion(dip->is_constructor_init);
+      ctor_dip = dip;
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+      /* Build the looping constant entry. */
+      repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
+                              array_element_count(array_type, tp));
+      if (ctor_dip->destructor != NULL) {
+        /* A destructor is recorded in the array element dynamic-init entry.
+           This is in case an exception is thrown in the midst of constructing
+           the array, so that the already-constructed elements can be
+           properly destroyed. */
+        check_assertion(exceptions_enabled);
+        ctor_dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+        /* The dynamic init for the array as a whole should also indicate
+           destruction. */
+        dip->destructor = ctor_dip->destructor;
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                           /*block_lifetime=*/TRUE);
+      }  /* if */
+      /* Overwrite the dynamic-init pointer in the current ctor-init entry. */
+      cip->initializer = dip;
+    }  /* if */
+    /* Continue through the ctor-init list. */
     prev_cip = cip;
   }  /* for */
   if (uninit_list != NULL) {
