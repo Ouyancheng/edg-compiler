@@ -4369,6 +4369,10 @@ are handled in error_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(head_of_file_index_list);
+  register_trans_unit_variable(tail_of_file_index_list);
 }  /* error_one_time_init */
 
 

@@ -16542,6 +16542,12 @@ One-time initialization for templates.c static variables.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(type_of_unknown_templ_param_nontype);
+#if CHECKING
+  register_trans_unit_variable(any_friend_state_changed);
+#endif /* CHECKING */
 }  /* templates_one_time_init */
 
 

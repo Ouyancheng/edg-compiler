@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -157,6 +157,25 @@ extern void free_all_memory_regions(void);
 /* Free the unused space in the final block of a memory region. */
 extern void trim_memory_region(a_memory_region_number region_number);
 
+
+/*
+Macro used to register a variable that is related to a specific translation
+unit.  This is used to save and restore the contents of the variable when
+switching between translation units.
+*/
+#define register_trans_unit_variable(var)				\
+  (f_register_trans_unit_variable((a_void_ptr)&var, sizeof(var)))
+
+
+/*
+Macro used to register a array that is related to a specific translation
+unit.  This is used to save and restore the contents of the array when
+switching between translation units.
+*/
+#define register_trans_unit_array(var)				\
+  (f_register_trans_unit_variable((a_void_ptr)var, sizeof(var)))
+
+
 #if DEBUG
 /* Display the amount of memory used, for debug purposes. */
 extern void show_mem_manage_space_used(unsigned long total_accounted_for);
@@ -288,9 +307,9 @@ EXTERN a_memory_region_number
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -78,6 +78,43 @@ static sizeof_t adjusted_header_size = (sizeof_t)(sizeof(a_mem_block_header) +
   ((sizeof(a_mem_block_header) % HOST_ALIGNMENT_REQUIRED) == 0 ?
      0 : (HOST_ALIGNMENT_REQUIRED -
           (sizeof(a_mem_block_header) % HOST_ALIGNMENT_REQUIRED))));
+
+
+/*
+Structure used to keep track of variables that are specific to a
+given translation unit.
+
+Variables are registered during one-time initialization.  When a
+translation unit is started, space is allocated for all of the
+registered variables.  When switching from one translation unit to
+another, the registered variables are saved into the memory block
+for that old translation unit and the values associated with the
+new translation unit are copied into the registered variables.
+*/
+typedef struct a_variable_registration *a_variable_registration_ptr;
+typedef struct a_variable_registration {
+  a_variable_registration_ptr
+		next;
+			/* Pointer to the next entry on a list of
+			   registered variables, or NULL for the last entry. */
+  a_void_ptr	ptr;
+			/* Pointer to the global variable to be saved and
+			   restored. */
+  sizeof_t	size;
+			/* Size of the variable. */
+} a_variable_registration;
+
+
+static a_variable_registration_ptr
+		trans_unit_variables;
+			/* Pointer to a list of variable registrations for
+			   variables that are local to a given translation
+			   unit. */
+
+static a_variable_registration_ptr
+		trans_unit_variables_tail;
+			/* Pointer to the last entry on the list of variables
+			   that are local to a given translation unit. */
 
 #if DEBUG
 /*
@@ -1284,6 +1321,41 @@ usage counts in other files.
 #endif /* DEBUG */
 
 
+static a_variable_registration_ptr alloc_variable_registration(void)
+/*
+Allocate a variable registration entry, initialize its fields, and return
+a pointer to the entry created.
+*/
+{
+  a_variable_registration_ptr	vrp;
+
+  vrp = alloc_general_of_type(a_variable_registration);
+  vrp->next = NULL;
+  vrp->ptr = NULL;
+  vrp->size = 0;
+  return vrp;
+}  /* alloc_variable_registration */
+
+
+void f_register_trans_unit_variable(a_void_ptr	var,
+				    sizeof_t	size)
+/*
+Register a variable that is specific to a given translation unit.
+*/
+{
+  a_variable_registration_ptr	vrp;
+
+  vrp = alloc_variable_registration();
+  vrp->ptr = var;
+  vrp->size = size;
+  if (trans_unit_variables == NULL) trans_unit_variables = vrp;
+  if (trans_unit_variables_tail != NULL) {
+    trans_unit_variables_tail->next = vrp;
+  }  /* if */
+  trans_unit_variables_tail = vrp;
+}  /* f_register_trans_unit_variable */
+
+
 void mem_manage_one_time_init(void)
 /*
 Do one-time initialization of variables related to the mem_manage routines.
@@ -1309,6 +1381,8 @@ are handled in mem_manage_init.)
      in mapped memory, which cannot be freed. */
   okay_to_free_mem_blocks = !precompiled_header_processing_required;
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  trans_unit_variables = NULL;
+  trans_unit_variables_tail = NULL;
 #else /* STANDALONE_UTILITY_PROGRAM */
   /* The memory blocks can always be freed by standalone utility programs. */
   okay_to_free_mem_blocks = TRUE;
@@ -1370,9 +1444,9 @@ of the front end.
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
