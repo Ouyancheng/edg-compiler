@@ -1865,6 +1865,9 @@ error code.
     case ec_must_be_prototype_instantiation:
       m = "argument list for a member definition of %no must be %t";
       break;
+    case ec_conversion_to_self_not_allowed:
+      m = "operator to convert from %t1 to %t2 is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
