@@ -3077,8 +3077,12 @@ supplies the usual nesting_level == 1.
       a_template_ptr              tmpl;
       a_class_type_supplement_ptr ctsp;
       tmpl = class_template_of(type);
+      /* This is correctly "add_substitution_if_available" -- we're
+         testing whether we have a substitution for this part of the
+         qualification, but we don't want to enter a substitution if not.
+         The low-level routine that puts out the class name will do that. */
       if (tmpl != NULL &&
-          add_substitution((char *)tmpl, iek_template, mctl)) {
+          add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
         ctsp = type->variant.class_struct_union.extra_info;
         mangled_template_arguments(ctsp->template_arg_list,
                                    /*partial_spec=*/FALSE,
