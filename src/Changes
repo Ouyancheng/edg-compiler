@@ -14,7 +14,7 @@ C mode (as they do with the Microsoft compiler):
 6/11/03  GNU mode: Keep routine with "used" attribute
 
 A routine marked with the GNU attribute "used" is now always kept in the IL,
-even if the routine has internal linkage.  These used to not be the case
+even if the routine has internal linkage.  This used not to be the case
 (contrary to what was reported in the relevant Changes entry of 2/4/03).
 For example:
 
