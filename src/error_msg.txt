@@ -571,7 +571,7 @@ ec_missing_initializer_list;;"initialization with \"{...}\" expected for aggrega
 ec_incompatible_ptr_to_member_selection_operands;;"pointer-to-member selection class types are incompatible (%t1 and %t2)"
 ec_self_friendship;;"pointless friend declaration"
 ec_period_used_as_qualifier;;"\".\" used in place of \"::\" to form a qualified name (cfront anachronism)"
-ec_const_function_anachronism;;"non-const function called for const object (cfront anachronism)"
+ec_const_function_anachronism;;"non-const function called for const object (anachronism)"
 ec_dependent_stmt_is_declaration;;"a dependent statement may not be a declaration"
 ec_void_param_not_allowed;;"a parameter may not have void type"
 ec_template_function_declaration_context;INTERNAL;"instantiation of %na %p"
