@@ -4160,6 +4160,21 @@ command line -D options.
                                "_MSC_VER",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
+      /* Define _MSC_EXTENSIONS. */
+      (void)enter_predef_macro("1", "_MSC_EXTENSIONS",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+      /* Define _WIN32. */
+      (void)enter_predef_macro("1", "_WIN32",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+#ifdef _M_IX86
+      (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                            (unsigned long)_M_IX86),
+                               "_M_IX86",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+#endif /* ifdef _M_IX86 */
     }  /* if */
 #if DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
     if (wchar_t_is_keyword) {

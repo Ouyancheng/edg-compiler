@@ -1,5 +1,11 @@
 Version 2.43
 
+11/10/99 Microsoft compatibility: predefine macros
+
+In Microsoft mode, _MSC_EXTENSIONS and _WIN32 are now predefined.
+In addition, if the front end is built with the _M_IX86 macro defined,
+the front end defines _M_IX86 to the same value.
+
 11/10/99 Incorrect temporary file name on DOS/Windows
 
 If the temporary directory environment variable ended in a backslash,
