@@ -209,9 +209,11 @@ Enter the standard predeclared functions for GCC.
   double_type = float_type((a_float_kind)fk_double);
   long_double_type = float_type((a_float_kind)fk_long_double);
 #if C99_IL_EXTENSIONS_SUPPORTED
-  complex_float_type = complex_type((a_float_kind)fk_float);
-  complex_double_type = complex_type((a_float_kind)fk_double);
-  complex_long_double_type = complex_type((a_float_kind)fk_long_double);
+  if (C_mode()) {
+    complex_float_type = complex_type((a_float_kind)fk_float);
+    complex_double_type = complex_type((a_float_kind)fk_double);
+    complex_long_double_type = complex_type((a_float_kind)fk_long_double);
+  }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   char_star_type = make_pointer_type(char_type);
   const_char_star_type = 
@@ -709,69 +711,71 @@ Enter the standard predeclared functions for GCC.
 			       (a_type_ptr)NULL,
 			       /*is_varargs=*/FALSE);
 #if C99_IL_EXTENSIONS_SUPPORTED
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_conj,
-			       complex_double_type,
-			       complex_double_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_conjf,
-			       complex_float_type,
-			       complex_float_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_conjl,
-			       complex_long_double_type,
-			       complex_long_double_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_creal,
-			       complex_double_type,
-			       complex_double_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_crealf,
-			       complex_float_type,
-			       complex_float_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_creall,
-			       complex_long_double_type,
-			       complex_long_double_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_cimag,
-			       complex_double_type,
-			       complex_double_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_cimagf,
-			       complex_float_type,
-			       complex_float_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
-    enter_gnu_builtin_function((a_builtin_function_kind)bfk_cimagl,
-			       complex_long_double_type,
-			       complex_long_double_type,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       (a_type_ptr)NULL,
-			       /*is_varargs=*/FALSE);
+    if (C_mode()) {
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_conj,
+  			       complex_double_type,
+  			       complex_double_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_conjf,
+  			       complex_float_type,
+  			       complex_float_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_conjl,
+  			       complex_long_double_type,
+  			       complex_long_double_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_creal,
+  			       complex_double_type,
+  			       complex_double_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_crealf,
+  			       complex_float_type,
+  			       complex_float_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_creall,
+  			       complex_long_double_type,
+  			       complex_long_double_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_cimag,
+  			       complex_double_type,
+  			       complex_double_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_cimagf,
+  			       complex_float_type,
+  			       complex_float_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+      enter_gnu_builtin_function((a_builtin_function_kind)bfk_cimagl,
+  			       complex_long_double_type,
+  			       complex_long_double_type,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       (a_type_ptr)NULL,
+  			       /*is_varargs=*/FALSE);
+    }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     enter_gnu_builtin_function((a_builtin_function_kind)bfk_isgreater,
 			       int_type,
