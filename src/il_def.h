@@ -7333,11 +7333,15 @@ EXTERN struct il_header_tag {
 			/* When each instantiation is placed in its own object
 			   file, a file containing a list of the files that
 			   were created is passed back to the driver.  This
-			   is the name of that file. */
+			   is the name of that file.  NULL if the
+			   one-instantiation-per-object option is not being
+			   used. */
   char		*instantiation_dir_name;
 			/* When each instantiation is placed in its own object
 			   file, this specifies the directory in which the
-			   files should be created. */
+			   files should be created.  NULL if the
+			   one-instantiation-per-object option is not being
+			   used. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 } il_header;
 
