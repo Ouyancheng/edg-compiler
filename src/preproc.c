@@ -615,6 +615,11 @@ source position *undef_pos.
   set_source_corresp(&mp->source_corresp, undef_sym);
   /* Add the macro entry to the IL list. */
   add_to_macros_list(mp);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Add a source sequence entry for the #undef. */
+  update_source_sequence_list((char *)mp, (an_il_entry_kind)iek_macro,
+                              (a_source_sequence_entry_ptr)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* make_il_undef_entry */
 
 #endif /* RECORD_MACROS_IN_IL */
