@@ -32,6 +32,10 @@ extern void scan_microsoft_extended_decl_modifiers(
                             a_source_position           *inheritance_kind_pos,
                             a_boolean                   *err);
 
+extern void check_inheritance_kind(a_type_ptr           class_type,
+                                   an_inheritance_kind  inheritance_kind,
+                                   a_source_position    *err_pos);
+
 extern void update_microsoft_decl_modifiers_info_for_class(
                             a_type_ptr                  class_type,
                             a_boolean                   is_class_definition,

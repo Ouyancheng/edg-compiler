@@ -516,6 +516,38 @@ end_of_uuid_string:
 }  /* scan_microsoft_extended_decl_modifiers */
 
 
+void check_inheritance_kind(a_type_ptr           class_type,
+                            an_inheritance_kind  inheritance_kind,
+                            a_source_position    *err_pos)
+/*
+Issue an error if the specified inheritance kind (which was either
+explicitly specified for the specified class or assigned to it by default)
+is insufficient for the actual characteristics of the class.  *err_pos
+indicates the source position at which the error should be put out.
+*/
+{
+  an_inheritance_kind         minimum_inheritance_kind;
+  a_class_type_supplement_ptr ctsp;
+
+  if (inheritance_kind != (an_inheritance_kind)ihk_none) {
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      minimum_inheritance_kind = (an_inheritance_kind)ihk_virtual;
+    } else if (ctsp->base_classes != NULL &&
+               ctsp->base_classes->next != NULL) {
+      minimum_inheritance_kind = (an_inheritance_kind)ihk_multiple;
+    } else {
+      minimum_inheritance_kind = (an_inheritance_kind)ihk_single;
+    }  /* if */
+    if (inheritance_kind < minimum_inheritance_kind) {
+      pos_stsy_error(ec_invalid_inheritance_kind_for_class, err_pos,
+                     inheritance_kind_names[(int)inheritance_kind],
+                     (a_symbol_ptr)class_type->source_corresp.assoc_info);
+    }  /* if */
+  }  /* if */
+}  /* check_inheritance_kind */
+
+  
 void update_microsoft_decl_modifiers_info_for_class(
                             a_type_ptr                  class_type,
                             a_boolean                   is_class_definition,
@@ -552,9 +584,15 @@ inheritance_kind_pos are pointers to source positions used for diagnostics.
       ctsp->inheritance_kind = inheritance_kind;
     } else if (ctsp->inheritance_kind != inheritance_kind) {
       /* Inheritance kind has already been set for this class. */
-      pos_sy_error(ec_inheritance_kind_already_set, inheritance_kind_pos,
-                   (a_symbol_ptr)class_type->source_corresp.assoc_info);
+      pos_stsy_error(ec_inheritance_kind_already_set, inheritance_kind_pos,
+                     inheritance_kind_names[(int)ctsp->inheritance_kind],
+                     (a_symbol_ptr)class_type->source_corresp.assoc_info);
     }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+    if (ctsp->inheritance_kind == inheritance_kind) {
+      ctsp->inheritance_kind_is_explicit = TRUE;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   if (decl_modifiers->uuid_string != NULL) {
     if (ctsp->uuid_string != NULL) {
@@ -1924,6 +1962,37 @@ the template.
     /* If necessary, pop the namespace extension scope. */
     if (namespace_extension_pushed) pop_namespace_extension_scope();
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
+    /* If the class has been defined, issue an error if the inheritance kind
+       (if any) for the class is too restrictive. */
+    a_class_type_supplement_ptr ctsp = class_type->variant.
+                                           class_struct_union.extra_info;
+    if (inheritance_kind != (an_inheritance_kind)ihk_none) {
+      if (inheritance_kind != ctsp->inheritance_kind) {
+        /* An error will already have been issued -- no need for another. */
+      } else if (is_incomplete_type(class_type)) {
+        /* The class hasn't been defined yet, so there's no way to check. */
+      } else {
+        /* Be sure the inheritance kind specified on the current declaration
+           is not "too restrictive" for the actual characteristics of the
+           class. */
+        check_inheritance_kind(class_type, inheritance_kind,
+                               &inheritance_kind_pos);
+      }  /* if */
+    } else if (is_class_definition) {
+      /* There was no explicit specification of an inheritance kind on the
+         class, but there may have been on a previous declaration, or the
+         default inheritance kind may have been assigned.  In either case,
+         now that we have a definition, determine whether the preestablished
+         inheritance kind is appropriate. */
+      if (ctsp->inheritance_kind != (an_inheritance_kind)ihk_none) {
+        check_inheritance_kind(class_type, ctsp->inheritance_kind,
+                               &locator.source_position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     /* Copy the end specifiers end position into decl_pos_block.  There are

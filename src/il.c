@@ -39,12 +39,16 @@ il.c -- Construction of intermediate language trees.
 #include "pch.h"
 #include "templates.h"
 #include "class_decl.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "decl_spec.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
 #endif /* DO_IL_LOWERING */
+
 
 /*
 Pointers to shared types.  These are cleared by il_init.
@@ -5044,7 +5048,14 @@ existing type entry.
            representation). */
         a_class_type_supplement_ptr ctsp =
                              class_type->variant.class_struct_union.extra_info;
+
+        /* Force instantiation of template class. */
+        instantiate_template_class(class_type);
         if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
+          if (!is_incomplete_type(class_type)) {
+            check_inheritance_kind(class_type, default_inheritance_kind,
+                                   &error_position);
+          }  /* if */
           ctsp->inheritance_kind = default_inheritance_kind;
         }  /* if */
       }  /* if */

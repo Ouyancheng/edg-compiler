@@ -931,7 +931,7 @@ ec_using_decl_in_embedded_cplusplus;;"Embedded C++ does not support using-declar
 ec_mutable_in_embedded_cplusplus;;"Embedded C++ does not support \"mutable\""
 ec_multiple_inheritance_in_embedded_cplusplus;;"Embedded C++ does not support multiple or virtual inheritance"
 ec_cl_invalid_microsoft_version;;"invalid Microsoft version number: "
-ec_inheritance_kind_already_set;;"pointer-to-member representation has already been set for %n"
+ec_inheritance_kind_already_set;;"pointer-to-member representation %sq has already been set for %n"
 ec_bad_constructor_type;;"%t1 cannot be used to designate constructor for %t2"
 ec_bad_suffix;;"invalid suffix on integral constant"
 ec_uuidof_requires_uuid_class_type;;"operand of __uuidof must have a class type for which __declspec(uuid(\"...\")) has been specified"
@@ -986,6 +986,7 @@ ec_typedef_not_allowed;;"\"typedef\" may not be specified here"
 ec_redecl_changes_access;;"redeclaration of %n alters its access"
 ec_qualified_name_required;;"a class or namespace qualified name is required"
 ec_implicit_int_on_main;;"return type \"int\" omitted in declaration of function \"main\""
+ec_invalid_inheritance_kind_for_class;;"pointer-to-member representation %sq is too restrictive for %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
