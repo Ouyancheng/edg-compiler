@@ -200,7 +200,7 @@ Check to be sure value is a valid "pack alignment" -- that it is a power of
   if (value >= targ_minimum_pack_alignment &&
       value <= targ_maximum_pack_alignment &&
       (value & (value-1)) == 0) {
-    *alignment = value;
+    *alignment = (a_targ_alignment)value;
   } else {
     err = TRUE;
   }  /* if */
