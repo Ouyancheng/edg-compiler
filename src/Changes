@@ -1,5 +1,25 @@
 Version 2.41
 
+1/23/99   Implicitly-generated operator= allows rvalue as left operand
+
+Assignment of an object of class type in C++ is defined in terms of calling
+the operator= function of the class.  Even if the actual assignment
+can be implemented as a bitwise copy, the semantics of the assignment
+are defined by the standard in terms of calling a generated operator=
+function.  Therefore, the left operand of an assignment of class type
+should be allowed to be an rvalue, even if a bitwise copy is used to
+implement the assignment.  This is now accepted (it was already accepted
+when a user-written operator= is present).
+
+  struct B { };
+  struct C { C& operator=(const C&); };
+  int main() {
+     B b;
+     B() = b;  // Okay
+     C c;
+     C() = c;  // Okay (was already supported)
+  }
+
 1/23/99   C-generating back end, Microsoft compatibility: __asm output
 
 In Microsoft mode, the C-generating back end now puts out asm
