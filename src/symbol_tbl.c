@@ -480,6 +480,11 @@ and indentation is the indentation desired.
   (void)sprintf(buffer, "scope %d", sym->decl_scope);
   put_string(buffer);
 
+  if (sym->decl_seq > 0) {
+    (void)sprintf(buffer, "decl seq %lu", sym->decl_seq);
+    put_string(buffer);
+  }  /* if */
+
   if (sym->referenced) put_string("ref'd");
   if (sym->defined) put_string("def'd");
   switch (sym->kind) {
@@ -937,6 +942,54 @@ Dump the entire scope stack (for debugging).
 #endif /* DEBUG */
 
 
+static a_scope_depth scope_depth_of(a_symbol_ptr  sym,
+                                    a_boolean     *is_local_to_function)
+/*
+*/
+{
+  a_scope_depth  scope_depth;
+
+  if (sym->decl_scope == FILE_SCOPE_NUMBER) {
+    /* Leave the is_local_to_function flag FALSE. */
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  } else if (sym->decl_scope == NO_SCOPE_NUMBER) {
+    /* Leave the is_local_to_function flag FALSE. */
+    /* Some entities (e.g., macros) have no decl_scope number. */
+    scope_depth = NO_SCOPE_DEPTH;
+  } else if (sym->decl_scope == scope_stack[decl_scope_level].number) {
+    /* The normal case is when the current decl_scope_level corresponds to
+       what's in the symbol.  Use the global variables. */
+    if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+        inside_local_class) {
+      *is_local_to_function = TRUE;
+    }  /* if */
+    scope_depth = decl_scope_level;
+  } else {
+    /* In certain unusual cases (e.g., when an entity is first seen in a
+       friend declaration) it is necessary to compute the scope depth by
+       running through the scope stack. */
+    for (scope_depth = depth_scope_stack; ; --scope_depth) {
+      check_assertion_str(scope_depth >= DEPTH_OF_FILE_SCOPE,
+                          "scope_depth_of: bad decl_scope in symbol");
+      if (scope_stack[scope_depth].number == sym->decl_scope) {
+        /* This is the scope stack entry corresp[230zonding to the declaration
+           scope number, where relevant characteristics of the scope are
+           recorded. */
+        if (scope_stack[scope_depth].depth_innermost_function_scope !=
+                                                           NO_SCOPE_NUMBER ||
+            scope_stack[scope_depth].inside_local_class) {
+          *is_local_to_function = TRUE;
+        }  /* if */
+        scope_depth = scope_depth;
+        break;
+      }  /* if */
+      --scope_depth;
+    }  /* for */
+  }  /* if */
+  return scope_depth;
+}  /* scope_depth_of */
+
+
 void set_source_corresp(a_source_correspondence *sc,
                         a_symbol_ptr            sp)
 /*
@@ -944,6 +997,8 @@ Set the given source correspondence to point to the given symbol.  The
 scope for the symbol must still be active.
 */
 {
+  a_boolean  is_local_to_function = FALSE;
+
   sc->assoc_info = (char *)sp;
   /* Note that the identifier name was allocated in the intermediate language
      memory area (see find_symbol); it can therefore be used without
@@ -957,60 +1012,15 @@ scope for the symbol must still be active.
      source program.  The flag will later be set to TRUE again if
      there is an actual reference. */
   sc->referenced = FALSE;
-  /* Set the is_local_to_function flag, which is may involve locating the
-      scope stack entry associated with the declaration scope. */
 #if RECORD_SCOPE_DEPTH_IN_IL
   /* Record the scope depth of the declaration of this entity in the source
      correspondence. */
+  sc->scope_depth = scope_depth_of(sp, &is_local_to_function);
+#else
+  (void)scope_depth_of(sp, &is_local_to_function);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  if (sp->decl_scope == FILE_SCOPE_NUMBER) {
-    /* Leave the is_local_to_function flag FALSE. */
-#if RECORD_SCOPE_DEPTH_IN_IL
-    sc->scope_depth = DEPTH_OF_FILE_SCOPE;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  } else if (sp->decl_scope == NO_SCOPE_NUMBER) {
-    /* Leave the is_local_to_function flag FALSE. */
-#if RECORD_SCOPE_DEPTH_IN_IL
-    /* Some entities (e.g., macros) have no decl_scope number. */
-    sc->scope_depth = NO_SCOPE_DEPTH;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  } else if (sp->decl_scope == scope_stack[decl_scope_level].number) {
-    /* The normal case is when the current decl_scope_level corresponds to
-       what's in the symbol.  Use the global variables. */
-    if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
-        inside_local_class) {
-      sc->is_local_to_function = TRUE;
-    }  /* if */
-#if RECORD_SCOPE_DEPTH_IN_IL
-    sc->scope_depth = decl_scope_level;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  } else {
-    /* In certain unusual cases (e.g., when an entity is first seen in a
-       friend declaration) it is necessary to compute the scope depth by
-       running through the scope stack. */
-    a_scope_depth  scope_depth = depth_scope_stack;
-    for (; scope_depth >= DEPTH_OF_FILE_SCOPE; --scope_depth) {
-      if (scope_stack[scope_depth].number == sp->decl_scope) {
-        /* This is the scope stack entry corresponding to the declaration
-           scope number, where relevant characteristics of the scope are
-           recorded. */
-        if (scope_stack[scope_depth].depth_of_innermost_function_scope !=
-                                                           NO_SCOPE_NUMBER ||
-            scope_stack[scope_depth].inside_local_class) {
-          sc->is_local_to_function = TRUE;
-        }  /* if */
-#if RECORD_SCOPE_DEPTH_IN_IL
-        sc->scope_depth = scope_depth;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-        break;
-      }  /* if */
-    }  /* for */
-#if CHECKING
-    if (scope_depth < DEPTH_OF_FILE_SCOPE) {
-      internal_error("set_source_corresp: bad decl_scope in symbol");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* if */
+  /* Set the is_local_to_function flag. */
+  sc->is_local_to_function = is_local_to_function;
 }  /* set_source_corresp */
 
 
@@ -5991,9 +6001,9 @@ of the template.
   ssep->template_sym             = template_sym;
   ssep->template_arg_list        = template_arg_list;
   ssep->source_position          = pos_curr_token;
-  ssep->depth_of_innermost_function_scope = depth_innermost_function_scope;
+  ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_param_list      = NULL;
-  ssep->init_count               = 0;
+  ssep->decl_seq                 = 0;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -6060,7 +6070,7 @@ of the template.
          is done.  It will be restored in pop_scope. */
       inside_local_class = ssep->inside_local_class = FALSE;
       depth_innermost_function_scope =
-              ssep->depth_of_innermost_function_scope = NO_SCOPE_DEPTH;
+              ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
       if (template_sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Static data members don't have their own scope so the
            template parameters are added at the instantiation scope. */
@@ -6084,7 +6094,7 @@ of the template.
   /* Maintain the depth of the innermost function scope. */
   if (kind == (a_scope_kind)sck_function) {
     depth_innermost_function_scope =
-            ssep->depth_of_innermost_function_scope = depth_scope_stack;
+            ssep->depth_innermost_function_scope = depth_scope_stack;
   } else if (C_dialect == C_dialect_cplusplus &&
              kind == (a_scope_kind)sck_class_struct_union) {
     /* When we enter a class scope, the containing function scope (if any)
@@ -6093,7 +6103,7 @@ of the template.
        immediate context for processing.)  So clear out the variable and
        restore it in pop_scope. */
     depth_innermost_function_scope =
-            ssep->depth_of_innermost_function_scope = NO_SCOPE_DEPTH;
+            ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
   }  /* if */
   /* Maintain the depth of the innermost stack entry that affects access
      control. */
@@ -6877,7 +6887,7 @@ End a name scope by popping an entry off the scope stack.
     /* Restore state variables. */
     inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
     depth_innermost_function_scope = scope_stack[depth_scope_stack].
-                                            depth_of_innermost_function_scope;
+                                            depth_innermost_function_scope;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Keep track of the number of current classes and class reactivations.
@@ -7010,6 +7020,27 @@ is called only in C++.
     pop_class_reactivation_scope();
   }  /* if */
 }  /* pop_class_reactivation_scope */
+
+
+void set_decl_sequence_number(a_symbol_ptr  sym)
+/*
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_boolean                is_local_to_function;
+
+  ssep = &scope_stack[scope_depth_of(sym, &is_local_to_function)];
+  if (ssep->kind == (a_scope_kind)sck_block) {
+    ssep = &scope_stack[ssep->depth_innermost_function_scope];
+  }  /* if */
+  check_assertion_str((ssep->kind == (a_scope_kind)sck_file ||
+                       ssep->kind == (a_scope_kind)sck_function ||
+                       ssep->kind == (a_scope_kind)sck_template_declaration ||
+                       ssep->kind == (a_scope_kind)sck_func_prototype ||
+                       ssep->kind == (a_scope_kind)sck_class_struct_union),
+                      "set_decl_sequenc_number: bad scope kind");
+  sym->decl_seq = ++ssep->decl_seq;
+}  /* set_decl_sequence_number */
 
 
 static void write_xref_entry(a_symbol_reference_kind kind,

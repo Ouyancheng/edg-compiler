@@ -999,6 +999,8 @@ typedef struct a_projection_descr {
 			   and the member specified by fundamental_symbol. */
 } a_projection_descr;
 
+/* Unique sequence number identifying a declaration in a given scope. */
+typedef unsigned long a_decl_sequence_number;
 
 typedef struct a_symbol {
   /* A symbol as used by the front end. */
@@ -1020,6 +1022,13 @@ typedef struct a_symbol {
 		decl_scope;
 			/* Scope number of the scope in which this symbol
 			   was declared. */
+  a_decl_sequence_number
+		decl_seq;
+			/* A number (> 0) that, within the declaration scope,
+			   uniquely identifies the declaration associated with
+			   this symbol.  The numbers are assigned sequentially,
+			   so that a symbol with a higher decl_seq value was
+			   declared after one with a lower number. */
   a_source_position
 		decl_position;
 			/* Source position of the declaration of this
@@ -1550,7 +1559,7 @@ typedef struct a_scope_stack_entry {
 		source_position;
 			/* The source position when the scope was pushed
 			   onto the stack. */
-  a_scope_depth depth_of_innermost_function_scope;
+  a_scope_depth depth_innermost_function_scope;
 			/* The scope depth of the containing function scope,
 			   or NO_SCOPE_DEPTH if there is no containing
 			   function scope or if the scope of a local class or
@@ -1560,13 +1569,17 @@ typedef struct a_scope_stack_entry {
 		template_param_list;
                         /* When kind == sck_template_instantiation, contains
 			   a pointer to the template parameter list. */
-  unsigned long
-		init_count;
-			/* When kind == sck_file, sck_routine, or sck_block,
-			   the number of initializing declarations (i.e.,
-			   declarations of variables or static data members
-			   in which an implicit or explicit initialization
-			   is done). */
+  a_decl_sequence_number
+		decl_seq;
+			/* When kind == sck_file, sck_function,
+			   sck_function_prototype, sck_class_struct_union, or
+			   sck_template_declaration: the last declaration
+			   sequence number assigned in the current scope;
+			   otherwise undefined.  For each declaration, the
+			   decl_seq value is incremented and stored in the
+			   symbol.  Note that for declarations within an
+			   sck_block scope the sequence number is based on
+			   that of the nearest enclosing function scope. */
 } a_scope_stack_entry;
 
 
@@ -1923,6 +1936,7 @@ extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
 extern a_scope_depth depth_of_containing_function_scope(void);
+extern void set_decl_sequence_number(a_symbol_ptr  sym);
 /* Record use information (for cross-reference, etc.). */
 extern void mark_declared(a_symbol_ptr      sym_ptr,
                           a_source_position *source_position,
