@@ -5502,7 +5502,7 @@ If in_asm_block_or_function is TRUE, return tok_newline for ends of lines.
   a_boolean             err;
   unsigned long         num_chars;
   a_symbol_kind		id_kind;
-  a_boolean		rescan, is_inert_macro;
+  a_boolean		rescan, is_inert_macro = FALSE;
 #if DEBUG
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
@@ -5553,7 +5553,6 @@ rescan_token:
 start_of_token_scan:  /* Restart here after scanning white space. */
   /* Remember the start character position of the token. */
   start_of_curr_token = curr_char_loc;
-  is_inert_macro = FALSE;
   /* Branch to different processing code according to the first
      character of the token.  *curr_char_loc must be used instead of
      ch because ch is not set when arriving at start_of_token_scan
