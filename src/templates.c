@@ -372,6 +372,26 @@ might not be able to if the template itself has not yet been defined.
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
       --(tssp->pending_instantiations);
+      /* If this instantiation occurred in the midst of a class definition,
+         the instantiation may be dependent upon nested types from the class.
+         The instantiation was put out on the file scope types list, but
+         the types upon which it is possibly dependent have been recorded on
+         the class scope types list.  To enable il-lowering to get the
+         ordering right when it promotes the nested types to file scope,
+         enter a placeholder type in the class scope to mark the declaration
+         position of the instantiation. */
+      if (scope_stack[decl_scope_level].kind ==
+                                 (a_scope_kind)sck_class_struct_union) {
+        a_type_ptr  tp;
+
+        /* Allocate the placeholder type, set its fields, and add it to the
+           types list of the class.  Note that this typeref has no name
+           or symbol associated with it. */
+        tp = alloc_type((a_type_kind)tk_typeref);
+        tp->variant.typeref.type = class_type;
+        tp->variant.typeref.is_placeholder_for_file_scope_type = TRUE;
+        add_to_types_list(tp, decl_scope_level);
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
