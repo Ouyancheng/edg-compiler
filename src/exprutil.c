@@ -4294,26 +4294,27 @@ if possible.  operator_position indicates the operator position.
 }  /* do_binary_operation */
 
 
-static void add_lvalue_node_to_operand(an_operand *operand)
+void prep_generic_operand(an_operand *operand)
 /*
-The indicated operand (an lvalue) is about to be used as the operand
-of an expression involving template parameter types.  Because the
+The indicated operand is about to be used as the operand of an expression
+involving template parameter types.  Adjust it as needed: Because the
 generic (typeless) operators used for such expressions assume their
-operands are rvalues, add an eok_lvalue node to the operand to
-mark it as an lvalue.
+operands are rvalues, add an eok_lvalue node to the operand to mark it
+as an lvalue if it is an lvalue.
 */
 {
-  an_expr_node_ptr expr;
-  an_operand       orig_operand;
-
-  orig_operand = *operand;
-  expr = make_node_from_operand(operand);
-  expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                            operand->type, expr);
-  make_expression_operand(expr, operand->type, operand);
-  operand->state = orig_operand.state;
-  restore_operand_details_incl_ref(operand, &orig_operand);
-}  /* add_lvalue_node_to_operand */
+  if (is_an_lvalue(operand)) {
+    an_expr_node_ptr expr;
+    an_operand       orig_operand;
+    orig_operand = *operand;
+    expr = make_node_from_operand(operand);
+    expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                              operand->type, expr);
+    make_expression_operand(expr, operand->type, operand);
+    operand->state = orig_operand.state;
+    restore_operand_details_incl_ref(operand, &orig_operand);
+  }  /* if */
+}  /* prep_generic_operand */
 
 
 void template_binary_operation(an_expr_operator_kind op,
@@ -4374,13 +4375,8 @@ be used (e.g., eok_add, not eok_iadd).
     }  /* switch */
   } else {
     /* The current expression is not a constant expression. */
-    /* If either operand is an lvalue, add an operator to indicate that. */
-    if (is_an_lvalue(operand_1)) {
-      add_lvalue_node_to_operand(operand_1);
-    }  /* if */
-    if (is_an_lvalue(operand_2)) {
-      add_lvalue_node_to_operand(operand_2);
-    }  /* if */
+    prep_generic_operand(operand_1);
+    prep_generic_operand(operand_2);
   }  /* if */
   do_binary_operation(op, operand_1, operand_2,
                       type_of_unknown_templ_param_nontype,
@@ -4497,10 +4493,7 @@ be used (e.g., eok_negate, not eok_inegate).
     }  /* if */
   } else {
     /* The current expression is not a constant expression. */
-    /* If the operand is an lvalue, add an operator to indicate that. */
-    if (is_an_lvalue(operand)) {
-      add_lvalue_node_to_operand(operand);
-    }  /* if */
+    prep_generic_operand(operand);
   }  /* if */
   do_unary_operation(op, op_token, operand,
                      type_of_unknown_templ_param_nontype,
@@ -4557,16 +4550,9 @@ it happens in prototype instantiations.
                         "template_question_operation: non-const operand");
   } else {
     /* The current expression is not a constant expression. */
-    /* If any operand is an lvalue, add an operator to indicate that. */
-    if (is_an_lvalue(operand_1)) {
-      add_lvalue_node_to_operand(operand_1);
-    }  /* if */
-    if (is_an_lvalue(operand_2)) {
-      add_lvalue_node_to_operand(operand_2);
-    }  /* if */
-    if (is_an_lvalue(operand_3)) {
-      add_lvalue_node_to_operand(operand_3);
-    }  /* if */
+    prep_generic_operand(operand_1);
+    prep_generic_operand(operand_2);
+    prep_generic_operand(operand_3);
   }  /* if */
   do_question_operation(operand_1, operand_2, operand_3,
                         type_of_unknown_templ_param_nontype,

@@ -4476,6 +4476,7 @@ Syntax:
   a_type_ptr        underlying_operation_type;
   a_boolean         cast_type_okay, operand_type_okay;
   a_boolean         reference_case = FALSE, err = FALSE, baseward_cast;
+  a_boolean         template_param_case = FALSE;
   a_base_class_ptr  bcp;
   an_expr_node_ptr  expr;
 
@@ -4525,6 +4526,11 @@ Syntax:
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
       }  /* if */
+    } else if (is_template_param_type(cast_type)) {
+      /* Casting to a template parameter type is okay in a prototype
+         instantiation. */
+      cast_type_okay = TRUE;
+      template_param_case = TRUE;
     } else {
       /* cast_type is not a pointer or reference type; error. */
       cast_type_okay = FALSE;
@@ -4541,7 +4547,11 @@ Syntax:
     /* Check the type of the operand. */
     operand_type = operand.type;
     operand_type_okay = FALSE;
-    if (!reference_case) {
+    if (is_template_param_type(operand_type)) {
+      /* An operand of unknown type, in a prototype instantiation. */
+      operand_type_okay = TRUE;
+      template_param_case = TRUE;
+    } else if (!reference_case) {
       /* When casting to a pointer type, the operand is treated as an
          rvalue. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
@@ -4596,7 +4606,7 @@ Syntax:
      if they go together. */
   /* Note that the cast has been turned into pointer form if it was a
      reference cast. */
-  if (!err) {
+  if (!err && !template_param_case) {
     /* The cast is not allowed to cast away constness, which really means
        it cannot drop qualifiers.  This is a simple version of that
        test, since only one-level pointers are involved. */
@@ -4609,6 +4619,14 @@ Syntax:
   }  /* if */
   if (err) {
     /* Some error, previously issued. */
+  } else if (template_param_case) {
+    /* The source operand type or the destination type is unknown, so
+       generate a generic operation. */
+    prep_generic_operand(&operand);
+    expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
+                              cast_type,
+                              make_node_from_operand(&operand));
+    make_expression_operand(expr, expr->type, result);
   } else if (same_type_with_added_qualifiers(operand_type, operation_type,
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL)) {

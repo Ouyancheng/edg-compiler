@@ -961,6 +961,8 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        an_operand            *result,
 			        a_source_position     *operator_position);
 
+extern void prep_generic_operand(an_operand *operand);
+
 extern void template_binary_operation(
                                      an_expr_operator_kind op,
                                      an_operand            *operand_1,
