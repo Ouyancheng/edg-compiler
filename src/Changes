@@ -1,5 +1,11 @@
 Version 3.4
 
+8/22/03  MSVC++ 7.1 fixes empty-macro-argument bug
+
+The MSVC++ empty-macro-argument bug described in the entry of 4/3/97
+is fixed in MSVC++ 7.1.  Accordingly, the EDG C++ Front End now
+turns off the emulation of that bug when microsoft_version >= 1310.
+
 8/22/03  GNU mode: __builtin_va_start
 
 In GNU C and C++ modes, the front end now accepts __builtin_va_start as a

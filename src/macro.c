@@ -2404,8 +2404,10 @@ do_argument_again:
               warning(ec_empty_macro_argument);
             }  /* if */
             /* Strangely, the Microsoft compiler ignores empty macro arguments.
-               This has been verified with MSVC++ 4.2 and 5.0. */
-            if (microsoft_bugs && curr_token == tok_comma) {
+               This has been verified with MSVC++ 4.2, 5.0. and 7.0.
+               Fixed in 7.1 */
+            if (microsoft_bugs && microsoft_version < 1310 &&
+                curr_token == tok_comma) {
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */
