@@ -4409,7 +4409,6 @@ type conversions.
   if (err) {
     /* There was a previous error (e.g., the type to cast to is invalid
        regardless of the type of the source).  Do no further checking. */
-    change_refs_to_error(operand);
   } else {
     if (cast_to_reference) {
       /* In C++, "An object may be explicitly converted to a reference type
@@ -4645,7 +4644,10 @@ type conversions.
        from a reference. */
     if (cast_to_reference) operand->came_from_reference = TRUE;
   }  /* if */
-  if (err) make_error_operand(operand);
+  if (err) {
+    conv_to_error_operand(operand);
+    change_refs_to_error(operand->ref_entries_list);
+  }  /* if */
   operand->position = *start_position;
 }  /* do_cast */
 
