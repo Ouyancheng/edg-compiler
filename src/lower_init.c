@@ -2797,15 +2797,16 @@ definition.
                   rout->assoc_scope != NULL_region_number);
   /* If the routine is external (but not extern inline), mark it as needed. */
   if (rout->storage_class == (a_storage_class)sc_unspecified &&
-      (!rout->is_inline ||
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-       /* extern inline thunks are needed too. */
-       rout->overriding_function_for_covariant_return_type != NULL
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-                                                                  )) {
+      !rout->is_inline) {
     a_routine_ptr assoc_rout = NULL;
     /* If this is an entry point of some other routine, it's needed only
        if the primary routine is needed. */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    if (rout->overriding_function_for_covariant_return_type != NULL) {
+      assoc_rout = rout->overriding_function_for_covariant_return_type;
+      rout = assoc_rout;  /* Allow both thunk and alternate entry point. */
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI
     if (rout->primary_ctor_or_dtor != NULL) {
       assoc_rout = rout->primary_ctor_or_dtor;
@@ -11878,6 +11879,17 @@ The overriding function must have a definition in the current compilation.
   }  /* if */
 #endif /* IA64_ABI */
   pop_generated_routine_context(scope, region_number, &grcontext);
+#if MAINTAIN_NEEDED_FLAGS
+  /* If this is an extern inline thunk, and we're instantiating extern
+     inlines, mark the routine as needed.  We only get here if the
+     caller has determined that the overriding function is needed,
+     so the thunk is also needed (they always go out together).
+     External routines other than extern inline were marked as needed
+     in pop_generated_routine_context. */
+  if (instantiate_extern_inline && treat_as_extern_inline(routine)) {
+    mark_as_needed((char *)routine, iek_routine);
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* add_body_for_covariant_return_type_entry_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */

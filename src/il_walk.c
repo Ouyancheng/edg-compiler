@@ -813,6 +813,27 @@ with a source correspondence field.
 }  /* mark_canonical_as_needed */
 
 
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+
+static void mark_any_thunks_as_needed(a_routine_ptr rout)
+/*
+If the indicated routine has any thunks, mark them as needed.
+*/
+{
+  a_routine_ptr trout;
+
+  /* The thunks follow the routine if present. */
+  for (trout = rout->next;
+       trout != NULL &&
+         trout->overriding_function_for_covariant_return_type == rout;
+       trout = trout->next) {
+    mark_as_needed((char *)rout, iek_routine);
+  }  /* for */
+}  /* mark_any_thunks_as_needed */
+
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+
+
 /*
 Macro that returns TRUE if a class is local to a function.  This is the same
 as saying it is not subject to the end-of-file-scope sweep to set "needed"
@@ -952,27 +973,36 @@ as needed.
          as needed too, since that's the one that will be copied to the
          primary IL. */
       mark_canonical_as_needed(entry_ptr, entry_kind);
-#if IA64_ABI
+#if IA64_ABI || ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       if (entry_kind == (an_il_entry_kind)iek_routine) {
         a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-        if ((rout->special_kind == (a_special_function_kind)sfk_constructor ||
-             rout->special_kind == (a_special_function_kind)sfk_destructor) &&
-            rout->storage_class == (a_storage_class)sc_unspecified) {
-          /* External alternate entry points of constructors and destructors
-             should be marked as needed if the primary routine is. */
-          a_routine_list_entry_ptr rlep;
-          for (rlep = rout->variant.ctor_dtor.alternate_entry_points;
-               rlep != NULL;
-               rlep = rlep->next) {
-            a_routine_ptr arout = rlep->routine;
-            /* We have to use mark_as_needed here instead of
-               walk_tree_and_set_needed to get the definition_needed flag
-               set too. */
-            mark_as_needed((char *)arout, (an_il_entry_kind)iek_routine);
-          }  /* for */
+        if (rout->storage_class == (a_storage_class)sc_unspecified) {
+#if IA64_ABI
+          if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+              rout->special_kind == (a_special_function_kind)sfk_destructor) {
+            /* External alternate entry points of constructors and destructors
+               should be marked as needed if the primary routine is. */
+            a_routine_list_entry_ptr rlep;
+            for (rlep = rout->variant.ctor_dtor.alternate_entry_points;
+                 rlep != NULL;
+                 rlep = rlep->next) {
+              a_routine_ptr arout = rlep->routine;
+              /* We have to use mark_as_needed here instead of
+                 walk_tree_and_set_needed to get the definition_needed flag
+                 set too. */
+              mark_as_needed((char *)arout, (an_il_entry_kind)iek_routine);
+              mark_any_thunks_as_needed(arout);
+            }  /* for */
+          }  /* if */
+#endif /* IA64_ABI */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+          /* Thunks should be marked as needed if the primary routine is
+             needed. */
+          mark_any_thunks_as_needed(rout);
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
         }  /* if */
       }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI || ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     }  /* if */
   }  /* if */
   return prune;
