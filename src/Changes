@@ -1,5 +1,16 @@
 Version 3.0
 
+4/29/02  Failure to diagnose address of bit field in C mode initializer
+
+The front end failed to issue an error on taking the address of a bit
+field in a constant initializer in C mode.  Now fixed.
+
+  struct {
+    unsigned char a;
+    unsigned char c:1;
+  } x;
+  const unsigned char * y = &x.c;  /* Should get error. */
+
 4/29/02  .ti file should only be created when using automatic instantiation
 
 The front end created a .ti file even when automatic instantiation was

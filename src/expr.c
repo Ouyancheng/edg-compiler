@@ -1855,14 +1855,8 @@ The result is placed in *result.
       if (curr_expr_kind_is_const() && curr_expr_is_evaluated() &&
           !template_constant) {
         /* The operation must fold to a constant in a constant expression. */
-        if (field->is_bit_field) {
-          /* A bit-field selection cannot be folded.  There will be a
-             warning or error issued later.  Nothing is needed now. */
-        } else {
-          /* Some other case (none expected, but for future expansion...). */
-          pos_error(ec_expr_not_constant, member_position);
-          make_error_operand(result);
-        }  /* if */
+        pos_error(ec_expr_not_constant, member_position);
+        make_error_operand(result);
       } else {
         /* Construct the field selection expression tree. */
         make_field_selection_operand(operand_1, op, field_sym, selection_type,
@@ -2045,16 +2039,18 @@ end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
 
-static void scan_field_selection_operator
-                                 (an_operand         *operand_1,
-                                  an_operand         *result,
-                                  an_operand         *bound_function_selector)
+static void scan_field_selection_operator(
+                            an_operand               *operand_1,
+                            a_local_expr_options_set local_options,
+                            an_operand               *result,
+                            an_operand               *bound_function_selector)
 /*
 Scan the "." and "->" operators.  The left operand must be (a pointer to) a
 class, struct, or union.  The right operand must be a member of the class,
 struct, or union.  Return the result of the selection in *result.
 If the field selection produces a bound function in C++, return the object
-bound with the function in *bound_function_selector.
+bound with the function in *bound_function_selector.  local_options
+is the current set of expression-scanning options.
 */
 {
   a_symbol_ptr          member_sym, projection_member_sym;
@@ -2563,10 +2559,20 @@ qualified_name_check:
                                                  access_control_error_reported,
                                            /*do_protected_member_check=*/TRUE,
                                            &member_position);
-          do_field_selection_operation(operand_1, orig_class_struct_union_type,
-                                       is_arrow_operator, rvalue_result,
-                                       member_sym, &member_position, rep,
-                                       result);
+          if (curr_expr_kind_is(ek_init_constant) &&
+              (local_options & EOPT_OPERAND_OF_ADDRESS_OF) &&
+              member_sym->variant.field.ptr->is_bit_field) {
+            /* Can't take the address of a bit field.  This is checked
+               specially to get a better error message. */
+            pos_error(ec_address_of_bit_field, &member_position);
+            make_error_operand(result);
+          } else {
+            do_field_selection_operation(operand_1,
+                                         orig_class_struct_union_type,
+                                         is_arrow_operator, rvalue_result,
+                                         member_sym, &member_position, rep,
+                                         result);
+          }  /* if */
           break;
         case sk_static_data_member:
           /* Static data member reference. */
@@ -13747,7 +13753,7 @@ bad_start_of_primary:
       case tok_period:
       case tok_arrow:
 	/* Field selectors. */
-	scan_field_selection_operator(&operand, &local_result,
+	scan_field_selection_operator(&operand, local_options, &local_result,
                                       &local_bound_function_selector);
 	break;
       case tok_period_star:
