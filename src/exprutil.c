@@ -2244,11 +2244,11 @@ of bit-fields, where the size in bits is needed in addition to the base type.
   a_type_ptr      promoted_type;
   a_field_ptr     field;
   an_integer_kind ikind, orig_ikind;
-  a_boolean       is_signed;
 
   db_enter(4, "node_type_after_integral_promotion");
 
-  if (is_bit_field_extract_node(node)) {
+  /* Bit fields get special processing, but not in pcc mode. */
+  if (C_dialect != C_dialect_pcc && is_bit_field_extract_node(node)) {
     /* This is a bit-field reference. */
     field = node->variant.operation.operands->next->variant.field;
     promoted_type = skip_typerefs(node->type);
@@ -2271,84 +2271,55 @@ of bit-fields, where the size in bits is needed in addition to the base type.
     }  /* if */
 #endif /* CHECKING */
     orig_ikind = ikind = promoted_type->variant.integer.int_kind;
-    is_signed = field->bit_field_is_signed;
-    if (C_dialect == C_dialect_pcc) {
-      /* In pcc mode, we use unsigned-preserving rules, so the promoted type
-         is int or unsigned int depending on the signedness of the original
-         type.  If the size is bigger than int, the promoted type is long
-         or unsigned long. */
+    if (field->bit_field_is_signed) {
+      /* Bit-field is signed, so it is promoted to the first of int or
+         long into which all its values will fit. */
 #if LONG_LONG_ALLOWED
-      /* ... or long long or unsigned long long. */
+      /* ... or long long. */
 #endif /* LONG_LONG_ALLOWED */
       if (field->bit_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
-        ikind = is_signed ? (an_integer_kind)ik_int :
-                            (an_integer_kind)ik_unsigned_int;
+        ikind = (an_integer_kind)ik_int;
       } else {
 #if LONG_LONG_ALLOWED
         if (field->bit_size <=
-                            (unsigned int)(targ_sizeof_long*targ_char_bit)) {
+                             (unsigned int)(targ_sizeof_long*targ_char_bit)) {
 #endif /* LONG_LONG_ALLOWED */
-          ikind = is_signed ? (an_integer_kind)ik_long :
-                              (an_integer_kind)ik_unsigned_long;
+          ikind = (an_integer_kind)ik_long;
 #if LONG_LONG_ALLOWED
         } else {
-          ikind = is_signed ? (an_integer_kind)ik_long_long :
-                              (an_integer_kind)ik_unsigned_long_long;
+          ikind = (an_integer_kind)ik_long_long;
         }  /* if */
 #endif /* LONG_LONG_ALLOWED */
       }  /* if */
     } else {
-      /* ANSI mode, so value-preserving rules apply. */
-      if (is_signed) {
-        /* Bit-field is signed, so it is promoted to the first of int or
-           long into which all its values will fit. */
+      /* Bit-field is unsigned, so it is promoted to the first of int,
+         unsigned int, long, and unsigned long into which all its values
+         will fit. */
 #if LONG_LONG_ALLOWED
-        /* ... or long long. */
+      /* ... or long long or unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
-        if (field->bit_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
-          ikind = (an_integer_kind)ik_int;
-        } else {
-#if LONG_LONG_ALLOWED
-          if (field->bit_size <=
-                             (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-#endif /* LONG_LONG_ALLOWED */
-            ikind = (an_integer_kind)ik_long;
-#if LONG_LONG_ALLOWED
-          } else {
-            ikind = (an_integer_kind)ik_long_long;
-          }  /* if */
-#endif /* LONG_LONG_ALLOWED */
-        }  /* if */
-      } else {
-        /* Bit-field is unsigned, so it is promoted to the first of int,
-           unsigned int, long, and unsigned long into which all its values
-           will fit. */
-#if LONG_LONG_ALLOWED
-        /* ... or long long or unsigned long long. */
-#endif /* LONG_LONG_ALLOWED */
-        if (field->bit_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
-          ikind = (an_integer_kind)ik_int;
-        } else if (field->bit_size ==
+      if (field->bit_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+        ikind = (an_integer_kind)ik_int;
+      } else if (field->bit_size ==
                               (unsigned int)(targ_sizeof_int*targ_char_bit)) {
-          ikind = (an_integer_kind)ik_unsigned_int;
-        } else if (field->bit_size <
+        ikind = (an_integer_kind)ik_unsigned_int;
+      } else if (field->bit_size <
                              (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-          ikind = (an_integer_kind)ik_long;
-        } else {
+        ikind = (an_integer_kind)ik_long;
+      } else {
 #if LONG_LONG_ALLOWED
-          if (field->bit_size ==
+        if (field->bit_size ==
                             (unsigned int)(targ_sizeof_long*targ_char_bit)) {
 #endif /* LONG_LONG_ALLOWED */
-            ikind = (an_integer_kind)ik_unsigned_long;
+          ikind = (an_integer_kind)ik_unsigned_long;
 #if LONG_LONG_ALLOWED
-          } else if (field->bit_size <
+        } else if (field->bit_size <
                          (unsigned int)(targ_sizeof_long_long*targ_char_bit)) {
-            ikind = (an_integer_kind)ik_long_long;
-          } else {
-            ikind = (an_integer_kind)ik_unsigned_long_long;
-          }  /* if */
-#endif /* LONG_LONG_ALLOWED */
+          ikind = (an_integer_kind)ik_long_long;
+        } else {
+          ikind = (an_integer_kind)ik_unsigned_long_long;
         }  /* if */
+#endif /* LONG_LONG_ALLOWED */
       }  /* if */
     }  /* if */
     if (ikind != orig_ikind) promoted_type = integer_type(ikind);
