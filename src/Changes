@@ -1,5 +1,18 @@
 Version 2.43
 
+11/1/99  C++-generating back end: unqualified name on typedef redeclaration
+         in presence of using-declaration
+
+The C++-generating back end no longer puts out a qualified name on the
+redeclaration of a typedef that is visible because of a using-declaration:
+
+  namespace std {
+    typedef int ptrdiff_t;
+  }
+  using std::ptrdiff_t;
+  typedef int ptrdiff_t;  // No qualified name on this redeclaration
+  ptrdiff_t x;
+
 10/31/99 Loop with NEAR_AND_FAR_ENABLED but not MICROSOFT_EXTENSIONS_ALLOWED
 
 A bug in the disambiguation routines could cause an infinite loop when
