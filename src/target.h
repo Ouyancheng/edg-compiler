@@ -56,7 +56,7 @@ Special characters:
 /*
 Ordering of bytes in char constants:
 */
-#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 0
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 1
 			/* if 1, 'ab' == 0x6162. */
 			/* if 0, 'ab' == 0x6261. */
 
@@ -85,9 +85,9 @@ Integer types:
 #define TARG_SIZEOF_SHORT 2
 #define TARG_ALIGNOF_SHORT 2
 #define TARG_SIZEOF_INT 4
-#define TARG_ALIGNOF_INT 2
+#define TARG_ALIGNOF_INT 4
 #define TARG_SIZEOF_LONG 4
-#define TARG_ALIGNOF_LONG 2
+#define TARG_ALIGNOF_LONG 4
 
 /*
 If this flag is TRUE, overflows on signed integer operations do
@@ -138,7 +138,7 @@ Pointer types:
 			/* At the moment, this cannot be set FALSE.
 			   See set_type_size in types.c. */
 #define TARG_SIZEOF_POINTER 4
-#define TARG_ALIGNOF_POINTER 2
+#define TARG_ALIGNOF_POINTER 4
 /* Integer type for the difference of two pointer types (ptrdiff_t).
    This type must be signed.  See 3.3.6 in the standard and the header
    file <stddef.h>. */
@@ -174,11 +174,11 @@ Float types:
 */
 /* Remember that the size of a type must be a multiple of the alignment. */
 #define TARG_SIZEOF_FLOAT 4
-#define TARG_ALIGNOF_FLOAT 2
+#define TARG_ALIGNOF_FLOAT 4
 #define TARG_SIZEOF_DOUBLE 8
-#define TARG_ALIGNOF_DOUBLE 2
+#define TARG_ALIGNOF_DOUBLE 8
 #define TARG_SIZEOF_LONG_DOUBLE 8
-#define TARG_ALIGNOF_LONG_DOUBLE 2
+#define TARG_ALIGNOF_LONG_DOUBLE 8
 
 /*
 Type used to represent float quantities internally:
