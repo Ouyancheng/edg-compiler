@@ -1177,7 +1177,7 @@ values.
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
-static void set_operand_expr_position_if_expr(an_operand *operand)
+void set_operand_expr_position_if_expr(an_operand *operand)
 /*
 If operand is an expression operand, set the source positions in the
 underlying expression.

@@ -763,6 +763,10 @@ extern void db_operand(an_operand *operand);
 extern void clear_operand(an_operand_kind kind,
 		          an_operand      *operand);
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+extern void set_operand_expr_position_if_expr(an_operand *operand);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 extern void set_operand_kind(an_operand      *operand,
                              an_operand_kind kind);
 

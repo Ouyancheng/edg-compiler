@@ -1803,6 +1803,11 @@ Syntax:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (overloaded_function_case) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Save the end position for later restoration. */
+    a_source_position end_function_position;
+    end_function_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
     function_symbol = select_and_prepare_to_call_overloaded_function(
@@ -1822,6 +1827,9 @@ Syntax:
                                             &function_position,
                                             operand,
                                             &argument_list);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    operand->end_position = end_function_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (function_symbol == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
@@ -10691,13 +10699,21 @@ normal_function:
   /* Remember whether or not this operand is the immediate operand of
      a "&" operator. */
   result->is_operand_of_address_of = is_operand_of_address_of;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Advance past the identifier. */
   (void)get_token();
 after_advance_past_id:
 
-  /* Set the error position to the starting position. */
-  copy_source_position(start_position, error_position);
-  copy_source_position(start_position, result->position);
+  error_position = result->position = start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->end_position = curr_construct_end_position;
+  /* If the operand has kind ok_expression, set the position in the
+     expression too. */
+  set_operand_expr_position_if_expr(result);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
   if (p_sym_ptr != NULL) *p_sym_ptr = projection_sym_ptr;
 
   db_exit();
