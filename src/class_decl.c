@@ -2571,6 +2571,16 @@ special function kind (e.g., constructor, destructor), if any.
   }  /* if */
 #endif /* CHECKING */
   member_type = skip_typerefs(member_type);
+#if 0
+  /* We have at least one unresolved problem when a member function is
+     declared using a typedef name.  The referenced type will have no
+     implicit "this" param pointer, so by default such functions will be
+     static.  But when no static specifier appears, member_type could
+     have a "this" param type pointer added (this would involve making a
+     copy of member type), or if all functions are treated as static, a
+     warning should probably be issued.  The ARM is silent on how such
+     declarations should be handled. */
+#endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
   if (sym->variant.routine != NULL) {
