@@ -3813,11 +3813,13 @@ as the current token; otherwise, it is consumed.
     cache_template_param_list(&template_param_list_cache);
 #endif /* RECORD_TEMPLATES_IN_IL */
   }  /* if */
+  /* Bypass "template".  The next token should be "<".  This is done
+     before the scope is pushed so that any pragma associated with the
+     tok_template token will be processed in the current scope. */
+  (void)get_token();
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
                    (a_type_ptr)NULL, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
                    (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-  /* Bypass "template".  The next token should be "<". */
-  (void)get_token();
   /* The template parameters. */
   template_param_list = scan_template_param_list();
   /* Cache the tokens for this declaration.  If this turns out to be
