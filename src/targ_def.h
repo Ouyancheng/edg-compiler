@@ -1587,7 +1587,7 @@ C++/C-generating back end (cp_gen_be) is run, the "restrict" keyword should
 be suppressed in the output.
 */
 #ifndef SUPPRESS_RESTRICT_IN_GENERATED_CODE
-#define SUPPRESS_RESTRICT_IN_GENERATED_CODE FALSE
+#define SUPPRESS_RESTRICT_IN_GENERATED_CODE TRUE
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
 
 /*
