@@ -1,5 +1,18 @@
 Version 2.45
 
+8/25/00  Duplication of type_info objects with internal linkage in
+         one instantiation per object mode
+
+Previously, all routines and variables with internal linkage that were
+referred to by template instantiations were "externalized" in one
+instantiation per object mode so that a single definition could be created
+and referred to from all the instantiations generated in the different object
+files.  This behavior has changed for the special case of type_info objects
+with internal linkage: these are duplicated across the object files (with
+internal linkage, which results in better linker performance).  The previous
+behavior is desired, the new configuration variable
+DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES should be set to FALSE.
+
 8/23/00  Microsoft compatibility: "charizing" macro operator
 
 In Microsoft mode, the combination of the special token #@ followed by a macro

@@ -717,6 +717,17 @@ have been called on it at some previous point.
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT && \
+    DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+  if (one_instantiation_per_object &&
+      typeinfo_var->storage_class == (a_storage_class)sc_static) {
+    /* type_info objects with internal linkage should not be externalized for
+       the sake of having only one copy over all the object files.  Keep them
+       with internal linkage instead. */
+    typeinfo_var->source_corresp.should_not_be_externalized = TRUE;
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT && DUPLICATE_SPECIAL_STATICS_IN_... */
+
   if (definition_needed) {
     /* The initial value of the typeinfo variable is an aggregate containing
        values as follows:

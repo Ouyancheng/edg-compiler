@@ -5069,10 +5069,16 @@ parameters.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable, &init_kind);
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (needed_flag_bit_number != 0) {
+  if (needed_flag_bit_number != 0
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+      && !variable->source_corresp.should_not_be_externalized
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+                                                             ) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
-       primary-file variable definitions into the instantiation files. */
+       primary-file variable definitions into the instantiation files.
+       (Some variables -- like certain type_info objects -- are not subject
+       to this constraint and should not be externalized.) */
     if ((variable->instantiation_needed_bit_number != 0) ?
                             (needed_flag_bit_number !=
                                    variable->instantiation_needed_bit_number) :
@@ -6473,12 +6479,17 @@ if this routine has a body (dump nothing if it has no body).
 
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0 &&
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+      !rout->source_corresp.should_not_be_externalized &&
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
       (!rout->is_inline ||
        (instantiate_extern_inline &&
         rout->storage_class != (a_storage_class)sc_static))) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
-       primary-file routine definitions into the instantiation files. */
+       primary-file routine definitions into the instantiation files.
+       (Exceptions are inline functions and routines that are explicitly
+       marked not to be externalized.) */
     if (rout->instantiation_needed_bit_number != 0) {
       /* This routine is an instantiation and goes out only it its own
          file. */

@@ -12499,6 +12499,9 @@ the needed-flag walk for the file scope.
          rout != NULL;
          rout = rout->next) {
       if (rout->source_corresp.static_used_by_instantiation &&
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+          !rout->source_corresp.should_not_be_externalized &&
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
           !rout->is_inline) {
         if (rout->storage_class != (a_storage_class)sc_static) {
           /* If the entity was changed to non-static after the flag was set,
@@ -12517,6 +12520,7 @@ the needed-flag walk for the file scope.
          var = var->next) {
 #if !USE_INIT_SECTION_IN_GENERATED_C
       char *var_name = var->source_corresp.name;
+
       if (var_name != NULL && var_name[0] == '_' &&
           strcmp(var_name, "__link") == 0) {
         /* Do not rename the __link variable.  It is specific to a particular
@@ -12524,7 +12528,11 @@ the needed-flag walk for the file scope.
       } else
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
       /* Do not insert code here.  This is the "else" of an "if". */
-      if (var->source_corresp.static_used_by_instantiation) {
+      if (var->source_corresp.static_used_by_instantiation
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+          && !var->source_corresp.should_not_be_externalized
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+                                                            ) {
         if (var->storage_class != (a_storage_class)sc_static) {
           /* If the entity was changed to non-static after the flag was set,
              just ignore the flag. */

@@ -3113,6 +3113,9 @@ in il_init.)
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+  def_source_corresp.should_not_be_externalized = FALSE;
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if MAINTAIN_NEEDED_FLAGS
   def_source_corresp.okay_to_walk_subtree_of_local_entity = FALSE;

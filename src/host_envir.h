@@ -576,6 +576,20 @@ is disabled by default except when using the C generating back end.
 #endif /* !MAINTAIN_NEEDED_FLAGS && ... */
 
 /*
+In the "one instantiation per object file" mode, entities with internal
+linkage are usually promoted to external linkage when they are referred to
+from template instantiations (since they may then need to be referred to from
+different slices).  However, for some special entities with internal linkage
+(like type_info objects) this is not necessary and the entity can instead be
+duplicated across slices.  If this duplication is undesirable (i.e., the
+externalization should happen even for these special statics) the following
+flag should be set to FALSE.
+*/
+#ifndef DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+#define DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES TRUE
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+
+/*
 The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
