@@ -5295,6 +5295,52 @@ Lower an eok_bool_cast node, which converts an operand to bool.
 }  /* lower_bool_cast */
 
 
+static void lower_bool_increment(an_expr_node_ptr expr)
+/*
+Rewrite an increment of a bool (eok_ipost_incr or eok_ipre_incr).
+Those operations set the lvalue to true instead of incrementing.
+*/
+{
+  an_expr_node_ptr operand_node = expr->variant.operation.operands;
+  a_type_ptr       operand_type =
+                          f_skip_typerefs(type_pointed_to(operand_node->type));
+  an_expr_node_ptr one_node = node_for_integer_constant(1L,
+                                       operand_type->variant.integer.int_kind);
+
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_incr ||
+      expr->result_is_not_used) {
+    /* Preincrement: ++x becomes (x = 1).  Also used for postincrement
+       when result is not used. */
+    a_boolean returns_lvalue = expr->variant.operation.
+                                        returns_lvalue_instead_of_usual_rvalue;
+    operand_node->next = one_node;
+    set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
+                      expr->type, operand_node);
+    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                returns_lvalue;
+  } else {
+    /* Postincrement: x++ becomes (temp = x, x = 1, temp). */
+    an_expr_node_ptr x_lvalue_copy =
+                          make_lvalue_reusable_copy(operand_node,
+                                                    /*vars_can_change=*/FALSE);
+    an_expr_node_ptr x_rvalue = add_indirection_to_node(operand_node);
+    an_expr_node_ptr x_rvalue_copy =
+                                  make_reusable_copy(x_rvalue,
+                                                     /*vars_can_change=*/TRUE);
+    an_expr_node_ptr assign_node, comma_node;
+    x_lvalue_copy->next = one_node;
+    assign_node = make_operator_node((an_expr_operator_kind)eok_iassign,
+                                     x_rvalue->type, x_lvalue_copy);
+    x_rvalue->next = assign_node;
+    comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                    assign_node->type, x_rvalue);
+    comma_node->next = x_rvalue_copy;
+    set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                      x_rvalue_copy->type, comma_node);
+  }  /* if */
+}  /* lower_bool_increment */                  
+
+
 static a_routine_ptr routine_from_node(an_expr_node_ptr node)
 /*
 node is an expression node that is the address of a specific routine.
@@ -6286,17 +6332,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               /* Incrementing a bool (which is deprecated) sets the bool to
                  true. */
               a_type_ptr operand_type = type_pointed_to(operand_node->type);
-              operand_type = skip_typerefs(operand_type);
               if (is_bool_type(operand_type)) {
-                an_expr_node_ptr one_node = node_for_integer_constant(1L,
-                                       operand_type->variant.integer.int_kind);
-                a_boolean returns_lvalue = expr->variant.operation.
-                                        returns_lvalue_instead_of_usual_rvalue;
-                operand_node->next = one_node;
-                set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
-                                  expr->type, operand_node);
-                expr->variant.operation.returns_lvalue_instead_of_usual_rvalue=
-                                                                returns_lvalue;
+                lower_bool_increment(expr);
               }  /* if */
             }  /* if */
             break;
