@@ -128,10 +128,8 @@ Return TRUE or FALSE about the qualifiers of a tk_typeref type.
  (((tp)->variant.typeref.qualifiers & TQ_CONST) != 0)
 #define typeref_is_volatile_qualified(tp)                             \
  (((tp)->variant.typeref.qualifiers & TQ_VOLATILE) != 0)
-#if RESTRICT_ALLOWED
 #define typeref_is_restrict_qualified(tp)                             \
  (((tp)->variant.typeref.qualifiers & TQ_RESTRICT) != 0)
-#endif /* RESTRICT_ALLOWED */
 
 /*
 Macro that takes an array type and returns TRUE if its bound is specified but

@@ -130,7 +130,6 @@ token is a qualifier).
   return qualifiers;
 }  /* collect_type_qualifiers */
 
-#if RESTRICT_ALLOWED
 
 a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
                                         a_source_position  *error_pos)
@@ -249,7 +248,6 @@ derived type to remove the restrict qualifier.
   }  /* if */  
 }  /* check_for_restrict_qualifier_on_derived_type */
 
-#endif /* RESTRICT_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 a_type_ptr form_declared_type(a_type_ptr             type_ptr,
@@ -540,11 +538,9 @@ property fields).
             error(ec_pointer_to_reference);
             new_type_ptr = error_type();
           }  /* if */
-#if RESTRICT_ALLOWED
           check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                        derived_type,
                                                        bottom_derived_type);
-#endif /* RESTRICT_ALLOWED */
           (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
         }  /* if */
       } else if (is_reference_type(*bottom_derived_type)) {
@@ -565,11 +561,9 @@ property fields).
           err = TRUE;
         }  /* if */
 	if (err) new_type_ptr = error_type();
-#if RESTRICT_ALLOWED
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                      derived_type,
                                                      bottom_derived_type);
-#endif /* RESTRICT_ALLOWED */
         (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
       } else if (is_ptr_to_member_type(*bottom_derived_type)) {
         /* Pointer-to-member type. */
@@ -590,11 +584,9 @@ property fields).
                                                            class_type);
         }  /* if */
         if (err) new_type_ptr = error_type();
-#if RESTRICT_ALLOWED
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                      derived_type,
                                                      bottom_derived_type);
-#endif /* RESTRICT_ALLOWED */
         (*bottom_derived_type)->variant.ptr_to_member.type = new_type_ptr;
       } else {
         /* Function type. */
@@ -632,10 +624,8 @@ property fields).
                a function returning a qualified class type or a qualified
                template param type (the latter because a function template
                could end up being instantiated with a class type). */
-#if RESTRICT_ALLOWED
           } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
             /* Exactly one type qualifier -- "restrict".  No warning. */
-#endif /* RESTRICT_ALLOWED */
           } else if (is_reference_type(new_type_ptr)) {
             /* A diagnostic will already have been issued. */
           } else {
@@ -1376,16 +1366,12 @@ declaration.
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block);
-#if RESTRICT_ALLOWED
           restrict_qualified = 
                 (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
-#endif /* RESTRICT_ALLOWED */
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
-#if RESTRICT_ALLOWED
           restrict_qualified = FALSE;
-#endif /* RESTRICT_ALLOWED */
         }  /* if */
         /* Save a pointer to the type as it was declared (i.e., before the
            array-to-pointer adjustment, if any). */
@@ -1869,11 +1855,9 @@ declaration.
 
       copy_source_position(pos_curr_token, qualifier_pos);
       qualifiers = collect_type_qualifiers(decl_pos_block);
-#if RESTRICT_ALLOWED
       /* When a member function is declared with the restrict qualifier, the
          qualifier attaches to the this pointer, not to *this (as with const
          and volatile). */
-#endif /* RESTRICT_ALLOWED */
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
          function is illegal (ARM 8.2.5).  However, qualifiers on a pointer
@@ -1971,9 +1955,6 @@ declaration.
   db_exit();
 }  /* function_declarator */
 
-#if !RESTRICT_ALLOWED
-/*ARGSUSED*/ /* <-- because "restrict_allowed" is not used. */
-#endif /* !RESTRICT_ALLOWED */
 void array_declarator(a_type_ptr            *new_type_ptr,
                       a_boolean             nonconstant_dimension_allowed,
                       a_boolean             vla_allowed,
@@ -1991,11 +1972,10 @@ new type name); that case is indicated by nonconstant_dimension_allowed.  In
 C (when vla_enabled is TRUE), the dimension may be a nonconstant expression
 when vla_allowed is TRUE; and when vla_asterisk_allowed is TRUE, a VLA of
 unknown size can be indicated with the "[*]" syntax in a function prototype.
-When RESTRICT_ALLOWED is TRUE, restrict_allowed may be TRUE to indicate that
-this is a function parameter declaration for which the special restrict-array
-syntax is permitted.  If "restrict" is seen, set *restrict_seen to TRUE.
-top_level_field_decl is TRUE to indicate that this is the declaration of
-nonstatic data member of a class.
+restrict_allowed may be TRUE to indicate that this is a function parameter
+declaration for which the special restrict-array syntax is permitted.  If
+"restrict" is seen, set *restrict_seen to TRUE.  top_level_field_decl is TRUE
+to indicate that this is the declaration of nonstatic data member of a class.
 */
 {
   a_targ_size_t           num_of_elements;
@@ -2013,7 +1993,6 @@ nonstatic data member of a class.
   /* Pass over the initial left bracket. */
   (void)get_token();
   add_stop_token(tok_rbracket);
-#if RESTRICT_ALLOWED
   /* In some modes, "restrict" is allowed inside the brackets:
        int x[restrict 5]
      or
@@ -2043,7 +2022,6 @@ nonstatic data member of a class.
                 &qualifier_pos);
     }  /* if */
   }  /* if */
-#endif /* RESTRICT_ALLOWED */
   if (curr_token == tok_rbracket) {
     /* Empty brackets, indicating an incomplete array type. */
     num_of_elements = 0;
@@ -2936,7 +2914,6 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     }
     if (qualifiers != TQ_NONE) {
       /* Some qualifiers were specified. */
-#if RESTRICT_ALLOWED
       /* Check for invalid use of the restrict qualifier. */
       a_type_qualifier_set restrict_bit = (qualifiers & TQ_RESTRICT);
       if (restrict_bit) {
@@ -2949,7 +2926,6 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           restrict_bit = 0;
         }  /* if */
       }  /* if */
-#endif /* RESTRICT_ALLOWED */
       /* Check for using qualifiers on a reference type.  The restrict
          bit has been removed if it was set, which is good because it is okay
          to put restrict on a reference. */
@@ -2958,10 +2934,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                    ec_qualified_reference_type);
         qualifiers = TQ_NONE;
       }  /* if */
-#if RESTRICT_ALLOWED
       /* Restore the restrict bit if it was on. */
       qualifiers |= restrict_bit;
-#endif /* RESTRICT_ALLOWED */
       /* Add the qualifiers to the complete type being built up. */
       complete_type = make_qualified_type(complete_type, qualifiers);
     }  /* if */
@@ -3700,11 +3674,9 @@ The syntax is:
          of the top-level declarator is complete. */
       *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
     }  /* if */
-#if RESTRICT_ALLOWED
     if (local_do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) {
       *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;
     }  /* if */
-#endif /* RESTRICT_ALLOWED */
     /* A nonconstant dimension, if allowed at all, is allowed only on the
        topmost type (an interpretation of the language specification in ARM
        5.3.3).  Set the flag to FALSE for subsequent processing. */
@@ -3948,7 +3920,6 @@ function_lparen:
       a_boolean  restrict_seen, restrict_allowed = FALSE;
       a_boolean  top_level_field_decl;
 
-#if RESTRICT_ALLOWED
       if (restrict_enabled) {
         /* There is no command line option suppressing recognition of
            "restrict", so we may need to handle the special syntax for
@@ -3962,7 +3933,6 @@ function_lparen:
           restrict_allowed = TRUE;
         }  /* if */
       }  /* if */
-#endif /* RESTRICT_ALLOWED */
       /* This is a top-level declarator if derived_type is NULL; it's a field
          declaration only if the nonstatic member flag is set.  (Note: it
          will be set for fields in C mode as well as in C++ mode.) */
@@ -3972,11 +3942,9 @@ function_lparen:
                        vla_allowed, vla_asterisk_allowed,
                        top_level_field_decl, restrict_allowed,
                        &restrict_seen, decl_pos_block);
-#if RESTRICT_ALLOWED
       if (restrict_seen) {
         *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;
       }  /* if */
-#endif /* RESTRICT_ALLOWED */
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first

@@ -796,9 +796,7 @@ Print the given qualifiers in human readable form.
 {
   if (qualifiers & TQ_CONST) fputs("const ", f_debug);
   if (qualifiers & TQ_VOLATILE) fputs("volatile ", f_debug);
-#if RESTRICT_ALLOWED
   if (qualifiers & TQ_RESTRICT) fputs("restrict ", f_debug);
-#endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1049,13 +1047,11 @@ Dump the contents of the indicated type entry, for debug purposes.
             }  /* if */
             if (qualifiers & TQ_VOLATILE) {
               fputs("volatile", f_debug);
-#if RESTRICT_ALLOWED
               qualifiers &= ~TQ_VOLATILE;
               if (qualifiers != TQ_NONE) fputs(" ", f_debug);
             }  /* if */
             if (qualifiers & TQ_RESTRICT) {
               fputs("restrict", f_debug);
-#endif /* RESTRICT_ALLOWED */
             }  /* if */
             fputs("] ", f_debug);
           }  /* if */

@@ -104,9 +104,7 @@ typedef enum /*an_option_kind*/ {
   optk_pch_mem,
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   optk_pch_dir,
-#if RESTRICT_ALLOWED
   optk_restrict,
-#endif /* RESTRICT_ALLOWED */
   optk_long_lifetime_temps,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_microsoft_mode,
@@ -889,7 +887,6 @@ EXTERN char	*pch_dir_name /* = NULL*/;
 			/* Directory in which PCH files are to be stored.
 			   NULL if no directory has been specified. */
 
-#if RESTRICT_ALLOWED
 EXTERN a_boolean
 		restrict_enabled
 #if VAR_INITIALIZERS
@@ -899,7 +896,6 @@ EXTERN a_boolean
 			/* TRUE if support for the restricted pointers is
 			   provided, in which case "restrict" is recognized
 			   as a keyword. */
-#endif /* RESTRICT_ALLOWED */
 
 EXTERN a_boolean
 		long_lifetime_temps

@@ -3890,9 +3890,6 @@ decl_specifiers.
 }  /* combine_type_specifiers */
 
 
-#if !RESTRICT_ALLOWED
-/*ARGSUSED*/ /* restrict_pos is not used unless "restrict" is allowed. */
-#endif /* !RESTRICT_ALLOWED */
 static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
                                      a_type_qualifier_set  *qualifiers,
                                      a_source_position     *qualifier_pos,
@@ -3919,17 +3916,12 @@ from decl_specifiers only.
            is not allowed.  More precisely, the qualifier is ignored.
            Issue a diagnostic. */
         if (is_reference_type(*type_ptr)) {
-#if RESTRICT_ALLOWED
           /* "restrict" may be applied to reference types, but the other
               qualifiers may not. */
           if ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
             *qualifiers &= TQ_RESTRICT;
             pos_warning(ec_useless_type_qualifiers, qualifier_pos);
           }  /* if */
-#else /* !RESTRICT_ALLOWED */
-          *qualifiers = TQ_NONE;
-          pos_warning(ec_useless_type_qualifiers, qualifier_pos);
-#endif /* RESTRICT_ALLOWED */
         }  /* if */
       } else {
         /* In C we check for duplicate qualifiers on a declaration, even
@@ -3978,7 +3970,6 @@ from decl_specifiers only.
         *qualifiers = TQ_NONE;
       }  /* if */
     }  /* if */
-#if RESTRICT_ALLOWED
     /* The restrict qualifier may only be applied to pointer and reference
        types (but not pointer-to-function-type), pointer-to-member types,
        and (in parameter declarations only) array types. */
@@ -3989,7 +3980,6 @@ from decl_specifiers only.
       *qualifiers &= ~TQ_RESTRICT;
       err = TRUE;
     }  /* if */
-#endif /* RESTRICT_ALLOWED */
     if (*qualifiers != TQ_NONE) {
       if (is_unknown_type(*type_ptr)) {
         *type_ptr = integer_type((an_integer_kind)ik_int);
@@ -4646,7 +4636,6 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
-#if RESTRICT_ALLOWED
       case tok_restrict:
         /* restrict type qualifier. */
         if (*qualifiers & TQ_RESTRICT) {
@@ -4664,7 +4653,6 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
-#endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_unaligned:
         /* Microsoft __unaligned type qualifier. */

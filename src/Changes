@@ -1,5 +1,13 @@
 Version 2.45
 
+11/8/00  RESTRICT_ALLOWED macro eliminated
+
+The RESTRICT_ALLOWED macro has been eliminated (i.e., restrict support
+is always configured into the front end).  Actual recognition of the
+restrict keyword is still conditional, however.  The default is specified
+by the DEFAULT_RESTRICT_ALLOWED macro.  The restrict keyword is recognized by
+default in C99 mode.
+
 11/3/00  Abort on field designator in array initializer
 
 The front end used to abort when an initializer for an array with unspecified

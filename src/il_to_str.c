@@ -735,13 +735,11 @@ Do the output in the way described by octl.
 #endif /* BACK_END_IS_C_GEN_BE && SUPPRESS_CONST_IN_GENERATED_C */
     output_qualifier(TQ_CONST, "const"); /*lint !e774*/
     output_qualifier(TQ_VOLATILE, "volatile");
-#if RESTRICT_ALLOWED
 #if SUPPRESS_RESTRICT_IN_GENERATED_CODE
     /* Suppress "restrict" in generated compilable code. */
     if (octl->gen_compilable_code) qualifiers &= ~TQ_RESTRICT;
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
     output_qualifier(TQ_RESTRICT, "restrict");
-#endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     if (octl->gen_compilable_code) {

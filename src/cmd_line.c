@@ -405,14 +405,12 @@ Initialize the option information table.
   add_option_description(optk_pch_dir, "pch_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-#if RESTRICT_ALLOWED
   add_option_description(optk_restrict, "restrict",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_restrict, "no_restrict",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* RESTRICT_ALLOWED */
   add_option_description(optk_long_lifetime_temps, "long_lifetime_temps",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -1473,12 +1471,10 @@ Set the various flags appropriate to C99 mode.
     vla_enabled = TRUE;
   }  /* if */
 #endif /* VLA_ALLOWED */
-#if RESTRICT_ALLOWED
   if (!restrict_enabled && !(option_kind_used[(int)optk_restrict])) {
     /* Support for restricted pointers is turned on by default in C99 mode. */
     restrict_enabled = TRUE;
   }  /* if */
-#endif /* RESTRICT_ALLOWED */
   if (!extended_designators_allowed &&
       !(option_kind_used[(int)optk_extended_designators])) {
     /* Support for extended designators is turned on by default in
@@ -1905,13 +1901,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 	long_preserving_rules = FALSE;
     }  /* if */
   }  /* if */
-#if RESTRICT_ALLOWED
   if (!(option_kind_used[(int)optk_restrict])) {
     /* Support for restricted pointers is turned off by default in strict
        mode. */
     restrict_enabled = FALSE;
   }  /* if */
-#endif /* RESTRICT_ALLOWED */
   if (!c99_mode) {
     /* In strict mode the final field of a struct may not be an incomplete
        array, except in strict C99 mode. */
@@ -2739,12 +2733,10 @@ Process the arguments on the command line that invoked the compiler.
           str_command_line_error(ec_cl_invalid_pch_directory, pch_dir_name);
         }  /* if */
         break;
-#if RESTRICT_ALLOWED
       case optk_restrict:
         /* Enables or disables recognition of the restrict token. */
         restrict_enabled = opt_value;
         break;
-#endif /* RESTRICT_ALLOWED */
       case optk_long_lifetime_temps:
         /* Long or short lifetime temporaries. */
         long_lifetime_temps = opt_value;

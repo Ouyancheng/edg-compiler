@@ -360,9 +360,6 @@ an error diagnostic and return TRUE.
 }  /* check_member_function_typedef */
 
 
-#if !RESTRICT_ALLOWED
-/*ARGSUSED*/ /* restrict_qualified is used only when "restrict" is allowed. */
-#endif /* !RESTRICT_ALLOWED */
 void adjust_parameter_type(a_type_ptr *type_ptr,
                            a_boolean  restrict_qualified)
 /*
@@ -381,13 +378,11 @@ restricted pointer.
   if (is_array_type(*type_ptr)) {
     /* Array, adjust to pointer to element type. */
     *type_ptr = make_pointer_type(array_element_type(*type_ptr));
-#if RESTRICT_ALLOWED
     /* A parameter type that is restrict-qualified-array-of-T decays into
        restrict-qualified-ptr-to-T. */
     if (restrict_qualified) {
       *type_ptr = make_qualified_type(*type_ptr, TQ_RESTRICT);
     }  /* if */
-#endif /* RESTRICT_ALLOWED */
   } else if (is_function_type(*type_ptr)) {
     /* Function, adjust to pointer to function. */
     *type_ptr = make_pointer_type(*type_ptr);
@@ -9966,10 +9961,8 @@ continue_with_declaration:
             param_id->declared_type = local_type_ptr;
           }  /* if */
           /* Check that the type is legal, and do required adjustments. */
-#if RESTRICT_ALLOWED
           restrict_qualified = 
                 ((do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0);
-#endif /* RESTRICT_ALLOWED */
           check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
                                           restrict_qualified);
           is_function = top_declarator_type_is_function = FALSE;

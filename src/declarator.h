@@ -213,7 +213,7 @@ abstract or real declarator.
 			   during declarator processing is an array type for
 			   which the restrict qualifier was specified.  This
 			   bit will only be set if DI_IS_PARAMETER_DECL was
-			   set and only if RESTRICT_ALLOWED is TRUE. */
+			   set and only if restrict_enabled is TRUE. */
 #define DO_IS_CONSTRUCTOR ((a_decl_flag_set)0x20)
          /* This bit is set if a constructor declarator was scanned.
             It will certainly be set if the input flag corresponding to
@@ -284,10 +284,8 @@ extern void array_declarator(a_type_ptr        *new_type_ptr,
                              a_boolean         *restrict_seen,
                              a_decl_pos_block  *decl_pos_block);
 
-#if RESTRICT_ALLOWED
 extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
                                                a_source_position  *error_pos);
-#endif /* RESTRICT_ALLOWED */
 
 extern a_boolean is_cfront_member_function_typedef(a_type_ptr   type_ptr,
                                                    a_type_ptr   *rout_type,

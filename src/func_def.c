@@ -411,16 +411,10 @@ routine type, and return a pointer to it.
   /* The implicit this parameter is a pointer type that is not const
      qualified as far as the interface is concerned.  The variable, however,
      does get a const qualifier. */
-#if RESTRICT_ALLOWED
   this_type = make_qualified_type(rtsp->this_class, qualifiers & ~TQ_RESTRICT);
   this_type = make_pointer_type(this_type);
   this_type = make_qualified_type(this_type,
                                  TQ_CONST | (qualifiers & TQ_RESTRICT));
-#else /* !RESTRICT_ALLOWED */
-  this_type = make_qualified_type(rtsp->this_class, qualifiers);
-  this_type = make_pointer_type(this_type);
-  this_type = make_qualified_type(this_type, TQ_CONST);
-#endif /* RESTRICT_ALLOWED */
   vp = make_param_variable(this_type, (a_storage_class)sc_auto);
   vp->is_this_parameter = TRUE;
   return vp;

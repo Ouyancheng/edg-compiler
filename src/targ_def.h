@@ -1584,8 +1584,7 @@ used.
 /*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
 C++/C-generating back end (cp_gen_be) is run, the "restrict" keyword should
-be suppressed in the output.  This flag is only applicable if
-RESTRICT_ALLOWED is TRUE.
+be suppressed in the output.
 */
 #ifndef SUPPRESS_RESTRICT_IN_GENERATED_CODE
 #define SUPPRESS_RESTRICT_IN_GENERATED_CODE FALSE

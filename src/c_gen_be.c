@@ -997,9 +997,7 @@ Return TRUE if "name" is a C reserved word.
       break;
     case 'r':
       if (strcmp(name, "register") == 0 ||
-#if RESTRICT_ALLOWED
           strcmp(name, "restrict") == 0 ||
-#endif /* RESTRICT_ALLOWED */
           strcmp(name, "return") == 0) res = TRUE;
       break;
     case 's':

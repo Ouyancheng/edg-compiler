@@ -2191,9 +2191,7 @@ are used to create bit masks that are used to represent the qualifiers.
 enum a_type_qualifier_tag {
   tqt_const,		/* Const qualifier. */
   tqt_volatile,		/* Volatile qualifier. */
-#if RESTRICT_ALLOWED
   tqt_restrict,		/* Restrict qualifier. */
-#endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tqt_unaligned,	/* Microsoft __unaligned qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2213,10 +2211,8 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 			/* This bit is set to represent const. */
 #define TQ_VOLATILE	(1 << (int)tqt_volatile)
 			/* This bit is set to represent volatile. */
-#if RESTRICT_ALLOWED
 #define TQ_RESTRICT	(1 << (int)tqt_restrict)
 			/* This bit is set to represent restrict. */
-#endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define TQ_UNALIGNED	(1 << (int)tqt_unaligned)
 			/* This bit is set to represent __unaligned. */

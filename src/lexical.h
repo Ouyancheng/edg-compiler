@@ -141,9 +141,7 @@ typedef enum /*a_token_kind*/ {
   tok_intaddr,
   /* Used when <stdarg.h> is treated as a builtin. */
   tok_va_start, tok_va_arg, tok_va_end, tok_va_copy,
-#if RESTRICT_ALLOWED
   tok_restrict,
-#endif /* RESTRICT_ALLOWED */
   /* C99 types: _Bool, _Complex and _Imaginary. */
   tok_c99_bool,
   tok_c99_complex,
@@ -248,9 +246,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "switch", "typedef", "union", "unsigned", "void", "volatile",
    "while", "__generic", "__ALIGNOF__", "__INTADDR__",
    "va_start", "va_arg", "va_end", "va_copy",
-#if RESTRICT_ALLOWED
    "restrict",
-#endif /* RESTRICT_ALLOWED */
    "_Bool", "_Complex", "_Imaginary", "__I__",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
@@ -573,9 +569,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_va_arg */
    (an_opname_kind)onk_none,          /* tok_va_end */
    (an_opname_kind)onk_none,          /* tok_va_copy */
-#if RESTRICT_ALLOWED
    (an_opname_kind)onk_none,          /* tok_restrict */
-#endif /* RESTRICT_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_c99_bool */
    (an_opname_kind)onk_none,          /* tok_c99_complex */
    (an_opname_kind)onk_none,          /* tok_c99_imaginary */
@@ -1726,16 +1720,9 @@ extern unsigned long scan_universal_character(
 
 /*
 Return TRUE if the indicated token is a type qualifier.  This is
-straightforward for const and volatile, but restrict and __unaligned are
+straightforward for const, volatile, and restrict but and __unaligned is
 valid only with certain configurations.
 */
-#if RESTRICT_ALLOWED
-/*lint -save -e773*/
-#define or_is_restrict_token(tok) || (tok) == tok_restrict
-/*lint -restore*/
-#else /* !RESTRICT_ALLOWED */
-#define or_is_restrict_token(tok)  /* Nothing */
-#endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -save -e773*/
 #define or_is_unaligned_token(tok) || (tok) == tok_unaligned
@@ -1744,8 +1731,8 @@ valid only with certain configurations.
 #define or_is_unaligned_token(tok)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_type_qualifier_token(tok)                                   \
-  ((tok) == tok_const || (tok) == tok_volatile                         \
-   or_is_restrict_token(tok) or_is_unaligned_token(tok))
+  ((tok) == tok_const || (tok) == tok_volatile ||			\
+   (tok) == tok_restrict or_is_unaligned_token(tok))
 
 
 /* Push a file onto the input stack. */

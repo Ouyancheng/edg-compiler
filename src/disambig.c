@@ -473,9 +473,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       /* Type qualifier. */
       case tok_const:
       case tok_volatile:
-#if RESTRICT_ALLOWED
       case tok_restrict:
-#endif /* RESTRICT_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case tok_near:
       case tok_far:

@@ -1995,7 +1995,6 @@ qualification of a member function type.
                       skip_typerefs(routine_type)->variant.routine.extra_info;
   a_type_ptr                     result = rtsp->this_class;
 
-#if RESTRICT_ALLOWED
   /* Note that the "restrict" qualifier goes on top of the pointer type (to
      denote the limited aliasing of the "this" pointer) whereas the other
      qualifiers apply to the underlying class type (to denote properties of
@@ -2007,12 +2006,6 @@ qualification of a member function type.
   if (rtsp->qualifiers & TQ_RESTRICT) {
     result = make_qualified_type(result, TQ_RESTRICT);
   }  /* if */
-#else /* !RESTRICT_ALLOWED */
-  if (rtsp->qualifiers != TQ_NONE) {
-    result = make_qualified_type(result, rtsp->qualifiers);
-  }  /* if */
-  result = make_pointer_type(result);
-#endif /* RESTRICT_ALLOWED */
   return result;
 }  /* f_implicit_this_param_type_of */
 

@@ -246,11 +246,9 @@ Install the keywords in the symbol table.
      definition of offsetof. */
   enter_keyword((a_token_kind)tok_alignof,   "__ALIGNOF__");
   enter_keyword((a_token_kind)tok_intaddr,   "__INTADDR__");
-#if RESTRICT_ALLOWED
   if (restrict_enabled) {
     enter_keyword((a_token_kind)tok_restrict,  "restrict");
   }  /* if */
-#endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* If Microsoft extensions are allowed, enter the keywords that are to
