@@ -1082,7 +1082,7 @@ The Microsoft compiler treats friend functions defined in a class
 template much like a member function of such a class.  The body is
 only processed if needed.  Save a pointer to the routine fixup entry
 in the routine entry.  The fixup will be completed later, if needed.
-"rtp" is its routine fixup entry for the definition to be deferred.
+"rfp" is its routine fixup entry for the definition to be deferred.
 */
 {
   rfp->symbol->variant.routine.ptr->routine_fixup = rfp;
@@ -1469,7 +1469,7 @@ nested class.
         }  /* if */
       }  /* if */
       /* Free the current entry, returning it and any expr fixup entries
-         attached to it to their respective available-lists.  "rtp" may
+         attached to it to their respective available-lists.  "rfp" may
          be set to NULL earlier if it should not be freed. */
       if (rfp != NULL) free_routine_fixup(rfp);
     }  /* for */
