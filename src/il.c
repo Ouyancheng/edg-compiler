@@ -225,6 +225,39 @@ Dump the name from a source correspondence (if any).
 }  /* db_name */
 
 
+void db_template_arg_list(a_template_arg_ptr tap)
+/*
+*/
+{
+  if (tap != NULL) {
+    fputs("<", f_debug);
+    do {
+      if (tap->is_type) {
+        db_abbreviated_type(tap->variant.type);
+      } else {
+        db_constant(tap->variant.constant);
+      }  /* if */
+      tap = tap->next;
+      if (tap != NULL) fputs(",", f_debug);
+    } while (tap != NULL);
+    fputs(">", f_debug);
+  }  /* if */
+}  /* if */
+
+
+void db_type_name(a_type_ptr  tp)
+/*
+Dump the name of a type.
+*/
+{
+  db_name(&tp->source_corresp);
+  if (is_class_struct_union_type(tp)) {
+    db_template_arg_list(tp->variant.class_struct_union.extra_info->
+                                                         template_arg_list);
+  }  /* if */
+}  /* db_type_name */
+
+
 static void db_name_linkage(a_source_correspondence *sc)
 /*
 Dump the name linkage from a source correspondence.
@@ -263,7 +296,7 @@ objects of their own type.
       case tk_union:
         fputs("union ", f_debug);
 print_name:
-        db_name(&tp->source_corresp);
+        db_type_name(tp);
         break;
       default:
         db_type(tp);
@@ -661,7 +694,7 @@ Dump the contents of the indicated type entry, for debug purposes.
       fputs("class", f_debug);
 class_struct_union:
       fputs(" \"", f_debug);
-      db_name(&tp->source_corresp);
+      db_type_name(tp);
       fputc('"', f_debug);
       ctsp = tp->variant.class_struct_union.extra_info;
       if (tp->variant.class_struct_union.field_list == NULL &&
