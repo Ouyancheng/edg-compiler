@@ -338,7 +338,8 @@ is_ambiguous:
        impl_conversion_possible. */
     if (dest_type_has_type_qualifiers) std_conv->type_qualifiers_added = TRUE;
     if (!exception_spec_checked) {
-      routine_type = routine_symbol_type(match_sym);
+      sym = fundamental_symbol_of(match_sym);
+      routine_type = routine_symbol_type(sym);
       if (!exception_spec_conversion_possible(routine_type,
                                               dest_underlying_type)) {
         /* The exception specifications can't be converted. */
