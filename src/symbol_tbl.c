@@ -4326,6 +4326,9 @@ It cannot be used for checking access (see have_access_to_symbol).
     access = sym_ptr->variant.projection.access;
   } else {
     /* Normal symbol (not projection or overloaded function). */
+    check_assertion_str2(sym_ptr->kind
+                                    != (a_symbol_kind)sk_namespace_projection,
+                         "access_for_symbol:", "invalid symbol kind");
     access = source_corresp_entry_for_symbol(sym_ptr)->access;
   }  /* if */
   return access;
