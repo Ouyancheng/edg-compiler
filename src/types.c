@@ -1907,12 +1907,13 @@ and a diagnostic is issued (unless suppress_error is TRUE).
                                   &error_position);
     }  /* if */
     temp2 = elem_type->size;
-#if CHECKING
-    if (temp2 == 0 &&
-        (!gnu_mode || is_incomplete_type(elem_type))) {
-      internal_error("set_array_type_size: bad element type");
-    }  /* if */
-#endif /* CHECKING */
+    /* Normally, element types cannot have size zero.  In GNU modes, however,
+       there are zero-length arrays, zero-sized classes, and x[][] parameters.
+       */
+    check_assertion_str(temp2 != 0 ||
+                        (gnu_mode && (!is_incomplete_type(elem_type) ||
+                                      is_array_type(elem_type))),
+                        "set_array_type_size: bad element type");
     /* Check whether or not the multiplication will overflow.  Note that we 
        avoid dividing by temp, since it may be zero for an incomplete type.
        temp2 can be zero too if the element type is a GNU C zero-length
