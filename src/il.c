@@ -2906,7 +2906,8 @@ declaration of the function and must be completed by the point of call.
   a_type_ptr                    return_type;
   a_class_type_supplement_ptr   ctsp;
 
-  rtsp = skip_typerefs(routine_type)->variant.routine.extra_info;
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
   if (rtsp->assoc_routine != NULL) {
     /* The routine has been defined, so the flags are set correctly. */
   } else if (C_dialect != C_dialect_cplusplus) {
