@@ -3894,14 +3894,12 @@ is returned TRUE.
      that contains the definition of the lexically first non-inline, virtual,
      non-pure member function of the class.  See ARM 10.8.1c and "New Virtual
      Table Strategy" in the AT&T cfront 2.1 Release Notes. */
-  /* Note that we do not check whether or not the class is referenced.
-     For externally-linked classes, we would always find the class marked
-     as referenced.  For other classes, we put out the definition even if
-     the class is unreferenced because there will be code generated in the
-     (unreferenced) constructor and destructor that references the virtual
-     function table.  We don't want a back end that chooses to generate the
-     code in those unreferenced routines to reference an undefined vtbl. */
-  if (class_type->source_corresp.name_linkage !=
+  if (!class_type->source_corresp.referenced) {
+    /* The class is not referenced, so the virtual function table is not
+       needed.  Note that externally-linked classes will always be marked
+       as referenced. */
+    defined_here = FALSE;
+  } else if (class_type->source_corresp.name_linkage !=
                                  (a_name_linkage_kind)nlk_cplusplus_external) {
     /* Not C++ external linkage, therefore must define any virtual function
        table, if needed. */
@@ -4172,15 +4170,24 @@ number after the last one filled.
 }  /* fill_virtual_function_table */
 
 
-static void define_one_virtual_function_table(a_type_ptr       class_type,
-                                              a_base_class_ptr bcp,
-                                              a_boolean        force_static)
+static void define_one_for_virtual_function_table(
+                                            a_type_ptr       class_type,
+                                            a_base_class_ptr bcp,
+                                            a_boolean        definition_needed,
+                                            a_boolean        force_static)
+                                              
 /*
-Make the definition for the virtual function table for the base class
-indicated by bcp when it appears within a complete object of the class type
-class_type.  If bcp == NULL, make the virtual function table for the class
-itself.  If force_static is TRUE, the virtual function table is forced to
-be local to the current compilation even if the class is externally linked.
+Finish the job begun by make_var_for_virtual_function_table: finish making
+a virtual function table variable.  This routine handles things that could
+not be handled yet on the other call, like setting the size and storage
+class of the variable and generating the initial value for the variable
+(i.e., the virtual function table itself).  The virtual function table
+variable to be finished is the one for the base class indicated by bcp when
+it appears within a complete object of the class type class_type, or the
+one for class_type itself if bcp == NULL.  If definition_needed is FALSE,
+the virtual function table should not be defined in this compilation.
+If force_static is TRUE, the virtual function table is forced to be local
+to the current compilation even if the class is externally linked.
 */
 {
   a_class_type_supplement_ptr ctsp;
@@ -4215,37 +4222,41 @@ be local to the current compilation even if the class is externally linked.
                                                                               ;
   set_type_size(vtbl_var->type);
   /* Set the linkage on the virtual function table variable. */
-  if (class_type->source_corresp.name_linkage ==
-                                 (a_name_linkage_kind)nlk_cplusplus_external &&
-      !force_static) {
-    /* For an externally-linked class, change the variable to an external
-       definition. */
-    vtbl_var->storage_class = (a_storage_class)sc_unspecified;
-    /* The variable can be referenced from another compilation unit. */
-    vtbl_var->source_corresp.referenced = TRUE;
-  } else {
+  if (class_type->source_corresp.name_linkage !=
+                                 (a_name_linkage_kind)nlk_cplusplus_external ||
+      force_static) {
     /* For an internally-linked class or one with no linkage, or when
        forced to by the flag force_static, change the storage class to
        static and the linkage to internal. */
     vtbl_var->storage_class = (a_storage_class)sc_static;
     vtbl_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  } else if (definition_needed) {
+    /* For an externally-linked class whose definition is needed, change the
+       variable to an external definition. */
+    vtbl_var->storage_class = (a_storage_class)sc_unspecified;
+    /* The variable can be referenced from another compilation unit. */
+    vtbl_var->source_corresp.referenced = TRUE;
   }  /* if */
-  /* Start the initialization by creating a ck_aggregate constant and
-     making it the initial value of the variable. */
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  vtbl_var->init_kind = (an_init_kind)initk_static;
-  vtbl_var->initializer.constant = aggr_con;
-  /* Put out the initialization for the [0] entry (skipped). */
-  add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
-  /* Put out the body of the table. */
-  fill_virtual_function_table(aggr_con, class_type, bcp, &next_entry_number);
+  /* Do not put out the initial value if the class should not be defined
+     in this compilation. */
+  if (definition_needed) {
+    /* Start the initialization by creating a ck_aggregate constant and
+       making it the initial value of the variable. */
+    aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    vtbl_var->init_kind = (an_init_kind)initk_static;
+    vtbl_var->initializer.constant = aggr_con;
+    /* Put out the initialization for the [0] entry (skipped). */
+    add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
+    /* Put out the body of the table. */
+    fill_virtual_function_table(aggr_con, class_type, bcp, &next_entry_number);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-  /* Put out the initialization for an extra zeroed entry at the end, for
-     cfront compatibility. */
-  add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
+    /* Put out the initialization for an extra zeroed entry at the end, for
+       cfront compatibility. */
+    add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
-}  /* define_one_virtual_function_table */
+}  /* define_one_for_virtual_function_table */
 
 
 static void define_virtual_function_tables(a_type_ptr class_type)
@@ -4270,11 +4281,9 @@ class_type if any are needed.
                   virtual_function_table_should_be_defined_here(class_type,
                                                                 &force_static);
       need_determined = TRUE;
-      if (definition_needed) {
-        /* Generate the virtual function table for the class itself. */
-        define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
-                                          force_static);
-      }  /* if */
+      /* Generate the virtual function table for the class itself. */
+      define_one_for_virtual_function_table(class_type, (a_base_class_ptr)NULL,
+                                            definition_needed, force_static);
     }  /* if */
     /* Generate the virtual function table for each base class when it
        is contained within a complete object of the primary class. */
@@ -4286,13 +4295,13 @@ class_type if any are needed.
                                                                 &force_static);
           need_determined = TRUE;
         }  /* if */
-        if (definition_needed) {
-          /* If the base class and class_type share a virtual function table,
-             it was already defined above; do not define it again. */
-          if (bcp->virtual_function_table_var !=
+        /* If the base class and class_type share a virtual function table,
+           it was already defined above; do not define it again. */
+        if (bcp->virtual_function_table_var !=
                                             ctsp->virtual_function_table_var) {
-            define_one_virtual_function_table(class_type, bcp, force_static);
-          }  /* if */
+          define_one_for_virtual_function_table(class_type, bcp,
+                                                definition_needed,
+                                                force_static);
         }  /* if */
       }  /* for */
     }  /* if */
