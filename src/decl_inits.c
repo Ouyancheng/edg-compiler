@@ -199,7 +199,7 @@ object.  curr_element identifies the next element to be initialized.
 entries (respectively) that represent the initialization of the array;
 *end_of_con_list and *end_of_di_list point to the terminal entries on
 the two lists.  *incomplete_init is set to TRUE if a reference or const
-member remains uninitialized.
+member remains uninitialized.  This routine is called in C++ mode only.
 */
 {
   a_type_ptr                     element_type;
@@ -222,8 +222,7 @@ member remains uninitialized.
       cssp = symbol_supplement_for_class(element_type);
       if (cssp->constructor == NULL &&
           (element_type->variant.class_struct_union.any_const_member ||
-           (C_dialect == C_dialect_cplusplus &&
-            symbol_supplement_for_class(element_type)->any_ref_member))) {
+           cssp->any_ref_member)) {
         /* An array element of class type with no constructor but with
            const or ref member will end up uninitialized. */
         *incomplete_init = TRUE;
@@ -696,37 +695,13 @@ is an empty class.
         if (kind == (a_type_kind)tk_error) {
           /* No action required. */
         } else if (kind == (a_type_kind)tk_array) {
-          if (is_incomplete_array) {
-            /* No action required. */
-          } else {
-            /* We have been initializing the elements of an array, but we
-               ran out of initializers before reaching the end of the array.
-               If the array element is const qualified or is a class type
-               with const or ref members, the initialization is considered
-               incomplete. */
-            a_type_ptr                     tp;
-            a_class_symbol_supplement_ptr  cssp = NULL;
-
-            tp = underlying_array_element_type(local_type);
-            if (C_dialect == C_dialect_cplusplus &&
-                is_class_struct_union_type(tp)) {
-              cssp = symbol_supplement_for_class(tp);
-            }  /* if */
-            if (cssp != NULL && cssp->constructor != NULL) {
-              /* The initialization of the rest of the array elements will use
-                 a default constructor, if one exists. */
-            } else if (is_const_qualified_type(tp)) {
-              /* Element type is const qualified. */
-              *incomplete_init = TRUE;
-            } else if (is_class_struct_union_type(tp)) {
-              tp = skip_typerefs(tp);
-              /* Element type is a class.  Check for const or ref members. */
-              if (tp->variant.class_struct_union.any_const_member ||
-                  (cssp != NULL && cssp->any_ref_member)) {
-                *incomplete_init = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
+          /* We have been initializing the elements of an array, but we
+             ran out of initializers before reaching the end of the array.
+             However, in the aggregate case all remaining elements are
+             initialized to zero by default (ARM 8.4.1), so an array of const
+             elements does get properly initialized in this case; the
+             nonaggregate case (that is, an array of nonaggregate classes) is
+             handled by init_remaining_array_elements. */
         } else if (kind == (a_type_kind)tk_union) {
           /* No action required. */
         } else {
