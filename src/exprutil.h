@@ -52,6 +52,8 @@ extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
 
+extern a_constant_ptr var_constant_value(a_variable_ptr var);
+
 extern void using_lvalue(an_operand *operand);
 
 extern void modifying_lvalue(an_operand         *operand,
