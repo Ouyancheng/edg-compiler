@@ -1386,7 +1386,7 @@ routine entry and return TRUE; otherwise return FALSE.
             if (!overloaded) break;
             sym = sym->next;
           } while (sym != NULL);
-          if (any_override_candidates) {
+          if (any_override_candidates && registry_ptr != NULL) {
             check_assertion(sym_for_override_registry != NULL);
             update_override_registry(registry_ptr, sym_for_override_registry,
                                      rout_sym, bcp);
