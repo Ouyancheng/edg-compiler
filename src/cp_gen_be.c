@@ -8225,10 +8225,12 @@ TRUE if the declaration following this one is such a continuation.
     }  /* if */
     if (rout->assoc_scope == NULL_region_number) {
       /* A member function of a template class might not be instantiated. */
+#if !STANDALONE_UTILITY_PROGRAM
       check_assertion_str(rout->is_template_function ||
                           (rout->is_prototype_instantiation &&
                            !nonclass_prototype_instantiations),
                           "gen_routine_decl: missing definition");
+#endif /* !STANDALONE_UTILITY_PROGRAM */
       is_definition = FALSE;
     }  /* if */
   }  /* if */
