@@ -14738,9 +14738,7 @@ that follows.
         if (!is_definition) {
           an_sssd_flag_set  flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
 #if RECORD_FORM_OF_NAME_REFERENCE
-          if (!C_mode()) {
-            name_ref = make_name_reference(&locator, scp);
-          }  /* if */
+          name_ref = qualifiable_name_reference(&locator, scp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
           (void)update_src_seq_secondary_decl((char *)vp, type, name_ref,
@@ -14749,8 +14747,8 @@ that follows.
           /* The defining declaration of the variable.  Record the type and
              the form of the declarator.  */
 #if RECORD_FORM_OF_NAME_REFERENCE
-          if (!C_mode()) {
-            name_ref = make_name_reference(&locator, scp);
+          name_ref = qualifiable_name_reference(&locator, scp);
+          if (name_ref != NULL) {
             name_ref->used_in_primary_declarator = TRUE;
           }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -14798,9 +14796,7 @@ that follows.
 
           declared_type = form_declared_type(type, &func_info);
 #if RECORD_FORM_OF_NAME_REFERENCE
-          if (!C_mode()) {
-            name_ref = make_name_reference(&locator, scp);
-          }  /* if */
+          name_ref = qualifiable_name_reference(&locator, scp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
           if (is_definition) {

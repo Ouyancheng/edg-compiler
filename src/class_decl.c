@@ -5466,7 +5466,7 @@ of the function, and again overloading is a possibility.
             a_routine_ptr         rp = sym->variant.routine.ptr;
             a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
-            name_ref = make_name_reference(locator, &rp->source_corresp);
+            name_ref = qualifiable_name_reference(locator, &rp->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
@@ -6486,7 +6486,7 @@ declared member functions.
       /* A definition is always the primary declaration.  Record the form of
          the associated declarator. */
       a_name_reference_ptr
-                 name_ref = make_name_reference(locator, &rtn->source_corresp);
+        name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
       name_ref->used_in_primary_declarator = TRUE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       /* For a definition enter the function type as the "declared_type" in
@@ -6522,7 +6522,7 @@ declared member functions.
          secondary-decl entry in the source sequence list. */
       a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
-      name_ref = make_name_reference(locator, &rtn->source_corresp);
+      name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (func_info->is_movable_member_or_friend_def) {
@@ -7326,7 +7326,7 @@ member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if RECORD_FORM_OF_NAME_REFERENCE
-  name_ref = make_name_reference(locator, &var->source_corresp);
+  name_ref = qualifiable_name_reference(locator, &var->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
                                       SSSD_NO_FLAGS,

@@ -2282,9 +2282,8 @@ new expression and should therefore not be treated as a declaration.
        symbol supplement will already have been set for definitions, if
        appropriate. */
 #if RECORD_FORM_OF_NAME_REFERENCE
-    if (!C_mode()) {
-      name_ref = make_name_reference(&locator, &class_type->source_corresp);
-    }  /* if */
+    name_ref = qualifiable_name_reference(&locator,
+                                          &class_type->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
     if (!is_class_definition) {
       an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
@@ -2392,10 +2391,8 @@ new expression and should therefore not be treated as a declaration.
            associated source-sequence secondary declaration entry. */
         an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (!C_mode()) {
-          name_ref = make_name_reference(&locator,
-                                         &class_type->source_corresp);
-        }  /* if */
+        name_ref = qualifiable_name_reference(&locator,
+                                              &class_type->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if GNU_EXTENSIONS_ALLOWED
         if (marked_as_gnu_extension) {
@@ -2856,9 +2853,8 @@ to indicate whether an enumeration is actually defined.
         /* Set the first_declaration flag in the associated source-sequence
            secondary declaration entry. */
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (!C_mode()) {
-          name_ref = make_name_reference(&locator, &enum_type->source_corresp);
-        }  /* if */
+        name_ref = qualifiable_name_reference(&locator,
+                                              &enum_type->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         (void)set_src_seq_secondary_decl_fields((char *)enum_type,
                                                 (a_type_ptr)NULL, name_ref,

@@ -1968,6 +1968,15 @@ extern a_name_reference_ptr find_allocated_name_reference(
 				a_name_reference_ptr		entry_to_copy);
 extern void db_name_qualifier(a_name_qualifier_ptr	nqp);
 extern void db_name_reference(a_name_reference_ptr	nrp);
+
+/*
+Convenience macro to avoid calling make_name_reference for entities that are
+known not to have a qualified name.  This includes all entities in C mode,
+and all entities declared in functions.
+*/
+#define qualifiable_name_reference(loc, scp)                                  \
+  ((C_mode() || !in_file_scope(scp)) ? (a_name_reference_ptr)NULL             \
+                                     : make_name_reference((loc), (scp)))
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 #if DEBUG
