@@ -158,8 +158,6 @@ set *bcp to point to the base class entry that shows the relationship.
 
 extern a_boolean type_masks_handler_param_type(a_type_ptr  type_1,
                                                a_type_ptr  type_2);
-extern void check_fixup_list_for_array_types(void);
-extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
 extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);

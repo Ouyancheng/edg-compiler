@@ -1112,102 +1112,6 @@ because any exception it can handle would be caught by type_1's handler.
 }  /* type_masks_handler_param_type */
 
 
-void check_fixup_list_for_array_types(void)
-/*
-Check the list of array types to be fixed up, to see if any of their element
-types now have a size.  This is used only rarely, when a file-scope variable
-is declared with an array type whose elements are an incomplete struct or
-union type (this is an extension).  The array type size cannot be determined
-when it is declared, so it is put on a list of types to be fixed up.
-This routine is called when a struct or union type is completed; it checks
-to see if any of the types on the list can now be given sizes.
-*/
-{
-  a_boolean               something_changed;
-  an_array_type_fixup_ptr atfp, prev_atfp;
-  a_type_ptr              tp;
-
-  db_enter(5, "check_fixup_list_for_array_types");
-  do {
-    something_changed = FALSE;
-    for (prev_atfp = NULL,
-                    atfp = scope_stack[decl_scope_level].array_type_fixup_list;
-         atfp != NULL;
-         prev_atfp = atfp, atfp = atfp->next) {
-      /* See if the element type for the type to be fixed up by this
-         entry is now complete. */
-      tp = underlying_array_element_type(atfp->array_type);
-      check_for_uninstantiated_template_class(tp);
-      if (!is_incomplete_type(tp)) {
-        set_type_size(atfp->array_type);
-        something_changed = TRUE;
-        /* Take the entry off the list.  The storage for the entry is
-           just lost, but there should be very, very few of these. */
-        if (prev_atfp == NULL) {
-          scope_stack[decl_scope_level].array_type_fixup_list = atfp->next;
-        } else {
-          prev_atfp->next = atfp->next;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  } while (something_changed);
-  db_exit();
-}  /* check_fixup_list_for_array_types */
-
-
-static void add_to_array_fixup_list(a_type_ptr array_type)
-/*
-array_type points to an array type that cannot be sized now because it
-depends on an incomplete struct or union type.  Put it on the list to be
-fixed up later.
-*/
-{
-  an_array_type_fixup_ptr atfp;
-
-  db_enter(5, "add_to_array_fixup_list");
-  atfp = (an_array_type_fixup_ptr)alloc_fe(sizeof(an_array_type_fixup));
-  atfp->next = scope_stack[decl_scope_level].array_type_fixup_list;
-  atfp->array_type = array_type;
-  scope_stack[decl_scope_level].array_type_fixup_list = atfp;
-  db_exit();
-}  /* add_to_array_fixup_list */
-
-
-static a_boolean is_arr_of_incomp_struct_or_union(a_type_ptr tp)
-/*
-Return TRUE if the given type is an array based of an incomplete struct or
-union type.  Such an array is allowed only as an extension, and its size
-cannot be determined until the struct or union is completed.
-*/
-{
-  a_boolean  is_arr_of_incomp = FALSE;
-
-  tp = skip_typerefs(tp);
-  if (is_array(tp)) {
-    /* Drop any number of array types. */
-    tp = skip_typerefs(underlying_array_element_type(tp));
-    /* Check for an incomplete struct or union type. */
-    if (is_incomplete(tp) && is_class_struct_union(tp)) {
-      is_arr_of_incomp = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_arr_of_incomp;
-}  /* is_arr_of_incomp_struct_or_union */
-
-
-void add_if_necessary_to_array_fixup_list(a_type_ptr array_type)
-/*
-If the given type is an array type that must be fixed up later (its
-element type is, directly or indirectly, an incomplete struct or union
-type), add it to the fixup list.
-*/
-{
-  if (is_arr_of_incomp_struct_or_union(array_type)) {
-    add_to_array_fixup_list(array_type);
-  }  /* if */
-}  /* add_if_necessary_to_array_fixup_list */
-
-
 static void set_array_type_size(a_type_ptr array_type)
 /*
 Compute and set the size and alignment of the array type pointed to by
@@ -1218,12 +1122,12 @@ array_type.
   register a_type_ptr    elem_type;
 
   db_enter(5, "set_array_type_size");
-  if (is_arr_of_incomp_struct_or_union(array_type)) {
+  if (add_if_necessary_to_dependent_type_fixup_list(array_type,
+                                                    (a_param_type_ptr)NULL)) {
     /* This is an array whose element type (directly or indirectly) is
        an incomplete struct or union.  The size cannot be determined now.
-       Put the type on a list so it can be fixed later if the struct
+       The type was put type on a list so it can be fixed later if the struct
        or union type is defined. */
-    add_to_array_fixup_list(array_type);
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
