@@ -941,10 +941,15 @@ secondary scope to the primary file IL.
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
           move_to_end_of_primary_file_types_list(primary_type);
-          { a_boolean saved_needed = primary_type->source_corresp.needed;
+          {
+#if MAINTAIN_NEEDED_FLAGS
+            a_boolean saved_needed = primary_type->source_corresp.needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
             corresp_type->next = NULL;
             *primary_type = *corresp_type;
+#if MAINTAIN_NEEDED_FLAGS
             primary_type->source_corresp.needed = saved_needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
           }
           last_type = primary_type;
         }  /* if */
