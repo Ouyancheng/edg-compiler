@@ -179,6 +179,24 @@ Dump the name from a source correspondence (if any).
 }  /* db_name */
 
 
+static void db_name_linkage(a_source_correspondence *sc)
+/*
+Dump the name linkage from a source correspondence.
+*/
+{
+  char *str;
+
+  switch (sc->name_linkage) {
+    case nlk_none:                str = "no"; break;
+    case nlk_internal:            str = "int'l"; break;
+    case nlk_external:            str = "ext'l"; break;
+    case nlk_cplusplus_external:  str = "C++"; break;
+    default:                      str = "<BAD KIND>"; break;
+  }  /* switch */
+  fprintf(f_debug, "%s linkage", str);
+}  /* db_name_linkage */
+
+
 void db_abbreviated_type(a_type *tp)
 /*
 Dump a type in abbreviated form.  This is particularly required for
@@ -256,7 +274,9 @@ Dump a static data member (a variable entry), for debug purposes.
   db_access_control(vp->source_corresp.access);
   fputs(" static data member \"", f_debug);
   db_name(&vp->source_corresp);
-  fprintf(f_debug, "\", sc_%s, type = ",
+  fputs("\" (", f_debug);
+  db_name_linkage(&vp->source_corresp);
+  fprintf(f_debug, "), sc_%s, type = ",
                    db_storage_class_names[(int)vp->storage_class]);
   db_abbreviated_type(vp->type);
   (void)fputc('\n', f_debug);
@@ -279,7 +299,9 @@ Dump a member function (a routine entry), for debug purposes.
   }  /* if */
   fputs(" member function \"", f_debug);
   db_name(&rp->source_corresp);
-  fprintf(f_debug, "\"%s, sc_%s,\n    type = ",
+  fputs("\" (", f_debug);
+  db_name_linkage(&rp->source_corresp);
+  fprintf(f_debug, ")%s, sc_%s,\n    type = ",
                    (rp->is_inline) ? ", inline" : "",
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
