@@ -4950,6 +4950,7 @@ this routine above this one.
            Any access we get now is going to be unusual in some way. */
         bcdp = bcp->derivation;
         path = bcdp->path;
+        bcp = path->base_class;
       }  /* if */
       /* Loop through the derivation paths to be considered.  There is more
          than one path only in the virtual step case. */
@@ -5034,6 +5035,7 @@ this routine above this one.
         if (bcdp == NULL) break;
         /* Loop for another derivation. */
         path = bcdp->path;
+        bcp = path->base_class;
       }  /* for */
     }  /* if */
   }  /* if */
