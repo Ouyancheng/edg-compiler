@@ -1271,7 +1271,7 @@ typedef struct a_template_cache_segment {
 
 
 /* Used to track the number of pending instantiations of a given class. */
-typedef short a_pending_instantiation_count;
+typedef unsigned long a_pending_instantiation_count;
 
 /* Used to track the number of instantiations performed in tim_all mode that
    were not actually required. */
