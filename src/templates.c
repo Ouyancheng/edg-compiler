@@ -82,6 +82,7 @@ typedef enum /* a_template_info_line_type */ {
   tilt_instantiation_flag,
   tilt_instantiation_dir_name,	/* Used by driver. */
   tilt_instantiation_file_name,
+  tilt_secondary_trans_units,	/* Used by driver. */
   tilt_last
   /* Lint comments to disable warnings that the driver line types are
      not used. */
@@ -89,6 +90,7 @@ typedef enum /* a_template_info_line_type */ {
   /*lint -esym(749,tilt_curr_dir)*/
   /*lint -esym(749,tilt_file_name)*/
   /*lint -esym(749,tilt_instantiation_dir_name)*/
+  /*lint -esym(749,tilt_secondary_trans_units)*/
   /* The Instantiation file name is only used when one instantiation per
      object mode is used. */
   /*lint -esym(749,tilt_instantiation_file_name)*/
@@ -105,6 +107,7 @@ static char	*template_info_line_type_namess[(int)tilt_last+1] = {
   /* tilt_instantiation_flag */		"flg",
   /* tilt_instantiation_dir_name */	"idn",
   /* tilt_instantiation_file_name */	"ifn",
+  /* tilt_secondary_trans_units */	"stu",
   /* tilt_last */			NULL
 };
 
