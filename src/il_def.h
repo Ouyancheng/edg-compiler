@@ -2846,7 +2846,7 @@ typedef struct a_template_param_type_supplement {
 			   template parameter.  The class-qualified
 			   lookup is done using class_type.  The first
 			   time a name is looked up in class_type it
-			   is will be entered as a member that can be
+			   will be entered as a member that can be
 			   found by subsequent lookups.  Pointer is NULL
 			   if no class use has been  encountered. */
   a_template_param_coordinate
