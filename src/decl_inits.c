@@ -1034,9 +1034,9 @@ the default constructor (if one exists) is called.
       sym->kind == (a_symbol_kind)sk_static_data_member)) {
     var = sym->variant.variable;
     tp = var_type = skip_typerefs(var->type);
-    while (is_array_type(tp)) {
-      tp = skip_typerefs(tp->variant.array.element_type);
-    }  /* while */
+    if (is_array_type(tp)) {
+      tp = skip_typerefs(underlying_array_element_type(tp));
+    }  /* if */
     /* Default initialization is done only for objects that are defined in
        the current translation unit (i.e., storage class other than "extern")
        and that require constructor initialization. */
@@ -1231,15 +1231,23 @@ initialized.  These are addressed in the course of the processing.
            if there is no constructor at least a bitwise copy is required. */
       } else {
         /* This is not a copy constructor.  See if this is a field that
-           requires constructor initialization. */
+           requires an initializer. */
         tp = sym->variant.field.ptr->type;
-        while (is_array_type(tp)) {
-          tp = skip_typerefs(tp->variant.array.element_type);
-        }  /* while */
-        if (!is_class_struct_union_type(tp) ||
-            symbol_supplement_for_class(tp)->constructor == NULL) {
-          /* No constructor -- don't create a constructor init entry. */
-          continue;
+        if (is_reference_type(tp)) {
+          /* Ref-type fields require an initializer. */
+        } else {
+          if (is_array_type(tp)) {
+            tp = skip_typerefs(underlying_array_element_type(tp));
+          }  /* if */
+          if (is_const_qualified_type(tp)) {
+            /* Const and array-of-const fields require an initializer. */
+          } else if (is_class_struct_union_type(tp) &&
+                     symbol_supplement_for_class(tp)->constructor != NULL) {
+            /* A constructor initializer is required. */
+          } else {
+            /* No initializer is needed. */
+            continue;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* A constructor init entry is required for this field. */
@@ -1332,7 +1340,8 @@ initialized.  These are addressed in the course of the processing.
           /* Check the list for a constructor init entry that refers to this
              member.  If it's there we may have a reinitialization error. */
           for (new_cip = cip_list; new_cip != NULL; new_cip = new_cip->next) {
-            if (new_cip->variant.field == member_or_base_sym->variant.field.ptr) {
+            if (new_cip->variant.field ==
+                                   member_or_base_sym->variant.field.ptr) {
               if (new_cip->initializer != NULL) {
                 error(ec_member_already_initialized);
                 err = TRUE;
@@ -1525,31 +1534,24 @@ scan_arg_for_scan_initialization:
   prev_cip = NULL;
   for (cip = cip_list; cip != NULL; cip = cip->next) {
     if (cip->initializer == NULL) {
+      a_boolean  is_const_qualified = FALSE;
       /* No initializer was explicitly specified. */
       array_type = NULL;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         /* Get the field type.  For arrays, we want the element type. */
-        tp = skip_typerefs(cip->variant.field->type);
+        tp = cip->variant.field->type;
         if (is_array_type(tp)) {
-          array_type = tp;
-          do {
-            tp = array_element_type(tp);
-          } while(is_array_type(tp));
-          tp = skip_typerefs(tp);
+          array_type = skip_typerefs(tp);
+          tp = underlying_array_element_type(tp);
         }  /* if */
+        if (is_const_qualified_type(tp)) is_const_qualified = TRUE;
+        tp = skip_typerefs(tp);
       } else {
         /* Get the type of the base class. */
-        tp = skip_typerefs(cip->variant.base_class->type);
+        tp = cip->variant.base_class->type;
       }  /* if */
-      if (is_class_struct_union_type(tp)) {
-        cssp = symbol_supplement_for_class(tp);
-#if CHECKING
-      } else if (!is_cctor) {
-        internal_error("ctor_initializer: unexpected type on noncopy ctor");
-#endif /* CHECKING */
-      } else {
-        cssp = NULL;
-      }  /* if */
+      cssp = is_class_struct_union_type(tp) ? symbol_supplement_for_class(tp) :
+                                              NULL;
       if (is_cctor) {
         /* The constructor for the object as a whole is a copy constructor.
            Any subobject constructors must also be copy constructors, and
@@ -1601,6 +1603,30 @@ scan_arg_for_scan_initialization:
       } else {
         /* No copy constructor is required.  If any constructor exists, the
            default constructor should be called. */
+        if (cip->kind == (a_constructor_init_kind)cik_field &&
+            (is_reference_type(tp) || is_const_qualified)) {
+          /* Ref-type field or const-qualified field but no initializer. */
+          a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
+                                                   source_corresp.assoc_info;
+          if (ctor_rout->compiler_generated) {
+            pos_st_warning(ec_cannot_initialize_field, &error_position,
+                           name_of_symbol(field_sym));
+          } else {
+            pos_st_warning(ec_missing_initializer_on_field, &error_position,
+                           name_of_symbol(field_sym));
+          }  /* if */
+          if (prev_cip == NULL) {
+            cip_list = cip->next;
+          } else {
+            prev_cip->next = cip->next;
+          }  /* if */
+          continue;
+        }  /* if */
+#if CHECKING
+        if (!is_class_struct_union_type(tp)) {
+          internal_error("ctor_initializer: unexpected type on noncopy ctor");
+        }  /* if */
+#endif /* CHECKING */
         if (cssp == NULL || cssp->constructor == NULL) {
           /* This constructor initializer entry is not really needed.  It is
              associated with a base class without a constructor.  Unlink it
@@ -1760,10 +1786,7 @@ though neither constructors nor initialization is involved here.)
          arrays.  Keep track of the array type for later. */
       if (is_array_type(tp)) {
         array_type = tp;
-        do {
-          tp = array_element_type(tp);
-        } while(is_array_type(tp));
-        tp = skip_typerefs(tp);
+        tp = skip_typerefs(underlying_array_element_type(tp));
       }  /* if */
       if (is_class_struct_union_type(tp)) {
         if ((rp = select_destructor(tp)) != NULL) {
