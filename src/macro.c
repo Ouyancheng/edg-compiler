@@ -2716,7 +2716,7 @@ Scan and process a #define directive.
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
           memcmp(mdp->repl_text, macro_buffer,
-                 (int)(next_avail_in_macro_buffer - macro_buffer)) == 0) {
+                 size_t_arg(next_avail_in_macro_buffer - macro_buffer)) == 0) {
         /* Check parameter lists to make sure they match. */
         for (pp = param_list, pp2 = mdp->param_list;
              pp != NULL && pp2 != NULL;
@@ -2813,7 +2813,7 @@ it on the list, or NULL if it is the first entry on the list.
        app != NULL;
        *prev_app = app, app = app->next) {
     if (strlen(app->name) == name_len &&
-        memcmp(app->name, name, (int)len_of_curr_token) == 0) {
+        memcmp(app->name, name, size_t_arg(len_of_curr_token)) == 0) {
       /* Found it. */
       break;
     }  /* if */
@@ -3160,7 +3160,8 @@ try_match_again:
              delimiter after the token string. */
           after_matched_str = matched_value->value + matched_len;
           if (memcmp(after_matched_str,
-                     start_of_curr_token, (int)len_of_curr_token) == 0 &&
+                     start_of_curr_token,
+                     size_t_arg(len_of_curr_token)) == 0 &&
               *(after_matched_str+len_of_curr_token) == ' ') {
             /* The new token matches the continuation of the matched string,
                so change the matched string length to include the added
@@ -3175,7 +3176,7 @@ try_match_again:
               /* Go try the match again if the new matched_value starts with
                  the same characters matched in the old_matched_value. */
               if (memcmp(matched_value->value, old_matched_value->value,
-                         (int)matched_len) == 0) {
+                         size_t_arg(matched_len)) == 0) {
                 goto try_match_again;
               }  /* if */
             }  /* for */

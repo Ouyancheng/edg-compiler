@@ -1043,7 +1043,7 @@ have to set it directly.
       num_compares_for_symbols++;
 #endif /* DEBUG */
       if (length == hdr_ptr->identifier_length) {
-        if (memcmp(identifier, hdr_ptr->identifier, (int)length) == 0) {
+        if (memcmp(identifier, hdr_ptr->identifier, size_t_arg(length)) == 0) {
 	  /* Have a match. */
 	  sym_ptr = hdr_ptr->symbol;
           /* Relink the symbol header at the front of the list of headers,
