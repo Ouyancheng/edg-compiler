@@ -1783,6 +1783,12 @@ error code.
     case ec_not_a_tag_member:
       m = "%n has no tag member named %sq";
       break;
+    case ec_ptr_to_member_typedef:
+      m = "member function typedef (allowed for cfront compatibility)";
+      break;
+    case ec_bad_use_of_ptr_to_member_typedef:
+      m = "%n may be used only in pointer-to-member declaration";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

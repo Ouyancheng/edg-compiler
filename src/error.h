@@ -512,7 +512,9 @@ typedef enum /*an_error_code*/ {
   ec_local_type_in_template_arg,
   ec_tag_kind_incompatible_with_declaration,
   ec_name_not_tag_in_file_scope,
-  ec_not_a_tag_member
+  ec_not_a_tag_member,
+  ec_ptr_to_member_typedef,
+  ec_bad_use_of_ptr_to_member_typedef
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
