@@ -4798,13 +4798,11 @@ Only the first form is accepted in C.
                             &dummy_storage_class, &dummy_type_ptr);
       /* Note -- the check for dangling_type_specifier is not relevant here. */
       if (is_reference_type(complete_type)) {
-        warning(ec_useless_type_qualifiers);
-      } else {
-        complete_type = 
-                    make_qualified_type(complete_type,
-                                        dso_flags & DSO_CONST_QUALIFIED,
-                                        dso_flags & DSO_VOLATILE_QUALIFIED);
+        warning(ec_qualified_reference_type);
       }  /* if */
+      complete_type = make_qualified_type(complete_type,
+                                          dso_flags & DSO_CONST_QUALIFIED,
+                                          dso_flags & DSO_VOLATILE_QUALIFIED);
     }  /* if */
   }  /* while */
 

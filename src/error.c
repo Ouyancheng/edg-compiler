@@ -1907,6 +1907,9 @@ error code.
     case ec_enum_type_not_allowed:
       m = "enumerated type is not allowed";
       break;
+    case ec_qualified_reference_type:
+      m = "type qualifier on a reference type is meaningless";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
