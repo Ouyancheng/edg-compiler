@@ -1970,6 +1970,7 @@ nonstatic data member of a class.
 {
   a_targ_size_t           num_of_elements;
   a_constant              constant;
+  a_boolean               is_constant_bound = FALSE;
   a_boolean               err = FALSE;
   a_boolean               has_vla_asterisk = FALSE;
   a_boolean               template_dependent_bound = FALSE;
@@ -2030,13 +2031,12 @@ nonstatic data member of a class.
   } else {
     /* Scan the array size. */
     if (nonconstant_dimension_allowed || vla_allowed) {
-      a_boolean  is_constant;
-
-      scan_nonconstant_dimension_expression(vla_allowed, &is_constant,
+      scan_nonconstant_dimension_expression(vla_allowed, &is_constant_bound,
                                             &dim_expr, &constant);
-      check_assertion(is_constant == (dim_expr == NULL));
+      check_assertion(is_constant_bound == (dim_expr == NULL));
     } else {
       scan_fs_integral_constant_expression(&constant);
+      is_constant_bound = TRUE;
     }  /* if */
     if (dim_expr == NULL) {
       switch (constant.kind) {
@@ -2118,15 +2118,13 @@ nonstatic data member of a class.
       } else {
         (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
       }  /* if */
-    } else if (num_of_elements == 0) {
-      /* Most likely a declaration like "int a[];". */
-      (*new_type_ptr)->variant.array.variant.number_of_elements = 0;
     } else {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      a_constant_ptr  il_constant = alloc_shareable_constant(&constant);
-      (*new_type_ptr)->variant.array.bound_constant = il_constant;
-#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       a_constant_ptr  il_constant = NULL;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (is_constant_bound) {
+        il_constant = alloc_shareable_constant(&constant);
+        (*new_type_ptr)->variant.array.bound_constant = il_constant;
+      }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       if (template_dependent_bound) {
         /* Template-dependent bound (constant but not a known value). */
