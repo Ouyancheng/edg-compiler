@@ -1633,6 +1633,24 @@ done:
 }  /* gnu_conflict_found */
 
 
+static a_field_ptr get_gnu_first_field(a_type_ptr  class_type)
+/*
+Return the first field of class_type that the GNU layout algorithm finds
+significant.  This excludes zero-length bit fields.  Return NULL is there
+is no such field.
+*/
+{
+  a_field_ptr  first_field = class_type->variant.class_struct_union.field_list;
+
+  /* Leading zero-length bit fields are not considered. */
+  while (first_field != NULL && first_field->is_bit_field &&
+         first_field->bit_size == 0) {
+    first_field = first_field->next;
+  }  /* while */
+  return first_field;
+}  /* get_gnu_first_field */
+
+
 static a_boolean gnu_first_field_conflict(a_type_ptr     class_type,
                                           a_field_ptr    field,
                                           a_targ_size_t  offset)
@@ -1650,15 +1668,9 @@ whose offset is less than 16, and to every base class subobject of F whose
 offset is zero.
 */
 {
-  a_boolean    result = FALSE;
-  a_field_ptr  first_field = class_type->variant.class_struct_union.field_list;
+  a_boolean  result = FALSE;
 
-  /* Leading zero-length bit fields are not considered. */
-  while (first_field != NULL && first_field->is_bit_field &&
-         first_field->bit_size == 0) {
-    first_field = first_field->next;
-  }  /* while */
-  if (first_field == field) {
+  if (get_gnu_first_field(class_type) == field) {
     a_base_class_ptr  bcp = base_classes_of(class_type);
     for (; bcp != NULL; bcp = bcp->next) {
       /* Examine every empty base class subobject that has no empty base class
@@ -3426,9 +3438,16 @@ empty base class is virtual and indirect.
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
     if (is_empty_class_type(bcp->type) && 
         bcp->offset + bcp->type->size > lob->byte_offset &&
+        /* Under some fairly strange circumstances, some GNU C++ compilers
+           will not perform this adjustment.  The conditions for this bug
+           include the requirements that the base class be on a virtual
+           derivation path, that the class be indirect (though it can be
+           both direct and indirect), and that the derived class have no
+           significant fields. */
         !(emulate_gnu_abi_bugs && any_virtual_steps_in_derivation(bcp) &&
-        (!bcp->direct || (bcp->derivation != NULL &&
-                          bcp->derivation->next != NULL)))) {
+          get_gnu_first_field(lob->class_type) != NULL &&
+          (!bcp->direct || (bcp->derivation != NULL &&
+                            bcp->derivation->next != NULL)))) {
       lob->byte_offset = bcp->offset + bcp->type->size;
       lob->bit_offset = 0;
     }  /* if */
