@@ -550,6 +550,8 @@ The syntax is:
                  !is_incomplete_type(array_element_type(vp_type))) {
         /* Array type.  The is_incomplete_type test disallows arrays of
            incomplete struct/unions (which are an extension). */
+      } else if (vp_type->kind == (a_type_kind)tk_reference) {
+        /* Reference type -- okay. */
       } else {
         /* An object of this type cannot be initialized. */
         pos_error(ec_cannot_initialize, source_pos);
