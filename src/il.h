@@ -20,13 +20,6 @@ il.h -- Declarations related to the intermediate language.
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
-#if 0
-#else
-/* This code should be moved to il_def.h and removed from here. */
-#ifndef LANG_FEAT_H
-#include "lang_feat.h"
-#endif /* ifndef LANG_FEAT_H */
-#endif
 
 
 /* il_def.h contains the definition of the IL tables.  It's in a separate
