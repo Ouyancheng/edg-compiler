@@ -1968,6 +1968,9 @@ error code.
     case ec_template_class_argument_list_context:
       m = "%sprocessing of template argument list for %na %p";
       break;
+    case ec_bad_templ_arg_expr_operator:
+      m = "this operator is not allowed in a template argument expression";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
