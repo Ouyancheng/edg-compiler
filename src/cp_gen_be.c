@@ -4316,11 +4316,14 @@ Generate code for the indicated "for" statement.
 */
 {
   a_statement_ptr init_stmt;
+  a_scope_ptr     for_init_scope =
+                        statement->variant.for_loop.extra_info->for_init_scope;
 
   /* Generate "for (init; test; incr) statement".
      "init" might be an expression or a declaration, or omitted;
      "test" and "incr" are expressions and may also be omitted. */
   write_tok_str("for (");
+  if (for_init_scope != NULL) push_name_context(for_init_scope);
   /* Generate the initialization statement or declaration. */
   init_stmt = statement->variant.for_loop.extra_info->initialization;
   if (init_stmt == NULL) {
@@ -4376,6 +4379,7 @@ Generate code for the indicated "for" statement.
   write_tok_str(") ");
   /* Generate the dependent statement. */
   gen_statement(statement->variant.for_loop.statement);
+  if (for_init_scope != NULL) pop_name_context();
 }  /* gen_for_statement */
 
 
