@@ -266,20 +266,13 @@ been declared for all successor arguments.
   a_boolean         err = FALSE;
 
   db_enter(3, "delayed_scan_of_default_arg_expr");
-#if CHECKING
-  if (param_type_entry->default_arg_expr != NULL) {
-    internal_error(
-                "delayed_scan_of_default_arg_expr: default arg already there");
+  if (param_type_entry->default_arg_expr != NULL &&
+      !is_error_node(param_type_entry->default_arg_expr)) {
+    pos_error(ec_default_arg_already_defined, &pos_curr_token);
   }  /* if */
-#endif /* CHECKING */
   /* Make a pass over all the param type entries that follow the current one.
      It is an error if there are any without a default argument. */
   for (ptp = param_type_entry->next; ptp != NULL; ptp = ptp->next) {
-#if CHECKING
-    if (ptp->default_arg_expr != NULL) {
-      internal_error("delayed_scan_of_default_arg_expr: bad param order");
-    }  /* if */
-#endif /* CHECKING */
     if (!ptp->has_default_arg) {
       /* Issue an error on the first successor in the parameter list that does
          not have a default argument. */
@@ -2729,7 +2722,10 @@ function symbols.
            already overloaded, any instance of it) does not have a matching
            type, so sym remains a candidate for overloading. */
       } else {
-        /* Force enter_symbol to be called by setting sym to NULL. */
+        /* This is a redeclaration.  Just return to old symbol entry, setting
+           sym to NULL to avoid overload processing.  The caller will
+           do some consistency checking and issue a warning. */
+        new_sym = sym;
         sym = NULL;
       }  /* if */
     }  /* if */
@@ -2764,7 +2760,86 @@ function symbols.
   return new_sym;
 }  /* symbol_for_member_function */
 
-                                               
+
+static void redecl_member_function(a_symbol_ptr         sym,
+                                   a_type_ptr           class_type,
+                                   a_type_ptr           member_type,
+                                   an_access_specifier  access,
+                                   a_boolean            is_inline,
+                                   a_boolean            is_virtual,
+                                   a_source_position    *err_pos)
+/*
+The current member function redeclares the function to which sym refers.
+Parameters member_type, access, is_inline, and is_virtual indicate
+specifications of the current declaration.  Although the ARM (9.2)
+disallows the redeclaration of members, we allow it (as an extension for
+Cfront compatibility), but only if access, static-ness, and virtual-ness
+are unchanged.
+*/
+{
+  a_routine_ptr             rp = sym->variant.routine;
+  a_param_type_ptr          ptp1, ptp2;
+  a_delayed_scan_fixup_ptr  dsfp = NULL;
+
+  /* Let the current access override the original access specification, but
+     if there's a difference, issue an error. */
+  if (access != rp->source_corresp.access ||
+      (is_virtual && !rp->is_virtual) ||
+      (routine_type_is_nonstatic_member_function(rp->type) !=
+         routine_type_is_nonstatic_member_function(member_type))) {
+    pos_error(ec_id_already_declared, err_pos);
+  } else {
+    /* Issue a warning that this redeclaration is nonstandard. */
+    pos_warning(ec_nonstd_member_function_redeclaration, err_pos);
+    /* If the new declaration specifies "inline", keep it, even if the
+       previous declaration did not. */
+    if (is_inline) rp->is_inline = TRUE;
+    reconcile_routine_types(rp, member_type, /*preserve_rout_type=*/TRUE,
+                            /*preserve_type_ptr=*/FALSE);
+    /* If any default arguments were encountered in the second declaration,
+       the tokens were cached in an entry that makes reference to a now
+       obsolete param type entry.  Find such references and change them to
+       refer to the corresponding param type entry in the old param types
+       list (the one that's being preserved). */
+    ptp1 = rp->type->variant.routine.extra_info->param_type_list;
+    ptp2 = member_type->variant.routine.extra_info->param_type_list;
+    for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
+      if (ptp2->has_default_arg) {
+        /* A default arg appears in the current declaration.  Find the
+           delayed scan fixup entry that points to this param type entry. */
+        dsfp = (symbol_supplement_for_class(class_type))->
+                                                   delayed_scan_fixup_list;
+        for (;;) {
+#if CHECKING
+          if (dsfp == NULL) {
+            internal_error("redecl_member_function: bad default arg list");
+          }  /* if */
+#endif /* CHECKING */
+          /* Stop when we find the entry that refers to the current
+             param type entry. */
+          if (dsfp->is_arg_default_value &&
+              dsfp->variant.param_type == ptp2) {
+            break;
+          }  /* if */
+          dsfp = dsfp->next;
+        }  /* for */
+        dsfp->variant.param_type = ptp1;
+        /* We intentionally do not set the has_default_arg flag to TRUE in
+           ptp1.  This enables us to detect errors in the default arg list
+           of the first declaration that would otherwise be missed.  For
+           instance,
+             class A { void f(int=1,int); void f(int,int=0); };
+           According to ARM 9.2 (commentary on p. 141) an error should be
+           issued on the first declaration of f().  Since has_default_arg is
+           FALSE on the second param type entry when the cached default arg
+           expression is scanned (see delayed_scan_of_default_arg_expr),
+           the error can be detected. */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* redecl_member_function */
+
+
 static a_symbol_ptr decl_member_function(a_symbol_locator        *locator,
                                          a_type_ptr              class_type,
                                          a_type_ptr              member_type,
@@ -2806,7 +2881,10 @@ special function kind (e.g., constructor, destructor), if any.
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
   if (sym->variant.routine != NULL) {
     /* symbol_for_member_function has returned a symbol that has already
-       been declared.  No further action is necessary. */
+       been declared.  ARM 9.2 prohibits redeclaration of member functions.
+       We allow it as an extension, with certain restrictions. */
+    redecl_member_function(sym, class_type, member_type, access, is_inline,
+                           is_virtual, &locator->source_position);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
