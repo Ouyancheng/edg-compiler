@@ -93,7 +93,7 @@ This is now fixed.
 8/21/00  Compilation errors in il_display.c
 
 Compilation errors occurred in il_display.c when building an IL display
-program for the C++ IL.  This is now fixed.
+program configured for the C++-generating back end.  This is now fixed.
 
 8/21/00  C++ generating back end: invalid redeclaration of typedef class name
 
