@@ -3544,7 +3544,7 @@ values, and return a pointer to it.
   cvp->ctor_base_class = NULL;
   cvp->virtual_function_table_var = NULL;
 #if IA64_ABI
-  cvp->virtual_function_table_offset = 0;
+  cvp->virtual_function_table_index = 0;
   cvp->is_subobject = TRUE;
 #endif /* IA64_ABI */
 
@@ -3632,7 +3632,8 @@ outer_loop:;
 
 #else /* IA64_ABI */
 
-a_base_class_ptr find_base_sharing_virtual_function_table(a_base_class_ptr bcp)
+static a_base_class_ptr find_base_sharing_virtual_function_table(
+                                                          a_base_class_ptr bcp)
 /* 
 bcp is base class for which shares_virtual_function_info is TRUE.  Find the
 most derived class with which the virtual function table in bcp is shared
@@ -3713,7 +3714,161 @@ variable's mangled name.
   (void)strcpy(variable->comdat_group, variable->source_corresp.name);
 } /* put_variable_into_comdat_group */
 
+
+static a_virtual_table_index vptr_index(a_type_ptr       class_type,
+                                        a_base_class_ptr bcp,
+                                        a_boolean        is_complete)
+/*
+If bcp is non-NULL, bcp is a base class with a virtual function table
+pointer.  If bcp is NULL, then class_type is a class with a virtual function
+table pointer.  Return the index from the start of the virtual function table
+associated with bcp (or, if NULL, the complete object) to the location where
+the vptr should point.  If is_complete is TRUE, the virtual function table is
+the complete virtual function table for class_type; otherwise it is a
+construction virtual function table.
+*/
+{
+  a_type_ptr                  base_class_type;
+  a_class_type_supplement_ptr ctsp;
+  a_virtual_table_index       index;
+
+  if (is_complete && bcp != NULL && bcp->shares_virtual_function_info) {
+    bcp = find_base_sharing_virtual_function_table(bcp);
+  }  /* if */
+  if (bcp != NULL) {
+    base_class_type = bcp->type;
+  } else {
+    base_class_type = class_type;
+  }  /* if */
+  ctsp = base_class_type->variant.class_struct_union.extra_info;
+  if (bcp != NULL && emit_vcall_offsets_in_virtual_function_table(bcp)) {
+    index = -ctsp->next_negative_virtual_table_index - 1;
+  } else {
+    index = -ctsp->first_vcall_offset_index - 1;
+  }  /* if */
+  if (bcp != NULL && is_complete) {
+    check_assertion(bcp->virtual_function_table_offset != -1);
+    index += bcp->virtual_function_table_offset;
+  }  /* if */
+  return index;
+}  /* vptr_index */
+
 #endif /* IA64_ABI */
+
+static void make_construction_vtbl(
+                       a_type_ptr                      class_type,
+                       a_base_class_ptr                bcp,
+                       a_base_class_ptr                sub_bcp,
+                       a_construction_vtbl_ptr         *construction_vtbls,
+                       a_construction_vtbl_ptr         *end_construction_vtbls,
+                       a_construction_vtbl_array_index *index,
+                       a_construction_vtbl_array_index *first_index)
+/*
+Create a construction virtual function table entry for sub_bcp in bcp in
+class_type.  If bcp is NULL, it is considered to be the same as class_type; if
+sub_bcp is NULL, it is considered to be the same as bcp.  The
+*construction_vtbls and *end_construction_vtbls pointers bracket the list of
+construction vtables created so far for class_type; *index points to the next
+available entry.  *first_index is set to the index for this entry, unless it
+is already non-zero.
+*/
+{
+  a_type_ptr                  vtbl_class;
+  a_construction_vtbl_ptr     cvp;
+  a_variable_ptr              vtbl_var;
+  a_construction_vtbl_ptr     old_cvp;
+#if IA64_ABI
+  a_class_type_supplement_ptr ctsp;
+  a_virtual_table_index       vtbl_index = 0;
+  a_boolean                   is_subobject = (bcp != sub_bcp);
+#endif /* IA64_ABI */
+
+  if (bcp != NULL) {
+    vtbl_class = bcp->type;
+  } else {
+    vtbl_class = class_type;
+  }  /* if */
+#if IA64_ABI
+  ctsp = vtbl_class->variant.class_struct_union.extra_info;
+#endif /* IA64_ABI */
+  cvp = alloc_construction_vtbl();
+  cvp->ctor_base_class = bcp;
+  /* Assign the next index number to this entry. */
+  ++(*index);
+  if (*first_index == 0) *first_index = *index;
+  if (bcp == NULL && sub_bcp != NULL) {
+    sub_bcp->index_in_construction_vtbl_array = *index;
+  }  /* if */
+#if IA64_ABI
+  if (!is_subobject) {
+    cvp->is_subobject = FALSE;
+    cvp->variant.derived_class = vtbl_class;
+    if (bcp == NULL) {
+      vtbl_var = ctsp->virtual_function_table_var;
+      vtbl_index = vptr_index(vtbl_class, (a_base_class_ptr)NULL,
+                              /*is_complete=*/TRUE);
+      goto have_vtbl_var;
+    }  /* if */
+  } else 
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  {
+    cvp->variant.base_class = sub_bcp;
+    if (bcp == NULL) {
+      /* This is the standard virtual function table for the base class, which
+         has already been created. */
+#if !IA64_ABI
+      vtbl_var = sub_bcp->virtual_function_table_var;
+#else /* IA64_ABI */
+      vtbl_var = ctsp->virtual_function_table_var;
+      vtbl_index = vptr_index(vtbl_class, sub_bcp, /*is_complete=*/TRUE);
+#endif /* IA64_ABI */              
+      check_assertion(vtbl_var != NULL);
+      goto have_vtbl_var;
+    }  /* if */
+  }  /* if */
+  /* See if there's already an entry on the list for this
+     instance, and reuse it if so. */
+  for (old_cvp = *construction_vtbls;
+       old_cvp != NULL;
+       old_cvp = old_cvp->next) {
+    if (((
+#if IA64_ABI
+          old_cvp->is_subobject && is_subobject &&
+#endif /* IA64_ABI */
+          old_cvp->variant.base_class == cvp->variant.base_class)
+#if IA64_ABI
+         || (!old_cvp->is_subobject && !is_subobject &&
+             old_cvp->variant.derived_class == cvp->variant.derived_class)
+#endif /* IA64_ABI */
+        ) && old_cvp->ctor_base_class == cvp->ctor_base_class) {
+      vtbl_var = old_cvp->virtual_function_table_var;
+#if IA64_ABI
+      vtbl_index = old_cvp->virtual_function_table_index;
+#endif /* IA64_ABI */
+      goto have_vtbl_var;
+    }  /* if */
+  }  /* for */
+  vtbl_var = make_var_for_virtual_function_table(vtbl_class, sub_bcp, bcp);
+#if IA64_ABI
+  vtbl_index = vptr_index(vtbl_class, 
+                          is_subobject ? sub_bcp : (a_base_class_ptr)NULL, 
+                          /*is_complete=*/FALSE);
+#endif /* IA64_ABI */
+have_vtbl_var:;
+  cvp->virtual_function_table_var = vtbl_var;
+#if IA64_ABI
+  cvp->virtual_function_table_index = vtbl_index;
+#endif /* IA64_ABI */
+  /* Add the entry to the end of the list. */
+  if (*construction_vtbls == NULL) {
+    *construction_vtbls = cvp;
+  } else {
+    (*end_construction_vtbls)->next = cvp;
+  }  /* if */
+  *end_construction_vtbls = cvp;
+}  /* make_construction_vtbl */
+
 
 static a_construction_vtbl_array_index make_construction_vtbls(
                        a_type_ptr                      class_type,
@@ -3736,12 +3891,6 @@ index number of the first entry, or 0 if no entries were created.
 {
   a_type_ptr                      vtbl_class;
   a_construction_vtbl_array_index first_index = 0;
-  a_variable_ptr                  vtbl_var;
-#if IA64_ABI
-  a_variable_ptr                  primary_vtbl_var;
-  a_virtual_table_index           vtbl_offset;
-#endif /* IA64_ABI */
-  a_construction_vtbl_ptr         cvp;
 
   if (bcp != NULL) {
     vtbl_class = bcp->type;
@@ -3757,36 +3906,9 @@ index number of the first entry, or 0 if no entries were created.
     ctsp = vtbl_class->variant.class_struct_union.extra_info;
 #if IA64_ABI
     /* Add an entry for the primary virtual pointer. */
-    cvp = alloc_construction_vtbl();
-    cvp->is_subobject = FALSE;
-    cvp->variant.derived_class = vtbl_class;
-    cvp->ctor_base_class = bcp;
-    /* Assign the next index number to this entry. */
-    ++(*index);
-    first_index = *index;
-    primary_vtbl_var = class_type->variant.class_struct_union.extra_info->
-                                                   virtual_function_table_var;
-    vtbl_offset = 0;
-    if (bcp != NULL) {
-      a_base_class_ptr sharing_bcp;
-      if (bcp->shares_virtual_function_info) {
-        sharing_bcp = find_base_sharing_virtual_function_table(bcp);
-      } else {
-        sharing_bcp = bcp;
-      }  /* if */
-      if (sharing_bcp != NULL ) {
-        vtbl_offset = sharing_bcp->virtual_function_table_offset;
-      }  /* if */
-    }  /* if */
-    cvp->virtual_function_table_var = primary_vtbl_var;
-    cvp->virtual_function_table_offset = vtbl_offset;
-    /* Add the entry to the end of the list. */
-    if (*construction_vtbls == NULL) {
-      *construction_vtbls = cvp;
-    } else {
-      (*end_construction_vtbls)->next = cvp;
-    }  /* if */
-    *end_construction_vtbls = cvp;
+    make_construction_vtbl(class_type, bcp, bcp,
+                           construction_vtbls,
+                           end_construction_vtbls, index, &first_index);
 #endif /* IA64_ABI */
     /* Look for base classes for which special virtual function tables are
        needed because of the base class itself (an array of virtual
@@ -3901,79 +4023,23 @@ index number of the first entry, or 0 if no entries were created.
                               next
 #endif /* !IA64_ABI */
                                            ) {
-        if (base_class_has_vtbl(sub_bcp)) {
-          if (
-#if IA64_ABI
-              (sub_bcp->is_virtual || 
-                                   !sub_bcp->shares_virtual_function_info) &&
-              (sub_bcp->type->variant.class_struct_union.
-                                              any_virtual_base_classes ||
-               any_virtual_steps_in_derivation(sub_bcp))
-#else /* !IA64_ABI */            
-              base_class_has_override_on_virtual_step(sub_bcp)
-#endif /* !IA64_ABI */
-                                                                          ) {
-            /* Needs a special virtual function table. */
-            cvp = alloc_construction_vtbl();
-            cvp->variant.base_class = sub_bcp;
-            cvp->ctor_base_class = bcp;
-            /* Assign the next index number to this entry. */
-            ++(*index);
-            if (bcp == NULL) {
-              sub_bcp->index_in_construction_vtbl_array = *index;
-            }  /* if */
-            if (first_index == 0) first_index = *index;
-            if (bcp == NULL) {
-              /* This is the standard virtual function table for the base
-                 class, which has already been created. */
+        if (
 #if !IA64_ABI
-              vtbl_var = sub_bcp->virtual_function_table_var;
+            base_class_has_vtbl(sub_bcp) &&
+            base_class_has_override_on_virtual_step(sub_bcp)
 #else /* IA64_ABI */
-              vtbl_var = ctsp->virtual_function_table_var;
-              vtbl_offset = sub_bcp->virtual_function_table_offset;
-#endif /* IA64_ABI */              
-              check_assertion(vtbl_var != NULL);
-            } else {
-              /* See if there's already an entry on the list for this
-                 instance, and reuse it if so. */
-              a_construction_vtbl_ptr old_cvp;
-              for (old_cvp = *construction_vtbls;
-                   old_cvp != NULL;
-                   old_cvp = old_cvp->next) {
-                if (
-#if IA64_ABI
-                    old_cvp->is_subobject &&
+            needs_virtual_function_table(sub_bcp->type) &&
+            (sub_bcp->is_virtual || !sub_bcp->shares_virtual_function_info) &&
+            (sub_bcp->type->variant.class_struct_union.
+                                                   any_virtual_base_classes ||
+             any_virtual_steps_in_derivation(sub_bcp))
 #endif /* IA64_ABI */
-                    old_cvp->variant.base_class == cvp->variant.base_class &&
-                    old_cvp->ctor_base_class == cvp->ctor_base_class) {
-                  vtbl_var = old_cvp->virtual_function_table_var;
-#if IA64_ABI
-                  vtbl_offset = old_cvp->virtual_function_table_offset;
-#endif /* IA64_ABI */
-                  goto have_vtbl_var;
-                }  /* if */
-              }  /* if */
-              vtbl_var =
-                    make_var_for_virtual_function_table(sub_bcp->derived_class,
-                                                        sub_bcp,
-                                                        bcp);
-#if IA64_ABI
-              vtbl_offset = 0;
-#endif /* IA64_ABI */
-have_vtbl_var:;
-            }  /* if */
-            cvp->virtual_function_table_var = vtbl_var;
-#if IA64_ABI
-            cvp->virtual_function_table_offset = vtbl_offset;
-#endif /* IA64_ABI */
-            /* Add the entry to the end of the list. */
-            if (*construction_vtbls == NULL) {
-              *construction_vtbls = cvp;
-            } else {
-              (*end_construction_vtbls)->next = cvp;
-            }  /* if */
-            *end_construction_vtbls = cvp;
-          }  /* if */
+                                                                            ) {
+          /* Needs a special virtual function table. */
+          make_construction_vtbl(class_type, bcp, sub_bcp,
+                                 construction_vtbls, 
+                                 end_construction_vtbls, index,
+                                 &first_index);
         }  /* if */
       }  /* for */
     }  /* for */
@@ -4816,6 +4882,7 @@ yet.
   }  /* if */  
   entry_routine->source_corresp.name_linkage = 
                               overriding_function->source_corresp.name_linkage;
+  entry_routine->is_inline = overriding_function->is_inline;
 #if IA64_ABI
   entry_routine->use_comdat = overriding_function->use_comdat;
 #endif /* IA64_ABI */
@@ -4923,8 +4990,17 @@ is the actual complete object type (used in determining layout).
   } else {
     vbase_offset = vbase->offset;
   }  /* if */
-  /* Add vcall offsets for bcp. */
   ctsp = bcp->type->variant.class_struct_union.extra_info;
+  /* Add vcall offsets for bcp's primary base. */
+  b = ctsp->primary_base_class;
+  if (b != NULL && b->direct && !b->is_virtual) {
+    /* Find the base (in the derived class) that corresponds to b. */
+    disambiguator = find_disambiguator(bcp, b);
+    b_in_derived = corresponding_base_class(b, vbase->derived_class, 
+                                            disambiguator);
+    add_vcall_offsets(first_con, last_con, vbase, b_in_derived, ctor_bcp);
+  }  /* if */
+  /* Add vcall offsets for bcp. */
   for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
     /* Skip non-virtual functions. */
     if (!rout->is_virtual) continue;
@@ -4964,9 +5040,9 @@ is the actual complete object type (used in determining layout).
        does not matter what value we use for the index. */
     overrider->vcall_offset_index_set = TRUE;
   }  /* for */
-  /* Now, add vcall offsets for bcp's bases. */
+  /* Now, add vcall offsets for bcp's non-primary bases. */
   for (b = base_classes_of(bcp->type); b != NULL; b = b->next) {
-    if (b->direct && !b->is_virtual) {
+    if (b->direct && !b->is_virtual && b != ctsp->primary_base_class) {
       /* Find the base (in the derived class) that corresponds to b. */
       disambiguator = find_disambiguator(bcp, b);
       b_in_derived = corresponding_base_class(b, vbase->derived_class, 
@@ -5577,6 +5653,10 @@ table.
       if (ctor_bcp == NULL) {
         delta = (bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
                                 (a_targ_ptrdiff_t)0;
+#if IA64_ABI
+      } else if (bcp == NULL) {
+        delta = (a_targ_ptrdiff_t)0;
+#endif /* IA64_ABI */
       } else {
         a_base_class_ptr disambiguator = find_disambiguator(ctor_bcp, bcp);
         a_base_class_ptr eff_bcp = corresponding_base_class(
@@ -6105,6 +6185,19 @@ to process, or NULL if the complete object should be processed.
   /* Compute the type that we are processing. */
   base_type = (bcp != NULL) ? bcp->type : class_type;
   base_ctsp = base_type->variant.class_struct_union.extra_info;
+  /* Add vcall offsets for the primary base. */
+  b = base_ctsp->primary_base_class;
+  if (b != NULL && b->direct && !b->is_virtual) {
+    /* Find the base (in the derived class) that corresponds to b. */
+    if (bcp != NULL) {
+      disambiguator = find_disambiguator(bcp, b);
+      b_in_derived = corresponding_base_class(b, class_type,
+                                              disambiguator);
+    } else {
+      b_in_derived = b;
+    }  /* if */
+    compute_vcall_offset_indices(class_type, b_in_derived);
+  }  /* if */
   /* Go through all of the routines in this type, adding vcall offsets.
      Sometimes, when processing a compiler-generated class, there is no
      associated scope. */
@@ -6144,7 +6237,7 @@ to process, or NULL if the complete object should be processed.
   }  /* for */
   /* Now, add vcall offsets for bcp's bases. */
   for (b = base_classes_of(base_type); b != NULL; b = b->next) {
-    if (b->direct && !b->is_virtual) {
+    if (b->direct && !b->is_virtual && b != base_ctsp->primary_base_class) {
       /* Find the base (in the derived class) that corresponds to b. */
       if (bcp != NULL) {
         disambiguator = find_disambiguator(bcp, b);
@@ -7203,6 +7296,31 @@ Do IL lowering of the indicated list of routines and everything under it.
   }  /* for */
 }  /* lower_routine_list */
 
+#if IA64_ABI
+
+void put_routine_into_comdat_group(a_routine_ptr routine)
+/*
+Put the routine into a COMDAT group with the same name as the
+routine's mangled name.
+*/
+{
+  a_routine_list_entry_ptr rlep;
+
+  /* The routine is COMDAT.  */
+  routine->use_comdat = TRUE;
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+      routine->special_kind == (a_special_function_kind)sfk_destructor) {
+    /* Any alternate entry points for a constructor or destructor should get
+       the same linkage as the main entry point.  */
+    for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+         rlep != NULL;
+         rlep = rlep->next) {
+      rlep->routine->use_comdat = TRUE;
+    }  /* for */
+  }  /* if */
+}  /* put_routine_into_comdat_group */
+
+#endif /* IA64_ABI */
 
 static void lower_routine(a_routine_ptr routine)
 /*
@@ -7263,7 +7381,7 @@ not include the function scope memory region, if any.
 #else /* IA64_ABI */
       /* Place the routine in a COMDAT group so that the linker will eliminate
          duplicate copies. */
-      routine->use_comdat = TRUE;
+      put_routine_into_comdat_group(routine);
 #endif /* IA64_ABI */
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
@@ -8931,13 +9049,13 @@ the expression have already been lowered.
   /* Make "(char *)object + pmf.d". */
   select_d_node = node_to_select_field_from_rvalue(pmf_node, mptr_d_field);
 #if IA64_ABI
-  /* Divide by two to eliminate the low-order bit, which is used to indicate
+  /* Shift right to eliminate the low-order bit, which is used to indicate
      whether or not the function is virtual.  This applies in the variant
      of the IA-64 ABI for architectures in which the low-order bit of
      a function address can be 1. */
-  select_d_node->next = node_for_integer_constant(2L,
-                                                  targ_ptrdiff_t_int_kind);
-  select_d_node = make_operator_node((an_expr_operator_kind)eok_idivide,
+  select_d_node->next = node_for_integer_constant(1L,
+                                                  targ_size_t_int_kind);
+  select_d_node = make_operator_node((an_expr_operator_kind)eok_shiftr,
                                       select_d_node->type, select_d_node);
 #endif /* IA64_ABI */
   cast_object_node = add_cast_to_char_star(object_node);
@@ -9352,6 +9470,7 @@ first operand (but not the second) has been lowered already.
     compare_i_node = make_operator_node(
                           (an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
                           int_type, select1_node);
+#if !IA64_ABI
     if (is_constant_node(select1_node) &&
         is_false_constant(select1_node->variant.constant)) {
       /* If op1.i is zero, the whole expression reduces to
@@ -9360,7 +9479,10 @@ first operand (but not the second) has been lowered already.
          pointer to member constant.  Note that if op2.i was zero initially,
          the operands were swapped. */
       overwrite_node(expr, compare_i_node);
-    } else {
+    } else 
+#endif /* !IA64_ABI */
+      /* Do not add code here. */
+    {
       /* Not a comparison against null. */
       vars_can_change = node_has_side_effects(op1_node, (a_boolean *)NULL) ||
                         node_has_side_effects(op2_node, (a_boolean *)NULL);
@@ -9368,12 +9490,16 @@ first operand (but not the second) has been lowered already.
                                             mptr_if_field,
                                             /*need_copy=*/TRUE,
                                             vars_can_change);
+#if !IA64_ABI
       if (is_constant_node(select1_node)) {
         /* op1.i is constant, but it's not zero (that case was handled
            above).  So the "op1.i == 0 ||" part of the expression is
            not needed. */
         compare_i0_node = NULL;
-      } else {
+      } else 
+#endif /* !IA64_ABI */
+      /* Do not add code here. */
+      {
 #if IA64_ABI
         /* Cast the function pointer to a ptrdiff_t. */
         select1_node = add_cast(select1_node,
@@ -9390,6 +9516,40 @@ first operand (but not the second) has been lowered already.
         compare_i0_node = make_operator_node
                         ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
                          int_type, select1_node);
+#if IA64_ABI
+        /* Add code for "&& (((op1.d | op2.d) & 1) == 0)".  This checks
+           that the low-order bit (indicating virtual function or not) is
+           clear in both entries.  Otherwise, we might have a pointer
+           to member in which "f" is zero to indicate a zero offset
+           in the virtual function table for a virtual function case.
+           This applies in the variant of the IA-64 ABI for architectures
+           where the address of a function can have the low-order bit set. */
+        select1_node = expr_for_pmf_component(op1_node, mptr_d_field,
+                                              /*need_copy=*/TRUE,
+                                              vars_can_change);
+        select1_node->next = expr_for_pmf_component(op2_node, mptr_d_field,
+                                                    /*need_copy=*/TRUE,
+                                                    vars_can_change);
+        select1_node = make_operator_node((an_expr_operator_kind)eok_or, 
+                                          select1_node->type, 
+                                          select1_node);
+        select1_node->next = node_for_promoted_integer_constant(
+                                                      1L,
+                                                      targ_ptrdiff_t_int_kind);
+        select1_node = make_operator_node((an_expr_operator_kind)eok_and, 
+                                          select1_node->type,
+                                          select1_node);
+        select1_node->next = node_for_promoted_integer_constant(
+                                                      0L,
+                                                      targ_ptrdiff_t_int_kind);
+        select1_node = make_operator_node
+                         ((an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
+                          int_type, select1_node);
+        compare_i0_node->next = select1_node;
+        compare_i0_node = make_operator_node
+                        ((an_expr_operator_kind)(ne_case ? eok_lor : eok_land),
+                         int_type, compare_i0_node);
+#endif /* IA64_ABI */
       }  /* if */
       /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
       select1_node = expr_for_pmf_component(op1_node, mptr_d_field,

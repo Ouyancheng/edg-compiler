@@ -552,9 +552,12 @@ typedef struct a_construction_vtbl {
 			   function table. */
 #if IA64_ABI
   a_virtual_table_index
-		virtual_function_table_offset;
+		virtual_function_table_index;
 			/* The index in the virtual_function_table_var where
-			   this construction virtual function table begins. */
+			   this construction virtual function table begins.
+			   This value indicates the location to which the vptr
+			   should be set, not the location of the start of the
+			   virtual function table. */
   a_byte_boolean
 		is_subobject;
 			/* TRUE if A and B are not the same class. */
@@ -670,10 +673,9 @@ extern an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
 extern an_expr_node_ptr make_vbptr_field_lvalue_from_var(a_variable_ptr   var,
                                                          a_base_class_ptr bcp);
 #else /* IA64_ABI */
-extern a_base_class_ptr find_base_sharing_virtual_function_table(
-                                                         a_base_class_ptr bcp);
-
 extern void put_variable_into_comdat_group(a_variable_ptr variable);
+
+extern void put_routine_into_comdat_group(a_routine_ptr routine);
 
 extern a_boolean emit_vcall_offsets_in_virtual_function_table(
                                                          a_base_class_ptr bcp);

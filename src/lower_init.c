@@ -36,10 +36,6 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if IA64_ABI
-/* Needed for find_disambiguator */
-#include "class_decl.h"
-#endif /* IA64_ABI */
 
 
 /* Declarations needed because of forward references: */
@@ -7755,9 +7751,6 @@ given by the elements.
     a_constant                  con;
     a_constant_ptr              conp;
 #if IA64_ABI
-    a_base_class_ptr            bcp, sharing_bcp, disambiguator;
-    a_type_ptr                  base_type;
-    a_class_type_supplement_ptr base_ctsp;
     a_virtual_table_index       vtbl_index;
 #endif /* IA64_ABI */
 
@@ -7769,48 +7762,8 @@ given by the elements.
     implicit_cast(&con, make_pointer_type(make_vtbl_entry_type()));
 #if IA64_ABI
     /* In the IA64 ABI, the value of the vptr in the object is not the same as
-       the address of the virtual function table variable.  Find the type that
-       corresponds to the object being constructed. */
-    if (elements->is_subobject || elements->ctor_base_class != NULL) {
-      if (elements->is_subobject) {
-        bcp = elements->variant.base_class;
-        if (elements->ctor_base_class != NULL) {
-          /* Find bcp in the hierarchy containing ctor_bcp. */
-          disambiguator = find_disambiguator(elements->ctor_base_class, bcp);
-          bcp = corresponding_base_class(
-                                      bcp, 
-                                      elements->ctor_base_class->derived_class,
-                                      disambiguator);
-        }  /* if */
-      } else if (elements->ctor_base_class != NULL) {
-        bcp = elements->ctor_base_class;
-      }  /* if */
-      /* Find the most derived base that shares virtual function information
-         with this one. */
-      if (bcp->shares_virtual_function_info) {
-        sharing_bcp = find_base_sharing_virtual_function_table(bcp);
-        if (sharing_bcp == NULL) {
-          base_type = bcp->derived_class;
-        } else {
-          base_type = sharing_bcp->type;
-        }  /* if */
-      } else {
-        base_type = bcp->type;
-      } /* if */
-    } else {
-      bcp = NULL;
-      base_type = elements->variant.derived_class;
-    }  /* if */
-    /* Compute the index in the virtual table where the address point 
-       occurs. */
-    base_ctsp = base_type->variant.class_struct_union.extra_info;
-    if (bcp && emit_vcall_offsets_in_virtual_function_table(bcp)) {
-      vtbl_index = -base_ctsp->next_negative_virtual_table_index - 1;
-    } else {
-      vtbl_index = -base_ctsp->first_vcall_offset_index - 1;
-    }  /* if */
-    vtbl_index += elements->virtual_function_table_offset;
-    /* Set the offset. */
+       the address of the virtual function table variable.  */
+    vtbl_index = elements->virtual_function_table_index;
     con.variant.address.offset = vtbl_index * make_vtbl_entry_type()->size;
 #endif /* IA64_ABI */
     elements->virtual_function_table_var->source_corresp.referenced = TRUE;
@@ -8667,7 +8620,7 @@ constructor, but may instead be after an assignment to "this".
 #if !IA64_ABI
     vtbl_var = bcp->virtual_function_table_var;
 #else /* IA64_ABI */
-    if (base_class_has_vtbl(bcp)) {
+    if (needs_virtual_function_table(bcp->type)) {
       vtbl_var = ctsp->virtual_function_table_var;
     } else {
       vtbl_var = NULL;
@@ -8677,6 +8630,7 @@ constructor, but may instead be after an assignment to "this".
       /* The base class's virtual function table pointer must be set to
          reflect the fact that it exists as a subobject inside the current
          class. */
+      vtbl_addr_node = NULL;
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
       if (bcp->index_in_construction_vtbl_array != 0) {
         /* The virtual function table to use is specified by an element of the
@@ -8689,40 +8643,46 @@ constructor, but may instead be after an assignment to "this".
       } else
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
       /* Do not insert code here; this is the "else" of an "if". */
+#if IA64_ABI
+      if (base_class_has_vtbl(bcp))
+#endif /* IA64_ABI */
       {
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
         set_lowering_variable_address_taken(vtbl_var);
         vtbl_var->source_corresp.referenced = TRUE;
       }  /* if */
+      if (vtbl_addr_node != NULL) {
 #if !IA64_ABI
-      if (bcp->is_virtual) {
-        /* For virtual base classes, access the class by using the implicit
-           parameter.  That works even when the current class is not a
-           complete object, and is a little better than the general code. */
-        vbase_param_var = implicit_virtual_base_parameter(class_type,
-                                                          bcp->type,
-                                                          this_param_var);
-        vptr_node = var_rvalue_expr(vbase_param_var);
-      } else 
-#endif /* !IA64_ABI */
-      /* Do not insert code here. */
-      {
-        /* Use the usual code.  Note that if the base class here is
-           non-virtual itself but is inside a virtual base class, the code
-           will use a pointer to get to the virtual base class and then field
-           selection(s) to get to the non-virtual base class within that.  It
-           would be possible to use the implicit parameter for the virtual
-           base class to do better, but this code works (the virtual base
-           class pointers are all set by this point). */
-        vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
-                                                    /*complete_object=*/FALSE);
+        if (bcp->is_virtual) {
+          /* For virtual base classes, access the class by using the implicit
+             parameter.  That works even when the current class is not a
+             complete object, and is a little better than the general code. */
+          vbase_param_var = implicit_virtual_base_parameter(class_type,
+                                                            bcp->type,
+                                                            this_param_var);
+          vptr_node = var_rvalue_expr(vbase_param_var);
+        } else 
+  #endif /* !IA64_ABI */
+        /* Do not insert code here. */
+        {
+          /* Use the usual code.  Note that if the base class here is
+             non-virtual itself but is inside a virtual base class, the code
+             will use a pointer to get to the virtual base class and then
+             field selection(s) to get to the non-virtual base class within
+             that.  It would be possible to use the implicit parameter for the
+             virtual base class to do better, but this code works (the virtual
+             base class pointers are all set by this point). */
+          vptr_node = make_base_class_lvalue_from_var(
+                                                   this_param_var, bcp,
+                                                   /*complete_object=*/FALSE);
+        }  /* if */
+        vptr_node = make_vptr_field_lvalue(vptr_node);
+        /* Make and insert the assignment statement. */
+        (void)insert_assignment_statement(vptr_node,
+                                          (an_expr_operator_kind)eok_passign,
+                                          vtbl_addr_node,
+                                          insert_location);
       }  /* if */
-      vptr_node = make_vptr_field_lvalue(vptr_node);
-      /* Make and insert the assignment statement. */
-      (void)insert_assignment_statement(vptr_node,
-                                        (an_expr_operator_kind)eok_passign,
-                                        vtbl_addr_node,
-                                        insert_location);
     }  /* if */
   }  /* for */
   /* Generate initialization for each data member that appears on the
@@ -9738,7 +9698,7 @@ destructor scope, and also lower the user code.
 #if !IA64_ABI
     vtbl_var = bcp->virtual_function_table_var;
 #else /* IA64_ABI */
-    if (base_class_has_vtbl(bcp)) {
+    if (needs_virtual_function_table(bcp->type)) {
       vtbl_var = ctsp->virtual_function_table_var;
     } else {
       vtbl_var = NULL;
@@ -9774,6 +9734,7 @@ destructor scope, and also lower the user code.
       /* The base class virtual function table pointer must be set
          to reflect the fact that it exists as a subobject inside the
          current class. */
+      vtbl_addr_node = NULL;
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
       if (bcp->index_in_construction_vtbl_array != 0) {
         /* The virtual function table to use is specified by an element of the
@@ -9786,24 +9747,29 @@ destructor scope, and also lower the user code.
       } else
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
       /* Do not insert code here; this is the "else" of an "if". */
+#if IA64_ABI
+      if (base_class_has_vtbl(bcp))
+#endif /* IA64_ABI */
       {
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
         set_lowering_variable_address_taken(vtbl_var);
         vtbl_var->source_corresp.referenced = TRUE;
       }
-      /* Build a node to address the virtual table pointer in the base
-         class.   The base class may be virtual or may be inside a virtual
-         base class.  We cannot optimize virtual base class cases because
-         we do not know whether or not we have a complete object (at least,
-         we don't know at compile time). */
-      vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
-                                                  /*complete_object=*/FALSE);
-      vptr_node = make_vptr_field_lvalue(vptr_node);
-      /* Make and insert the assignment statement. */
-      (void)insert_assignment_statement(vptr_node,
-                                        (an_expr_operator_kind)eok_passign,
-                                        vtbl_addr_node,
-                                        &insert_location);
+      if (vtbl_addr_node != NULL) {
+        /* Build a node to address the virtual table pointer in the base
+           class.   The base class may be virtual or may be inside a virtual
+           base class.  We cannot optimize virtual base class cases because
+           we do not know whether or not we have a complete object (at least,
+           we don't know at compile time). */
+        vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
+                                                    /*complete_object=*/FALSE);
+        vptr_node = make_vptr_field_lvalue(vptr_node);
+        /* Make and insert the assignment statement. */
+        (void)insert_assignment_statement(vptr_node,
+                                          (an_expr_operator_kind)eok_passign,
+                                          vtbl_addr_node,
+                                          &insert_location);
+      }  /* if */
     }  /* if */
   }  /* for */
   /* Now generate epilogue wrapper code to destroy members and base classes.

@@ -600,21 +600,22 @@ name.
 }  /* add_substitution_index_to_mangled_name */
 
 
-static a_template_ptr class_template_of(a_type_ptr class_type)
+static a_template_ptr class_template_of(a_type_ptr type)
 /*
-Returns the class template of which class_type is an instance, or NULL
-if none.
+If type is an instance of a template, return a pointer to the class template
+of which type is an instance.  Return NULL otherwise.
 */
 {
   a_symbol_ptr                      template_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_template_ptr                    class_template = NULL;
 
-  check_assertion(is_immediate_class_type(class_type));
-  if (class_type->variant.class_struct_union.is_template_class) {
+  type = skip_typedefs(type);
+  if (is_immediate_class_type(type) && 
+      type->variant.class_struct_union.is_template_class) {
     /* The class is an instantiation or specialization -- but it might be a
        nested class within a template class. */
-    template_sym = class_template_for_type(class_type);
+    template_sym = class_template_for_type(type);
     if (template_sym != NULL) {
       tssp = template_sym->variant.template_info;
       class_template = tssp->il_template_entry;
@@ -685,29 +686,23 @@ Return TRUE if type represents ::std::`template_name'<char>.
   a_type_ptr          arg_type;
   a_boolean           result = FALSE;
 
-  type = skip_typedefs(type);
-  /* Check that type is a class. */
-  if (type->kind == (a_type_kind)tk_class ||
-      type->kind == (a_type_kind)tk_struct) {
-    /* Check that type is an instance of ::std::`template_name'. */
-    template_ptr = class_template_of(type);
-    if (template_ptr != NULL && 
-        is_in_namespace_std(template_ptr) &&
-        has_name(template_ptr) &&
-        strcmp(template_ptr->source_corresp.name, template_name) == 0) {
-      /* Check that the first template argument is char and that there is
-         only one argument. */
-      arg = type->variant.class_struct_union.extra_info->template_arg_list;
-      if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type &&
-          arg->next == NULL) {
-        arg_type = arg->variant.type;
-        if (is_char_type(arg_type)) {
-          result = TRUE;
-        }  /* if */
+  /* Check that type is an instance of ::std::`template_name'. */
+  template_ptr = class_template_of(type);
+  if (template_ptr != NULL && 
+      is_in_namespace_std(template_ptr) &&
+      has_name(template_ptr) &&
+      strcmp(template_ptr->source_corresp.name, template_name) == 0) {
+    /* Check that the first template argument is char and that there is
+       only one argument. */
+    arg = type->variant.class_struct_union.extra_info->template_arg_list;
+    if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type &&
+        arg->next == NULL) {
+      arg_type = arg->variant.type;
+      if (is_char_type(arg_type)) {
+        result = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  
   return result;
 }  /* is_special_char_template */
 
@@ -724,32 +719,28 @@ and thus is eligible for the `Ss' substitution.
   a_template_ptr      tmpl;
   a_boolean           result = FALSE;
 
-  type = skip_typedefs(type);
   /* First check that type is a template instance of ::std::basic_string. */
-  if (type->kind == (a_type_kind)tk_class ||
-      type->kind == (a_type_kind)tk_struct) {
-    tmpl = class_template_of(type);
-    if (tmpl != NULL && is_Sb_substitution(tmpl)) {
-      /* Now check the template arguments. */
-      /* The first argument should be char. */
-      arg = type->variant.class_struct_union.extra_info->template_arg_list;
-      if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
-        arg_type = arg->variant.type;
-        if (is_char_type(arg_type)) {
-          /* The second argument should be ::std::char_traits<char>. */
-          arg = arg->next;
-          if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
-            arg_type = arg->variant.type;
-            if (is_special_char_template(arg_type, "char_traits")) {
-              /* The third argument should be ::std::allocator<char> and
-                 should be the last argument. */
-              arg = arg->next;
-              if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type &&
-                  arg->next == NULL) {
-                arg_type = arg->variant.type;
-                if (is_special_char_template(arg_type, "allocator")) {
-                  result = TRUE;
-                }  /* if */
+  tmpl = class_template_of(type);
+  if (tmpl != NULL && is_Sb_substitution(tmpl)) {
+    /* Now check the template arguments. */
+    /* The first argument should be char. */
+    arg = type->variant.class_struct_union.extra_info->template_arg_list;
+    if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
+      arg_type = arg->variant.type;
+      if (is_char_type(arg_type)) {
+        /* The second argument should be ::std::char_traits<char>. */
+        arg = arg->next;
+        if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
+          arg_type = arg->variant.type;
+          if (is_special_char_template(arg_type, "char_traits")) {
+            /* The third argument should be ::std::allocator<char> and
+               should be the last argument. */
+            arg = arg->next;
+            if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type &&
+                arg->next == NULL) {
+              arg_type = arg->variant.type;
+              if (is_special_char_template(arg_type, "allocator")) {
+                result = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -774,31 +765,26 @@ and thus is eligible for a special substitution.
   a_type_ptr          arg_type;
   a_boolean           result = FALSE;
 
-  type = skip_typedefs(type);
-  /* Check that the type is a class. */
-  if (type->kind == (a_type_kind)tk_class ||
-      type->kind == (a_type_kind)tk_struct) {
-    /* Check that type is an instance of ::std::`stream_name'. */
-    template_ptr = class_template_of(type);
-    if (template_ptr != NULL &&
-        is_in_namespace_std(template_ptr) &&
-        has_name(template_ptr) &&
-        strcmp(template_ptr->source_corresp.name, stream_name) == 0) {
-      /* Now check the template arguments. */
-      /* The first argument should be char. */
-      arg = type->variant.class_struct_union.extra_info->template_arg_list;
-      if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
-        arg_type = arg->variant.type;
-        if (is_char_type(arg_type)) {
-          /* The second argument should be ::std::char_traits<char> and
-             should be the last argument. */
-          arg = arg->next;
-          if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type &&
-              arg->next == NULL) {
-            arg_type = arg->variant.type;
-            if (is_special_char_template(arg_type, "char_traits")) {
-              result = TRUE;
-            }  /* if */
+  /* Check that type is an instance of ::std::`stream_name'. */
+  template_ptr = class_template_of(type);
+  if (template_ptr != NULL &&
+      is_in_namespace_std(template_ptr) &&
+      has_name(template_ptr) &&
+      strcmp(template_ptr->source_corresp.name, stream_name) == 0) {
+    /* Now check the template arguments. */
+    /* The first argument should be char. */
+    arg = type->variant.class_struct_union.extra_info->template_arg_list;
+    if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
+      arg_type = arg->variant.type;
+      if (is_char_type(arg_type)) {
+        /* The second argument should be ::std::char_traits<char> and
+           should be the last argument. */
+        arg = arg->next;
+        if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type &&
+            arg->next == NULL) {
+          arg_type = arg->variant.type;
+          if (is_special_char_template(arg_type, "char_traits")) {
+            result = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -930,6 +916,41 @@ for entity.  The kind indicates the kind of entity processed.
   
   return result;
 }  /* add_substitution */
+
+
+static void add_prefix_for_local_class(a_type_ptr               type,
+                                       a_mangling_control_block *mctl)
+/*
+Add a prefix indicating the routine containing type, which is a local class.
+*/
+{
+  a_class_symbol_supplement_ptr ssp = symbol_supplement_for_class(type);
+
+  add_to_mangled_name('Z', mctl);
+  mangled_function_name(ssp->enclosing_routine,
+                        /*suppress_param_encoding=*/FALSE,
+                        /*suppress_prefix=*/TRUE,
+                        /*base_name_ofset=*/NULL,
+                        mctl);
+  add_to_mangled_name('E', mctl);
+}  /* add_prefix_for_local_class */
+
+
+static void add_prefix_for_local_class_if_necessary(
+                                               a_type_ptr               type,
+                                               a_mangling_control_block *mctl)
+/*
+If type is a local class, or a member of a local class, output the prefix
+indicating the routine containing the class.
+*/
+{
+  while (type->source_corresp.is_class_member) {
+    type = type->source_corresp.parent.class_type;
+  }  /* while */
+  if (type->source_corresp.is_local_to_function) {
+    add_prefix_for_local_class(type, mctl);
+  }  /* if */
+}  /* add_prefix_for_local_class_if_necessary */
 
 #endif /* IA64_ABI */
 
@@ -1367,7 +1388,11 @@ original form used an expression, which expr points to.
   /* Put out the operator name. */
   switch (kind) {
     case tpck_sizeof:
+#if !IA64_ABI
       add_str_to_mangled_name("sz", mctl);
+#else /* IA64_ABI */
+      add_str_to_mangled_name((expr != NULL) ? "sz" : "st", mctl);
+#endif /* IA64_ABI */
       break;
     case tpck_alignof:
 #if !IA64_ABI
@@ -1388,16 +1413,20 @@ original form used an expression, which expr points to.
     default:
       unexpected_condition();
   }  /* switch */
-#if !IA64_ABI
   /* The operator name is followed by the encoding for the type or the
      expression. */
   if (expr != NULL) {
+#if !IA64_ABI
     /* The expression form.  Put out "e" instead of the type. */
     add_to_mangled_name('e', mctl);
+#else /* IA64_ABI */
+    mangled_encoding_for_expression(expr, mctl);
+#endif /* IA64_ABI */
   } else {
     /* No expression, so put out the type. */
     mangled_encoding_for_type(type, mctl);
   }  /* if */
+#if !IA64_ABI
   /* Put out the count of operands. */
   add_to_mangled_name('0', mctl);
   /* Put out the final "O". */
@@ -1730,6 +1759,7 @@ specification in the mangling for lengths of literals.
   if (scp != NULL) {
     /* Unary "&" encoding "ad" followed by scope resolution operator "sr". */
     add_str_to_mangled_name("adsr", mctl);
+    add_prefix_for_local_class_if_necessary(scp->parent.class_type, mctl);
     add_to_mangled_name('N', mctl);
     mangled_encoding_for_type(scp->parent.class_type, mctl);
     if (rout != NULL && 
@@ -1781,6 +1811,10 @@ has an explicit template argument list, given by template_arg_list.
     add_str_to_mangled_name("St", mctl);
     is_member = FALSE;
   } else if (is_member) {
+    if (con->source_corresp.is_class_member) {
+      add_prefix_for_local_class_if_necessary(con->source_corresp.
+                                                    parent.class_type, mctl);
+    }  /* if */
     /* Mark the start of the nested name. */
     add_to_mangled_name('N', mctl);
     /* Add a parent qualifier for a member. */
@@ -2455,7 +2489,6 @@ Add to the mangled name the encoding qualifier that indicates specialization.
   add_str_to_mangled_name("__S", mctl);
 }  /* mangled_specialization_indication */
 
-#endif /* !IA64_ABI */
 
 static void add_local_name_suffix(unsigned long            id_number,
                                   a_routine_ptr            routine,
@@ -2480,6 +2513,7 @@ and "routine" is the routine to which the entity is local.
   }  /* if */
 }  /* add_local_name_suffix */
 
+#endif /* !IA64_ABI */
 
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- show_partial_spec_args, show_template_specialization,
@@ -2618,7 +2652,6 @@ should be put out.
       /* Put out an indication of the fact that this class is specialized. */
       mangled_specialization_indication(mctl);
     }  /* if */
-#endif /* !IA64_ABI */
     /* If the class is a local class, put out "__Lnn" using the declaration
        scope number for "nn".  This is not from the ARM.  cfront uses a
        similar form but it also includes the function mangling in the name
@@ -2631,6 +2664,7 @@ should be put out.
       add_local_name_suffix(ssp->local_class_number, ssp->enclosing_routine,
                             mctl);
     }  /* if */
+#endif /* !IA64_ABI */
   }  /* if */
 }  /* mangled_full_class_name */
 
@@ -2820,7 +2854,9 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
     a_boolean  is_specialization;
     a_boolean  is_template_specialization;
 #if IA64_ABI
-    if (add_substitution((char *)type, (an_il_entry_kind)iek_type, mctl)) {
+    if (add_substitution_if_available((char *)type,
+                                      (an_il_entry_kind)iek_type,
+                                      mctl)) {
       goto done;
     } else {
       a_template_ptr              tmpl;
@@ -2834,7 +2870,7 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
                                    /*partial_spec=*/FALSE,
                                    /*old_form=*/FALSE,
                                    mctl);
-        goto done;
+        goto new_substitution;
       }  /* if */
       if (more_levels) {
         /* This level is nested inside something else.  Do a recursive call to
@@ -2875,6 +2911,11 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
                            is_template_specialization,
                            is_specialization,
                            mctl);
+#if IA64_ABI
+  new_substitution:
+    /* Add a substitution for this type. */
+    alloc_substitution((char *)type, (an_il_entry_kind)iek_type, mctl);
+#endif /* IA64_ABI */
   } else {
     /* Namespace name. */
     a_namespace_ptr nsp = scp->parent.namespace_ptr;
@@ -2901,7 +2942,7 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
     mangled_name_with_length(name, mctl);
   }  /* if */
 #if IA64_ABI
- done:;
+done:;
 #endif /* IA64_ABI */
 }  /* r_mangled_parent_qualifier */
 
@@ -2945,19 +2986,18 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   /* The caller has already checked to see if a substitution is available for
      this entire type.  Check here to see if the type is an instantiation of a
      template for which a substitution is available. */
-  if (is_immediate_class_type(type)) {
-    tmpl = class_template_of(type);
-    if (tmpl != NULL && 
-        add_substitution((char *)tmpl,
-                         (an_il_entry_kind)iek_template, mctl)) {
-      ctsp = type->variant.class_struct_union.extra_info;
-      mangled_template_arguments(ctsp->template_arg_list,
-                                 /*partial_spec=*/FALSE,
-                                 /*old_form=*/FALSE,
-                                 mctl);
-      goto done;
-    }  /* if */
+  tmpl = class_template_of(type);
+  if (tmpl != NULL && 
+      add_substitution((char *)tmpl,
+                       (an_il_entry_kind)iek_template, mctl)) {
+    ctsp = type->variant.class_struct_union.extra_info;
+    mangled_template_arguments(ctsp->template_arg_list,
+                               /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE,
+                               mctl);
+    goto done;
   }  /* if */
+  add_prefix_for_local_class_if_necessary(type, mctl);
 #endif /* IA64_ABI */
   if (type_needs_parent_qualifier(type)) {
 #if IA64_ABI
@@ -3802,6 +3842,11 @@ name.
      one can be chosen over the other based on whether it is more
      specialized). */
   mangle_as_template = (distinct_template_signatures &&
+#if IA64_ABI
+                        /* Member functions of template classes are not
+                           considered templates for mangling purposes. */
+                        routine->template_arg_list != NULL &&
+#endif /* IA64_ABI */
                         routine->is_template_function);
   if (mangle_as_template) {
     /* See if the function comes from a template and that template is
@@ -3819,17 +3864,17 @@ name.
         is_template_specialization = TRUE;
       }  /* if */
 #endif /* !IA64_ABI */
+      /* Use the type of the prototype routine from the template as the
+         routine type for the rest of the mangling. */
+      /* Note that "routine" is not updated. */
+      routine_type = tssp->variant.function.routine->type;
+      routine_type = skip_typerefs(routine_type);
 #if IA64_ABI
       if (add_substitution((char *)tssp->il_template_entry,
                            (an_il_entry_kind)iek_template, mctl)) {
         goto mangle_template;
       }  /* if */
 #endif /* IA64_ABI */
-      /* Use the type of the prototype routine from the template as the
-         routine type for the rest of the mangling. */
-      /* Note that "routine" is not updated. */
-      routine_type = tssp->variant.function.routine->type;
-      routine_type = skip_typerefs(routine_type);
     }  /* if */
 #if !IA64_ABI
     /* See if the function itself is specialized (but not with the old
@@ -3869,6 +3914,11 @@ name.
     add_str_to_mangled_name("St", mctl);
   } else if (is_member) {
     /* Mark the start of the nested name. */
+    if (routine->source_corresp.is_class_member) {
+      add_prefix_for_local_class_if_necessary(
+                                   routine->source_corresp.parent.class_type, 
+                                   mctl);
+    }  /* if */
     add_to_mangled_name('N', mctl);
     if (routine->source_corresp.is_class_member) {
       /* Class member function.  Put out the qualifiers on the member function
@@ -4293,6 +4343,10 @@ member specialization.
   if (is_source_corresp_in_namespace_std(scp)) {
     add_str_to_mangled_name("St", mctl);
   } else {
+    if (scp->is_class_member) {
+      add_prefix_for_local_class_if_necessary(scp->parent.class_type,
+                                              mctl);
+    }  /* if */
     /* Mark the start of the nested name. */
     add_to_mangled_name('N', mctl);
     /* Output the mangled parent name. */
@@ -4777,7 +4831,19 @@ and truncated names.
                        "final_type_name_mangling:", 
                        "mangled_name_cannot_be_included_in_other_name is set");
   if (has_name(type)) {
-    if (type_needs_parent_qualifier(type)) {
+    if (type_needs_parent_qualifier(type) 
+#if IA64_ABI
+        /* A type instantiated from a template will have a name that might
+           collide with other types in the user namespace.  Therefore, we add
+           the prefix in this case as well.  */
+        || ((type->kind == (a_type_kind)tk_class ||
+             type->kind == (a_type_kind)tk_struct ||
+             type->kind == (a_type_kind)tk_union) &&
+            type->variant.class_struct_union.extra_info != NULL &&
+            type->variant.class_struct_union.extra_info->assoc_template 
+                                                                   != NULL)
+#endif /* IA64_ABI */
+                                                                           ) {
       /* Nested type names must be mangled (because they exist in a scope
          that does not exist in the generated C code).  The mangled form
          is something like
