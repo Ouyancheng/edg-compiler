@@ -7196,20 +7196,36 @@ that follows.
       /* Determine whether this entity has already been referenced by
          looking at the source correspondence entry.  An entity that
          has already been referenced cannot be specialized. */
+      a_boolean	already_specialized;
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         vp = sym->variant.static_data_member.variable;
         scp = &vp->source_corresp;
+        already_specialized = vp->is_specialized;
       } else {
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                         sym->kind == (a_symbol_kind)sk_member_function);
         rp = sym->variant.routine.ptr;
         scp = &rp->source_corresp;
+        already_specialized = rp->is_specialized;
       }  /* if */
-      if (scp->referenced) {
+      /* See if this is a declaration or a definition. */
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        is_definition = (curr_token == tok_assign ||
+                         has_parenthesized_initializer);
+      } else {
+        is_definition = (curr_token == tok_lbrace ||
+                         (curr_token == tok_colon &&
+                          is_constructor_symbol(sym)));
+      }  /* if */
+      if (scp->referenced && !already_specialized) {
         pos_sy_error(ec_specialization_of_referenced_entity,
                      &locator.source_position, sym);
         sym = NULL;
-      } else {
+      } else if (is_definition && sym->defined) {
+        /* The entity has already been defined. */
+        pos_sy_error(ec_already_defined, &locator.source_position, sym);
+        sym = NULL;
+      } else if (!already_specialized) {
         scp->decl_position = id_pos;
       }  /* if */
     }  /* if */
@@ -7225,15 +7241,6 @@ that follows.
     } else {
       /* The symbol is not NULL. */
       sym->decl_position = id_pos;
-      /* See if this is a declaration or a definition. */
-      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        is_definition = (curr_token == tok_assign ||
-                         has_parenthesized_initializer);
-      } else {
-        is_definition = (curr_token == tok_lbrace ||
-                         (curr_token == tok_colon &&
-                          is_constructor_symbol(sym)));
-      }  /* if */
       if (is_definition) srk_flags |= SRK_DEFINITION;
       /* Update cross reference info, etc. */
       record_symbol_declaration(srk_flags, sym, &locator.source_position,
