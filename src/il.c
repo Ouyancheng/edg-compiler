@@ -7281,6 +7281,9 @@ is required and to FALSE otherwise.
       lifetime_addr = &((a_new_delete_supplement_ptr)entity_ptr)->
                                         lifetime_of_uninitialized_storage;
       break;
+    case iek_dynamic_init:
+      lifetime_addr = &((a_dynamic_init_ptr)entity_ptr)->lifetime;
+      break;
 #if CHECKING
     default:
       internal_error("addr_of_lifetime_ptr: bad il entry kind");
