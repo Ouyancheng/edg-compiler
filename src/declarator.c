@@ -1772,7 +1772,8 @@ declaration.
         /* See if the identifier is also a typedef name.  Such a name is
            not allowed (3.7.1, constraints).  In pcc mode, however, this
            is allowed. */
-        if (C_dialect != C_dialect_pcc && curr_id_is_type_name()) {
+        if (C_dialect != C_dialect_pcc && !microsoft_bugs &&
+            curr_id_is_type_name()) {
           error(C_mode() ? ec_typedef_cannot_be_param_name :
                            ec_type_cannot_be_param_name);
           /* Enter the parameter anyway, for best error recovery. */

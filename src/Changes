@@ -1,5 +1,13 @@
 Version 2.44
 
+1/21/00  Microsoft compatibility: type names as parameter names (C mode)
+
+When compiling C in Microsoft bugs mode, the front end accepts type names in
+parameter name lists of function declarators.  For example:
+
+  typedef void *PVoid;
+  typedef int (*Fptr)(ident, PVoid);  // Accepted with --c --microsoft_bugs
+
 1/21/00  Exception thrown in return of function with throw specification
 
 The code generated for IL lowering to handle throw specifications
