@@ -1053,7 +1053,8 @@ the completion of a catch clause.
     is_rethrow = tsep->is_rethrow;
     object_address = tsep->object_address;
     /* Call the destructor for the object if needed. */
-    if (!is_rethrow && tsep->object_copy_complete) {
+    if (!is_rethrow && tsep->object_copy_complete &&
+        !is_pointer(tsep->flags)) {
       a_destructor_ptr	dtor_ptr;
       dtor_ptr = (a_destructor_ptr)tsep->type_info->destructor;
       if (dtor_ptr != NULL) {
