@@ -10143,9 +10143,10 @@ successor of ssep.
     default:;
       /* Leave tag_type NULL. */
   }  /* switch */
-  /* Note: an unnamed class tag cannot be made autonomous. */
+  /* Note: except in cfront mode, an unnamed class tag cannot be made
+     autonomous. */
   if (tag_type != NULL &&
-      (is_unnamed_enum_def ||
+      (any_cfront_mode() || is_unnamed_enum_def ||
        !is_unnamed_or_originally_unnamed_tag(tag_type))) {
     /* This is a nonautonomous tag declaration (possibly a definition).  The
        tag is kept in the IL -- but what if the entity to whose declaration it
