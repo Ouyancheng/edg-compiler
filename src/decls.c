@@ -3699,6 +3699,13 @@ on a prior declaration.
       other_rp = sym->variant.routine;
       type_ptr->variant.routine.extra_info->implicit_this_param_type =
           other_rp->type->variant.routine.extra_info->implicit_this_param_type;
+    } else {
+      /* In the error case assume the member function is nonstatic and give
+         it an implicit this parameter type.  This will prevent an error from
+         being issued on a direct reference to a nonstatic data member in the
+         function body. */
+      type_ptr->variant.routine.extra_info->implicit_this_param_type =
+                                               make_pointer_type(class_type);
     }  /* if */
     /* An error has been detected.  Make a "fake" symbol and routine entry so
        that the routine definition can proceed. */
