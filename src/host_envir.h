@@ -328,11 +328,9 @@ is TRUE.
 */
 #ifndef FULL_SOURCE_POS_IN_IL_STATEMENT
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-/* Dependent setting. */
-#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
+#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE  /* Do not change this. */
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-/* Default setting. */
-#define FULL_SOURCE_POS_IN_IL_STATEMENT TRUE
+#define FULL_SOURCE_POS_IN_IL_STATEMENT FALSE  /* You can change this. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
