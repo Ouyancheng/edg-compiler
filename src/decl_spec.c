@@ -906,8 +906,11 @@ the template.
     tag_sym = NULL;
   }  /* if */
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
-    a_class_symbol_supplement_ptr  cssp;
+    a_class_symbol_supplement_ptr	cssp;
+    a_type_ptr				class_type;
 
+    cssp = tag_sym->variant.class_struct_union.extra_info;
+    class_type = type_symbol_type(tag_sym);
     if (tag_sym->kind == (a_symbol_kind)sk_type) {
       if (is_class_definition) {
         /* Attempting to redefine a template parameter name.  Let enter_symbol
@@ -916,9 +919,11 @@ the template.
       }  /* if */
     } else if (is_class_definition && tag_sym->defined) {
       /* This class has already been defined.  If this is a template
-         specialization declaration, indicate that the entity being
+         specialization declaration (and the entity has not already
+         been defined as a specialization), indicate that the entity being
          specialized has already been referenced. */
-      if (is_template_specialization) {
+      if (is_template_specialization &&
+          !class_type->variant.class_struct_union.is_specialized) {
         pos_sy_error(ec_specialization_of_referenced_entity,
                      &tag_position, tag_sym);
       } else {
@@ -929,10 +934,7 @@ the template.
       set_to_named_error_locator(locator);
       err = TRUE;
     } else {
-      a_type_ptr	class_type;
       a_boolean		class_type_is_complete;
-      cssp = tag_sym->variant.class_struct_union.extra_info;
-      class_type = type_symbol_type(tag_sym);
       class_type_is_complete = !is_incomplete_type(class_type);
       if (cssp->is_instance) {
         /* A template class or a nested class within a template class. */
