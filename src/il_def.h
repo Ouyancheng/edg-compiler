@@ -5805,7 +5805,7 @@ enum an_expr_operator_kind_tag {
   eok_subtract_assign,  /* Generic subtract assign operator. */
   eok_multiply_assign,  /* Generic multiply assign operator. */
   eok_divide_assign,    /* Generic divide assign operator. */
-  eok_address,          /* Generic unary "&" (for known types this needs not
+  eok_address,          /* Generic unary "&" (for known types this need not
                            be explicitly encoded). */
   eok_dot_field,        /* Generic field selection using the dot operator. */
   eok_arrow_field,      /* Generic field selection using the arrow operator. */
@@ -5818,6 +5818,7 @@ enum an_expr_operator_kind_tag {
   eok_static_cast,      /* Generic static_cast from the source. */
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
+  eok_lvalue,           /* Indicates that the operand is an lvalue. */
 #endif /* ifdef CIL */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when

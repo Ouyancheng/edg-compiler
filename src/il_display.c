@@ -2198,6 +2198,7 @@ Display the name of an expression operator.
     case eok_static_cast:       s = "eok_static_cast";            break;
     case eok_const_cast:        s = "eok_const_cast";             break;
     case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;
+    case eok_lvalue:            s = "eok_lvalue"                  break;
 #endif /* ifdef CFE */
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
