@@ -4619,7 +4619,7 @@ For the bad lookup to occur:
 
 2. The declaration of the global scope name must occur between the declaration
    of the derived class and the declaration of either an out-of-line
-   constructor or destructor.
+   constructor or destructor.  The global scope name must be a type name.
 
 3. No other member function definition -- even one for an unrelated class
    may appear between the destructor and the offending reference.
@@ -4665,7 +4665,7 @@ member function is defined.
          for a symbol with the same name at file scope. */
       check_assertion(class_type != fund_sym->class_of_which_a_member);
       file_scope_sym = file_scope_id_lookup(locator, options);
-      if (file_scope_sym != NULL) {
+      if (file_scope_sym != NULL && is_type_symbol(file_scope_sym)) {
         /* A file scope symbol was found.  For the incorrect lookup to be
            done the file scope symbol must have been declared after the
            derived class but before the most recent constructor or
