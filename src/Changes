@@ -1,5 +1,11 @@
 Version 2.32
 
+2/9/96    Anachronisms in overload resolution
+
+The handling of anachronisms as tiebreakers in overload resolution has
+been improved.  They were supposed to be considered on every argument,
+but in fact were considered only on the first argument.
+
 2/9/96    Access error on friend class declaration
 
 We now issue an error when a qualified name in a friend declaration refers

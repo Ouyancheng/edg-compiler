@@ -2540,6 +2540,8 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
   for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
        arg1 != NULL;
        arg1 = arg1->next, arg2 = arg2->next) {
+    int prev_cmp = cmp;
+    cmp = 0;
     check_assertion(arg2 != NULL);
     if (arg1->conversion.std.type_qualifiers_added ||
         arg2->conversion.std.type_qualifiers_added) {
@@ -2552,7 +2554,6 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       param_type2 = arg2->param_type;
       /* Some arguments have no parameter type (e.g., an ellipsis match). */
       if (param_type1 != NULL && param_type2 != NULL) {
-        int       prev_cmp = cmp;
         a_boolean qualifiers_added;
         /* Drop a reference type from the top of the parameter types,
            if present. */
@@ -2577,18 +2578,38 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
              types are otherwise compatible.  Therefore fewer qualifiers
              are added to get to param_type1, and argument 1 is better. */
           cmp = 1;
-        } else {
-          /* Neither argument is better than the other. */
-          continue;
         }  /* if */
         /* This tie-breaker applies only if no other arguments contradict
-           it, so keep going and look at the rest of the arguments. */
-        if (prev_cmp != 0 && prev_cmp != cmp) {
+           it.  If there is no contradiction, we keep going to see if any
+           later argument contradicts this one. */
+        if (cmp != 0 && prev_cmp != 0 && prev_cmp != cmp) {
           /* This contradicts a previous argument, so the tie-breaker does
              not apply. */
           cmp = 0;
           break;
         }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Use of an anachronism (e.g., calling a const function for a
+       non-const object) can break a tie. */
+    if (arg1->anachronism_used != arg2->anachronism_used) {
+      if (arg1->anachronism_used) {
+        /* Argument 1 uses an anachronism and argument 2 does not, so
+           argument 2 is better. */
+        cmp = -1;
+      } else {
+        /* Argument 2 uses an anachronism and argument 1 does not, so cfp1
+           is better. */
+        cmp = 1;
+      }  /* if */
+      /* This tie-breaker applies only if no other arguments contradict
+         it.  If there is no contradiction, we keep going to see if any
+         later argument contradicts this one. */
+      if (prev_cmp != 0 && prev_cmp != cmp) {
+        /* This contradicts a previous argument, so the tie-breaker does
+           not apply. */
+        cmp = 0;
+        break;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -2696,26 +2717,6 @@ other.  Return
     } else {
       /* cfp2 is a function template and cfp1 is not, so cfp1 is better. */
       cmp = 1;
-    }  /* if */
-  } else {
-    /* Use of an anachronism (e.g., calling a const function for a
-       non-const object) can break a tie.  This must be tested last. */
-    a_boolean anachr1 = FALSE, anachr2 = FALSE;
-
-    if (cfp1->arg_matches != NULL) {
-      anachr1 = cfp1->arg_matches->anachronism_used;
-    }  /* if */
-    if (cfp2->arg_matches != NULL) {
-      anachr2 = cfp2->arg_matches->anachronism_used;
-    }  /* if */
-    if (anachr1 != anachr2) {
-      if (anachr1) {
-        /* cfp1 uses an anachronism and cfp2 does not, so cfp2 is better. */
-        cmp = -1;
-      } else {
-        /* cfp2 uses an anachronism and cfp1 does not, so cfp1 is better. */
-        cmp = 1;
-      }  /* if */
     }  /* if */
   }  /* if */
   return cmp;
