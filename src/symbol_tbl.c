@@ -9906,12 +9906,14 @@ a_scope_number take_next_scope_number(void)
 Assign the next scope number in sequence, and return it.
 */
 {
+  a_scope_number	result;
+
   if (next_scope_number == MAX_SCOPE_NUMBER) {
     /* The number of scopes exceeds the size of the scope number field. */
     catastrophe(ec_program_too_large);
   }  /* if */
-  next_scope_number++;
-  if (next_scope_number >= (long)size_of_trans_unit_for_scope) {
+  result = next_scope_number++;
+  if (result >= (long)size_of_trans_unit_for_scope) {
     /* The table used to map scope numbers to translation unit pointers
        is full.  Expand it by reallocating it. */
     sizeof_t new_size = size_of_trans_unit_for_scope +
@@ -9924,8 +9926,8 @@ Assign the next scope number in sequence, and return it.
     size_of_trans_unit_for_scope = new_size;
   }  /* if */
   /* Record the translation unit with which this scope is associated. */
-  trans_unit_for_scope[next_scope_number] = curr_translation_unit;
-  return next_scope_number;
+  trans_unit_for_scope[result] = curr_translation_unit;
+  return result;
 }  /* take_next_scope_number */
 
 
