@@ -3616,6 +3616,7 @@ Returns TRUE if there is an error in the specifiers.
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
   a_source_position          restrict_pos;
+  a_source_position          storage_class_pos;
   a_boolean                  bad_type_name_error;
   a_decl_specifiers_set      decl_specifiers_seen;
   a_boolean                  any_decl_specifiers_seen = FALSE;
@@ -3726,13 +3727,8 @@ Returns TRUE if there is an error in the specifiers.
              is "inline extern"; otherwise, we issue an error. */
           error(ec_bad_storage_class_with_inline);
           err = TRUE;
-        } else if ((decl_specifiers_seen & DS_FRIEND) && !microsoft_mode) {
-          /* Note: in Microsoft-compatibility mode a friend function can
-             be declared "static" or "extern". */
-          error(ec_storage_class_in_friend_decl);
-          err = TRUE;
         } else if (curr_token == tok_mutable) {
-          if (!is_member_decl) {
+          if (!is_member_decl || (decl_specifiers_seen & DS_FRIEND)) {
             error(ec_mutable_not_allowed);
             err = TRUE;
           } else {
@@ -3745,13 +3741,20 @@ Returns TRUE if there is an error in the specifiers.
                Just return a flag to the caller. */
             decl_specifiers_seen |= DS_MUTABLE;
             *output_flags |= DSO_MUTABLE;
+            storage_class_pos = pos_curr_token;
           }  /* if */
+        } else if ((decl_specifiers_seen & DS_FRIEND) && !microsoft_mode) {
+          /* Note: in Microsoft-compatibility mode a friend function can
+             be declared "static" or "extern".  The check is done later. */
+          error(ec_storage_class_in_friend_decl);
+          err = TRUE;
         } else if ((input_flags & DSI_IS_SPECIALIZATION) &&
                    curr_token != tok_static) {
           error(curr_token == tok_typedef ?
                     ec_typedef_not_allowed : ec_storage_class_not_allowed);
           err = TRUE;
-        } else if (is_member_decl && !(decl_specifiers_seen & DS_FRIEND) &&
+        } else if (is_member_decl && !microsoft_mode &&
+                   !(decl_specifiers_seen & DS_FRIEND) &&
                    curr_token != tok_static && curr_token != tok_typedef) {
           error(ec_bad_member_storage_class);
           err = TRUE;
@@ -3825,6 +3828,7 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* CHECKING */
           }  /* switch */
           decl_specifiers_seen |= DS_STORAGE_CLASS;
+          storage_class_pos = pos_curr_token;
           if (decl_pos_block != NULL) {
             /* Set the source position of the storage class for use by the
                caller in issuing diagnostics. */
@@ -4075,15 +4079,13 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_FRIEND;
 	  *output_flags |= DSO_FRIEND;
           if (decl_specifiers_seen != DS_FRIEND) {
-            if ((decl_specifiers_seen & DS_STORAGE_CLASS) &&
-                (!microsoft_mode ||
-                 *storage_class == (a_storage_class)sc_static)) {
+            if ((decl_specifiers_seen & DS_STORAGE_CLASS) && !microsoft_mode) {
               error(ec_storage_class_in_friend_decl);
               err = TRUE;
               *storage_class = (a_storage_class)sc_unspecified;
               decl_specifiers_seen &= ~(DS_STORAGE_CLASS);
             } else if (decl_specifiers_seen & DS_MUTABLE) {
-              error(ec_storage_class_in_friend_decl);
+              pos_error(ec_mutable_not_allowed, &storage_class_pos);
               err = TRUE;
               decl_specifiers_seen &= ~(DS_MUTABLE);
               *output_flags &= ~DSO_MUTABLE;
@@ -4933,6 +4935,31 @@ no_get_token:
   }  /* for */
 
 exit_loop:
+  if (microsoft_mode && (decl_specifiers_seen & DS_STORAGE_CLASS)) {
+    /* Certain Microsoft-mode diagnostics involving storage class specifiers
+       are put off until all the specifiers have been collected. */
+    if (decl_specifiers_seen & DS_FRIEND) {
+      /* "extern" and "static" are permitted on a friend declaration in
+         Microsoft compatibility mode -- other storage classes are ignored,
+         with a warning. */
+      if (*storage_class != (a_storage_class)sc_extern &&
+          *storage_class != (a_storage_class)sc_static) {
+        pos_warning(ec_storage_class_in_friend_decl, &storage_class_pos);
+        *storage_class = (a_storage_class)sc_unspecified;
+        decl_specifiers_seen &= ~DS_STORAGE_CLASS;
+      }  /* if */
+    } else if (is_member_decl) {
+      /* The diagnostics on invalid storage class were deferred, in case
+         this turned out to be a friend declaration instead of a member
+         declaration. */
+      if (*storage_class != (a_storage_class)sc_typedef &&
+          *storage_class != (a_storage_class)sc_static) {
+        pos_error(ec_bad_member_storage_class, &storage_class_pos);
+        *storage_class = (a_storage_class)sc_unspecified;
+        decl_specifiers_seen &= ~DS_STORAGE_CLASS;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (decl_specifiers_seen == DS_VOID) {
     /* Set the output_flags bit to indicate that the sequence of specifiers
        had just one specifier, and it was "void". */

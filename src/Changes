@@ -1,5 +1,20 @@
 Version 2.40
 
+9/30/98   Microsoft compatibility: storage class in friend declaration
+
+A bug has been fixed in Microsoft compatibility mode in connection with
+specifying a storage class on a friend declaration:
+
+  class A {
+    friend static void f();   // this has been allowed in Microsoft mode
+    static friend void g();   // ... but this used to get an error
+  };
+
+This spurious error has been eliminated.  In addition, if a storage class
+other than "static" or "extern" appears on a friend declaration, a
+warning (rather than an error) is now issued (and the invalid storage
+class is otherwise ignored, as before).
+
 9/29/98   Spurious error on nonreal union member
 
 A spurious "union has a disallowed member function" error was issued
