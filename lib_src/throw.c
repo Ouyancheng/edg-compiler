@@ -18,6 +18,26 @@ Throw processing for exception handling.
 #include "config.h"
 #include "eh.h"
 
+
+/* Structure used to maintain a stack of throws that are currently
+   being processed. */
+typedef struct a_throw_stack_entry *a_throw_stack_entry_ptr;
+typedef struct a_throw_stack_entry {
+  a_throw_stack_entry_ptr
+		next;
+			/* The next stack entry. */
+  a_typeinfo_ptr
+		typeinfo;
+			/* Typeinfo of the object thrown. */
+  a_boolean	is_pointer;
+			/* TRUE if the object thrown is a pointer to the
+			   indicated type. */
+  void*		object_address;
+			/* Pointer to the memory allocated to store
+			   the copy of the object. */
+} a_throw_stack_entry;
+
+
 /* Structure used to record information about blocks of memory handled
    by the EH memory management routines. */
 typedef struct a_mem_block_descr *a_mem_block_descr_ptr;
@@ -59,6 +79,11 @@ typedef struct a_mem_allocation {
 } a_mem_allocation;
 
 
+static a_throw_stack_entry_ptr
+		curr_throw_stack_entry = NULL;
+			/* The pointer to the top of the stack of throw
+			   entries. */
+
 static a_mem_block_descr_ptr
 		curr_mem_block_descr = NULL;
 			/* Pointer to the top of a stack of memory
@@ -87,20 +112,21 @@ static union {
 			   boundary. */
 } initial_mem_block;
 
+/* Round a given size up to a multiple of MOST_STRICT_ALIGNMENT. */
+#define round_size_to_alignment(size)					\
+  (((size + MOST_STRICT_ALIGNMENT - 1) / MOST_STRICT_ALIGNMENT) *	\
+                                                   MOST_STRICT_ALIGNMENT)
+
 /* The number of bytes needed for a memory block description and any
    required alignment. */
 #define NEEDED_FOR_MEM_BLOCK_DESCR \
-  ((sizeof(a_mem_block_descr) < MOST_STRICT_ALIGNMENT) ?		\
-     MOST_STRICT_ALIGNMENT :						\
-     sizeof(a_mem_block_descr))
+  round_size_to_alignment(sizeof(a_mem_block_descr))
 
 
 /* The number of bytes needed for a memory allocation structure and any
    required alignment. */
 #define NEEDED_FOR_MEM_ALLOCATION_INFO \
-  ((sizeof(a_mem_allocation) < MOST_STRICT_ALIGNMENT) ?			\
-     MOST_STRICT_ALIGNMENT :						\
-     sizeof(a_mem_allocation))
+  round_size_to_alignment(sizeof(a_mem_allocation))
 
 /* The number of bytes needed at the end of a memory block to record the
    information needed to allocate a new memory block. */
@@ -180,7 +206,7 @@ Return the address of the specified character position within the
 current memory block.
 */
 #define addr_in_mem_block(pos)						\
-  (void *)((char *)curr_mem_block_descr->used)[pos]
+  (void *)(((char *)curr_mem_block_descr->addr) + pos)
 
 
 static void* alloc_in_mem_block(a_sizeof_t	      size,
@@ -275,10 +301,17 @@ Allocate a block of memory on the EH memory stack.
      If not, start the new memory block now. */
   alloc_size = size + needed_for_alignment;
   if ((alloc_size + NEEDED_FOR_MEM_ALLOCATION_INFO +
+       curr_mem_block_descr->used +
        RESERVED_FOR_END_OF_MEM_BLOCK) > curr_mem_block_descr->size) {
     alloc_new_mem_block(size);
   }  /* if */
   ptr = alloc_in_mem_block(alloc_size, &map);
+#if DEBUG
+  if (__debug_level >= 5) {
+    fprintf(__f_debug, "Allocated %d bytes starting at %p, ending at %p\n",
+            size, (void*)ptr, (void*)(((char *)ptr)+size-1));
+  }  /* if */
+#endif /* DEBUG */
   return ptr;
 }  /* eh_alloc_on_stack */
 
@@ -292,6 +325,7 @@ Free a block of memory allocated in a memory block.
   int			used;
 
   map = mem_allocation_stack;
+  mem_allocation_stack = map->next;
   check_assertion(map->addr == ptr);
   used = curr_mem_block_descr->used;
   used -= map->alloc_size;
@@ -310,14 +344,20 @@ empty then remove it from the stack.
   free_in_mem_block(ptr);
   /* Is the memory block now empty? */
   if (curr_mem_block_descr->used == 0) {
-    a_mem_block_descr_ptr	mpdp_to_free;
-    mpdp_to_free = curr_mem_block_descr;
-    curr_mem_block_descr = mpdp_to_free->next;
-    /* Free the memory block.  This is freed to the system -- not just to
-       the memory stack like other kinds of memory. */
-    eh_free_memory(mpdp_to_free->addr);
-    /* Free the memory block description entry. */
-    free_in_mem_block(mpdp_to_free);
+    if (curr_mem_block_descr->next != NULL) {
+      /* Don't free the initial memory block. */
+      a_mem_block_descr_ptr	mpdp_to_free;
+      mpdp_to_free = curr_mem_block_descr;
+      curr_mem_block_descr = mpdp_to_free->next;
+      /* Free the memory block.  This is freed to the system -- not just to
+         the memory stack like other kinds of memory. */
+      if (mpdp_to_free->dynamically_allocated) {
+        /* Only free dynamically allocated blocks. */
+        eh_free_memory(mpdp_to_free->addr);
+      }  /* if */
+      /* Free the memory block description entry. */
+      free_in_mem_block(mpdp_to_free);
+    }  /* if */
   }  /* if */
 }  /* eh_free_on_stack */
 
@@ -392,6 +432,9 @@ sets the flags accordingly.
 	     base class specifier; otherwise set the flags that indicates
 	     that this is a normal base class. */
           new_value = flags ? flags : BCS_IS_BASE;
+        } else {
+          /* The flag is already set -- keep the current value. */
+          new_value = old_value;
         }  /* if */
       } else {
         new_value = BCS_NO_FLAGS;
@@ -554,15 +597,6 @@ The current region number within ehsep is designated by region.
 }  /* cleanup */
 
 
-/*
-Temporary variables that hold the information about the thrown type.
-This will be replaced with a stack of throw information.
-*/
-static a_typeinfo_ptr	thrown_typeinfo = NULL;
-static a_boolean	thrown_is_pointer;
-static int		throw_buffer[1024];
-static a_boolean	throw_in_process = FALSE;
-
 
 static a_boolean violates_throw_spec(an_eh_stack_entry_ptr	ehsep,
                 	             a_typeinfo_ptr		typeinfo,
@@ -677,19 +711,20 @@ a try block with a catch that matches the type of the object thrown.
   an_eh_stack_entry_ptr		destination_ehsep = NULL;
   int				destination_catch_value;
   void*				object_ptr;
+  a_typeinfo_ptr		thrown_typeinfo;
+  a_boolean			is_pointer;
 
+  /* Get the information about the current thrown object from the
+     throw stack. */
+  thrown_typeinfo = curr_throw_stack_entry->typeinfo;
+  is_pointer = curr_throw_stack_entry->is_pointer;
+  object_ptr = curr_throw_stack_entry->object_address;
 #if DEBUG
   if (__debug_level >= 1) {
     fprintf(__f_debug, "__throw called\n");
   }  /* if */
 #endif /* DEBUG */
-  /* Set the base class flags for the thrown type. */
-  set_base_class_flags(thrown_typeinfo, /*set_flag=*/TRUE);
   /* Get the address of the thrown object. */
-#if 0
-  /* Get address from object stack. */
-#endif /* 0 */
-  object_ptr = (void *)throw_buffer;
   /* Find the try block that can catch the object being thrown. */
   ehsep = __curr_eh_stack_entry;
   while (ehsep != NULL) {
@@ -699,7 +734,7 @@ a try block with a catch that matches the type of the object thrown.
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       if (ehsep->variant.try_block.catch_info == NULL) {
         /* Skip over try blocks for which a catch is active. */
-        int result = check_catches(ehsep, thrown_typeinfo, thrown_is_pointer,
+        int result = check_catches(ehsep, thrown_typeinfo, is_pointer,
                                    &object_ptr);
         if (result != 0) {
           destination_ehsep = ehsep;
@@ -709,7 +744,7 @@ a try block with a catch that matches the type of the object thrown.
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Check for violations of throw specifications. */
-      if (violates_throw_spec(ehsep, thrown_typeinfo, thrown_is_pointer)) {
+      if (violates_throw_spec(ehsep, thrown_typeinfo, is_pointer)) {
         __call_unexpected();
       }  /* if */
     } else {
@@ -737,6 +772,10 @@ a try block with a catch that matches the type of the object thrown.
       region = ehsep->variant.function.saved_region_number;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       /* A try block that is being skipped -- do nothing. */
+#if 0
+      /* There needs to be code here to flag throw stack entries associated
+         with try blocks that are being skipped. */
+#endif /* 0 */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Do nothing. */
     } else {
@@ -748,11 +787,10 @@ a try block with a catch that matches the type of the object thrown.
     __catch_clause_number = destination_catch_value;
     __curr_eh_stack_entry = destination_ehsep;
     __caught_object_address = object_ptr;
-#if 0
-#else /* 0 */
-   /* This should point to runtime memory management information. */
-   destination_ehsep->variant.try_block.catch_info = (void*)object_ptr;
-#endif /* 0 */
+   /* Update the pointer in the try block to point to the throw stack entry
+      for the thrown object. */
+   destination_ehsep->variant.try_block.catch_info =
+                                               (void*)curr_throw_stack_entry;
    longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   }  /* if */
   return 0;
@@ -764,16 +802,11 @@ EXTERN_C void __rethrow(void)
 Rethrow the current thrown obejct.
 */
 {
-#if 0
-  /* Additional memory management stuff needs to go here. */
-#else
-  if (thrown_typeinfo == NULL) {
-    /* This is a trivial version of the test that is eventually needed.
-       We need to determine whether a handler is currently active. */
+  if (curr_throw_stack_entry == NULL) {
+    /* No handler is currently active. */
     __call_terminate();
   }  /* if */
   __throw();
-#endif /* 0 */
 }  /* __rethrow */
 
 
@@ -785,23 +818,25 @@ Allocate space for the object to be thrown and save information about
 the type being thrown.
 */
 {
-#if 0
-  /* This is a temporary version that just saved the information in static
-     variables.  The real version will push the information onto a
-     throw stack. */
-#endif /* 0 */
-#if DEBUG
-  if (throw_in_process) {
-    fprintf(__f_debug, "Nested throw attempted.\n");
-    abort();
+  a_throw_stack_entry_ptr	tsep;
+  void*				object_address;
+
+  if (curr_throw_stack_entry != NULL) {
+    /* If a throw is already in process, reset the base class flags from the
+       previous throw. */
+    set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/FALSE);
   }  /* if */
-#endif /* DEBUG */
-#if 0
-#else /* 0 */
-#endif /* 1 */
-  thrown_typeinfo = typeinfo;
-  thrown_is_pointer = is_pointer;
-  return (void *)throw_buffer;
+  tsep =
+      (a_throw_stack_entry_ptr)eh_alloc_on_stack(sizeof(a_throw_stack_entry));
+  object_address = (void *)eh_alloc_on_stack(size);
+  tsep->next = curr_throw_stack_entry;
+  curr_throw_stack_entry = tsep;
+  tsep->typeinfo = typeinfo;
+  tsep->is_pointer = is_pointer;
+  tsep->object_address = object_address;
+  /* Set the base class flags for the thrown type. */
+  set_base_class_flags(typeinfo, /*set_flag=*/TRUE);
+  return object_address;
 }  /* __throw_alloc */
 
 
@@ -811,16 +846,24 @@ Free the space used to make the copy of the thrown object.  Called at
 the completion of a catch clause.
 */
 {
-  if (thrown_typeinfo != NULL) {
-    /* Clear the base class flags from the previous throw.  This needs to
-       be changed when stacked throws are implemented. */
-    set_base_class_flags(thrown_typeinfo, /*set_flag=*/FALSE);
+  a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
+  check_assertion(tsep != NULL);
+  /* Unlink this entry from the throw stack. */
+  curr_throw_stack_entry = tsep->next;
+  /* Clear the base class flags from the previous throw. */
+  set_base_class_flags(tsep->typeinfo, /*set_flag=*/FALSE);
+  /* Free the space used for the cop of the object. */
+  eh_free_on_stack(tsep->object_address);
+  /* Free the space used for the throw stack entry. */
+  eh_free_on_stack(tsep);
+  if (curr_throw_stack_entry != NULL) {
+    /* Set the base class flags for the thrown type that is now on the top
+       of the throw stack. */
+    set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/TRUE);
   }  /* if */
 #if 0
-  /* To be added when throw stacking is added. */
-#else
-  /* Temporary means of indicating that a throw is not in process. */
-  thrown_typeinfo = NULL;
+  /* Need code here to free other entries that could not be released during
+     a processing of a rethrow. */
 #endif /* 0 */
 }  /* __free_thrown_object */
 

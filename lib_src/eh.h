@@ -311,26 +311,6 @@ typedef struct an_eh_stack_entry {
 } an_eh_stack_entry;
 
 
-/* Structure used to maintain a stack of throws that are currently
-   being processed. */
-typedef struct a_throw_stack_entry *a_throw_stack_entry_ptr;
-typedef struct a_throw_stack_entry {
-  a_throw_stack_entry_ptr
-		next;
-			/* The next stack entry. */
-  a_typeinfo_ptr
-		typeinfo;
-			/* Typeinfo of the object thrown. */
-  a_boolean	is_pointer;
-			/* TRUE if the object thrown is a pointer to the
-			   indicated type. */
-  void*		object_address;
-			/* Pointer to the memory allocated to store
-			   the copy of the object. */
-} a_throw_stack_entry;
-
-
-
 EXTERN a_region_number
 		__eh_curr_region initial_value(0);
 			/* Number of the current region in topmost function
@@ -340,11 +320,6 @@ EXTERN an_eh_stack_entry_ptr
 		__curr_eh_stack_entry initial_value(NULL);
 			/* The pointer to the top of the stack of EH
 			   entries. */
-EXTERN a_throw_stack_entry_ptr
-		__curr_throw_stack_entry initial_value(NULL);
-			/* The pointer to the top of the stack of throw
-			   entries. */
-
 EXTERN int	__catch_clause_number;
 			/* Contains the sequence number of the catch clause
 			   associated with a given try block. */
