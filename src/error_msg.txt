@@ -727,6 +727,7 @@ ec_using_out_of_scope_declaration;;"using out of scope declaration of %nd"
 ec_cl_strict_ansi_incompatible_with_SVR4;;"strict ANSI mode is incompatible with SVR4 C mode"
 ec_cannot_inline_call;;"call of %nd cannot be inlined"
 ec_cannot_inline;;"%nd cannot be inlined"
+ec_cl_invalid_pch_directory;;"invalid PCH directory: "
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
