@@ -2877,6 +2877,21 @@ the offsetof macro).  This routine is only used in C++ mode.
 }  /* base_class_cast_operand */
 
 
+a_boolean is_a_cplusplus_lvalue(an_operand *operand)
+/*
+Return TRUE if the indicated operand is a C++ lvalue.  The C++ standard
+definition of lvalue includes what are called function designators
+in C.
+*/
+{
+  a_boolean is_lvalue = is_an_lvalue(operand) ||
+                        (is_a_function_designator(operand) &&
+                         !is_sym_for_member_operand(operand) &&
+                         !is_indefinite_function_operand(operand));
+  return is_lvalue;
+}  /* is_a_cplusplus_lvalue */
+
+
 static a_type_ptr type_after_bit_field_integral_promotion(
                                                          an_expr_node_ptr node,
                                                          a_type_ptr       type)

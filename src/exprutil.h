@@ -1017,6 +1017,8 @@ extern void base_class_cast_operand(an_operand       *operand_1,
                                     a_boolean        implicit_in_naming,
                                     a_boolean        is_object_pointer);
 
+extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
+
 extern void make_error_operand(an_operand *operand);
 
 extern void operand_will_not_be_used_because_of_error(an_operand *operand);

@@ -10872,13 +10872,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   if (!processed && !err) {
     if ((!C_mode() || (gcc_mode && !binary_conditional)) &&
         types_are_the_same &&
-        ((is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) ||
-         (is_a_function_designator(&operand_2) &&
-          !is_sym_for_member_operand(&operand_2) &&
-          !is_indefinite_function_operand(&operand_2) &&
-          is_a_function_designator(&operand_3) &&
-          !is_sym_for_member_operand(&operand_3) &&
-          !is_indefinite_function_operand(&operand_3)))) {
+        is_a_cplusplus_lvalue(&operand_2) &&
+        is_a_cplusplus_lvalue(&operand_3)) {
       /* In C++ and GNU C, if the second and third operands have the same type
          and they are lvalues, the result is also an lvalue. */
       result_is_an_lvalue = TRUE;
@@ -11972,11 +11967,12 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       /* Non-operator-function cases. */
       simplify_void_operand(operand_1);
       do_operand_transformations(&operand_2,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
       /* In C++ and GNU C modes, an lvalue in the second operand is preserved.
          In C mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus || gcc_mode) {
-        result_is_an_lvalue = is_an_lvalue(&operand_2);
+        result_is_an_lvalue = is_a_cplusplus_lvalue(&operand_2);
       } else {
         conv_lvalue_to_rvalue(&operand_2);
       }  /* if */

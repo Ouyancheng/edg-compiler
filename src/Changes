@@ -1,5 +1,20 @@
 Version 2.46
 
+12/9/01  No function-to-pointer conversion on second operand of comma
+         operator
+
+In C++ mode, the front end used to force the function-to-pointer
+conversion on the second operand of a comma operator.  This was
+incorrect and is no longer done.
+
+  void f(void);
+  void (*fp)(void);
+  typedef void (FTYPE)(void);
+  void x(void);
+  void h(int n) {
+    FTYPE &fr = (x(), f);
+  }
+
 12/9/01  Error recovery, constructor that copies own class by value
 
 An error is correctly issued for a constructor that copies its
