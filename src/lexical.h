@@ -345,6 +345,12 @@ typedef int an_identifier_options_set;
 #define GID_IS_TEMPLATE_SPECIALIZATION 0x2000
 			/* If the identifier is a qualified name the
 			   identifier named must be a member template. */
+#define GID_IS_EXPR_CONTEXT 0x4000
+			/* TRUE if the name is being coalesced in a context
+			   that is known to be an expression context.  This
+			   causes a "<" to be treated as a less than sign
+			   and not the start of a template argument list
+			   when it follows a nonreal class member. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
