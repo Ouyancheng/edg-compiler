@@ -553,18 +553,12 @@ no need to actually instantiate X<int> in the example above.
        a size and alignment to permit it to pass through subsequent processing
        without causing spurious errors. */
     for (tap = *new_list; tap != NULL; tap = tap->next) {
-      if (tap->is_type) {
-        if (tap->variant.type->kind == (a_type_kind)tk_template_param) {
-          sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
-          break;
-        }  /* if */
-      } else {
-        /* Constant case. */
-#if 0
-/* Oops -- do we have any way to look at a constant entry and recognize it to
-   be a template parameter.  Bug here:  if there is no type param among the
-   template parameters, the flag will remain set incorrectly. */
-#endif /* if 0 */
+      if (tap->is_type ? tap->variant.type->kind ==
+                                (a_type_kind)tk_template_param :
+                         tap->variant.constant->kind ==
+                                  (a_constant_repr_kind)ck_template_param) {
+        sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+        break;
       }  /* if */
     }  /* for */
     /* Record the argument list in the type.  It should be available in the
