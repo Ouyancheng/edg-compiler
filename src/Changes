@@ -1,5 +1,19 @@
 Version 2.35
 
+2/4/97  Spurious error on class member using-declaration eliminated
+
+A spurious error was issued on a class member using-declaration while
+attempting to form an overload set involving a member function template.
+Now fixed.
+
+  struct A {
+    void f();
+  };
+  struct B : A {
+    template <class T> void f(T);
+    using A::f;                      // spurious error no longer issued
+  };
+
 2/4/97  IL CHANGE: extern "C" declarations in namespaces
 
 Support for declarations of the same extern "C" function or variable in

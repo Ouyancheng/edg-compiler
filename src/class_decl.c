@@ -7817,9 +7817,10 @@ or implicit) controlling the declaration.
           /* Except to introduce function names into an overload set, a
              using declaration cannot usually coexist with another declaration
              with the same name. */
-          if (!is_function_symbol(fundamental_symbol_of(declared_sym)) ||
-              !is_function_symbol(
-                           fundamental_symbol_of(locator.specific_symbol))) {
+          if (!is_function_or_template_symbol(
+                         fundamental_symbol_of(declared_sym)) ||
+              !is_function_or_template_symbol(
+                         fundamental_symbol_of(locator.specific_symbol))) {
             /* Name has already been declared. */
             pos_st_error(ec_id_already_declared, &decl_pos,
                          locator_for_curr_id.symbol_header->identifier);
