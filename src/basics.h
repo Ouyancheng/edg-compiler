@@ -17,20 +17,27 @@ This should be included first in every compilation unit.
 
 #ifndef CFE
 /*
-Set the conditional compilation switch controlling C front end data
-structures.  CFE must be defined.
+Set the conditional compilation switch indicating that this is the
+C front end being compiled.  CFE must be defined.
 */
 #define CFE 1
 #endif /* ifndef CFE */
-#ifdef FFE
+#ifndef CIL
+/*
+Set the conditional compilation switch controlling the inclusion of
+C-specific IL structures.  CIL must be defined.
+*/
+#define CIL 1
+#endif /* ifndef CIL */
+#ifdef FIL
 /* 
-The optional conditional compilation switch FFE may also be defined for the
-C front end to assure that Fortran-specific data structures are included.
+The optional conditional compilation switch FIL may also be defined for the
+C front end to ensure that Fortran-specific IL structures are included.
 These would otherwise be omitted from the IL.  This feature is provided
 so that both front ends can share a common back end with an identical
 interface.
 */
-#endif /* FFE */
+#endif /* ifdef FIL */
 
 /*
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No other
