@@ -639,7 +639,8 @@ This example is accepted when the bug is emulated:
 The MSVC++ bug  described in the Changes entry of 10/7/00
 was apparently corrected in MSVC++ 7.0 (but not in the 7.0 beta
 we had).  The emulation is therefore now turned off for
-microsoft_version >= 1300.
+microsoft_version >= 1300.  Note, however, that the change only
+affects cases where the rvalue is a constant.
 
 8/4/03   Microsoft C++ mode: Attributes on variable declarations
 

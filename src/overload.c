@@ -1503,13 +1503,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     param_type_qualifiers = get_type_qualifiers(param_type);
     arg_type_qualifiers   = get_type_qualifiers(arg_type);
     /* The reference can bind to an rvalue if it is a reference to const. */
-    if ((microsoft_bugs && param_type_is_deduced &&
-         microsoft_version < 1300) ||
-        any_cfront_mode() ||
+    if (any_cfront_mode() ||
         allow_anachronisms) {
-      /* A reference to non-const that's deduced can bind to an rvalue in
-         Microsoft bugs mode (VC++ 6.0, 7.0 beta, fixed in real 7.0).
-         A reference to non-const can bind to an rvalue in cfront mode
+      /* A reference to non-const can bind to an rvalue in cfront mode
          or anachronisms mode. */
       source_can_be_rvalue = TRUE;
     } else {
@@ -1866,6 +1862,13 @@ have_level:;
              From version 7.1 on, the binding is worse than other matches. */
           arg_summary->anachronism_used = TRUE;
         }  /* if */
+      } else if (microsoft_bugs && param_type_is_deduced &&
+                 (microsoft_version < 1300 ||
+                  (arg_operand != NULL &&
+                   !is_constant_operand(arg_operand)))) {
+        /* A reference to non-const that's deduced can bind to an rvalue in
+           Microsoft bugs mode (VC++ 6.0, 7.0 beta).  As of real 7.0,
+           this is allowed only if the operand is not a constant. */
       } else {
         arg_summary->match_level = aml_none;
       }  /* if */
