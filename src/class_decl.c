@@ -7272,17 +7272,9 @@ completed (C++ only).
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
-    /* Record the scope number used for the corresponding prototype
-       instantiation, if any. */
-    if (cssp->is_instance && !cssp->is_specific_template_def &&
-        !is_nonreal_instantiation) {
-      /* Find the prototype instantiation symbol associated with this
-         real instantiation. */
-      corresp_prototype_tag_sym = cssp->corresp_prototype_sym;
-      check_assertion_str2(corresp_prototype_tag_sym != NULL,
-                           "scan_class_definition:",
-                           "no corresponding prototype symbol for instance");
-    }  /* if */
+    /* Find the prototype instantiation symbol associated with this
+       real instantiation. */
+    corresp_prototype_tag_sym = corresp_prototype_for_class_symbol(tag_sym);
   }  /* if */
   if (delayed_nested_class_def) {
     /* This is a definition of a C++ nested class that appears outside the
