@@ -39,11 +39,10 @@ extern char *realloc(char *ptr, unsigned size);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
-
-#if !STANDALONE_UTILITY_PROGRAM
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -1121,6 +1120,7 @@ memory or with an IL file.
        compiled only for its exported templates) will have been thrown
        away before this routine is called. */
     keep_memory = TRUE;
+#if !STANDALONE_UTILITY_PROGRAM
 #if DO_IL_LOWERING
   } else if (rout != NULL &&
              any_lowering_needed() &&
@@ -1131,6 +1131,7 @@ memory or with an IL file.
        yet. */
     keep_memory = TRUE;
 #endif /* DO_IL_LOWERING */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   } else if (rout != NULL &&
              keep_function_body_for_possible_inlining(rout)) {
     /* Keep the region for an inline function so it can be used to
