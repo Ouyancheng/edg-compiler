@@ -483,8 +483,8 @@ hidden names in C, so there's no point in maintaining this information).
         /* The source code was parsed in Microsoft mode (where friend function
            names are visibly injected in the surrounding namespace scope, and
            therefore can be accessed with a qualified name), but we are
-           generating code for a C++-generating compiler where friend function
-           declarations are not visibly injected in the surround namespace.
+           generating code for a C++ compiler where friend function
+           declarations are not visibly injected in the surrounding namespace.
            For such compilers, qualification can never be right. */
         scp->qualification_needed = FALSE;
       } else
