@@ -453,11 +453,11 @@ scope, or the lifetime from the parent context, will be used.
     context->saved_curr_cleanup_region_number = NULL;
 #endif /* CHECKING */
   }  /* if */
-  /* The destructions list starts at NULL for a new object lifetime, or is
-     inherited from the parent if there is no new object lifetime. */
-  context->destructions = NULL;
+  /* The latest_initialization list starts at NULL for a new object lifetime,
+     or is inherited from the parent if there is no new object lifetime. */
+  context->latest_initialization = NULL;
   if (!new_lifetime && parent_context != NULL) {
-    context->destructions = parent_context->destructions;
+    context->latest_initialization = parent_context->latest_initialization;
   }  /* if */
   context->successor_lifetime_at_statement = NULL;
   context->try_frame = NULL;
@@ -479,10 +479,10 @@ Pop an entry off the context stack.
     curr_cleanup_region_number = context->saved_curr_cleanup_region_number;
   } else {
     /* This context does not have its own object lifetime, so the
-       destructions pointer is propagated up to the parent (it's
+       latest_initialization pointer is propagated up to the parent (it's
        lifetime-related). */
     if (parent_context != NULL) {
-      parent_context->destructions = context->destructions;
+      parent_context->latest_initialization = context->latest_initialization;
     }  /* if */
   }  /* if */
   /* Pop to the surrounding context. */
@@ -6110,7 +6110,7 @@ lifetime begins at the start of a switch clause.
   an_object_lifetime_ptr next_lifetime;
 
   curr_object_lifetime = curr_context->lifetime = lifetime;
-  curr_context->destructions = NULL;
+  curr_context->latest_initialization = NULL;
   /* curr_cleanup_region_number is not changed on purpose. */
   if (!switch_clause) {
     /* Set up the context field to watch for the appearance of the
@@ -6216,13 +6216,13 @@ will cover them while we destroy them.
      field, which indicates the next region table entry. */
   check_assertion_str2(curr_object_lifetime != NULL &&
                        curr_object_lifetime->destructions ==
-                                                    curr_context->destructions,
-                       "adjust_region_table_to_remove_long_lifetime_temps: ",
+                                           curr_context->latest_initialization,
+                       "adjust_region_table_to_remove_long_lifetime_temps:",
                        "bad current object lifetime");
-  for (dip = curr_context->destructions;
+  for (dip = curr_context->latest_initialization;
        dip != NULL;
        dip = dip->destructible_entity_descr->next_in_region_table) {
-    if (dip->is_expr_temp_init || dip->is_freeing_of_storage_on_exception) {
+    if (dyn_init_initializes_temporary(dip)) {
       /* An initialization for a temporary. */
       if (first_temp == NULL) first_temp = dip;
       if (last_temp != NULL) {
@@ -6250,7 +6250,6 @@ will cover them while we destroy them.
     if (last_nontemp != NULL) {
       last_nontemp->destructible_entity_descr->next_in_region_table = NULL;
     }  /* if */
-    curr_object_lifetime->destructions = first_temp;
     if (first_nontemp_after_temps != first_nontemp) {
       /* Some region table entries must be cloned. */
       if (need_regions_for_temps) {
@@ -6276,7 +6275,7 @@ will cover them while we destroy them.
        temporaries if we cloned regions for those because we will be
        destroying them, otherwise at the first region for a nontemp. */
     dip = need_regions_for_temps ? first_temp : first_nontemp;
-    curr_context->destructions = dip;
+    curr_context->latest_initialization = dip;
     curr_cleanup_region_number = cleanup_region_number(dip);
     /* set_eh_curr_region is not called on purpose. */
   }  /* if */
@@ -6314,7 +6313,7 @@ Called only in long lifetime temporaries mode.
   if (need_to_destroy_temps) {
     /* Go through the list of destructions, find the ones for temporaries,
        and generate destruction code. */
-    for (dip = curr_context->destructions;
+    for (dip = curr_context->latest_initialization;
          dip != NULL;
          dip = dip->next_in_destruction_list) {
       if (dip->is_expr_temp_init) {
@@ -6575,7 +6574,7 @@ code.
 */
 {
   a_boolean              any_cleanup_needed = FALSE, skip_temporaries = FALSE;
-  a_dynamic_init_ptr     dip = curr_context->destructions;
+  a_dynamic_init_ptr     dip = curr_context->latest_initialization;
   an_object_lifetime_ptr lifetime = curr_object_lifetime;
   a_scope_ptr            scope;
 
@@ -6588,9 +6587,7 @@ code.
     for (;;) {
       /* Generate destructions in this context. */
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
-        if ((dip->is_expr_temp_init ||
-             dip->is_freeing_of_storage_on_exception) &&
-            skip_temporaries) {
+        if (dyn_init_initializes_temporary(dip) && skip_temporaries) {
           /* Skipping temporaries, so skip this destruction. */
         } else if (dip->is_constructor_init ||
                    dip->is_freeing_of_storage_on_exception) {

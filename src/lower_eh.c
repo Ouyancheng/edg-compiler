@@ -1604,7 +1604,7 @@ void set_eh_curr_region(a_cleanup_region_number region_number,
 Set curr_cleanup_region_number (the destruction region that applies at
 the current location in the program) to region_number, and generate code at
 *insert_location to set the global variable __eh_curr_region to indicate
-the region number.
+that region number.
 */
 {
   an_expr_node_ptr node;
@@ -1771,6 +1771,7 @@ a_constant_ptr make_region_table_entry(
                               a_boolean               is_delete,
                               a_variable_ptr          conditional_flag_var,
                               a_handle_number         conditional_flag_handle,
+                              a_cleanup_region_number next_region_number,
                               a_cleanup_region_number *region_number,
                               an_insert_location      *insert_location)
 /*
@@ -1781,12 +1782,12 @@ TRUE) to be called to do cleanup on the object.  conditional_flag_var,
 if non-NULL, points to a conditional flag variable that is non-zero to
 indicate that the destruction or deletion should be done.  In that case,
 conditional_flag_handle gives the object address table index for the
-conditional flag.  curr_cleanup_region_number is used as the
+conditional flag.  next_region_number is used as the
 next-region-table-entry number for the new entry.  The region table
 entry number for the new entry is returned in *region_number.  Any
-initialization code required will be inserted at *insert_location.  The
-region table variable is created if necessary.  Return a pointer to the
-aggregate constant for the region table entry.
+initialization code required will be inserted at *insert_location.
+The region table variable is created if necessary.  Return a pointer
+to the aggregate constant for the region table entry.
 */
 {
   a_handle_number handle_number;
@@ -1844,7 +1845,7 @@ aggregate constant for the region table entry.
   /* Make the region table entry. */
   region_table_entry = add_region_table_entry(routine,
                                               handle_number,
-                                              curr_cleanup_region_number,
+                                              next_region_number,
                                               flags_value);
   if (conditional_flag_var != NULL) {
     /* Make a second region table entry for the conditional flag. */
@@ -1867,6 +1868,7 @@ required for unordered destructions.
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
+  check_assertion(dip->unordered);
   /* If this entry is part of an unordered set, all the region table entries
      for the entities in the unordered set are treated as a block.  That is,
      the entire block goes into the region table cleanup chain as soon as
@@ -1903,35 +1905,37 @@ required for unordered destructions.
 
 
 void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
+                                      a_dynamic_init_ptr next_dip,
                                       an_insert_location *insert_location)
 /*
 Add an entry to the region table (which describes destructible objects)
 for the initialization described by dip.  The entry will point to
-curr_cleanup_region_number/curr_context->destructions as its next
-region.  The initialization must have an attached destructible entity
-description, and the conditional_flag_var field of that entry must be
-filled in if appropriate (if a conditional flag variable is indicated,
-a region table entry will be created for it as well).  Also insert (at
-*insert_location) initialization code for the proper entry in the
-object address table.  The region table variable is created if
-necessary.
+next_dip as its next region.  The initialization must have an attached
+destructible entity description, and the conditional_flag_var field of
+that entry must be filled in if appropriate (if a conditional flag
+variable is indicated, a region table entry will be created for it as
+well).  Also insert (at *insert_location) initialization code for the
+proper entry in the object address table.  The region table variable
+is created if necessary.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_cleanup_region_number         next_region_number;
 	
   check_assertion(dedp != NULL);
-  dedp->next_in_region_table = curr_context->destructions;
-  dedp->region_number_to_set_when_starting_destruction =
-                                                    curr_cleanup_region_number;
+  dedp->next_in_region_table = next_dip;
+  dedp->region_number_to_set_when_starting_destruction = next_region_number =
+                                               cleanup_region_number(next_dip);
   dedp->region_table_entry =
-                         make_region_table_entry(&dedp->init_pos_descr,
-                                                 dip->destructor,
-                                                 (a_boolean)dip->
+             make_region_table_entry(&dedp->init_pos_descr,
+                                     dip->destructor,
+                                     (a_boolean)dip->
                                             is_freeing_of_storage_on_exception,
-                                                 dedp->conditional_flag_var,
-                                                 dedp->conditional_flag_handle,
-                                                 &dedp->region_number,
-                                                 insert_location);
+                                     dedp->conditional_flag_var,
+                                     dedp->conditional_flag_handle,
+                                     next_region_number,
+                                     &dedp->region_number,
+                                     insert_location);
   if (dip->unordered) {
     /* The destruction is unordered with respect to some surrounding
        destructions, so do some extra processing. */

@@ -71,11 +71,13 @@ extern a_constant_ptr make_region_table_entry(
                               a_boolean               is_delete,
                               a_variable_ptr          conditional_flag_var,
                               a_handle_number         conditional_flag_handle,
+                              a_cleanup_region_number next_region_number,
                               a_cleanup_region_number *region_number,
                               an_insert_location      *insert_location);
 
 extern void make_dyn_init_region_table_entry(
                                           a_dynamic_init_ptr dip,
+                                          a_dynamic_init_ptr next_dip,
                                           an_insert_location *insert_location);
 
 extern void clone_region_table_entry_list(a_dynamic_init_ptr dip,

@@ -301,10 +301,16 @@ typedef struct a_context {
 			   lifetime (i.e., it has a lifetime and the lifetime
 			   is not inherited from the parent context). */
   a_dynamic_init_ptr
-		destructions;
+		latest_initialization;
 			/* The current position in the destructions list
 			   of the lifetime, i.e., the latest encountered
-			   dynamic initialization requiring destruction. */
+			   dynamic initialization requiring destruction.
+			   Note that this is not updated when destructions
+			   are generated (e.g., at the end of a block or
+			   on a goto or return), so it stays indicating
+			   the "most-constructed" state.  That's different
+			   than curr_cleanup_region_number, which is
+			   updated on destructions. */
   an_object_lifetime_ptr
 		saved_curr_object_lifetime;
 			/* Used to save/restore the global variable

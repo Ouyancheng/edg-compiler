@@ -1014,6 +1014,14 @@ enum a_template_param_constant_kind_tag {
 };
 typedef a_byte a_template_param_constant_kind;
 
+/*
+Macro to test a dynamic initialization to see whether it initializes a
+temporary, i.e., whether it initializes something subject to the short vs.
+long lifetime temporaries option.
+*/
+#define dyn_init_initializes_temporary(dip)                           \
+  ((dip)->is_expr_temp_init || (dip)->is_freeing_of_storage_on_exception)
+
 #endif /* ifdef CIL */
 
 typedef struct a_constant {
