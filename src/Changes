@@ -1,5 +1,22 @@
 Version 3.1
 
+11/4/02  Block-extern declaration mismatch ignored in K&R/pcc mode
+
+In K&R/pcc mode, two block-extern declarations with the same name but in
+different scopes can have a different type (and hence no diagnostic is
+issued in case of a mismatch).  For example:
+
+  void f1() {
+    void g();
+  }
+  void f2() {
+    int g();  /* No error in pcc mode. */
+  }
+
+This was accepted in versions 2.40 and earlier of the front end, but
+versions 2.41 through 3.0.1 diagnosed such cases as errors.  Now it is
+again accepted.
+
 11/4/02  GNU C++ compatibility: Predefined macro _GNU_SOURCE
 
 In GNU C++ mode (but not in GNU C mode) the front end now predefines a
