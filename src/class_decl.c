@@ -10631,6 +10631,61 @@ and update *access accordingly.
 }  /* scan_access_specification */
 
 
+static void check_friend_class_decl(a_type_ptr              member_type,
+                                    a_type_ptr              class_type,
+                                    a_member_decl_info_ptr  decl_info)
+/*
+The current construct seems to make member_type a friend of class_type.
+Check that this is a valid type and if so make member_type a friend.  
+*decl_info contains some additional information about the declaration.
+*/
+{
+  if (is_error_type(member_type)) {
+    /* An error was already issued. */
+  } else if ((is_class_struct_union_type(member_type) ||
+              is_template_param_type(member_type)) &&
+             !is_top_level_qualified_type(member_type) &&
+             depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    /* This is a friend class declaration.  Normally, only the form
+           friend class A;  // or "struct" or "union" instead of "class"
+       is allowed, but many compilers also accept friend declarations
+       without a class-key.  For example:
+            friend A;
+       We also accept the latter form as an extension (except in strict
+       mode). */
+    if (decl_info->dso_flags & DSO_TYPENAME) {
+      /* "friend typename ..." is not allowed. */
+      pos_error(ec_no_typename_in_friend_class_decl,
+                &decl_info->decl_start_pos);
+    } else {
+      if (!(decl_info->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
+        char  *class_key_string;
+        switch (skip_typerefs(member_type)->kind) {
+          case tk_class:   class_key_string = "class";   break;
+          case tk_struct:  class_key_string = "struct";  break;
+          case tk_union:   class_key_string = "union";   break;
+          case tk_template_param:
+                           class_key_string = "class";   break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+        /* Strict ANSI diagnostic in strict ANSI mode, remark
+           otherwise. */
+        pos_st_diagnostic(strict_ansi_mode ?
+                            strict_ansi_error_severity : es_remark,
+                          ec_nonstd_friend_decl,
+                          &locator_for_curr_id.source_position,
+                          class_key_string);
+      }  /* if */
+      decl_friend_class(class_type, member_type);
+    }  /* if */
+  } else {
+    /* Invalid friend declaration. */
+    pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
+  }  /* if */
+}  /* check_friend_class_decl */
+
+
 static void check_missing_declarator_in_member_declaration(
                                            a_type_ptr              class_type,
                                            a_type_ptr              member_type,
@@ -10696,44 +10751,7 @@ moreover, several fields of *decl_info may be updated by this routine.
       pos_error(ec_mutable_not_allowed, err_pos);
     }  /* if */
     if (dso_flags & DSO_FRIEND) {
-      if (is_error_type(member_type)) {
-        /* An error was already issued. */
-      } else if (!is_enum_type(member_type) &&
-               depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-        /* This is a friend class declaration, of the form:
-                   friend class A;
-           which is the only form the ARM (see 11.4) allows. */
-        if (dso_flags & DSO_TYPENAME) {
-          /* "friend typename ..." is not allowed. */
-          pos_error(ec_no_typename_in_friend_class_decl, err_pos);
-        } else {
-          if (!(dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
-            char               *class_key_string;
-
-            switch (skip_typerefs(member_type)->kind) {
-              case tk_class:   class_key_string = "class";   break;
-              case tk_struct:  class_key_string = "struct";  break;
-              case tk_union:   class_key_string = "union";   break;
-              case tk_template_param:
-                               class_key_string = "class";   break;
-#if CHECKING
-              default: internal_error("decl_specifiers: bad type kind");
-#endif /* CHECKING */
-            }  /* switch */
-            /* Strict ANSI diagnostic in strict ANSI mode, remark
-               otherwise. */
-            pos_st_diagnostic(strict_ansi_mode ?
-                                strict_ansi_error_severity : es_remark,
-                              ec_nonstd_friend_decl,
-                              &locator_for_curr_id.source_position,
-                              class_key_string);
-          }  /* if */
-          decl_friend_class(class_type, member_type);
-        }  /* if */
-      } else {
-        /* Invalid friend declaration. */
-        pos_error(ec_bad_friend_decl, err_pos);
-      }  /* if */
+      check_friend_class_decl(member_type, class_type, decl_info);
     } else if (decl_info->is_member_template) {
       if (decl_info->member_sym != NULL) {
         /* Diagnostic will be issued later. */

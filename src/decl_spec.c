@@ -6285,9 +6285,14 @@ exit_loop:
        had just one specifier, and it was "void". */
     *output_flags |= DSO_JUST_VOID;
   } else if (is_elaborated_type_specifier) {
+    /* Set the output flag bit indicating that we type specifier is an
+       elaborated form (i.e., with the "class", "struct", "union", or
+       "enum" keyword).  For friend class declarations this must be done
+       even if other specifiers or qualifiers are present. */
     if (!err && !defines_something &&
-        !(decl_specifiers_seen & (DS_STORAGE_CLASS | DS_INLINE |
-                                  DS_VIRTUAL | DS_TYPE_QUALIFIER))) {
+        (((decl_specifiers_seen & DS_FRIEND) && curr_token == tok_semicolon) ||
+         !(decl_specifiers_seen & (DS_STORAGE_CLASS | DS_INLINE |
+                                   DS_VIRTUAL | DS_TYPE_QUALIFIER)))) {
       *output_flags |= DSO_ELABORATED_TYPE_SPECIFIER;
       if (basic_type == bt_typename) { *output_flags |= DSO_TYPENAME; }
     }  /* if */
