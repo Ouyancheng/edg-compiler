@@ -1500,6 +1500,39 @@ If "restrict" is seen, set *restrict_seen to TRUE.
 }  /* array_declarator */
 
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+static void scan_microsoft_qualifiers(a_type_qualifier_set *qualifiers)
+/*
+Scan a list of Microsoft type qualifiers (__cdecl, __fastcall, __stdcall).
+This routine is used when the Microsoft qualifiers may appear in a
+place in which qualifiers are not usually allowed.  The set of qualifiers
+found is returned in "qualifiers".
+*/
+{
+  *qualifiers = 0;
+  while (is_microsoft_type_qualifier()) {
+    a_type_qualifier_set	new_qualifier;
+    switch (curr_token) {
+      case tok_cdecl:    new_qualifier = TQ_CDECL;    break;
+      case tok_fastcall: new_qualifier = TQ_FASTCALL; break;
+      case tok_stdcall:  new_qualifier = TQ_STDCALL;  break;
+      default: unexpected_condition(); break;
+    }  /* switch */
+    if ((*qualifiers & TQ_CALLING_CONVENTION_QUALIFIERS) != 0 &&
+        (new_qualifier & *qualifiers) == 0) {
+      /* The qualifier bit set already contains a calling
+         convention.  The same convention may be specified more
+         than once, but conflicting ones cannot be specified. */
+      error(ec_conflicting_calling_conventions);
+    } else {
+      *qualifiers |= new_qualifier;
+    }  /* if */
+    (void)get_token();
+  }  /* while */
+}  /* scan_microsoft_qualifiers */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+
 a_type_ptr pointer_declarator(a_type_ptr  specifiers_type,
                               a_type_ptr  *bottom_pointer_derived_type,
                               a_boolean   reference_allowed)
@@ -1518,6 +1551,11 @@ where a cv-qualifier-list consists of "const" or "volatile" or both.  Only
 the first form is accepted in C.  Note also that even in C++ the second form
 is not allowed in a new-declarator (ARM 5.3.3), so the reference_allowed
 parameter controls the restrictions imposed by the context.
+
+Note that this routine actually scans a sequence of pointer declarators.
+
+In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
+recognized as cv-qualifiers.
 */
 {
   a_type_ptr     complete_type = specifiers_type;
@@ -1535,6 +1573,7 @@ parameter controls the restrictions imposed by the context.
        In the loop, the type will be built up from "int" to
        "const pointer to int" to "volatile pointer to const pointer to int"
        on successive iterations. */
+    a_boolean	get_token_needed = TRUE;
     err = FALSE;
     if (curr_token == tok_star ||
         (reference_allowed && curr_token == tok_ampersand)) {
@@ -1543,14 +1582,15 @@ parameter controls the restrictions imposed by the context.
         /* Normal case -- the specifiers type is given, and the pointer or
            reference type can be attached directly to it.  (Or, this is a
            pointer to a pointer type or a reference to a pointer type). */
-        a_type_ptr  temp_type = skip_typerefs(complete_type);
+        a_type_ptr  temp_type;
 
+        temp_type = skip_typerefs_allow_null_referenced_type(complete_type);
         if (curr_token == tok_star) {
           if (is_cfront_member_function_typedef(complete_type, &rout_type,
                                                 &class_type)) {
             complete_type = ptr_to_member_type(rout_type, class_type);
           } else {
-            if (is_reference_type(temp_type)) {
+            if (temp_type != NULL && is_reference_type(temp_type)) {
               /* Type "pointer to reference to anything" is illegal. */
               error(ec_pointer_to_reference);
               err = TRUE;
@@ -1559,11 +1599,11 @@ parameter controls the restrictions imposed by the context.
                                                     complete_type);
           }  /* if */
         } else {
-          if (is_reference_type(temp_type)) {
+          if (temp_type != NULL && is_reference_type(temp_type)) {
             /* Type "reference to reference" is illegal. */
             error(ec_reference_to_reference);
             err = TRUE;
-          } else if (is_void_type(temp_type)) {
+          } else if (temp_type != NULL && is_void_type(temp_type)) {
             /* Type "reference to void" is illegal. */
             error(ec_reference_to_void);
             err = TRUE;
@@ -1606,6 +1646,20 @@ parameter controls the restrictions imposed by the context.
         }  /* if */
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
+    } else if (is_microsoft_type_qualifier()) {
+      /* A Microsoft qualifier that may appear in a nonstandard place such
+         as "int (_cdecl * fp)()". */
+      a_type_qualifier_set	qualifiers;
+      scan_microsoft_qualifiers(&qualifiers);
+      /* Add the new qualifiers to the complete type that has been built so
+         far (which may be NULL at this point). */
+      complete_type = make_qualified_type(complete_type, qualifiers);
+      /* Suppress then get_token() that is normally done before scanning
+         the qualifiers below, as this will have been done when scanning
+         the Microsoft qualifiers. */
+      get_token_needed = FALSE;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
     } else {
       /* Not a pointer, reference, or pointer-to-member declarator. */
       break;
@@ -1614,7 +1668,7 @@ parameter controls the restrictions imposed by the context.
       *bottom_pointer_derived_type = complete_type;
     }  /* if */
     /* Take a type qualifier list (const, volatile, or both) if one appears. */
-    (void)get_token();
+    if (get_token_needed) (void)get_token();
     if (is_type_qualifier()) {
       a_type_qualifier_set  qualifiers;
 
@@ -2234,6 +2288,9 @@ function_lparen:
           /* If the function is pointed to by a pointer-to-member type, we need
              to pass the class-of-which-a-member to function_declarator. */
           a_type_ptr tp = bottom_derived_type;
+          /* Skip any Microsoft qualifiers to see if the bottom_derived_type
+             is a pointer to member. */
+          if (tp != NULL) tp = skip_typerefs_allow_null_referenced_type(tp);
           if (tp != NULL && is_ptr_to_member_type(tp)) {
             /* Declaration of a pointer to member function. */
             member_parent_type = pm_class_type(tp);

@@ -120,11 +120,16 @@ Macro that is TRUE if the current token is the start of a type qualifier
 Macro that is TRUE if the current token is the start of a
 Microsoft type qualifier.
 */
+#if MICROSOFT_KEYWORDS_ALLOWED
 #define is_microsoft_type_qualifier()					\
   (microsoft_mode &&							\
    (curr_token == tok_cdecl ||						\
     curr_token == tok_fastcall ||					\
     curr_token == tok_stdcall))
+#else /* MICROSOFT_KEYWORDS_ALLOWED */
+/* When microsoft keywords are not allowed simply return FALSE. */
+#define is_microsoft_type_qualifier() (FALSE)
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
 /*
