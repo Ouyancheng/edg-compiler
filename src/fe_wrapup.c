@@ -172,8 +172,10 @@ and after the back end (if any) is executed.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Close the IL output file, be it a temporary or actual file. */
   close_il_output_file();
-#else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
-  /* Free the file-scope IL and all function scope IL. */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Free the file-scope IL and all function scope IL.  This is necessary
+     if an IL file is not written, or if some regions were kept because
+     of inlining, but it's a good idea in all cases. */
   { a_memory_region_number region_number;
     for (region_number = highest_used_region_number;
          region_number != NULL_region_number;
@@ -181,7 +183,6 @@ and after the back end (if any) is executed.
       free_memory_region(region_number);
     }  /* for */
   }
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Write a signoff message (with count of errors) if necessary. */
   write_signoff();
 }  /* fe_wrapup_part_2 */
