@@ -1,5 +1,24 @@
 Version 2.37
 
+9/22/97   Instantiation of noninline member functions in unnamed namespaces
+
+Noninline member functions in unnamed namespaces should be treated as static
+functions for instantiation purposes, but were not.  This could result in
+spurious errors in -tnone mode and an instantiation loop in -tused mode.
+This has been fixed.
+
+  namespace {
+    template <class T> struct A {
+      void f();
+     };
+     template <class T> void A<T>::f() { }
+  }
+
+  int main() {
+      A<int> ai;
+      ai.f();
+  }
+
 9/22/97   Missing diagnostic on use of template-id in class using-declaration
 
 A using-declaration is not permitted to name a template-id.  This was
