@@ -440,20 +440,25 @@ a new symbol is created and entered in the symbol table.
 
   db_enter(3, "decl_parameter");
   /* Choose the type to use, the one in the param-type entry or the one in
-     the param-id entry.  Usually, they will be the same.  However, for
-     template functions being instantiated the type pointed to by the param-id
-     may include a template parameter, so use the type in param-type entry,
-     which will be the result of the template arg substitution.  Otherwise,
-     use the param-id type, since it will be the one actually used in the
-     function definition, whereas the type in the param-type entry may be a
-     composite type, as in the following example:
-       void f(int a[3]);
-       void f(a) int a[]; { ... }
-     In the second declaration the param-id type is int[], but the composite
-     type produced for the routine's interface is int[3]. */
-  tp = function_instantiation ? make_qualified_type(ptp->type,
-                                                    ptp->qualifiers) :
-                                param_id->type;
+     the param-id entry.  Usually, they will be the same. */
+  if (function_instantiation) {
+    /* For template functions being instantiated the type pointed to by the
+       param-id may include a template parameter, so use the type in
+       param-type entry, which will be the result of the template arg
+       substitution.  But copy top-level type qualifiers from the param-id
+       type, since they will have been removed the the param-type type. */
+    tp = make_identically_qualified_type(ptp->type, param_id->type);
+  } else {
+    /* In cases other than template instantiations, use the param-id type,
+       since it will be the one actually used in the function definition,
+       whereas the type in the param-type entry may be a composite type, as
+       in the following example:
+         void f(int a[3]);
+         void f(a) int a[]; { ... }
+       In the second declaration the param-id type is int[], but the composite
+       type produced for the routine's interface is int[3]. */
+    tp = param_id->type;
+  }  /* if */
   complete_type_is_needed(tp);
   if (is_incomplete_type(tp)) {
     /* Incomplete type is not allowed. */
