@@ -60,52 +60,36 @@ using namespace std;
 
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-/*
-Normal operator new routine.
-*/
+/* Normal operator new routine. */
 void *operator new(size_t) throw(__EDG_STD_NAMESPACE::bad_alloc);
 
-/*
-Nothrow version of operator new.
-*/
+/* Nothrow version of operator new. */
 void *operator new(size_t, const __EDG_STD_NAMESPACE::nothrow_t&) throw();
 
-/*
-Placement new.  This was not in the ARM, but it is now standard in
-[lib.new.delete.placement].
-*/
+/* Placement new. */
 void *operator new(size_t, void*) throw();
 
-/*
-Placement delete.
-*/
+/* Placement delete. */
 #ifdef __PLACEMENT_DELETE
 void operator delete(void*, void*);
 #endif /* ifdef __PLACEMENT_DELETE */
 
 #ifdef __ARRAY_OPERATORS
-/*
-Array new.
-*/
+
+/* Array new. */
 void *operator new[](size_t) throw(__EDG_STD_NAMESPACE::bad_alloc);
 
-/*
-Placement array new.
-*/
+/* Placement array new. */
 void *operator new[](size_t, void*) throw();
 
-/*
-Placement array delete.
-*/
+/* Placement array delete. */
 #ifdef __PLACEMENT_DELETE
 void operator delete[](void*, void*);
 #endif /* ifdef __PLACEMENT_DELETE */
 
-/*
-Nothrow version of array new.
-*/
+/* Nothrow version of array new. */
 void *operator new[](size_t,
                      const __EDG_STD_NAMESPACE::nothrow_t&) throw();
 #endif /* __ARRAY_OPERATORS */
 
-#endif
+#endif  /* ifndef __NEW_H */
