@@ -1,5 +1,13 @@
 Version 3.5
 
+5/28/04  Incorrect IL aggregate constant for IA-64 pointer-to-member typeinfo
+
+The typeinfo structure created for a pointer-to-member type in the IA-64
+ABI contained an aggregate constant whose last_constant field pointed
+to the second-to-last constant in the list rather than the last.
+This did not affect the C-generating back end, but might have caused
+problems for other back ends.
+
 5/28/04  Spurious errors involving member templates
 
 In some relatively rare situations the front end issued spurious correspondence

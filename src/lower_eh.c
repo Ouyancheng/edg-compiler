@@ -1677,7 +1677,7 @@ typeinfo variable in a COMDAT group.
                                                              (a_type_ptr)NULL),
                                           TQ_CONST)));
             pbase_con->next = context_con;
-            aggr_con->variant.aggregate.last_constant = pbase_con;
+            aggr_con->variant.aggregate.last_constant = context_con;
           }  /* if */
         }
         break;
