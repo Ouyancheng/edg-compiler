@@ -2739,11 +2739,11 @@ lvalue.  If there is an error, change the operand to an error operand.
       !is_incomplete_type(type)) {
     /* In SVR4 C compatibility mode, this routine can be called for an
        lvalue cast that would normally be illegal.  Issue a warning. */
-    if (SVR4_C_mode && !is_error_operand(operand) &&
-	operand->kind == ok_expression &&
-	operand->variant.expression->kind == enk_operation &&
-	operand->variant.expression->variant.operation.kind ==
-                                                            eok_lvalue_cast) {
+    if (SVR4_C_mode &&
+        is_expression_operand(operand) &&
+        is_operation_node(operand->variant.expression) &&
+        operand->variant.expression->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_lvalue_cast) {
       pos_warning(ec_expr_not_a_modifiable_lvalue, &operand->position);
     }  /* if */
     okay = TRUE;
