@@ -441,7 +441,7 @@ Do the output in the way described by octl.
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
     output_qualifier(TQ_RESTRICT, "restrict");
 #endif /* RESTRICT_ALLOWED */
-    /* Put out trailing space if required. */
+    /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
   }  /* if */
 #undef output_qualifier
@@ -462,7 +462,7 @@ Do the output in the way described by octl.
   /* Put out nothing for the default calling convention. */
   if (calling_convention != (a_calling_convention)cc_default) {
     octl->output_str(calling_convention_names[(int)calling_convention]);
-    /* Put out trailing space. */
+    /* Put out a trailing space. */
     octl->output_str(" ");
   }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
