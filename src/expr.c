@@ -5099,6 +5099,81 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
 }  /* scan_shift_operator */
 
 
+static a_boolean is_comparison_of_unsigned_with_constant(
+                                                an_operand *operand_1,
+                                                an_operand *operand_2,
+                                                a_boolean  *second_is_constant)
+/*
+operand_1 and operand_2 are the operands of a comparison operation before
+the usual arithmetic conversions.  Check to see if the comparison will
+be comparing an unsigned integral value with a constant.  Return TRUE if so,
+and also return *second_is_constant set to indicate which of the two operands
+is the constant.
+*/
+{
+  a_type_ptr operand_type;
+  a_boolean  is_comparison = FALSE;
+
+  *second_is_constant = FALSE;
+  if (curr_expr_is_evaluated()) {
+    operand_type = NULL;
+    *second_is_constant = is_constant_operand(operand_2);
+    if (!is_constant_operand(operand_1)) {
+      if (*second_is_constant) {
+        /* The first operand is nonconstant, the second constant. */
+        operand_type = operand_1->type;
+      }  /* if */
+    } else {
+      if (!*second_is_constant) {
+        /* The second operand is nonconstant, the first constant. */
+        operand_type = operand_2->type;
+      }  /* if */
+    }  /* if */
+    if (operand_type != NULL) {
+      /* Check to see if the nonconstant operand has an unsigned integral
+         type. */
+      if (is_integral_type(operand_type) &&
+          !is_signed_integral_type(operand_type)) {
+        /* Yes. */
+        is_comparison = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_comparison;
+}  /* is_comparison_of_unsigned_with_constant */
+
+
+static a_boolean get_sign_for_constant_in_unsigned_operation(
+                                                 an_operand *operand_1,
+                                                 an_operand *operand_2,
+                                                 a_boolean  second_is_constant,
+                                                 a_boolean  *constant_sign)
+/*
+operand_1 and operand_2 are the operands of a comparison after the usual
+arithmetic conversions.  is_comparison_of_unsigned_with_constant has
+previously identified this operation as a comparison of an unsigned value
+to a constant, and second_is_constant indicates which of the operands is
+the constant.  Fetch the sign of the constant and return it in *constant_sign.
+If the indicated operand is not an integral constant (e.g., because
+of an error), return FALSE.
+*/
+{
+  a_boolean      okay = FALSE;
+  an_operand     *operand = second_is_constant ? operand_2 : operand_1;
+  a_constant_ptr constant;
+
+  /* Make sure the operand is still a constant. */
+  if (is_constant_operand(operand)) {
+    constant = &operand->variant.constant;
+    if (is_integral_type(constant->type)) {
+      okay = TRUE;
+      *constant_sign = sign_of_integer_constant(constant);
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* get_sign_for_constant_in_unsigned_operation */
+
+
 static void scan_rel_operator(an_operand *operand_1,
                               an_operand *result)
 /*
@@ -5114,6 +5189,7 @@ standard.
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer;
   a_boolean             processed = FALSE;
+  a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
   db_enter(4, "scan_rel_operator");
 
@@ -5174,38 +5250,52 @@ standard.
         /* Both operands should be arithmetic (we have ruled out all the
            pointer cases above).  We already know that operand_1 is
            arithmetic. */
-        (void)check_arithmetic_operand(&operand_2);
-        if (curr_expr_is_evaluated() &&
-            (!is_constant_operand(operand_1) ||
-             !is_constant_operand(&operand_2))) {
-          /* Check for pointless comparisons of unsigned integers against 0,
-             and give a warning.  The pointless cases are
-               u >= 0    (always true)
-               u <  0    (always false)
-               0 >  u    (always false)
-               0 >= u    (always true)
-             The expression is not simplified.  This test must be done before
-             the integral promotions, because they will turn (e.g.) unsigned
-             char into (signed) int.
-          */
-          if (((save_token == tok_ge || save_token == tok_lt) &&
-               is_integral_type(operand_1->type) &&
-               !is_signed_integral_type(operand_1->type) &&
-               op_is_zero_constant(&operand_2)) ||
-              ((save_token == tok_gt || save_token == tok_ge) &&
-               is_integral_type(operand_2.type) &&
-               !is_signed_integral_type(operand_2.type) &&
-               op_is_zero_constant(operand_1))) {
-            pos_warning(ec_unsigned_compare_with_zero, &operator_position);
-          }  /* if */
+        if (check_arithmetic_operand(&operand_2)) {
+          /* Check for comparisons of unsigned integers with zero or negative
+             constants.  More below. */
+          funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
+                                                          operand_1,
+                                                          &operand_2,
+                                                          &second_is_constant);
         }  /* if */
         operation_type = determine_arithmetic_conversions(operand_1,
                                                           &operand_2);
       }  /* if */
     }  /* if */
-
+    /* Determine the result type. */
     result_type = get_logical_result_type(operand_1, &operand_2);
+    /* Convert the operands to a common type. */
     change_binary_operand_types(operation_type, operand_1, &operand_2);
+    if (funny_unsigned_comparison) {
+      /* Check for pointless comparisons of unsigned integers against 0,
+         and give a warning.  The pointless cases are
+           u >= 0    (always true)
+           u <  0    (always false)
+           0 >  u    (always false)
+           0 <= u    (always true)
+         There are also similar cases with negative constants.
+         The expression is not simplified.  Note that we check the nonconstant
+         operand type before any type promotions and the constant value after
+         any type change. */
+      a_boolean constant_sign;
+      if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
+                                                      second_is_constant,
+                                                      &constant_sign)) {
+        if (constant_sign == 0) {
+          /* Comparison of an unsigned value with zero.  Some cases make
+             sense. */
+          if (second_is_constant ?
+                              (save_token == tok_ge || save_token == tok_lt) :
+                              (save_token == tok_gt || save_token == tok_le)) {
+            pos_warning(ec_unsigned_compare_with_zero, &operator_position);
+          }  /* if */
+        } else if (constant_sign < 0) {
+          /* Comparison of an unsigned value with a negative constant.
+             No cases make sense. */
+          pos_warning(ec_unsigned_compare_with_negative, &operator_position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     op = which_binary_operator(save_token, operation_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
@@ -5233,6 +5323,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer, operand_1_is_ptr_to_member;
   a_boolean             processed = FALSE;
+  a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
   db_enter(4, "scan_eq_operator");
 
@@ -5299,7 +5390,14 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
         /* Both operands should be arithmetic (we have ruled out all the
            pointer cases above).  We also know already that operand_1 is
            arithmetic. */
-        (void)check_arithmetic_operand(&operand_2);
+        if (check_arithmetic_operand(&operand_2)) {
+          /* Check for comparisons like "unsignedvar == -1", which are true
+             only in surprising cases. */
+          funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
+                                                          operand_1,
+                                                          &operand_2,
+                                                          &second_is_constant);
+        }  /* if */
         operation_type = determine_arithmetic_conversions(operand_1,
                                                           &operand_2);
       }  /* if */
@@ -5307,6 +5405,23 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 
     result_type = get_logical_result_type(operand_1, &operand_2);
     change_binary_operand_types(operation_type, operand_1, &operand_2);
+    if (funny_unsigned_comparison) {
+      /* Check for pointless comparisons of unsigned integers against negative
+         constants:
+           u == -n   (always false)
+           u != -n   (always true)
+         The expression is not simplified.  Note that we check the nonconstant
+         operand type before any type promotions and the constant value after
+         any type change. */
+      a_boolean constant_sign;
+      if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
+                                                      second_is_constant,
+                                                      &constant_sign) &&
+          constant_sign < 0) {
+        /* Comparison of an unsigned value with a negative constant. */
+        pos_warning(ec_unsigned_compare_with_negative, &operator_position);
+      }  /* if */
+    }  /* if */
     op = which_binary_operator(save_token, operation_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);

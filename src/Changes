@@ -1,5 +1,27 @@
 Version 2.17
 
+5/12/93 Pointless comparisons of unsigned to negative constants
+
+A warning is now issued for pointless comparisons of unsigned values
+with negative constants:
+
+  unsigned short us;
+  void m() {
+    if (us == -1) {}  // warning
+  }
+
+5/12/93 Pointless comparison of unsigned to 0
+
+One of the cases warned about as a pointless comparison of an unsigned
+value against zero was wrong, and one case that should have provoked
+a warning did not.  They now work right:
+
+  unsigned int ui;
+  void m() {
+    0 <= ui;   /* pointless */
+    0 >= ui;   /* okay */
+  }
+
 5/11/93 Type qualifier applied to reference type
 
 A warning is issued now when a reference type is qualified.

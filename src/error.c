@@ -1913,6 +1913,9 @@ error code.
     case ec_incompatible_conv_operands:
       m = "operand types are incompatible (%t2 and %t1)";
       break;
+    case ec_unsigned_compare_with_negative:
+      m = "pointless comparison of unsigned integer with a negative constant";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
