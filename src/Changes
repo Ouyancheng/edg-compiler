@@ -100,8 +100,9 @@ constant or wide string literal, quotes in the token are now escaped.
 
 1/27/97 Initialized incomplete array of char (typedef case)
 
-A spurious error is no longer put out when a character array is declared
-with a typedef specifying unknown size and initialized with a string:
+A spurious error (introduced in version 2.34) is no longer put out when a
+character array is declared with a typedef specifying unknown size and
+initialized with a string:
 
   typedef const char MSG[];
   MSG message = "Hello, world";    // Spurious error no longer issued
@@ -110,20 +111,16 @@ with a typedef specifying unknown size and initialized with a string:
 
 The return type of operator->() is no longer checked at the point at which
 the function is declared but only at the point of use in a class-member
-access expression.  (The check of operator->() return types used to
+access expression.  (The check of operator->() return types used to be
 deferred only for class template members, but now it's deferred for all
 operator-> functions.)
 
-  class A {
+  struct A {
     int i;
     int operator->();         // Error is no longer issued here
-  };
-  class B {
-    A operator->();           // Error is no longer issued here
-  };
-  int f(A* pa, B* pb) {
-    (void)pa->i;              // Error
-    (void)pb->i;              // Error
+  } a;
+  void f() {
+    (void)a->i;               // Error
   };
 
 1/27/97 Building the front end on Windows NT using the Watcom compiler
