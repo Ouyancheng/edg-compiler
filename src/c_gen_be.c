@@ -2744,6 +2744,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* SUNCC */
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
+  check_assertion_str(!is_top_level_qualified_type(expr->type),
+                      "dump_expr: qualified expr type");
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */
