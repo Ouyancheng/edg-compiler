@@ -3515,7 +3515,7 @@ cross-reference output describing this declaration.
       vla_stmt->variant.vla_variable = variable_ptr;
       /* Indicate that the VLA variable needs to be deallocated. */
       variable_ptr->vla_requires_deallocation = TRUE;
-    }
+    } /* if */
   }  /* if */
   if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
