@@ -1,5 +1,21 @@
 Version 2.06
 
+5/21/92  Bug fix: operator new and delete functions may no longer be
+         specified virtual.
+
+5/21/92  Diagnosing redeclaration errors with access declarations.
+
+The rule that allows a tag name to coexist in the same scope with another
+(nontype) object of the same name has been interpreted to apply to access
+declarations as well.  For example, this is now supported:
+
+  class A { public: int s; };
+  class B : private A {
+    public:
+      struct s { int i; };
+      A::s;              // allowed, because struct and object may coexist
+  };
+
 5/21/92  Extension to allow cast to array type
 
 A cast to an array type is treated as a cast to a pointer to the array
