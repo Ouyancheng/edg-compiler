@@ -1,5 +1,12 @@
 Version 2.40
 
+11/23/98  static_cast of void * to pointer to cv-qualified object type
+
+A permissive reading of 5.2.9/10 in the C++ standard suggests that
+a static_cast should be allowed to convert a "void *" to a pointer
+to a cv-qualified object type, e.g., "const char *, even though
+there is no standard conversion in the opposite direction.
+
 11/23/98  Microsoft compatibility: handling of template default arguments
 
 In Microsoft mode, template default arguments are scanned only when
