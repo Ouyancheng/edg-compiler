@@ -5655,7 +5655,11 @@ interface.  If dump_defn is TRUE, dump the interface and definition, but only
 if this routine has a body (dump nothing if it has no body).
 */
 {
-  a_boolean       has_defn = (rout->assoc_scope != NULL_region_number);
+  a_boolean       has_defn = (rout->assoc_scope != NULL_region_number
+#if MAINTAIN_NEEDED_FLAGS
+                              && rout->definition_needed
+#endif /* MAINTAIN_NEEDED_FLAGS */
+                                                        );
   a_boolean       is_definition;
   a_storage_class storage_class;
 

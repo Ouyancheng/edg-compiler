@@ -265,6 +265,22 @@ keep_definition_in_il, or does nothing, depending on the configuration.
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 
 /*
+Set the definition_needed or keep_definition_in_il flag in a routine.
+*/
+#undef set_proper_routine_definition_needed_flag
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+#if NEEDED_FLAG_WALK
+#define set_proper_routine_definition_needed_flag(ptr) \
+  set_routine_definition_needed(ptr);
+#else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
+#define set_proper_routine_definition_needed_flag(ptr) \
+  set_routine_keep_definition_in_il(ptr);
+#endif /* NEEDED_FLAG_WALK */
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+#define set_proper_routine_definition_needed_flag(ptr) /* Nothing */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+
+/*
 Process the source correspondence field pointed to by ptr.
 */
 /* Macro to remap class or namespace parent only if it exists. */
@@ -462,6 +478,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                 /* Routines will be visited from the scope. */
                 remap_ptr(ptr->variant.address.variant.routine, a_routine_ptr,
                           iek_routine);
+                set_proper_routine_definition_needed_flag(
+                                         ptr->variant.address.variant.routine);
                 break;
               case abk_variable:
                 /* Variables will be visited from the scope. */
@@ -494,6 +512,10 @@ the file scope, do not process it (but record an orphan in the latter case).
             if (ptr->variant.ptr_to_member.is_function_ptr) {
               remap_ptr(ptr->variant.ptr_to_member.variant.routine,
                         a_routine_ptr, iek_routine);
+              if (ptr->variant.ptr_to_member.variant.routine != NULL) {
+                set_proper_routine_definition_needed_flag(
+                                   ptr->variant.ptr_to_member.variant.routine);
+              }  /* if */
             } else {
               remap_ptr(ptr->variant.ptr_to_member.variant.field, a_field_ptr,
                         iek_field);
@@ -666,12 +688,11 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* Handle the class type supplement inline, because we need
                to have a pointer to the class to decide whether or not to
-               process definition-related fields.  The walking of field_list
-               is handled there too, if the definition is needed. */
+               process definition-related fields. */
             if (ptr->variant.class_struct_union.extra_info != NULL) {
               goto handle_class_type_supplement_for_class;
             }  /* if */
-#else /* (!NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
             walk_ptr(ptr->variant.class_struct_union.extra_info,
                      a_class_type_supplement_ptr, iek_class_type_supplement);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
@@ -933,6 +954,7 @@ do_set_proper_definition_needed_flag:
             /* Functions are handled from the scope that contains them.  Do
                not visit them here. */
             remap_ptr(ptr->variant.routine, a_routine_ptr, iek_routine);
+            set_proper_routine_definition_needed_flag(ptr->variant.routine);
             break;
 #ifdef CFE
           case enk_field:
@@ -1465,6 +1487,34 @@ do_set_proper_definition_needed_flag:
         if (kind == (a_scope_kind)sck_function) {
           remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
           walk_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
+#if NEW_CAN_BE_FOLDED_INTO_CTOR && !DO_IL_LOWERING
+          /* If this is a constructor and the constructor can handle a default
+             "new" for the class, record the need for the definition of the
+             "new" routine. */
+          if (ptr->variant.routine.ptr->special_kind == sfk_constructor) {
+            a_type_ptr    class_type = ptr->variant.routine.ptr->
+                                              source_corresp.parent.class_type;
+            a_routine_ptr new_rout = class_type->variant.class_struct_union.
+                                        extra_info->assoc_operator_new_routine;
+            if (new_rout != NULL) {
+              set_proper_routine_definition_needed_flag(new_rout);
+            }  /* if */
+          }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR && !DO_IL_LOWERING */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR && !DO_IL_LOWERING
+          /* If this is a destructor and the destructor can handle a default
+             "delete" for the class, record the need for the definition of the
+             "delete" routine. */
+          if (ptr->variant.routine.ptr->special_kind == sfk_destructor) {
+            a_type_ptr    class_type = ptr->variant.routine.ptr->
+                                              source_corresp.parent.class_type;
+            a_routine_ptr delete_rout = class_type->variant.class_struct_union.
+                                     extra_info->assoc_operator_delete_routine;
+            if (delete_rout != NULL) {
+              set_proper_routine_definition_needed_flag(delete_rout);
+            }  /* if */
+          }  /* if */
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR && !DO_IL_LOWERING */
         } else {
           remap_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
         }  /* if */
@@ -1687,6 +1737,9 @@ do_set_proper_definition_needed_flag:
         remap_next_ptr(ptr->next, a_dynamic_init_ptr, iek_dynamic_init);
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
+        if (ptr->destructor != NULL) {
+          set_proper_routine_definition_needed_flag(ptr->destructor);
+        }  /* if */
         remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
 #if !NEEDED_FLAG_WALK
@@ -1712,6 +1765,8 @@ do_set_proper_definition_needed_flag:
           case dik_constructor:
             remap_ptr(ptr->variant.constructor.ptr, a_routine_ptr,
                       iek_routine);
+            set_proper_routine_definition_needed_flag(
+                                                 ptr->variant.constructor.ptr);
             walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
                       iek_expr_node);
             break;
@@ -1935,6 +1990,9 @@ after_entry_from_class:
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
         walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
+        if (ptr->routine != NULL) {
+          set_proper_routine_definition_needed_flag(ptr->routine);
+        }  /* if */
         walk_list(ptr->arg, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->freeing_of_storage_on_exception, a_dynamic_init_ptr,
@@ -2312,6 +2370,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_needed_on_list
 #undef definition_needed_if_class
 #undef set_proper_definition_needed_flag
+#undef set_proper_routine_definition_needed_flag
 #undef remap_parent
 #undef remap_source_sequence_entry
 #undef walk_source_corresp

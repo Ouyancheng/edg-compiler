@@ -3607,7 +3607,7 @@ End a name scope by popping an entry off the scope stack.
     /* The definition of the function is complete, so set the defined flag.
        Note: this is done just before the call to mark_as_needed, because it
        controls whether the function body is walked. */
-    curr_routine->defined = TRUE;
+    set_routine_defined(curr_routine);
 #if MAINTAIN_NEEDED_FLAGS
     /* If the function is really needed (i.e., if it is referenced by code
        that is itself really needed or if it is globally visible and
@@ -3676,11 +3676,11 @@ End a name scope by popping an entry off the scope stack.
       /* Now eliminate everything at file and namespace scope that does not
          need to be kept in the IL. */
       eliminate_unneeded_il_entries(il_scope);
-    } else {
-      /* Check for memory regions that were not written out but now should
-         be. */
-      check_for_done_with_all_function_memory_regions();
     }  /* if */
+    /* Check for memory regions that were not written out but now should
+       be.  Among other things, this deals with functions that have
+       keep_definition_in_il set but not definition_needed. */
+    check_for_done_with_all_function_memory_regions();
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* The IL scope, if any, is no longer on the stack.  This must occur

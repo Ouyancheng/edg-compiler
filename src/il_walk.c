@@ -306,6 +306,52 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #include "walk_entry.h"
 
 
+void set_routine_definition_needed(a_routine_ptr rout)
+/*
+Set the definition_needed flag on the indicated routine.  This means the
+definition of the routine is needed, and not just the declaration.
+*/
+{
+  /* Set the flag if it is not set already. */
+  if (!rout->definition_needed) {
+    rout->definition_needed = TRUE;
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Setting definition_needed on rout  ");
+      db_name(&rout->source_corresp);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    /* If the definition is present, walk it.  set_routine_defined takes
+       care of calling this again later when defined gets set. */
+    if (rout->defined) {
+      a_scope_ptr scope;
+      check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
+                          "set_routine_definition_needed: memory region gone");
+      scope = il_header.region_scope_entry[rout->assoc_scope];
+      /* walk_tree_and_set_needed is not used here so that this routine can
+         be callable from outside of the needed flag walk. */
+      mark_as_needed((char *)scope, iek_scope);
+      /* Do the keep_definition_in_il processing now so we can free the
+         memory region as soon as possible. */
+      set_routine_keep_definition_in_il(rout);
+      /* Decide on disposing of the memory region. */
+      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
+          innermost_function_scope == scope) {
+        /* This function's scope is still on the scope stack, so do nothing
+           now.  check_for_done_with_memory_region will be called when the
+           scope is popped off the stack.  The innermost_function_scope
+           test is needed for generated routines in IL lowering, since they're
+           not on the scope stack. */
+      } else {
+        /* We may be able to dispose of the memory region now. */
+        check_for_done_with_memory_region(rout->assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_routine_definition_needed */
+
+
 void set_class_definition_needed(a_type_ptr type)
 /*
 Set the definition_needed flag on the indicated class type.  This means the
@@ -327,8 +373,8 @@ definition of the class is needed, and not just the declaration.
        the class is not swept when the class needed flag is set. */
     if (type->source_corresp.needed) {
       type->source_corresp.needed = FALSE;
-      /* Can't use walk_tree_and_set_needed here because this routine is
-         callable from outside of the needed flag walk. */
+      /* walk_tree_and_set_needed is not used here so that this routine can
+         be callable from outside of the needed flag walk. */
       mark_as_needed((char *)type, iek_type);
     }  /* if */
   }  /* if */
@@ -413,19 +459,6 @@ as needed.
         }  /* if */
       }  /* if */
 #endif /* DEBUG */
-      if (entry_kind == iek_routine) {
-        /* The entry is a routine.  If it has a definition, walk it now.
-           Note that walking the routine and its subtree will not
-           automatically walk the body. */
-        a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-        if (rout->defined) {
-          a_scope_ptr scope;
-          check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
-                  "prune_needed_flag_il_walk: routine scope has been deleted");
-          scope = il_header.region_scope_entry[rout->assoc_scope];
-          walk_tree_and_set_needed((char *)scope, iek_scope);
-        }  /* if */
-      }  /* if */
       /* Determine whether the subtree of this entry should be walked. */
       prune = should_not_walk_subtree(
                              entry_ptr, entry_kind,
@@ -455,33 +488,6 @@ as needed.
 }  /* prune_needed_flag_il_walk */
 
 
-static void needed_flag_walk_entry_process(char             *entry_ptr,
-                                           an_il_entry_kind entry_kind)
-/*
-Routine called during the "needed" flag IL walk, to process an entry after
-its subtree has been walked.
-*/
-{
-  if (entry_kind == iek_scope) {
-    a_scope_ptr scope = (a_scope_ptr)entry_ptr;
-    if (scope->kind == (a_scope_kind)sck_function) {
-      /* This is a function scope. */
-      /* The IL for the function will not be changing any more, so walk
-         it to note what needs to be kept in the IL (specifically, what
-         in the file scope memory region needs to be kept in the IL). */
-      if (okay_to_eliminate_unneeded_il_entries) {
-        mark_to_keep_in_il((char *)scope, iek_scope);
-      } else {
-        /* Not removing IL entries, so not maintaining the keep_in_il flag.
-           Set it on the scope entry anyway as an indication that the
-           memory region can be disposed of now. */
-        il_entry_prefix_of(scope).keep_in_il = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* needed_flag_walk_entry_process */
-
-
 void mark_as_needed(char             *entry_ptr,
                     an_il_entry_kind entry_kind)
 /*
@@ -494,11 +500,21 @@ references.
   /* Save the state of global variables for later restoration. */
   save_il_walk_state(saved_state);
   /* Set up for this walk. */
-  entry_process_func = needed_flag_walk_entry_process;
+  entry_process_func = NULL;
   string_entry_process_func = NULL;
   walk_termination_test_func = prune_needed_flag_il_walk;
   walk_remap_func = NULL;
   /* walking_file_scope need not be set. */
+  if (entry_kind == (an_il_entry_kind)iek_routine) {
+    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+    /* For an externally-linked function, mark the body as needed too, on
+       the presumption that it will be referenced from other translation
+       units.  The caller could reasonably be expected to do this, but
+       doing it here reduces the possibility of error. */
+    if (rout->storage_class == (a_storage_class)sc_unspecified) {
+      set_routine_definition_needed(rout);
+    }  /* if */
+  }  /* if */
 
   /* Walk the IL tree. */
   walk_tree_and_set_needed(entry_ptr, entry_kind);
@@ -581,10 +597,124 @@ the subtree is walked again if it has changed.
 }  /* clear_keep_in_il_to_allow_subtree_walk */
 
 
+static void r_keep_definitions_of_virtual_functions_in_scope(a_scope_ptr scope)
+/*
+Recursive helper routine for keep_definitions_of_virtual_functions_in_scope.
+See the header comment of that routine for details.
+*/
+{
+  a_type_ptr      type;
+  a_namespace_ptr nsp;
+  a_scope_ptr     block_scope;
+
+  /* Visit all types to find all class types. */
+  for (type = scope->types; type != NULL; type = type->next) {
+    /* Note that class types are processed only if their keep_in_il flag is
+       TRUE.  Since all members will have the same keep_in_il setting as the
+       class, there's no point in looking further if the class has keep_in_il
+       FALSE. */
+    if (is_immediate_class_type(type) && il_entry_prefix_of(type).keep_in_il) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+        r_keep_definitions_of_virtual_functions_in_scope(ctsp->assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Visit all namespaces. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      r_keep_definitions_of_virtual_functions_in_scope(
+                                                     nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    r_keep_definitions_of_virtual_functions_in_scope(block_scope);
+  }  /* for */
+  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    /* A class scope.  Check for virtual functions. */
+    a_routine_ptr rout;
+    for (rout = scope->routines; rout != NULL; rout = rout->next) {
+      if (rout->is_virtual) {
+        /* Force the definition of a virtual function to be kept. */
+        set_routine_keep_definition_in_il(rout);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* r_keep_definitions_of_virtual_functions_in_scope */
+
+
+static void keep_definitions_of_virtual_functions_in_scope(a_scope_ptr scope)
+/*
+Walk through the indicated scope and its subscopes, and set keep_in_il on
+the bodies of any virtual member functions that are marked as keep_in_il.
+This is called at a point where all setting of the "needed" flag has been
+done already.  That's important, because when the keep_in_il flag is
+set on the body of a function, the memory can be freed, and we don't
+want that to happen before the "needed" flag is set.
+*/
+{
+  a_boolean there_might_be_virtual_functions = TRUE;
+
+  if (C_mode()) {
+    /* There are no virtual functions in C, so there's no point in looking
+       for them. */
+    there_might_be_virtual_functions = FALSE;
+#if DO_IL_LOWERING
+  } else {
+    /* If IL lowering is done, there will be no virtual functions, so there's
+       no point in looking for them. */
+    if (!suppress_il_lowering) there_might_be_virtual_functions = FALSE;
+#endif /* DO_IL_LOWERING */
+  }  /* if */
+  if (there_might_be_virtual_functions) {
+    r_keep_definitions_of_virtual_functions_in_scope(scope);
+  }  /* if */
+}  /* keep_definitions_of_virtual_functions_in_scope */
+
+
+void set_routine_keep_definition_in_il(a_routine_ptr rout)
+/*
+Set the keep_definition_in_il flag on the indicated routine.  This means
+the definition of the routine must be kept in the IL, and not just the
+declaration.
+*/
+{
+  /* Set the flag if it is not set already. */
+  if (!rout->keep_definition_in_il) {
+    rout->keep_definition_in_il = TRUE;
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Setting keep_definition_in_il on rout  ");
+      db_name(&rout->source_corresp);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    /* If the definition is present, walk it.  set_routine_defined takes
+       care of calling this again later when defined gets set. */
+    if (rout->defined) {
+      a_scope_ptr scope;
+      check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
+                      "set_routine_keep_definition_in_il: memory region gone");
+      scope = il_header.region_scope_entry[rout->assoc_scope];
+      /* walk_tree_and_set_keep_in_il is not used here so that this routine can
+         be callable from outside of the keep_in_il flag walk. */
+      mark_to_keep_in_il((char *)scope, iek_scope);
+      /* Make sure the definitions of virtual functions of local classes
+         are kept. */
+      keep_definitions_of_virtual_functions_in_scope(scope);
+    }  /* if */
+  }  /* if */
+}  /* set_routine_keep_definition_in_il */
+
+
 void set_class_keep_definition_in_il(a_type_ptr type)
 /*
 Set the keep_definition_in_il flag on the indicated class type.  This means
-the definition of the class is must be kept in the IL, and not just the
+the definition of the class must be kept in the IL, and not just the
 declaration.
 */
 {
@@ -604,8 +734,8 @@ declaration.
        is set. */
     if (il_entry_prefix_of(type).keep_in_il) {
       clear_keep_in_il_to_allow_subtree_walk((char *)type, iek_type);
-      /* Can't call walk_tree_and_set_keep_in_il here because this routine
-         is callable from outside of the keep_in_il walk. */
+      /* walk_tree_and_set_keep_in_il is not used here so that this routine can
+         be callable from outside of the keep_in_il flag walk. */
       mark_to_keep_in_il((char *)type, iek_type);
     }  /* if */
   }  /* if */
@@ -653,88 +783,6 @@ keep_in_il walk.
     }  /* if */
   }  /* for */
 }  /* set_keep_in_il_on_befriending_classes */
-
-
-static void r_set_keep_in_il_on_virtual_functions_in_scope(a_scope_ptr scope)
-/*
-Recursive helper routine for set_keep_in_il_on_virtual_functions_in_scope.
-See the header comment of that routine for details.
-*/
-{
-  a_type_ptr      type;
-  a_namespace_ptr nsp;
-  a_scope_ptr     block_scope;
-
-  /* Visit all types to find all class types. */
-  for (type = scope->types; type != NULL; type = type->next) {
-    /* Note that class types are processed only if their keep_in_il flag is
-       TRUE.  Since all members will have the same keep_in_il setting as the
-       class, there's no point in looking further if the class has keep_in_il
-       FALSE. */
-    if (is_immediate_class_type(type) && il_entry_prefix_of(type).keep_in_il) {
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-        r_set_keep_in_il_on_virtual_functions_in_scope(ctsp->assoc_scope);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  /* Visit all namespaces. */
-  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      r_set_keep_in_il_on_virtual_functions_in_scope(nsp->variant.assoc_scope);
-    }  /* if */
-  }  /* for */
-  /* Visit all block scopes. */
-  for (block_scope = scope->scopes;
-       block_scope != NULL;
-       block_scope = block_scope->next) {
-    r_set_keep_in_il_on_virtual_functions_in_scope(block_scope);
-  }  /* for */
-  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
-    /* A class scope.  Check for virtual functions. */
-    a_routine_ptr rout;
-    for (rout = scope->routines; rout != NULL; rout = rout->next) {
-      if (rout->is_virtual && rout->defined &&
-          mem_region_table[rout->assoc_scope] != NULL) {
-        /* The routine is virtual, has a definition, and the memory
-           region for it is still around.  Set keep_in_il on the body of
-           the function. */
-        a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
-        walk_tree_and_set_keep_in_il((char *)scope, iek_scope);
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* r_set_keep_in_il_on_virtual_functions_in_scope */
-
-
-static void set_keep_in_il_on_virtual_functions_in_scope(a_scope_ptr scope)
-/*
-Walk through the indicated scope and its subscopes, and set keep_in_il on
-the bodies of any virtual member functions that are marked as keep_in_il.
-This is called at a point where all setting of the "needed" flag has been
-done already.  That's important, because when the keep_in_il flag is
-set on the body of a function, the memory can be freed, and we don't
-want that to happen before the "needed" flag is set.
-*/
-{
-  a_boolean there_might_be_virtual_functions = TRUE;
-
-  if (C_mode()) {
-    /* There are no virtual functions in C, so there's no point in looking
-       for them. */
-    there_might_be_virtual_functions = FALSE;
-#if DO_IL_LOWERING
-  } else {
-    /* If IL lowering is done, there will be no virtual functions, so there's
-       no point in looking for them. */
-    if (!suppress_il_lowering) there_might_be_virtual_functions = FALSE;
-#endif /* DO_IL_LOWERING */
-  }  /* if */
-  if (there_might_be_virtual_functions) {
-    r_set_keep_in_il_on_virtual_functions_in_scope(scope);
-  }  /* if */
-}  /* set_keep_in_il_on_virtual_functions_in_scope */
 
 
 static a_boolean prune_keep_in_il_walk(char             *entry_ptr,
@@ -822,40 +870,6 @@ to be kept.
 }  /* prune_keep_in_il_walk */
 
 
-static void keep_in_il_walk_entry_process(char             *entry_ptr,
-                                          an_il_entry_kind entry_kind)
-/*
-Routine called during the keep_in_il flag IL walk, to process an entry after
-its subtree has been walked.
-*/
-{
-  /* After we've processed a function scope, we can dispose of the IL for
-     the function. */
-  if (entry_kind == iek_scope) {
-    a_scope_ptr scope = (a_scope_ptr)entry_ptr;
-    if (scope->kind == (a_scope_kind)sck_function) {
-      /* This is a function scope. */
-      /* Make sure keep_in_il is set on any virtual member functions of
-         local classes. */
-      set_keep_in_il_on_virtual_functions_in_scope(scope);
-      /* Decide on disposing of the memory region. */
-      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
-          innermost_function_scope == scope) {
-        /* This function's scope is still on the scope stack, so do nothing
-           now.  check_for_done_with_memory_region will be called when the
-           scope is popped off the stack.  The innermost_function_scope
-           test is needed for generated routines in IL lowering, since they're
-           not on the scope stack. */
-      } else {
-        /* We may be able to dispose of the memory region now. */
-        a_routine_ptr rout = scope->variant.routine.ptr;
-        check_for_done_with_memory_region(rout->assoc_scope);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* keep_in_il_walk_entry_process */
-
-
 void mark_to_keep_in_il(char             *entry_ptr,
                         an_il_entry_kind entry_kind)
 /*
@@ -871,7 +885,7 @@ only the entries marked as "needed" are marked to keep in the IL.
   /* Save the state of global variables for later restoration. */
   save_il_walk_state(saved_state);
   /* Set up for this walk. */
-  entry_process_func = keep_in_il_walk_entry_process;
+  entry_process_func = NULL;
   string_entry_process_func = NULL;
   walk_termination_test_func = prune_keep_in_il_walk;
   walk_remap_func = NULL;
@@ -889,8 +903,8 @@ only the entries marked as "needed" are marked to keep in the IL.
     a_scope_ptr                      scope = (a_scope_ptr)entry_ptr;
     a_scope_orphaned_list_header_ptr solhp;
     /* The file scope is being walked. */
-    /* Set the keep_in_il flag on the bodies of virtual member functions. */
-    set_keep_in_il_on_virtual_functions_in_scope(scope);
+    /* Keep the definitions of virtual member functions. */
+    keep_definitions_of_virtual_functions_in_scope(scope);
 #if RECORD_MACROS_IN_IL
     /* Mark all macros to be kept. */
     walk_list(il_header.macros, a_macro_ptr, iek_macro);
@@ -910,16 +924,7 @@ only the entries marked as "needed" are marked to keep in the IL.
          solhp != NULL;
          solhp = solhp->next) {
       a_routine_ptr rout = solhp->assoc_routine;
-      a_boolean     routine_body_kept;
-      if (mem_region_table[rout->assoc_scope] == NULL) {
-        /* If the routine memory region has been deleted, it must be because
-           the keep_in_il flag was set. */
-        routine_body_kept = TRUE;
-      } else {
-        a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
-        routine_body_kept = il_entry_prefix_of(scope).keep_in_il;
-      }  /* if */
-      if (routine_body_kept) {
+      if (rout->keep_definition_in_il) {
         walk_ptr(solhp, a_scope_orphaned_list_header_ptr,
                  iek_scope_orphaned_list_header);
       }  /* if */

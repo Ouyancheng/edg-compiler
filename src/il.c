@@ -6640,6 +6640,38 @@ of compiler-generated function (e.g., a constructor).
   }  /* if */
 }  /* mark_routine_referenced */
 
+void set_routine_defined(a_routine_ptr rout)
+/*
+Set the "defined" flag for a routine.  This can kick off some processing
+related to "needed" flags.
+*/
+{
+  if (!rout->defined) {
+    rout->defined = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Setting defined on rout ");
+      db_name(&rout->source_corresp);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    /* If the definition_needed or keep_definition_in_il flags were
+       set previously, set them again so the function body will be scanned.
+       The fact that rout->defined was FALSE prevented the scanning of the
+       body. */
+    if (rout->keep_definition_in_il) {
+      rout->keep_definition_in_il = FALSE;
+      set_routine_keep_definition_in_il(rout);
+    }  /* if */
+    if (rout->definition_needed) {
+      rout->definition_needed = FALSE;
+      set_routine_definition_needed(rout);
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
+}  /* set_routine_defined */
+
 
 a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
                                           an_expr_node_ptr source)
@@ -9816,18 +9848,7 @@ dependent on it.  The routine entry itself is dealt with later.
     } else {
       sp = il_header.region_scope_entry[n];
       check_assertion(sp->kind == (a_scope_kind)sck_function);
-      if (il_entry_prefix_of(sp).keep_in_il) {
-#if CHECKING
-        /* Not to be removed: either the needed flag has been set for the
-           routine or else it is a virtual function of a class that, though
-           "unneeded", still must be kept in the IL (e.g., because it is
-           nested within a needed class). */
-        rp = sp->variant.routine.ptr;
-        check_assertion_str2(rp->source_corresp.needed || rp->is_virtual,
-                             "eliminate_bodies_of_unneeded_functions",
-                             "mismatch between needed and keep-in-il flags");
-#endif /* CHECKING */
-      } else {
+      if (!sp->variant.routine.ptr->keep_definition_in_il) {
         rp = sp->variant.routine.ptr;
         /* An unneeded routine definition. */
 #if DEBUG

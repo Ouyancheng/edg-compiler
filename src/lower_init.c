@@ -1788,7 +1788,7 @@ Pop function corresponding to push_generated_routine_context.
      routine. */
   add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  rout->defined = TRUE;
+  set_routine_defined(rout);
 #if MAINTAIN_NEEDED_FLAGS
   /* If the routine is external, mark it as needed.  This must be done after
      the "defined" flag is set. */

@@ -1075,8 +1075,9 @@ memory or with an IL file.
 
     check_assertion(scope != NULL);
     if (scope->kind == (a_scope_kind)sck_function) {
+      a_routine_ptr rout = scope->variant.routine.ptr;
 #if MAINTAIN_NEEDED_FLAGS
-      if (!il_entry_prefix_of(scope).keep_in_il) {
+      if (!rout->keep_definition_in_il) {
         /* This memory region so far looks as if it's unneeded.  Hold on
            to it for now.  If we make it to the end of the compilation with
            the memory region still unneeded, we will have the option of
@@ -1084,9 +1085,18 @@ memory or with an IL file.
         write_region = FALSE;
         keep_memory = TRUE;
       }  /* if */
+#if DEBUG
+      if (db_flag_is_set("needed_flags")) {
+        fprintf(f_debug, "check_for_done_with_memory_region: ");
+        fprintf(f_debug, "%s writing memory region for ",
+                write_region ? "" : "not");
+        db_name(&rout->source_corresp);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MINIMAL_INLINING
-      if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
+      if (inlining_enabled && rout->is_inline) {
         /* Keep the region for an inline function so it can be used to
            do inlining. */
         keep_memory = TRUE;
@@ -1123,15 +1133,16 @@ memory or with an IL file.
 void check_for_done_with_all_function_memory_regions(void)
 /*
 This routine is called to write out function memory regions that were not
-written out because they were not originally known to be needed.  This is an
-issue only if compilation takes place in a mode that permits the elimination
-of unneeded entities; this routine is necessary because it can be determined
-in the course of compilation that apparently unneeded entities should not be
-eliminated after all (e.g., because template declarations were encountered).
+written out because definition_needed did not get set in the routine.
+Such routines remain in the IL tree (a) if unneeded entities are not
+being eliminated, or (b) if they are marked with keep_definition_in_il but
+not definition_needed.  A routine with both definition_needed and
+keep_definition_in_il can be eliminated immediately (because nothing
+further can happen to it), but a routine with just keep_definition_in_il
+is kept around in case definition_needed might be set later.
 */
 {
   db_enter(5, "check_for_done_with_all_function_memory_regions");
-  check_assertion(!okay_to_eliminate_unneeded_il_entries);
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   {
   /* Loop through the memory regions.  Skip the front end and file scope
@@ -1144,16 +1155,15 @@ eliminated after all (e.g., because template declarations were encountered).
       a_scope_ptr  sp = il_header.region_scope_entry[n];
 
       check_assertion(sp->kind == (a_scope_kind)sck_function);
-      /* Since this routine is called only when elimination of unneeded IL
-         entries is suppressed, mark the routine to be kept in the IL, to
-         assure it will be written out. */
-      il_entry_prefix_of(sp).keep_in_il = TRUE;
+      /* Mark the routine definition to be kept in the IL, to assure it will
+         be written out. */
+      set_routine_keep_definition_in_il(sp->variant.routine.ptr);
       check_for_done_with_memory_region(n);
     }  /* if */
   }  /* for */
   }
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
-  db_exit()
+  db_exit();
 }  /* check_for_done_with_all_function_memory_regions */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */

@@ -1,5 +1,27 @@
 Version 2.32
 
+6/4/96  definition_needed flag for routines
+
+When MAINTAIN_NEEDED_FLAGS is enabled, a definition_needed flag is now
+maintained for routines.  (Previously, there was one for classes, but
+not for routines.)  It differentiates the cases where a routine is
+needed only as a declaration from those where the definition is also
+needed.  If you consult the "needed" flag in your back end, you must
+also consult this new flag.  This change fixes a bug in the following:
+
+  struct S
+  {
+  	~S(){}
+  };
+  void foo() throw(S);
+
+Before this fix, the typeinfo variable for struct S, though marked
+as unneeded, had an initial value that includes a pointer to S::~S,
+but the definition of the destructor was removed.  This produced
+an inconsistency for back ends that do not consult the "needed" flag --
+there is a pointer to a static function, but the function has no
+definition.
+
 6/1/96  Destruction of partially-constructed aggregates on exception
 
 Arrays and aggregate classes can be initialized piecewise using the "{}"
