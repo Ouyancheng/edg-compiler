@@ -6123,6 +6123,10 @@ This routine may only be called in C++ mode.
 	/* A type keyword (e.g. int, long, etc.). Get the type
            associated with the keyword. */
         dtor_type = type_keyword();
+        /* If the thing being scanned looks like "T::~int", where T is a
+	   typedef, save the type pointed to as dtor_class_type.  This
+	   will be used later for error checking. */
+        if (dtor_class_type == NULL) dtor_class_type = class_type;
         /* This will eventually result in the locator qualifier class type
 	   being set to the type of the vacuous destructor. */
         class_type = dtor_type;

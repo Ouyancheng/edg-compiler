@@ -1,5 +1,18 @@
 Version 2.21
 
+12/14/93  Vacuous destructor call combining typedef and type keyword
+
+A bug has been fixed that resulted in an internal error when a
+vacuous destructor call contained a typedef name in the class qualifier.
+
+  typedef char cc;
+  void f()
+  {
+    char* p;
+    p->cc::~char();
+  }
+
+
 12/14/93  Specific declaration of template function using a typedef name
 
 A bug has been fixed that resulted in an abort when instantiating a
