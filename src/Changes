@@ -67,8 +67,8 @@ warning is inhibited.
 
 1/19/05  UPC mode: THREADS and UPC_MAX_BLOCK_SIZE
 
-In UPC mode with a a static threads count (i.e., a threads count specified with
-the --upc_threads command-line option), the identifiers THREADS is now a macro
+In UPC mode with a static THREADS count (i.e., a threads count specified with
+the --upc_threads command-line option), the identifier THREADS is now a macro
 that expands to an integer literal representing the number of threads.
 Furthermore, in all UPC modes, the macro UPC_MAX_BLOCK_SIZE now expands to an
 integer literal describing the maximum allowable UPC block size.
