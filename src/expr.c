@@ -1951,7 +1951,7 @@ bound with the function in *bound_function_selector.
           /* In pcc mode, something like 0->x is valid. */
           pcc_mode_integral_pointer_case = TRUE;
           orig_class_struct_union_type = NULL;  /* Defensive programming. */
-        } else if (is_template_param_type(operand_1->type)) {
+        } else if (could_be_dependent_class_type(operand_1->type)) {
           /* Allow a template parameter type in a prototype instantiation. */
           orig_class_struct_union_type = type_of_unknown_templ_param_nontype;
         } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
