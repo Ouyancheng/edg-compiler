@@ -5902,13 +5902,14 @@ end_exact_test:;
       } else {
         /* Not a function template entry, so keep it on the list. */
         if (end_candidate_functions == NULL) {
-          *candidate_functions = candidates = cfp;
+          *candidate_functions = cfp;
         } else {
           end_candidate_functions->next = cfp;
         }  /* if */
         end_candidate_functions = cfp;
       }  /* if */
     }  /* for */
+    candidates = *candidate_functions;
   }  /* if */
   /* At this point, there are no function template entries on the
      candidate functions list. */
