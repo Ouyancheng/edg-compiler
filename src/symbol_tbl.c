@@ -3525,10 +3525,15 @@ NULL.
 */
 {
   a_storage_class storage_class;
-  a_type_ptr      var_type;
+  a_type_ptr      var_type, type_ptr;
   a_variable_ptr  var_ptr;
   a_routine_ptr   rout_ptr;
   an_error_code   warning_code;
+  a_symbol_ptr    rout_sym;
+  a_boolean       is_overloaded;
+#if CHECKING
+  a_source_correspondence  *scp = NULL;
+#endif /* CHECKING */
 
   warning_code = ec_no_error;
   switch (sym->kind) {
@@ -3602,56 +3607,83 @@ NULL.
           }  /* if */
         }  /* if */
       }  /* if */
+#if CHECKING
+      scp = &var_ptr->source_corresp;
+#endif CHECKING
       break;
+    case sk_overloaded_function:
+      rout_sym = sym->variant.overloaded_function.symbols;
+      is_overloaded = TRUE;
+      goto check_routine;
+#if CHECKING
+    case sk_member_function:
+#endif /* CHECKING */
     case sk_routine:
       /* Function. */
-      rout_ptr = sym->variant.routine;
-      if (sym->referenced) {
-        /* Referenced function. */
-        if (rout_ptr->storage_class == (a_storage_class)sc_static &&
-            depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-            rout_ptr->assoc_scope == NULL_region_number) {
-          /* A non-external routine that is referenced was never given
-             a body (3.7, constraints).  This is checked only at the file
-             scope because there can be symbols with linkage defined in
-             inner scopes, but only the file scope declaration can have
-             a body. */
-          if (C_dialect == C_dialect_pcc) {
-            /* In pcc mode, just change the routine to extern. */
-            rout_ptr->storage_class = (a_storage_class)sc_extern;
-            rout_ptr->source_corresp.name_linkage =
+      rout_sym = sym;
+      is_overloaded = FALSE;
+check_routine:
+      for (; rout_sym != NULL;
+             rout_sym = (is_overloaded ? rout_sym->next : NULL)) {
+        rout_ptr = rout_sym->variant.routine;
+        if (rout_sym->kind != (a_symbol_kind)sk_member_function) {
+          if (rout_sym->referenced) {
+            /* Referenced function. */
+            if (rout_ptr->storage_class == (a_storage_class)sc_static &&
+                depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+                rout_ptr->assoc_scope == NULL_region_number) {
+              /* A non-external routine that is referenced was never given
+                 a body (3.7, constraints).  This is checked only at the file
+                 scope because there can be symbols with linkage defined in
+                 inner scopes, but only the file scope declaration can have
+                 a body. */
+              if (C_dialect == C_dialect_pcc) {
+                /* In pcc mode, just change the routine to extern. */
+                rout_ptr->storage_class = (a_storage_class)sc_extern;
+                rout_ptr->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_external;
+              } else {
+                pos_st_error(ec_routine_definition_missing,
+                             &rout_sym->decl_position,
+                             rout_sym->header->identifier);
+              }  /* if */
+            }  /* if */
           } else {
-            pos_st_error(ec_routine_definition_missing,
-                         &sym->decl_position, sym->header->identifier);
+            /* Unreferenced function. */
+            storage_class = rout_ptr->storage_class;
+            if (storage_class == (a_storage_class)sc_unspecified) {
+              /* Externally-visible function.  Assume a reference from some
+                 other compilation unit. */
+              rout_ptr->source_corresp.referenced = TRUE;
+            } else if (storage_class == (a_storage_class)sc_extern) {
+              /* No warning on unused "extern" routines; this is a
+                 long-standing C tradition. */
+#if ASM_FUNCTION_ALLOWED
+            } else if (storage_class == (a_storage_class)sc_asm) {
+              /* "asm" functions don't generate any code unless referenced,
+                 and may appear in header files, so no warning is generated. */
+#endif /* ASM_FUNCTION_ALLOWED */
+            } else {
+              /* An unreferenced routine. */
+              warning_code = ec_routine_declared_but_not_referenced;
+            }  /* if */
           }  /* if */
         }  /* if */
-      } else {
-        /* Unreferenced function. */
-        storage_class = rout_ptr->storage_class;
-        if (storage_class == (a_storage_class)sc_unspecified) {
-          /* Externally-visible function.  Assume a reference from some
-             other compilation unit. */
-          rout_ptr->source_corresp.referenced = TRUE;
-        } else if (storage_class == (a_storage_class)sc_extern) {
-          /* No warning on unused "extern" routines; this is a
-             long-standing C tradition. */
-#if ASM_FUNCTION_ALLOWED
-        } else if (storage_class == (a_storage_class)sc_asm) {
-          /* "asm" functions don't generate any code unless referenced,
-             and may appear in header files, so no warning is generated. */
-#endif /* ASM_FUNCTION_ALLOWED */
-        } else {
-          /* An unreferenced routine. */
-          warning_code = ec_routine_declared_but_not_referenced;
+#if CHECKING
+        if (rout_sym->class_of_which_a_member !=
+                        rout_ptr->source_corresp.class_of_which_a_member) {
+          internal_error(
+            "end_of_scope_symbol_check: bad class_of_which_a_member for rout");
         }  /* if */
-      }  /* if */
+#endif /* CHECKING */
+      }  /* for */
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
     case sk_enum_tag:
       /* Struct, union, or enum tag. */
-      if (is_incomplete_type(sym->variant.type)) {
+      type_ptr = type_symbol_type(sym);
+      if (is_incomplete_type(type_ptr)) {
         /* A tag that was never completed.  This is not an error.
            It's not even a warning, because people really do this
            intentionally.  Declaring something of this type would
@@ -3659,23 +3691,26 @@ NULL.
            would be allowed. */
         /* Add it now to the current scope's type list.  It was not added
            previously because no actual definition appeared. */
-        a_type_ptr  tp = sym->variant.type;
-        add_to_types_list(tp, decl_scope_level,
+        add_to_types_list(type_ptr, decl_scope_level,
                           /*in_old_style_param_decl_list=*/FALSE);
-        if (!is_immediate_class_type(tp)) {
+        if (!is_immediate_class_type(type_ptr)) {
           /* If this is a reference-to-class type, we want to add both types
              to the appropriate scope list.  The referenced type will be at
              at file scope. */
 #if CHECKING
-          if (tp->kind != (a_type_kind)tk_typeref ||
-              !tp->variant.typeref.is_function_scope_tag) {
+          if (type_ptr->kind != (a_type_kind)tk_typeref ||
+              !type_ptr->variant.typeref.is_function_scope_tag) {
             internal_error("end_of_scope_symbol_check: expected tag typeref");
           }  /* if */
 #endif /* CHECKING */
-          add_to_types_list(tp->variant.typeref.type, DEPTH_OF_FILE_SCOPE,
+          add_to_types_list(type_ptr->variant.typeref.type,
+                            DEPTH_OF_FILE_SCOPE,
                             /*in_old_style_param_decl_list=*/FALSE);
         }  /* if */
       }  /* if */
+#if CHECKING
+      scp = &type_ptr->source_corresp;
+#endif /* CHECKING */
       break;
     case sk_label:
       /* Label. */
@@ -3740,6 +3775,20 @@ NULL.
         }  /* if */
       }  /* if */
       break;
+#if CHECKING
+    case sk_static_data_member:
+      scp = &sym->variant.variable->source_corresp;
+      break;
+    case sk_constant:
+      scp = &sym->variant.constant->source_corresp;
+      break;
+    case sk_field:
+      scp = &sym->variant.field.ptr->source_corresp;
+      break;
+    case sk_type:
+      scp = &sym->variant.type->source_corresp;
+      break;
+#endif /* CHECKING */
     default:
       /* No processing for other kinds. */
       break;
@@ -3755,6 +3804,12 @@ NULL.
                      sym->header->identifier);
     }  /* if */
   }  /* if */
+#if CHECKING
+  if (scp != NULL &&
+      (sym->class_of_which_a_member != scp->class_of_which_a_member)) {
+    internal_error("end_of_scope_symbol_check: bad class_of_which_a_member");
+  }  /* if */
+#endif /* if */
 }  /* end_of_scope_symbol_check */
 
 
