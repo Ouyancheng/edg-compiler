@@ -1200,8 +1200,9 @@ ec_super_not_in_class;;"__super may only be used in a class scope"
 ec_unqualified_super;;"__super must followed by \"::\""
 ec_context_lines_skipped;;"[ %s instantiation contexts not shown ]"
 ec_mangled_name_too_long;;"mangled name is too long"
-ec_error_aliased_name_undeclared;;"declaration aliased to unknown entity %sq"
-ec_error_aliased_name_bad_kind;;"declaration does not match its alias %n"
+ec_aliased_name_undeclared;;"declaration aliased to unknown entity %sq"
+ec_aliased_name_bad_kind;;"declaration does not match its alias %n"
+ec_alias_cannot_have_definition;;"entity declared as alias cannot have definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
