@@ -564,11 +564,12 @@ are not enabled, and thus stays zero on all calls).
       case 'U':
         /* A universal character name.  Back the pointer up to the position
            of the backslash. */
-        /* Universal characters are only allowed in C++. */
-        if (C_mode()) goto other_chars;
+        /* Universal characters are allowed in C++ and C99. */
+        if (!universal_character_names_allowed) goto other_chars;
         lptr -= 2;
         targ_ch = scan_universal_character(&lptr,
                                            /*is_identifier=*/FALSE,
+					   /*is_identifier_start=*/FALSE,
                                            /*issue_diagnostics=*/TRUE);
         goto range_check;
       case 'x':

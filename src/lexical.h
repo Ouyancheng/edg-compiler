@@ -1672,6 +1672,7 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
 extern unsigned long scan_universal_character(
 					char		**start_pos,
 					a_boolean	is_identifier,
+				        a_boolean	is_identifier_start,
 					a_boolean	issue_diagnostics);
 
 

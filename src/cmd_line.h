@@ -1351,6 +1351,11 @@ EXTERN a_boolean
 			   mode.  It is also permitted in Microsoft mode
 			   (both C and C++). */
 
+EXTERN a_boolean
+		universal_character_names_allowed /* = FALSE*/;
+			/* TRUE if Universal character names should be
+			   accepted.  Permitted in C++ and C99 modes. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

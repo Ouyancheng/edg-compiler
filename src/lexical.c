@@ -88,7 +88,9 @@ at the beginning of get_token need to be done.
 
 
 /*
-Entry used to represent the table of valid universal character name.
+Entry used to represent the table of universal character names that
+may be used as part of an identifier.
+
 A sorted array of these entries is used when checking the validity of
 a given universal character.
 */
@@ -100,72 +102,268 @@ typedef struct a_UCN_range {
   unsigned long
 		end;
 			/* The last character in the range. */
+  a_boolean	is_digit;
+			/* TRUE if this is a digit, FALSE if it is some other
+			   valid identifier character. */
 } a_UCN_range;
 
 /*
-Sorted table of valid UCN ranges.  This is extracted from Annex E
+Sorted table of valid UCN ranges.  This is extracted from Annex D
+of the C99 standard.  This table is used in both C++ and C99 modes
+as it is an updated version of the table specified in the Annex E
 of the C++ standard.
 */
 static a_UCN_range
 		UCN_table[] = {
-  { 0x00c0, 0x00d6 }, { 0x00d8, 0x00f6 }, { 0x00f8, 0x01f5 },
-  { 0x01fa, 0x0217 }, { 0x0250, 0x02a8 }, { 0x0384, 0x0384 },
-  { 0x0388, 0x038a }, { 0x038c, 0x038c }, { 0x038e, 0x03a1 },
-  { 0x03a3, 0x03ce }, { 0x03d0, 0x03d6 }, { 0x03da, 0x03da },
-  { 0x03dc, 0x03dc }, { 0x03de, 0x03de }, { 0x03e0, 0x03e0 },
-  { 0x03e2, 0x03f3 }, { 0x0401, 0x040d }, { 0x040f, 0x044f },
-  { 0x0451, 0x045c }, { 0x045e, 0x0481 }, { 0x0490, 0x04c4 },
-  { 0x04c7, 0x04c8 }, { 0x04cb, 0x04cc }, { 0x04d0, 0x04eb },
-  { 0x04ee, 0x04f5 }, { 0x04f8, 0x04f9 }, { 0x0531, 0x0556 },
-  { 0x0561, 0x0587 }, { 0x05d0, 0x05ea }, { 0x05f0, 0x05f4 },
-  { 0x0621, 0x063a }, { 0x0640, 0x0652 }, { 0x0670, 0x06b7 },
-  { 0x06ba, 0x06be }, { 0x06c0, 0x06ce }, { 0x06e5, 0x06e7 },
-  { 0x0905, 0x0939 }, { 0x0958, 0x0962 }, { 0x0985, 0x098c },
-  { 0x098f, 0x0990 }, { 0x0993, 0x09a8 }, { 0x09aa, 0x09b0 },
-  { 0x09b2, 0x09b2 }, { 0x09b6, 0x09b9 }, { 0x09dc, 0x09dd },
-  { 0x09df, 0x09e1 }, { 0x09f0, 0x09f1 }, { 0x0a05, 0x0a0a },
-  { 0x0a0f, 0x0a10 }, { 0x0a13, 0x0a28 }, { 0x0a2a, 0x0a30 },
-  { 0x0a32, 0x0a33 }, { 0x0a35, 0x0a36 }, { 0x0a38, 0x0a39 },
-  { 0x0a59, 0x0a5c }, { 0x0a5e, 0x0a5e }, { 0x0a85, 0x0a8b },
-  { 0x0a8d, 0x0a8d }, { 0x0a8f, 0x0a91 }, { 0x0a93, 0x0aa8 },
-  { 0x0aaa, 0x0ab0 }, { 0x0ab2, 0x0ab3 }, { 0x0ab5, 0x0ab9 },
-  { 0x0ae0, 0x0ae0 }, { 0x0b05, 0x0b0c }, { 0x0b0f, 0x0b10 },
-  { 0x0b13, 0x0b28 }, { 0x0b2a, 0x0b30 }, { 0x0b32, 0x0b33 },
-  { 0x0b36, 0x0b39 }, { 0x0b5c, 0x0b5d }, { 0x0b5f, 0x0b61 },
-  { 0x0b85, 0x0b8a }, { 0x0b8e, 0x0b90 }, { 0x0b92, 0x0b95 },
-  { 0x0b99, 0x0b9a }, { 0x0b9c, 0x0b9c }, { 0x0b9e, 0x0b9f },
-  { 0x0ba3, 0x0ba4 }, { 0x0ba8, 0x0baa }, { 0x0bae, 0x0bb5 },
-  { 0x0bb7, 0x0bb9 }, { 0x0c05, 0x0c0c }, { 0x0c0e, 0x0c10 },
-  { 0x0c12, 0x0c28 }, { 0x0c2a, 0x0c33 }, { 0x0c35, 0x0c39 },
-  { 0x0c60, 0x0c61 }, { 0x0c85, 0x0c8c }, { 0x0c8e, 0x0c90 },
-  { 0x0c92, 0x0ca8 }, { 0x0caa, 0x0cb3 }, { 0x0cb5, 0x0cb9 },
-  { 0x0ce0, 0x0ce1 }, { 0x0d05, 0x0d0c }, { 0x0d0e, 0x0d10 },
-  { 0x0d12, 0x0d28 }, { 0x0d2a, 0x0d39 }, { 0x0d60, 0x0d61 },
-  { 0x0e01, 0x0e30 }, { 0x0e32, 0x0e33 }, { 0x0e40, 0x0e46 },
-  { 0x0e4f, 0x0e5b }, { 0x0e81, 0x0e82 }, { 0x0e84, 0x0e84 },
-  { 0x0e87, 0x0e87 }, { 0x0e88, 0x0e88 }, { 0x0e8a, 0x0e8a },
-  { 0x0e8d, 0x0e8d }, { 0x0e94, 0x0e97 }, { 0x0e99, 0x0e9f },
-  { 0x0ea1, 0x0ea3 }, { 0x0ea5, 0x0ea5 }, { 0x0ea7, 0x0ea7 },
-  { 0x0eaa, 0x0eaa }, { 0x0eab, 0x0eab }, { 0x0ead, 0x0eb0 },
-  { 0x0eb2, 0x0eb2 }, { 0x0eb3, 0x0eb3 }, { 0x0ebd, 0x0ebd },
-  { 0x0ec0, 0x0ec4 }, { 0x0ec6, 0x0ec6 }, { 0x10a0, 0x10c5 },
-  { 0x10d0, 0x10f6 }, { 0x1100, 0x1159 }, { 0x1161, 0x11a2 },
-  { 0x11a8, 0x11f9 }, { 0x1e00, 0x1e9a }, { 0x1ea0, 0x1ef9 },
-  { 0x1f00, 0x1f15 }, { 0x1f18, 0x1f1d }, { 0x1f20, 0x1f45 },
-  { 0x1f48, 0x1f4d }, { 0x1f50, 0x1f57 }, { 0x1f59, 0x1f59 },
-  { 0x1f5b, 0x1f5b }, { 0x1f5d, 0x1f5d }, { 0x1f5f, 0x1f7d },
-  { 0x1f80, 0x1fb4 }, { 0x1fb6, 0x1fbc }, { 0x1fc2, 0x1fc4 },
-  { 0x1fc6, 0x1fcc }, { 0x1fd0, 0x1fd3 }, { 0x1fd6, 0x1fdb },
-  { 0x1fe0, 0x1fec }, { 0x1ff2, 0x1ff4 }, { 0x1ff6, 0x1ffc },
-  { 0x3041, 0x3094 }, { 0x309b, 0x309e }, { 0x30a1, 0x30fe },
-  { 0x3105, 0x312c }, { 0x4e00, 0x9fa5 }, { 0xf900, 0xfa2d },
-  { 0xfb1f, 0xfb36 }, { 0xfb38, 0xfb3c }, { 0xfb3e, 0xfb3e },
-  { 0xfb40, 0xfb41 }, { 0xfb42, 0xfb44 }, { 0xfb46, 0xfbb1 },
-  { 0xfbd3, 0xfd3f }, { 0xfd50, 0xfd8f }, { 0xfd92, 0xfdc7 },
-  { 0xfdf0, 0xfdfb }, { 0xfe70, 0xfe72 }, { 0xfe74, 0xfe74 },
-  { 0xfe76, 0xfefc }, { 0xff21, 0xff3a }, { 0xff41, 0xff5a },
-  { 0xff66, 0xffbe }, { 0xffc2, 0xffc7 }, { 0xffca, 0xffcf },
-  { 0xffd2, 0xffd7 }, { 0xffda, 0xffdc }
+  { 0x00aa, 0x00aa, FALSE }, 
+  { 0x00b5, 0x00b5, FALSE }, 
+  { 0x00b7, 0x00b7, FALSE }, 
+  { 0x00ba, 0x00ba, FALSE }, 
+  { 0x00c0, 0x00d6, FALSE }, 
+  { 0x00d8, 0x00f6, FALSE }, 
+  { 0x00f8, 0x01f5, FALSE }, 
+  { 0x01fa, 0x0217, FALSE }, 
+  { 0x0250, 0x02a8, FALSE }, 
+  { 0x02b0, 0x02b8, FALSE }, 
+  { 0x02bb, 0x02bb, FALSE }, 
+  { 0x02bd, 0x02c1, FALSE }, 
+  { 0x02d0, 0x02d1, FALSE }, 
+  { 0x02e0, 0x02e4, FALSE }, 
+  { 0x037a, 0x037a, FALSE }, 
+  { 0x0386, 0x0386, FALSE }, 
+  { 0x0388, 0x038a, FALSE }, 
+  { 0x038c, 0x038c, FALSE }, 
+  { 0x038e, 0x03a1, FALSE }, 
+  { 0x03a3, 0x03ce, FALSE }, 
+  { 0x03d0, 0x03d6, FALSE }, 
+  { 0x03da, 0x03da, FALSE }, 
+  { 0x03dc, 0x03dc, FALSE }, 
+  { 0x03de, 0x03de, FALSE }, 
+  { 0x03e0, 0x03e0, FALSE }, 
+  { 0x03e2, 0x03f3, FALSE }, 
+  { 0x0401, 0x040c, FALSE }, 
+  { 0x040e, 0x044f, FALSE }, 
+  { 0x0451, 0x045c, FALSE }, 
+  { 0x045e, 0x0481, FALSE }, 
+  { 0x0490, 0x04c4, FALSE }, 
+  { 0x04c7, 0x04c8, FALSE }, 
+  { 0x04cb, 0x04cc, FALSE }, 
+  { 0x04d0, 0x04eb, FALSE }, 
+  { 0x04ee, 0x04f5, FALSE }, 
+  { 0x04f8, 0x04f9, FALSE }, 
+  { 0x0531, 0x0556, FALSE }, 
+  { 0x0559, 0x0559, FALSE }, 
+  { 0x0561, 0x0587, FALSE }, 
+  { 0x05b0, 0x05b9, FALSE }, 
+  { 0x05bb, 0x05bd, FALSE }, 
+  { 0x05bf, 0x05bf, FALSE }, 
+  { 0x05c1, 0x05c2, FALSE }, 
+  { 0x05d0, 0x05ea, FALSE }, 
+  { 0x05f0, 0x05f2, FALSE }, 
+  { 0x0621, 0x063a, FALSE }, 
+  { 0x0640, 0x0652, FALSE }, 
+  { 0x0660, 0x0669, TRUE }, 
+  { 0x0670, 0x06b7, FALSE }, 
+  { 0x06ba, 0x06be, FALSE }, 
+  { 0x06c0, 0x06ce, FALSE }, 
+  { 0x06d0, 0x06dc, FALSE }, 
+  { 0x06e5, 0x06e8, FALSE }, 
+  { 0x06ea, 0x06ed, FALSE }, 
+  { 0x06f0, 0x06f9, TRUE }, 
+  { 0x0901, 0x0903, FALSE }, 
+  { 0x0905, 0x0939, FALSE }, 
+  { 0x093d, 0x093d, FALSE }, 
+  { 0x093e, 0x094d, FALSE }, 
+  { 0x0950, 0x0952, FALSE }, 
+  { 0x0958, 0x0963, FALSE }, 
+  { 0x0966, 0x096f, TRUE }, 
+  { 0x0981, 0x0983, FALSE }, 
+  { 0x0985, 0x098c, FALSE }, 
+  { 0x098f, 0x0990, FALSE }, 
+  { 0x0993, 0x09a8, FALSE }, 
+  { 0x09aa, 0x09b0, FALSE }, 
+  { 0x09b2, 0x09b2, FALSE }, 
+  { 0x09b6, 0x09b9, FALSE }, 
+  { 0x09be, 0x09c4, FALSE }, 
+  { 0x09c7, 0x09c8, FALSE }, 
+  { 0x09cb, 0x09cd, FALSE }, 
+  { 0x09dc, 0x09dd, FALSE }, 
+  { 0x09df, 0x09e3, FALSE }, 
+  { 0x09e6, 0x09ef, TRUE }, 
+  { 0x09f0, 0x09f1, FALSE }, 
+  { 0x0a02, 0x0a02, FALSE }, 
+  { 0x0a05, 0x0a0a, FALSE }, 
+  { 0x0a0f, 0x0a10, FALSE }, 
+  { 0x0a13, 0x0a28, FALSE }, 
+  { 0x0a2a, 0x0a30, FALSE }, 
+  { 0x0a32, 0x0a33, FALSE }, 
+  { 0x0a35, 0x0a36, FALSE }, 
+  { 0x0a38, 0x0a39, FALSE }, 
+  { 0x0a3e, 0x0a42, FALSE }, 
+  { 0x0a47, 0x0a48, FALSE }, 
+  { 0x0a4b, 0x0a4d, FALSE }, 
+  { 0x0a59, 0x0a5c, FALSE }, 
+  { 0x0a5e, 0x0a5e, FALSE }, 
+  { 0x0a66, 0x0a6f, TRUE }, 
+  { 0x0a74, 0x0a74, FALSE }, 
+  { 0x0a81, 0x0a83, FALSE }, 
+  { 0x0a85, 0x0a8b, FALSE }, 
+  { 0x0a8d, 0x0a8d, FALSE }, 
+  { 0x0a8f, 0x0a91, FALSE }, 
+  { 0x0a93, 0x0aa8, FALSE }, 
+  { 0x0aaa, 0x0ab0, FALSE }, 
+  { 0x0ab2, 0x0ab3, FALSE }, 
+  { 0x0ab5, 0x0ab9, FALSE }, 
+  { 0x0abd, 0x0ac5, FALSE }, 
+  { 0x0ac7, 0x0ac9, FALSE }, 
+  { 0x0acb, 0x0acd, FALSE }, 
+  { 0x0ad0, 0x0ad0, FALSE }, 
+  { 0x0ae0, 0x0ae0, FALSE }, 
+  { 0x0ae6, 0x0aef, TRUE }, 
+  { 0x0b01, 0x0b03, FALSE }, 
+  { 0x0b05, 0x0b0c, FALSE }, 
+  { 0x0b0f, 0x0b10, FALSE }, 
+  { 0x0b13, 0x0b28, FALSE }, 
+  { 0x0b2a, 0x0b30, FALSE }, 
+  { 0x0b32, 0x0b33, FALSE }, 
+  { 0x0b36, 0x0b39, FALSE }, 
+  { 0x0b3d, 0x0b3d, FALSE }, 
+  { 0x0b3e, 0x0b43, FALSE }, 
+  { 0x0b47, 0x0b48, FALSE }, 
+  { 0x0b4b, 0x0b4d, FALSE }, 
+  { 0x0b5c, 0x0b5d, FALSE }, 
+  { 0x0b5f, 0x0b61, FALSE }, 
+  { 0x0b66, 0x0b6f, TRUE }, 
+  { 0x0b82, 0x0b83, FALSE }, 
+  { 0x0b85, 0x0b8a, FALSE }, 
+  { 0x0b8e, 0x0b90, FALSE }, 
+  { 0x0b92, 0x0b95, FALSE }, 
+  { 0x0b99, 0x0b9a, FALSE }, 
+  { 0x0b9c, 0x0b9c, FALSE }, 
+  { 0x0b9e, 0x0b9f, FALSE }, 
+  { 0x0ba3, 0x0ba4, FALSE }, 
+  { 0x0ba8, 0x0baa, FALSE }, 
+  { 0x0bae, 0x0bb5, FALSE }, 
+  { 0x0bb7, 0x0bb9, FALSE }, 
+  { 0x0bbe, 0x0bc2, FALSE }, 
+  { 0x0bc6, 0x0bc8, FALSE }, 
+  { 0x0bca, 0x0bcd, FALSE }, 
+  { 0x0be7, 0x0bef, TRUE }, 
+  { 0x0c01, 0x0c03, FALSE }, 
+  { 0x0c05, 0x0c0c, FALSE }, 
+  { 0x0c0e, 0x0c10, FALSE }, 
+  { 0x0c12, 0x0c28, FALSE }, 
+  { 0x0c2a, 0x0c33, FALSE }, 
+  { 0x0c35, 0x0c39, FALSE }, 
+  { 0x0c3e, 0x0c44, FALSE }, 
+  { 0x0c46, 0x0c48, FALSE }, 
+  { 0x0c4a, 0x0c4d, FALSE }, 
+  { 0x0c60, 0x0c61, FALSE }, 
+  { 0x0c66, 0x0c6f, TRUE }, 
+  { 0x0c82, 0x0c83, FALSE }, 
+  { 0x0c85, 0x0c8c, FALSE }, 
+  { 0x0c8e, 0x0c90, FALSE }, 
+  { 0x0c92, 0x0ca8, FALSE }, 
+  { 0x0caa, 0x0cb3, FALSE }, 
+  { 0x0cb5, 0x0cb9, FALSE }, 
+  { 0x0cbe, 0x0cc4, FALSE }, 
+  { 0x0cc6, 0x0cc8, FALSE }, 
+  { 0x0cca, 0x0ccd, FALSE }, 
+  { 0x0cde, 0x0cde, FALSE }, 
+  { 0x0ce0, 0x0ce1, FALSE }, 
+  { 0x0ce6, 0x0cef, TRUE }, 
+  { 0x0d02, 0x0d03, FALSE }, 
+  { 0x0d05, 0x0d0c, FALSE }, 
+  { 0x0d0e, 0x0d10, FALSE }, 
+  { 0x0d12, 0x0d28, FALSE }, 
+  { 0x0d2a, 0x0d39, FALSE }, 
+  { 0x0d3e, 0x0d43, FALSE }, 
+  { 0x0d46, 0x0d48, FALSE }, 
+  { 0x0d4a, 0x0d4d, FALSE }, 
+  { 0x0d60, 0x0d61, FALSE }, 
+  { 0x0d66, 0x0d6f, TRUE }, 
+  { 0x0e01, 0x0e3a, FALSE }, 
+  { 0x0e47, 0x0e4e, FALSE }, 
+  { 0x0e50, 0x0e59, TRUE }, 
+  { 0x0e81, 0x0e82, FALSE }, 
+  { 0x0e84, 0x0e84, FALSE }, 
+  { 0x0e87, 0x0e88, FALSE }, 
+  { 0x0e8a, 0x0e8a, FALSE }, 
+  { 0x0e8d, 0x0e8d, FALSE }, 
+  { 0x0e94, 0x0e97, FALSE }, 
+  { 0x0e99, 0x0e9f, FALSE }, 
+  { 0x0ea1, 0x0ea3, FALSE }, 
+  { 0x0ea5, 0x0ea5, FALSE }, 
+  { 0x0ea7, 0x0ea7, FALSE }, 
+  { 0x0eaa, 0x0eab, FALSE }, 
+  { 0x0ead, 0x0eae, FALSE }, 
+  { 0x0eb0, 0x0eb9, FALSE }, 
+  { 0x0ebb, 0x0ebd, FALSE }, 
+  { 0x0ec0, 0x0ec4, FALSE }, 
+  { 0x0ec6, 0x0ec6, FALSE }, 
+  { 0x0ec8, 0x0ecd, FALSE }, 
+  { 0x0ed0, 0x0ed9, TRUE }, 
+  { 0x0edc, 0x0edd, FALSE }, 
+  { 0x0f00, 0x0f00, FALSE }, 
+  { 0x0f18, 0x0f19, FALSE }, 
+  { 0x0f20, 0x0f33, TRUE }, 
+  { 0x0f35, 0x0f35, FALSE }, 
+  { 0x0f37, 0x0f37, FALSE }, 
+  { 0x0f39, 0x0f39, FALSE }, 
+  { 0x0f3e, 0x0f47, FALSE }, 
+  { 0x0f49, 0x0f69, FALSE }, 
+  { 0x0f71, 0x0f84, FALSE }, 
+  { 0x0f86, 0x0f8b, FALSE }, 
+  { 0x0f90, 0x0f95, FALSE }, 
+  { 0x0f97, 0x0f97, FALSE }, 
+  { 0x0f99, 0x0fad, FALSE }, 
+  { 0x0fb1, 0x0fb7, FALSE }, 
+  { 0x0fb9, 0x0fb9, FALSE }, 
+  { 0x10a0, 0x10c5, FALSE }, 
+  { 0x10d0, 0x10f6, FALSE }, 
+  { 0x1e00, 0x1e9b, FALSE }, 
+  { 0x1ea0, 0x1ef9, FALSE }, 
+  { 0x1f00, 0x1f15, FALSE }, 
+  { 0x1f18, 0x1f1d, FALSE }, 
+  { 0x1f20, 0x1f45, FALSE }, 
+  { 0x1f48, 0x1f4d, FALSE }, 
+  { 0x1f50, 0x1f57, FALSE }, 
+  { 0x1f59, 0x1f59, FALSE }, 
+  { 0x1f5b, 0x1f5b, FALSE }, 
+  { 0x1f5d, 0x1f5d, FALSE }, 
+  { 0x1f5f, 0x1f7d, FALSE }, 
+  { 0x1f80, 0x1fb4, FALSE }, 
+  { 0x1fb6, 0x1fbc, FALSE }, 
+  { 0x1fbe, 0x1fbe, FALSE }, 
+  { 0x1fc2, 0x1fc4, FALSE }, 
+  { 0x1fc6, 0x1fcc, FALSE }, 
+  { 0x1fd0, 0x1fd3, FALSE }, 
+  { 0x1fd6, 0x1fdb, FALSE }, 
+  { 0x1fe0, 0x1fec, FALSE }, 
+  { 0x1ff2, 0x1ff4, FALSE }, 
+  { 0x1ff6, 0x1ffc, FALSE }, 
+  { 0x203f, 0x2040, FALSE }, 
+  { 0x207f, 0x207f, FALSE }, 
+  { 0x2102, 0x2102, FALSE }, 
+  { 0x2107, 0x2107, FALSE }, 
+  { 0x210a, 0x2113, FALSE }, 
+  { 0x2115, 0x2115, FALSE }, 
+  { 0x2118, 0x211d, FALSE }, 
+  { 0x2124, 0x2124, FALSE }, 
+  { 0x2126, 0x2126, FALSE }, 
+  { 0x2128, 0x2128, FALSE }, 
+  { 0x212a, 0x2131, FALSE }, 
+  { 0x2133, 0x2138, FALSE }, 
+  { 0x2160, 0x2182, FALSE }, 
+  { 0x3005, 0x3007, FALSE }, 
+  { 0x3021, 0x3029, FALSE }, 
+  { 0x3041, 0x3093, FALSE }, 
+  { 0x309b, 0x309c, FALSE }, 
+  { 0x30a1, 0x30f6, FALSE }, 
+  { 0x30fb, 0x30fc, FALSE }, 
+  { 0x3105, 0x312c, FALSE }, 
+  { 0x4e00, 0x9fa5, FALSE }, 
+  { 0xac00, 0xd7a3, FALSE }
 };
 
 /*
@@ -5430,31 +5628,111 @@ or +1 if the character follows the range.
 END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
-static a_boolean is_valid_UCN_identifier_char(unsigned long uchar)
+static an_error_code is_valid_UCN_identifier_char(
+					unsigned long	uchar,
+					a_boolean	is_identifier_start)
 /*
-Return TRUE if uchar is a value that is designated as a valid universal
-character in Annex E of the C++ standard.
+Determine whether uchar is a value that is designated as a universal character
+name that may appear in an identifier.  If is_identifier_start is TRUE,
+the specified character must not be a digit.  If the identifier is
+invalid, return an error code that gives the reason the identifier
+character is invalid.
 */
 {
+  an_error_code	result = ec_no_error;
+
   a_UCN_range *range;
   range = (a_UCN_range *)bsearch(
 			  (a_bsearch_arg_type)&uchar,
 			  (a_bsearch_arg_type)UCN_table,
                           size_t_arg(sizeof(UCN_table) / sizeof(a_UCN_range)),
                           sizeof(a_UCN_range), UCN_char_is_in_range);
-  return range != NULL;
+  if (range == NULL) {
+    /* Not a valid identifier character. */
+    result = ec_invalid_identifier_UCN;
+  } else if (is_identifier_start && range->is_digit) {
+    /* This is the first character of an identifier and the character is
+       a digit. */
+    result = ec_invalid_identifier_start_UCN;
+  }  /* if */
+  return result;
 }  /* is_valid_UCN_identifier_char */
+
+
+static void check_for_invalid_cplusplus_ucn(
+					unsigned long	ucn,
+				        char		**start_pos,
+					a_boolean	is_identifier,
+					a_boolean	is_identifier_start)
+/*
+Determine whether "ucn" is a valid universal character name in C++.
+Issue a diagnostic if it is not.
+*/
+{
+  an_error_code	err_code = ec_no_error;
+  if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
+    /* A UCN cannot be used to name a character in the basic character
+       set. */
+    err_code = ec_UCN_names_basic_char;
+  } else if (ucn < 0x20 || (ucn >= 0x7f && ucn <= 0x9f)) {
+    /* These characters are disallowed by the standard. */
+    err_code = ec_invalid_UCN;
+  } else if (is_identifier) {
+    /* Check whether this is a valid identifier character. */
+    err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+  }  /* if */
+  if (err_code != ec_no_error) {
+    /* Get the source position that corresponds to this character. */
+    conv_line_loc_to_source_pos(*start_pos, &error_position);
+    diagnostic(strict_ansi_error_severity, err_code);
+  }  /* if */
+}  /* check_for_invalid_cplusplus_ucn */
+
+
+static void check_for_invalid_c99_ucn(unsigned long	ucn,
+				      char		**start_pos,
+				      a_boolean		is_identifier,
+				      a_boolean		is_identifier_start)
+/*
+Determine whether "ucn" is a valid universal character name in C99.
+Issue a diagnostic if it is not.
+*/
+{
+  an_error_code	err_code = ec_no_error;
+  if (ucn == '$' && is_identifier && allow_dollar_in_id_chars) {
+    /* A "$" specified as a UCN when dollar signs are allowed in
+       identifiers.  A dollar sign is normally allowed as a UCN in
+       C99 mode, but is disallowed when dollar signs are permitted in
+       identifiers. */
+    err_code = ec_UCN_names_basic_char;
+  } else if (ucn <= 0xa0 && ucn != 0x24 && ucn != 0x40 && ucn != 0x60) {
+    /* A UCN cannot name a character less than 0xa0 except for
+       "$" (0x24), "@" (0x40), and "`" (0x60).  Note that the dollar
+       sign may be prohibited by the test above. */
+    err_code = ec_UCN_names_basic_char;
+  } else if (is_identifier) {
+    /* Check whether this is a valid identifier character. */
+    err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+  }  /* if */
+  if (err_code != ec_no_error) {
+    /* Get the source position that corresponds to this character. */
+    conv_line_loc_to_source_pos(*start_pos, &error_position);
+    diagnostic(strict_ansi_error_severity, err_code);
+  }  /* if */
+}  /* check_for_invalid_c99_ucn */
 
 
 unsigned long scan_universal_character(char		**start_pos,
 				       a_boolean	is_identifier,
+				       a_boolean	is_identifier_start,
 				       a_boolean	issue_diagnostics)
 /*
 Scan the universal character name starting at start_pos.  The
 character specified by the universal character name is returned.  If
 is_identifier is TRUE, an error is issued if the character is not one
-of those designated as a valid identifier character in Annex E of the
-C++ standard.  If issue_diagnostics is TRUE, diagnostic messages are
+of those designated as a valid identifier character.  If is_identifier_start
+is TRUE, it must be one of those characters that is not designated as a
+digit.  If issue_diagnostics is TRUE, diagnostic messages are
 produced if the universal character is improperly formed, or if it
 names an invalid character.  start_pos is updated by this routine to
 point to the character after the universal character name.
@@ -5495,22 +5773,12 @@ point to the character after the universal character name.
   }  /* for */
   /* Check whether the specified character is a valid universal character. */
   if (!err && issue_diagnostics) {
-    an_error_code	err_code = ec_no_error;
-    if (result <= 255 && !is_nonstandard_character((char)result)) {
-      /* A UCN cannot be used to name a character in the basic character
-         set. */
-      err_code = ec_UCN_names_basic_char;
-    } else if (result < 0x20 || (result >= 0x7f && result <= 0x9f)) {
-      /* These characters are disallowed by the standard. */
-      err_code = ec_invalid_UCN;
-    } else if (is_identifier && !is_valid_UCN_identifier_char(result)) {
-      /* This UCN is not permitted in an identifier. */
-      err_code = ec_invalid_identifier_UCN;
-    }  /* if */
-    if (err_code != ec_no_error) {
-      /* Get the source position that corresponds to this character. */
-      conv_line_loc_to_source_pos(*start_pos, &error_position);
-      diagnostic(strict_ansi_error_severity, err_code);
+    if (!C_mode()) {
+      check_for_invalid_cplusplus_ucn(result, start_pos, is_identifier,
+                                      is_identifier_start);
+    } else {
+      check_for_invalid_c99_ucn(result, start_pos, is_identifier,
+                                is_identifier_start);
     }  /* if */
   }  /* if */
   if (is_identifier) {
@@ -5581,7 +5849,8 @@ for header names in #include and #line directives.
         }  /* if */
         *err = TRUE;
         goto return_point;
-      } else if ((ch == 'u' || ch == 'U') && !C_mode()) {
+      } else if ((ch == 'u' || ch == 'U') &&
+                 universal_character_names_allowed) {
         /* A universal character name escape sequence.  Skip past the
            characters that make up the universal character.  Ignore any
            errors at this point -- they will be issued when the escape
@@ -5591,6 +5860,7 @@ for header names in #include and #line directives.
         curr_char_loc--;
         (void)scan_universal_character(&curr_char_loc,
                                        /*is_identifier=*/FALSE,
+				       /*is_identifier_start=*/FALSE,
                                        /*issue_diagnostics=*/FALSE);
         (*num_chars)++;
       } else {
@@ -6725,7 +6995,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          token.  If the next character is "U" or "u", this is a universal
          character name. */
       ch = *(curr_char_loc+1);
-      if ((ch == 'U' || ch == 'u') && !C_mode()) {
+      if ((ch == 'U' || ch == 'u') && universal_character_names_allowed) {
         goto id_scan;
       } else {
         goto bad_token;
@@ -6791,10 +7061,13 @@ id_scan:
            identifier characters. */
         if (*curr_char_loc == '\\') {
           ch = *(curr_char_loc + 1);
-          if ((ch == 'u' || ch == 'U') && !C_mode()) {
+          if ((ch == 'u' || ch == 'U') &&
+              universal_character_names_allowed) {
             continue_scan = TRUE;
             (void)scan_universal_character(&curr_char_loc,
-                                           /*is_identifier=*/TRUE,
+			                   /*is_identifier=*/TRUE,
+					   /*is_identifier_start=*/
+                                            curr_char_loc==start_of_curr_token,
                                            /*issue_diagnostics=*/TRUE);
           }  /* if */
         }  /* if */

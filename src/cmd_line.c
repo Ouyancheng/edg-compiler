@@ -1501,6 +1501,8 @@ Set the various flags appropriate to C99 mode.
   mixed_decls_and_statements_allowed = TRUE;
   /* The final field of a struct may be an incomplete array. */
   flexible_array_members_allowed = TRUE;
+  /* Universal character names are allowed. */
+  universal_character_names_allowed = TRUE;
 }  /* set_c99_mode_flags */
 
 
@@ -1736,6 +1738,8 @@ setting is used, and to set various unmentioned settings as needed.
   /* In C++ declarations and executable statements can be interspersed
      within a block. */
   mixed_decls_and_statements_allowed = TRUE;
+  /* Universal character names are allowed. */
+  universal_character_names_allowed = TRUE;
 }  /* check_and_set_cplusplus_mode_options */
 
 
