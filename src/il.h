@@ -499,9 +499,10 @@ extern void conv_seq_to_physical_file_and_line(
                                           a_boolean         *at_end_of_source);
 
 extern a_boolean seq_is_in_include_file(a_seq_number seq_number);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void break_source_corresp(a_source_correspondence *sc);
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,

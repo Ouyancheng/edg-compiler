@@ -2377,6 +2377,7 @@ are tied to a particular source occurrence.
   sc->access            = (an_access_specifier)as_public;
 }  /* break_source_corresp */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
@@ -2412,6 +2413,7 @@ not.
   return scp;
 }  /* source_corresp_for_il_entry */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void set_error_constant(a_constant *cp)
 /*
