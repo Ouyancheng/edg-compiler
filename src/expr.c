@@ -6563,8 +6563,8 @@ specification allow a variable-sized array as the top type.
         unknown_dependent_new = TRUE;
       } else if (is_class_struct_union_type(base_new_type)) {
         operator_new_symbol = opname_member_function_symbol(
-                                                          opname_kind,
-                                                          unqual_base_new_type);
+                                                         opname_kind,
+                                                         unqual_base_new_type);
       }  /* if */
     }  /* if */
     if (operator_new_symbol == NULL && !unknown_dependent_new) {
