@@ -40,7 +40,7 @@ expressions.  For example:
 
 g++ permits a template argument list to appear following a constructor name
 in a constructor definition that appears outside of the class.  This is now
-accepted in g++ mode.
+accepted in GNU C++ mode.
 
   template <class T> struct A {
     A();
