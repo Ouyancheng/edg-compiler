@@ -3029,6 +3029,7 @@ is set to an error locator.
   } else if (!have_access_to_symbol(symbol)) {
     /* The symbol is not accessible. */
     pos_error(ec_no_access_to_name, &locator->source_position);
+    locator->access_control_error_reported = TRUE;
   }  /* if */
 }  /* member_check_ambiguity_and_verify_access */
 
@@ -3075,6 +3076,7 @@ a projection symbol pointing to that sk_overloaded_function symbol.
                                overloaded_symbol)) {
         /* The symbol is not accessible. */
         pos_error(ec_no_access_to_name, &locator->source_position);
+        locator->access_control_error_reported = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5199,6 +5201,19 @@ to avoid an 8-character external name clash with symbol_table.)
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
+
+  /* Clear a locator that can be used to make initialization more efficient. */
+  cleared_locator.symbol_header = NULL;
+  cleared_locator.source_position.seq = 0;
+  cleared_locator.source_position.column = SP_COL_UNKNOWN;
+  cleared_locator.is_qualified_name = FALSE;
+  cleared_locator.is_global_qualified_name = FALSE;
+  cleared_locator.is_operator_name = FALSE;
+  cleared_locator.is_conversion_name = FALSE;
+  cleared_locator.is_semivisible_nested_class = FALSE;
+  cleared_locator.access_control_error_reported = FALSE;
+  cleared_locator.specific_symbol = NULL;
+  cleared_locator.variant.conversion_result_type = NULL;
 
   /* Static variables in symbol_tbl.c: */
   /* size_scope_stack is not per-file and should not be reset. */
