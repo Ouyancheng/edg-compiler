@@ -8417,7 +8417,7 @@ being taken.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!err && error_code != ec_no_error) {
+    if (err && error_code != ec_no_error) {
       pos_error(error_code, err_pos);
     }  /* if */
   }  /* if */
