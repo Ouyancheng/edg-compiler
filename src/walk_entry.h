@@ -1608,36 +1608,6 @@ do_set_proper_definition_needed_flag:
         /* Do not walk the types and variables lists to set the "needed"
            flag; a variable or type is not needed simply because it's
            declared. */
-#else /* !NEEDED_FLAG_WALK */
-        if (kind != (a_scope_kind)sck_function &&
-            kind != (a_scope_kind)sck_block) {
-          walk_needed_on_list(ptr->types, a_type_ptr, iek_type, kind);
-          walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
-                              kind);
-        } else {
-          /* The local types and static variables at function scope or
-             block scope within a function are in the file scope memory region.
-             They will be processed during the file scope memory region
-             walk because a_scope_orphaned_list_header entry for these lists
-             would have been created. */
-          remap_ptr(ptr->types, a_type_ptr, iek_type);
-          remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
-        }  /* if */
-#endif /* NEEDED_FLAG_WALK */
-#else /* !DO_SUBTREE_WALK */
-        /* Not walking subtrees.  Just remap the pointers. */
-        remap_ptr(ptr->types, a_type_ptr, iek_type);
-        remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
-#endif /* DO_SUBTREE_WALK */
-        walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
-                             iek_variable);
-#else /* ifndef CFE */
-        /* Not the C/C++ front end. */
-        walk_list(ptr->types, a_type_ptr, iek_type);
-        walk_list(ptr->variables, a_variable_ptr, iek_variable);
-#endif /* ifdef CFE */
-        walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
-#if NEEDED_FLAG_WALK
         /* On the "needed" flag walk for a class, mark all the virtual
            functions as needed.  Note that if IL lowering is done, there
            will be no functions attached to the class anymore. */
@@ -1650,8 +1620,58 @@ do_set_proper_definition_needed_flag:
           }  /* for */
         }  /* if */
 #else /* !NEEDED_FLAG_WALK */
-        walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
+#if KEEP_IN_IL_WALK
+        if (kind == (a_scope_kind)sck_function ||
+            kind == (a_scope_kind)sck_block ||
+            (kind == (a_scope_kind)sck_class_struct_union &&
+             ptr->variant.assoc_type->source_corresp.is_local_to_function)) {
+          /* For lists within a function, mark everything to be kept, because
+             we don't remove individual entities within function bodies. */
+          walk_list(ptr->types, a_type_ptr, iek_type);
+          walk_list(ptr->variables, a_variable_ptr, iek_variable);
+          walk_list(ptr->routines, a_routine_ptr, iek_routine);
+        } else {
+          /* For lists not within a function, mark only the needed entities
+             to be kept. */
+          walk_needed_on_list(ptr->types, a_type_ptr, iek_type, kind);
+          walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
+                              kind);
+          walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
+        }  /* if */
+#else /* !KEEP_IN_IL_WALK */
+        /* Not needed flag walk or keep_in_il walk. */
+        if (kind == (a_scope_kind)sck_function ||
+            kind == (a_scope_kind)sck_block) {
+          /* The local types and static variables at function scope or
+             block scope within a function are in the file scope memory region.
+             They will be processed during the file scope memory region
+             walk because a_scope_orphaned_list_header entry for these lists
+             would have been created. */
+          remap_ptr(ptr->types, a_type_ptr, iek_type);
+          remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
+        } else {
+          /* Not a function or block scope. */
+          walk_list(ptr->types, a_type_ptr, iek_type);
+          walk_list(ptr->variables, a_variable_ptr, iek_variable);
+        }  /* if */
+        walk_list(ptr->routines, a_routine_ptr, iek_routine);
+#endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
+#else /* !DO_SUBTREE_WALK */
+        /* Not walking subtrees.  Just remap the pointers. */
+        remap_ptr(ptr->types, a_type_ptr, iek_type);
+        remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->routines, a_routine_ptr, iek_routine);
+#endif /* DO_SUBTREE_WALK */
+        walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
+                             iek_variable);
+#else /* ifndef CFE */
+        /* Not the C/C++ front end. */
+        walk_list(ptr->types, a_type_ptr, iek_type);
+        walk_list(ptr->variables, a_variable_ptr, iek_variable);
+        walk_list(ptr->routines, a_routine_ptr, iek_routine);
+#endif /* ifdef CFE */
+        walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
@@ -2372,8 +2392,15 @@ after_entry_from_class:
         remap_next_ptr(ptr->next, a_scope_orphaned_list_header_ptr,
                        iek_scope_orphaned_list_header);
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* Don't walk these lists.  They will have been walked from the
+           function scope if necessary. */
+        remap_ptr(ptr->orphaned_types, a_type_ptr, iek_type);
+        remap_ptr(ptr->orphaned_variables, a_variable_ptr, iek_variable);
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         walk_list(ptr->orphaned_src_seq_sublists,
                   a_src_seq_sublist_ptr, iek_src_seq_sublist);

@@ -8619,15 +8619,14 @@ related to "needed" flags.
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    /* If the definition_needed or keep_definition_in_il flags were
-       set previously, set them again so the function body will be scanned.
-       The fact that rout->defined was FALSE prevented the scanning of the
-       body. */
+    /* If the definition_needed flag was set previously, set it again so
+       the function body will be scanned.  The fact that rout->defined was
+       FALSE prevented the scanning of the body.  This also sets the
+       keep_definition_in_il flag if the routine is needed; clear it to
+       make sure the subtree is walked if it was set already (if it
+       wasn't set, clearing it does nothing). */
+    if (rout->definition_needed) rout->keep_definition_in_il = FALSE;
     remark_routine_definition_needed(rout);
-    if (rout->keep_definition_in_il) {
-      rout->keep_definition_in_il = FALSE;
-      set_routine_keep_definition_in_il(rout);
-    }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
 }  /* set_routine_defined */

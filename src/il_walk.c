@@ -1464,9 +1464,9 @@ or redeclaration).
 
 void walk_subtrees_of_local_entities(a_scope_ptr scope)
 /*
-scope is a function or block scope.  Visit the local classes and variables
-of the scope and set a flag indicating that henceforth their subtrees
-can be walked in the "needed" flag and keep_in_il processing.
+scope is a function or block scope.  Visit the local classes, variables,
+and routines of the scope and set a flag indicating that henceforth their
+subtrees can be walked in the "needed" flag and keep_in_il processing.
 If any entries have already been marked, walk their subtrees now.
 This is called at the end of the processing for the function of
 which these are local declarations.
@@ -1474,6 +1474,7 @@ which these are local declarations.
 {
   a_variable_ptr var;
   a_type_ptr     type;
+  a_routine_ptr  rout;
   a_scope_ptr    subscope;
 
   for (var = scope->variables; var != NULL; var = var->next) {
@@ -1487,9 +1488,22 @@ which these are local declarations.
     remark_to_keep_in_il((char *)var, (an_il_entry_kind)iek_variable);
   }  /* for */
   for (type = scope->types; type != NULL; type = type->next) {
-    type->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
-    remark_as_needed    ((char *)type, (an_il_entry_kind)iek_type);
-    remark_to_keep_in_il((char *)type, (an_il_entry_kind)iek_type);
+    if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp;
+      type->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
+      remark_as_needed    ((char *)type, (an_il_entry_kind)iek_type);
+      remark_to_keep_in_il((char *)type, (an_il_entry_kind)iek_type);
+      ctsp = type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+        /* Set the flag on nested classes and other members too. */
+        walk_subtrees_of_local_entities(ctsp->assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  for (rout = scope->routines; rout != NULL; rout = rout->next) {
+    rout->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
+    remark_as_needed    ((char *)rout, (an_il_entry_kind)iek_routine);
+    remark_to_keep_in_il((char *)rout, (an_il_entry_kind)iek_routine);
   }  /* for */
   /* Process nested block scopes. */
   for (subscope = scope->scopes; subscope != NULL; subscope = subscope->next) {
