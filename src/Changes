@@ -1,5 +1,16 @@
 Version 2.35
 
+2/26/97  Macros for adding name linkage kinds
+
+To facilitate maintaining implementation-defined name-linkage kinds, macros
+CUSTOM_NAME_LINKAGE_KINDS and CUSTOM_NAME_LINKAGE_KIND_NAMES, along with
+the previously provided NUM_BITS_FOR_NAME_LINKAGE, may be defined outside
+il_def.h (e.g., in defines.h).  If you add a name-linkage kind that can be
+be applied to function types (e.g., because it implies a distinct calling
+convention), you should update is_custom_name_linkage_kind_for_rout_type, a
+new macro that can also be defined outside il_def.h.  (But note that you
+may still need to customize routine_linkages_are_compatible in types.c.)
+
 2/26/97  Name mangling change: nontype template parameters that are
          pointers to members -- show class/namespace membership
 
