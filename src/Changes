@@ -1,5 +1,15 @@
 Version 2.46
 
+1/9/01   Spurious error when friend injection is disabled
+
+A spurious redeclaration error was issued in certain cases when friend
+injection is disabled.  This has been fixed.
+
+  class A {
+    friend class B;
+    class  B *b;  // spurious redeclaration error
+  };   
+
 1/8/01   Microsoft compatibility: lookup of nontype names in base classes
 
 When looking up a name used in a type specifier in a class member

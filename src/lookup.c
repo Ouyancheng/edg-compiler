@@ -2851,9 +2851,14 @@ in a friend declaration.
   }  /* if */
   if (assoc_symbol == NULL && !is_friend_decl) {
     /* If the symbol was not found using a normal lookup above, look again
-       in the current scope using curr_scope_id_lookup, which will return
-       an invisible symbol. */
-    assoc_symbol = curr_scope_id_lookup(locator, options);
+       using a linkage lookup which will return an invisible symbol. */
+    assoc_symbol = normal_id_lookup(locator, options | IDL_LINKAGE_LOOKUP);
+    /* If the new symbol refers to the class template, ignore it. */
+    if (assoc_symbol != NULL &&
+        assoc_symbol->kind == (a_symbol_kind)sk_class_template) {
+      assoc_symbol = NULL;
+      clear_specific_symbol(*locator);
+    }  /* if */
   }  /* if */
   if (assoc_symbol != NULL) {
     /* Make sure that the lookup was not ambiguous. */
