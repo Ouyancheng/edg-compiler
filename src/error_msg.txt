@@ -335,7 +335,7 @@ ec_null_reference;;"NULL reference is not allowed"
 ec_brace_initialization_not_allowed;;"initialization with \"{...}\" is not allowed for object of type %t"
 ec_ambiguous_base_class;;"base class %t is ambiguous"
 ec_ambiguous_derived_class;;"derived class %t1 contains more than one instance of class %t2"
-ec_derived_class_from_virtual_base;;"derived class %t1 has class %t2 as a virtual base class"
+ec_derived_class_from_virtual_base;;"cannot convert pointer to base class %t2 to pointer to derived class %t1 -- base class is virtual"
 ec_no_matching_constructor;;"no instance of constructor %no matches the argument list"
 ec_ambiguous_copy_constructor;;"copy constructor for class %t is ambiguous"
 ec_no_default_constructor;;"no default constructor exists for class %t"
@@ -851,6 +851,7 @@ ec_bad_linkage_for_decl;;"this declaration may not have extern \"C\" linkage"
 ec_not_a_template_name;;"%sq is not a class or function template name"
 ec_nonstd_default_arg_on_function_template_redecl;;"specifying a default argument when redeclaring an unreferenced function template is nonstandard"
 ec_default_arg_on_function_template_not_allowed;;"specifying a default argument when redeclaring an already referenced function template is not allowed"
+ec_pm_derived_class_from_virtual_base;;"cannot convert pointer to member of base class %t2 to pointer to member of derived class %t1 -- base class is virtual"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

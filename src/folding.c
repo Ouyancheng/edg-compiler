@@ -906,7 +906,7 @@ If there is an error, it is issued at *err_pos.
     set_error_constant(result);
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class. */
-    pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
+    pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
                   derived_class_type, bcp->type);
     set_error_constant(result);
   } else {

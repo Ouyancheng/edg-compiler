@@ -1752,7 +1752,7 @@ source position to be used for errors.  This routine is only used in C++ mode.
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
+    pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
                   new_class_pointed_to, bcp->type);
     *p_node = error_node();
   } else {
