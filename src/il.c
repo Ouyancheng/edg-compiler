@@ -631,6 +631,9 @@ class_struct_union:
             for (; aap != NULL; aap = aap->next) db_access_adjustment(aap);
           }  /* if */
         }  /* if */
+        if (ctsp != NULL) {
+          db_all_virtual_function_override_lists(tp);
+        }  /* if */
         fprintf(f_debug, "} : size = %lu, alignment = %d",
                 tp->size, tp->alignment);
         if (any_virtual_base_classes) {
