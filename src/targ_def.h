@@ -113,7 +113,7 @@ The C99_IL_EXTENSIONS_SUPPORTED flag should be TRUE if a back end
 is prepared to accept all of the C99 IL extensions.
 */
 #ifndef C99_IL_EXTENSIONS_SUPPORTED
-#defined C99_IL_EXTENSIONS_SUPPORTED TRUE
+#define C99_IL_EXTENSIONS_SUPPORTED TRUE
 #endif /* ifndef C99_IL_EXTENSIONS_SUPPORTED */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
