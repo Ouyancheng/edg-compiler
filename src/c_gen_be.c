@@ -7033,9 +7033,9 @@ statement expression, i.e., ({...}).
          else" problem.  This is necessary only if customer code modifies
          the IL tree. */
       if (else_stmt == NULL
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
                             && !statement->has_empty_else_clause
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
                                                                 ) {
         write_tok_ch('{');
       }  /* if */
@@ -7057,7 +7057,7 @@ statement expression, i.e., ({...}).
       } else if (statement->has_empty_else_clause) {
         /* Source contained "... else ;". */
 	write_tok_str(" else ;");
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
       } else {
         /* Close the set of braces begun above. */
