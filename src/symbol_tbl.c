@@ -2471,6 +2471,9 @@ state.
       break;
     case sk_type:
       sym_ptr->variant.type.ptr = NULL;
+#if IA64_ABI && NEED_NAME_MANGLING
+      sym_ptr->variant.enumeration.discriminator = 0;
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
       sym_ptr->variant.type.is_injected_class_name = FALSE;
       break;
     case sk_enum_tag:

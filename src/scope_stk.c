@@ -447,18 +447,27 @@ function-local entities in the IA-64 ABI.
   for (; sep != NULL; sep = sep->next) {
     if (sep->symbol->header == header && sep->symbol->kind == sym->kind) {
       /* A previous declaration does collide with the new one. */
-      if (sym->kind == (a_symbol_kind)sk_variable) {
-        sym->variant.variable.discriminator =
-           sep->symbol->variant.variable.discriminator+1;
-      } else if (is_class_struct_union_symbol(sym)) {
-        sym->variant.class_struct_union.extra_info->discriminator =
-           sep->symbol->variant.class_struct_union.extra_info->discriminator+1;
-      } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
-        sym->variant.enumeration.discriminator =
-           sep->symbol->variant.enumeration.discriminator+1;
-      } else {
-        unexpected_condition();
-      }  /* if */ 
+      switch (sym->kind) {
+        case sk_variable:
+          sym->variant.variable.discriminator =
+                          sep->symbol->variant.variable.discriminator+1;
+          break;
+        case sk_class_or_struct_tag:
+          sym->variant.class_struct_union.extra_info->discriminator =
+                          sep->symbol->variant.class_struct_union.extra_info
+                                     ->discriminator+1;
+          break;
+        case sk_union_tag:
+          sym->variant.enumeration.discriminator =
+                          sep->symbol->variant.enumeration.discriminator+1;
+          break;
+        case sk_type:
+          sym->variant.type.discriminator =
+                          sep->symbol->variant.enumeration.discriminator+1;
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
       sep->symbol = sym;
       break;
     }  /* if */

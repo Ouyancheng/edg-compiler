@@ -7335,6 +7335,15 @@ return a pointer to it in *symbol_ptr.
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
+#if IA64_ABI && NEED_NAME_MANGLING
+  if (tp->source_corresp.is_local_to_function) {
+    /* Local typedefs may need to be mangled.  If two (or more) such
+       variables in a function have the same name, a discriminator must be
+       appended to the mangled name (this is not strictly an ABI issue, but
+       dictated by our use of a C-generating back end. */
+    compute_name_collision_discriminator(sym);
+  }  /* if */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   /* Set the "name linkage environment" for this type.  This is used by the
      C++-generating back end to decide when to emit extern "C". */

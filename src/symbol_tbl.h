@@ -2376,6 +2376,14 @@ typedef struct a_symbol {
       a_type_ptr
 		ptr;
 			/* The type. */
+#if IA64_ABI && NEED_NAME_MANGLING
+      a_discriminator
+		discriminator;
+			/* An identifying number used to distinguish multiple
+			   entities with the same name in the same function
+			   in the name mangling for the IA-64 ABI.  Zero if
+			   not needed. */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
       a_byte_boolean
 		is_injected_class_name;
 			/* TRUE if the symbol represents an injected class
