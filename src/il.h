@@ -335,17 +335,10 @@ extern an_expr_node_ptr node_for_integer_constant(long            value,
 
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
-/* Type of a pointer to an allocation routine for temporary variables,
-   used as an argument to the expression-copy routines. */
-typedef a_variable_ptr (*a_temp_alloc_routine_ptr)();
+extern an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list);
 
-extern an_expr_node_ptr copy_list_of_expr_trees(
-                                  an_expr_node_ptr         expr_list,
-                                  a_temp_alloc_routine_ptr temp_alloc_routine);
-
-extern an_expr_node_ptr copy_expr_tree(
-                                  an_expr_node_ptr         expr,
-                                  a_temp_alloc_routine_ptr temp_alloc_routine);
+extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr,
+                                       a_boolean        clone_temps);
 
 extern an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp);
 

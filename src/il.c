@@ -143,11 +143,11 @@ static a_rewritten_temporary_ptr
 		rewritten_temporaries;
 			/* While copying an expression tree, this is the
 			   list of rewrites to be done. */
-static a_temp_alloc_routine_ptr
-		temp_alloc_routine_for_expr_copy;
-			/* While doing an expression copy, this points to
-			   the routine to be called to allocate a temporary.
-			   NULL implies "alloc_temporary_variable". */
+static a_boolean
+		clone_temps_on_expr_copy;
+			/* If TRUE, temporary variables should be "cloned"
+			   (replaced by new equivalent temporaries) during
+			   expression copying. */
 
 
 /* Forward declarations needed because of mutual recursion: */
@@ -3555,16 +3555,17 @@ Return TRUE if the indicated variable is a temporary.
 
 static a_variable_ptr rewrite_if_temporary(a_variable_ptr var)
 /*
-If old_temp points to a temporary variable, determine the new temporary
-variable with which it should be replaced, and return a pointer to that
-new variable.  Otherwise (e.g., if the variable is not a temporary), return
-the original variable.
+If old_temp points to a temporary variable, and temporaries are being
+cloned during an expression copy, determine the new temporary variable
+with which it should be replaced, and return a pointer to that new
+variable.  Otherwise (i.e., if temporaries are not being cloned or
+if the variable is not a temporary), return the original variable.
 */
 {
   a_rewritten_temporary_ptr   rtp;
   a_variable_ptr              new_var;
 
-  if (is_temporary_var(var)) {
+  if (clone_temps_on_expr_copy && is_temporary_var(var)) {
     /* The variable is a temporary and should be rewritten. */
     /* See if the temporary already appears on the list of rewritten
        temporaries.  If so, we've already assigned the corresponding new
@@ -3577,12 +3578,8 @@ the original variable.
       }  /* if */
     }  /* for */
     /* This temporary has not been seen before.  Allocate a new temporary
-       and remember the correspondence.  Use a temporary allocation
-       routine provided by the caller, or alloc_temporary_variable by
-       default. */
-    new_var = ((temp_alloc_routine_for_expr_copy != NULL) ?
-                  temp_alloc_routine_for_expr_copy :
-                  alloc_temporary_variable)(var->type);
+       and remember the correspondence. */
+    new_var = alloc_temporary_variable(var->type);
     add_rewritten_temporary(var, new_var);
     var = new_var;
   }  /* if */
@@ -4261,21 +4258,17 @@ called directly.
 }  /* internal_copy_expr_tree */
 
 
-an_expr_node_ptr copy_list_of_expr_trees(
-                                   an_expr_node_ptr         expr_list,
-                                   a_temp_alloc_routine_ptr temp_alloc_routine)
+an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list)
 /*
 Make a copy of a list of expression trees and return a pointer to it.
-If temp_alloc_routine is non-NULL, it points to a routine to be used
-instead of the default (alloc_temporary_variable) to allocate copies of
-temporary variables needed in the copy.
+Temporaries referenced in the expressions are not changed.
 */
 {
   an_expr_node_ptr expr_list_copy;
 
   /* Set some global variables that affect the copying. */
   rewritten_temporaries = NULL;
-  temp_alloc_routine_for_expr_copy = temp_alloc_routine;
+  clone_temps_on_expr_copy = FALSE;
   /* Do the copying. */
   expr_list_copy = internal_copy_list_of_expr_trees(expr_list);
   /* Clean up. */
@@ -4284,17 +4277,23 @@ temporary variables needed in the copy.
 }  /* copy_list_of_expr_trees */
 
 
-an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
-                                a_temp_alloc_routine_ptr temp_alloc_routine)
+an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr,
+                                a_boolean        clone_temps)
 /*
-Make a copy of an expression tree and return a pointer to it.
+Make a copy of an expression tree and return a pointer to it.  If clone_temps
+is TRUE, replace all temporaries referenced by the expression by new
+equivalent temporaries; that is needed when making copies of an expression
+that might be executed at the same time as the original expression, e.g.,
+for default argument expressions.  clone_temps cannot be TRUE when this routine
+is called from IL lowering, because the wrong temp-allocation routine would be
+called.
 */
 {
   an_expr_node_ptr expr_copy;
 
   /* Set some global variables that affect the copying. */
   rewritten_temporaries = NULL;
-  temp_alloc_routine_for_expr_copy = temp_alloc_routine;
+  clone_temps_on_expr_copy = clone_temps;
   /* Do the copying. */
   expr_copy = internal_copy_expr_tree(expr);
   /* Clean up. */
@@ -4308,7 +4307,9 @@ an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp)
 Make an expression list containing copies of the default argument expressions
 for the parameter indicated by ptp and all parameters following that.
 If ptp is non-NULL, it must point to a parameter with a default argument
-expression.
+expression.  Replace all temporaries referenced by the expression by new
+equivalent temporaries.  This routine may not be called from IL lowering,
+because the wrong temp-allocation routine would be called.
 */
 {
   an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
@@ -4329,8 +4330,7 @@ expression.
       if (ptp->default_arg_expr == NULL) {
         arg_node = error_node();
       } else {
-        arg_node = copy_expr_tree(ptp->default_arg_expr,
-                                  (a_temp_alloc_routine_ptr)NULL);
+        arg_node = copy_expr_tree(ptp->default_arg_expr, /*clone_temps=*/TRUE);
       }  /* if */
       if (first_node == NULL) {
         first_node = arg_node;
