@@ -1,5 +1,11 @@
 Version 2.29
 
+4/28/95  Function redeclarations in Microsoft C mode
+
+In Microsoft C mode only a warning is issued for redeclaring a function
+with an incompatible type.  When this results in two routine entries with
+the same name, one will be marked as "superseded" (as in SVR4 C mode).
+
 4/27/95  Default arguments allowed for type template parameters
 
 Type template parameters may now have default template arguments.
