@@ -252,7 +252,7 @@ error_return:
 Machine-specific tables used by validate_operands_and_clobbers.
 */
 struct single_register_constraint {
-  /* Structure to hold a constraint-to-regester mapping. */
+  /* Structure to hold a constraint-to-register mapping. */
   an_asm_operand_constraint  cons;
   a_named_register           reg;
 };
@@ -267,7 +267,7 @@ static struct single_register_constraint single_register_constraints[] = {
   { (an_asm_operand_constraint)aoc_reg_di, (a_named_register)anr_di },
   /* 't' and 'u' (x86 reg stack) are not included in this list,
      because the rules are not properly handled by the generic code
-     below.  Machine specific code must be written to handle them. */
+     below.  Machine-specific code must be written to handle them. */
 #endif /* TARG_IS_X86 */
   { (an_asm_operand_constraint)aoc_last, (a_named_register)anr_last }
 };
@@ -454,7 +454,8 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).
   if (n > 0) {
     result = (an_asm_operand_ptr)
       alloc_in_region(curr_il_region_number, n * sizeof(an_asm_operand));
-    memcpy(result, operands, n * sizeof(an_asm_operand));
+    memcpy(result, operands,
+           size_t_arg(n * sizeof(an_asm_operand)));  /*lint !e645*/
   }  /* if */
   *p_operands = result;
   db_exit();
@@ -524,7 +525,8 @@ The syntax is
   if (n > 0) {
     clobbers = (a_named_register *)
          alloc_in_region(curr_il_region_number, n * sizeof(a_named_register));
-    memcpy(clobbers, clobbuf, n * sizeof(a_named_register));
+    memcpy(clobbers, clobbuf,
+           size_t_arg(n * sizeof(a_named_register)));  /*lint !e668*/
   }  /* if */
   free_general(clobbuf, bufsiz * sizeof(a_named_register));
   *p_clobbers = clobbers;
@@ -567,7 +569,7 @@ extended asm statements.
   }  /* if */
 #endif /* CHECKING */
   /* Set up the complete regmap table, including both the official and
-     extra register names. regmap does not include entries for
+     extra register names.  regmap does not include entries for
      anr_invalid or anr_last. */
   regmap_size = (int)anr_last - 1;
   regmap_size += sizeof(extra_reg_names) / sizeof(struct name_to_reg);

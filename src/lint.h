@@ -208,6 +208,13 @@ extern int fileno(FILE *);
 /*lint -esym(526,isnan)*/
 /*lint -esym(526,finite)*/
 #endif /* ifdef sun */
+#if GNU_EXTENSIONS_ALLOWED
+/*lint -esym(769, an_asm_operand_modifier_tag::aom_commutative)*/
+/*lint -esym(769, an_asm_operand_modifier_tag::aom_ignore_next)*/
+/*lint -esym(769, an_asm_operand_modifier_tag::aom_ignore_till_comma)*/
+/*lint -esym(769, an_asm_operand_modifier_tag::aom_poor_choice)*/
+/*lint -esym(769, an_asm_operand_modifier_tag::aom_bad_choice)*/
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 
 /******************************************************************************
