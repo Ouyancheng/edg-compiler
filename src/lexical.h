@@ -365,6 +365,10 @@ typedef int an_identifier_options_set;
 			/* TRUE if the name is being coalesced during the
       			   prescan of a template declaration.  This suppresses
 			   certain diagnostics. */
+#define GID_FOLLOWS_TEMPLATE 0x20000
+			/* TRUE if the name being coalesced follows the
+      			   "template" keyword.  This is used is constructs
+			   like "p->template f<x>(1)". */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

@@ -1,5 +1,24 @@
 Version 2.37
 
+10/17/97  Use of template keyword in qualified names and class member accesses
+
+The template keyword is now accepted in contexts in which it is used
+to specify that a dependent name should be considered to be a
+template.  The template keyword is accepted in a qualified name and
+following the "." or "->" of a class member access.
+
+  template <class T> void g(T t) {
+    t.T::template f<char>(1);
+    t.template f<int>(1);
+  }
+
+  struct A { template <class T> void f(T); };
+
+  int main() {
+    A a;
+    g(a);
+  }
+
 10/16/97  C++-generating back end: asm-statements in Microsoft mode
 
 The form in which asm-statements are put out by the C++-generating back end

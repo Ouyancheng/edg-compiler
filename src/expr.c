@@ -2313,6 +2313,13 @@ bound with the function in *bound_function_selector.
   gid_flags = GID_DTOR_RECOGNIZED | GID_IS_FIELD_SELECTION_OPERAND |
               GID_IS_EXPR_CONTEXT;
   if (C_dialect == C_dialect_cplusplus) {
+    if (curr_token == tok_template) {
+      /* A construct like "p->template f<x>...".  Pass a flag to the
+         identifier coalescing routine that the name is known to
+         be a template. */
+      gid_flags |= GID_FOLLOWS_TEMPLATE;
+      (void)get_token();
+    }  /* if */
     /* In C++, explicit calls of destructors are allowed for simple types
        and classes without destructors.  For example, p->int::~int(). */
     gid_flags |= GID_VACUOUS_DTOR_RECOGNIZED;

@@ -8558,6 +8558,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace;
   a_token_sequence_number	start_seq_number;
+  a_boolean			follows_template;
 
   db_enter(4, "f_is_generalized_identifier_start");
   /* If the current token is an identifier, then check the flag in the
@@ -8583,6 +8584,7 @@ selection operator, in which case it points to the type of the left operand.
     if (result) goto wrapup;
     goto exit;
   }  /* if */
+  follows_template = (options & GID_FOLLOWS_TEMPLATE) != 0;
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
      "::delete".  Don't treat ::* as a pointer to member declarator.
      ::* would be rejected below as a pointer to member declarator, but
@@ -8592,6 +8594,11 @@ selection operator, in which case it points to the type of the left operand.
     is_global_qualified_name = TRUE;
     is_file_scope_qualified_name = TRUE;
     is_qualified_name = TRUE;
+    if (follows_template) {
+      /* "p->template ::..." is not valid. */
+      error(ec_exp_identifier);
+      follows_template = FALSE;
+    }  /* if */
     (void)get_token();
   }  /* if */
   if (curr_token == tok_operator) {
@@ -8690,7 +8697,10 @@ selection operator, in which case it points to the type of the left operand.
          is being used as a qualifier or as a field selection operator
          so we need to do a normal lookup and then decide based on the
          type of the thing we find. */
-      if (next_tok == tok_lt) {
+      if (follows_template) {
+        lookup_kind = IDL_TREAT_AS_TEMPLATE_ID |
+                      IDL_TENTATIVE_TEMPLATE_LOOKUP;
+      } else if (next_tok == tok_lt) {
         lookup_kind = IDL_TENTATIVE_TEMPLATE_LOOKUP;
       } else if (qualifier_separator == tok_period) {
         lookup_kind = IDL_NO_OPTIONS;
@@ -8806,6 +8816,7 @@ selection operator, in which case it points to the type of the left operand.
       for (;;) {
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
+        a_boolean	is_template = FALSE;
         a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
         a_boolean	invalid_qualifier_sym = FALSE;
         if (qualifier_sym == NULL || err) {
@@ -8884,6 +8895,10 @@ selection operator, in which case it points to the type of the left operand.
            qualifier. */
         (void)get_token();
         (void)get_token();
+        if (curr_token == tok_template) {
+          is_template = TRUE;
+          (void)get_token();
+        }  /* if */
         next_tok = next_two_tokens_if_qualifier_delimiter
                                             (qualifier_separator, &next_tok_2);
         if (curr_token != tok_identifier ||
@@ -8926,6 +8941,12 @@ selection operator, in which case it points to the type of the left operand.
             lookup_options = next_tok == tok_lt
                                    ? IDL_TENTATIVE_TEMPLATE_LOOKUP
                                    : IDL_MUST_BE_CLASS_OR_NAMESPACE;
+            /* If the identifier was preceded by "template", the name can be
+               assumed to be a template. */
+            if (is_template) {
+              lookup_options |= IDL_TREAT_AS_TEMPLATE_ID |
+                                IDL_TENTATIVE_TEMPLATE_LOOKUP;
+            }  /* if */
             if ((options & GID_IS_TYPENAME) != 0) {
               /* If this name followed the typename keyword, indicate that the
                  name found must be a type.  This affects creation of members
@@ -8933,7 +8954,7 @@ selection operator, in which case it points to the type of the left operand.
                  "typename" is considered to be the start of a template
                  argument list. */
               lookup_options |= IDL_TYPENAME_LOOKUP;
-              if (next_tok == tok_lt) {
+              if (next_tok == tok_lt && implicit_typename_enabled) {
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
             } else if (implicit_typename_enabled &&
