@@ -5287,11 +5287,8 @@ void namespace_declaration(a_boolean  extern_implied)
         nsp = alloc_namespace(/*is_alias=*/FALSE);
         set_source_corresp(&nsp->source_corresp, sym);
         if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
-        if (depth_scope_stack != DEPTH_OF_FILE_SCOPE &&
-            depth_scope_stack == depth_innermost_namespace_scope) {
-          nsp->source_corresp.parent.namespace_ptr =
-             scope_stack[depth_scope_stack].il_scope->variant.assoc_namespace;
-        }  /* if */
+        set_namespace_membership(sym, &nsp->source_corresp,
+                                 (a_namespace_ptr)NULL);
         sym->variant.namespace_info.ptr = nsp;
         sym->variant.namespace_info.extra_info =
                                        alloc_namespace_symbol_supplement();
