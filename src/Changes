@@ -1,5 +1,16 @@
 Version 2.44
 
+7/20/00  C++-generating back end: implicit conversions not put out
+
+The C++-generating back end has been improved so that it does not
+in general put out code for implicit conversions.  This includes
+implicit calls of constructors and conversion functions, and
+elided copy constructor calls (most of which were already suppressed).
+To implement this, a new is_explicit_cast flag has been added to
+the a_dynamic_init entry (IL CHANGE), and the compiler_generated
+flag in an_expr_node is now being set in implicitly-generated function
+calls (e.g., of conversion functions).
+
 7/18/00  C++-generating back end: extraneous casts in template arguments
 
 The C++-generating back end used to add invalid casts to certain template

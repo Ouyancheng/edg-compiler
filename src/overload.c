@@ -8281,7 +8281,9 @@ select_best_function:
               /* Make the call node and an operand for it. */
               assemble_function_call(&function_operand,
                                      bound_function_selector,
-                                     arg_expr_list, operator_position, result);
+                                     arg_expr_list,
+                                     /*compiler_generated=*/TRUE,
+                                     operator_position, result);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -9317,6 +9319,7 @@ an explicit cast.
     make_function_call(rout_node, conversion_routine->type,
                        (a_boolean)conversion_routine->is_virtual,
                        /*virtual_suppressed=*/FALSE,
+                       !is_explicit_cast,
                        &orig_operand.position, operand);
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion

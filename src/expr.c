@@ -1422,6 +1422,7 @@ Syntax:
   } else {
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
+                           /*compiler_generated=*/FALSE,
                            &call_position, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -6661,7 +6662,7 @@ C++ mode.
           user_convert_operand(operand, eff_type_cast_to, &conversion,
                                (a_conv_descr *)NULL,
                                /*force_temp_for_class_bitwise_copy=*/FALSE,
-                               /*is_explicit_cast=*/FALSE);  /* sic */
+                               /*is_explicit_cast=*/TRUE);
           *processed = TRUE;
         } else if (ambiguous) {
           /* The conversion is ambiguous.  Do the analysis again to get

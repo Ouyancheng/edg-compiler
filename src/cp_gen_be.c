@@ -4182,17 +4182,21 @@ and pm_expr is a pointer to member.  The caller will put parentheses around
 this selection.
 */
 {
-  if (is_variable_node(object_expr) &&
-      !object_expr->implicit_reference_indirection) {
-    /* Optimize "(*p).*i" as "p->*i".  Don't do it when there's an implicit
-       reference indirection on the object, because that will add a "&"
-       that may mean the wrong thing if operator& is overloaded. */
-    gen_expression(object_expr);
-    write_tok_str("->*");
-  } else {
-    /* Normal ".*" case. */
+  /* Generally, it's better to use the "->*" form, because it avoids
+     putting an extra "*" on top of an expression, which might refer
+     to an overloaded "operator*".  Use the ".*" form for simple variables
+     and cases with an implied reference indirection. */
+  /* Also note that only "->*" can be overloaded, so if there are implicit
+     conversions involved we want to go with "->*". */
+  if (object_expr->implicit_reference_indirection ||
+      is_variable_address_node(object_expr)) {
+    /* ".*" case. */
     gen_lvalue(object_expr);
     write_tok_str(".*");
+  } else {
+    /* "->*" form. */
+    gen_expression(object_expr);
+    write_tok_str("->*");
   }  /* if */
   gen_expr_with_parens(pm_expr);
 }  /* gen_pm_simple_field_selection */
@@ -5117,6 +5121,83 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 }  /* gen_bound_function */
 
 
+static a_boolean conversion_function_can_be_named(a_routine_ptr routine)
+/*
+Return TRUE if the indicated conversion function can be named.  A
+conversion function cannot be named if its type is one that cannot be
+expressed in the limited type syntax available for conversion functions,
+which allows only "*" and "&", and no function or array declarators.
+*/
+{
+  a_boolean  can_be_named = FALSE;
+  a_type_ptr return_type =
+                     skip_typerefs(routine->type)->variant.routine.return_type;
+
+  /* Strip any number of pointer or reference levels. */
+  while (is_ptr_or_ref_type(return_type)) {
+    return_type = type_pointed_to(return_type);
+  }  /* while */
+  /* Strip cv-qualifiers. */
+  while (return_type->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_typedef(return_type)) {
+    return_type = return_type->variant.typeref.type;
+  }  /* while */
+  if (has_name(return_type) &&
+      /* Avoid using typedefs from template instantiations that
+         haven't been put out. */
+      (return_type->kind != (a_type_kind)tk_typeref ||
+       return_type->typedef_definition_has_been_put_out)) {
+    /* A typedef or similar named type. */
+    can_be_named = TRUE;
+  } else if (is_array_type(return_type) || is_function_type(return_type)) {
+    /* Can't use array or function declarators. */
+    can_be_named = FALSE;
+  } else {
+    /* A simple type like "int". */
+    can_be_named = TRUE;
+  }  /* if */
+  return can_be_named;
+}  /* conversion_function_can_be_named */
+
+
+static a_boolean handle_special_conversion_function_call(
+                                                         an_expr_node_ptr expr)
+/*
+expr is a call expression (e.g., eok_call, eok_virtual_call).  If it is
+one of the special conversion function call cases that are optimized,
+put out the call and return TRUE.  Otherwise, return FALSE and the caller
+will put out the call in the normal way.
+*/
+{
+  a_boolean        handled = FALSE;
+  an_expr_node_ptr operand_1 = expr->variant.operation.operands;
+  an_expr_node_ptr operand_2 = operand_1->next;
+
+  if (operand_1->kind == (an_expr_node_kind)enk_routine_address &&
+      operand_1->variant.routine->special_kind ==
+                                     (a_special_function_kind)sfk_conversion) {
+    a_routine_ptr routine = operand_1->variant.routine;
+    /* This is a call of a conversion function. */
+    if (expr->variant.operation.compiler_generated) {
+      /* This is an implicit conversion.  Put out just the operand. */
+      gen_lvalue(operand_2);
+      handled = TRUE;
+    } else if (!conversion_function_can_be_named(routine)) {
+      /* The conversion function cannot be named, so this construct must have
+         been written as a cast.  Put it out that way. */
+      a_type_ptr return_type =
+                     skip_typerefs(routine->type)->variant.routine.return_type;
+      write_tok_ch('(');
+      gen_cast(return_type);
+      gen_lvalue(operand_2);
+      write_tok_ch(')');
+      handled = TRUE;
+    }  /* if */
+  }  /* if */
+  return handled;
+}  /* handle_special_conversion_function_call */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens)
 /*
@@ -5565,8 +5646,12 @@ finish_new_style_cast:
         case eok_call:
           /* Call (nonvirtual). */
           args = operand_2;
-          /* Put out the function to call. */
-          if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
+          if (handle_special_conversion_function_call(expr)) {
+            /* Special conversion function call.  Code was generated by the
+               subroutine. */
+            goto done_with_operation;
+          } else if (operand_1->kind ==
+                                      (an_expr_node_kind)enk_routine_address) {
             /* We can tell which routine is being called. */
             a_type_ptr rout_type;
             rout = operand_1->variant.routine;
@@ -5619,6 +5704,11 @@ finish_new_style_cast:
           goto done_with_operation;
         case eok_virtual_call:
           /* Call (virtual). */
+          if (handle_special_conversion_function_call(expr)) {
+            /* Special conversion function call.  Code was generated by the
+               subroutine. */
+            goto done_with_operation;
+          }  /* if */
           gen_bound_function(operand_2, operand_1, /*suppress_virtual=*/FALSE);
           gen_argument_list(operand_2->next, type_pointed_to(operand_1->type),
                             /*skip_num=*/0);
