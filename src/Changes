@@ -1,5 +1,16 @@
 Version 2.38
 
+11/17/97  Internal error on conversion template to nested member class
+
+An internal error would result if a conversion template was used to convert
+to a nested class of a class template.  This has been fixed.
+
+  template<class X> class A {
+    template<class T2> struct B { };
+    template<class T2> operator B<T2>() throw() { }
+  };
+  A<int> ai;
+
 11/14/97  Linker errors on uninstantiated virtual functions
 
 When IL lowering is done, a change made in version 2.37 to improve the
