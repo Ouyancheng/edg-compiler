@@ -1023,7 +1023,17 @@ build an argument operand list and return a pointer to it in
 	  /* No more formal arguments in the list. */
           if (!has_ellipsis) {
             /* No ellipsis, so error: extra actual argument. */
-            error(ec_too_many_arguments);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (microsoft_mode && C_mode()) {
+              /* MSVC++ 4.2 allows extra arguments with just a warning in
+                 C mode. */
+              warning(ec_too_many_arguments);
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              error(ec_too_many_arguments);
+            }  /* if */
           }  /* if */
           have_param_info = FALSE;
         }  /* if */
