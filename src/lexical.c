@@ -4654,7 +4654,7 @@ actual argument.
     register a_symbol_ptr param_sym = tpp->param_symbol;
     /* Does the parameter type match the type passed by the caller? */
     if (param_sym->kind == (a_symbol_kind)sk_type) {
-      if (tpp->param_type == *type) {
+      if (tpp->variant.param_type == *type) {
         *type = arg_ptr->variant.type;
         found = TRUE;
         break;

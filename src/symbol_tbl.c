@@ -663,15 +663,15 @@ and indentation is the indentation desired.
           fprintf(f_debug, "%*s", indentation + 2, "");
           db_symbol(tplep->param_symbol, "", indentation + 4);
           fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
-          if (tplep->param_type != NULL) {
-            db_type(tplep->param_type);
+          if (tplep->variant.param_type != NULL) {
+            db_type(tplep->variant.param_type);
           } else {
             fprintf(f_debug, "NULL");
           }  /* if */
           fprintf(f_debug, "\n");
           fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
-          if (tplep->param_constant != NULL) {
-            db_constant(tplep->param_constant);
+          if (tplep->variant.param_constant != NULL) {
+            db_constant(tplep->variant.param_constant);
           } else {
             fprintf(f_debug, "NULL");
           }  /* if */
@@ -4887,14 +4887,14 @@ declaration is scanned and are used as placeholders between instantiations.
   /* Get a pointer to the first template parameter. */
   tpp = template_sym->variant.template.extra_info->parameters;
   /* Loop through the parameters and and set them to either the original
-     template type (as specified by the param_type field) or to an error
-     constant. */
+     template type or the original template constant (as specified by the
+     param_type or param_constant field). */
   while (tpp != NULL) {
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (param_symbol->kind == (a_symbol_kind)sk_type) {
-      param_symbol->variant.type = tpp->param_type;
+      param_symbol->variant.type = tpp->variant.param_type;
     } else {
-      param_symbol->variant.constant = tpp->param_constant;
+      param_symbol->variant.constant = tpp->variant.param_constant;
     }  /* if */
     tpp = tpp->next;
   }  /* while */
@@ -6422,9 +6422,10 @@ Clear the fields of a function information block to default values.
 }  /* clear_func_info */
 
 
-a_template_param_ptr alloc_template_param(void)
+a_template_param_ptr alloc_template_param(a_symbol_ptr sym)
 /*
-Allocate a new template parameter list entry and return a pointer to it.
+Allocate a new template parameter list entry, initialize it,
+and return a pointer to it.
 */
 {
   register a_template_param_ptr ptr;
@@ -6434,11 +6435,15 @@ Allocate a new template parameter list entry and return a pointer to it.
 #if DEBUG
   num_template_params_allocated++;
 #endif /* DEBUG */
+  check_assertion(sym != NULL);
   ptr->next           = NULL;
-  ptr->param_symbol   = NULL;
-  ptr->param_type     = NULL;
-  ptr->param_constant = NULL;
-  
+  ptr->param_symbol   = sym;
+  if (sym->kind == (a_symbol_kind)sk_type) {
+    ptr->variant.param_type     = NULL;
+  } else {
+    check_assertion(sym->kind == (a_symbol_kind)sk_constant);
+    ptr->variant.param_constant = NULL;
+  }  /* if */
   db_exit();
   return ptr;
 }  /* alloc_template_param */

@@ -581,15 +581,19 @@ typedef struct a_template_param {
   a_symbol_ptr	param_symbol;
 			/* Symbol entry for a formal parameters of the
                            template. */
-  a_type_ptr    param_type;
+  union {
+    /* When param_symbol->kind = sk_type. */
+    a_type_ptr  param_type;
                         /* Type entry for a formal parameter.  A unique type
                            entry is created for each template type
                            parameter. */
-  a_constant_ptr
+    /* When param_symbol->kind = sk_constant. */
+    a_constant_ptr
 		param_constant;
 			/* Constant entry for a formal parameter.  A unique
 			   constant entry is created for each template constant
 			   parameter. */
+  } variant;
 } a_template_param;
 
 
@@ -1581,7 +1585,7 @@ extern void instantiation_wrapup(void);
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
-extern a_template_param_ptr alloc_template_param(void);
+extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_function_instantiation_entry_ptr
                                      alloc_function_instantiation_entry(void);
 extern a_param_id_ptr alloc_param_id(void);
