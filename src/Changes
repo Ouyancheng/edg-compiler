@@ -3,12 +3,13 @@ Version 2.45
 9/6/00   Microsoft compatibility: qualifiers ignored when comparing deduced
          types
 
-The Microsoft compiler ignores qualifiers when comparing the types deduced
-for different function parameters.  In this example, deduction succeeds
-for the second call even though the first parameter results in a deduced
-type of "const int" while the second results in a deduced type of "int".
-The first type deduced is the one actually used as the template parameter
-type.
+The Microsoft compiler ignores qualifiers when comparing the types
+deduced for different function parameters.  The front end duplicates
+this behavior in Microsoft bugs mode.  In this example, deduction
+succeeds for the second call even though the first parameter results
+in a deduced type of "const int" while the second results in a deduced
+type of "int".  The first type deduced is the one actually used as the
+template parameter type.
 
   template <class T> void f(T& t1, T& t2) { }
   int main() {
