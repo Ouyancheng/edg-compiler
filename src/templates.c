@@ -10904,7 +10904,8 @@ that follows.
             set_routine_declared_type(rp, declared_type);
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
             if (rp->source_corresp.source_sequence_entry != NULL &&
-                rp->source_corresp.source_sequence_entry->entity.kind ==
+                (an_il_entry_kind)rp->source_corresp.source_sequence_entry->
+                                                                 entity.kind ==
                              (an_il_entry_kind)iek_src_seq_secondary_decl) {
               /* This must be a member or friend function definition inside
                  the definition of a nonlocal class.  A source sequence
