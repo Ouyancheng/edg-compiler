@@ -1286,9 +1286,9 @@ targ_microsoft_bit_field_allocation is FALSE.)
       lob->alignment = container_alignment;
     }  /* if */
   }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
+#if IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING
 done:
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING */
   db_exit();
   return !overflow;
 }  /* align_offsets_for_bit_field */
