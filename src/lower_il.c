@@ -6821,6 +6821,18 @@ position, and is updated after the insertion.
            encountered there in the promotion process, and then put back
            at the right spot when the placeholder appears. */
         type = type->variant.typeref.type;
+        /* If the type-as-subobject for the type followed it on the file scope
+           list, it was also removed from the list, and left attached to
+           the primary type by the "next" pointer. */
+        if (type->next != NULL) {
+          /* The type-as-subobject is present, so arrange to have it be the
+             type processed the next time around the loop.  That will get
+             it placed back on the file-scope types list and get its
+             members promoted out. */
+          a_type_ptr type_as_subobject = type->next;
+          type_as_subobject->next = next_type;
+          next_type = type_as_subobject;
+        }  /* if */
         /* Go on to promote the class' members and put the file-scope type
            on the file-scope list. */
       }  /* if */
@@ -6900,7 +6912,7 @@ Do promotion of members of classes out of those classes in the indicated
 scope and all subscopes.
 */
 {
-  a_type_ptr    type, insert_pointer;
+  a_type_ptr    type, next_type, insert_pointer;
   a_scope_ptr   block_scope;
   a_scope_depth depth;
 
@@ -6920,7 +6932,8 @@ scope and all subscopes.
   type = scope->types;
   if (type != NULL) {
     insert_pointer = NULL;
-    for (; type != NULL; type = type->next) {
+    for (; type != NULL; type = next_type) {
+      next_type = type->next;
       /* If the type is a class, promote its members out of the class. */
       if (is_immediate_class_type(type)) {
         if (type->variant.class_struct_union.
@@ -6930,10 +6943,27 @@ scope and all subscopes.
              within the class to indicate the point at which the class should
              go, and that's where promotion of class members should happen,
              so do nothing now except taking the type out of the list. */
-          if (insert_pointer == NULL) {
-            scope->types = type->next;
+          /* If the next type on the list is the type-as-subobject version
+             of this type, remove it as well, keeping it linked to the
+             primary type. */
+          if (next_type != NULL &&
+              type->variant.class_struct_union.extra_info->
+                                              type_as_subobject == next_type) {
+            /* Yes, the next type is the corresponding type-as-subobject, so
+               remove it along with the primary type. */
+            a_type_ptr type_as_subobject = next_type;
+            next_type = next_type->next;
+            type_as_subobject->next = NULL;
           } else {
-            insert_pointer->next = type->next;
+            /* The type-as-subobject is not there, so remove just the
+               primary type. */
+            type->next = NULL;
+          }  /* if */
+          /* Link around the removed type(s). */
+          if (insert_pointer == NULL) {
+            scope->types = next_type;
+          } else {
+            insert_pointer->next = next_type;
           }  /* if */
           /* Do not update insert_pointer at the end of the loop. */
           continue;

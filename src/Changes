@@ -1,5 +1,18 @@
 Version 2.21
 
+12/10/93  Ordering of types with types-as-subobjects promoted out of classes 
+
+A bug in IL lowering's promotion of types out of classes has been fixed.
+Formerly, when a template reference was moved to the right place in the
+file-scope types list relative to types promoted out of classes, the
+type-as-subobject version of the type would not be moved also.  That
+resulted in type ordering errors in generated C code.
+
+  struct V {};
+  template <class T> struct A {};
+  template <class T> struct B : public virtual V { A<T> a; };
+  struct C { B<int> b; };
+
 12/10/93  Spurious error eliminated
 
 We no longer issue a spurious syntax error for the following case:
