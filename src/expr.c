@@ -1164,11 +1164,16 @@ Syntax:
                                 &call_position) < 0) ?
                                             bound_function_selector->position :
                                             call_position;
-  if (is_expression_operand(operand) &&
-      is_operation_node(operand->variant.expression) &&
-      (op = operand->variant.expression->variant.operation.kind,
-       (op == (an_expr_operator_kind)eok_vacuous_destructor_call ||
-        op == (an_expr_operator_kind)eok_value_vacuous_destructor_call))) {
+  if (curr_expr_kind_is(ek_pp)) {
+    /* Routine calls not allowed in constant expressions appearing in
+       preprocessor directives. */
+    error_in_operand(ec_bad_constant_function_call, operand);
+  } else if (is_expression_operand(operand) &&
+             is_operation_node(operand->variant.expression) &&
+             (op = operand->variant.expression->variant.operation.kind,
+              (op == (an_expr_operator_kind)eok_vacuous_destructor_call ||
+               op == (an_expr_operator_kind)eok_value_vacuous_destructor_call)
+                                                                           )) {
     /* This operand was generated from a vacuous destructor call, e.g.,
        p->int::~int().
     */
@@ -1579,14 +1584,15 @@ Syntax:
                            /*is_conversion=*/FALSE,
                            &call_position, result);
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode) {
+    if (gnu_mode && is_expression_operand(result)) {
       /* Some __builtin_xxx functions act as constant-expressions. */
       call_folded_to_constant = fold_call_if_possible(result);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (!call_folded_to_constant && curr_expr_kind_is_const()) {
-    /* Routine calls not allowed in constant expressions. */
+  if (!call_folded_to_constant && curr_expr_kind_is_const() &&
+      !curr_expr_kind_is(ek_pp)) {
+    /* Unfolded routine calls not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
