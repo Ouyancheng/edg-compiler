@@ -4963,6 +4963,9 @@ TRUE, "()" is put out.
       break;
     case dik_expression:
       /* Expression. */
+      /* For C, process any tags declared within the expression (e.g., in
+         casts). */
+      skip_embedded_declarations();
       /* Parentheses are required (a) if parenthesized_init is TRUE, and
          (b) if parenthesized_init is FALSE, because of the possibility that
          the top-level operator is a ",". */
