@@ -2576,6 +2576,11 @@ Do IL lowering for an stmk_try_block statement.
                      cap;
   a_cleanup_region_number
                      region_number;
+  a_try_supplement_ptr
+                     tsp = statement->variant.try_block;
+  an_object_lifetime_ptr
+                     lifetime,
+                     saved_curr_object_lifetime = curr_object_lifetime;
 
   any_try_blocks_in_function = TRUE;
   /* Change the stmk_try_block statement into a block, and prepare to insert
@@ -2588,14 +2593,25 @@ Do IL lowering for an stmk_try_block statement.
   /* Push a context around the try and catch.  This is needed to ensure that
      the "try" stack frame is popped on a goto out of the try or catch. */
   push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
+  lifetime = tsp->lifetime;
+  if (keep_object_lifetime_info_in_lowered_il) {
+    /* To keep the object lifetime when the try block is eliminated,
+       attach the object lifetime to the block generated above. */
+    unbind_object_lifetime(lifetime);
+    bind_object_lifetime(lifetime, iek_block,
+                         (char *)statement->variant.block.extra_info);
+  }  /* if */
+  /* Set curr_object_lifetime for the duration of the try block; it is
+     restored at the end. */
+  curr_object_lifetime = lifetime;
   /* Add a cleanup action that will clean up on exit from the try block. */
   cap = add_cleanup_action(cak_try_block,
                            /*applies_on_block_exit=*/TRUE,
                            /*applies_on_exception_cleanup=*/FALSE,
                            (an_insert_location *)NULL);
   cap->variant.try_frame = try_frame;
-  stmt_to_try = copy_of_orig_stmt->variant.try_block->statement;
-  handlers = copy_of_orig_stmt->variant.try_block->handlers;
+  stmt_to_try = tsp->statement;
+  handlers = tsp->handlers;
   /* Lower the dependent statement of the try. */
   lower_statement(stmt_to_try);
   /* Generate a description of the catch clause types. */
@@ -2724,6 +2740,7 @@ Do IL lowering for an stmk_try_block statement.
      "if" statement. */
   set_insert_location(copy_of_orig_stmt, &insert_location);
   gen_cleanup_actions(curr_context, &insert_location);
+  curr_object_lifetime = saved_curr_object_lifetime;
   /* Pop the context pushed around the try block. */
   pop_context();
 }  /* lower_try_block */
