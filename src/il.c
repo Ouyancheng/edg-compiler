@@ -844,8 +844,10 @@ Dump the contents of the indicated type entry, for debug purposes.
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
       case tk_imaginary:
-        fprintf(f_debug, tp->kind == (a_type_kind)tk_complex ? "_Complex "
-                                                             : "_Imaginary ");
+        fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
+        fprintf(f_debug, tp->kind == (a_type_kind)tk_complex ? " _Complex"
+                                                             : " _Imaginary");
+        break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_float:
         fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
