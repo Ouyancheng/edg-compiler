@@ -771,6 +771,10 @@ typedef struct a_param_type {
 			   flag may be set even though default_arg_expr
                            remains NULL; this a temporary state and applies to
 			   front-end processing only. */
+  unsigned int  type_involves_template_param:1;
+			/* TRUE if the type entry associated with the
+			   parameter involves (anywhere in its type tree) a
+			   tk_template_param type entry (C++ only). */
   an_expr_node_ptr
 		default_arg_expr;
 			/* Expression node representing the default value

@@ -2787,7 +2787,7 @@ fields to default values and its type to "type".  It is always allocated
 at file scope.
 */
 {
-  a_param_type_ptr ptp;
+  a_param_type_ptr        ptp;
 
   db_enter(5, "alloc_param_type");
 
@@ -2800,10 +2800,20 @@ at file scope.
   /* param_type entries are in the file scope memory region, so use the
      initial il_walk_flag setting for that region. */
   ptp->il_walk_flag = curr_fs_initial_il_walk_flag_setting;
-  ptp->has_default_arg = FALSE;
-  ptp->default_arg_expr = NULL;
   ptp->passed_via_copy_constructor = FALSE;
+  ptp->has_default_arg = FALSE;
+  ptp->type_involves_template_param = FALSE;
+  ptp->default_arg_expr = NULL;
+  /* If we are in the midst of processing a function template declaration or
+     a prototype instantiation of class template and the associated type entry
+     involves (anywhere in its type tree) a template parameter, mark the param
+     type entry; this is useful for function arg matching. */
+  ptp->type_involves_template_param =
+                     (C_dialect == C_dialect_cplusplus &&
+                      traverse_type_tree(type, ttt_is_template_param,
+                                         TTT_PARAM_TYPES | TTT_RETURN_TYPE));
   set_arg_transfer_method_flag(ptp);
+
   db_exit();
   return ptp;
 }  /* alloc_param_type */
