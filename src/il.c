@@ -928,9 +928,10 @@ Dump the contents of the indicated type entry, for debug purposes.
               for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
             }  /* if */
             if (rp != NULL) {
-              fprintf(f_debug, "\n  member functions "
-                               "(highest virtual func number = %d):",
-                      ctsp->highest_virtual_function_number);
+              fprintf(
+                   f_debug,
+                  "\n  member functions (highest virtual func number = %d):",
+                  ctsp->highest_virtual_function_number);
               for (; rp != NULL; rp = rp->next) db_member_function(rp);
             }  /* if */
             if (udp != NULL) {
@@ -2960,7 +2961,8 @@ original) *second.  In particular, *first can be discarded if it has no
 side-effects.  The constants passed as parameters should be unshared.
 */
 {
-  combine_initializers(first, NULL, second, NULL);
+  combine_initializers(first, (a_dynamic_init_ptr*)NULL,
+                       second, (a_dynamic_init_ptr*)NULL);
 }  /* combine_initializer_constants */
 
 
