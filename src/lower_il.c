@@ -3724,6 +3724,7 @@ in extern inline functions).
          because its type decayed to a pointer. */
       implicit_cast(addr_con, orig_con.type);
     }  /* if */
+    addr_con->next = orig_con.next;
   }
 }  /* rewrite_address_of_string_as_address_of_variable */
 

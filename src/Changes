@@ -1,5 +1,21 @@
 Version 3.2
 
+4/3/03   IA-64 ABI: incorrect IL for string literals in aggregate initializer
+
+In the IA-64 ABI, IL lowering replaces string literals in inline
+functions with variables with specific mangled names, so that
+a single copy of the string is shared among all the uses of the
+function.  This lowering process did not work correctly when
+a string literal appeared in an aggregate initializer.
+The bug could result in truncated initializers (the constants
+following the string were dropped), or IL write/read errors
+if an IL file is written.  Now fixed.
+
+  inline char* f() {
+    char* vec[] = {"a", "b", "c", "d", "e", "a"};
+    return vec[4];
+  }
+
 4/3/03   Abort in r_mangled_parent_qualifier, with exported templates
 
 In come complicated test cases involving exported templates,
