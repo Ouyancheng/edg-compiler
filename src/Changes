@@ -10,7 +10,7 @@ assignment operations.  For example:
   template<typename T>
   struct S {
     template<typename U>
-    S<U>& operator(S<U> const&);
+    S<U>& operator=(S<U> const&);
     template<> S<T>& operator=(S<T> const&) {}
   };
   int main() {
