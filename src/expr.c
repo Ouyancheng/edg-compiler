@@ -8354,6 +8354,7 @@ is modified to indicate that is affiliated with the enum type.
                              op1_enum->variant.integer.enum_info.constant_list;
           /* See if the type of the first enum constant is the right type. */
           if (enum_con != NULL &&
+              enum_con->type->kind == (a_type_kind)tk_integer &&
               result_kind == enum_con->type->variant.integer.int_kind) {
             *result_type = enum_con->type;
           } else {
