@@ -11252,7 +11252,7 @@ instantiation.
     daefp->next = tssp->variant.function.def_arg_expr_list;
     tssp->variant.function.def_arg_expr_list = curr_default_args;
   } /* if */
-  if (proto_sym != NULL) {
+  if (proto_sym == NULL) {
     /* We are using the newly specified default arguments.  Do a prototype
        instantiation of the new defaults.  For declarations within classes
        this is done in class fixup processing. */
