@@ -3037,7 +3037,8 @@ supplement.
 /* If a symbol represents a subordinate template, return a pointer to the
    prototype template; otherwise return the symbol provided. */
 #define prototype_template_of(sym)					\
-  ((sym)->variant.template_info->prototype_template != NULL ?		\
+  ((sym)->variant.template_info->prototype_template != NULL &&		\
+   !(sym)->variant.template_info->is_specific_definition ?		\
       (sym)->variant.template_info->prototype_template : (sym))
 
 /* Return a pointer to the namespace associated with a namespace symbol.
