@@ -7866,8 +7866,15 @@ declaration following this one is such a continuation.
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and
-     get the full normal handling. */
-  force_unqualified_name = !is_definition && !is_specialization;
+     get the full normal handling.  Another exception is the case of a
+     redeclaration of a namespace member outside of its namespace (only
+     allowed in Microsoft mode). */
+  force_unqualified_name =
+       !is_definition && !is_specialization &&
+       !(microsoft_mode && !var->source_corresp.is_class_member &&
+         var->source_corresp.parent.namespace_ptr != NULL &&
+         !scope_is_in_name_context_stack(
+              var->source_corresp.parent.namespace_ptr->variant.assoc_scope));
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,
