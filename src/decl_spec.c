@@ -1617,7 +1617,6 @@ new expression and should therefore not be treated as a declaration.
   a_scope_depth           orig_decl_level = decl_scope_level;
   a_boolean               is_class_definition;
   a_source_position       decl_start_pos;
-  a_scope_stack_entry_ptr ssep;
   a_source_position       tag_position;
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
@@ -1648,7 +1647,6 @@ new expression and should therefore not be treated as a declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
-  ssep = &scope_stack[depth_scope_stack];
   if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
       inside_local_class) {
     /* This declaration appears within a function or block scope, or else it
@@ -1935,7 +1933,7 @@ new expression and should therefore not be treated as a declaration.
               /* Redeclaration. */
               *declares_something = FALSE;
             } else {
-              if (tag_sym->decl_scope != ssep->number &&
+              if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
                   ((!tag_sym->is_class_member &&
                     tag_sym->parent.namespace_ptr == NULL) ||
                    !namespace_is_enclosed_by_curr_scope(tag_sym))) {
@@ -2004,7 +2002,7 @@ new expression and should therefore not be treated as a declaration.
              starting with version 11.0 (Visual C++ 5.0) the Microsoft
              compiler no longer considers a declaration such as
              "class A<int>;" to declare an incomplete specialization. */
-          if (tag_sym->decl_scope != ssep->number &&
+          if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
               ((!tag_sym->is_class_member &&
                 tag_sym->parent.namespace_ptr == NULL) ||
                !namespace_is_enclosed_by_curr_scope(tag_sym))) {
@@ -2017,7 +2015,7 @@ new expression and should therefore not be treated as a declaration.
             set_to_named_error_locator(locator);
             err = TRUE;
           } else if (tag_sym->is_class_member &&
-                     tag_sym->decl_scope == ssep->number) {
+                     tag_sym->decl_scope == scope_stack[depth_scope_stack].number) {
             /* This is a vacuous declaration of a nested class of a
                class template such as:
 	         template <class T> struct A {
@@ -2053,7 +2051,7 @@ new expression and should therefore not be treated as a declaration.
         if (is_class_definition) {
           /* This is a definition and a namespace-qualified name. */
           if (tag_sym->parent.namespace_ptr == NULL) {
-            if (tag_sym->decl_scope != ssep->number) {
+            if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number) {
               /* Unless a class is a namespace member or nested in another
                  class, it cannot be defined other than it the scope to which
                  it belongs. */
@@ -2082,6 +2080,7 @@ new expression and should therefore not be treated as a declaration.
         }  /* if */
       } else {
         /* Nested class. */
+        a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
         if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
             same_entities(tag_sym->parent.class_type, ssep->assoc_type)) {
           /* Possible redeclaration of nested class name inside the body of
@@ -2202,7 +2201,8 @@ new expression and should therefore not be treated as a declaration.
             check_assertion(!is_ref_within_new_expr);
             set_class_membership(tag_sym, &class_type->source_corresp,
                                  scope_stack[decl_scope_level].assoc_type);
-            class_type->source_corresp.access = ssep->current_access;
+            class_type->source_corresp.access =
+                                 scope_stack[depth_scope_stack].current_access;
           }  /* if */
           break;
         case sck_namespace:

@@ -1,5 +1,12 @@
 Version 3.0
 
+4/2/02   Use of stale scope stack pointer in class_specifier
+
+Under certain rare circumstances, a scope stack reallocation could occur
+while class_specifier is executing causing a later use of a stored scope
+stack pointer to be invalid.  This could result in an abort or other
+incorrect behavior and is now fixed.
+
 4/02/02  Microsoft compatibility: falling off function try block handlers
 
 Normally, falling off the handler of a function try block for a constructor
