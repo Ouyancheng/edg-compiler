@@ -16802,7 +16802,7 @@ that might be required.
 #if DEBUG
       if (db_flag_is_set("dani")) {
         fprintf(f_debug, "do_any_needed_instantiations, checking: ");
-        db_symbol_name(tip->instance_sym);
+        db_symbol_name_trans_unit(tip->instance_sym);
         fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */

@@ -446,6 +446,27 @@ specified symbol.
 }  /* db_symbol_name */
 
 
+void db_symbol_name_trans_unit(a_symbol_ptr sym)
+/*
+Write out the symbol name (including function parameters, if any).  Include
+the translation unit, if not the primary translation unit.
+*/
+{
+  db_symbol_name(sym);
+  /* If this symbol is for a secondary translation unit, display the
+     translation unit. */
+  if (sym->decl_scope != NO_SCOPE_NUMBER) {
+    a_translation_unit_ptr	tup;
+    tup = trans_unit_for_scope[sym->decl_scope];
+    if (tup != NULL && tup != translation_units &&
+        /* The source_file pointer is not set yet early in initialization. */
+        tup->source_file != NULL) {
+      fprintf(f_debug, " (trans unit %s)", tup->source_file->name_as_written);
+    }  /* if */
+  }  /* if */
+}  /* db_symbol_name_trans_unit */
+
+
 void db_symbol(a_symbol_ptr	sym,
 	       char		*string,
 	       int		indentation)
