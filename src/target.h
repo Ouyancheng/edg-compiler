@@ -19,6 +19,12 @@ target.h -- Definition of target machine characteristics.
 #define TARGET_H 1
 
 /*
+Target byte order.  Little-endian means the least-significant part of a
+multi-byte integer is at the lowest memory address.
+*/
+#define TARG_LITTLE_ENDIAN FALSE
+
+/*
 Char types:
 */
 #define TARG_CHAR_BIT 8
@@ -56,8 +62,11 @@ Ordering of bytes in char constants:
 
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h):
+(These are allowed to be nonconstant, e.g., plain_char_int_kind for
+TARG_WCHAR_T_INT_KIND.)
 */
-#define TARG_WCHAR_T_INT_KIND plain_char_int_kind
+#define TARG_WCHAR_T_INT_KIND ik_unsigned_short
+#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 
 /*
 Integer types:
