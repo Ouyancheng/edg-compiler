@@ -5248,9 +5248,9 @@ no other qualifier, and where the resulting type is a scalar type -- e.g.,
                                    //   not handled here
   };
 
-*class_state
-and *decl_info track general information about the class definition and
-specific information about the member declaration, respectively.
+*class_state and *decl_info track general information about the class
+definition and specific information about the member declaration,
+respectively.
 */
 {
   a_symbol_ptr     sym;
