@@ -1601,6 +1601,9 @@ pch file.  Return a pointer to the last matching event.
     last_matching_event = pep;
     pep = pep->next;
   }  /* while */
+#if 0
+  /* This test only applies if you can't both create and use
+     PCH files in the same compilation. */
   if (match && pragma_hdrstop_found) {
     /* If the file contains a pragma hdrstop, don't accept an existing
        file whose prefix falls short of the hdrstop. */
@@ -1608,6 +1611,7 @@ pch file.  Return a pointer to the last matching event.
       match = FALSE;
     }  /* if */
   }  /* if */
+#endif /* 0 */
   /* If the candidate file doesn't match, return a NULL to the caller. */
   if (!match) {
     last_matching_event = NULL;
