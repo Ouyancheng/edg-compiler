@@ -1371,30 +1371,39 @@ representation).  If suppress_cast is TRUE, suppress any cast of the
 constant to another type.
 */
 {
-  a_boolean      need_cast_close_paren = FALSE;
-  a_boolean      negative = FALSE, err, minus_1_trick = FALSE;
-  a_constant_ptr eff_constant = constant;
-  a_constant     local_constant;
-  a_type_ptr     con_type = skip_typerefs(constant->type);
+  a_boolean       need_cast_close_paren = FALSE;
+  a_boolean       negative = FALSE, err, minus_1_trick = FALSE;
+  a_constant_ptr  eff_constant = constant;
+  a_constant      local_constant;
+  a_type_ptr      con_type = skip_typerefs(constant->type);
+  a_boolean       integer_type_constant =
+                                   (con_type->kind == (a_type_kind)tk_integer);
+  an_integer_kind ikind;
+  a_boolean       signed_constant = FALSE;
 
-  /* If this is an integer value or enumerator constant cast to
-     an enum type in C mode, or an integer value cast to an enum
-     type in C++ mode (note that real enumerator constants don't
-     get here), ... */
+  /* See if the constant is signed. */
+  if (integer_type_constant) {
+    ikind = con_type->variant.integer.int_kind;
+    signed_constant = int_kind_is_signed[(int)ikind];
+  }  /* if */
   if (!suppress_cast &&
-      (con_type->kind == (a_type_kind)tk_integer &&
-       con_type->variant.integer.enum_type) ||
-      /* ... or, if we're generating K&R C and it's an unsigned constant
+      /* If this is an integer value or enumerator constant cast to
+         an enum type in C mode, or an integer value cast to an enum
+         type in C++ mode (note that real enumerator constants don't
+         get here), ... */
+      (integer_type_constant &&
+         (con_type->variant.integer.enum_type ||
+      /* ... or, it's a constant that's shorter than int, ... */
+          (int)ikind < (int)ik_int)) ||
+      /* ... or, we're generating K&R C and it's an unsigned constant
          (pcc doesn't support unsigned integral constants), ... */
-      (il_header.pcc_compatibility_mode &&
-       !(con_type->kind == (a_type_kind)tk_integer &&
-         int_kind_is_signed[(int)con_type->variant.integer.int_kind]))) {
+      (!signed_constant && il_header.pcc_compatibility_mode)) {
     /* ... then prefix the constant with an explicit cast. */
     write_tok_ch('(');
     gen_cast(constant->type);
     need_cast_close_paren = TRUE;
   }  /* if */
-  if (sign_of_integer_constant(constant) < 0) {
+  if (signed_constant && sign_of_integer_constant(constant) < 0) {
     /* Negative value.  Put in parentheses. */
     negative = TRUE;
     write_tok_ch('(');
@@ -1404,11 +1413,9 @@ constant to another type.
        we do this is so that the type of the constant is right. */
     local_constant = *constant;
     negate_integer_value(&local_constant.variant.integer_value, &err);
-    check_assertion(con_type->kind == (a_type_kind)tk_integer);
     if (!err &&
         le_max_integer_value_of_kind(&local_constant.variant.integer_value,
-                                     /*is_signed=*/TRUE,
-                                     con_type->variant.integer.int_kind)) {
+                                     /*is_signed=*/TRUE, ikind)) {
       /* The negative of the constant is a legal constant. */
     } else {
       /* The negative of the constant is not legal.  Use the -INT_MAX-1
@@ -1421,18 +1428,15 @@ constant to another type.
   }  /* if */
   /* Write the literal form of the constant. */
   m_write_str(str_for_integer_constant(eff_constant));
-  if (con_type->kind == (a_type_kind)tk_integer) {
-    /* Add suffixes if appropriate. */
-    an_integer_kind ikind = con_type->variant.integer.int_kind;
-    /* Put out a suffix if needed. */
-    /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
-       a prefix cast is used (see above). */
-    if (!il_header.pcc_compatibility_mode) {
-      if (!int_kind_is_signed[(int)ikind]) {
-        /* Unsigned constant. */
-        m_write_ch('U');
-      }  /* if */
-    }  /* if */
+  /* Put out a suffix if needed. */
+  /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
+     a prefix cast is used (see above). */
+  if (!signed_constant && !il_header.pcc_compatibility_mode) {
+    /* Unsigned constant. */
+    m_write_ch('U');
+  }  /* if */
+  if (integer_type_constant) {
+    /* Add length suffixes if appropriate. */
     if (ikind == (an_integer_kind)ik_long           ||
         ikind == (an_integer_kind)ik_unsigned_long) {
       m_write_ch('L');
@@ -1441,12 +1445,6 @@ constant to another type.
               ikind == (an_integer_kind)ik_unsigned_long_long) {
       write_str("LL");
 #endif /* LONG_LONG_ALLOWED */
-    }  /* if */
-  } else {
-    /* An integer value cast to a non-integral type, e.g., (char *)0. */
-    /* Treat as an unsigned constant. */
-    if (!il_header.pcc_compatibility_mode) {
-      m_write_ch('U');
     }  /* if */
   }  /* if */
   if (negative) {
