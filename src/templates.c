@@ -8118,6 +8118,12 @@ list (the one specified by param_list).
 }  /* reconcile_template_param_lists */
 
 
+/* Forward declaration. */
+static void check_template_nesting_depth(a_symbol_ptr		sym,
+					 a_source_position	*pos,
+					 a_tmpl_decl_state_ptr	decl_state);
+
+
 static a_boolean member_template_param_list_matches_class(
 	                         a_tmpl_decl_state_ptr	decl_state,
                                  a_symbol_ptr		member_sym,
@@ -8134,7 +8140,6 @@ Otherwise, return FALSE.
   a_type_ptr    		type;
   a_boolean			any_mismatches = FALSE;
   a_template_decl_info_ptr	decl_info;
-  a_template_nesting_depth      template_depth = 0;
 
   /* If this declaration is for a member template, skip out to the
      next enclosing template parameter list because this routine is
@@ -8144,7 +8149,6 @@ Otherwise, return FALSE.
   if (member_sym->kind == (a_symbol_kind)sk_function_template ||
       member_sym->kind == (a_symbol_kind)sk_class_template) {
     decl_info = decl_info->enclosing_template_decl;
-    ++template_depth;
   }  /* if */
   type = member_sym->parent.class_type;
   /* Loop as long as we have a decl_info or a parent type.  The loop
@@ -8178,25 +8182,7 @@ Otherwise, return FALSE.
        each of the parameters if the lists are at different levels. */
     if (template_sym == NULL && decl_info == NULL) {
       /* Neither a class template symbol or any declaration information.
-         This is probably okay (the enclosing class is a normal class),
-         but we must also verify the number of 'template<>' prefixes. */
-      /* First determine the number of 'template<>' prefixes that we should
-         have seen. */
-      a_template_nesting_depth  specialization_depth = 0;
-      while (type != NULL) {
-        if (type->variant.class_struct_union.is_template_class) {
-          ++specialization_depth;
-        }  /* if */
-        type = type->source_corresp.is_class_member ?
-                               type->source_corresp.parent.class_type : NULL;
-      }  /* while */
-      /* Now verify that the numbers match. */
-      if (!decl_state->decl_scope_err &&
-          decl_state->nesting_depth != template_depth + specialization_depth) {
-        /* An incorrect number of template parameter clauses was specified,
-           and we haven't issued a related diagnostic yet. */
-        pos_sy_error(ec_template_depth_mismatch, error_pos, member_sym);
-      }  /* if */
+         This is okay, the enclosing class is a normal class. */
       break;
     } else if (decl_info == NULL || template_sym == NULL ||
                !check_template_param_nesting_depths(decl_info->parameters,
@@ -8217,8 +8203,12 @@ Otherwise, return FALSE.
     type = type->source_corresp.is_class_member ?
                                type->source_corresp.parent.class_type : NULL;
     if (decl_info != NULL) decl_info = decl_info->enclosing_template_decl;
-    ++template_depth;
   }  /* for */
+  if (!decl_state->decl_scope_err) {
+    /* Make sure the nesting depth of the declaration matches the entity
+       being declared. */
+    check_template_nesting_depth(member_sym, error_pos, decl_state);
+  }  /* if */
   return !any_mismatches;
 }  /* member_template_param_list_matches_class */
 
@@ -12907,16 +12897,20 @@ static void check_template_nesting_depth(a_symbol_ptr		sym,
 					 a_tmpl_decl_state_ptr	decl_state)
 /*
 This routine is used to determine whether the number of template clauses
-in a full specialization matches the template nesting depth of the
+in a specialization matches the template nesting depth of the
 entity being specialized.  If a mismatch is found, a diagnostic is
 issued.
 */
 {
   a_template_nesting_depth	depth = 0;
-  a_template_arg_ptr		arg_list = NULL;
+  a_template_arg_ptr		arg_list;
+  a_boolean			is_template = FALSE;
   a_type_ptr			parent_tp;
 
-  /* Get the symbol for the template on which this entity is based. */
+  /* The presence of a template argument list indicates that this entity is
+     an instance of a class or function template.  A member function of
+     a class template or a nested class within a class template will not
+     have a template argument list. */
   switch (sym->kind) {
     case sk_class_or_struct_tag:
     case sk_union_tag:
@@ -12924,6 +12918,7 @@ issued.
       a_type_ptr	tp;
       tp = sym->variant.class_struct_union.type;
       arg_list = tp->variant.class_struct_union.extra_info->template_arg_list;
+      is_template = arg_list != NULL;
       break;
     }
     case sk_member_function:
@@ -12932,18 +12927,22 @@ issued.
       a_routine_ptr	rp;
       rp = sym->variant.routine.ptr;
       arg_list = rp->template_arg_list;
+      is_template = arg_list != NULL;
       break;
     }
+    case sk_class_template:
+    case sk_function_template:
+      is_template = TRUE;
+      break;
     case sk_static_data_member:
       break;
     default:
       unexpected_condition_str("check_template_nesting_depth: bad sym kind");
   }  /* switch */
-  /* The presence of a template argument list indicates that this entity is
-     an instance of a class or function template.  A member function of
-     a class template or a nested class within a class template will not
-     have a template argument list. */
-  if (arg_list != NULL) depth++;
+  /* If the entity being declared is a template or a template instance
+     (but not a nested class or member function of a class template),
+     there must be a template parameter clause for the entity. */
+  if (is_template) depth++;
   if (decl_state->is_member_decl) {
     /* If this declaration appears within a class, don't count the enclosing
        classes.  This should only occur in Microsoft mode when an explicit
