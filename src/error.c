@@ -2186,6 +2186,12 @@ error code.
     case ec_cl_tim_local_conflicts_with_auto_instantiation:
       m = "-tlocal mode is incompatible with automatic instantiation";
       break;
+    case ec_abstract_class_param_type:
+      m = "parameter of abstract class type is not allowed";
+      break;
+    case ec_array_of_abstract_class:
+      m = "array of abstract class is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
