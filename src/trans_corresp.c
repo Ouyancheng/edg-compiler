@@ -4768,7 +4768,8 @@ way, determine to which other IL entry this might correspond.
         case iek_routine:
           {
             a_routine_ptr  routine = (a_routine_ptr)scp;
-            if (routine->is_template_function) {
+            if (routine->is_template_function &&
+                routine->template_arg_list != NULL) {
               record_function_template_instantiation(
                                                 (a_symbol_ptr)scp->assoc_info);
             } else {
@@ -4837,7 +4838,8 @@ way, determine to which other IL entry this might correspond.
           find_type_correspondence(type, /*parent_found=*/TRUE);
         }  /* if */
       } else if (kind == (an_il_entry_kind)iek_routine) {
-        if (((a_routine_ptr)scp)->is_template_function) {
+        if (((a_routine_ptr)scp)->is_template_function &&
+            ((a_routine_ptr)scp)->template_arg_list != NULL) {
           /* A member function template instantiation. */
           record_function_template_instantiation(
                                                 (a_symbol_ptr)scp->assoc_info);
