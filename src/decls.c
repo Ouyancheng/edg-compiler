@@ -4403,14 +4403,16 @@ is not a template declaration scope.
       a_scope_stack_entry_ptr	ssep = &scope_stack[effective_decl_level];
       an_error_code             error_code;
 
-      /* If this is an overloaded operator, check for errors in the
-         argument list.  Note that this check is not done for redeclarations,
-         on the assumption that once will have been enough. */
-      check_assertion(!locator->is_class_member);
-      check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
-      /* If it's a new or delete operator, be sure the scope is not a
-         namespace scope. */
-      check_scope_for_new_or_delete(locator);
+      if (!is_error_locator(*locator)) {
+        /* If this is an overloaded operator, check for errors in the
+           argument list.  Note that this check is not done for redeclarations,
+           on the assumption that once will have been enough. */
+        check_assertion(!locator->is_class_member);
+        check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
+        /* If it's a new or delete operator, be sure the scope is not a
+           namespace scope. */
+        check_scope_for_new_or_delete(locator);
+      }  /* if */
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
           !overload_distinguishable(homonym_symbol, type_ptr,
