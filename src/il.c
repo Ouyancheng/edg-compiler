@@ -3260,12 +3260,14 @@ Make or find a type entry for an error type, and return a pointer to it.
   if (il_error_type == NULL) {
     il_error_type = alloc_type((a_type_kind)tk_error);
     set_type_size(il_error_type);
+#if 0
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)il_error_type,
                                      (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* if 0 */
   }  /* if */
   return il_error_type;
 }  /* error_type */
