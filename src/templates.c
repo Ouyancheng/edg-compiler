@@ -8661,7 +8661,9 @@ static void make_instantiation_directive(a_symbol_ptr                 sym,
                                          a_source_sequence_entry_ptr  ssep,
                                          a_source_position            *pos)
 /*
-Create an source_
+Create an IL entry to represent an instantiation directive.  sym identifies
+the entity being instantiated, pos is the source position of the template
+keyword, and ssep is the empty source sequence entry that should be used.
 */
 {
   an_instantiation_directive_ptr  idp;
@@ -8729,7 +8731,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   if (!is_pragma) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     ssep = add_empty_source_sequence_entry();
-    template_keyword_pos = pos_curr_token;
+    template_keyword_pos = *start_pos;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* By pass "template". */
     (void)get_token();
@@ -8758,6 +8760,11 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       /* Process all member functions and static data members. */
       update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
                                            /*top_level=*/TRUE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!is_pragma) {
+        make_instantiation_directive(sym, ssep, &template_keyword_pos);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Something else -- issue an error. */
       sym_error(ec_not_instantiatable_entity, sym);
@@ -9009,9 +9016,10 @@ access errors that were detected.
       requested as a consequence of scanning the pragma. */
     instantiation_mode = tim_none;
     /* Note that the "template" keyword is bypassed in the subroutine. */
+    start_pos = pos_curr_token;
     begin_deferral_of_access_checks();
     instantiation_directive((a_pragma_kind)pk_instantiate, /*is_pragma=*/FALSE,
-                            &pos_curr_token);
+                            &start_pos);
     discard_deferred_access_checks();
     end_deferral_of_access_checks();
   }  /* if */
