@@ -52,6 +52,8 @@ extern void scan_initializer_expression(a_type_ptr       required_type,
 extern a_routine_ptr select_default_constructor(a_type_ptr        class_type,
                                                 a_source_position *err_pos);
 
+extern a_routine_ptr select_destructor(a_type_ptr class_type);
+
 extern a_routine_ptr select_copy_constructor(
                                     a_type_ptr        class_type,
                                     a_boolean         const_object_required,
