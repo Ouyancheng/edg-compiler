@@ -4604,8 +4604,12 @@ Returns TRUE if there is an error in the specifiers.
                      !gcc_mode &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                      curr_token == tok_register))) {
-          error(ec_bad_file_scope_storage_class);
-          err = TRUE;
+          if (gcc_mode) {
+            warning(ec_auto_ignored);
+          } else {
+            error(ec_bad_file_scope_storage_class);
+            err = TRUE;
+          }  /* if */
         } else if (input_flags & DSI_IS_CONDITION_DECL) {
           /* Issue a diagnostic for the specification of a storage class on
              a condition declaration.  Ignore auto and register except in

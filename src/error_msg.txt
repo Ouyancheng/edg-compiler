@@ -1206,6 +1206,7 @@ ec_vla_size_ignored;;"variable-length array field type will be treated as zero-l
 ec_gcc_lvalue_cast_ignored;;"nonstandard cast on lvalue ignored"
 ec_cl_invalid_flag_name;;"unrecognized flag name "
 ec_qualified_void_return_type;;"void return type cannot be qualified"
+ec_auto_ignored;;"the auto specifier is ignored here (invalid in standard C/C++)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
