@@ -4543,7 +4543,7 @@ thrown away by the caller.
 
   db_enter(1, "finish_function_body_processing");
 #if DEBUG
-  if (debug_level >= 1) {
+  if (debug_level >= 1 || db_has_traced_name(routine, iek_routine)) {
     fprintf(f_debug, "Finishing function body processing for ");
     db_name(&routine->source_corresp);
     fprintf(f_debug, "\n");
