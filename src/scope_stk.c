@@ -936,10 +936,15 @@ specified after the point of definition of the template.
       a_namespace_symbol_supplement_ptr	nssp;
       a_scope_depth			new_depth;
       if (do_dependent_name_processing && set_value &&
+          ssep->kind != (a_scope_kind)sck_block &&
+          ssep->kind != (a_scope_kind)sck_function &&
           effective_decl_seq != NO_DECL_SEQUENCE_NUMBER &&
           (audp->effective_decl_seq > effective_decl_seq)) {
         /* This using-directive became effective after the point that the
-           using-directive appeared.  Ignore this using-directive. */
+           using-directive appeared.  Ignore this using-directive.  This
+           test is ignored for block scope using directives, because any
+           ones that are on the list are visible, and the declaration sequence
+           number test will fail for these declarations. */
         continue;
       }  /* if */
       new_depth = set_value 
