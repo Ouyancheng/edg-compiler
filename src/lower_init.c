@@ -2816,6 +2816,7 @@ be kept, FALSE if it should be deleted.
       bind_object_lifetime(init_expr_lifetime, iek_block,
                            (char *)block_stmt->variant.block.extra_info);
     }  /* if */
+    begin_object_lifetime(init_expr_lifetime, eff_insert_location);
   }  /* if */
   if (processing_file_scope_init_routine) {
     /* When processing an initialization in the file-scope initialization
@@ -2824,30 +2825,14 @@ be kept, FALSE if it should be deleted.
        (a) this must be done before they are lowered (so the temporaries
        have not yet been made into variables), and (b) this copies the
        object lifetimes too. */
-    an_object_lifetime_ptr temp_lifetime = NULL;
     if (dip->kind == (a_dynamic_init_kind)dik_expression ||
         dip->kind == (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
       an_expr_node_ptr expr =
                   copy_expr_to_function_memory_region(dip->variant.expression);
       dip->variant.expression = expr;
-      if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-        temp_lifetime = expr->variant.object_lifetime.ptr;
-      }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
       dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
-    }  /* if */
-    /* temp_lifetime will be the init_expr_lifetime if there is one, or
-       failing that the lifetime for the top enk_object_lifetime if there
-       is one. */
-    if (init_expr_lifetime != NULL) temp_lifetime = init_expr_lifetime;
-    if (temp_lifetime != NULL) {
-      /* When processing initializations within a function, all lifetimes
-         have already been visited.  When generating the file-scope
-         initialization routine, however, any lifetimes involved in
-         the initialization have not been processed yet and must be
-         processed now (e.g., to initialize conditional flags). */
-      begin_object_lifetime(temp_lifetime, eff_insert_location);
     }  /* if */
   }  /* if */
   switch (dip->kind) {
