@@ -1,5 +1,18 @@
 Version 2.42
 
+7/30/99  C++-generating back end: Leading "::" on enum definition
+
+The C++-generating back end incorrectly put a leading "::" on a
+definition of an enum in a scope where a using-directive made a
+namespace-scope definition of a like-named entity visible.
+Now fixed.
+
+  enum X {x1, x2, x3};  // Output had "enum ::X { x1, x2, x3 };"
+  namespace N {
+    enum X {y1, y2, y3};
+  }
+  using namespace N;
+
 7/29/99  Microsoft compatibility: injected class name not found in most
          contexts
 

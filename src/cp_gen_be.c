@@ -2686,7 +2686,7 @@ is the one associated with the definition of the enum.
      in prototype scopes. */
   if (has_name(type) || il_header.source_language == sl_C) {
     write_space();
-    gen_type_name(type);
+    gen_name(&type->source_corresp, iek_type, GN_DECLARATION);
   }  /* if */
   write_tok_str(" { ");
   enum_con = type->variant.integer.enum_info.constant_list;
