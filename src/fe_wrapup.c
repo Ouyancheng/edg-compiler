@@ -420,7 +420,8 @@ Complete the file scope of each of the translation units.
      This must be done before the lowering of the primary IL.
      In trans_unit_test mode, we don't check for duplicate definitions,
      so we can't do the copy. */
-  if (total_errors == 0 && !trans_unit_test_mode) {
+  if (total_errors == 0 && !trans_unit_test_mode &&
+      translation_units->next != NULL) {
     copy_secondary_trans_unit_IL_to_primary();
   }  /* if */
   /* Switch back to the primary translation unit. */
