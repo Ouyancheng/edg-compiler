@@ -4127,12 +4127,12 @@ function_lparen:
                           (input_flags & DI_IS_FRIEND_DECL) != 0,
                           decl_pos_block);
 #if GNU_EXTENSIONS_ALLOWED
-    /* Scan a postfix attribute specification. */
-    if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
-      *attributes = scan_attributes();
-      /* Advance to the end of the list. */
-      attributes = last_attribute_link(attributes);
-    }  /* if */
+      /* Scan a postfix attribute specification. */
+      if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
+        *attributes = scan_attributes();
+        /* Advance to the end of the list. */
+        attributes = last_attribute_link(attributes);
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
