@@ -151,11 +151,9 @@ with the indicated scope stack entry.
 */
 {
   a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
-#if CHECKING
-  if (ssep->il_scope->kind != (a_scope_kind)sck_class_struct_union) {
-    internal_error("add_to_routine_fixup_list: bad scope kind");
-  }  /* if */
-#endif /* CHECKING */
+
+  check_assertion(ssep->il_scope->kind ==
+                                   (a_scope_kind)sck_class_struct_union);
   if (ssep->last_routine_fixup == NULL) {
     (symbol_supplement_for_class(ssep->assoc_type))->routine_fixup_list = rfp;
   } else {
@@ -1496,16 +1494,12 @@ entries associated with base_class are on the base_classes list of class_type.
     }  /* if */
 #endif /*if */
     if (ovfp->base_class == NULL) {
-      if (!null_allowed) {
-        internal_error("verify_virt_func_override_list: NULL base class");
-      }  /* if */
+      check_assertion(null_allowed);
     } else if (ovfp->base_class != base_class) {
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp == ovfp->base_class) break;
       }  /* for */
-      if (bcp == NULL) {
-        internal_error("verify_virt_func_override_list: base class not found");
-      }  /* if */
+      check_assertion(bcp != NULL);
     }  /* if */
   }  /* for */
   db_exit();
@@ -2491,9 +2485,7 @@ or struct definition.  The syntax is
         error(ec_bad_base_class);
         goto skip_base_class;
       }  /* if */
-#if CHECKING
-      if (ctsp == NULL) internal_error("scan_base_specifier_list: NULL ctsp");
-#endif /* CHECKING */
+      check_assertion(ctsp != NULL);
       /* Before creating the base class entry and adding it to the list of
          base classes, go through the list looking for conflicts. */
       ambiguous = FALSE;
@@ -3006,11 +2998,8 @@ Return TRUE if ctor_rout points to a default constructor routine entry.
 {
   a_param_type_ptr  ptp;
 
-#if CHECKING
-  if (ctor_rout->special_kind != (a_special_function_kind)sfk_constructor) {
-    internal_error("is_default_constructor: expected a constructor");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(ctor_rout->special_kind ==
+                                  (a_special_function_kind)sfk_constructor);
   ptp = ctor_rout->type->variant.routine.extra_info->param_type_list;
   /* There are no parameters or if the first (and therefore its successors,
      if any) has a default argument expression, then this is a default
@@ -3034,11 +3023,8 @@ constructor's first parameter is const or volatile qualified (or both).
   a_type_ptr        tp;
   a_boolean         is_cctor = FALSE;
 
-#if CHECKING
-  if (ctor_rout->special_kind != (a_special_function_kind)sfk_constructor) {
-    internal_error("is_copy_constructor: expected a constructor");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(ctor_rout->special_kind ==
+                                  (a_special_function_kind)sfk_constructor);
   *const_object_okay = FALSE;
   *volatile_object_okay = FALSE;
   /* A constructor is deemed a copy constructor if (1) the type of the first
@@ -3256,11 +3242,8 @@ is just a matter of changing where and how diagnostics are issued.)
                and so the error can be detected. */
             /* Leave the inner loop but continue the outer loop. */
             break;
-#if CHECKING
-          } else if (daefp->next == NULL) {
-            /* No match was found. */
-            internal_error("redecl_member_function: bad default arg list");
-#endif /* CHECKING */
+          } else {
+            check_assertion(daefp->next != NULL);
           }  /* if */
         }  /* for */
       }  /* if */
@@ -3479,13 +3462,11 @@ special function kind (e.g., constructor, destructor), if any.
     /* Do checking associated with function overloading. */
     if (overload_sym != NULL && !cssp->is_nonreal_class) {
       a_symbol_ptr  other_sym = sym->next;
-#if CHECKING
-      if (sym != overload_sym->variant.overloaded_function.symbols ||
-          other_sym == NULL ||
-          other_sym->kind != (a_symbol_kind)sk_member_function) {
-        internal_error("decl_member_function:  bad overloading");
-      }  /* if */
-#endif /* CHECKING */
+
+      check_assertion(sym ==
+                        overload_sym->variant.overloaded_function.symbols);
+      check_assertion(other_sym != NULL &&
+                      other_sym->kind == (a_symbol_kind)sk_member_function);
       /* Set a flag in overload_sym if the instances of an overloaded function
          are a mixture of static and nonstatic member functions. */
       if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
@@ -3697,11 +3678,7 @@ first parameter is a reference type.  Set *accepts_const and
   a_type_ptr        tp;
 
   ptp = routine_symbol_type(sym)->variant.routine.extra_info->param_type_list;
-#if CHECKING
-  if (ptp == NULL) {
-    internal_error("is_assignment_operator_for_copy: null param type ptr");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(ptp != NULL);
   tp = skip_typerefs(ptp->type);
   if (is_reference_type(tp)) {
     /* Reference argument. */
@@ -3738,8 +3715,6 @@ TRUE if a const object can be copied.
 
   db_enter(4, "assignment_operator_for_copy_exists");
   if (sym == NULL) {
-#if CHECKING
-#endif /* CHECKING */
     *const_okay = TRUE;
   } else {
     *const_okay = FALSE;
@@ -4053,12 +4028,8 @@ class, struct, or union.
     }  /* if */
 #if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
   } else {
-#if CHECKING
     /* No access other than public should be possible in non-C++ modes. */
-    if (C_dialect != C_dialect_cplusplus) {
-      internal_error("decl_nonstatic_data_member: unexpected access");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(C_dialect == C_dialect_cplusplus);
     if (unnamed_field) {
       /* Unnamed fields that have not been allocated yet should be added to the
          field list so they can be allocated later. */
@@ -4244,11 +4215,7 @@ class and record it in the class's assoc_operator_new_routine field.
   a_class_type_supplement_ptr ctsp;
   a_symbol_locator            locator;
 
-#if CHECKING
-  if (!is_immediate_class_type(class_type)) {
-    internal_error("set_class_assoc_operator_new_routine: not class type");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->assoc_operator_new_routine == NULL) {
     /* Use the class "new" if there is one, and otherwise the global operator
@@ -4283,11 +4250,7 @@ class and record it in the class's assoc_operator_new_routine field.
          we must find something here. */
       new_function_symbol =
                          extract_default_operator_new_sym(new_function_symbol);
-#if CHECKING
-      if (new_function_symbol == NULL) {
-        internal_error("set_class_assoc_operator_new_routine: rout not found");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(new_function_symbol != NULL);
     }  /* if */
     if (new_function_symbol != NULL) {
       ctsp->assoc_operator_new_routine =
@@ -4343,11 +4306,7 @@ and record it in the class's assoc_operator_delete_routine field.
   a_class_type_supplement_ptr ctsp;
   a_symbol_locator            locator;
 
-#if CHECKING
-  if (!is_immediate_class_type(class_type)) {
-    internal_error("set_class_assoc_operator_delete_routine: not class type");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->assoc_operator_delete_routine == NULL) {
     /* Use the class "delete" if there is one, and otherwise the global
@@ -4841,15 +4800,6 @@ empty statement block.
   a_routine_type_supplement *rtsp = rout_ptr->type->variant.routine.extra_info;
 
   db_enter(4, "define_special_member_function");
-#if CHECKING
-  if (rout_ptr->special_kind != (a_special_function_kind)sfk_constructor &&
-      rout_ptr->special_kind != (a_special_function_kind)sfk_destructor &&
-      (rout_ptr->special_kind != (a_special_function_kind)sfk_operator ||
-       rout_ptr->opname_kind != (an_opname_kind)onk_assign)) {
-    internal_error(
-                "define_special_member_function: expected ctor, dtor, or =");
-  }  /* if */
-#endif /* CHECKING */
   if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
@@ -4877,6 +4827,9 @@ empty statement block.
       make_default_destructor_body(scope);
     } else {
       /* Assignment operator case. */
+      check_assertion(rout_ptr->special_kind ==
+                                   (a_special_function_kind)sfk_operator &&
+                      rout_ptr->opname_kind == (an_opname_kind)onk_assign);
       make_default_assignment_body(scope, err_pos);
     }  /* if */
     /* End of statement block is unreachable because of the return
@@ -4945,16 +4898,14 @@ marked as referenced.
 {
   a_routine_ptr rp = sym->variant.routine.ptr;
 
-#if CHECKING
-  if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
-      rp->special_kind != (a_special_function_kind)sfk_destructor &&
-      rp->special_kind != (a_special_function_kind)sfk_conversion &&
-      (rp->special_kind != (a_special_function_kind)sfk_operator ||
-       rp->opname_kind != (an_opname_kind)onk_assign)) {
-    internal_error(
-               "reference_to_implicitly_invoked_function: unexpected sfkind");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(rp->special_kind ==
+                               (a_special_function_kind)sfk_constructor ||
+                  rp->special_kind ==
+                               (a_special_function_kind)sfk_destructor ||
+                  rp->special_kind ==
+                               (a_special_function_kind)sfk_conversion ||
+                  (rp->special_kind == (a_special_function_kind)sfk_operator &&
+                   rp->opname_kind == (an_opname_kind)onk_assign));
   /* Check for accessibility. */
   if (!have_access_to_symbol(sym)) {
     an_error_severity	severity = es_error;
@@ -5204,12 +5155,7 @@ destination type is not yet on the current class's conversion list.
                                       /*must_be_type_name=*/FALSE,
                                       /*add_to_active_list=*/TRUE,
                                       (a_symbol_ptr)NULL, &sym);
-#if CHECKING
-          if (sym == NULL) {
-            internal_error(
-                     "project_base_class_conversion_functions: no projection");
-          }  /* if */
-#endif /* CHECKING */
+          check_assertion(sym != NULL);
           /* Allocate the new conversion list entry and link it in the
              list for the current class. */
           add_to_conversion_list(sym, cssp);
@@ -5310,14 +5256,11 @@ and "class_type" indicates the class in which the declaration occurs.
   } else {
     local_class_of_which_a_member = locator_for_curr_id.
                                     specific_symbol->class_of_which_a_member;
-#if CHECKING
     /* In processing a qualified name the specific_symbol field of the locator
        will have been filled in. */
-    if (curr_token != tok_identifier ||
-        locator_for_curr_id.specific_symbol->class_of_which_a_member == NULL) {
-      internal_error("access_adjustment_decl: expected qualified name");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(curr_token == tok_identifier &&
+                    locator_for_curr_id.specific_symbol->
+                                          class_of_which_a_member != NULL);
   }  /* if */
   /* Be sure the class in the qualified name is one from which the current
      class is derived. */
@@ -5566,11 +5509,7 @@ back down to find A<T>::B).
           }  /* if */
         }  /* for */
       }  /* if */
-#if CHECKING
-      if (corresp_prototype_tag_sym == NULL) {
-        internal_error("find_prototype_tag_sym: can't find nested prototype");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(corresp_prototype_tag_sym != NULL);
     }  /* if */
   } else {
     /* curr_sym is not a nested class.  If it has a template symbol it may be
@@ -5596,12 +5535,7 @@ back down to find A<T>::B).
           break;
         }  /* if */
       }  /* for */
-#if CHECKING
-      if (corresp_prototype_tag_sym == NULL) {
-        internal_error(
-                    "find_prototype_tag_sym: can't find nonnested prototype");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(corresp_prototype_tag_sym != NULL);
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -5624,6 +5558,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                                 a_boolean     is_prototype_instantiation)
 
 /*
+Scan the body of a class definition, including the base classes list.
 */
 {
   a_boolean               err = FALSE;
@@ -6043,13 +5978,9 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               if (curr_routine_fixup != NULL) {
                 /* We must be in a declarator list and this must be at least
                    the second item in the list. */
-#if CHECKING
-                if (curr_routine_fixup->
-                              function_body_token_cache.first_token != NULL) {
-                  internal_error(
-                       "scan_class_definition: cached func body not expected");
-                }  /* if */
-#endif /* CHECKING */
+                /* This should not be cached function body. */
+                check_assertion(curr_routine_fixup->
+                                function_body_token_cache.first_token == NULL);
                 if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
                    /* The previous one must have been a routine declaration
                       with default arguments, so we have to save the routine
@@ -6423,11 +6354,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             break;
           } else if (member_storage_class == (a_storage_class)sc_typedef) {
             a_symbol_ptr        typedef_sym_ptr;
-#if CHECKING
-            if (C_dialect != C_dialect_cplusplus) {
-              internal_error("scan_class_definition: typedef not expected");
-            }  /* if */
-#endif /* CHECKING */
+
+            check_assertion(C_dialect == C_dialect_cplusplus);
             if (!type_explicitly_specified) {
               warning(ec_missing_type_specifier);
             }  /* if */
@@ -6892,13 +6820,8 @@ to indicate whether the class/struct/union is actually defined.
   }  /* if */
   if (!is_qualified_name_start()) {
     /* Skip over "class", "struct", or "union", remembering which appears. */
-#if CHECKING
-    if (curr_token != tok_class &&
-        curr_token != tok_struct &&
-        curr_token != tok_union) {
-      internal_error("class_specifier: expected class, struct, or union");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion(curr_token == tok_class || curr_token == tok_struct ||
+                    curr_token == tok_union);
     if (curr_token == tok_union) {
       tag_kind = (a_symbol_kind)sk_union_tag;
       type_kind = (a_type_kind)tk_union;
@@ -6913,16 +6836,12 @@ to indicate whether the class/struct/union is actually defined.
     (void)get_token();
     tag_id_present = is_qualified_name_start();
   } else {
-#if CHECKING
-    if (!is_friend_decl) {
-      internal_error("class_specifier: identifier but not friend decl");
-    }  /* if */
-#endif /* CHECKING */
     /* class_specifier is called with is_friend_decl TRUE only when the name
        has not yet been declared; this happens in cfront compatibility mode
        only.  Default kind is "class" when a class is introduced by a friend
        declaration.   (In fact, there is a slight incompatibility here, since
        in cfront 2.1 this can also be turned into a union declaration.) */
+    check_assertion(is_friend_decl);
     tag_id_present = TRUE;
     tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
     type_kind = (a_type_kind)tk_class;
@@ -6931,12 +6850,8 @@ to indicate whether the class/struct/union is actually defined.
     /* It seems that appearance of a tag name is a declaration of the
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
+    check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     *declares_something = TRUE;
-#if CHECKING
-    if (vacuous_decl_allowed && is_friend_decl) {
-      internal_error("class_specifier: vacuous decl not okay in friend decl");
-    }  /* if */
-#endif /* CHECKING */
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution);
@@ -6944,11 +6859,8 @@ to indicate whether the class/struct/union is actually defined.
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
-#if CHECKING
-        if (tag_sym->variant.type->kind != (a_type_kind)tk_template_param) {
-          internal_error("class_specifier: unexpected type for tag sym");
-        }  /* if */
-#endif /* CHECKING */
+        check_assertion(tag_sym->variant.type->kind ==
+                                             (a_type_kind)tk_template_param);
         /* Template param used in with a class-key -- for instance:
              template <class T> class A {
                class T x;
@@ -6961,11 +6873,7 @@ to indicate whether the class/struct/union is actually defined.
         pos_sy_error(ec_bad_template_arg_use, &locator.source_position,
                      tag_sym);
       } else if (tag_sym->kind != tag_kind) {
-#if CHECKING
-        if (!is_template_class_symbol(tag_sym)) {
-          internal_error("class_specifier: unexpected tag mismatch");
-        }  /* if */
-#endif /* CHECKING */
+        check_assertion(is_template_class_symbol(tag_sym));
         /* Error -- tag-kind mismatch in a specialization. */
         pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos,
                      tag_sym->variant.class_struct_union.extra_info->
