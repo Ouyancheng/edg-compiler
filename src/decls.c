@@ -7131,8 +7131,8 @@ continue_with_declaration:
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info);
       /* declarator will have set error_position to the position of the
-         declarator-id if this is a real declarator and the the first token
-         of the whole declarator if it is an abstract declarator. */
+         declarator-id if this is a real declarator and the first token of
+         the whole declarator if it is an abstract declarator. */
       declarator_pos = error_position;
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
