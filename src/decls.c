@@ -1665,11 +1665,11 @@ scope is that of a class definition.
             remove_stop_token(tok_comma);
             break;
           } else if (is_void_type(param_type_ptr) &&
+                     param_type_ptr->kind == (a_type_kind)tk_typeref &&
                      !is_qualified_type(param_type_ptr) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
                as a nonstandard way of signifying an empty param list. */
-            check_assertion(param_type_ptr->kind == (a_type_kind)tk_typeref)
             if (strict_ansi_mode) {
               pos_warning(ec_nonstd_void_param_list, &param_type_pos);
             }  /* if */
@@ -1684,6 +1684,10 @@ scope is that of a class definition.
         }  /* if */
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
+          param_type_ptr = error_type();
+        } else if (is_void_type(param_type_ptr) &&
+                   C_dialect == C_dialect_cplusplus) {
+          pos_error(ec_void_param_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
         } else {
           /* Mark the type as referenced.  This is important for a
