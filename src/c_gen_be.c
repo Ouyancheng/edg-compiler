@@ -2382,6 +2382,7 @@ selection operation).
          type. */
       struct_class = type_pointed_to(struct_class);
     }  /* if */
+    struct_class = skip_typerefs(struct_class);
     if (struct_class != field_class) {
       internal_error("dump_field_from_second_operand: wrong field class");
     }  /* if */
