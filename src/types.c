@@ -3799,7 +3799,7 @@ If neither is TRUE, the types are checked for an exact match.
       } else if (check_as_conversion) {
         /* The type qualifiers do not match, but this is a conversion,
            so that may be okay. */
-        if (any_qualifier_in_set_missing(qualifiers_1, qualifiers_2)) {
+        if (any_qualifier_in_set_missing(qualifiers_2, qualifiers_1)) {
           /* Some type qualifiers are being added; that's never okay. */
           /* correspond = FALSE;  -- already set. */
         } else {
