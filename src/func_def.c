@@ -1231,7 +1231,23 @@ on a prior declaration.
     check_exception_specification(rout_type, rp,
                                   &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
-    reconcile_routine_types(sym->variant.routine.ptr, rout_type,
+    /* Note that type_ptr is passed to reconcile_routine_types instead of
+       rout_type.  This is intended.  type_ptr should differ from rout_type
+       only by the presence of a top-level type qualifiers.  These will only
+       appear on a function type in microsoft_16 mode. */
+#if CHECKING
+    if (rout_type == type_ptr) {
+      /* Okay. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (il_header.microsoft_16_mode) {
+      a_type_qualifier_set  qual = get_top_level_type_qualifiers(type_ptr);
+      check_assertion(qual == TQ_NEAR || qual == TQ_FAR);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      unexpected_condition();
+    }  /* if */
+#endif /* CHECKING */
+    reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -1282,7 +1298,7 @@ on a prior declaration.
                               func_info->declarator_ssep);
     /* The type as it actually appeared in the current declaration may
        already have been set in reconcile_routine_types. */
-    if (rp->declared_type == NULL) rp->declared_type = rout_type;
+    if (rp->declared_type == NULL) rp->declared_type = type_ptr;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &locator->source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
