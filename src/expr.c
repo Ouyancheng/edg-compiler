@@ -2459,7 +2459,7 @@ bound with the function in *bound_function_selector.
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
-          routine_type = member_sym->variant.routine.ptr->type;
+          routine_type = routine_symbol_type(member_sym);
           if (routine_type_is_nonstatic_member_function(routine_type)) {
             /* Nonstatic member function. */
             /* Also continue here for an overloaded function. */
@@ -8749,6 +8749,7 @@ lowering or a back end to do the rewriting.
            scope of the function (the latter is what cfront does, and it
            helps to avoid some nasty interactions with exception handling). */
         a_type_ptr func_type = func_scope->variant.routine.ptr->type;
+        func_type = skip_typerefs(func_type);
         if (!return_var->is_parameter &&
             return_var->storage_class != (a_storage_class)sc_static &&
             types_are_compatible(return_var->type,
