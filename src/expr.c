@@ -2385,18 +2385,21 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
       check_for_operator_overloading(opname_kind_for_token[(int)curr_token],
                                      /*unary_operator=*/FALSE,  /* sic! */
                                      /*must_be_member_function=*/FALSE,
-                                     /*try_conversions=*/!allow_anachronisms,
+                                     /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/allow_anachronisms,
                                      operand, &zero_operand,
                                      expression_kind, &operand->position,
                                      result, &processed);
-      if (!processed && allow_anachronisms) {
+      if (!processed && allow_anachronisms &&
+          /* Do not go further if a conversion has been applied to the operand
+             to make it suitable for the built-in operator. */
+          is_class_or_error_operand(operand)) {
         /* Try the anachronism that allows a one-argument function to
            be used for both prefix and postfix ++/--. */
         check_for_operator_overloading(opname_kind_for_token[(int)curr_token],
                                        /*unary_operator=*/TRUE,
                                        /*must_be_member_function=*/FALSE,
-                                       /*try_conversions=*/TRUE,
+                                       /*try_conversions=*/FALSE,
                                        /*has_predef_meaning=*/FALSE,
                                        operand, (an_operand *)NULL,
                                        expression_kind, &operand->position,

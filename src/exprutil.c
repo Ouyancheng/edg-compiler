@@ -6280,8 +6280,9 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
       case onk_plus_plus:
       case onk_minus_minus:
         /* "++" and "--" (postfix, which show up as two-operand operators)
-           take an arithmetic or pointer lvalue. */
-        operand_type_pattern = "LS";
+           take an arithmetic or pointer lvalue.  A second implied
+           operand is integer. */
+        operand_type_pattern = "LSI";
         break;
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes
