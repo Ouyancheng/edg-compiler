@@ -4586,6 +4586,12 @@ typedef struct a_pragma {
 			   file or function scope relative to other
 			   declarations, statements, comments, etc. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  char		*pragma_text;
+			/* For pragmas that are passed through to the
+			   back end as an uninterpretted character string,
+			   this points to the null terminated string.  The
+			   string begins with the token immediately following
+			   the #pragma keyword. */
   union {
     /* When kind == pk_none or refers to "front-end-only" pragma, no variant
        fields. */

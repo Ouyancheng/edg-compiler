@@ -2512,11 +2512,11 @@ Display the indicated pragma entry.
   disp_unsigned_long("decl_position.column",
                      (unsigned long)ptr->decl_position.column);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (ptr->source_sequence_entry != NULL) {
-    disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
-             iek_source_sequence_entry);
-  }  /* if */
+  disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
+           iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  disp_string_ptr("pragma_text", ptr->pragma_text, iek_other_text,
+                  (sizeof_t)0);
   disp_name("kind");
   switch (ptr->kind) {
     case pk_none:

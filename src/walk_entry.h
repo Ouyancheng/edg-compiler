@@ -778,6 +778,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        walk_ptr(ptr->pragma_text, a_char_ptr, iek_other_text);
       }
       break;
     case iek_scope:
