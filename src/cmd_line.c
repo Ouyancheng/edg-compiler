@@ -486,6 +486,7 @@ unknown_option:
       error_threshold = strict_ansi_error_severity;
     }  /* if */
   }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {
     /* -tlocal mode cannot be used with automatic instantiation.  If
        automatic instantiation was explicitly requested on the command
@@ -496,6 +497,7 @@ unknown_option:
       automatic_instantiation_mode = FALSE;
     }  /* if */
   }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   /* Determine the appropriate error level for anachronism messages based
      on whether anachronisms are to be allowed. */
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
