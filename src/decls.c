@@ -11464,13 +11464,6 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
-        if (is_variable_def || is_tentative_definition) {
-          /* In C++ mode, check whether a template class type needs to be
-             instantiated.  This test is done here so that any instantiations
-             that may result are done before the variable is actually
-             entered into the symbol table. */
-          complete_type_is_needed(local_type_ptr);
-        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           /* "selectany" is allowed only on variables that have static
