@@ -91,16 +91,16 @@ The access_flags string was retained for backward compatibility.
       } else {
         /* The base is accessible if it is public and not ambiguous. */
         is_accessible = ((bcsp->flags & BCS_PUBLIC) != 0);
-        is_ambiguous = ((bcsp->flags & BCS_AMBIGUOUS) != 0);
       }  /* if */
-      if (!is_ambiguous) {
+      if (matching_type_info(test_info, base_info)) {
         /* If the base class is ambiguous, stop the search but don't
            consider the conversion "successful".  The BCS_AMBIGUOUS flag is
            only used with ABI versions >= 2.29.  In previous versions of
            the ABI, ambiguous bases were indicated by marking all
            instances of the base as inaccessible in the access
            string. */
-        if (is_accessible && matching_type_info(test_info, base_info)) {
+        is_ambiguous = ((bcsp->flags & BCS_AMBIGUOUS) != 0);
+        if (!is_ambiguous && is_accessible) {
           result = TRUE;
           if (ptr != NULL) {
             if (bcsp->flags & BCS_VIRTUAL) {
@@ -109,9 +109,9 @@ The access_flags string was retained for backward compatibility.
                  pointer and return that value. */
               *p_new_ptr = *((void **)new_ptr);
             } else {
-              /* A nonvirtual base class.  new_ptr has already been adjusted to
-                 point to the start of the base class.  Return this value
-                 to the caller. */
+              /* A nonvirtual base class.  new_ptr has already been
+                 adjusted to point to the start of the base class.
+                 Return this value to the caller. */
               *p_new_ptr = new_ptr;
             }  /* if */
           }  /* if */
