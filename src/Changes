@@ -1,4 +1,20 @@
 Version 2.46
+  
+1/15/01  Missing diagnostic and possible abort on wrong number of template<>
+         constructs
+
+The front end used to not diagnose missing or extraneous 'template<>'
+constructs when specializing certain member templates.  The resulting
+IL could end up being inconsistent leading the C++-generating back end
+to abort.  For example:
+
+  template<class T> struct S {
+    template<class U> struct N {};
+  };
+  template<> template<> template<class V>
+    S<int>::N {};  // Extraneous 'template<>' was not diagnosed
+
+This is now fixed (an error is issued).
 
 1/15/01  Base classes are only dependent when the derived class is a template
 
