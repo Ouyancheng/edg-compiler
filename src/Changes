@@ -1,4 +1,4 @@
-Version 2.42, August 12, 1999
+Version 2.43
 
 8/12/99  Keep function bodies in IL even when the declarator is qualified
 
@@ -10,6 +10,8 @@ namespace name or the global qualifier.  For example:
   extern void ::f() {}  // Used to remove the body of f from the IL
 
 This is now fixed.
+-------------------------------------------------------------------------------
+Version 2.42, August 12, 1999
 
 8/11/99  IL version number changed to 2.34
 
