@@ -2404,10 +2404,10 @@ Return TRUE if node1 and node2 are equivalent expression trees.
 
 static a_boolean compare_constants(a_constant_ptr  cp1,
                                    a_constant_ptr  cp2,
-                                   a_boolean       ignore_type_qualifiers)
+                                   a_boolean       strictly_identical)
 /*
-Return TRUE if the two constants are identical.  If ignore_type_qualifiers
-is TRUE the qualifiers are stripped from the constant type before they
+Return TRUE if the two constants are identical.  If strictly_identical
+is FALSE the qualifiers are stripped from the constant type before they
 are compared; otherwise, a "const int 5" and an "int 5" are treated as
 nonidentical.
 */
@@ -2417,11 +2417,14 @@ nonidentical.
 
   check_assertion(cp1 != cp2);
   check_assertion(cp1->kind == cp2->kind);
-  if (ignore_type_qualifiers) {
+  if (!strictly_identical) {
     cp1_type = skip_typerefs(cp1_type);
     cp2_type = skip_typerefs(cp2_type);
   }  /* if */
-  if (cp1_type == cp2_type) {
+  /* If strict identity is required, the types must be pointer-identical.
+     Otherwise, it is sufficient that they be identical. */
+  if (strictly_identical ? (cp1_type == cp2_type) :
+                           identical_types(cp1_type, cp2_type)) {
     switch (cp1->kind) {
       case ck_error:
         /* No further field to check. */
@@ -2532,7 +2535,7 @@ shared, such that only one of them need appear in the IL.
     eq = TRUE;
   } else if (cp1->kind == cp2->kind) {
     check_assertion(cp1->kind != (a_constant_repr_kind)ck_template_param);
-    eq = compare_constants(cp1, cp2, /*ignore_type_qualifiers=*/FALSE);
+    eq = compare_constants(cp1, cp2, /*strictly_identical=*/TRUE);
   }  /* if */
   return eq;
 }  /* identical_constants */
@@ -2552,7 +2555,7 @@ would not be considered "identical", since the type qualifiers are different.
     /* Same pointer implies same constant. */
     eq = TRUE;
   } else if (cp1->kind == cp2->kind) {
-    eq = compare_constants(cp1, cp2, /*ignore_type_qualifiers=*/TRUE);
+    eq = compare_constants(cp1, cp2, /*strictly_identical=*/FALSE);
   }  /* if */
   return eq;
 }  /* eq_constants */
