@@ -9,6 +9,18 @@ The default object file suffix for MS-DOS has been changed from .o to .obj.
 Cross-reference information and/or source sequence entries are now put out
 for access declarations (when required).
 
+1/18/94  C++-generating back end added
+
+A new "back end" has been added that can write out C++ or ANSI C.
+It is intended for those who wish to do source-to-source transformations.
+Source sequence entries must be enabled to use it, because it aims to
+produce output in the same order as the source.
+
+1/17/94  Source sequence entries for blocks and switch clauses
+
+Source sequence entries are now generated for block statements and
+for case/default labels.
+ 
 1/15/94  IL walk code for new-delete supplement
 
 The IL walk code in walk_entry.h for the new-delete supplement should
