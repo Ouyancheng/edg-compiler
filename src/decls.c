@@ -3585,6 +3585,7 @@ otherwise it is NULL.  The syntax is:
   a_symbol_header_ptr
                   class_symbol_header;
   a_boolean       is_constructor_or_destructor;
+  a_boolean       is_nonstatic_member_function;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -3880,27 +3881,41 @@ function_lparen:
       }  /* if */
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
-      if (derived_type != NULL || func_info == NULL) {
-        function_declarator(&new_type_ptr, (a_func_info_block_ptr)NULL,
-                            locator, (a_type_ptr)NULL,
-                            /*is_nonstatic_member_function=*/FALSE,
-                            /*is_constructor_or_destructor=*/FALSE);
+      if (func_info == NULL || derived_type != NULL) {
+        /* If the function is pointed to by a pointer-to-member type, we need
+           to pass the class-of-which-a-member to function_declarator. */
+        a_type_ptr tp = derived_type;
+        if (tp != NULL) {
+          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+          tp = skip_typerefs(tp);
+        }  /* if */
+        if (tp != NULL && (is_ptr_to_member_type(tp))) {
+          /* Declaration of a pointer to member function. */
+          member_parent_type = 
+                          tp->variant.ptr_to_member.class_of_which_a_member;
+          is_nonstatic_member_function = TRUE;
+        } else {
+          member_parent_type = NULL;
+          is_nonstatic_member_function = FALSE;
+        }  /* if */
+        func_info = NULL;
+        is_constructor_or_destructor = FALSE;
       } else {
-        a_boolean  is_nonstatic_member_function = FALSE;
         if (input_flags & DI_NONSTATIC_MEMBER) {
           if (locator->is_operator_name &&
               (locator->variant.opname == (an_opname_kind)onk_new ||
                locator->variant.opname == (an_opname_kind)onk_delete)) {
             /* operator new and operator delete are always nonstatic, even
                if "static" was not specified in the declaration. */
+            is_nonstatic_member_function = FALSE;
           } else {
             is_nonstatic_member_function = TRUE;
           }  /* if */
         }  /* if */
-        function_declarator(&new_type_ptr, func_info, locator,
-                            member_parent_type, is_nonstatic_member_function,
-                            is_constructor_or_destructor);
       }  /* if */
+      function_declarator(&new_type_ptr, func_info, locator,
+                          member_parent_type, is_nonstatic_member_function,
+                          is_constructor_or_destructor);
       if (is_member_function_def) {
         pop_class_reactivation_scope();
       }  /* if */
