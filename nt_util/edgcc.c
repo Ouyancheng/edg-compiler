@@ -1019,6 +1019,11 @@ Compile a file and generate an object file.
   sprintf(string_buffer, "-I%s", microsoft_include);
   str = copy_of_string(string_buffer);
   add_cl_argument(&cl, str);
+  /* VC7 and beyond have some header files in a separate PlatformSDK
+     directory. */
+  sprintf(string_buffer, "-I%s/../PlatformSDK/include", microsoft_include);
+  str = copy_of_string(string_buffer);
+  add_cl_argument(&cl, str);
 #endif /* __WIN32__ */
   add_cl_argument(&cl, file_name);
   status = execute_command(&cl);
