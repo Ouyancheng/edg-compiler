@@ -2041,9 +2041,10 @@ specified id-linkage block.
     } else if (idlbp->storage_class == (a_storage_class)sc_static) {
       /* A declaration a non-local entity with "static" storage class. */
       idlbp->linkage = idl_internal;
-    } else if (is_function && !extern_inline_allowed &&
+    } else if (!C_mode() && is_function && !extern_inline_allowed &&
                idlbp->func_info->is_inline) {
-      /* An inline function. */
+      /* A C++ inline function.  Note that in C99 mode an inline function
+         has internal linkage only if declared "static". */
       idlbp->linkage = idl_internal;
     } else if (!C_mode() && is_object &&
                is_const_qualified_type(idlbp->type) &&
@@ -4248,6 +4249,9 @@ cross-reference output describing this declaration.
              the variable as a variable length array that requires allocation
              as well as deallocation upon exit from the current scope. */
           variable_ptr->is_vla = TRUE;
+          /* Update the control-flow list used in statement processing to
+             diagnose illegal branches. */
+          update_init_statement_control_flow(vla_stmt);
         }  /* if */
       }  /* if */
     } /* if */
@@ -4488,7 +4492,7 @@ on for use in generating cross-reference output describing this declaration.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
-    if (func_info->is_inline && !extern_inline_allowed) {
+    if (!C_mode() && func_info->is_inline && !extern_inline_allowed) {
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
                           "decl_routine: bad storage class for inline");

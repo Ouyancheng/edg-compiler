@@ -257,6 +257,9 @@ means
        "inline" always implies "static" and internal linkage;
   -- for member functions:
        inline functions always have internal linkage.
+
+Note that the extern_inline_allowed flag is not used in C99 mode, since the
+meaning of "extern inline" is somewhat different.
 */
 #ifndef DEFAULT_EXTERN_INLINE_ALLOWED
 #define DEFAULT_EXTERN_INLINE_ALLOWED TRUE

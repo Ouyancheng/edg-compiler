@@ -335,7 +335,7 @@ objects of their own type.
 */
 {
   if (tp == NULL) {
-    fputs("<null type pointer>", f_debug);
+    fputs("<null>", f_debug);
   } else {
     switch (tp->kind) {
       case tk_class:

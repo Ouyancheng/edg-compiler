@@ -1503,8 +1503,6 @@ Set the various flags appropriate to C99 mode.
   mixed_decls_and_statements_allowed = TRUE;
   /* The final field of a struct may be an incomplete array. */
   flexible_array_members_allowed = TRUE;
-  /* inline does not necessarily imply internal linkage in C99. */
-  extern_inline_allowed = TRUE;
 }  /* set_c99_mode_flags */
 
 

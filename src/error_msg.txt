@@ -1080,6 +1080,7 @@ ec_flexible_array_member_not_allowed;;"type containing an unknown-size array is 
 ec_static_variable_in_inline_function;;"a variable with static storage duration cannot be defined within an inline function"
 ec_bad_linkage_of_ref_within_inline_function;;"an entity with internal linkage cannot be referenced within an inline function with external linkage"
 ec_type_generic_function_mismatch;;"argument type %t does not match this type-generic function macro"
+ec_vla_name_at_decl_position;INTERNAL;"variable length array %nod"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

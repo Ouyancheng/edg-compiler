@@ -303,6 +303,13 @@ purposes.
           db_type(vdp->type);
           fputc('"', f_debug);
         }  /* if */
+      } else if (sp->kind == (a_statement_kind)stmk_vla_decl) {
+        fprintf(f_debug, "VLA declaration: ");
+        if (sp->variant.vla.is_typedef_decl) {
+          db_type(sp->variant.vla.variant.typedef_type);
+        } else {
+          db_variable(sp->variant.vla.variant.variable);
+        }  /* if */
       } else {
         fprintf(f_debug, "***BAD STMT KIND***");
       }  /* if */
@@ -867,8 +874,13 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
             }  /* if */
           }  /* if */
         } else {
-          /* Must be a stmk_set_vla_size statement. */
-          check_assertion(sp->kind == (a_statement_kind)stmk_set_vla_size);
+          if (sp->kind == (a_statement_kind)stmk_vla_decl) {
+            if (!sp->variant.vla.is_typedef_decl) {
+              vp = sp->variant.vla.variant.variable;
+            }  /* if */
+          } else {
+            check_assertion(sp->kind == (a_statement_kind)stmk_set_vla_size);
+          }  /* if */
           severity = es_error;
         }  /* if */
         if (severity != es_none) {
@@ -891,7 +903,9 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           if (vp != NULL) {
             /* Issue the diagnostic addendum that identifies this particular
                variable. */
-            sym_add_diag_info(ec_name_at_decl_position,
+            sym_add_diag_info(sp->kind == (a_statement_kind)stmk_vla_decl ?
+                                ec_vla_name_at_decl_position :
+                                ec_name_at_decl_position,
                               (a_symbol_ptr)vp->source_corresp.assoc_info);
           } else {	
             /* Diagnostic addendum that identifies the VLA declaration. */
@@ -1056,6 +1070,82 @@ the label are promoted to the lifetime of the function scope.
 }  /* fixup_curr_block_labels_and_gotos */
 
 
+static void remove_unneeded_set_vla_size_control_flow_entries(
+                                           a_control_flow_descr_ptr  cfdp)
+/*
+Examine the control flow entries immediately preceding the indicated entry,
+which should point to a vla-decl statement.  Each preceding entry that is
+associated with a set-vla-size statement belonging to the same declaration
+as the vla-decl statement can be deleted.  For example,
+    void f(int n) {
+      int a[n];
+      typedef int T[n];
+      T b;
+    }
+The statements generated for this declaration are:
+    set-vla-size
+    vla-decl
+    set-vla-size
+    vla-decl
+and for each a cfdk_init control-flow entry is generated.  The first two
+statements belong to the declaration of a; the third and fourth to the
+declarations of T and b, respectively.  The control-flow entry pointing at
+the first set-vla-size statement is removed, but the one pointing at the
+second is not.  The reason for removing superfluous entries is to avoid
+issuing redundant errors for branching around the declarations.  (The
+set-vla-size statements are generated in declarator, which doesn't know what
+the context of the array declarator is; the simplest approach is just to put
+them out and then remove them if they prove superfluous.)
+*/
+{
+  a_statement_ptr           sp, prev_sp;
+  a_control_flow_descr_ptr  prev;
+
+  sp = cfdp->variant.init.statement;
+  check_assertion(sp->kind == (a_statement_kind)stmk_vla_decl);
+  /* A multidimensional array may have more than one variable dimension, and
+     so more than one set-vla-size statement.  Therefore the checking is done
+     inside a loop. */
+  for (;;) {
+    prev = cfdp->prev;
+    if (prev != NULL && prev->kind == (a_control_flow_descr_kind)cfdk_init) {
+      prev_sp = prev->variant.init.statement;
+      if (prev_sp->kind == (a_statement_kind)stmk_set_vla_size) {
+        /* The preceding entry is indeed a cfdk_init that points to a
+           set-vla-size statement. */
+        a_type_ptr           tp = sp->variant.vla.variant.variable->type;
+        a_vla_dimension_ptr  vdp = prev_sp->variant.vla_dimension;
+        a_boolean            match = FALSE;
+
+        /* Look at each dimension of the variable length array, looking for
+           a match with the set-vla-size statement. */
+        while (is_array_type(tp) &&
+               !(tp->kind == (a_type_kind)tk_typeref &&
+                 typeref_is_typedef(tp))) {
+          if (vdp->type == skip_typerefs(tp)) {
+            match = TRUE;
+            break;
+          }  /* if */
+          /* No match -- advance to the array element, which may itself be
+             an array. */
+          tp = array_element_type(tp);
+        }  /* while */
+        if (match) {
+          /* Remove the superfluous control-flow entry. */
+          remove_control_flow_descr(prev);
+          /* Continue the loop, in case there's another dimension to
+             check. */
+          continue;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Assume one pass, unless there was a match and prev was removed from
+       the control flow list. */
+    break;
+  }  /* for */
+}  /* remove_unneeded_set_vla_size_control_flow_entries */
+
+
 static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
 /*
 Add new_cfdp to the end of control_flow_descr_list.  This typically involves
@@ -1180,13 +1270,22 @@ initializing declarations.
              can simply be ignored when no forward goto has been seen. */
           if (parent->parent == NULL &&
               parent->variant.block.goto_count == 0) {
-            free_control_flow_descr(new_cfdp);
-            goto done;
+            if (new_cfdp->variant.init.statement->kind ==
+                                      (a_statement_kind)stmk_vla_decl) {
+              /* This is the declaration of a VLA object.  Leave it on the
+                 list to signal the need for deallocation later. */
+            } else {
+              free_control_flow_descr(new_cfdp);
+              goto done;
+            }  /* if */
           }  /* if */
           /* If the initializing declaration appears within the body of a
              switch statement, set a flag in the current block to say that
              there is an "exposed initialization" -- i.e., one that could
              cause an error if case selection skips past it. */
+#if 0
+	  /* Why is this flag set unconditionally?  --rma, 8/29/00 */
+#endif /* if 0 */
           parent->variant.block.exposed_init_in_switch = TRUE;
           break;
         case cfdk_label:
@@ -1270,6 +1369,12 @@ initializing declarations.
   }  /* if */
   /* Set the tail pointer to point to the new entry. */
   end_of_control_flow_descr_list = new_cfdp;
+  if (vla_enabled &&
+      new_cfdp->kind == (a_control_flow_descr_kind)cfdk_init &&
+      new_cfdp->variant.init.statement->kind ==
+                                      (a_statement_kind)stmk_vla_decl) {
+    remove_unneeded_set_vla_size_control_flow_entries(new_cfdp);
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("dump_control_flow")) {
     db_cfd_with_indentation(new_cfdp);
@@ -1542,13 +1647,14 @@ void update_init_statement_control_flow(a_statement_ptr  sp)
 /*
 An stmk_init or stmk_set_vla_size statement is being added to the IL.  Add
 an entry to the control_flow_descr_list to point to it.  This will be part
-the information used to diagnose transfers of control over initializing
+of the information used to diagnose transfers of control over initializing
 declarations.
 */
 {
   a_control_flow_descr_ptr  cfdp;
 
   check_assertion(sp->kind == (a_statement_kind)stmk_init ||
+                  sp->kind == (a_statement_kind)stmk_vla_decl ||
                   sp->kind == (a_statement_kind)stmk_set_vla_size);
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
   cfdp->variant.init.statement = sp;
@@ -3684,8 +3790,14 @@ issue a diagnostic complaining about skipping over an initialization.
           }  /* if */
         }  /* if */
       } else {
-        /* Must be a stmk_set_vla_size statement. */
-        check_assertion(sp->kind == (a_statement_kind)stmk_set_vla_size);
+        if (sp->kind == (a_statement_kind)stmk_vla_decl) {
+          if (!sp->variant.vla.is_typedef_decl) {
+            vp = sp->variant.vla.variant.variable;
+          }  /* if */
+        } else {
+          /* Must be a stmk_set_vla_size statement. */
+          check_assertion(sp->kind == (a_statement_kind)stmk_set_vla_size);
+        }  /* if */
         severity = es_error;
       }  /* if */
       if (severity != es_none) {
@@ -3700,7 +3812,9 @@ issue a diagnostic complaining about skipping over an initialization.
         if (vp != NULL) {
           /* Issue the diagnostic addendum that identifies this particular
              variable. */
-          sym_add_diag_info(ec_name_at_decl_position,
+          sym_add_diag_info(sp->kind == (a_statement_kind)stmk_vla_decl ?
+                              ec_vla_name_at_decl_position :
+                              ec_name_at_decl_position,
                             (a_symbol_ptr)vp->source_corresp.assoc_info);
         } else {
           /* Diagnostic addendum that identifies the VLA declaration. */
