@@ -7578,7 +7578,8 @@ or
     /* Ordinarily, parentheses do affect whether an expression is the
        immediate operand of a "&" (because the syntax for a pointer-to-member
        requires that there be no parentheses).  However, in cfront mode
-       &(X::Y) can be a pointer-to-member, so pass down that option. */
+       &(X::Y), where X::Y is a data member, can be a pointer-to-member,
+       so pass down that option. */
     if (any_cfront_mode()) {
       options |= (local_options & EOPT_OPERAND_OF_ADDRESS_OF);
     }  /* if */
