@@ -2681,6 +2681,7 @@ silently giving programs different behavior than they had under the old
   while (for_init_decl != NULL) {
     /* Manufacture a locator to do a lookup. */
     make_locator_for_symbol(for_init_decl, &locator);
+    clear_specific_symbol(locator);
     locator.specific_symbol = NULL;
     previously_hidden_sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
     if (previously_hidden_sym != NULL) {

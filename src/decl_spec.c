@@ -1943,6 +1943,7 @@ is a that of a constructor.
     if (is_constructor) {
       /* Turn the current locator from a "specific symbol" locator into a
          constructor locator. */
+      clear_specific_symbol(locator_for_curr_id);
       locator_for_curr_id.specific_symbol = NULL;
       (void)class_qualified_id_lookup(&locator_for_curr_id, class_type,
                                       IDL_DIRECT_CLASS_MEMBERS_ONLY);
