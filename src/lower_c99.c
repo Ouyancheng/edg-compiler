@@ -1121,7 +1121,7 @@ to standard C.  Fixed-point types are lowered to appropriately-
 sized integral types; fixed-point constants are lowered to
 integral constants; and fixed-point operations and casts are
 lowered to calls of runtime routines.  The runtime routines
-are not supplied by EDG.  They can be obtained from Dinkumkware, Ltd.
+are not supplied by EDG.  They can be obtained from Dinkumware, Ltd.
 (www.dinkumware.com).
 
 Here's an overview of the runtime interface.

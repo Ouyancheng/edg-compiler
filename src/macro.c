@@ -4983,7 +4983,7 @@ Enter symbols for the C99 predefined macros.
 static char* expanded_gnu_version_string(void)
 /*
 Allocate and return a buffer containing a copy of GCC_VERSION_STRING with "%m"
-expanded to "gcc" or "g++" (dependening on the current mode) and "%v" expanded
+expanded to "gcc" or "g++" (depending on the current mode) and "%v" expanded
 to the version of the GNU compiler being emulated.  The caller is responsible
 to deallocate the buffer using free_general.
 */
