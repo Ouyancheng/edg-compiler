@@ -10789,7 +10789,7 @@ not be returned.
       } else {
         /* The end of the function body was not found.  This is usually
            the result of a mismatched delimiter. */
-        *missing_end = TRUE;
+        if (missing_end != NULL) *missing_end = TRUE;
       }  /* if */
       /* Save the token sequence number of the last token of the definition. */
       if (last_tsn != NULL) *last_tsn = curr_token_sequence_number;
