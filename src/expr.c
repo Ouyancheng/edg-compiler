@@ -4160,7 +4160,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
        it is.  We are counting on the fact that a Microsoft extension makes
        functions that return classes return lvalues. */
     check_assertion_str(expr == NULL || is_an_lvalue(&operand),
-                        "scan_uuidof: operand is an rvalue");
+                        "scan_uuidof_operator: operand is not an lvalue");
   }  /* if */
   /* Set the error position to the starting position. */
   error_position = start_position;
