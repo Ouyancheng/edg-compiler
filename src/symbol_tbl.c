@@ -4025,7 +4025,13 @@ done_with_access_control_setting:;
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
 #if DO_IL_LOWERING
-    lower_il_memory_region(old_memory_region_number);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    if (!suppress_il_lowering) {
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+      lower_il_memory_region(old_memory_region_number);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
     done_with_memory_region(old_memory_region_number);
   }  /* if */
