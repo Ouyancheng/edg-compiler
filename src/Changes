@@ -1,5 +1,19 @@
 Version 2.28
 
+1/6/94  Template instantiation bug when a template is redeclared
+
+A bug has been fixed that caused template functions to be instantiated
+incorrectly when a template was redeclared after being defined, and
+when the redefinition used different function parameter names than
+those in the function definition.
+
+  template <class T> void f(T t){ T t2 = t;}
+  template <class T> void f(T);
+  int main()
+  {
+    f(1);
+  }
+
 1/4/95  Consider conversions to pointer for operand of unary "+"
 
 Since the unary "+" operator can take a pointer operand, conversion
