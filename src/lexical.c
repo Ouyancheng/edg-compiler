@@ -6687,6 +6687,10 @@ in a declarator of a template declaration.
         /* The class is a real class type (either normal or template based).
            Let any possible errors be reported by the normal declaration
            processing routines. */
+      } else if (!is_template_instance_class_symbol(type_sym)) {
+        /* The qualifier type is not a template class of some kind. */
+        pos_ty_error(ec_not_a_class_template, error_pos, tp);
+        any_errors = TRUE;
       } else if (!is_prototype_instantiation) {
         /* If the class is not a real class type, then it is expected
            to be the prototype instantiation.  Decide which of two
