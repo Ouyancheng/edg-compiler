@@ -3903,6 +3903,7 @@ pointer type).
           /* The conversion can be done with a conversion function. */
           arg_match->match_level = aml_user_conversion;
           arg_match->conversion = conversion;
+          arg_match->param_type = pointer_type;
         }  /* if */
       } else {
         a_std_conv_descr std_conv;
@@ -3925,6 +3926,7 @@ pointer type).
           /* As noted above, any match here is considered a standard
              conversion. */
           arg_match->match_level = aml_std_conversion;
+          arg_match->param_type = pointer_type;
         }  /* if */
       }  /* if */
     }  /* if */
