@@ -27,7 +27,8 @@ digraphs, long long (and related extensions provided by C99), hexadecimal
 floating-point constants, nonconstant aggregate initializers for automatic
 variables, the typeof operator, the __inline__ (and inline), __asm__, and 
 __extension__ keywords, __FUNCTION__ and __PRETTY_FUNCTION__, zero-sized 
-arrays, and the \e escape sequence.
+arrays, and the \e escape sequence. [9/10/01] Empty structs and structs with
+only a flexible array member are now also accepted in GNU C mode.
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 
