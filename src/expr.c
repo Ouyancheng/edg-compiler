@@ -3640,7 +3640,7 @@ As an anachronism, allow an expression inside the [ ].
     if (curr_token != tok_rbracket) {
       /* Anachronism -- there's an expression between the brackets, presumably
          indicating the number of elements in the array. */
-      warning(ec_delete_count_anachronism);
+      diagnostic(anachronism_error_severity, ec_delete_count_anachronism);
       scan_new_array_dimension_expression(&is_constant, &expr, &constant);
       /* The expression is ignored. */
     }  /* if */
@@ -3856,10 +3856,13 @@ for both C-style casts and C++ functional-notation type conversions.
                               make_pointer_type(type_pointed_to(type_cast_to));
     } else if (is_ptr_to_member_type(type_cast_to)) {
       /* In C++, a cast to a pointer-to-member type is allowed. */
-    } else if (C_dialect == C_dialect_cplusplus &&
+    } else if (C_dialect == C_dialect_cplusplus && cfront_compatibility_mode &&
                is_array_type(type_cast_to)) {
       /* In C++, treat a cast to an array type as a cast to a pointer to
-         the array element type.  This is an extension to match cfront 2.1 */
+         the array element type.  This is an extension to match cfront 2.1
+         and is only accepted in cfront compatibility mode.   A warning is
+         issued even in cfront mode because this is a questionable
+         practice. */
       *p_type_cast_to = type_cast_to =
                            make_pointer_type(array_element_type(type_cast_to));
       type_warning(ec_nonstd_array_cast, type_cast_to);
