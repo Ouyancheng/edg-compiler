@@ -29,23 +29,22 @@ overload.h -- Declarations related to expression overload resolution.
 
 
 /*
-Description of a user-defined conversion, i.e., a conversion using a
-constructor or conversion function.  Can also be used (with all fields
-at default values) as a description of "no user-defined conversion";
-see is_null_user_conv_descr below.  Also used to describe a bitwise
-copy of a class in C or C++, which is not really a "user-defined conversion".
-Perhaps a more precise way of describing the information contained here
-is "anything that isn't just a cast".  If this entry is used in
-describing a conversion that is part of a reference initialization, the
-conversion is the one done on the initial value to bring it to the
-underlying type of the reference, not a conversion to the reference
-type itself.
+Description of a complete conversion (user-defined part plus standard
+conversion part).  Really, the interesting information about that
+conversion which must be kept around, which is not really a full
+description.  Can describe no conversion.  Also used to describe a bitwise
+copy of a class in C or C++, which is not really a conversion.
+If this entry is used in describing a conversion that is part of a
+reference initialization, the conversion is the one done on the initial
+value to bring it to the underlying type of the reference, not a
+conversion to the reference type itself.
 */
-typedef struct a_user_conv_descr *a_user_conv_descr_ptr;
-typedef struct a_user_conv_descr {
+typedef struct a_conv_descr *a_conv_descr_ptr;
+typedef struct a_conv_descr {
   a_routine_ptr	routine;
 			/* The conversion routine entry.  NULL if
-			   class_identity_or_bitwise_copy is TRUE. */
+			   class_identity_or_bitwise_copy is TRUE or if there
+			   is no user-defined part of the conversion. */
   a_byte_boolean
 		class_identity_or_bitwise_copy;
 			/* If TRUE, the "conversion" for a class is either
@@ -57,7 +56,7 @@ typedef struct a_user_conv_descr {
   a_byte_boolean
 		std_conversion_needed;
 			/* If TRUE, a standard conversion is required after
-			   the user-defined conversion. */
+			   a user-defined conversion. */
   a_byte_boolean
 		result_is_an_lvalue;
 			/* If TRUE, the function returns a reference and the
@@ -70,22 +69,25 @@ typedef struct a_user_conv_descr {
   a_byte_boolean
 		ambiguous;
 			/* If TRUE the conversion is ambiguous. */
-} a_user_conv_descr;
+  a_std_conv_descr
+		std;	/* The standard conversion part of the conversion. */
+} a_conv_descr;
 
 /*
-Macro that tests for a user conversion description that is null, i.e.,
-one that describes no conversion to be done.
+Macro that tests for a conversion description with a null user-defined
+part.
 */
 #define is_null_user_conv_descr(user_conversion)                      \
   ((user_conversion)->routine == NULL &&                              \
    !(user_conversion)->class_identity_or_bitwise_copy)
 
 /*
-Macro that returns TRUE if a pointer to a user-defined conversion
-is usable (the pointer is non-NULL, and the conversion is not ambiguous).
+Macro that returns TRUE if a pointer to a conversion is usable (the
+pointer is non-NULL, and the conversion is not ambiguous).
 */
-#define user_conv_usable(user_conversion)                             \
-  ((user_conversion) != NULL && !(user_conversion)->ambiguous)
+#define conv_usable(conversion)                             \
+  ((conversion) != NULL && !(conversion)->ambiguous)
+
 
 
 /*
@@ -129,17 +131,6 @@ typedef struct an_arg_match_summary {
   an_arg_match_level
 		match_level;
 			/* Match level -- see ARM 13.2. */
-  a_base_class_ptr
-		cast_base_class;
-			/* If the match involves a standard conversion that
-			   is a related-class cast, this is the base class
-			   entry for it.  Otherwise, NULL. */
-  a_byte_boolean
-		reversed_cast;
-			/* If TRUE, the cast_base_class describes the
-			   reverse of the cast performed.  Used for
-			   implicit conversions of pointers to members to
-			   pointers to members of derived classes. */
   a_byte_boolean
 		const_anachronism;
 			/* In cfront compatibility mode, TRUE to indicate
@@ -150,25 +141,21 @@ typedef struct an_arg_match_summary {
 		is_match_for_this_param;
 			/* TRUE if this entry describes the match for the
 			   "this" parameter. */
-  a_type_ptr	param_type;
-			/* The type of the parameter.  Used in looking
-			   for conversion subsequences involving addition
-			   of type qualifiers at the end of a conversion.
-			   NULL if not applicable (e.g., for an ellipsis). */
-  a_user_conv_descr
-		user_conversion;
-			/* If match_level is aml_user_conversion, this
-			   describes the user-defined conversion.
+  a_conv_descr	conversion;
+			/* Description of the conversion to be done (really,
+			   information we wanted to remember about the
+			   conversion to be done).  Contains a user-defined
+			   conversion part and a standard conversion part.
+			   If match_level is aml_user_conversion, this
+			   describes a user-defined conversion.
 			   Note that in one case involving cfront
-			   compatibility, no conversion is indicated even
-			   through match_level is aml_user_conversion.
-			   Also, when passing a class that requires a copy
-			   constructor by value, this will indicate the
+			   compatibility, no user-defined conversion is
+			   indicated even through match_level is
+			   aml_user_conversion.  Also, when passing a
+			   class that requires a copy constructor by value,
+			   the user-defined conversion will indicate the
 			   copy constructor even though the match level
 			   is aml_std_conversion or aml_exact. */
-  an_error_code	warning_suggested;
-			/* If not ec_no_error, the code for a warning to be
-			   issued if this match is chosen. */
 } an_arg_match_summary;
 
 
@@ -205,10 +192,10 @@ typedef struct a_candidate_function {
 			   user_conversion is meaningful in that case.
 			   This will have the same setting in all candidate
 			   function entries being considered as a set. */
-  a_user_conv_descr
-		user_conversion;
-			/* Description of the user-defined conversion being
-			   done. */
+  a_conv_descr	conversion;
+			/* If is_user_conversion is TRUE. description of the
+			   conversion being done, including the user-defined
+			   part. */
   a_type_ptr	pointer_type;
 			/* For a built-in operator with an operand pattern
 			   including pointers, this indicates the pointer
@@ -280,6 +267,7 @@ extern a_symbol_ptr find_addr_of_overloaded_function_match(
                                                a_type_ptr         dest_type,
                                                a_source_position  *source_pos,
                                                an_arg_match_level *match_level,
+                                               a_std_conv_descr   *std_conv,
                                                a_boolean          *ambiguous);
 
 extern void determine_arg_match_level(
@@ -359,7 +347,7 @@ a_boolean conversion_from_class_possible(
                                a_type_ptr               dest_type,
                                a_builtin_type_kind_set  builtin_types_allowed,
                                a_boolean                need_lvalue_result,
-                               a_user_conv_descr        *user_conversion,
+                               a_conv_descr             *conversion,
                                a_boolean                *ambiguous,
                                a_candidate_function_ptr *ambiguity_list);
 
@@ -385,16 +373,16 @@ extern void bind_member_function_operand_to_selector(
                                       an_operand *bound_function_selector);
 
 extern a_boolean user_defined_conversion_possible(
-                                  an_operand        *source_operand,
-                                  a_type_ptr        dest_type,
-                                  a_boolean         is_initialization,
-                                  a_boolean         need_lvalue_result,
-                                  a_user_conv_descr *user_conversion,
-                                  a_boolean         *failed);
+                                            an_operand   *source_operand,
+                                            a_type_ptr   dest_type,
+                                            a_boolean    is_initialization,
+                                            a_boolean    need_lvalue_result,
+                                            a_conv_descr *conversion,
+                                            a_boolean    *failed);
 
-extern void user_convert_operand(an_operand         *operand,
-                                 a_type_ptr         dest_type,
-                                 a_user_conv_descr  *user_conversion);
+extern void user_convert_operand(an_operand   *operand,
+                                 a_type_ptr   dest_type,
+                                 a_conv_descr *conversion);
 
 extern void prep_elision_initializer_operand(
                                             an_operand         *source_operand,
@@ -402,16 +390,16 @@ extern void prep_elision_initializer_operand(
                                             a_dynamic_init_ptr *dip);
 
 extern void prep_initializer_operand(
-                                  an_operand         *source_operand,
-                                  a_type_ptr         dest_type,
-                                  a_user_conv_descr  *user_conversion,
-                                  a_boolean          initializing_return_value,
-                                  an_error_code      incompatible_err);
+                                  an_operand    *source_operand,
+                                  a_type_ptr    dest_type,
+                                  a_conv_descr  *conversion,
+                                  a_boolean     initializing_return_value,
+                                  an_error_code incompatible_err);
 
-extern void prep_argument_operand(an_operand         *source_operand,
-                                  a_param_type_ptr   formal_param,
-                                  a_user_conv_descr  *user_conversion,
-                                  an_error_code      err_code);
+extern void prep_argument_operand(an_operand       *source_operand,
+                                  a_param_type_ptr formal_param,
+                                  a_conv_descr     *conversion,
+                                  an_error_code    err_code);
 
 extern void prep_return_by_cctor_operand(an_operand         *source_operand,
                                          a_type_ptr         required_type,

@@ -1465,6 +1465,7 @@ except for casts to ambiguous or inaccessible base classes.
   a_symbol_ptr      overloaded_function_symbol, function_symbol;
   an_arg_match_level
                     match_level;
+  a_std_conv_descr  std_conversion;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -1543,6 +1544,7 @@ except for casts to ambiguous or inaccessible base classes.
                                                     new_type,
                                                     &operand->position,
                                                     &match_level,
+                                                    &std_conversion,
                                                     &ambiguous);
 #if CHECKING
           if (function_symbol == NULL) {

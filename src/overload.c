@@ -29,33 +29,33 @@ overload.c -- Expression processing overload resolution.
 #include "class_decl.h"
 
 /* Forward declarations required because of out-of-order references. */
-static void prep_conversion_operand(an_operand        *source_operand,
-                                    a_type_ptr        dest_type,
-                                    a_user_conv_descr *user_conversion,
-                                    a_boolean         is_initialization,
-                                    an_error_code     incompatible_err,
+static void prep_conversion_operand(an_operand    *source_operand,
+                                    a_type_ptr    dest_type,
+                                    a_conv_descr  *conversion,
+                                    a_boolean     is_initialization,
+                                    an_error_code incompatible_err,
                                     a_source_position *err_pos);
 static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
                                   a_boolean                need_lvalue_result,
-                                  a_user_conv_descr        *user_conversion,
+                                  a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
                                   a_candidate_function_ptr *ambiguity_list);
 
 
-static void clear_user_conv_descr(a_user_conv_descr_ptr ucdp)
+static clear_conv_descr(a_conv_descr_ptr conv)
 /*
-Clear the fields of a user-defined conversion description entry to
-default values.
+Clear a conversion description.
 */
 {
-  ucdp->routine                        = NULL;
-  ucdp->class_identity_or_bitwise_copy = FALSE;
-  ucdp->std_conversion_needed          = FALSE;
-  ucdp->result_is_an_lvalue            = FALSE;
-  ucdp->ambiguous                      = FALSE;
-}  /* clear_user_conv_descr */
+  conv->routine                        = NULL;
+  conv->class_identity_or_bitwise_copy = FALSE;
+  conv->std_conversion_needed          = FALSE;
+  conv->result_is_an_lvalue            = FALSE;
+  conv->ambiguous                      = FALSE;
+  clear_std_conv_descr(&conv->std);
+}  /* clear_conv_descr */
 
 
 a_symbol_ptr find_addr_of_overloaded_function_match(
@@ -63,6 +63,7 @@ a_symbol_ptr find_addr_of_overloaded_function_match(
                                                a_type_ptr         dest_type,
                                                a_source_position  *source_pos,
                                                an_arg_match_level *match_level,
+                                               a_std_conv_descr   *std_conv,
                                                a_boolean          *ambiguous)
 /*
 ovl_sym is the symbol from an indefinite function operand representing the
@@ -71,20 +72,23 @@ dest_type.  If dest_type is a pointer or pointer-to-member type that could be
 a pointer to one of the overloaded functions, return a pointer to that
 function's symbol; otherwise, return NULL.  Also set *match_level to indicate
 whether or not any conversion is needed after the coercion to a specific
-function pointer.  If more than one function matches, return NULL and
-*ambiguous TRUE.  source_pos is the source position of the reference.
-See ARM 13.3, "Address of Overloaded Function".
+function pointer, and set *std_conv to indicate any such conversion.
+If more than one function matches, return NULL and *ambiguous TRUE.
+source_pos is the source position of the reference.  See ARM 13.3,
+"Address of Overloaded Function".
 */
 {
   a_boolean        is_ptr = FALSE, is_ptr_to_member = FALSE;
   a_boolean        sym_is_list, any_function_templates;
+  a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
   a_type_ptr       dest_underlying_type;
-  a_std_conv_descr std_conv;
   a_symbol_ptr     sym, match_sym = NULL, instance_sym;
   unsigned long    number_of_matches = 0;
+  a_std_conv_descr std_conversion;
 
   db_enter(4, "find_addr_of_overloaded_function_match");
+  clear_std_conv_descr(std_conv);
   *ambiguous = FALSE;
   if (is_pointer_type(dest_type)) {
     dest_class = NULL;
@@ -98,6 +102,7 @@ See ARM 13.3, "Address of Overloaded Function".
   if (is_ptr || is_ptr_to_member) {
     /* dest_type is a pointer or pointer-to-member type, but the underlying
        type is not necessarily a function type. */
+    dest_type_has_type_qualifiers = is_qualified_type(dest_underlying_type);
     dest_underlying_type = skip_typerefs(dest_underlying_type);
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
     if (ovl_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -145,7 +150,7 @@ See ARM 13.3, "Address of Overloaded Function".
             sym->class_of_which_a_member == dest_class) {
           /* Exact match. */
           match_sym = sym;
-          *match_level = (an_arg_match_level)aml_exact;
+          *match_level = aml_exact;
           number_of_matches++;
         }  /* if */
       }  /* if */
@@ -164,7 +169,7 @@ See ARM 13.3, "Address of Overloaded Function".
           if (instance_sym != NULL) {
             /* Template match. */
             match_sym = instance_sym;
-            *match_level = (an_arg_match_level)aml_exact;
+            *match_level = aml_exact;
             number_of_matches++;
           }  /* if */
         }  /* if */
@@ -193,10 +198,11 @@ See ARM 13.3, "Address of Overloaded Function".
                                        dest_type,
                                        /*suppress_extensions=*/TRUE,
                                        ec_no_error,
-                                       &std_conv)) {
+                                       &std_conversion)) {
             /* A match. */
             match_sym = sym;
-            *match_level = (an_arg_match_level)aml_std_conversion;
+            *match_level = aml_std_conversion;
+            *std_conv = std_conversion;
             number_of_matches++;
           }  /* if */
         }  /* if */
@@ -209,6 +215,11 @@ See ARM 13.3, "Address of Overloaded Function".
     }  /* if */
   } else {
     /* dest_type is not a pointer type, so no function can match. */
+  }  /* if */
+  if (match_sym != NULL) {
+    /* If the pointer type we converted to has extra type qualifiers,
+       set the tie-breaker flag in the standard conversion description. */
+    if (dest_type_has_type_qualifiers) std_conv->type_qualifiers_added = TRUE;
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -233,13 +244,9 @@ values.
 {
   amsp->next                       = NULL;
   amsp->match_level                = aml_none;
-  amsp->cast_base_class            = NULL;
-  amsp->reversed_cast              = FALSE;
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
-  amsp->param_type                 = NULL;
-  clear_user_conv_descr(&amsp->user_conversion);
-  amsp->warning_suggested          = ec_no_error;
+  clear_conv_descr(&amsp->conversion);
 }  /* clear_arg_match_summary */
 
 
@@ -306,10 +313,13 @@ Print an argument match summary for debug purposes.
   if (amsp->const_anachronism) {
     fprintf(f_debug, " (const anachronism)");
   }  /* if */
-  if (amsp->user_conversion.std_conversion_needed) {
+  if (amsp->conversion.std_conversion_needed) {
     fprintf(f_debug, " (std conversion)");
   }  /* if */
-  bcp = amsp->cast_base_class;
+  if (amsp->conversion.std.type_qualifiers_added) {
+    fprintf(f_debug, " (type qualifiers added)");
+  }  /* if */
+  bcp = amsp->conversion.std.cast_base_class;
   if (bcp != NULL) {
     fprintf(f_debug, ", base class ");
     db_abbreviated_base_class(bcp);
@@ -344,7 +354,7 @@ are used in resolving calls to overloaded functions.
   cfp->template_arg_list = NULL;
   cfp->operand_type_pattern = NULL;
   cfp->is_user_conversion = FALSE;
-  clear_user_conv_descr(&cfp->user_conversion);
+  clear_conv_descr(&cfp->conversion);
   cfp->pointer_type = NULL;
   cfp->arg_matches = NULL;
   cfp->arg_operand_list = NULL;
@@ -615,78 +625,58 @@ built-in operators.  The start_error or equivalent has already been done.
 }  /* diagnose_overload_ambiguity */
 
 
-static void determine_cast_base_class(a_type_ptr           source_type,
-                                      a_type_ptr           dest_type,
-                                      an_arg_match_summary *arg_summary)
-/*
-source_type --> dest_type is a standard conversion.  If it is a cast to
-a related class, fill in cast_base_class in *arg_summary.
-*/
-{
-  a_boolean        baseward_cast;
-  a_base_class_ptr bcp;
-
-  if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp)) {
-    /* Cast to base class (no need to check baseward_cast; baseward
-       is the only direction allowed as an implicit conversion). */
-    arg_summary->cast_base_class = bcp;
-  } else if (related_member_pointers(source_type, dest_type, &baseward_cast,
-                                     &bcp)) {
-    /* Likewise for casts of pointers-to-members; note, however, that
-       implicit casts there are from base to derived. */
-    arg_summary->cast_base_class = bcp;
-    arg_summary->reversed_cast = TRUE;
-  }  /* if */
-}  /* determine_cast_base_class */
-
-
 static void set_arg_summary_for_user_conversion(
-                                         an_arg_match_summary *arg_summary,
-                                         a_type_ptr           dest_type,
-                                         a_user_conv_descr    *user_conversion)
+                                       an_arg_match_summary *arg_summary,
+                                       a_conv_descr         *conversion,
+                                       a_type_ptr           param_type,
+                                       a_boolean            param_is_reference)
 /*
 Set *arg_summary to indicate an argument match involving a user-defined
-conversion using a constructor or conversion function.  user_conversion
-describes the conversion.  dest_type is the destination type for the
-entire conversion (or NULL if not known, e.g., for a builtin operator),
+conversion using a constructor or conversion function.  The conversion
+is described by *conversion.  param_type is the parameter type; it's a
+reference type if param_is_reference is TRUE.
 */
 {
   a_type_ptr conversion_type;
 
   arg_summary->match_level = aml_user_conversion;
-  arg_summary->user_conversion = *user_conversion;
-  if (user_conversion->std_conversion_needed) {
-    /* A standard conversion is needed after the user conversion. */
-    if (dest_type != NULL) {
-      /* Get the return type of the conversion routine. */
-      conversion_type = f_skip_typerefs(user_conversion->routine->type);
-      conversion_type = conversion_type->variant.routine.return_type;
+  arg_summary->conversion = *conversion;
+  if (param_is_reference && !conversion->ambiguous) {
+    /* For reference parameters, see if any type qualifiers were added under
+       the reference relative to the output type of the conversion function.
+       That serves as a tie-breaker in overload resolution. */
+    param_type = type_pointed_to(param_type);
+    check_assertion(arg_summary->conversion.routine != NULL);
+    /* Get the return type of the conversion routine. */
+    conversion_type = arg_summary->conversion.routine->type;
+    conversion_type = f_skip_typerefs(conversion_type);
+    conversion_type = conversion_type->variant.routine.return_type;
+    conversion_type = f_skip_typerefs(conversion_type);
+    if (is_reference_type(conversion_type)) {
+      /* The function returns a reference type.  Drop that. */
       conversion_type = f_skip_typerefs(conversion_type);
-      if (is_reference_type(conversion_type)) {
-        /* The function returns a reference type.  Drop that. */
+      if (!arg_summary->conversion.result_is_an_lvalue) {
+        /* The lvalue gets converted to an rvalue, so the type qualifiers
+           are dropped. */
         conversion_type = f_skip_typerefs(conversion_type);
-        if (!user_conversion->result_is_an_lvalue) {
-          /* The lvalue gets converted to an rvalue, so the type qualifiers
-             are dropped. */
-          conversion_type = f_skip_typerefs(conversion_type);
-        }  /* if */
       }  /* if */
-      /* If the standard conversion is a cast between related classes,
-         set cast_base_class. */
-      determine_cast_base_class(conversion_type, dest_type, arg_summary);
+    }  /* if */
+    if (any_qualifier_missing(conversion_type, param_type)) {
+      /* Some type qualifiers are being added.  Remember that for use as a
+         tie-breaker later. */
+      arg_summary->conversion.std.type_qualifiers_added = TRUE;
     }  /* if */
   }  /* if */
 }  /* set_arg_summary_for_user_conversion */
 
 
-static void set_user_conversion_for_class_copy(
-                                            an_operand        *arg_operand,
-                                            a_type_ptr        param_type,
-                                            a_user_conv_descr *user_conversion)
+static void set_user_conversion_for_class_copy(an_operand   *arg_operand,
+                                               a_conv_descr *conversion,
+                                               a_type_ptr   param_type)
 /*
 arg_operand (of class type) is being passed as an argument to a parameter
 of type param_type (also a class type, either the same one or a base type
-thereof).  Set *user_conversion to indicate the conversion that is required
+thereof).  Set *conversion to indicate the conversion that is required
 to do that (a bitwise copy or a copy constructor call).
 */
 {
@@ -695,12 +685,13 @@ to do that (a bitwise copy or a copy constructor call).
 
   if (cssp->construction_by_bitwise_copy_allowed) {
     /* This is a bitwise copy. */
-    user_conversion->class_identity_or_bitwise_copy = TRUE;
+    clear_conv_descr(conversion);
+    conversion->class_identity_or_bitwise_copy = TRUE;
   } else {
     /* This case must require a copy constructor. */
     if (conversion_to_class_possible(arg_operand, param_type,
                                      /*need_lvalue_result=*/FALSE,
-                                     user_conversion, &ambiguous,
+                                     conversion, &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
         ambiguous) {
       /* Conversion is okay. */
@@ -789,19 +780,18 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   an_operand        *orig_arg_operand;
   a_boolean         param_is_reference;
   a_boolean         param_is_class_type, arg_is_class_type;
-  a_boolean         ref_type_qualifiers_dropped;
-  a_std_conv_descr  std_conv;
+  a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
+  a_std_conv_descr  std_conversion;
   a_base_class_ptr  bcp;
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant;
   a_constant_ptr    arg_operand_constant;
   an_operand        implicit_arg_operand;
-  a_user_conv_descr user_conversion;
+  a_type_ptr        orig_param_type = param_type;
   a_type_ptr        unqual_arg_type, unqual_param_type;
 
   db_enter(4, "determine_arg_match_level");
   clear_arg_match_summary(arg_summary);
-  arg_summary->param_type = param_type;
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
     arg_type = arg_operand->type;
@@ -839,7 +829,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   */
   /* Remove parts of the param type that could be added by trivial
      conversions, hoping thereby to end up with the arg type. */
-  ref_type_qualifiers_dropped = FALSE;
+  ref_type_qualifiers_dropped = ref_type_qualifiers_added = FALSE;
   param_is_reference = is_reference_type(param_type);
   /* See if the array --> pointer and function --> pointer transformations
      should be done. */
@@ -880,12 +870,16 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          appear on the parameter type, so some type qualifiers are being
          dropped. */
       ref_type_qualifiers_dropped = TRUE;
+    } else {
+      /* Some type qualifiers are being added.  That's okay, but it may
+         be a tie-breaker later. */
+      ref_type_qualifiers_added = TRUE;
     }  /* if */
   } else {
     /* The parameter type is not a reference, which means the argument would
        have to be converted from an lvalue to an rvalue.  In the process,
        it would lose its top-level type qualifiers.  That means the type
-       qualifiers must be compatible. */
+       qualifiers will be compatible. */
     arg_type = skip_typerefs(arg_type);
     /* Qualifiers on the parameter type are also not significant when dealing
        with rvalues.  One cannot distinguish f(int) and f(const int). */
@@ -940,8 +934,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         /* The argument and parameter are the same class type, so this
            qualifies as a class copy. */
         check_assertion(arg_operand != NULL);
-        set_user_conversion_for_class_copy(arg_operand, param_type,
-                                           &arg_summary->user_conversion);
+        set_user_conversion_for_class_copy(arg_operand,
+                                           &arg_summary->conversion,
+                                           param_type);
       }  /* if */
       goto have_level;
     }  /* if */
@@ -963,8 +958,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
              are not compatible. */
         } else {
           /* Some qualifiers are being added.  This is the
-             "T* --> (qualified T)*" case. */
+             "T* --> (qualified T)*" case, which should be remembered
+             as a possible tie-breaker later. */
           arg_summary->match_level = aml_exact;
+          arg_summary->conversion.std.type_qualifiers_added = TRUE;
           goto have_level;
         }  /* if */
       }  /* if */
@@ -981,10 +978,12 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                                  param_type,
                                                  &arg_operand->position,
                                                  &arg_summary->match_level,
+                                                 &std_conversion,
                                                  &ambiguous) || ambiguous) {
         /* There is a suitable indefinite function, or more than one.
            arg_summary->match_level has been set appropriately. */
-        arg_summary->user_conversion.ambiguous = ambiguous;
+        arg_summary->conversion.std = std_conversion;
+        arg_summary->conversion.ambiguous = ambiguous;
         goto have_level;
       }  /* if */
     }  /* if */
@@ -1002,6 +1001,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   arg_operand_is_constant = FALSE;
   arg_operand_constant = NULL;
   if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
+    /* For a constant argument, get the constant value. */
     arg_operand_is_constant = is_constant_operand(arg_operand);
     if (arg_operand_is_constant) {
       arg_operand_constant = &arg_operand->variant.constant;
@@ -1011,22 +1011,18 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                arg_operand_is_constant,
                                arg_operand_constant,
                                param_type, /*suppress_extensions=*/TRUE,
-                               ec_incompatible_param, &std_conv)) {
+                               ec_incompatible_param, &std_conversion)) {
     /* Match with standard conversions. */
     arg_summary->match_level = aml_std_conversion;
-    arg_summary->warning_suggested = std_conv.warning_suggested;
-    /* If the cast is from a pointer to a derived class to a pointer to a
-       base class, set cast_base_class. */
-    arg_summary->cast_base_class = std_conv.cast_base_class;
-    arg_summary->reversed_cast = std_conv.reversed_cast;
+    arg_summary->conversion.std = std_conversion;
     if (cfront_2_1_mode && param_is_reference &&
-        arg_summary->cast_base_class == NULL) {
+        arg_summary->conversion.std.cast_base_class == NULL) {
       /* cfront 2.1 has a bug: when a reference parameter is initialized
          with something that requires a standard conversion that isn't
          class-related, the cost is considered to be a user-defined
          conversion. */
       /* Note that this case is strange in that the level is
-         aml_user_conversion but user_conversion does not indicate a
+         aml_user_conversion but arg_summary->conversion does not indicate a
          user-defined conversion. */
       arg_summary->match_level = aml_user_conversion;
     }  /* if */
@@ -1040,25 +1036,26 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* The argument is a derived class and the parameter is a base class,
        so the conversion can be done. */
     arg_summary->match_level = aml_std_conversion;
-    arg_summary->cast_base_class = bcp;
+    arg_summary->conversion.std.cast_base_class = bcp;
     if (param_is_reference) {
       /* This case falls under the reference standard conversions (ARM 4.7). */
       /* The operand need not be forced to an rvalue. */
       check_assertion(arg_operand != NULL);
-      arg_summary->user_conversion.result_is_an_lvalue =
-                                                     is_an_lvalue(arg_operand);
+      arg_summary->conversion.result_is_an_lvalue = is_an_lvalue(arg_operand);
     } else {
       /* This case falls under the aggregate initialization rules (ARM 8.4.1)
          or the copy constructor rules (ARM 12.8).  Note that this case
          counts as a standard conversion even if a copy constructor is
          called. */
       check_assertion(arg_operand != NULL);
-      set_user_conversion_for_class_copy(arg_operand, param_type,
-                                         &arg_summary->user_conversion);
+      set_user_conversion_for_class_copy(arg_operand,
+                                         &arg_summary->conversion,
+                                         param_type);
     }  /* if */
     goto have_level;
   }  /* if */
   if (try_user_conversions) {
+    a_conv_descr conversion;
     /* Try a match involving user-defined conversions.  This is case [4]
        in the ARM.  Note that we use orig_arg_operand, i.e., the argument
        before any implicit transformations (like array --> pointer) for
@@ -1068,28 +1065,28 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     if (param_is_class_type &&
         (conversion_to_class_possible(orig_arg_operand, param_type,
                                       /*need_lvalue_result=*/FALSE,
-                                      &user_conversion, &ambiguous,
+                                      &conversion, &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
          ambiguous)) {
       /* There is a constructor or conversion function (or several) that
          will convert the argument type to the parameter class type. */
-      set_arg_summary_for_user_conversion(arg_summary, param_type,
-                                          &user_conversion);
+      set_arg_summary_for_user_conversion(arg_summary, &conversion,
+                                          orig_param_type, param_is_reference);
       goto have_level;
     } else if (arg_is_class_type &&
                (conversion_from_class_possible(orig_arg_operand, param_type,
                                                (a_builtin_type_kind_set)
                                                                       BTK_NONE,
                                                /*need_lvalue_result=*/FALSE,
-                                               &user_conversion,
+                                               &conversion,
                                                &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
                 ambiguous)) {
       /* There is a conversion function (or several) that will convert the
          argument class type into the parameter type or to some type that
          can be converted to the parameter type via a standard conversion. */
-      set_arg_summary_for_user_conversion(arg_summary, param_type,
-                                          &user_conversion);
+      set_arg_summary_for_user_conversion(arg_summary, &conversion,
+                                          orig_param_type, param_is_reference);
       goto have_level;
     }  /* if */
   }  /* if */
@@ -1097,6 +1094,13 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   /* No match is possible. */
   arg_summary->match_level = aml_none;
 have_level:;
+  if (ref_type_qualifiers_added &&
+      (int)arg_summary->match_level < (int)aml_user_conversion) {
+    /* Some type qualifiers were added under a reference.  This can serve as
+       a tie-breaker later.  User-defined conversions and above work this out
+       a different way. */
+    arg_summary->conversion.std.type_qualifiers_added = TRUE;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     if (arg_summary->match_level == aml_none) {
@@ -1207,7 +1211,6 @@ class or a derived class thereof (except for error cases).
       if (this_match_summary->match_level != aml_none) {
         /* Anachronism -- calling non-const function with const object. */
 	this_match_summary->const_anachronism = TRUE;
-        this_match_summary->warning_suggested = ec_const_function_anachronism;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1240,8 +1243,8 @@ error message.  If user_conversion_case is TRUE, this analysis is
 being done as part of resolving an implicit conversion: the functions
 are constructors, have_selector is FALSE (sic; the "this" parameter
 is not matched up); user-defined conversions are not tried on argument
-matches, and user_conversion is set in any candidate function entries
-created.
+matches, and the "conversion" field is set in any candidate function
+entries created.
 */
 {
   a_boolean                overloaded_function_case;
@@ -1505,12 +1508,11 @@ created.
                                                candidate_functions);
       if (user_conversion_case) {
         /* If we are analyzing a user-defined conversion routine to resolve
-           an implicit conversion, set user_conversion appropriately.
+           an implicit conversion, set "conversion" appropriately.
            Note that this cannot happen for the template case. */
         a_candidate_function_ptr candidate = *candidate_functions;
         candidate->is_user_conversion = TRUE;
-        candidate->user_conversion.routine =
-                                          function_symbol->variant.routine.ptr;
+        candidate->conversion.routine = function_symbol->variant.routine.ptr;
       }  /* if */
     }  /* if */
     goto next_function;
@@ -1556,17 +1558,16 @@ Compare two argument match summary entries and return
          A->int->float
        (see the commentary at the bottom of p. 317 of the ARM.)
     */
-    if (arg_match1->user_conversion.routine != NULL &&
-        arg_match1->user_conversion.routine ==
-                                         arg_match2->user_conversion.routine) {
+    if (arg_match1->conversion.routine != NULL &&
+        arg_match1->conversion.routine == arg_match2->conversion.routine) {
       /* We have two conversions using the same user-defined conversion. */
-      if (arg_match1->user_conversion.std_conversion_needed !=
-          arg_match2->user_conversion.std_conversion_needed) {
+      if (arg_match1->conversion.std_conversion_needed !=
+          arg_match2->conversion.std_conversion_needed) {
         /* Two user-defined conversions involving the same conversion routine.
            One does not have a standard conversion after the user-defined
            conversion and the other does, so the one without the standard
            conversion is better. */
-        if (arg_match1->user_conversion.std_conversion_needed) {
+        if (arg_match1->conversion.std_conversion_needed) {
           /* arg_match1 has the standard conversion and arg_match2 does not,
              so arg_match2 is better. */
           cmp = -1;
@@ -1594,22 +1595,23 @@ Compare two argument match summary entries and return
        pointers-to-members.  Also, a cast to "void *" is considered worse
        that any cast to a base class.
     */
-    if ((arg_match1->user_conversion.std_conversion_needed ||
-         arg_match1->match_level == (an_arg_match_level)aml_std_conversion) &&
-        (arg_match2->user_conversion.std_conversion_needed ||
-         arg_match2->match_level == (an_arg_match_level)aml_std_conversion)) {
+    if ((arg_match1->conversion.std_conversion_needed ||
+         arg_match1->match_level == aml_std_conversion) &&
+        (arg_match2->conversion.std_conversion_needed ||
+         arg_match2->match_level == aml_std_conversion)) {
       /* Both matches involve a standard conversion. */
-      bcp_1 = arg_match1->cast_base_class;
-      bcp_2 = arg_match2->cast_base_class;
+      bcp_1 = arg_match1->conversion.std.cast_base_class;
+      bcp_2 = arg_match2->conversion.std.cast_base_class;
       if (bcp_1 != NULL && bcp_2 != NULL &&
-          arg_match1->reversed_cast == arg_match2->reversed_cast) {
+          arg_match1->conversion.std.reversed_cast ==
+          arg_match2->conversion.std.reversed_cast) {
         /* Both entries have related-class casts, so they can be compared.
            If one is a subsequence of the other, the shorter derivation is
            preferable. */
         if (bcp_1 == bcp_2) {
           /* The same cast in both cases, so the two are equally good.
              Keep going with subsequence checking. */
-        } else if (!arg_match1->reversed_cast) {
+        } else if (!arg_match1->conversion.std.reversed_cast) {
           /* Normal case: derived --> base cast. */
           if (is_on_any_derivation_of(bcp_2, bcp_1)) {
             /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
@@ -1682,13 +1684,17 @@ entry to the next argument match.
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
 
 
-static void check_template_arg_type_qualifiers(a_type_ptr *arg_type,
-                                               a_type_ptr *param_type)
+static void check_template_arg_type_qualifiers(
+                                             a_type_ptr *arg_type,
+                                             a_type_ptr *param_type,
+                                             a_boolean  *type_qualifiers_added)
 /*
 Check and process the type qualifiers on an argument type *arg_type and a
 parameter type *param_type as part of trying to match a function template
 to an argument list.  Adjust the types to remove qualifiers that need
-not be considered further.
+not be considered further.  Set *type_qualifiers_added to TRUE if any
+type qualifiers are added in the conversion from *arg_type to *param_type
+(that serves as a tie-breaker in overload resolution).
 */
 {
   /* All combinations of type qualifiers are allowed in one way or
@@ -1696,7 +1702,8 @@ not be considered further.
        (a)  If both the argument and the parameter are so-qualified
             or not so-qualified, that's okay.
        (b)  If the parameter is so-qualified but the argument is not,
-            that's okay too:
+            that's okay, but it's remembered as a less desirable
+            tie-breaker case.  For example:
               template <class T> void f(const T &p) {}
               void m() {int i; f(i);}
             The "const" need not be considered further in matching
@@ -1716,6 +1723,7 @@ not be considered further.
   skip_common_type_qualifiers(arg_type, param_type);
   if (any_qualifier_missing(*arg_type, *param_type)) {
     /* Some type qualifiers are being added -- case (b). */
+    *type_qualifiers_added = TRUE;
     /* All the qualifiers on the parameter type are case (b) and can be
        removed from further consideration. */
     *param_type = skip_typerefs(*param_type);
@@ -1748,7 +1756,7 @@ evaluated (but not checked to see if the match is good enough).
   a_base_class_ptr   base_class_conv_needed;
   an_arg_match_summary_ptr
                      arg_match;
-  a_boolean          param_is_reference;
+  a_boolean          param_is_reference, type_qualifiers_added;
   a_boolean          class_copy_case, pointer_case;
 
   db_enter(4, "function_template_matches_operand_list");
@@ -1787,7 +1795,7 @@ evaluated (but not checked to see if the match is good enough).
         /* Error match.  Okay. */
       } else if (!strict_ansi_mode &&
                  arg_match->match_level == aml_std_conversion &&
-                 arg_match->cast_base_class != NULL) {
+                 arg_match->conversion.std.cast_base_class != NULL) {
         /* A cast to a base class.  Okay as an extension. */
       } else {
         /* Other match: the template cannot be used. */
@@ -1803,8 +1811,6 @@ evaluated (but not checked to see if the match is good enough).
          overload_distinguishable. */
       /* An indefinite function cannot be made to match anything. */
       if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
-      /* arg_match->param_type is left NULL because tie-breakers do
-         not apply for template cases.  (This may change.) */
       param_type = ptp->type;
       arg_type = arg_operand->operand.type;
       /* An incomplete type operand cannot be made to match anything.
@@ -1814,6 +1820,7 @@ evaluated (but not checked to see if the match is good enough).
            void m() { f(*p); }
       */
       if (is_incomplete_type(arg_type)) goto done;
+      type_qualifiers_added = FALSE;
       pointer_case = FALSE;
       param_is_reference = is_reference_type(param_type);
       /* See if any implicit transformations (e.g., array --> pointer) should
@@ -1837,7 +1844,8 @@ evaluated (but not checked to see if the match is good enough).
         /* Drop the reference type. */
         param_type = type_pointed_to(param_type);
         /* Check and adjust the top-level type qualifiers. */
-        check_template_arg_type_qualifiers(&arg_type, &param_type);
+        check_template_arg_type_qualifiers(&arg_type, &param_type,
+                                           &type_qualifiers_added);
       } else {
         /* Not a reference. */
         /* The argument would be converted to an rvalue and would lose its
@@ -1857,7 +1865,8 @@ evaluated (but not checked to see if the match is good enough).
         arg_type = type_pointed_to(arg_type);
         param_type = type_pointed_to(param_type);
         /* Check and adjust the top-level type qualifiers. */
-        check_template_arg_type_qualifiers(&arg_type, &param_type);
+        check_template_arg_type_qualifiers(&arg_type, &param_type,
+                                           &type_qualifiers_added);
       }  /* if */
       /* Note that we haven't checked that the underlying types are compatible.
          That happens later. */
@@ -1878,12 +1887,21 @@ evaluated (but not checked to see if the match is good enough).
         goto done;
       }  /* if */
       /* The argument can be made to match. */
+      if (type_qualifiers_added) {
+        /* The match is one that involves adding type qualifiers, which can be
+           a tie-breaker later.  For example:
+             template <class T> void f(T) {}
+             template <class T> void f(const T&) {}
+             void m() { int i; f(i); }
+        */
+        arg_match->conversion.std.type_qualifiers_added = TRUE;
+      }  /* if */
       class_copy_case = FALSE;
       if (base_class_conv_needed != NULL) {
         /* The extension allowing a standard conversion of a derived class to
            a base class was used. */
         arg_match->match_level = aml_std_conversion;
-        arg_match->cast_base_class = base_class_conv_needed;
+        arg_match->conversion.std.cast_base_class = base_class_conv_needed;
         /* Save information needed to check whether or not a copy
            constructor is needed. */
         class_copy_case = TRUE;
@@ -1901,8 +1919,8 @@ evaluated (but not checked to see if the match is good enough).
       if (class_copy_case && !param_is_reference && !pointer_case) {
         /* See if a copy constructor is needed for a class copy. */
         set_user_conversion_for_class_copy(&arg_operand->operand,
-                                           eff_param_type,
-                                           &arg_match->user_conversion);
+                                           &arg_match->conversion,
+                                           eff_param_type);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1957,59 +1975,43 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
 {
   int                      cmp = 0;
   an_arg_match_summary_ptr arg1, arg2;
-  a_type_ptr               param_type1, param_type2, under_type1, under_type2;
 
+  /* We're looking for cases like
+       void f(const int *);
+       void f(      int *);
+       int *p;
+       main () {
+         f(p);  // Picks f(int *); f(const int *) is worse because it adds
+                // type qualifiers under a pointer or reference.
+       }
+  */
   /* Compare each argument. */
   for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
        arg1 != NULL;
        arg1 = arg1->next, arg2 = arg2->next) {
     check_assertion(arg2 != NULL);
-    /* Get the corresponding parameter types. */
-    param_type1 = arg1->param_type;
-    param_type2 = arg2->param_type;
-    /* Some arguments have no parameter type (e.g., an ellipsis match). */
-    if (param_type1 != NULL && param_type2 != NULL) {
-      /* Check for differences of type qualifiers under pointer and
-         reference types, as in
-           void f(      int *);
-           void f(const int *);
-           int i;
-           main () {
-             f(&i);  // f(int *) is better than f(const int *)
-           }
-      */
-      /* Note that the test allows one to be a pointer, the other a reference.
-         That's intentional, and needed for some cases that compare a "this"
-         parameter pointer match with a reference match. */
-      if (is_ptr_or_ref_type(param_type1) && is_ptr_or_ref_type(param_type2)) {
-        under_type1 = type_pointed_to(param_type1);
-        under_type2 = type_pointed_to(param_type2);
-        if (type_qualifiers_match(under_type1, under_type2)) {
-          /* The two types have the same qualifiers, so one cannot be
-             different than the other on the basis of qualifiers. */
-        } else {
-          /* The qualifiers are different, so it's worth checking further. */
-          if (types_are_compatible_ignoring_qualifiers(under_type1,
-                                                       under_type2)) {
-            /* The underlying types are the same, so it's possible than
-               one has a subset of the other's qualifiers. */
-            if (!any_qualifier_missing(under_type1, under_type2)) {
-              /* under_type2 has a proper subset of the qualifiers in
-                 under_type1, so arg_match2 is the better match. */
-              cmp = -1;
-              goto have_cmp;
-            } else if (!any_qualifier_missing(under_type2, under_type1)) {
-              /* under_type1 has a proper subset of the qualifiers in
-                 under_type2, so arg_match1 is the better match. */
-              cmp = 1;
-              goto have_cmp;
-            }  /* if */
-          }  /* if */
-        }  /* if */
+    if (arg1->conversion.std.type_qualifiers_added !=
+        arg2->conversion.std.type_qualifiers_added) {
+      int prev_cmp = cmp;
+      if (arg1->conversion.std.type_qualifiers_added) {
+        /* Argument 1 has added type qualifiers and argument 2 does not,
+           so arg_match2 is the better match. */
+        cmp = -1;
+      } else {
+        /* Argument 2 has added type qualifiers and argument 1 does not,
+           so arg_match1 is the better match. */
+        cmp = 1;
+      }  /* if */
+      /* This tie-breaker applies only if no other arguments contradict it,
+         so keep going and look at the rest of the arguments. */
+      if (prev_cmp != 0 && prev_cmp != cmp) {
+        /* This contradicts a previous argument, so the tie-breaker does not
+           apply. */
+        cmp = 0;
+        break;
       }  /* if */
     }  /* if */
   }  /* for */
-have_cmp:
   return cmp;
 }  /* compare_argument_tiebreakers */
 
@@ -2036,11 +2038,11 @@ other.  Return
     /* There is something about one argument list that makes it better
        than the other. */
   } else if (cfp1->is_user_conversion &&
-             cfp1->user_conversion.std_conversion_needed !=
-             cfp2->user_conversion.std_conversion_needed) {
+             cfp1->conversion.std_conversion_needed !=
+             cfp2->conversion.std_conversion_needed) {
     /* The fact that a standard conversion is needed after a conversion
        function can serve as a tie-breaker. */
-    if (cfp1->user_conversion.std_conversion_needed) {
+    if (cfp1->conversion.std_conversion_needed) {
       /* A standard conversion is needed after cfp1 and none is needed
          after cfp2, so cfp2 is better. */
       cmp = -1;
@@ -2519,8 +2521,12 @@ Issue any suggested warning recorded in an argument match summary.
 *err_pos is the source position to be used.
 */
 {
-  if (amsp->warning_suggested != ec_no_error) {
-    pos_warning(amsp->warning_suggested, err_pos);
+  if (amsp->conversion.std.warning_suggested != ec_no_error) {
+    pos_warning(amsp->conversion.std.warning_suggested, err_pos);
+  } else if (amsp->const_anachronism) {
+    /* This call depends on the anachronism that allows a non-const function
+       to be called with a const object. */
+    pos_warning(ec_const_function_anachronism, err_pos);
   }  /* if */
 }  /* issue_warning_from_arg_match_summary */
 
@@ -3052,15 +3058,14 @@ case).  call_position gives the source position of the call.
 
 
 static void prep_possible_ellipsis_argument_operand(
-                                            an_operand        *operand,
-                                            a_param_type_ptr  param,
-                                            a_user_conv_descr *user_conversion)
+                                            an_operand       *operand,
+                                            a_param_type_ptr param,
+                                            a_conv_descr     *conversion)
 /*
 operand is the actual argument value for the parameter described by param.
 Adjust it for use in the call.  Specifically, cast it to the proper type
-(it's known to be valid as the argument).  *user_conversion indicates
-the user-defined conversion part of the conversions needed, or it may
-indicate no user-defined conversion, or user_conversion may be NULL to
+(it's known to be valid as the argument).  *conversion indicates
+the conversions needed (if any), or conversion may be NULL to
 indicate no user-defined conversion.  Even if there is no user-defined
 conversion, a cast may be required, and reference initialization must
 be considered.  param may be NULL to indicate that the argument falls
@@ -3073,8 +3078,7 @@ under an ellipsis or old-style function.
     arg_default_promote_operand(operand);
   } else {
     /* Cast the argument to the right type. */
-    prep_argument_operand(operand, param, user_conversion,
-                          ec_incompatible_param);
+    prep_argument_operand(operand, param, conversion, ec_incompatible_param);
   }  /* if */
 }  /* prep_possible_ellipsis_argument_operand */
 
@@ -3124,7 +3128,7 @@ be processed under an ellipsis).
                                          &arg_operand->operand.position);
     /* Cast the argument to the right type. */
     prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
-                                            &arg_match->user_conversion);
+                                            &arg_match->conversion);
     arg = make_node_from_operand(&arg_operand->operand);
   }  /* if */
   return arg;
@@ -3329,7 +3333,7 @@ to either
 
 If a conversion function to do that conversion exists, evaluate how
 well it matches the arguments and add it to the candidate_functions list,
-setting user_conversion in the candidate function entry.  This routine
+setting "conversion" in the candidate function entry.  This routine
 is only used in C++ mode.
 */
 {
@@ -3339,7 +3343,7 @@ is only used in C++ mode.
   a_type_ptr                source_type, conv_routine_type, return_type;
   an_arg_match_summary      this_match;
   an_arg_match_summary_ptr  this_match_ptr;
-  a_std_conv_descr          std_conv;
+  a_std_conv_descr          std_conversion;
   a_boolean                 compatible, std_conversion_needed;
   a_boolean                 result_is_an_lvalue;
   a_candidate_function_ptr  candidate;
@@ -3367,6 +3371,7 @@ is only used in C++ mode.
     /* Drop type qualifiers for the normal case, when the return value
        is an rvalue. */
     return_type = skip_typerefs(return_type);
+    clear_std_conv_descr(&std_conversion);
     result_is_an_lvalue = FALSE;
     /* If the conversion function returns a reference type, drop the 
        reference. */
@@ -3403,7 +3408,7 @@ is only used in C++ mode.
                                           /*source_is_constant=*/FALSE,
                                           (a_constant_ptr)NULL, dest_type,
                                           /*suppress_extensions=*/TRUE,
-                                          ec_no_error, &std_conv)) {
+                                          ec_no_error, &std_conversion)) {
         /* This conversion function returns a type that can be converted
            via a standard conversion to the type we want. */
         compatible = TRUE;
@@ -3456,13 +3461,14 @@ is only used in C++ mode.
                                                candidate_functions);
       candidate = *candidate_functions;
       candidate->is_user_conversion = TRUE;
-      candidate->user_conversion.routine = conversion_routine;
+      candidate->conversion.routine = conversion_routine;
       /* If a standard conversion was needed, remember that in the
          candidate function entry.  A difference of a standard conversion
          can be used to distinguish between different user-defined
          conversions. */
-      candidate->user_conversion.std_conversion_needed = std_conversion_needed;
-      candidate->user_conversion.result_is_an_lvalue = result_is_an_lvalue;
+      candidate->conversion.std_conversion_needed = std_conversion_needed;
+      candidate->conversion.std = std_conversion;
+      candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
     }  /* if */
 next_function:;
   }  /* for */
@@ -3719,7 +3725,7 @@ pointer type).
   an_arg_operand_ptr       arg_operand;
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
   a_type_ptr               operand_type;
-  a_user_conv_descr        user_conversion;
+  a_conv_descr             conversion;
   a_boolean                ambiguous;
 #if DEBUG
   unsigned long            narg;
@@ -3783,14 +3789,13 @@ pointer type).
                                            (a_type_ptr)NULL,
                                      builtin_type_set_for_type_code(type_code),
                                            /*need_lvalue_result=*/FALSE,
-                                           &user_conversion,
+                                           &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
           /* The conversion can be done. */
-          set_arg_summary_for_user_conversion(arg_match,
-                                              /*dest_type=*/(a_type_ptr)NULL,
-                                              &user_conversion);
+          arg_match->match_level = aml_user_conversion;
+          arg_match->conversion = conversion;
         }  /* if */
       } else {
         /* A non-class operand.  See if it has (or can be converted to)
@@ -3830,18 +3835,18 @@ pointer type).
            the pointer type. */
         /* If this operand is the one that suggested this pointer type,
            we already know it is compatible.  However, we still have to
-           call conversion_from_class_possible to get user_conversion set
-           so it can be recorded in the arg_match entry. */
+           call conversion_from_class_possible to get the conversion field
+           set in the arg_match entry. */
         if (conversion_from_class_possible(&arg_operand->operand, pointer_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/FALSE,
-                                           &user_conversion,
+                                           &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
           /* The conversion can be done with a conversion function. */
-          set_arg_summary_for_user_conversion(arg_match, pointer_type,
-                                              &user_conversion);
+          arg_match->match_level = aml_user_conversion;
+          arg_match->conversion = conversion;
         }  /* if */
       } else {
         a_std_conv_descr std_conv;
@@ -4116,25 +4121,24 @@ end_of_check:;
 }  /* try_conversions_for_builtin_operator */
 
 
-static void prep_for_known_possible_conversion(
-                                            an_operand        *operand,
-                                            a_user_conv_descr *user_conversion)
+static void prep_for_known_possible_conversion(an_operand   *operand,
+                                               a_conv_descr *conversion)
 /*
 We have a case where a conversion has previously been determined to be
-possible, and information about the user-defined part of the conversion has
-been saved in user_conversion.  Now we have decided to actually do the
-conversion, and we have gotten to a point that uses conversion_possible
-to determine (again) whether or not the conversion can be done and how.
-Since we already know that, we can skip the call of conversion_possible.
-However, conversion_possible does some things (like conversion from
-lvalue to rvalue) that need to be done anyway.  This routine is called
-instead of conversion_possible and does those things.
+possible, and information about the conversion has been saved in "conversion".
+Now we have decided to actually do the conversion, and we have gotten to
+a point that uses conversion_possible to determine (again) whether or
+not the conversion can be done and how.  Since we already know that, we
+can skip the call of conversion_possible.  However, conversion_possible
+does some things (like conversion from lvalue to rvalue) that need to be
+done anyway.  This routine is called instead of conversion_possible and
+does those things.
 */
 {
   /* When there's a user-defined conversion routine, do not do the
      transformations.  They are done (if needed) when processing the
      argument of the conversion routine. */
-  if (user_conversion->routine == NULL) {
+  if (conversion->routine == NULL) {
     /* Convert lvalue --> rvalue, array --> pointer, and
        function --> pointer. */
     do_operand_transformations(operand,
@@ -4205,14 +4209,13 @@ argument.  Adjust the operand type to match the type requirement.
     if (type_code != CORRESP_POINTER_TYPE_CODE) {
       /* Non-pointer case.  The conversion function result type is the
          right type. */
-      if (user_conv_usable(&arg_match->user_conversion)) {
-        /* The user conversion is usable.  Do it. */
-        prep_for_known_possible_conversion(operand,
-                                           &arg_match->user_conversion);
+      if (conv_usable(&arg_match->conversion)) {
+        /* The conversion is usable.  Do it. */
+        prep_for_known_possible_conversion(operand, &arg_match->conversion);
         user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
-                             &arg_match->user_conversion);
+                             &arg_match->conversion);
       } else {
-        /* The user conversion is not usable, e.g., because the conversion
+        /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
            a detailed error message. */
         try_to_convert_class_operand_to_builtin_type(operand,
@@ -4231,7 +4234,7 @@ argument.  Adjust the operand type to match the type requirement.
       pointer_type = candidate_function->pointer_type;
       check_assertion(pointer_type != NULL);
       prep_conversion_operand(operand, pointer_type,
-                              &arg_match->user_conversion,
+                              &arg_match->conversion,
                               /*is_initialization=*/TRUE,
                               ec_no_error,
                               &operand->position);
@@ -4553,12 +4556,12 @@ static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
                                   a_boolean                need_lvalue_result,
-                                  a_user_conv_descr        *user_conversion,
+                                  a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
                                   a_candidate_function_ptr *ambiguity_list)
 /*
 If source_operand can be converted to the class type dest_type
-(via a constructor or conversion function) set *user_conversion to describe
+(via a constructor or conversion function) set *conversion to describe
 the routine that can do the conversion and return TRUE.  Otherwise
 return FALSE.  If need_lvalue_result is TRUE, the result must be an
 lvalue.  If more than one function matches, set *ambiguous to TRUE
@@ -4584,7 +4587,7 @@ This routine is only used in C++ mode.
   /* Note that this routine is like a simplified version of
      select_overloaded_function that works for user-defined conversion
      functions (no arguments, just a "this" parameter). */
-  clear_user_conv_descr(user_conversion);
+  clear_conv_descr(conversion);
   class_type = skip_typerefs(dest_type);
   /* If the class is a template class, instantiate it so that its
      constructors are visible. */
@@ -4653,10 +4656,10 @@ This routine is only used in C++ mode.
     if (!*ambiguous) {
       okay = TRUE;
       /* Return information on how the conversion is to be done. */
-      *user_conversion = candidate_functions->user_conversion;
+      *conversion = candidate_functions->conversion;
     }  /* if */
   }  /* if */
-  user_conversion->ambiguous = *ambiguous;
+  conversion->ambiguous = *ambiguous;
   if (*ambiguous && ambiguity_list != NULL) {
     /* Return the candidate functions list to the caller, for use in generating
        an ambiguity error.  The caller will free the list. */
@@ -4682,7 +4685,7 @@ a_boolean conversion_from_class_possible(
                                a_type_ptr               dest_type,
                                a_builtin_type_kind_set  builtin_types_allowed,
                                a_boolean                need_lvalue_result,
-                               a_user_conv_descr        *user_conversion,
+                               a_conv_descr             *conversion,
                                a_boolean                *ambiguous,
                                a_candidate_function_ptr *ambiguity_list)
 /*
@@ -4695,7 +4698,7 @@ to either
 (b) a built-in type in the set given by builtin_types_allowed, if
     dest_type is NULL.
 
-then set *user_conversion to describe the conversion, and return TRUE.
+then set *conversion to describe the conversion, and return TRUE.
 Otherwise return FALSE.  If more than one function matches, set
 *ambiguous to TRUE and return FALSE.  If ambiguity_list is non-NULL in
 that case, it is set to point to a list describing the set of ambiguous
@@ -4714,7 +4717,7 @@ This routine is only used in C++ mode.
 
   db_enter(4, "conversion_from_class_possible");
   /* This routine is similar to select_overloaded_function. */
-  clear_user_conv_descr(user_conversion);
+  clear_conv_descr(conversion);
   candidate_functions = NULL;
   /* Find any viable conversion functions. */
   try_conversion_function_match(source_operand, dest_type,
@@ -4750,10 +4753,10 @@ This routine is only used in C++ mode.
     if (!*ambiguous) {
       okay = TRUE;
       /* Return information on how the conversion is to be done. */
-      *user_conversion = candidate_functions->user_conversion;
+      *conversion = candidate_functions->conversion;
     }  /* if */
   }  /* if */
-  user_conversion->ambiguous = *ambiguous;
+  conversion->ambiguous = *ambiguous;
   if (*ambiguous && ambiguity_list != NULL) {
     /* Return the candidate functions list to the caller, for use in generating
        an ambiguity error.  The caller will free the list. */
@@ -4784,7 +4787,7 @@ If so, convert it.  The result is always an rvalue.  Issue an error and
 set *processed to TRUE if the conversion is ambiguous.
 */
 {
-  a_user_conv_descr        user_conversion;
+  a_conv_descr             conversion;
   a_boolean                ambiguous;
   a_candidate_function_ptr ambiguity_list;
 
@@ -4795,13 +4798,13 @@ set *processed to TRUE if the conversion is ambiguous.
     if (conversion_from_class_possible(operand, (a_type_ptr)NULL,
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
-                                       &user_conversion,
+                                       &conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* The conversion is possible -- do it. */
       /* Force the result to be an rvalue. */
-      user_conversion.result_is_an_lvalue = FALSE;
+      conversion.result_is_an_lvalue = FALSE;
       user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
-                           &user_conversion);
+                           &conversion);
       *processed = TRUE;
     } else if (ambiguous) {
       /* There is more than one possible conversion to a built-in type. */
@@ -4851,18 +4854,17 @@ used only in C++ mode.
 }  /* class_bitwise_copy_possible */
 
 
-a_boolean user_defined_conversion_possible(
-                                       an_operand        *source_operand,
-                                       a_type_ptr        dest_type,
-                                       a_boolean         is_initialization,
-                                       a_boolean         need_lvalue_result,
-                                       a_user_conv_descr *user_conversion,
-                                       a_boolean         *failed)
+a_boolean user_defined_conversion_possible(an_operand   *source_operand,
+                                           a_type_ptr   dest_type,
+                                           a_boolean    is_initialization,
+                                           a_boolean    need_lvalue_result,
+                                           a_conv_descr *conversion,
+                                           a_boolean    *failed)
 /*
 Check whether or not the source operand can be converted to the
 destination type by a user-defined conversion (constructor or
 conversion routine), in an initialization (is_initialization == TRUE)
-or assignment (is_initialization == FALSE).  If so, set *user_conversion
+or assignment (is_initialization == FALSE).  If so, set *conversion
 to describe the conversion and return TRUE.  If not, return FALSE.  If
 a user-defined conversion is the only hope of converting the source
 operand to the destination type (i.e., one or the other has a class
@@ -4883,7 +4885,7 @@ caller should have rewritten that case).
   a_candidate_function_ptr ambiguity_list;
 
   *failed = FALSE;
-  clear_user_conv_descr(user_conversion);
+  clear_conv_descr(conversion);
 #if CHECKING
   if (is_reference_type(dest_type)) {
     internal_error("user_defined_conversion_possible: dest_type is reference");
@@ -4897,11 +4899,11 @@ caller should have rewritten that case).
     if (class_bitwise_copy_possible(source_type, dest_type,
                                     is_initialization)) {
       /* A bitwise copy of the class is allowed. */
-      user_conversion->class_identity_or_bitwise_copy = TRUE;
+      conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
     } else if (conversion_to_class_possible(source_operand, dest_type,
                                             need_lvalue_result,
-                                            user_conversion, &ambiguous,
+                                            conversion, &ambiguous,
                                             &ambiguity_list)) {
       /* A user-defined conversion (constructor or conversion function) is
          available to convert to the destination type. */
@@ -4928,7 +4930,7 @@ caller should have rewritten that case).
     if (conversion_from_class_possible(source_operand, dest_type,
                                        (a_builtin_type_kind_set)BTK_NONE,
                                        need_lvalue_result,
-                                       user_conversion,
+                                       conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* There is a conversion function that converts from the source class
          type to the destination type. */
@@ -4974,27 +4976,27 @@ caller should have rewritten that case).
 }  /* user_defined_conversion_possible */
 
 
-static a_boolean conversion_possible(an_operand         *source_operand,
-                                     a_type_ptr         dest_type,
-                                     a_type_ptr         orig_dest_type,
-                                     a_boolean          is_initialization,
-                                     an_error_code      incompatible_err,
-                                     a_source_position  *err_pos,
-                                     a_user_conv_descr  *user_conversion)
+static a_boolean conversion_possible(an_operand        *source_operand,
+                                     a_type_ptr        dest_type,
+                                     a_type_ptr        orig_dest_type,
+                                     a_boolean         is_initialization,
+                                     an_error_code     incompatible_err,
+                                     a_source_position *err_pos,
+                                     a_conv_descr      *conversion)
 /*
 Check whether or not the source operand can be converted to the
 destination type, implicitly, in an initialization (is_initialization ==
 TRUE) or assignment (is_initialization == FALSE).  If so, set
-*user_conversion to describe the user-defined conversion part of the
-conversion, and return TRUE.  If not, issue the error incompatible_err at
-the position err_pos, change the operand to an error operand, and return
-FALSE.  See 3.3.16.1 in the ANSI C standard and 12.3 in the ARM.  Note
-that this routine should only be called when the conversion must be
-done, not when we're just wondering if it can be done, because it does
-operand transformations on source_operand and issues errors.  The
-destination type must not be a reference type (the caller should have
-rewritten that case).  orig_dest_type is the original destination type
-(not rewritten) for use in error messages.
+*conversion to describe the conversion, and return TRUE.  If not, issue
+the error incompatible_err at the position err_pos, change the operand
+to an error operand, and return FALSE.  See 3.3.16.1 in the ANSI C
+standard and 12.3 in the ARM.  Note that this routine should only be
+called when the conversion must be done, not when we're just wondering
+if it can be done, because it does operand transformations on
+source_operand and issues errors.  The destination type must not be a
+reference type (the caller should have rewritten that case).
+orig_dest_type is the original destination type (not rewritten) for use
+in error messages.
 */
 {
   a_boolean          okay = FALSE, failed = FALSE, ambiguous;
@@ -5003,7 +5005,7 @@ rewritten that case).  orig_dest_type is the original destination type
   an_arg_match_level match_level;
 
   db_enter(4, "conversion_possible");
-  clear_user_conv_descr(user_conversion);
+  clear_conv_descr(conversion);
 #if CHECKING
   if (is_reference_type(dest_type)) {
     internal_error("conversion_possible: dest_type is reference");
@@ -5013,7 +5015,7 @@ rewritten that case).  orig_dest_type is the original destination type
       user_defined_conversion_possible(source_operand, dest_type,
                                        is_initialization,
                                        /*need_lvalue_result=*/FALSE,
-                                       user_conversion, &failed)) {
+                                       conversion, &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;
   } else if (!failed) {
@@ -5029,11 +5031,15 @@ rewritten that case).  orig_dest_type is the original destination type
          overloaded function.  It can be converted to an appropriate
          pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
          but sensible). */
+      a_std_conv_descr std_conversion;
+
       if (find_addr_of_overloaded_function_match(
                                            source_operand->variant.symbol,
                                            dest_type,
                                            &source_operand->position,
-                                           &match_level, &ambiguous) != NULL) {
+                                           &match_level,
+                                           &std_conversion,
+                                           &ambiguous) != NULL) {
         okay = TRUE;
       } else if (ambiguous) {
         /* More than one function matches. */
@@ -5055,7 +5061,7 @@ rewritten that case).  orig_dest_type is the original destination type
       /* In C, a struct or union is compatible with the same struct or union.
          Type qualifiers on the destination are ignored because they
          can be added on the conversion. */
-      user_conversion->class_identity_or_bitwise_copy = TRUE;
+      conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
     } else if (impl_conversion_possible(source_type,
                                         is_constant_operand(source_operand),
@@ -5066,12 +5072,14 @@ rewritten that case).  orig_dest_type is the original destination type
                                         &std_conv)) {
       /* An implicit conversion is legal. */
       okay = TRUE;
+      conversion->std = std_conv;
       /* Warn on oddball conversions. */
       if (std_conv.warning_suggested != ec_no_error) {
         /* The "opt_ty2" routine puts in the types if the specific error
            message has fill-ins for them, and otherwise ignores the types. */
         pos_opt_ty2_warning(std_conv.warning_suggested, err_pos,
                             source_type, orig_dest_type);
+        conversion->std.warning_suggested = ec_no_error;
       }  /* if */
     } else {
       /* The conversion is not legal. */
@@ -5229,7 +5237,7 @@ is used only in C++ mode.
      through overload resolution.  We know that no user-defined conversion
      is going to be required; at most a normal cast is needed. */
   prep_possible_ellipsis_argument_operand(operand, param_list,
-                                          (a_user_conv_descr_ptr)NULL);
+                                          (a_conv_descr_ptr)NULL);
   /* Make an expression for the argument. */
   *arg_expr_list = make_node_from_operand(operand);
   /* If the constructor has default arguments after the first, add
@@ -5280,11 +5288,11 @@ been adjusted, etc.).
 }  /* make_constructor_dynamic_init */
 
 
-void user_convert_operand(an_operand        *operand,
-                          a_type_ptr        dest_type,
-                          a_user_conv_descr *user_conversion)
+void user_convert_operand(an_operand   *operand,
+                          a_type_ptr   dest_type,
+                          a_conv_descr *conversion)
 /*
-Do the user-defined conversion indicated by *user_conversion to convert
+Do the user-defined conversion indicated by *conversion to convert
 *operand to dest_type.  dest_type may be NULL to indicate that
 no additional conversion is needed after the conversion function is called.
 */
@@ -5294,15 +5302,15 @@ no additional conversion is needed after the conversion function is called.
   a_routine_ptr     conversion_routine;
 
   orig_operand = *operand;
-  conversion_routine = user_conversion->routine;
+  conversion_routine = conversion->routine;
 #if CHECKING
-  if (user_conversion->ambiguous) {
+  if (conversion->ambiguous) {
     /* The conversion was ambiguous.  That should have been figured out
        again and shouldn't get here. */
     internal_error("user_convert_operand: ambiguous conversion");
   }  /* if */
 #endif /* CHECKING */
-  if (user_conversion->class_identity_or_bitwise_copy) {
+  if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     prep_class_bitwise_copy_operand(operand, dest_type);
   } else if (conversion_routine->special_kind ==
@@ -5318,15 +5326,15 @@ no additional conversion is needed after the conversion function is called.
     make_function_call(rout_node, conversion_routine->type,
                        (a_boolean)conversion_routine->is_virtual,
                        &orig_operand.position, operand);
-    if (!user_conversion->result_is_an_lvalue || 
-        user_conversion->std_conversion_needed) {
+    if (!conversion->result_is_an_lvalue || 
+        conversion->std_conversion_needed) {
       /* The caller will not accept an lvalue, or a standard conversion
          must be done, so convert an lvalue to an rvalue.  The operand
          could only be an lvalue if the conversion function returns a
          reference. */
       conv_lvalue_to_rvalue(operand);
     }  /* if */
-    if (user_conversion->std_conversion_needed) {
+    if (conversion->std_conversion_needed) {
       /* Do a necessary standard conversion. */
       cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
     }  /* if */
@@ -5350,25 +5358,24 @@ no additional conversion is needed after the conversion function is called.
 }  /* user_convert_operand */
 
 
-static void convert_operand(an_operand        *source_operand,
-                            a_type_ptr        dest_type,
-                            a_user_conv_descr *user_conversion)
+static void convert_operand(an_operand   *source_operand,
+                            a_type_ptr   dest_type,
+                            a_conv_descr *conversion)
 /*
-Convert source_operand to dest_type.  *user_conversion describes the
-conversion if it involves a user-defined conversion.  Otherwise, it's
-just a cast.
+Convert source_operand to dest_type.  *conversion describes the
+conversion (which might involve a user-defined conversion).
 */
 {
 #if CHECKING
-  if (user_conversion->ambiguous) {
+  if (conversion->ambiguous) {
     /* The conversion was ambiguous.  That should have been figured out
        again and shouldn't get here. */
     internal_error("convert_operand: ambiguous conversion");
   }  /* if */
 #endif /* CHECKING */
-  if (!is_null_user_conv_descr(user_conversion)) {
+  if (!is_null_user_conv_descr(conversion)) {
     /* Call a user-defined conversion routine. */
-    user_convert_operand(source_operand, dest_type, user_conversion);
+    user_convert_operand(source_operand, dest_type, conversion);
   } else {
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
@@ -5383,31 +5390,31 @@ static a_boolean conversion_usable_or_possible(
                                     a_boolean         is_initialization,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos,
-                                    a_user_conv_descr **p_user_conversion,
-                                    a_user_conv_descr *local_user_conversion)
+                                    a_conv_descr      **p_conversion,
+                                    a_conv_descr      *local_conversion)
 /*
 See if source_operand can be converted to dest_type (see conversion_possible
-for details on the parameters).  Return TRUE if it can.  If *p_user_conversion
+for details on the parameters).  Return TRUE if it can.  If *p_conversion
 is non-NULL, the feasibility of the conversion has previously been determined.
-Otherwise, set *p_user_conversion to point to *local_user_conversion
-(probably a local variable in the caller), and call conversion_possible
-to fill in the conversion information.  orig_dest_type is the destination
-type before any rewriting, for use in error messages.
+Otherwise, set *p_conversion to point to *local_conversion (probably a
+local variable in the caller), and call conversion_possible to fill in
+the conversion information.  orig_dest_type is the destination type
+before any rewriting, for use in error messages.
 */
 {
   a_boolean possible;
 
-  /* See if the conversion is possible.  If *p_user_conversion is non-NULL,
+  /* See if the conversion is possible.  If *p_conversion is non-NULL,
      we already know that the conversion is possible and how to do it. */
-  if (user_conv_usable(*p_user_conversion)) {
+  if (conv_usable(*p_conversion)) {
     possible = TRUE;
-    prep_for_known_possible_conversion(source_operand, *p_user_conversion);
+    prep_for_known_possible_conversion(source_operand, *p_conversion);
   } else {
-    *p_user_conversion = local_user_conversion;
+    *p_conversion = local_conversion;
     possible = conversion_possible(source_operand, dest_type, orig_dest_type,
                                    is_initialization,
                                    incompatible_err, err_pos,
-                                   *p_user_conversion);
+                                   *p_conversion);
   }  /* if */
   return possible;
 }  /* conversion_usable_or_possible */
@@ -5415,7 +5422,7 @@ type before any rewriting, for use in error messages.
 
 static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
-                                    a_user_conv_descr *user_conversion,
+                                    a_conv_descr      *conversion,
                                     a_boolean         is_initialization,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos)
@@ -5424,13 +5431,12 @@ Convert source_operand to dest_type if that is possible.  If not, issue
 incompatible_err at *err_pos.  This routine is used for initialization
 (is_initialization == TRUE) and assignment (is_initialization == FALSE).
 source_operand may be an rvalue or an lvalue.  On return, it will
-always be an rvalue.  If user_conversion is non-NULL, the conversion
-has previously been found to be acceptable, and *user_conversion
-describes how to do the user-defined conversion part (if any) of
-any required conversion.  dest_type must not be a reference type.
+always be an rvalue.  If conversion is non-NULL, the conversion
+has previously been found to be acceptable, and *conversion
+describes it.  dest_type must not be a reference type.
 */
 {
-  a_user_conv_descr local_user_conversion;
+  a_conv_descr local_conversion;
 
 #if CHECKING
   if (is_reference_type(dest_type)) {
@@ -5441,12 +5447,12 @@ any required conversion.  dest_type must not be a reference type.
   if (conversion_usable_or_possible(source_operand, dest_type, dest_type,
                                     is_initialization,
                                     incompatible_err, err_pos,
-                                    &user_conversion,
-                                    &local_user_conversion)) {
+                                    &conversion,
+                                    &local_conversion)) {
     /* The types are compatible.  Do the conversion. */
     /* Force the result to be an rvalue. */
-    user_conversion->result_is_an_lvalue = FALSE;
-    convert_operand(source_operand, dest_type, user_conversion);
+    conversion->result_is_an_lvalue = FALSE;
+    convert_operand(source_operand, dest_type, conversion);
   }  /* if */
 }  /* prep_conversion_operand */
 
@@ -5586,14 +5592,14 @@ is suppressed in that case).
 static void determine_dynamic_init_for_class_init(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
-                                  a_user_conv_descr  *user_conversion,
+                                  a_conv_descr       *conversion,
                                   a_boolean          initializing_return_value,
                                   a_dynamic_init_ptr *p_dip,
                                   an_expr_node_ptr   *p_temp_init_node)
 /*
 An entity of type dest_type (a class type) is being initialized from
 source_operand.  The constructor or conversion function required to do the
-copy and/or conversion is given by *user_conversion.  Create a dynamic
+copy and/or conversion is given by *conversion.  Create a dynamic
 initialization entry to do the initialization (and any required
 destruction, unless initializing_return_value is TRUE) and return a
 pointer to it in *dip (or return *dip == NULL for an error).  If
@@ -5628,8 +5634,8 @@ happen only in C++ mode.
   a_type_ptr         elision_source_type;
 
   temp_init_node = NULL;
-  conversion_routine = user_conversion->routine;
-  class_bitwise_copy = user_conversion->class_identity_or_bitwise_copy;
+  conversion_routine = conversion->routine;
+  class_bitwise_copy = conversion->class_identity_or_bitwise_copy;
   if (class_bitwise_copy) {
     /* The operation is a class bitwise copy.  Do nothing now; the real
        work gets done below. */
@@ -5677,7 +5683,7 @@ happen only in C++ mode.
          try to find a copy constructor that can copy the result of the
          conversion for the caller. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
-                           user_conversion);
+                           conversion);
       /* See if the result of the conversion is already in a temporary. */
       if (is_temp_init_usable_in_optimization(source_operand,
                                               initializing_return_value,
@@ -5766,7 +5772,7 @@ is used in both C and C++ mode, but it exists to do copy constructor
 elision in C++ mode.
 */
 {
-  a_user_conv_descr user_conversion;
+  a_conv_descr conversion;
 
   *dip = NULL;
   /* Look for a constructor to convert the expression to the required
@@ -5775,11 +5781,11 @@ elision in C++ mode.
                           /*is_initialization=*/TRUE,
                           ec_bad_initializer_type,  /* Arbitrary. */
                           &source_operand->position,
-                          &user_conversion)) {
+                          &conversion)) {
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
-                                          &user_conversion,
+                                          &conversion,
                                           /*initializing_return_value=*/FALSE,
                                           dip, (an_expr_node_ptr *)NULL);
   }  /* if */
@@ -5863,13 +5869,13 @@ of the temporary.  Only used in C++ mode.
 }  /* temp_init_from_operand */
 
 
-static void convert_operand_into_temp(an_operand        *source_operand,
-                                      a_type_ptr        dest_type,
-                                      a_type_ptr        orig_dest_type,
-                                      a_user_conv_descr *user_conversion,
-                                      an_error_code     incompatible_err,
-                                      a_boolean         *err,
-                                      a_boolean         *temporary_used)
+static void convert_operand_into_temp(an_operand    *source_operand,
+                                      a_type_ptr    dest_type,
+                                      a_type_ptr    orig_dest_type,
+                                      a_conv_descr  *conversion,
+                                      an_error_code incompatible_err,
+                                      a_boolean     *err,
+                                      a_boolean     *temporary_used)
 /*
 Convert source_operand to dest_type, put it into a newly-created temporary,
 and return an rvalue for the address of the temporary in source_operand.
@@ -5877,18 +5883,18 @@ If the conversion is not possible, issue the error incompatible_err,
 convert source_operand to an error operand, and return *err TRUE.
 If a temporary is created or source_operand is already a temporary,
 return *temporary_used TRUE.  orig_dest_type is the destination type
-before any rewriting, for use in error messages.  If user_conversion
+before any rewriting, for use in error messages.  If conversion
 is non-NULL, the conversion is already known to be possible, and
-*user_conversion describes the user-defined conversion part of it,
-if any.  This routine is used to convert the initial value in a
-reference initialization to a temporary that the reference will
-point to.  dest_type must not be a reference type.  Only used in C++.
+*conversion describes it.  This routine is used to convert the
+initial value in a reference initialization to a temporary that
+the reference will point to.  dest_type must not be a reference type.
+Only used in C++.
 */
 {
-  a_user_conv_descr local_user_conversion;
-  a_routine_ptr     conversion_routine;
-  an_operand        orig_operand;
-  a_boolean         have_temp;
+  a_conv_descr  local_conversion;
+  a_routine_ptr conversion_routine;
+  an_operand    orig_operand;
+  a_boolean     have_temp;
 
   *err = FALSE;
   *temporary_used = FALSE;
@@ -5903,10 +5909,10 @@ point to.  dest_type must not be a reference type.  Only used in C++.
                                     /*is_initialization=*/TRUE,
                                     incompatible_err,
                                     &source_operand->position,
-                                    &user_conversion,
-                                    &local_user_conversion)) {
+                                    &conversion,
+                                    &local_conversion)) {
     /* Yes, the conversion is possible.  Do it. */
-    convert_operand(source_operand, dest_type, user_conversion);
+    convert_operand(source_operand, dest_type, conversion);
     /* In some cases, the result is already in something that can be
        considered a temporary. */
     have_temp = FALSE;
@@ -5917,7 +5923,7 @@ point to.  dest_type must not be a reference type.  Only used in C++.
       *temporary_used = TRUE;
     }  /* if */
     if (!have_temp) {
-      conversion_routine = user_conversion->routine;
+      conversion_routine = conversion->routine;
       if (conversion_routine != NULL &&
           conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
@@ -5987,11 +5993,11 @@ limited loophole allowed in cfront compatibility mode.
 }  /* is_field_selection_lvalue_operand */
 
 
-void prep_initializer_operand(an_operand        *source_operand,
-                              a_type_ptr        dest_type,
-                              a_user_conv_descr *user_conversion,
-                              a_boolean         initializing_return_value,
-                              an_error_code     incompatible_err)
+void prep_initializer_operand(an_operand    *source_operand,
+                              a_type_ptr    dest_type,
+                              a_conv_descr  *conversion,
+                              a_boolean     initializing_return_value,
+                              an_error_code incompatible_err)
 /*
 Check the operand for initializer compatibility against the type supplied.
 Cast the operand if required to make it the right type.  Convert the
@@ -6002,9 +6008,8 @@ incompatible, issue the error incompatible_err.  This routine is used for
 initialization, function call arguments, and return expressions, i.e.,
 for "="-type initializations.  It is not used when copy constructor
 elision is possible; see prep_elision_initializer_operand.
-If user_conversion is non-NULL, the initializer has previously been
-found to be acceptable, and *user_conversion describes how to do the
-user-defined conversion part (if any) of any required conversion.
+If conversion is non-NULL, the initializer has previously been
+found to be acceptable, and *conversion describes it.
 */
 {
   a_type_ptr base_dest_type, base_source_type;
@@ -6169,7 +6174,7 @@ user-defined conversion part (if any) of any required conversion.
         /* The temp has the same type as the operand, but without
            type qualifiers. */
         convert_operand_into_temp(source_operand, unqual_dest_type, dest_type,
-                                  user_conversion, incompatible_err, &err,
+                                  conversion, incompatible_err, &err,
                                   &temporary_used);
         if (err) {
           /* The conversion could not be done.  An error has already been
@@ -6218,7 +6223,7 @@ user-defined conversion part (if any) of any required conversion.
     }  /* if */
   } else {
     /* Normal case (not initializing a reference). */
-    prep_conversion_operand(source_operand, dest_type, user_conversion,
+    prep_conversion_operand(source_operand, dest_type, conversion,
                             /*is_initialization=*/TRUE,
                             incompatible_err,
                             &source_operand->position);
@@ -6228,20 +6233,19 @@ user-defined conversion part (if any) of any required conversion.
 }  /* prep_initializer_operand */
 
 
-void prep_argument_operand(an_operand        *source_operand,
-                           a_param_type_ptr  formal_param,
-                           a_user_conv_descr *user_conversion,
-                           an_error_code     err_code)
+void prep_argument_operand(an_operand       *source_operand,
+                           a_param_type_ptr formal_param,
+                           a_conv_descr     *conversion,
+                           an_error_code    err_code)
 /*
 Check that *source_operand is acceptable as an actual argument for the
 formal parameter described by formal_param.  If not, issue the error err_code.
 If so, convert the operand to the formal parameter type.
-If user_conversion is non-NULL, the argument has previously been found
-to be acceptable, and *user_conversion describes how to do the user-defined
-conversion part (if any) of any required conversion.
+If conversion is non-NULL, the argument has previously been found
+to be acceptable, and *conversion describes it.
 */
 {
-  a_user_conv_descr  local_user_conversion;
+  a_conv_descr       local_conversion;
   an_expr_node_ptr   temp_init_node;
   a_dynamic_init_ptr dip;
 
@@ -6252,13 +6256,13 @@ conversion part (if any) of any required conversion.
                                       formal_param->type,
                                       /*is_initialization=*/TRUE,
                                       err_code, &source_operand->position,
-                                      &user_conversion,
-                                      &local_user_conversion)) {
+                                      &conversion,
+                                      &local_conversion)) {
       /* Yes.  Build an enk_temp_init node and a dynamic init entry that
          will initialize the temporary.  The temporary's address is passed
          to the called routine. */
       determine_dynamic_init_for_class_init(source_operand, formal_param->type,
-                                            user_conversion,
+                                            conversion,
                                            /*initializing_return_value=*/FALSE,
                                             &dip, &temp_init_node);
       make_expression_operand(temp_init_node, temp_init_node->type,
@@ -6267,7 +6271,7 @@ conversion part (if any) of any required conversion.
   } else {
     /* Normal argument. */
     prep_initializer_operand(source_operand, formal_param->type,
-                             user_conversion,
+                             conversion,
                              /*initializing_return_value=*/FALSE,
                              err_code);
   }  /* if */
@@ -6286,8 +6290,8 @@ to do the return, and return a pointer to it in *dip (or NULL if there is
 an error).  err_code is the error code to be used in case of error.
 */
 {
-  an_operand        orig_operand;
-  a_user_conv_descr user_conversion;
+  an_operand   orig_operand;
+  a_conv_descr conversion;
 
   orig_operand = *source_operand;
   *dip = NULL;
@@ -6295,10 +6299,10 @@ an error).  err_code is the error code to be used in case of error.
   if (conversion_possible(source_operand, required_type, required_type,
                           /*is_initialization=*/TRUE,
                           err_code, &source_operand->position,
-                          &user_conversion)) {
+                          &conversion)) {
     /* Yes.  Build the dynamic init entry. */
     determine_dynamic_init_for_class_init(source_operand, required_type,
-                                          &user_conversion,
+                                          &conversion,
                                           /*initializing_return_value=*/TRUE,
                                           dip, (an_expr_node_ptr *)NULL);
   }  /* if */
@@ -6322,7 +6326,7 @@ routine is only called for cases where bitwise copying applies.
   /* See if the source and destination types are compatible, and convert the
      source operand to the destination type. */
   prep_conversion_operand(source_operand, dest_type,
-                          (a_user_conv_descr_ptr)NULL,
+                          (a_conv_descr_ptr)NULL,
                           /*is_initialization=*/FALSE,
                           incompatible_err, err_pos);
 }  /* prep_assignment_operand */
