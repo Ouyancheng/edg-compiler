@@ -1376,7 +1376,7 @@ called by id_linkage.
     /* This is either a block-extern declaration of a function or variable or
        (what amounts to the same thing) a friend declaration within a local
        class.  Find the visible declaration of the same name. */
-    other_decl = normal_id_lookup(locator, IDL_NO_OPTIONS);
+    other_decl = normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
     if (other_decl != NULL &&
         depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
       if (other_decl->decl_scope >=
