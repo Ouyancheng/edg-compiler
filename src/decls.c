@@ -2915,18 +2915,19 @@ declarations is a namespace-extension scope.
         *linkage = idl_external;
       }  /* if */
       *effective_decl_level = depth_scope_stack;
-    } else if (is_friend_decl) {
-      /* Set the scope into which the function will be injected. */
-      *effective_decl_level = depth_scope_stack;
     } else {
       /* The lookup failed. */
-      pos_sy_error(locator->specific_symbol->kind ==
-                                   (a_symbol_kind)sk_overloaded_function ?
+      a_symbol_ptr  sym = fundamental_symbol_of(locator->specific_symbol);
+      pos_sy_error(sym->kind == (a_symbol_kind)sk_overloaded_function ?
                       ec_overloaded_function_incompatible_type :
                       ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
       err = TRUE;
-      pop_namespace_extension_scope();
+      if (is_friend_decl) {
+        pop_namespace_reactivation_scope();
+      } else {
+        pop_namespace_extension_scope();
+      }  /* if */
       *namespace_reactivated = FALSE;
     }  /* if */
   }  /* if */
