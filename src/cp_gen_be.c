@@ -2430,12 +2430,8 @@ static void gen_export(void)
 Print the "export" keyword and a space.
 */
 {
-  /* The export keyword must not be put out on the declaration of a
-     template within a class definition. */
-  if (!curr_name_context_is_a_class()) {
-    write_tok_str("export");
-    write_space();
-  }  /* if */
+  write_tok_str("export");
+  write_space();
 }  /* gen_export */
 
 
