@@ -4007,6 +4007,8 @@ temporary file (see start_initializer_assignments).
     ipdp->type = type;
     if (constant != NULL) {
       elem_con = constant->variant.aggregate.first_constant;
+      check_assertion_str(constant->type != NULL,
+                         "dump_initializer_part: ck_aggregate with null type");
     } else {
       /* Initializing to zero. */
       elem_con = NULL;

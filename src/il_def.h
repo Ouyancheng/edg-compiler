@@ -1174,9 +1174,9 @@ typedef struct a_constant {
                            in an initialization list).  NULL if the constant
                            is not on a list, or is the last on a list. */
   a_type_ptr    type;
-                        /* The type of the constant.  Will be compatible
-                           with the representation below.  A ck_aggregate
-                           or ck_init_repeat entry has a NULL type pointer. */
+			/* The type of the constant.  Will be compatible
+			   with the representation below.  A ck_init_repeat
+			   entry has a NULL type pointer. */
 #ifdef FIL
 			/* A ck_init_position entry also has a NULL type
 			   pointer. */

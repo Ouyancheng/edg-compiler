@@ -2350,6 +2350,7 @@ Make the code that will ensure that the file-scope initialization routine
          {NULL, __sti__module_id, NULL}
        If the initialization routine does not exist, use a NULL instead. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr_con->type = link_var->type;
     link_var->init_kind = (an_init_kind)initk_static;
     link_var->initializer.constant = aggr_con;
     /* NULL for "next" field. */
@@ -2696,6 +2697,7 @@ and update *insert_location accordingly.
                                            /*in_function_scope=*/FALSE);
   /* Make the top-level aggregate constant that will be its initial value. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->type = var->type;
   /* Use a local-static-variable-init entry to indicate the initialization. */
   (void)make_local_static_variable_init(var, curr_context->scope,
                                         (an_init_kind)initk_static,

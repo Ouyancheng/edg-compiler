@@ -4188,14 +4188,17 @@ but the IL entry is not marked as referenced.
 
 static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
                                          a_dynamic_init_ptr element_dip,
+                                         a_type_ptr         array_type,
                                          a_type_ptr         elem_type,
                                          a_targ_size_t      number_of_elements)
 /*
 Change the indicated dynamic initialization into a dynamic initialization
-for each member of an array of classes.  elem_type is the type of the array
-elements.  number_of_elements is the number of elements in the array, or 0
-if the number of elements is variable (and known only at runtime).  Return
-a pointer to the dynamic init entry for the entire array.
+for each member of an array of classes.  array_type is the type of the array,
+and elem_type is the type of the array elements.  number_of_elements is the
+number of elements in the array, or 0 if the number of elements is variable
+(and known only at runtime).  Multi-dimensional arrays are treated as
+single-dimensional arrays.  Return a pointer to the dynamic init entry for
+the entire array.
 */
 {
   a_dynamic_init_ptr  array_dip;
@@ -4209,7 +4212,7 @@ a pointer to the dynamic init entry for the entire array.
   */
   array_dip =
        alloc_expr_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-  repeat_nonconstant_init(element_dip, elem_type, array_dip,
+  repeat_nonconstant_init(element_dip, array_type, elem_type, array_dip,
                           number_of_elements);
   return array_dip;
 }  /* add_array_nonconstant_aggregate_init */
@@ -4757,7 +4760,8 @@ specification allow a variable-sized array as the top type.
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate
              initialization. */
-          dip = add_array_nonconstant_aggregate_init(dip, base_new_type,
+          dip = add_array_nonconstant_aggregate_init(dip, new_type,
+                                                     base_new_type,
                                                     effective_num_of_elements);
           /* If exceptions are enabled, put in a destructor.  It's needed
              to destroy elements if a throw is done part-way through the
@@ -4923,7 +4927,11 @@ As an anachronism, allow an expression inside the [ ].
           if (array_delete) {
             /* For a delete of an array of classes, generate a dynamic init
                that replicates the destructor call for the whole array. */
-            dip = add_array_nonconstant_aggregate_init(dip, base_delete_type,
+            a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
+            array_type->variant.array.element_type = base_delete_type;
+            /* Array size is left as zero; size need not be set. */
+            dip = add_array_nonconstant_aggregate_init(dip, array_type,
+                                                       base_delete_type,
                                                        (a_targ_size_t)0);
           }  /* if */
           ndsp->dynamic_init = dip;

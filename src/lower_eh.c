@@ -166,16 +166,21 @@ as a subscript).
 }  /* add_elem_to_array_var */
 
 
-static void finish_array_var(a_variable_ptr var)
+static void finish_array_var(a_variable_ptr var,
+                             a_constant_ptr aggr_con)
 /*
 var is an array variable (for example, one created by
 make_init_unnamed_local_static_array_var).  The building of the variable
 is now completed, so finish it off.  In particular, the array size is now
-known, so call set_type_size on the type.
+known, so call set_type_size on the type.  aggr_con is the ck_aggregate
+constant that is the initial value of the variable, or NULL if the variable
+is uninitialized.
 */
 {
   /* Finish off the array type by setting its size. */
   set_type_size(var->type);
+  /* Set the aggregate type the same as the variable type. */
+  if (aggr_con != NULL) aggr_con->type = var->type;
 }  /* finish_array_var */
 
 
@@ -547,6 +552,7 @@ allocated in the file scope memory region.
       typeinfo_con->next = offset_con;
       offset_con->next = flags_con;
       sub_aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      sub_aggr_con->type = base_class_spec_type;
       sub_aggr_con->variant.aggregate.first_constant = typeinfo_con;
       sub_aggr_con->variant.aggregate.last_constant = flags_con;
       /* Add the constant to the aggregate initializer list. */
@@ -560,7 +566,7 @@ allocated in the file scope memory region.
   flags_value |= BCS_LAST;
   set_unsigned_integer_value(&flags_con->variant.integer_value, flags_value);
   /* Finish off the variable. */
-  finish_array_var(bc_var);
+  finish_array_var(bc_var, aggr_con);
   return bc_var;
 }  /* make_base_class_array_var */
 
@@ -729,6 +735,7 @@ have been called on it at some previous point.
     implicit_cast(vptr_con, make_pointer_type(make_mptr_type()));
     /* Make the constant for the type_info. */
     type_info_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    type_info_con->type = user_type_info_type;
     type_info_con->variant.aggregate.first_constant = vptr_con;
     type_info_con->variant.aggregate.last_constant = vptr_con;
     /* Make the name constant.  The string for the name was made previously
@@ -806,6 +813,7 @@ have been called on it at some previous point.
     /* Make the aggregate constant and attach it to the variable as its initial
        value. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr_con->type = typeinfo_var->type;
 #if ABI_CHANGES_FOR_RTTI
     aggr_con->variant.aggregate.first_constant = type_info_con;
     type_info_con->next = name_con;
@@ -1665,6 +1673,7 @@ region description entry).
   handle_con->next = elem_size_con;
   elem_size_con->next = size_con;
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->type = array_descr_type;
   aggr_con->variant.aggregate.first_constant = handle_con;
   aggr_con->variant.aggregate.last_constant = size_con;
   /* Add the aggregate as an element of the object address table array. */
@@ -1831,6 +1840,7 @@ a pointer to the aggregate constant created.
   a_constant_ptr aggr_con;
 
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->type = region_descr_type;
   aggr_con->variant.aggregate.first_constant = con_list;
   aggr_con->variant.aggregate.last_constant = end_con_list;
   /* Add the aggregate as an element of the region table array. */
@@ -2356,6 +2366,7 @@ value of the variable.  If type is NULL, add an ellipsis entry.
   set_unsigned_integer_constant(flags_con, flags_value,
                                 (an_integer_kind)ik_unsigned_char);
   sub_aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  sub_aggr_con->type = exception_type_spec_type;
   sub_aggr_con->variant.aggregate.first_constant = typeinfo_con;
   typeinfo_con->next = flags_con;
   sub_aggr_con->variant.aggregate.last_constant = flags_con;
@@ -2384,7 +2395,7 @@ the aggregate constant that is its initial value.
   flags_value |= ETS_LAST;
   set_unsigned_integer_value(&flags_con->variant.integer_value, flags_value);
   /* Finish off the variable. */
-  finish_array_var(var);
+  finish_array_var(var, aggr_con);
 }  /* finish_exception_type_spec_array */
 
 
@@ -2825,7 +2836,7 @@ statement if necessary.
     /* Finish off the various arrays and put pointers to them into the
        stack. */
     if (region_table_var != NULL) {
-      finish_array_var(region_table_var);
+      finish_array_var(region_table_var, region_table_aggr_con);
       /* Make an expression for throw_frame.variant.function.regions */
       func_frame_function_regions = 
                   field_lvalue_selection_expr(
@@ -2842,7 +2853,7 @@ statement if necessary.
                                         &insert_location);
     }  /* if */
     if (object_addr_table_var != NULL) {
-      finish_array_var(object_addr_table_var);
+      finish_array_var(object_addr_table_var, (a_constant_ptr)NULL);
       /* Make an expression for throw_frame.variant.function.obj_table */
       func_frame_function_obj_table = 
                   field_lvalue_selection_expr(
@@ -2860,7 +2871,7 @@ statement if necessary.
                                         &insert_location);
     }  /* if */
     if (array_table_var != NULL) {
-      finish_array_var(array_table_var);
+      finish_array_var(array_table_var, array_table_aggr_con);
       /* Make an expression for throw_frame.variant.function.array_table */
       func_frame_function_array_table = 
                   field_lvalue_selection_expr(

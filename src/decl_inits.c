@@ -862,6 +862,7 @@ ref field of a class object (or an array of same) remains uninitialized.
         /* Allocate the aggregate constant that is the value for the
            initializer. */
         init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+        init_con->type = local_type;
         init_con->variant.aggregate.first_constant = con_list;
         init_con->variant.aggregate.last_constant  = end_of_con_list;
         if (any_more_members) *any_member_uninitialized = TRUE;
@@ -1623,16 +1624,18 @@ returned set to TRUE.
 
 
 void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
+                             a_type_ptr          array_type,
                              a_type_ptr          elem_type,
                              a_dynamic_init_ptr  new_dip,
                              a_targ_size_t       count)
 /*
 Define a dynamic init entry for a nonconstant aggregate, which will always be
-for an array whose elements (of type elem_type) are to be initialized by a
-series of constructor calls.  The dynamic entry to be defined (new_dip) has
-already been allocated; the dynamic init entry that represents the constructor
-call is ctor_dip.  count is the number of elements in the array to be
-initialized.
+for an array (of type array_type) whose elements (of type elem_type) are to
+be initialized by a series of constructor calls.  The dynamic entry to be
+defined (new_dip) has already been allocated; the dynamic init entry that
+represents the constructor call is ctor_dip.  count is the number of
+elements in the array to be initialized.  Note that multi-dimensional
+arrays are treated as one-dimensional arrays.
 */
 {
   a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
@@ -1646,6 +1649,7 @@ initialized.
   */
   /* Create a ck_aggregate constant. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->type = array_type;
   new_dip->variant.constant = aggr_con;
   /* Set it to point to a newly created ck_init_repeat constant. */
   aggr_con->variant.aggregate.first_constant =
@@ -1760,7 +1764,7 @@ the default constructor (if one exists) is called.
           /* Compute the repeat count. */
           count = var_type->size / tp->size;
           /* Build the repeat construct. */
-          repeat_nonconstant_init(dip, tp, init_dip, count);
+          repeat_nonconstant_init(dip, var_type, tp, init_dip, count);
         }  /* if */
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
@@ -2659,7 +2663,7 @@ scan_paren:
         } else {
           count = array_type->size / tp->size;
         }  /* if */
-        repeat_nonconstant_init(ctor_dip, tp, dip, count);
+        repeat_nonconstant_init(ctor_dip, array_type, tp, dip, count);
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       dip->is_constructor_init = TRUE;
@@ -2870,7 +2874,7 @@ though neither constructors nor initialization is involved here.)
             } else {
               count = array_type->size / tp->size;
             }  /* if */
-            repeat_nonconstant_init(dtor_dip, tp, dip, count);
+            repeat_nonconstant_init(dtor_dip, array_type, tp, dip, count);
           }  /* if */
           /* Attach the new dynamic init entry to the constructor
              initializer. */

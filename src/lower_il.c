@@ -2688,7 +2688,7 @@ Do IL lowering of a pointer-to-member constant.
                          &did_not_fold, &error_position);
     /* Change the original constant into a ck_aggregate constant. */
     set_constant_kind(constant, (a_constant_repr_kind)ck_aggregate);
-    constant->type = NULL;
+    /* constant->type is left alone. */
     constant->variant.aggregate.first_constant = delta_con;
     delta_con->next = index_con;
     index_con->next = func_con;
@@ -3217,6 +3217,7 @@ virtual function table.
 
   /* Allocate the subaggregate constant. */
   entry_aggr = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  entry_aggr->type = make_mptr_type();
   /* Add the constant to the end of the primary aggregate list. */
   if (aggr_con->variant.aggregate.first_constant == NULL) {
     aggr_con->variant.aggregate.first_constant = entry_aggr;
@@ -3547,6 +3548,7 @@ virtual function table.
     /* Start the initialization by creating a ck_aggregate constant and
        making it the initial value of the variable. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr_con->type = vtbl_var->type;
     vtbl_var->init_kind = (an_init_kind)initk_static;
     vtbl_var->initializer.constant = aggr_con;
     /* Put out the initialization for the [0] entry. */

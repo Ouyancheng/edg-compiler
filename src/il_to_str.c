@@ -1692,8 +1692,20 @@ confusion.  Do the output in the way described by octl.
   a_boolean            need_cast_close_paren = FALSE;
 
   orig_type = constant->type;
-  /* Watch out for constants (like aggregates) that have no type. */
-  if (orig_type != NULL) {
+  /* Watch out for constants (like ck_init_repeat) that have no type. */
+  if (orig_type == NULL) {
+#if CHECKING
+    if (kind != (a_constant_repr_kind)ck_init_repeat) {
+#if DEBUG
+      if (octl->debug_output) {
+        octl->output_str("**NULL-CONSTANT-TYPE**");
+      } else
+#endif /* DEBUG */
+      /* Do not insert code here.  This is the else of an "if". */
+      unexpected_condition_str("form_constant: constant with null type");
+    }  /* if */
+#endif /* CHECKING */
+  } else {
     con_type = skip_typerefs(orig_type);
     /* See if we need a cast to the constant result type. */
     if (kind == (a_constant_repr_kind)ck_address ||

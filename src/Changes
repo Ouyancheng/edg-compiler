@@ -1,5 +1,10 @@
 Version 2.30
 
+8/22/95  IL CHANGE: Type in ck_aggregate constants
+
+The type field in ck_aggregate constants is now filled in properly.
+Formerly, it was NULL.
+
 8/22/95  %np diagnostic fill-in code
 
 The diagnostic output routines now support an additional fill-in kind,
