@@ -1,5 +1,13 @@
 Version 2.21
 
+11/17/93 Instantiating members of an incomplete class
+
+The following case was accepted without issuing an error.  Attempts
+to instantiate members of an incomplete class were detected.
+
+  template <class T> class A;
+  #pragma instantiate A<int>
+
 11/17/93 Disallow default argument in a #pragma function declaration
 
 An error is now issued if a default argument appears on a function

@@ -956,31 +956,35 @@ data members within a given template class.
   } else {
     /* Instantiate the class, if not already done. */
     check_for_uninstantiated_template_class(class_type);
-    mem_sym = sym->variant.class_struct_union.extra_info->symbols;
-    /* Loop through all the member symbols looking for member functions. */
-    for (; mem_sym != NULL; mem_sym = mem_sym->next_in_scope) {
-      a_symbol_ptr	list_sym;
-      a_boolean		is_list;
-     if (is_member_function_symbol(mem_sym)) {
-        /* If this is an overloaded function, loop through each of the
-           functions underneath it. */
-        if (mem_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-          list_sym = mem_sym->variant.overloaded_function.symbols;
-          is_list = TRUE;
-        } else {
-          list_sym = mem_sym;
-          is_list = FALSE;
+    if (is_incomplete_type(class_type)) {
+      pos_error(ec_incomplete_type_not_allowed, pos);
+    } else {
+      mem_sym = sym->variant.class_struct_union.extra_info->symbols;
+      /* Loop through all the member symbols looking for member functions. */
+      for (; mem_sym != NULL; mem_sym = mem_sym->next_in_scope) {
+        a_symbol_ptr	list_sym;
+        a_boolean		is_list;
+       if (is_member_function_symbol(mem_sym)) {
+          /* If this is an overloaded function, loop through each of the
+             functions underneath it. */
+          if (mem_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            list_sym = mem_sym->variant.overloaded_function.symbols;
+            is_list = TRUE;
+          } else {
+            list_sym = mem_sym;
+            is_list = FALSE;
+          }  /* if */
+          for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
+            /* Only set the flags for things that can be instantiated. */
+            if (can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
+              update_instantiation_flags(list_sym, pragma_kind, pos);
+           	}  /* if */
+          }  /* for */
+        } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
+          update_instantiation_flags(mem_sym, pragma_kind, pos);
         }  /* if */
-        for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
-          /* Only set the flags for things that can be instantiated. */
-          if (can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
-            update_instantiation_flags(list_sym, pragma_kind, pos);
-         	}  /* if */
-        }  /* for */
-      } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
-        update_instantiation_flags(mem_sym, pragma_kind, pos);
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* update_instantiation_flags_for_class */
 
