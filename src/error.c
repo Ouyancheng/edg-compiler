@@ -3210,11 +3210,17 @@ template associated with error_code.  After constructing the segment list
 */
 {
   msg_segment_ptr  curr_seg;
+  char             *msg_template;
   int              i;
 
   /* Get the error message text (template) and construct the message
      segment list. */
-  construct_message_segments(error_text(error_code));
+  if (diag_kind != dck_end_list) {
+    msg_template = error_text(error_code);
+  } else {
+    msg_template = "";
+  };
+  construct_message_segments(msg_template);
 
   /* Walk through the message segments and complete any required 
      expansion. */
@@ -3848,6 +3854,7 @@ void end_error(void)
 Complete the multiple message diagnostic currently being processed.
 */
 {
+  init_error_params();
   diag_message(ec_no_error, (a_source_position *)NULL, es_none, dck_end_list);
 }  /* end_error */
 
