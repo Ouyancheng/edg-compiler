@@ -2467,8 +2467,8 @@ and do the same processing.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void add_to_scopes_list(a_scope_ptr             scope_ptr,
-                               a_scope_stack_entry_ptr ssep)
+void add_to_scopes_list(a_scope_ptr             scope_ptr,
+                        a_scope_stack_entry_ptr ssep)
 /*
 Add the given IL scope to the scopes list for the scope stack entry pointed
 to by ssep.
