@@ -550,7 +550,7 @@ ec_conversion_to_type_not_allowed;;"conversion function to convert from %t1 to %
 ec_bad_extra_arg_for_postfix_operator;;"extra argument of postfix \"operator%s\" must be of type \"int\""
 ec_function_type_required;;"an operator name must be declared as a function"
 ec_operator_name_not_allowed;;"operator name is not allowed"
-ec_specific_def_must_be_global;;"class template specific definition not at global scope"
+REMOVED;ec_specific_def_must_be_global;;"class template specific definition not at global scope"
 ec_nonstd_member_function_address;;"nonstandard form for taking the address of a member function"
 ec_too_few_template_params;;"too few template parameters -- does not match previous declaration"
 ec_too_many_template_params;;"too many template parameters -- does not match previous declaration"
