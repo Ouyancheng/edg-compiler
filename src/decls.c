@@ -5830,9 +5830,14 @@ clause is to be attached.  catch_pos is the source position of "catch".
         } else if (type_ptr == error_type()) {
           /* No need to check for masking in this case. */
         } else if (prev_handler->parameter == NULL) {
-          /* Anything following a default handler is masked by it. */
-          pos_warning(ec_masked_by_default_handler, &decl_pos);
-          masked = TRUE;
+          /* Default handler has already been declared.  If it's the last on
+             the list, issue an error; if not, an error will already have
+             been issued, and further checking is suppressed. */
+          if (prev_handler->next == NULL) {
+            /* Anything following a default handler is masked by it, but we
+               only issue an error on the first handler that follows. */
+            pos_error(ec_masked_by_default_handler, &decl_pos);
+          }  /* if */
         } else if (handler->parameter == NULL) {
           /* Current handler is a default handler -- it can only be masked by
              another default handler. */
@@ -5846,10 +5851,15 @@ clause is to be attached.  catch_pos is the source position of "catch".
                          prev_handler->parameter->type);
           masked = TRUE;
         }  /* if */
-        if (prev_handler->next == NULL) break;
-        prev_handler = prev_handler->next;
+        if (prev_handler->next == NULL) {
+          /* End of the list.  Append the new handler. */
+          prev_handler->next = handler;
+          break;
+        } else {
+          /* Keep looping. */
+          prev_handler = prev_handler->next;
+        }  /* if */
       }  /* for */
-      prev_handler->next = handler;
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
