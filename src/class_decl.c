@@ -5136,8 +5136,8 @@ operator routine or do bitwise assignment.
      base class with a private (which we interpret to *really* mean
      nonpublic) operator=() (ARM 12.8). */
   if (err) {
-    pos_sy_error(ec_missing_user_defined_assignment_for_copy, err_pos,
-                 (a_symbol_ptr)class_type->source_corresp.assoc_info);
+    sym = (a_symbol_ptr)scope->variant.routine.ptr->source_corresp.assoc_info;
+    pos_sy_error(ec_missing_user_defined_assignment_for_copy, err_pos, sym);
   }  /* if */
   db_exit();
   return;
@@ -5234,32 +5234,7 @@ destructors, assignment operators, and conversion functions.
 #endif /* CHECKING */
   /* Check for accessibility. */
   if (!have_access_to_symbol(sym)) {
-    switch (rp->special_kind) {
-      case sfk_conversion:
-        err_code = ec_inaccessible_conversion_function;
-        break;
-      case sfk_constructor:
-        err_code = ec_inaccessible_constructor;
-        break;
-      case sfk_destructor:
-        err_code = ec_inaccessible_destructor;
-        break;
-      case sfk_operator:
-        if (rp->opname_kind == (an_opname_kind)onk_assign) {
-          err_code = ec_inaccessible_assignment_operator;
-          break;
-        }  /* if */
-        /* If it is not an assignment operator, fall through to the internal
-           error. */
-      default:
-#if CHECKING
-        internal_error(
-               "reference_to_implicitly_invoked_function: unexpected sfkind");
-#else
-        err_code = ec_no_error;
-#endif /* CHECKING */
-    }  /* switch */
-    pos_sy_error(err_code, err_pos, sym);
+    pos_sy_error(ec_inaccessible_special_function, err_pos, sym);
   }  /* if */
   /* Mark the IL entry referenced. */
   rp->source_corresp.referenced = TRUE;
