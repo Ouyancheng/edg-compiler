@@ -71,7 +71,6 @@ Clear a conversion description.
 a_symbol_ptr find_addr_of_overloaded_function_match(
                                                a_symbol_ptr       ovl_sym,
                                                a_type_ptr         dest_type,
-                                               a_source_position  *source_pos,
                                                an_arg_match_level *match_level,
                                                a_std_conv_descr   *std_conv,
                                                a_boolean          *ambiguous)
@@ -84,8 +83,7 @@ function's symbol (possibly a projection symbol); otherwise, return NULL.
 Also set *match_level to indicate whether or not any conversion is needed
 after the coercion to a specific function pointer, and set *std_conv to
 indicate any such conversion.  If more than one function matches, return
-NULL and *ambiguous TRUE.  source_pos is the source position of the
-reference.  See ARM 13.3, "Address of Overloaded Function".
+NULL and *ambiguous TRUE.  See ARM 13.3, "Address of Overloaded Function".
 */
 {
   a_boolean        is_ptr = FALSE, is_ptr_to_member = FALSE;
@@ -1317,7 +1315,6 @@ is TRUE.
          to a function at this point; it doesn't matter. */
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
                                                  param_type,
-                                                 &arg_operand->position,
                                                  &arg_summary->match_level,
                                                  &std_conversion,
                                                  &ambiguous) != NULL ||
@@ -6313,7 +6310,6 @@ rewritten) for use in error messages.
       if (find_addr_of_overloaded_function_match(
                                            source_operand->variant.symbol,
                                            dest_type,
-                                           &source_operand->position,
                                            &match_level,
                                            &std_conversion,
                                            &ambiguous) != NULL) {

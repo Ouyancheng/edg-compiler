@@ -2046,7 +2046,6 @@ user-defined conversions.
           function_symbol = find_addr_of_overloaded_function_match(
                                                     overloaded_function_symbol,
                                                     new_type,
-                                                    &operand->position,
                                                     &match_level,
                                                     &std_conversion,
                                                     &ambiguous);

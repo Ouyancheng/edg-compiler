@@ -307,7 +307,6 @@ extern void issue_warning_from_arg_match_summary(
 extern a_symbol_ptr find_addr_of_overloaded_function_match(
                                                a_symbol_ptr       ovl_sym,
                                                a_type_ptr         dest_type,
-                                               a_source_position  *source_pos,
                                                an_arg_match_level *match_level,
                                                a_std_conv_descr   *std_conv,
                                                a_boolean          *ambiguous);
