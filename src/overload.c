@@ -5528,14 +5528,8 @@ functions could still apply).
                                             (an_expr_operator_kind)eok_sassign,
                                             rhs_node->type, lhs_node);
               make_expression_operand(assign_node, assign_node->type, result);
-#if 0
-              reference_to_implicitly_invoked_function(function_symbol,
-                                                       operator_position,
-                                                       (a_type_ptr)NULL,
-                                                       /*honor_virtual=*/FALSE,
-                                          curr_expr_is_potentially_evaluated(),
-                                               /*suppress_access_check=*/TRUE);
-#endif /* 0 */
+              /* Note that reference_to_implicitly_invoked_function is not
+                 called. */
             } else {
               /* Not the builtin bitwise operator=. */
               /* Build an expression-form argument list.  Convert the arguments
