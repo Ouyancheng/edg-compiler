@@ -916,6 +916,31 @@ The routine returns difference_seen.
 }  /* compare_exception_specification_type_list */
 
 
+static an_error_severity pos_adjusted_severity(an_error_severity  severity,
+                                               a_symbol_ptr       prev_decl)
+/*
+If the given symbol was previously declared in a system header, limit the
+given severity to a warning.  The adjustment is only made in GNU C++ mode.
+(In GNU C++ mode, exception specification conflicts with declarations in
+system headers are downgraded to warnings.)
+*/
+{
+  if (gpp_mode && (int)severity > (int)es_warning) {
+    a_source_file_ptr	sfp;
+    a_boolean		at_end_of_source;
+    a_line_number	line_number;
+    unsigned long	nesting_depth;
+    sfp = source_file_for_seq(prev_decl->decl_position.seq, &line_number,
+                              &at_end_of_source, &nesting_depth,
+                             /*physical_line=*/FALSE);
+    if (sfp != NULL && sfp->from_system_include_dir) {
+      severity = es_warning;
+    }  /* if */
+  }  /* if */
+  return severity;
+}  /* pos_adjusted_severity */
+
+
 void check_exception_specification(a_type_ptr         new_rout_type,
                                    a_symbol_ptr       prev_decl,
                                    a_source_position  *throw_pos,
@@ -988,20 +1013,6 @@ consistent with that of the previous declaration.
   }  /* if */
   if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
     an_error_severity  severity = es_error;
-    if (gpp_mode) {
-      /* In GNU C++ mode, conflicts with declarations in system headers are
-         downgraded to warnings. */
-      a_source_file_ptr	sfp;
-      a_boolean		at_end_of_source;
-      a_line_number	line_number;
-      unsigned long	nesting_depth;
-      sfp = source_file_for_seq(prev_decl->decl_position.seq, &line_number,
-                                &at_end_of_source, &nesting_depth,
-                               /*physical_line=*/FALSE);
-      if (sfp != NULL && sfp->from_system_include_dir) {
-        severity = es_warning;
-      }  /* if */
-    }  /* if */
     if (microsoft_mode && microsoft_version >= 1300) {
       /* Recent Microsoft compilers do not require exception specifications
          on multiple declarations to match.  We issue a warning in case of
@@ -1046,7 +1057,8 @@ consistent with that of the previous declaration.
       if (new_tsp != NULL) {
         /* Previously the exception specification was absent; now one is
            provided.  Issue an error. */
-        pos_stsy_diagnostic(severity, error_code, throw_pos, "", prev_decl);
+        pos_stsy_diagnostic(pos_adjusted_severity(severity, prev_decl),
+                            error_code, throw_pos, "", prev_decl);
       }  /* if */
     } else if (new_tsp == NULL) {
       /* Issue a diagnostic on the omission of a throw specification on the
@@ -1060,7 +1072,7 @@ consistent with that of the previous declaration.
            routine: the relaxation is to ease the upgrading of old code. */
         severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */
-      pos_sy_diagnostic(severity,
+      pos_sy_diagnostic(pos_adjusted_severity(severity, prev_decl),
                         is_redecl?
                           ec_omitted_exception_specification :
                           ec_omitted_exception_specification_on_specialization,
