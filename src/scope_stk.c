@@ -4002,6 +4002,14 @@ End a name scope by popping an entry off the scope stack.
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
     set_needed_flags_at_end_of_file_scope(il_scope);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#if ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING
+    /* Any statics referenced from instantiation slices in
+       one-instantiation-per-object mode must be made external so that
+       they can be referenced from the instantiation object files. */
+    make_statics_referenced_from_instantiations_external();
+#endif /* ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING */
+#if MAINTAIN_NEEDED_FLAGS
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
     if (okay_to_eliminate_unneeded_il_entries) {

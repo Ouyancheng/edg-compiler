@@ -760,6 +760,10 @@ extern void lower_statement(a_statement_ptr statement);
 
 extern void promote_local_entities_to_file_scope(a_scope_ptr scope);
 
+#if ONE_INSTANTIATION_PER_OBJECT
+extern void make_statics_referenced_from_instantiations_external(void);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+
 extern void lower_il_memory_region(a_memory_region_number region_number);
 
 extern void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp);

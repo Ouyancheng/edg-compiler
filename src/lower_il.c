@@ -11207,52 +11207,56 @@ files can reference it.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ONE_INSTANTIATION_PER_OBJECT
 
-static void make_statics_referenced_from_instantiations_external(void)
+void make_statics_referenced_from_instantiations_external(void)
 /*
 When generating instantiations in separate object files, make any
 static variables or functions referenced from instantiations external.
+This must be called after IL lowering for the file scope, and after
+the needed-flag walk for the file scope.
 */
 {
   a_routine_ptr  rout;
   a_variable_ptr var;
 
-  /* This processing is done in a separate routine, rather than in
-     lower_variable and lower_routine, because entities created by IL
-     lowering, e.g., typeinfo variables and virtual function tables,
-     (a) are created with the IL lowering flag set, and therefore do not
-     get lowered further, and (b) have storage classes that get changed
-     as lowering proceeds. */
-  for (rout = il_header.primary_scope->routines;
-       rout != NULL;
-       rout = rout->next) {
-    if (rout->source_corresp.static_used_by_instantiation &&
-        !rout->is_inline) {
-      if (rout->storage_class != (a_storage_class)sc_static) {
-        /* If the entity was changed to non-static after the flag was set,
-           just ignore the flag. */
-        rout->source_corresp.static_used_by_instantiation = FALSE;
-      } else {
-        externalize_source_correspondence(&rout->source_corresp,
-                                          /*is_variable=*/FALSE);
-        rout->storage_class = (a_storage_class)sc_unspecified;
+  if (il_lowering_needed()) {
+    /* This processing is done in a separate routine, rather than in
+       lower_variable and lower_routine, because entities created by IL
+       lowering, e.g., typeinfo variables and virtual function tables,
+       (a) are created with the IL lowering flag set, and therefore do not
+       get lowered further, and (b) have storage classes that get changed
+       as lowering proceeds. */
+    for (rout = il_header.primary_scope->routines;
+         rout != NULL;
+         rout = rout->next) {
+      if (rout->source_corresp.static_used_by_instantiation &&
+          !rout->is_inline) {
+        if (rout->storage_class != (a_storage_class)sc_static) {
+          /* If the entity was changed to non-static after the flag was set,
+             just ignore the flag. */
+          rout->source_corresp.static_used_by_instantiation = FALSE;
+        } else {
+          externalize_source_correspondence(&rout->source_corresp,
+                                            /*is_variable=*/FALSE);
+          rout->storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
-  for (var = il_header.primary_scope->variables;
-       var != NULL;
-       var = var->next) {
-    if (var->source_corresp.static_used_by_instantiation) {
-      if (var->storage_class != (a_storage_class)sc_static) {
-        /* If the entity was changed to non-static after the flag was set,
-           just ignore the flag. */
-        var->source_corresp.static_used_by_instantiation = FALSE;
-      } else {
-        externalize_source_correspondence(&var->source_corresp,
-                                          /*is_variable=*/TRUE);
-        var->storage_class = (a_storage_class)sc_unspecified;
+    }  /* for */
+    for (var = il_header.primary_scope->variables;
+         var != NULL;
+         var = var->next) {
+      if (var->source_corresp.static_used_by_instantiation) {
+        if (var->storage_class != (a_storage_class)sc_static) {
+          /* If the entity was changed to non-static after the flag was set,
+             just ignore the flag. */
+          var->source_corresp.static_used_by_instantiation = FALSE;
+        } else {
+          externalize_source_correspondence(&var->source_corresp,
+                                            /*is_variable=*/TRUE);
+          var->storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
 }  /* make_statics_referenced_from_instantiations_external */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

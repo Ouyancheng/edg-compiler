@@ -1,5 +1,30 @@
 Version 2.38
 
+1/12/98   One-instantiation-per-object mode: local statics
+
+In one-instantiation-per-object mode, a local static entity which
+is supposed to be made external so it can be referenced from an
+instantiation object file sometimes was not, which would cause
+link errors later.  Now fixed.
+
+  extern "C" int printf(const char *,...);
+  typedef void (*TD)();
+  static void foo() {printf("foo\n"); }
+  template <class T> class X { public:
+    static TD td;
+    void f(const T t);
+  };
+  template <class T> TD X<T>::td = foo;
+  template <class T> void X<T>::f(const T t) {
+    printf("f(const T) called\n"); td();
+  }
+  TD bar = X<int>::td;
+  int main() {
+    bar();
+    X<int> x;
+    x.f(6);
+  }
+
 1/10/98   Class name lookup in routine friend declaration
 
 A spurious error was put out on the following because the special lookup
