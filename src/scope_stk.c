@@ -1980,7 +1980,8 @@ void push_template_declaration_scope(a_template_decl_info_ptr decl_info)
 Push a template declaration scope.
 */
 {
-  (void)push_scope_full(sck_template_declaration, NO_SCOPE_NUMBER,
+  (void)push_scope_full((a_scope_kind)sck_template_declaration,
+                        NO_SCOPE_NUMBER,
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
