@@ -460,6 +460,7 @@ check_abbreviation()
 --define_macro
 --definition_list_file
 --dependencies
+--designators
 --diag_error
 --diag_remark
 --diag_suppress
@@ -475,6 +476,7 @@ check_abbreviation()
 --error_output
 --exceptions
 --explicit
+--extended_designators
 --extern_inline
 --far_code_pointers
 --far_data_pointers
@@ -519,10 +521,12 @@ check_abbreviation()
 --no_code_gen
 --no_const_string_literals
 --no_definition_list_file
+--no_designators
 --no_distinct_template_signatures
 --no_enum_overloading
 --no_exceptions
 --no_explicit
+--no_extended_designators
 --no_extern_inline
 --no_friend_injection
 --no_guiding_decls
@@ -996,6 +1000,10 @@ process_option()
          --no_arg_dep_lookup | \
          --friend_injection | \
          --no_friend_injection | \
+         --designators | \
+         --no_designators | \
+         --extended_designators | \
+         --no_extended_designators | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
