@@ -84,7 +84,16 @@ Return TRUE if an exception is in the process of being thrown.
 
   for (; ehsep != NULL; ehsep = ehsep->next) {
     if (ehsep->kind == ehsek_throw_processing_marker) {
+      /* We are processing a throw.  An exception cannot be thrown here
+         without resulting in a call to terminate(). */
       result = TRUE;
+      break;
+    } else if (ehsep->kind == ehsek_try_block &&
+               ehsep->variant.try_block.catch_info == NULL) {
+      /* We are inside a try block (that is not currently in a handler), so
+         it is okay for a new exception to be thrown here.  Note that
+         internal try blocks are not considered for this test. */
+      break;
     }  /* if */
   }  /* for */
   return result;

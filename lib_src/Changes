@@ -1,5 +1,13 @@
 Version 2.34
 
+10/16/96 uncaught_exception() and nested try blocks
+
+The uncaught_exception() routine has been modified to return TRUE only
+when an attempt to throw any exception would result in terminate()
+being called.  If a nested try block is encountered that could
+catch an exception thrown at the point where uncaught_exception()
+is called, uncaught_exception() will return FALSE.
+
 10/14/96 Recording array allocation information for placement array new
 
 A new runtime routine named __placement_array_new has been added
