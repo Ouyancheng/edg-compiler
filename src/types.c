@@ -1438,16 +1438,6 @@ not compared.
     if (!list1_prototyped && !list2_prototyped) {
       /* Both parameter lists are old-style, so they are compatible. */
       compatible = TRUE;
-    } else if (C_dialect == C_dialect_cplusplus &&
-               list1_prototyped != list2_prototyped) {
-      /* In C++ mode, consider an unprototyped function not to be
-         compatible with a prototyped function.  That is not something
-         that is spelled out by the ARM, since unprototyped functions
-         are an anachronism, but it seems sensible. */
-      /* Note that there is some code later in this routine that is
-         made useless by the test here, but it seems safer to keep it in
-         in case the code here is taken back out. */
-      compatible = FALSE;
     } else {
       /* At least one of the function types has a prototyped parameter list. */
       list1 = rtsp1->param_type_list;
@@ -1464,11 +1454,11 @@ not compared.
       }  /* if */
       if (!list2_prototyped) {
         /* The second parameter list is old-style.  */
-        if (local_rtsp2->assoc_routine == NULL) {
-          /* The old-style type is the type for a routine without a body,
-             so there is no parameter information.  The prototyped parameter
-             list from the first type is used, and each type on the list will
-             be promoted before comparison. */
+        if (!local_rtsp2->old_style_params_scanned) {
+          /* There is no parameter information for the second type, which is
+             an old-style declaration. The prototyped parameter list from
+             the first type is used, and each type on the list will be
+             promoted before comparison. */
           list2 = list1;
         }  /* if */
       }  /* if */
@@ -1488,7 +1478,18 @@ not compared.
           param_1_type = skip_typerefs(param_1_type);
           param_2_type = skip_typerefs(param_2_type);
           if (!list2_prototyped) {
-            param_2_type = default_argument_promotion(param_2_type);
+            if (C_dialect == C_dialect_cplusplus) {
+              /* Do not do default promotion of the argument in C++ mode.
+                 This is a matter not of conformity to the language definition,
+                 since old-style param declarations are not supported, but
+                 of compatibility with cfront, which overloads f in the
+                 following example:
+                   void f(int);            // prototyped
+                   void f(x) char x { }    // old-style -- char is not
+                                           //   promoted to int           */
+            } else {
+              param_2_type = default_argument_promotion(param_2_type);
+            }  /* if */
           }  /* if */
         }  /* if */
         if (f_types_are_compatible(param_1_type, param_2_type,
