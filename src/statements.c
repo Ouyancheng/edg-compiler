@@ -129,9 +129,11 @@ Set var to indicate that the associated code is unreachable.
 
 
 /*
-Declarations needed because of mutual recursion:
+Declarations needed because of forward references:
 */
 static void statement(a_boolean is_dependent_statement);
+static a_statement_ptr start_block_statement(a_boolean generated_statement);
+static void finish_block_statement(a_statement_ptr block_stmt);
 
 
 static void check_lint_notreached_state(void)
@@ -2478,6 +2480,15 @@ statement stack.
 }  /* restore_struct_stmt_stack */
 
 
+/*
+Macro that returns TRUE if the statement kind given is for an
+iteration or selection statement.
+*/
+#define is_iteration_or_selection_statement_kind(kind)                \
+  ((kind) == ssk_if    || (kind) == ssk_switch ||                     \
+   (kind) == ssk_while || (kind) == ssk_do     || (kind) == ssk_for)
+
+
 static void push_stmt_stack(a_struct_stmt_kind      kind,
                             a_statement_ptr         sp,
                             an_object_lifetime_ptr  olp)
@@ -2494,6 +2505,13 @@ current structured statement.
 
 
   db_enter(4, "push_stmt_stack");
+  if (c99_mode) {
+    /* In C99, iteration and selection statements have an associated
+       scope.  Push a generated block statement. */
+    if (is_iteration_or_selection_statement_kind(kind)) {
+      (void)start_block_statement(/*generated_statement=*/TRUE);
+    }  /* if */
+  }  /* if */
   /* Expand the structured statement stack if necessary. */
   ensure_struct_stmt_stack_space();
   /* Push the stack and initialize the new entry. */
@@ -2799,7 +2817,7 @@ Pop the top entry off the structured statement stack, recording that
 a structured statement has ended.
 */
 {
-  register a_struct_stmt_stack_entry_ptr sssep;
+  a_struct_stmt_stack_entry_ptr          sssep;
   a_struct_stmt_kind                     kind;
   a_statement_ptr                        sp;
   a_label_ptr                            break_label;
@@ -2893,6 +2911,15 @@ a structured statement has ended.
     check_assertion(depth_stmt_stack > -1);
     define_implicit_label(break_label, break_statements);
   }  /* if */
+  if (c99_mode) {
+    /* In C99, iteration and selection statements have an associated
+       scope.  Pop the scope. */
+    if (is_iteration_or_selection_statement_kind(kind)) {
+      a_statement_ptr block_stmt =
+                                 struct_stmt_stack[depth_stmt_stack].statement;
+      finish_block_statement(block_stmt);
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* pop_stmt_stack */
 
@@ -2957,11 +2984,11 @@ found:
 }  /* find_enclosing_struct_stmt */
 
 
-static a_statement_ptr start_block_statement(a_boolean dependent_statement)
+static a_statement_ptr start_block_statement(a_boolean generated_statement)
 /*
 Do processing to begin a block or compound statement.  Return a pointer
-to the block statement.  dependent_statement is TRUE if the block is
-being created to surround a dependent statement in C++ or C99.
+to the block statement.  generated_statement is TRUE if the block is
+generated, e.g., to surround a dependent statement in C++ or C99.
 */
 {
   a_struct_stmt_kind      kind;
@@ -2970,7 +2997,7 @@ being created to surround a dependent statement in C++ or C99.
   /* Allocate a block statement and add it to the statements list. */
   block_stmt = add_statement((a_statement_kind)stmk_block);
   stmt_update_source_sequence_list(block_stmt);
-  if (!dependent_statement) {
+  if (!generated_statement) {
     /* This is a block statement introduced by a left brace (which should be
        the next token). */
     /* Process any pragmas that are meant to bind to the block statement as
@@ -2984,7 +3011,7 @@ being created to surround a dependent statement in C++ or C99.
     /* Any pragmas that are current will bind to the statement itself, not
        to the generated block, so don't process them yet. */
   }  /* if */
-  if (dependent_statement && cfront_2_1_mode) {
+  if (generated_statement && cfront_2_1_mode) {
     /* This is a dependent statement in cfront 2.1 mode, which is special
        in that no scope is created for it, but it nevertheless has an
        associated object lifetime: anything constructed within the
@@ -3071,7 +3098,7 @@ a local scope.
   } else {
     /* Normal case (in C++ and C99): add a block and potential scope.
        In cfront mode, the block is added but not the scope. */
-    block = start_block_statement(/*dependent_statement=*/TRUE);
+    block = start_block_statement(/*generated_statement=*/TRUE);
     block_added = TRUE;
   }  /* if */
   /* Now process the dependent statement itself. */
@@ -5893,7 +5920,7 @@ branching into it is disallowed).
     /* Note that there is no check for unreachable code.  It's probably too
        draconian to warn about an unreachable open brace if (say) there
        is a label right afterwards. */
-    block = start_block_statement(/*dependent_statement=*/FALSE);
+    block = start_block_statement(/*generated_statement=*/FALSE);
   }  /* if */
   /* Record in the statement stack entry whether the routine was declared
      with an explicit return type. */
