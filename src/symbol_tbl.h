@@ -2672,10 +2672,10 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
 
 /* Return TRUE if a symbol is a member function symbol. */
 #define is_member_function_symbol(sym)                                \
-  ((sym)->kind == (a_symbol_kind)sk_member_function ||                \
-   ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&           \
-    (sym)->variant.overloaded_function.symbols->kind ==               \
-                                (a_symbol_kind)sk_member_function))
+  ((sym)->is_class_member &&                                          \
+   ((sym)->kind == (a_symbol_kind)sk_member_function ||               \
+    (sym)->kind == (a_symbol_kind)sk_overloaded_function ||           \
+    (sym)->kind == (a_symbol_kind)sk_function_template))
 
 extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
                                             a_special_function_kind  kind);
