@@ -831,7 +831,7 @@ tokens therein and clear the cache.
     ctp_next = ctp->next;
     free_cached_token(ctp);
   }  /* for */
-  clear_token_cache(cache, /*reusable=*/cache->is_reusable);
+  clear_token_cache(cache, /*reusable=*/(a_boolean)cache->is_reusable);
 }  /* discard_token_cache */
 
 

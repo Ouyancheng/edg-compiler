@@ -4836,6 +4836,9 @@ indicated by error_position.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+#if 0
+/* This routine is not currently used by the compiler. */
+
 void pos_syty_warning(an_error_code     error_code,
                       a_source_position *error_pos,
                       a_symbol_ptr      symbol,
@@ -4849,7 +4852,8 @@ indicated position.
   error_msg_syms[1] = symbol;
   error_msg_types[1] = type;
   diag_message(error_code, error_pos, es_warning, dck_standalone);
-}  /* pos_sy_warning */
+}  /* pos_syty_warning */
+#endif /* 0 */
 
 
 void pos_sy_warning(an_error_code     error_code,
@@ -5110,6 +5114,9 @@ and then terminate the compilation.
 /* The following routines are used to construct multiple message
    diagnostics with various fill-ins. */
 
+#if 0
+/* This routine is not currently used by the compiler. */
+
 void pos_start_error(an_error_code     error_code,
                      a_source_position *error_pos)
 /*
@@ -5120,7 +5127,7 @@ position.
   init_error_params();
   diag_message(error_code, error_pos, es_error, dck_primary);
 }  /* pos_start_error */
-
+#endif /* 0 */
 
 
 void pos_st_start_error(an_error_code     error_code,

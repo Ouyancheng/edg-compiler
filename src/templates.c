@@ -2599,8 +2599,8 @@ that make up the declaration and do a prototype instantiation.
         if ((is_definition || is_redecl) && sym != NULL) {
           /* Either a definition or a redeclaration.  Make sure the template
              parameters are compatible with the previous declaration. */
-          reconcile_template_param_lists(templ_params, sym,
-                                         &locator.source_position);
+          (void)reconcile_template_param_lists(templ_params, sym,
+                                               &locator.source_position);
         }  /* if */
       } else if (sym->is_template_param) {
         /* The class being declared has the same name as one of its
