@@ -160,7 +160,7 @@ The access_flags string was retained for backward compatibility.
 #if ABI_CHANGES_FOR_RTTI
 
 EXTERN_C void *__dynamic_cast(void                  *class_ptr,
-			      size_t                vptr_offset,
+			      a_vtbl_entry_ptr      vtbl_ptr,
 			      a_type_info_impl_ptr  tiip)
 /*
 Runtime support for dynamic_cast operations.  This routine handles
@@ -173,9 +173,7 @@ Runtime support for dynamic_cast operations.  This routine handles
   - polymorphic cross casts
 
 The information about the dynamic type of the source object is obtained
-from entry zero of the virtual function table.  The virtual function table
-is located by adding vptr_offset to class_ptr, which results in the offset
-of the vtable pointer in the object pointed to be class_ptr.
+from entry zero of the virtual function table.
 
 Entry zero of the virtual function table is organized differently than the
 other table entries.  The information in that entry is provided to support
@@ -195,13 +193,8 @@ following information:
   void			*complete_object_ptr;
   size_t		offset_to_complete_object;
   a_type_info_impl_ptr	object_tiip;
-  a_vtbl_entry_ptr	vtbl_ptr;
   void			*result = NULL;
 
-  /* Get the address of the first entry of the virtual function table.
-     This entry contains information used by dynamic_cast: the type_info
-     pointer, and the offset to the complete object. */
-  vtbl_ptr = *(a_vtbl_entry_ptr*)((char *)class_ptr + vptr_offset);
   /* Get a pointer to the complete object. */
   offset_to_complete_object = vtbl_ptr->delta;
   complete_object_ptr =
@@ -249,7 +242,7 @@ this version of the runtime, then simply abort.
 
 
 EXTERN_C void *__dynamic_cast_ref(void                  *class_ptr,
-			          size_t                vptr_offset,
+			          a_vtbl_entry_ptr      vtbl_ptr,
 			          a_type_info_impl_ptr  tiip)
 /*
 Interface to __dynamic_cast used when casting references.  This calls
@@ -258,12 +251,26 @@ __dynamic_cast and throws an exception if the cast failed.
 {
   void*		result;
 
-  result = __dynamic_cast(class_ptr, vptr_offset, tiip);
+  result = __dynamic_cast(class_ptr, vtbl_ptr, tiip);
   if (result == NULL) {
     __throw_bad_cast();
   }  /* if */
   return result;
 }  /* __dynamic_cast_ref */
+
+
+EXTERN_C void *__get_typeid(a_vtbl_entry_ptr	vtbl_ptr)
+/*
+*/
+{
+  a_type_info_impl_ptr	tiip;
+
+  /* Get the pointer to the type_info_impl associated with the source object. 
+     This is stored in the function pointer field of the vtbl entry. */
+  tiip = (a_type_info_impl_ptr)vtbl_ptr->function;
+  /* Return the address of the user type_info. */
+  return (void*)&tiip->user_type_info;
+}  /* __get_typeid */
 
 
 #endif /* ABI_CHANGES_FOR_RTTI */

@@ -30,8 +30,8 @@ Return TRUE if two type_info structures refer to the same type.
   a_type_info_impl_ptr  tiip1;
   a_type_info_impl_ptr  tiip2;
 
-  tiip1 = (a_type_info_impl_ptr)_type_info;
-  tiip2 = (a_type_info_impl_ptr)rhs._type_info;
+  tiip1 = (a_type_info_impl_ptr)this;
+  tiip2 = (a_type_info_impl_ptr)&rhs;
   return matching_type_info(tiip1, tiip2);
 }  /* type_info::operator== */
 
@@ -44,8 +44,8 @@ Return TRUE if two type_info structures do not refer to the same type.
   a_type_info_impl_ptr  tiip1;
   a_type_info_impl_ptr  tiip2;
 
-  tiip1 = (a_type_info_impl_ptr)_type_info;
-  tiip2 = (a_type_info_impl_ptr)rhs._type_info;
+  tiip1 = (a_type_info_impl_ptr)this;
+  tiip2 = (a_type_info_impl_ptr)&rhs;
   return !matching_type_info(tiip1, tiip2);
 }  /* type_info::operator!= */
 
@@ -67,8 +67,8 @@ the address of the single type_info_impl is used for collation.
   void*                 ptr1;
   void*                 ptr2;
 
-  tiip1 = (a_type_info_impl_ptr)_type_info;
-  tiip2 = (a_type_info_impl_ptr)rhs._type_info;
+  tiip1 = (a_type_info_impl_ptr)this;
+  tiip2 = (a_type_info_impl_ptr)&rhs;
   ptr1 = tiip1->unique_id != NULL ? (void*)tiip1->unique_id : (void*)tiip1;
   ptr2 = tiip2->unique_id != NULL ? (void*)tiip2->unique_id : (void*)tiip2;
   return ptr1 < ptr2;
@@ -82,9 +82,9 @@ Returns a pointer to the name string for this type.
 {
   a_type_info_impl_ptr  tiip1;
 
-  tiip1 = (a_type_info_impl_ptr)_type_info;
+  tiip1 = (a_type_info_impl_ptr)this;
   return tiip1->name;
-}  /* type_info::before */
+}  /* type_info::name */
 
 
 type_info::~type_info()
@@ -93,16 +93,6 @@ Destructor for type_info.  This should never actually be called.
 */
 {
 }  /* type_info::~type_info */
-
-
-type_info::type_info(void* type_info_impl)
-/*
-Constructor called by IL lowering to initialize a type_info.  type_info_impl
-points to a_type_info_impl.
-*/
-{
-  _type_info = type_info_impl;
-}  /* type_info::type_info */
 
 
 bad_cast::bad_cast() throw()

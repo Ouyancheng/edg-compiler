@@ -17,6 +17,7 @@ exception handling.
 #ifndef _RTTI_H
 
 #include <stdlib.h>
+#include <typeinfo.h>
 #include "config.h"
 #include "runtime.h"
 
@@ -83,6 +84,17 @@ typedef struct a_base_class_spec {
 /* Type description information for objects that are thrown or
    caught. */
 typedef struct a_type_info_impl {
+#if ABI_CHANGES_FOR_RTTI
+  type_info	user_type_info;
+			/* This is the user visible type_info object,
+			   a reference to which is returned by the
+			   typeid runtime routine.  The runtime assumes
+			   that this is the first field in a_type_info_impl. */
+  char
+                *name;
+                       /* Pointer to a null-terminated character string
+			  containing the name of the type. */
+#endif /* ABI_CHANGES_FOR_RTTI */
   a_unique_id_ptr
 		unique_id;
 			/* When this field is non-NULL two type_info
@@ -95,12 +107,6 @@ typedef struct a_type_info_impl {
 		*base_class_entries;
 			/* Pointer to an array of type_info entries for
 			   direct base classes of a class. */
-#if ABI_CHANGES_FOR_RTTI
-  char
-                *name;
-                       /* Pointer to a null-terminated character string
-			  containing the name of the type. */
-#endif /* ABI_CHANGES_FOR_RTTI */
 } a_type_info_impl;
 
 
