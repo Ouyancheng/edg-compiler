@@ -1,5 +1,18 @@
 Version 2.24
 
+6/27/97 Specific declaration of inline function template
+
+An error is now issued (rather than an internal error) if an instance of
+an inline function template is referenced (and therefore instantiated "on
+the fly"), and then a specific declaration appears.  For example:
+
+  template <class T> inline void f(T) { }
+  void g() {
+    f(1);                    // Causes instantiation of f(int)
+  }
+  inline void f(int) { }     // Error -- specific definition must precede
+                             //   reference when template is "inline"
+
 6/26/94 Explicit cast of pointer to too-small integer okay in C
 
 An explicit cast of a pointer to an integral type that's too small to
@@ -7,9 +20,8 @@ contain the pointer is now allowed in C mode.  For example:
 
   main () {
     short k;
-    k = (short) "cc";  // Gets warning instead of error now
+    k = (short) "cc";        // Gets warning instead of error now
   }
-
 
 6/26/94 Fixed spurious error on initialization of const field with ctor
 
