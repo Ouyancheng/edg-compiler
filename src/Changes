@@ -1,5 +1,12 @@
 Version 2.39
 
+2/27/98   Extra source positions for templates    
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, source range information is now
+put out for templates (when RECORD_TEMPLATES_IN_IL is TRUE) and for
+template instantiation directives (when GENERATE_SOURCE_SEQUENCE_LISTS is
+TRUE).
+
 2/27/98   Param-type information clobbered on declarations preceding
           routine definition
 
