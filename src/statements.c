@@ -1875,7 +1875,7 @@ is FALSE.)
 {
   a_control_flow_descr_ptr  cfdp, parent, end_parent, stop_at;
   a_statement_ptr           dealloc_stmt, insert_point = NULL;
-  a_boolean                 done = FALSE;
+  a_boolean                 done;
 
   db_enter(4, "add_vla_dealloc_stmts");
   check_assertion(vla_dealloc_statements_in_il);
@@ -1902,7 +1902,8 @@ is FALSE.)
   /* Step through control-flow entries from "start" to "end", which means
      stepping backwards.  As an optimization, blocks that are marked as
      having no VLA variable declarations are bypassed. */
-  do {
+  done = (parent == NULL);
+  while (!done) {
     check_assertion(parent != NULL);
     if (!parent->variant.block.any_vla_variables) {
 #if DEBUG
@@ -2018,7 +2019,7 @@ is FALSE.)
         parent = cfdp->parent;
       }  /* if */
     }  /* if */
-  } while (!done);
+  }  /* while */
   db_exit();
 }  /* add_vla_dealloc_stmts */
 
