@@ -1298,9 +1298,13 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
 
 /*
 Integer kind for the fxmask parameter to fixed-point runtime routines.
-Must match the size chosen in the runtime.
+Must match the size chosen in the runtime provided by Dinkumware.
+The fxmask2 case is used for two-operand routines like _Fixed_add,
+which require a bigger fxmask because it includes two operand types
+and a result type.
 */
 #define FXMASK_INT_KIND ((an_integer_kind)ik_unsigned_short)
+#define FXMASK2_INT_KIND ((an_integer_kind)ik_unsigned_long)
 
 
 static int fxtype_value(a_fixed_point_type_descr descr)
@@ -1605,12 +1609,19 @@ static a_routine_ptr
 		fixed_lt_routine,
 		fixed_ge_routine,
 		fixed_le_routine;
-
-
-static void lower_c99_fixed_point_comparison(an_expr_node_ptr expr)
 /*
-Lower a fixed-point comparison expression, e.g., one with an eok_fxeq
-operator.
+Runtime routines for fixed-point binary (two-operand) operations.
+*/
+static a_routine_ptr
+		fixed_add_routine,
+		fixed_subtract_routine,
+		fixed_multiply_routine,
+		fixed_divide_routine;
+
+
+static void lower_c99_fixed_point_operation2(an_expr_node_ptr expr)
+/*
+Lower a two-operand fixed-point operation expression.
 */
 {
   an_expr_operator_kind op = expr->variant.operation.kind;
@@ -1621,43 +1632,87 @@ operator.
   a_routine_ptr         *routine;
   unsigned long         fxmask;
   int                   shift_amount = 0;
+  a_boolean             need_result_fxtype = FALSE;
+  a_boolean             is_comparison = FALSE;
+  an_integer_kind       fxmask_int_kind = FXMASK_INT_KIND;
+  a_type_ptr            return_type;
 
   /* Select the proper runtime routine for the operation. */
   switch (op) {
     case eok_fxeq:
       routine_name = "_Fixed_eq";
       routine = &fixed_eq_routine;
+      is_comparison = TRUE;
       break;
     case eok_fxne:
       routine_name = "_Fixed_ne";
       routine = &fixed_ne_routine;
+      is_comparison = TRUE;
       break;
     case eok_fxgt:
       routine_name = "_Fixed_gt";
       routine = &fixed_gt_routine;
+      is_comparison = TRUE;
       break;
     case eok_fxlt:
       routine_name = "_Fixed_lt";
       routine = &fixed_lt_routine;
+      is_comparison = TRUE;
       break;
     case eok_fxge:
       routine_name = "_Fixed_ge";
       routine = &fixed_ge_routine;
+      is_comparison = TRUE;
       break;
     case eok_fxle:
       routine_name = "_Fixed_le";
       routine = &fixed_le_routine;
+      is_comparison = TRUE;
+      break;
+    case eok_fxadd:
+      routine_name = "_Fixed_add";
+      routine = &fixed_add_routine;
+      need_result_fxtype = TRUE;
+      break;
+    case eok_fxsubtract:
+      routine_name = "_Fixed_subtract";
+      routine = &fixed_subtract_routine;
+      need_result_fxtype = TRUE;
+      break;
+    case eok_fxmultiply:
+      routine_name = "_Fixed_multiply";
+      routine = &fixed_multiply_routine;
+      need_result_fxtype = TRUE;
+      break;
+    case eok_fxdivide:
+      routine_name = "_Fixed_divide";
+      routine = &fixed_divide_routine;
+      need_result_fxtype = TRUE;
       break;
     default:
-      unexpected_condition_str("bad fixed point comparison operator");
+      unexpected_condition_str("bad fixed point operator");
   }  /* switch */
+  if (is_comparison) {
+    /* Result type for comparisons is int. */
+    return_type = integer_type((an_integer_kind)ik_int);
+  } else {
+    /* For most operations, it's the fxvalue type. */
+    return_type = fxvalue_type();
+  }  /* if */
   /* Build up the fxmask argument describing the operand types. */
   fxmask = fxcontrol_value();
   shift_amount = FXCONTROL_SIZE;
   fxmask |= (fxtype_value_for_type(op1->type) << shift_amount);
   shift_amount += FXTYPE_SIZE;
   fxmask |= (fxtype_value_for_type(op2->type) << shift_amount);
-  fxmask_expr = node_for_integer_constant((long)fxmask, FXMASK_INT_KIND);
+  shift_amount += FXTYPE_SIZE;
+  if (need_result_fxtype) {
+    /* Operations like add need the fxmask2 variant, which includes
+       two operand types and a result type. */
+    fxmask_int_kind = FXMASK2_INT_KIND;
+    fxmask |= (fxtype_value_for_type(expr->type) << shift_amount);
+  }  /* if */
+  fxmask_expr = node_for_integer_constant((long)fxmask, fxmask_int_kind);
   /* Convert the first operand to the fxvalue type used to interface to the
      runtime. */
   op1->next = NULL;
@@ -1670,8 +1725,8 @@ operator.
   op1->next = op2;
   new_expr = make_prototyped_runtime_call_full(
                                          routine_name, routine,
-                                         integer_type((an_integer_kind)ik_int),
-                                         integer_type(FXMASK_INT_KIND),
+                                         return_type,
+                                         integer_type(fxmask_int_kind),
                                          fxvalue_type(),
                                          fxvalue_type(),
                                          fxmask_expr);
@@ -1681,7 +1736,7 @@ operator.
   new_expr = add_cast_if_necessary(new_expr, expr->type);
   /* Overwrite the original node with the lowered expression. */
   overwrite_node(expr, new_expr);
-}  /* lower_c99_fixed_point_comparison */
+}  /* lower_c99_fixed_point_operation2 */
 
 #endif /* LOWER_FIXED_POINT */
 #if GNU_EXTENSIONS_ALLOWED
@@ -1985,14 +2040,19 @@ _Bool type, and VLA types.
       expr->variant.operation.kind = (an_expr_operator_kind)eok_iassign;
 #endif /* LOWER_FIXED_POINT */
       break;
+    case eok_fxadd:
+    case eok_fxsubtract:
+    case eok_fxmultiply:
+    case eok_fxdivide:
     case eok_fxeq:
     case eok_fxne:
     case eok_fxgt:
     case eok_fxlt:
     case eok_fxge:
     case eok_fxle:
+      /* Two-operand fixed-point operations. */
 #if LOWER_FIXED_POINT
-      lower_c99_fixed_point_comparison(expr);
+      lower_c99_fixed_point_operation2(expr);
 #endif /* LOWER_FIXED_POINT */
       break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -3348,14 +3408,18 @@ Do one-time initialization of variables related to C99 IL lowering.
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
       pch_saved_var_array_elem(fixed_conv_routine),
+      pch_array_saved_var_array_elem(float_fixed_conv_routine),
+      pch_array_saved_var_array_elem(fixed_float_conv_routine),
       pch_saved_var_array_elem(fixed_eq_routine),
       pch_saved_var_array_elem(fixed_ne_routine),
       pch_saved_var_array_elem(fixed_gt_routine),
       pch_saved_var_array_elem(fixed_lt_routine),
       pch_saved_var_array_elem(fixed_ge_routine),
       pch_saved_var_array_elem(fixed_le_routine),
-      pch_array_saved_var_array_elem(float_fixed_conv_routine),
-      pch_array_saved_var_array_elem(fixed_float_conv_routine),
+      pch_saved_var_array_elem(fixed_add_routine),
+      pch_saved_var_array_elem(fixed_subtract_routine),
+      pch_saved_var_array_elem(fixed_multiply_routine),
+      pch_saved_var_array_elem(fixed_divide_routine),
 #endif /* LOWER_FIXED_POINT */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
       pch_saved_var_array_elem(vla_types),
@@ -3421,6 +3485,10 @@ for each translation unit.
   fixed_lt_routine = NULL;
   fixed_ge_routine = NULL;
   fixed_le_routine = NULL;
+  fixed_add_routine = NULL;
+  fixed_subtract_routine = NULL;
+  fixed_multiply_routine = NULL;
+  fixed_divide_routine = NULL;
   { int k;
     for (k = 0; k < (int)fk_last; ++k) {
       float_fixed_conv_routine[k] = NULL;
