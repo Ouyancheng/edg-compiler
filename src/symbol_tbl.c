@@ -2941,7 +2941,7 @@ through back to the caller.
                  whereas in executable expression processing only the
                  ambiguity is of interest.)  Otherwise just return the first
                  symbol seen. */
-              if (is_type_symbol(other_sym)) {
+              if (is_type_symbol(fundamental_symbol_of(other_sym))) {
                 sym = other_sym;
                 free_derivation_step(*path);
                 *path = other_path;
@@ -3003,7 +3003,8 @@ it is added to the end of the scope entry symbol list for the class.
   } else {
     /* A symbol was found. */
     found = TRUE;
-    if (must_be_type_name && !is_type_symbol(progenitor_sym)) {
+    if (must_be_type_name &&
+        !is_type_symbol(fundamental_symbol_of(progenitor_sym))) {
       /* The symbol found is not a type name symbol, so do not create a
          projection for it. */
     } else {
