@@ -2342,11 +2342,12 @@ object address table entry to the address of the variable.  The code is
 inserted at *insert_location.
 */
 {
-  an_init_pos_descr ipd;
-
-  /* Put the address of the variable into the object address table. */
-  set_var_init_pos_descr(cond_var, &ipd);
-  init_object_addr_table_entry(&ipd, cond_var_handle, insert_location);
+  if (exceptions_enabled) {
+    an_init_pos_descr ipd;
+    /* Put the address of the variable into the object address table. */
+    set_var_init_pos_descr(cond_var, &ipd);
+    init_object_addr_table_entry(&ipd, cond_var_handle, insert_location);
+  }  /* if */
   /* If the conditional flag is static, initialization to zero is
      implicit and requires nothing special in the IL. */
   if (cond_var->storage_class != (a_storage_class)sc_static) {

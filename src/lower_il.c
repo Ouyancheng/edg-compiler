@@ -1102,7 +1102,7 @@ is the file scope.  Return a pointer to it.
   }  /* if */
   /* The temporary goes at the front, but after any unnamed entities.  That
      ensures that temporaries built later come after temporaries built
-     earlier, which is needed for record_needed_destruction is called
+     earlier, which is needed when record_needed_destruction is called
      for a temporary. */
   while (*prev_ptr_ptr != NULL && !has_name(*prev_ptr_ptr)) {
     prev_ptr_ptr = &(*prev_ptr_ptr)->next;
@@ -5976,11 +5976,13 @@ whether the construction was done.
 
   cond_var = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
   dip->destructible_entity_descr->conditional_flag_var = cond_var;
-  /* Pre-assign the object address table slot for the conditional variable,
-     because we're going to have to set that entry of the object address
-     table right away. */
-  dip->destructible_entity_descr->conditional_flag_handle = 
+  if (exceptions_enabled) {
+    /* Pre-assign the object address table slot for the conditional variable,
+       because we're going to have to set that entry of the object address
+       table right away. */
+    dip->destructible_entity_descr->conditional_flag_handle = 
                                                      object_addr_table_index();
+  }  /* if */
 }  /* add_conditional_flag */
 
 
