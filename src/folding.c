@@ -294,7 +294,7 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 {
   a_host_large_integer    old_value;
   a_host_large_unsigned   unsigned_old_value;
-  a_boolean               err, accum_err = FALSE;
+  a_boolean               err;
   a_type_ptr              float_tp = skip_typerefs(new_constant->type);
   a_constant_repr_kind    constant_kind = (a_constant_repr_kind)ck_float;
   a_float_kind            float_kind = float_tp->variant.float_kind;
@@ -321,12 +321,14 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
                                    &new_constant->variant.complex_value->imag,
                                    &err);
-    accum_err |= err;
+    check_assertion_str2(!err, "conv_integer_to_float: cannot create zero",
+                               "floating-point representation");
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting to imaginary.  The result is zero. */
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
                                    &new_constant->variant.float_value, &err);
-    accum_err |= err;
+    check_assertion_str2(!err, "conv_integer_to_float: cannot create zero",
+                               "floating-point representation");
     goto conversion_done;
   } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -357,12 +359,11 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     fp_string_to_float(float_kind, str, float_value, &err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  accum_err |= err;
 #if C99_IL_EXTENSIONS_SUPPORTED
 conversion_done:;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-  if (accum_err) {
+  if (err) {
     /* Some error. */
     *err_code = ec_integer_to_float_conversion;
     *err_severity = es_error;
