@@ -148,9 +148,16 @@ predicates.
 /* Template parameter type. */
 #define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
 
-/* Incomplete types are types that have been declared but have not yet been
-   (completely) defined. */
-#define is_incomplete(tp) ((tp)->is_incomplete)
+/* Incomplete types are types that have no size and are not functions.
+   (In GNU C mode, there are zero-sized array and class types, and they
+   are considered complete.) */
+#if !GNU_EXTENSIONS_ALLOWED
+#define is_incomplete(tp) ((tp)->size == 0 && !is_function(tp))
+#else /* GNU_EXTENSIONS_ALLOWED */
+#define is_incomplete(tp)                                               \
+   ((tp)->size == 0 && !is_function(tp) &&                              \
+    !(gnu_mode && is_gnu_type_of_size_zero(tp)))
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Macro that is TRUE if two type kinds are the same, or are the same except
    that one is tk_class and the other is tk_struct. */
@@ -250,6 +257,38 @@ Return TRUE if the given type is a function type (3.1.2.5).
   return(is_function(tp));
 }  /* is_function_type */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_boolean is_gnu_type_of_size_zero(a_type_ptr  tp)
+/*
+The given type has its size field set to zero.  In GNU C and C++, this may
+still be a complete type (whose size is really zero).  Return TRUE in that
+case.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(tp->size == 0 && tp->kind != (a_type_kind)tk_typeref);
+  while (is_array(tp)) {
+    if (tp->variant.array.bound_is_zero) {
+      result = TRUE;
+      break;
+    } else {
+      tp = tp->variant.array.element_type;
+      if (tp == NULL) break;
+      tp = skip_typerefs(tp);
+    }  /* if */
+  }  /* while */
+  if (gcc_mode && tp != NULL &&
+      (tp->kind == (a_type_kind)tk_struct ||
+       tp->kind == (a_type_kind)tk_union) &&
+      tp->variant.class_struct_union.is_empty_class) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_gnu_type_of_size_zero */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_boolean is_incomplete_type(a_type_ptr tp)
 /*
