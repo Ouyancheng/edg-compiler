@@ -8834,9 +8834,10 @@ and all subscopes.
              the type out of the list. */
 #if DEBUG
           if (debug_level >= 4) {
-            (void)fprintf(f_debug, "Placeholder for class ");
+            (void)fprintf(f_debug, "Removed from list because ");
+            (void)fprintf(f_debug, "of instantiation PH typeref:\n  ");
             db_type_name(type);
-            (void)fprintf(f_debug, " ignored for the moment\n");
+            (void)fprintf(f_debug, "\n");
           }  /* if */
 #endif /* DEBUG */
           prepare_to_remove_class_along_with_type_as_subobject(type,
