@@ -1334,6 +1334,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                         "walk_entry_and_subtree: empty source sequence entry");
         }  /* if */
 #endif /* CHECKING */
+        /* Types get walked instead of remapped because some types defined
+           in prototype scopes in C (e.g., in a cast) get eliminated from the
+           IL. */
         if (kind == iek_type ||
             kind == iek_src_seq_secondary_decl ||
             kind == iek_src_seq_end_of_construct) {
@@ -1347,8 +1350,15 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_src_seq_secondary_decl_ptr ptr =
                                       (a_src_seq_secondary_decl_ptr)entry_ptr;
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        an_il_entry_kind             kind = (an_il_entry_kind)ptr->entity.kind;
+        /* Types get walked instead of remapped because some types defined
+           in prototype scopes in C (e.g., in a cast) get eliminated from the
+           IL. */
+        if (kind == iek_type) {
+          walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
+        } else {
+          remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
+        }  /* if */
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
       }
       break;
@@ -1356,8 +1366,15 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_src_seq_end_of_construct_ptr ptr =
                                     (a_src_seq_end_of_construct_ptr)entry_ptr;
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        an_il_entry_kind             kind = (an_il_entry_kind)ptr->entity.kind;
+        /* Types get walked instead of remapped because some types defined
+           in prototype scopes in C (e.g., in a cast) get eliminated from the
+           IL. */
+        if (kind == iek_type) {
+          walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
+        } else {
+          remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
+        }  /* if */
       }
       break;
     case iek_src_seq_sublist:

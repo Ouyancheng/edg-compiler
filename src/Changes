@@ -1,5 +1,15 @@
 Version 2.26
 
+10/1/94  IL walk of source sequence lists, prototype scope types in C
+
+The IL walk routines have been changed so that when they are walking
+IL for a C program, with source sequence lists enabled, they "walk"
+instead of "remap" the pointer to a type from a source sequence list.
+This avoids an internal error in some exceedingly obscure cases involving
+types defined in prototype scopes, e.g.,
+
+  long *(*x)(struct A {int member;}) = ((long *(*)(struct A))0);
+
 9/30/94  ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
 
 ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C has been added to
