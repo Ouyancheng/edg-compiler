@@ -3742,8 +3742,7 @@ that fact that the types are interchangeable, or (b) be checking something
 that is not required to be checked by the ANSI C standard.
 */
 {
-  a_boolean       interch = FALSE;
-  a_type_ptr      ptr_type_1, ptr_type_2;
+  a_boolean interch = FALSE;
 
   db_enter(5, "interchangeable_types");
   /* The footnote in 3.1.2.5 applies to four cases:
@@ -3800,8 +3799,10 @@ that is not required to be checked by the ANSI C standard.
 #endif /* ifdef pointer_types_have_same_repr */
                                                             ) {
     /* Pointer types.  Get the underlying types. */
-    ptr_type_1 = skip_typerefs(type_1->variant.pointer.type);
-    ptr_type_2 = skip_typerefs(type_2->variant.pointer.type);
+    a_type_ptr und_type_1 = type_pointed_to(type_1);
+    a_type_ptr und_type_2 = type_pointed_to(type_2);
+    a_type_ptr ptr_type_1 = skip_typerefs(und_type_1);
+    a_type_ptr ptr_type_2 = skip_typerefs(und_type_2);
     if (same_entities(ptr_type_1, ptr_type_2) ||  /* This test for speed. */
         (strict_ansi_mode ? types_are_compatible(ptr_type_1, ptr_type_2) :
                             interchangeable_types(ptr_type_1, ptr_type_2))) {
@@ -3820,6 +3821,18 @@ that is not required to be checked by the ANSI C standard.
       interch = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    if (named_address_spaces_enabled && interch) {
+      /* Check that the named address spaces specified are not different. */
+      a_type_qualifier_set     qualifiers;
+      a_named_address_space_id nas_1, nas_2;
+      qualifiers = get_type_qualifiers(und_type_1);
+      nas_1 = named_address_space_from_qualifier_set(qualifiers);
+      qualifiers = get_type_qualifiers(und_type_2);
+      nas_2 = named_address_space_from_qualifier_set(qualifiers);
+      if (nas_1 != nas_2) interch = FALSE;
+    }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   }  /* if */
   db_exit();
   return interch;

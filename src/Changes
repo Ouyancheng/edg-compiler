@@ -1,5 +1,21 @@
 Version 3.5
 
+10/5/04  Embedded C: warning on named-address-space mismatch on old-style
+         parameter
+
+A warning is now issued on a named-address-space mismatch on a call
+that passes a pointer to an old-style parameter of pointer type, if
+the two pointer types have different named address spaces.
+
+  typedef _EDG_NAS_B char* T1;
+  typedef _EDG_NAS_A const char* const T2;
+  void f(p)
+  T1 p;
+  {
+    T2 s = 0;
+    f(s);  // Warning now
+  }
+
 10/5/04  C++-generating back end: injected names of class template instances
 
 The C++-generating back end was recently changed to generate code as if the
