@@ -1,6 +1,18 @@
 Version 2.23
 
-5/29/94  address_taken and reference kind for called pointers-to-members
+5/20/94  typeinfo variables put out with virtual function tables
+
+When exception handling is enabled, typeinfo variables are put out
+to describe types used in exceptions.  This fix forces a typeinfo
+variable to be generated for a class type with external linkage when
+a virtual function table for the type is defined, even if there are
+no exception references to the type in the compilation.  This is
+necessary because there certainly might be exception references to 
+the type in some other compilation, and those will assume that the
+typeinfo variable was defined where the virtual function table is
+defined.
+
+5/20/94  address_taken and reference kind for called pointers-to-members
 
 Formerly, if a pointer-to-member-function was used for the right-hand
 expression of a "->*" or ".*" operator, and the result of that operation

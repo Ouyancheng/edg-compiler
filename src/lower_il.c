@@ -3230,6 +3230,7 @@ virtual function table.
 {
   a_class_type_supplement_ptr ctsp;
   a_variable_ptr              vtbl_var;
+  a_type_ptr                  class_whose_vtbl_is_being_made;
   a_constant_ptr              aggr_con;
   a_virtual_function_number   next_entry_number;
   a_memory_region_number      region_to_switch_back_to;
@@ -3238,10 +3239,12 @@ virtual function table.
   /* Find the appropriate virtual function table variable. */
   if (bcp == NULL) {
     /* We're doing the virtual function table for class_type itself. */
+    class_whose_vtbl_is_being_made = class_type;
     ctsp = class_type->variant.class_struct_union.extra_info;
     vtbl_var = ctsp->virtual_function_table_var;
   } else {
     /* We're doing the virtual function table for bcp in class_type. */
+    class_whose_vtbl_is_being_made = bcp->type;
     ctsp = bcp->type->variant.class_struct_union.extra_info;
     vtbl_var = bcp->virtual_function_table_var;
   }  /* if */
@@ -3272,6 +3275,12 @@ virtual function table.
     vtbl_var->storage_class = (a_storage_class)sc_unspecified;
     /* The variable can be referenced from another compilation unit. */
     vtbl_var->source_corresp.referenced = TRUE;
+    /* If exceptions are enabled, force generation of the typeinfo variable
+       for the type because it might be referenced from some other compilation
+       unit. */
+    if (exceptions_enabled) {
+      type_is_used_in_exception(class_whose_vtbl_is_being_made);
+    }  /* if */
   }  /* if */
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
