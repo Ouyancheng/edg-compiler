@@ -4789,6 +4789,19 @@ command line -D options.
     (void)enter_predef_macro("1", "_WIN32",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    /* Enter a macro for the maximum size of an integral value. */
+    { unsigned long int_max_size;
+#if LONG_LONG_ALLOWED
+      int_max_size = targ_sizeof_long_long;
+#else /* !LONG_LONG_ALLOWED */
+      int_max_size = targ_sizeof_long;
+#endif /* LONG_LONG_ALLOWED */
+      (void)enter_predef_macro(
+                            conv_unsigned_long_to_str(int_max_size * CHAR_BIT),
+                            "_INTEGRAL_MAX_BITS",
+                            /*cannot_be_redefined=*/FALSE,
+                            /*ref_suppresses_pch_file=*/FALSE);
+    }
 #ifdef _M_IX86
     (void)enter_predef_macro(conv_unsigned_long_to_str(
                                                       (unsigned long)_M_IX86),

@@ -1,5 +1,10 @@
 Version 3.3
 
+6/2/03   Microsoft compatibility: _INTEGRAL_MAX_BITS predefined macro
+
+The macro _INTEGRAL_MAX_BITS is now predefined in Microsoft mode to the
+number of bits in the largest integral type supported by the front end.
+
 6/2/03   IA-64 ABI: incorrect code to access virtual base member in
          ctor-initializer argument
 
