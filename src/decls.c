@@ -2973,8 +2973,9 @@ of the identifier.
                                      sym->variant.variable.ptr->type;
       if (is_or_contains_local_type(tp)) {
         /* A block extern declaration that involves a local type.  Issue an
-           error (except in Microsoft compatibility mode). */
-        pos_diagnostic(microsoft_mode ? es_warning : es_error,
+           error (except in cfront or Microsoft compatibility mode). */
+        pos_diagnostic((any_cfront_mode() || microsoft_mode) ? es_warning :
+                                                               es_error,
                        is_function ? ec_local_type_in_function :
                                      ec_local_type_in_nonlocal_var,
                        error_pos);

@@ -1,5 +1,15 @@
 Version 2.37
 
+7/7/97    cfront compatibility: local type in block-extern declaration
+
+In cfront compatibility mode a local type is now permitted in the
+declaration of a variable or function with linkage, e.g.,
+
+  void f() {
+    struct S { ... };
+    extern S *ps;           // No error in cfront mode
+  }
+
 7/3/97    Type deduction does not handle member class templates correctly
 
 The type deduction routines were not correctly handling member class templates.
