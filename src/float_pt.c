@@ -213,7 +213,11 @@ variable, and return a pointer to that null-terminated string.
   double      temp;
 
   temp = fetch_double(kind, float_value);
-  (void)sprintf(str, "%.18e", temp);
+  if (kind == (a_float_kind)fk_float) {
+    (void)sprintf(str, "%.9e", temp);
+  } else {
+    (void)sprintf(str, "%.18e", temp);
+  }  /* if */
   return (str);
 }  /* fp_to_string */
 
