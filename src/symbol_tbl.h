@@ -2033,7 +2033,7 @@ does nothing when called in C mode.
 #define check_ambiguity_and_verify_access(locator)                    \
 { if (C_dialect == C_dialect_cplusplus &&                             \
       (locator)->specific_symbol != NULL &&                           \
-      ((locator)->specific_symbol->is_class_member &&                 \
+      ((locator)->specific_symbol->is_class_member ||                 \
        (locator)->specific_symbol->ambiguous)) {                      \
     f_check_ambiguity_and_verify_access(locator);                     \
   }  /* if */                                                         \
