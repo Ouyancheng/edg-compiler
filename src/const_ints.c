@@ -1819,9 +1819,8 @@ signedness.  If none is found, ik_none is returned.
   an_integer_kind  int_kind;
   a_targ_size_t    size, int_size;
   a_targ_alignment int_alignment;
-  a_boolean        int_signed;
 
-  /* Compute the size in bits, making sure no bits are lost. */
+  /* Compute the size in bytes, making sure no bits are lost. */
   size = number_of_bits / targ_char_bit;
   if (number_of_bits == size * targ_char_bit) {
     for (int_kind = (an_integer_kind)0;
@@ -1831,8 +1830,8 @@ signedness.  If none is found, ik_none is returned.
       if (int_kind == (an_integer_kind)ik_unsized) continue;
 #endif /* ifdef FIL */
       get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
-      int_signed = int_kind_is_signed[(int)int_kind];
-      if (int_size == size && int_signed == is_signed) {
+      if (int_size == size &&
+          int_kind_is_signed[(int)int_kind] == is_signed) {
         /* This is the kind to use. */
         goto have_kind;
       }  /* if */
