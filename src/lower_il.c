@@ -3358,6 +3358,8 @@ this routine to do a relatively simple copy of the all the fields.
     }  /* if */
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
+    subobject_type->source_corresp.class_of_which_a_member =
+                            class_type->source_corresp.class_of_which_a_member;
 #if 0
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
