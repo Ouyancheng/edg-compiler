@@ -454,6 +454,15 @@ EXTERN a_boolean
 			   in the ARM).  Significant only in C++ mode. */
 
 EXTERN a_boolean
+		floating_point_template_parameters_allowed
+#if VAR_INITIALIZERS
+                          = DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if template parameters of floating-point type
+			   are allowed (which is nonstandard). */
+
+EXTERN a_boolean
 		vla_enabled
 #if VAR_INITIALIZERS
                             = DEFAULT_VLA_ENABLED

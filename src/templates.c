@@ -8903,7 +8903,7 @@ whether the nontype parameter is unnamed.
   /* Check for illegal nontype parameter types.  Template parameters of
      void type, class type, and floating point type are not permitted
      by the standard.  Floating point template parameters are still
-     accepted when ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS is TRUE.
+     accepted when floating_point_template_parameters_allowed is TRUE.
      Template parameters of array type are permitted even though there
      is no way to make use of them. */
   tp = skip_typerefs(*param_type_ptr);
@@ -8914,18 +8914,11 @@ whether the nontype parameter is unnamed.
     /* A template parameter cannot have class type. */
     error(ec_template_parameter_has_class_type);
   } else if (tp->kind == (a_type_kind)tk_float) {
-#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
-    /* Though no longer permitted by the working paper (as of 3/94) floating 
-       point template parameters are allowed for backward compatibility.
-       Issue a diagnostic in strict ANSI mode. */
-    if (strict_ansi_mode) {
-      diagnostic(strict_ansi_error_severity, ec_float_template_parameter);
+    if (!floating_point_template_parameters_allowed) {
+      /* A floating point parameter type of void is no longer allowed
+         as of 3/94. */
+      error(ec_float_template_parameter);
     }  /* if */
-#else /* !ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
-    /* A floating point parameter type of void is no longer allowed
-       as of 3/94. */
-    error(ec_float_template_parameter);
-#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
   }  /* if */
 }  /* scan_a_template_parameter_declaration */
 

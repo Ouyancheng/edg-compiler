@@ -1,5 +1,21 @@
 Version 2.43
 
+8/16/99  Configuration option for floating-point template parameters
+
+The configuration option to allow floating-point nontype template parameters
+(an extension) has been renamed from ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+to DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED.  It is also
+now stored into a variable, floating_point_template_parameters_allowed.
+For backward compatibility, if the old macro is defined and the new one
+is not, the value of the old macro is transferred to the new macro.
+
+One reason for this change is to allow the disabling of this extension in
+strict mode, in order to get an error on the following even when
+floating-point template parameters are allowed in default mode:
+
+  template <int I> struct A {};
+  A<1.5 ? 1 : 2> x;
+
 8/16/99  Allow global qualifier on access declaration
 
 The font end now accepts a leading "::" on an access declaration.

@@ -19,7 +19,7 @@ Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
 */
 
-#define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+#define DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED 1
 
 #ifdef CP_GEN_BE_VERSION
 /*

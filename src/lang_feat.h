@@ -266,11 +266,19 @@ means
 Flag that is TRUE if template nontype parameters with floating point
 types are allowed.  X3J16 made floating point template parameters
 ill-formed in 3/94 but they are allowed by some compilers (e.g.,
-Borland).
+Borland).  This is the initial value of the variable
+floating_point_template_parameters_allowed.
 */
-#ifndef ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
-#define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS FALSE
-#endif /* !defined(ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS) */
+#ifndef DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED
+#ifdef ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+/* If the old macro for this feature is set, set the new one. */
+#define DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED \
+        ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+#endif /* ifdef ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
+#endif /* ifndef DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED */
+#ifndef DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED
+#define DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED FALSE
+#endif /* ifndef DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED */
 
 /*
 Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is

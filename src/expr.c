@@ -3348,14 +3348,12 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                        result, &start_position);
     processed = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg) &&
-             is_bad_type_for_template_arg_operand(operand.type)
-#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+             is_bad_type_for_template_arg_operand(operand.type) &&
              /* Allow negation of a floating point constant. */
-             && !(save_token == tok_minus &&
-                  is_floating_type(operand.type) &&
-                  is_constant_operand(&operand))
-#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
-                                                               ) {
+             !(floating_point_template_parameters_allowed &&
+               save_token == tok_minus &&
+               is_floating_type(operand.type) &&
+               is_constant_operand(&operand))) {
     /* Non-integral operations are not allowed in a template argument. */
     diagnose_bad_template_arg_operation(&start_position);
     make_error_operand(result);
@@ -5995,8 +5993,8 @@ this routine is called.
         }  /* if */
         err = TRUE;
       }  /* if */
-#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
-    } else if (!strict_ansi_mode && is_floating_type(dest_type)) {
+    } else if (floating_point_template_parameters_allowed &&
+               !strict_ansi_mode && is_floating_type(dest_type)) {
       /* Destination is floating.  Source should be arithmetic or enum.
          Allowed as an extension. */
       if (is_arithmetic_or_enum_type(source_type)) {
@@ -6009,7 +6007,6 @@ this routine is called.
         }  /* if */
         err = TRUE;
       }  /* if */
-#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
     } else if ((is_pointer_type(dest_type) ||
                 is_ptr_to_member_type(dest_type)) &&
                is_constant_operand(operand) &&
@@ -10840,19 +10837,32 @@ see expr.h).
       (void)get_token();
       break;
     case tok_float_constant:
-      make_constant_operand(&const_for_curr_token, &local_result);
-      /* Floating constants are not allowed in preprocessing expressions.
-         In integral constant expressions, they are allowed only as the 
-         immediate operand of a cast. */
-      /* The token_ends_expr guards against something like "int(3.0/1)". */
-      if (curr_expr_kind_is(ek_pp) ||
-	  (curr_expr_kind_is(ek_integral_constant) &&
-           (!(local_options & EOPT_OPERAND_OF_CAST) ||
-            !token_ends_expr(next_token(), prec_level, local_options)))) {
-	error_and_make_error_operand(enum_type_is_integral ?
-                                       ec_expr_not_integral :
-                                       ec_expr_not_integral_or_enum,
-                                     &local_result);
+      { a_boolean float_con_allowed = TRUE;
+        if (curr_expr_kind_is(ek_pp)) {
+          /* Floating constants are not allowed in preprocessing
+             expressions. */
+          float_con_allowed = FALSE;
+        } else if (curr_expr_kind_is(ek_integral_constant) ||
+                   (curr_expr_kind_is(ek_template_arg) &&
+                    !floating_point_template_parameters_allowed)) {
+          /* In integral constant expressions, they are allowed only as the 
+             immediate operand of a cast.  Template argument expressions are
+             usually the same as integral constant expressions. */
+          float_con_allowed = FALSE;
+          if ((local_options & EOPT_OPERAND_OF_CAST) &&
+              /* Guard against something like "int(3.0/1)". */
+              token_ends_expr(next_token(), prec_level, local_options)) {
+            float_con_allowed = TRUE;
+          }  /* if */
+        }  /* if */
+        if (float_con_allowed) {
+          make_constant_operand(&const_for_curr_token, &local_result);
+        } else {
+          error_and_make_error_operand(enum_type_is_integral ?
+                                         ec_expr_not_integral :
+                                         ec_expr_not_integral_or_enum,
+                                       &local_result);
+        }  /* if */
       }  /* if */
       (void)get_token();
       break;

@@ -2413,6 +2413,7 @@ enable_microsoft_mode:
       allow_copy_assignment_op_with_base_class_param = FALSE;
       ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
       single_ref_qual_ovl_res_tiebreaker = FALSE;
+      floating_point_template_parameters_allowed = FALSE;
       if (!(option_kind_used[(int)optk_alternative_tokens])) {
         /* If alternative_tokens was not explicitly set by a command line
            option, set it now. */
