@@ -1586,6 +1586,7 @@ member declaration (allowed in Microsoft mode only).
         /* The param_type entry must be allocated in the file-scope
            region. */
         ptp = make_param_type(param_id->type, &param_id->type_pos);
+        ptp->declared_type = param_id->declared_type;
         if (remove_qualifiers_from_param_types) {
           /* Strip off top-level type qualifiers.  They are not part of the
              type signature of a C++ function -- see 8.3.5 para 3.  We apply

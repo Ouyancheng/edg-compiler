@@ -1,5 +1,19 @@
 Version 3.4
 
+8/11/03  Declared type of old-style C parameter definition
+
+The front end used to not record the declared type of an old-style C parameter
+definition in the IL (specifically, in a_param_type entries).  For example:
+
+  void f(n, a)
+    int n;
+    double a[n][n];  // declared_type was not recorded (the type field records
+  {                  // the type after decay: double (*a)[n]).
+  }
+
+This is now fixed: The originally declared type is now recorded in the
+declared_type field of a_param_type entries.
+
 8/10/03  Microsoft compatibility: nested template class lookup bug emulation
 
 The Microsoft 7.0 compiler accepts examples like the one below.  When the instantiation
