@@ -16788,6 +16788,55 @@ updated.
 }  /* generate_template_dependency_information */
 
 
+static a_boolean determine_value_of_can_be_instantiated_flag(
+					a_master_instance_ptr	mip,
+					a_boolean		is_exported)
+/*
+Determine whether the "can be instantiated" flag should be set for the
+instance specified by "mip".  Return the value to be used for the flag.
+is_exported is TRUE if this is an exported template.
+*/
+{
+  a_boolean			result = FALSE;
+  a_template_instance_ptr	tip = mip->instance;
+
+  /* First determine whether the flag should be set at all. */
+  if (!is_exported || !more_than_one_non_export_translation_unit) {
+    /* When not compiling multiple (non-export) translation units, the
+       can_be_instantiated flag is not set for exported templates.  Exported
+       templates are not handled specially when compiling multiple translation
+       units because such templates cannot be used for instantiation purposes
+       from other compilations (because there is no way to rebuild the
+       context containing a set of translation units). */
+    result = !is_exported;
+  } else {
+    /* When compiling multiple (non-export) translation units, we can
+       set the can_be_instantiated flag for instances of templates defined
+       in the non-export translation units (but not in export translation
+       units). */
+    result = tip->exported_template_file != NULL &&
+             tip->exported_template_file->translation_unit != NULL &&
+             tip->exported_template_file->
+                                   translation_unit->specified_on_command_line;
+  }  /* if */
+  /* If the flag is set so far, check whether we actually have a definition
+     from which to generate the instantiation.  If not, clear the flag. */
+  if (result) {
+    result = mip->already_instantiated ||
+             entity_can_be_instantiated(tip,
+                                        /*implicit_inclusion_okay=*/FALSE);
+  }  /* if */
+  /* When not using a template information file, set the can_be_instantiated
+     flag for any exported templates.  This is done so that the prelinker
+     can assign the instantiation to any file that references the template
+     even if the exported definition has not yet been compiled. */
+  if (!use_template_info_file && is_exported) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* determine_value_of_can_be_instantiated_flag */
+
+
 void update_auto_instantiation_flags(void)
 /*
 This routine generates the information that is passed to the template
@@ -16837,27 +16886,8 @@ be processed.
       routine = (a_routine_ptr)canonical_il_entry_of(routine);
     }  /* if */
     is_exported = template_is_exported(tip->template_sym);
-    /* Don't set the can_be_instantiated flag for exported templates.  They
-       may have the flag set below when not using template information files.
-       The flag is not set because the prelinker uses an alternate
-       mechanism to assign exported templates, so there is no need to
-       look for a definition now. */
-   can_be_instantiated = (!is_exported ||
-                          (tip->exported_template_file != NULL &&
-                           tip->exported_template_file->
-                                                    translation_unit != NULL &&
-                           tip->exported_template_file->
-                               translation_unit->specified_on_command_line)) &&
-                         (mip->already_instantiated ||
-                          entity_can_be_instantiated(tip,
-                                           /*implicit_inclusion_okay=*/FALSE));
-    /* When not using a template information file, set the can_be_instantiated
-       flag for any exported templates.  This is done so that the prelinker
-       can assign the instantiation to any file that references the template
-       even if the exported definition has not yet been compiled. */
-    if (!use_template_info_file && is_exported) {
-      can_be_instantiated = TRUE;
-    }  /* if */
+    can_be_instantiated  =
+                 determine_value_of_can_be_instantiated_flag(mip, is_exported);
     /* Note that we do not set the do_not_instantiate flag for entries
        specialized with the new syntax.  This would be pointless because
        such specializations are mangled differently from the nonspecialized
