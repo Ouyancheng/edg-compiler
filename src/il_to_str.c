@@ -3165,7 +3165,7 @@ precedence confusion.  Do the output in the way described by octl.
       form_float_constant(&constant->variant.complex_value->real,
                           con_type->variant.float_kind,
                           octl);
-      octl->output_str("+");
+      octl->output_str(" + ");
       form_float_constant(&constant->variant.complex_value->imag,
                           con_type->variant.float_kind,
                           octl);
