@@ -46,9 +46,9 @@ alters the signedness of the right hand side).  For example:
 7/27/04  C++-generating back end: Abort on GNU C function definition
 
 In GNU C mode, an unprototyped function definition can follow a prototyped
-declaration (see Changes entry of 3/18/04).  When this happened, the front
+declaration (see Changes entry of 3/18/04).  When this happens, the front
 end unintentionally lost the "old_style_params_scanned" flag setting in the
-associated routine type, which in turn caused the C++-generating back to
+associated routine type, which in turn caused the C++-generating back end to
 abort with an internal error.
 
   void f(int, int);
