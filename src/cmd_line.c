@@ -1030,7 +1030,7 @@ Process the arguments on the command line that invoked the compiler.
              includes and those for <...> includes.  It also suppresses
              pushing the directory of each source file onto the search
              path, which is useful for viewpathing. */
-          include_path_boundary = incl_search_path;
+          include_path_boundary = end_incl_search_path;
           put_dir_of_each_opened_source_file_on_incl_search_path = FALSE;
         } else {
           /* Normal -I directive. */
