@@ -4298,6 +4298,10 @@ typedef int a_type_tree_traversal_flag_set;
 #define TTT_SKIP_TYPEDEFS 0x200
 			/* Skip over typedefs before applying the predicate
 			   check to a given type. */
+#define TTT_EXCEPTION_SPECS 0x400
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the exception
+			   specification list. */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */
@@ -4536,10 +4540,11 @@ routine type a leaf node, or should the return type be examined? what about
 its parameters?).
 */
 {
-  a_boolean           force_end_of_traversal = FALSE;
-  a_type_ptr          tp;
-  a_template_arg_ptr  tap;
-  a_boolean           status;
+  a_boolean                      force_end_of_traversal = FALSE;
+  a_type_ptr                     tp;
+  a_template_arg_ptr             tap;
+  a_boolean                      status;
+  a_routine_type_supplement_ptr  rtsp;
 
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     if (flags & TTT_SKIP_TYPEREFS) {
@@ -4575,6 +4580,7 @@ its parameters?).
         break;
       case tk_routine:
         /* Conditional traversal of contained types. */
+        rtsp = type_ptr->variant.routine.extra_info;
         if (flags & TTT_RETURN_TYPE) {
           tp = type_ptr->variant.routine.return_type;
           if (traverse_type_tree(tp, func, flags)) {
@@ -4582,23 +4588,37 @@ its parameters?).
             break;
           }  /* if */
         }  /* if */
-        if (flags & TTT_THIS_PARAM_TYPE) {
-          tp = type_ptr->variant.routine.extra_info->implicit_this_param_type;
-          if (tp != NULL && traverse_type_tree(tp, func, flags)) {
-            status = TRUE;
-            break;
-          }  /* if */
-        }  /* if */
         if (flags & TTT_PARAM_TYPES) {
           a_param_type_ptr  ptp;
-          for (ptp = type_ptr->variant.routine.extra_info->param_type_list;
-               ptp != NULL;
-               ptp = ptp->next) {
+          for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
             tp = ptp->type;
             if (traverse_type_tree(tp, func, flags)) {
               status = TRUE;
               break;
             }  /* if */
+          }  /* if */
+        }  /* if */
+        if (!C_mode()) {
+          if (flags & TTT_THIS_PARAM_TYPE) {
+            tp = rtsp->implicit_this_param_type;
+            if (tp != NULL && traverse_type_tree(tp, func, flags)) {
+              status = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+          if ((flags & TTT_EXCEPTION_SPECS) &&
+              rtsp->exception_specification != NULL) {
+            an_exception_specification_type_ptr  estp;
+            for (estp = rtsp->exception_specification->
+                                 exception_specification_type_list;
+                 estp != NULL;
+                 estp = estp->next) {
+              tp = estp->type;
+              if (traverse_type_tree(tp, func, flags)) {
+                status = TRUE;
+                break;
+              }  /* if */
+            }  /* for */
           }  /* if */
         }  /* if */
         break;
@@ -4681,7 +4701,8 @@ union or enum type or is a type tree containing such a type.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_SKIP_TYPEREFS);
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_EXCEPTION_SPECS);
 
   return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
 }  /* is_or_contains_local_type */
@@ -4702,7 +4723,8 @@ which of the conditions is true.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_SKIP_TYPEREFS);
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_EXCEPTION_SPECS);
 
   /* Clear the variables that are used to return status information
      from ttt_is_unnamed_or_local_type. */
