@@ -35,15 +35,10 @@ This could result in the failure to find a file to be implicitly included
 when that file is located in the same directory as the primary source
 file.
 
-3/23/96   IL CHANGE: new field for stmk_for statement
+3/25/96   Support for new for-init declaration scoping rules
 
-The supplement for an stmk_for statement now contains a scope pointer.
-When (in C++ mode) the for-init-statement is a declaration, for_init_scope
-may be non-null to point to an implicitly generated sck_block scope that
-surrounds the entire for-statement.  (Unlike typical sck_block scopes,
-those generated for for-init declarations will have a null assoc_block
-pointer.)  With this change comes support for the "new" scoping rules for
-for-init declarations (WP 6.5.3 [stmt.for]) -- e.g.,
+Support for the "new" scoping rules for for-init declarations (WP 6.5.3
+[stmt.for]) is now provided.  For example,
 
   int f(int j) {
     int i = 0;
@@ -56,7 +51,28 @@ for-init declarations (WP 6.5.3 [stmt.for]) -- e.g.,
 Global variable default_use_nonstandard_for_init_scope determines whether 
 the standard-conforming or cfront-compatible rules are observed; its
 default value is DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE, and it may be
-controlled on the command line by --old_for_init and --new_for_init.
+controlled from the command line by --old_for_init and --new_for_init.
+
+      *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING ***
+  ------------------------------------------------------------------------
+  | Although code that relied on the old for-init scoping rules will     |
+  | often produce compile-time errors when compiled under the new rules, |
+  | that is not always the case.  Because, as the above example shows,   |
+  | this change may silently alter the behavior of old programs, we have |
+  | provided a diagnostic to alert users.  A warning is issued if global |
+  | variable warning_on_for_init_difference is TRUE; its default value   |
+  | is DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE, and it may be enabled and |
+  | suppressed from the command line by --for_init_diff_warning and      |
+  | --no_for_init_diff_warning.                                          |
+  ------------------------------------------------------------------------
+
+3/23/96   IL CHANGE: new field for stmk_for statement
+
+The supplement for an stmk_for statement now contains a scope pointer.
+When (in C++ mode) the for-init-statement is a declaration, for_init_scope
+may be non-null to point to an implicitly generated sck_block scope that
+surrounds the entire for-statement.  Unlike typical sck_block scopes, those
+generated for for-init declarations will have a null assoc_block pointer.
 
 3/22/96   Bug in setting source-sequence entry for stmk_decl statement
 
