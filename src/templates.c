@@ -975,6 +975,29 @@ instantiation.
 }  /* cache_for_template */
 
 
+a_template_cache_ptr decl_cache_for_template(
+					a_template_symbol_supplement_ptr tssp)
+/*
+Returns a pointer to the declaration cache to be used for a given template.
+Typically, this is the declaration cache stored in the template symbols
+supplement.  But if the template is a member template declared within a
+class template, the declaration may be associated with the member template
+from the prototype instantiation.
+*/
+{
+  a_template_cache_ptr	tcp;
+
+  if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
+    /* Use the cache from the original template. */
+    tcp = &tssp->prototype_template->
+                            variant.template_info->variant.function.decl_cache;
+  } else {
+    tcp = &tssp->variant.function.decl_cache;
+  }  /* if */
+  return tcp;
+}  /* decl_cache_for_template */
+
+
 static
 a_func_info_block *func_info_for_template(
                                       a_template_symbol_supplement_ptr tssp)
@@ -6519,7 +6542,7 @@ type based on the template argument list and the template parameter list
        because the type associated with the symbol is not yet complete
        (it has no routine type).  Using a partially constructed symbol could
        cause problems if errors occur while rescanning the declaration. */
-    tcp = &tssp->variant.function.decl_cache;
+    tcp = decl_cache_for_template(tssp);
     /* Increment the count of pending instantiations of this template. */
     ++(tssp->variant.function.pending_partial_instantiations);
     push_template_instantiation_scope(tcp->decl_info,
@@ -7113,8 +7136,8 @@ the function instantiation entry and set all the pointers.
       rout_sym->variant.routine.ptr->is_template_function = TRUE;
       rout_sym->variant.routine.ptr->template_arg_list = templ_arg_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      tip->declared_type =
-                form_declared_type(tp, &tssp->variant.function.func_info);
+      tip->declared_type = form_declared_type(tp,
+                                              func_info_for_template(tssp));
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
