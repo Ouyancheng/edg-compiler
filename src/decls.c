@@ -5746,7 +5746,6 @@ is a template specialization declaration.
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
     rout_ptr->is_inline = func_info->is_inline;
-    rout_ptr->is_prototype_instantiation = TRUE;
     if (locator->is_operator_name) {
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
       rout_ptr->opname_kind = locator->variant.opname;
