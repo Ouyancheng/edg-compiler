@@ -369,7 +369,7 @@ typedef struct a_macro_def {
 			/* TRUE if the expansion of this (object-like) macro
 			   is a literal constant, and its value is given
 			   by constant_value. */
-  unsigned int	cannot_be_redefined;
+  unsigned int	cannot_be_redefined:1;
 			/* TRUE if this is a predefined macro that cannot
 			   be redefined later.  This is TRUE for ANSI
 			   predefined macros. */
