@@ -1025,6 +1025,7 @@ ec_cl_compound_literals_option_only_in_C;;"option \"compound_literals\" can be u
 ec_vla_not_allowed;;"a variable-length array type is not allowed"
 ec_bad_integral_compound_literal;;"a compound literal is not allowed in an integral constant expression"
 ec_bad_compound_literal_type;;"a compound literal of type %t is not allowed"
+ec_friend_template_in_local_class;;"a template friend declaration cannot be declared in a local class"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

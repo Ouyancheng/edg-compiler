@@ -1,5 +1,10 @@
 Version 2.42
 
+8/4/99   Friend template declarations in local classes
+
+A local class is not permitted to declare a friend template.  An error
+is now issued for this case.
+
 8/3/99   Spurious error in template function default argument
 
 Even though default arguments were not being instantiated unless they

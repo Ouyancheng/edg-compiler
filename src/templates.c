@@ -7638,6 +7638,24 @@ initially used when processing the declaration of a partial specialization.
 }  /* create_prototype_type */
 
 
+static void check_local_class_template_friend(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_symbol_locator	*locator)
+/*
+Check whether the current template is a friend declaration in a local
+class.  If so, issue an error.
+*/
+{
+  if (decl_state->is_template_friend) {
+    a_scope_stack_entry_ptr	ssep;
+    ssep = &scope_stack[depth_scope_stack];
+    if (ssep->inside_local_class) {
+      pos_error(ec_friend_template_in_local_class, &locator->source_position);
+    }  /* if */
+  }  /* if */
+}  /* check_local_class_template_friend */
+
+
 static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
                                              a_type_ptr   tp)
 /*
@@ -8099,6 +8117,8 @@ instantiation.
       pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
       decl_state->decl_scope_err = TRUE;
     }  /* if */
+    /* Make sure the friend is not in a local class. */
+    check_local_class_template_friend(decl_state, &locator);
   }  /* if */
   if (is_partial_specialization) {
     a_boolean	err = FALSE;
@@ -10168,6 +10188,11 @@ information returned from decl_specifiers and declarator.
        be a definition of a member of a class specialization. Reset
        specialization flag now. */
     decl_state->is_specialization = FALSE;
+  }  /* if */
+  if (decl_state->is_template_friend) {
+    /* Make sure the friend is not in a local class. */
+    check_local_class_template_friend(decl_state, locator);
+    decl_state->decl_scope_err = TRUE;
   }  /* if */
   db_exit();
   return sym;
