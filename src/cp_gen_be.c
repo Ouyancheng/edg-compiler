@@ -1445,6 +1445,25 @@ initializations.
 }  /* gen_address_constant */
 
 
+static a_boolean is_wide_string_constant(a_constant_ptr constant)
+/*
+Return TRUE if the indicated string is a wide string constant (L"abc").
+*/
+{
+  a_boolean  is_wide_string = FALSE;
+  a_type_ptr con_type, elem_type;
+
+  if (constant->kind == (a_constant_repr_kind)ck_string) {
+    con_type = skip_typerefs(constant->type);
+    elem_type = con_type->variant.array.element_type;
+    elem_type = skip_typerefs(elem_type);
+    /* Check for element type that is not some variety of char. */
+    is_wide_string = (elem_type->size != 1);
+  }  /* if */
+  return is_wide_string;
+}  /* is_wide_string_constant */
+
+
 static void gen_constant(a_constant_ptr constant)
 /*
 Output the indicated constant.
@@ -1494,7 +1513,34 @@ Output the indicated constant.
       }  /* if */
       break;
     case ck_string:
-      { a_targ_size_t a;
+      if (is_wide_string_constant(constant)) {
+        /* Wide string literal, e.g., L"abc". */
+        /* The processing here must invert the processing done in
+           conv_single_wide_char.  Do something that's right for the default
+           (simple-minded) implementation, which maps one input character
+           to one wide character. */
+        a_targ_size_t a;
+        char          ch;
+        char          *str = constant->variant.string.value;
+        write_ch('L');
+        write_ch('"');
+        for (a = 0;
+             a < constant->variant.string.length;
+             a += targ_sizeof_wchar_t) {
+          if (targ_little_endian) {
+            ch = str[a];
+          } else {
+            ch = str[a + targ_sizeof_wchar_t - 1];
+          }  /* if */
+          /* Suppress the last character if it is a null. */
+          if ((a != (constant->variant.string.length - 1)) || (ch != '\0')) {
+            gen_char(ch);
+          }  /* if */
+        }  /* for */
+        write_ch('"');
+      } else {
+        /* Normal (non-wide) string. */
+        a_targ_size_t a;
         char          ch;
         m_write_ch('"');
         for (a = 0; a < constant->variant.string.length; a++) {
@@ -1505,7 +1551,7 @@ Output the indicated constant.
           }  /* if */
         }  /* for */
         m_write_ch('"');
-      }
+      }  /* if */
       break;
     case ck_float:
       /* Put parentheses around the constant in case it's negative. */
