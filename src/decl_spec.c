@@ -2663,6 +2663,7 @@ to indicate whether an enumeration is actually defined.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             attributes;
+  a_type_ptr                   enumerator_types[(int)ik_last];
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr         name_ref = NULL;
@@ -2967,6 +2968,16 @@ to indicate whether an enumeration is actually defined.
              enum E { x = 0x400, y = 0x4000000000, z = 0x401 }
          x and z might have type int, while y has type long long. */
       enum_con_type = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+      if (gcc_mode) {
+        /* Initialize an array for the different enumerator constant types
+           that might be used in GNU C mode. */
+        int k = 0;
+        for (; k < (int)ik_last; ++k) {
+          enumerator_types[k] = NULL;
+        }  /* for */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* In C the type of the constants is always "int", regardless of
          the type of the enumerated type (see 3.5.2.2).  However, it is
@@ -3164,9 +3175,28 @@ to indicate whether an enumeration is actually defined.
         enum_con->source_corresp.name_linkage =
                                        enum_type->source_corresp.name_linkage;
         enum_sym->variant.constant = enum_con;
+#if GNU_EXTENSIONS_ALLOWED
         if (gcc_mode) {
           /* Keep the "natural type" of the constant. */
-        } else if (C_mode()) {
+          an_integer_kind  int_kind = constant.type->variant.integer.int_kind;
+          if (enumerator_types[int_kind] == NULL) {
+            /* This is the first time we use this integer kind for an
+               enumerator constant associated with the current enum type.
+               Create the appropriate integer type and record it for possible
+               reuse. */
+            enum_con_type = alloc_type((a_type_kind)tk_integer);
+            enum_con_type->variant.integer.int_kind = int_kind;
+            enum_con_type->variant.integer.enum_type = FALSE;
+            enum_con_type->variant.integer.enum_info.affiliated_type =
+                                                                    enum_type;
+            set_type_size(enum_con_type);
+            enumerator_types[int_kind] = enum_con_type;
+          }  /* if */
+          enum_con->type = enumerator_types[int_kind];
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        if (C_mode()) {
           enum_con->type = enum_con_type;
         } else {
           /* In C++ mode leave the type of the constant unchanged for now.
