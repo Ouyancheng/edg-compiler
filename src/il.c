@@ -2289,13 +2289,15 @@ to by ssep.
 void break_source_corresp(a_source_correspondence *sc)
 /*
 If the indicated source correspondence is attached to a source entity,
-break the correspondence.
+break the correspondence -- i.e., set to default values those fields that
+are tied to a particular source occurence.
 */
 {
   sc->assoc_info        = NULL;
   sc->name              = NULL;
   sc->is_class_member   = FALSE;
   sc->parent.class_type = NULL;
+  sc->access            = (an_access_specifier)as_public;
 }  /* break_source_corresp */
 
 
