@@ -2389,9 +2389,11 @@ parameter of the indicated macro (1-origined).
 }  /* macro_param_name */
 
 
-static void make_il_macro_entry(a_symbol_ptr macro_sym)
+static void make_il_macro_entry(a_symbol_ptr          macro_sym,
+                                a_source_position_ptr macro_pos)
 /*
-Create an IL entry for the macro described by macro_sym.
+Create an IL entry for the macro described by macro_sym.  The macro has
+source position *macro_pos.
 */
 {
   a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
@@ -2482,7 +2484,8 @@ Create an IL entry for the macro described by macro_sym.
   /* Allocate and fill in the IL macro entry. */
   mp = alloc_macro();
   mp->text = ptr;
-  mp->source_corresp.decl_position = pos_curr_token;
+  mp->source_corresp.decl_position = *macro_pos;
+  set_source_corresp(&mp->source_corresp, macro_sym);
   /* Add the macro to the IL list. */
   add_to_macros_list(mp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2910,10 +2913,10 @@ redef_error:
     assoc_symbol->variant.macro_def = mdp;
 #if RECORD_MACROS_IN_IL
     /* Make an IL entry for the macro. */
-    make_il_macro_entry(assoc_symbol);
+    make_il_macro_entry(assoc_symbol, &start_pos);
 #endif /* RECORD_MACROS_IN_IL */
 def_done:;
-    mark_defined(assoc_symbol, &assoc_symbol->decl_position);
+    mark_defined(assoc_symbol, &start_pos);
   }  /* if */
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
