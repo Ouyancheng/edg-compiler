@@ -24,6 +24,28 @@ templates.c -- Support for C++ templates.
 #include "types.h"
 
 
+static a_boolean instantiation_in_progress(a_type_ptr tp)
+/*
+Return TRUE if a class/struct/union scope for tp, which represents a template
+class, is currently on the scope stack.  If it is, that means an instantiation
+for tp is currently in progress.
+*/
+{
+  a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
+  a_boolean               found = FALSE;
+
+  /* Loop through the scope stack. */
+  for (; ssep != &scope_stack[0]; ssep--) {
+    if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+        ssep->il_scope->variant.assoc_type == tp) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* instantiation_in_progress */
+
+
 void instantiate_template_class(a_type_ptr  tp)
 /*
 This routine should be called from check_for_uninstantiated_template_class,
@@ -50,6 +72,8 @@ able to if the template itself has not yet been defined.
       if (p_token_cache->first_token == NULL) {
         /* The template itself has not yet been defined.  The caller will
            issue an incomplete-type error. */
+      } else if (instantiation_in_progress(tp)) {
+        /* The template is currently being instantiated. */
       } else {
         /* We proceed with the instantiation. */
 #if DEBUG
@@ -361,7 +385,7 @@ return *tag_resolution TRUE.
     (void)get_token();
     /* Next should be the class name. */
     if (!is_qualified_name_start()) {  /* Identifier or "::". */
-      /* Not an identifier.  Cache a dummy identifier token and proceed. */
+      /* Not an identifier. */
       error(ec_exp_identifier);
       set_to_error_locator(locator);
     } else {
@@ -450,6 +474,8 @@ return *tag_resolution TRUE.
           (void)get_token();
         }  /* if */
       }  /* if */
+      /* Add an end-of-source token to the end of the token cache to assure
+         that we don't scan past the end of the cache in the actual scan. */
       terminate_token_cache(&tssp->body_token_cache);
     } else {
       /* This is not a class template declaration, so we have no need to
@@ -485,6 +511,8 @@ static void function_template_declaration(a_symbol_ptr   *sym)
   add_stop_token(tok_lbrace);
   clear_token_cache(&decl_token_cache);
   cache_token_stream(&decl_token_cache);
+  /* Add an end-of-source token to the end of the token cache to assure that
+     we don't scan past the end of the cache in the actual scan. */
   terminate_token_cache(&decl_token_cache);
   rescan_reusable_cache(&decl_token_cache);
   (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
@@ -518,6 +546,8 @@ static void function_template_declaration(a_symbol_ptr   *sym)
         /* Advance to the next token. */
         (void)get_token();
       }  /* if */
+      /* Add an end-of-source token to the end of the token cache to assure
+         that we don't scan past the end of the cache in the actual scan. */
       terminate_token_cache(&tssp->body_token_cache);
     } else {
       /* No body to cache.  Check for final semicolon. */
