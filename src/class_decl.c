@@ -3633,19 +3633,6 @@ pointed to by cssp.
 }  /* add_to_conversion_list */
 
 
-void set_class_membership(a_symbol_ptr             sym,
-                          a_source_correspondence  *scp,
-                          a_type_ptr               class_type)
-/*
-Set the is_class_member and parent.class_type fields of the indicated
-symbol and source-correspondence entries.
-*/
-{
-  sym->is_class_member = scp->is_class_member = TRUE;
-  sym->parent.class_type = scp->parent.class_type = class_type;
-}  /* set_class_membership */
-
-
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
@@ -4359,8 +4346,8 @@ be the last in the anonymous-union-parent chain.
     new_apo_sym = make_anonymous_parent_object_symbol((a_symbol_kind)sk_field,
                                                       &apo_sym->decl_position,
                                                       apo_sym->decl_scope);
-    new_apo_sym->is_class_member = TRUE;
-    new_apo_sym->parent.class_type = apo_sym->parent.class_type;
+    set_class_membership(new_apo_sym, (a_source_correspondence *)NULL,
+                         apo_sym->parent.class_type);
     /* Set it to point to the same field. */
     new_apo_sym->variant.field.ptr = apo_sym->variant.field.ptr;
     /* If apo_sym does is not itself nested in an anonymous parent object,
@@ -4537,10 +4524,9 @@ specified by decl_scope_level.
           sym->variant.field.ptr = fp;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
-        if (class_type != NULL) {
-          sym->is_class_member = TRUE;
-          sym->parent.class_type = class_type;
-        }  /* if */
+        /* Set the parent class in the symbol but not in the IL entry.  The
+           symbol is promoted, but the type remains nested. */
+        set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
         /* The members of an anonymous union within a class take on the
            access specifier of the anonymous union itself; the members
            of a variable anonymous union should be (i.e., should remain)
@@ -4609,10 +4595,7 @@ specified by decl_scope_level.
         tp = type_symbol_type(sym);
         /* Set the parent class in the symbol but not in the IL entry.  The
            symbol is promoted, but the type remains nested. */
-        if (class_type != NULL) {
-          sym->is_class_member = TRUE;
-          sym->parent.class_type = class_type;
-        }  /* if */
+        set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
         /* The members of an anonymous union within a class take on the
            access specifier of the anonymous union itself; the members
            of a variable anonymous union should be (i.e., should remain)
@@ -4625,10 +4608,7 @@ specified by decl_scope_level.
         /* An enum constant. */
         /* Set the parent class in the symbol but not in the IL entry.  The
            symbol is promoted, but the type remains nested. */
-        if (class_type != NULL) {
-          sym->is_class_member = TRUE;
-          sym->parent.class_type = class_type;
-        }  /* if */
+        set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
         sym->variant.constant->source_corresp.access = assoc_object_access;
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
@@ -5100,8 +5080,6 @@ class, struct, or union.
     /* Update the source correspondence information manually -- there's no
        symbol. */
     field->source_corresp.decl_position = locator->source_position;
-    field->source_corresp.is_class_member = TRUE;
-    field->source_corresp.parent.class_type = class_type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Ordinarily we create source sequence entries only for named
        entities (see sym_update_source_sequence_list, called for fields
@@ -5124,9 +5102,11 @@ class, struct, or union.
                                       /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
-    set_class_membership(member_sym, &field->source_corresp, class_type);
     member_sym->variant.field.ptr = field;
   }  /* if */
+  /* Set the parent class in the field and (unless member_sym is NULL) in the
+     symbol. */
+  set_class_membership(member_sym, &field->source_corresp, class_type);
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = access;
     field->is_mutable = is_mutable;

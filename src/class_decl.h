@@ -64,10 +64,6 @@ extern void decl_friend_class(a_type_ptr          class_type,
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
 
-extern void set_class_membership(a_symbol_ptr             sym,
-                                 a_source_correspondence  *scp,
-                                 a_type_ptr               class_type);
-
 extern a_derivation_step_ptr make_derivation_step(
                                             a_base_class       *base_class,
                                             a_derivation_step  *existing_step);

@@ -1028,6 +1028,27 @@ scope for the symbol must still be active.
 }  /* set_source_corresp */
 
 
+void set_class_membership(a_symbol_ptr             sym,
+                          a_source_correspondence  *scp,
+                          a_type_ptr               class_type)
+/*
+Set the is_class_member and parent.class_type fields of the indicated
+symbol and source-correspondence entries.
+*/
+{
+  if (class_type != NULL) {
+    if (sym != NULL) {
+      sym->is_class_member = TRUE;
+      sym->parent.class_type = class_type;
+    }  /* if */
+    if (scp != NULL) {
+      scp->is_class_member = TRUE;
+      scp->parent.class_type = class_type;
+    }  /* if */
+  }  /* if */
+}  /* set_class_membership */
+
+
 #if !RECORD_SCOPE_DEPTH_IN_IL
 /*ARGSUSED*/ /* <-- depth is only used when local entities are promoted. */
 #endif /* !RECORD_SCOPE_DEPTH_IN_IL */

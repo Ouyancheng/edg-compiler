@@ -2493,6 +2493,9 @@ extern a_scope_depth scope_depth_of(a_symbol_ptr  sym,
                                     a_boolean     *is_local_to_function);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
+extern void set_class_membership(a_symbol_ptr             sym,
+                                 a_source_correspondence  *scp,
+                                 a_type_ptr               class_type);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
 /* Allocation */
