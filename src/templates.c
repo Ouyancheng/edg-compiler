@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -164,6 +164,10 @@ typedef struct a_decl_state {
   a_boolean	is_member_decl;
 			/* TRUE if this declaration appeared in a class
 			   scope. */
+  a_boolean	is_specialization;
+			/* TRUE if the declaration is a specialization.
+			   A specialization contains one or more template
+			   parameter clauses with empty parameter lists. */
   a_boolean	is_full_specialization;
 			/* TRUE if the declaration is a full specialization
 			   of a template entity.  A full specialization
@@ -255,6 +259,7 @@ Initialize a template declaration state block.
 {
   tdsp->is_template_friend = FALSE;
   tdsp->is_member_decl = FALSE;
+  tdsp->is_specialization = FALSE;
   tdsp->is_full_specialization = FALSE;
   tdsp->defines_something = FALSE;
   tdsp->in_prototype_instantiation = FALSE;
@@ -3059,6 +3064,7 @@ static void scan_template_declaration(a_boolean         is_initial_decl,
                                       a_boolean         is_member_decl,
                                       a_type_ptr	parent_class,
 				      a_boolean         decl_scope_err,
+				      a_boolean		is_specialization,
                                       a_decl_flag_set   *dso_flags,
                                       a_decl_flag_set   *do_flags,
                                       a_symbol_locator  *locator,
@@ -3089,6 +3095,7 @@ of a function template.
              DI_OPERATOR_NAME_ALLOWED;
   if (is_initial_decl) {
     dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
+    if (is_specialization) di_flags |= DI_IS_TEMPLATE_SPECIALIZATION;
     di_flags |= DI_IS_TEMPLATE_DECLARATION;
     /* An end-of-source marker is not present when the initial declaration
        is scanned. */
@@ -3306,6 +3313,7 @@ type based on the template argument list and the template parameter list
       scan_template_declaration(/*is_initial_decl=*/FALSE,
                                 is_member_decl, parent_class,
   			        /*decl_scope_err=*/FALSE,
+				/*is_specialization=*/FALSE,
                                 &dso_flags, &do_flags, &locator,
                                 &rout_type, &func_info, &storage_class,
                                 &decl_modifiers);
@@ -4275,7 +4283,6 @@ Otherwise, return FALSE.
   a_type_ptr    		type;
   a_boolean			any_mismatches = FALSE;
   a_template_decl_info_ptr	decl_info;
-  a_boolean			first_time = TRUE;
 
   /* If this declaration is for a member template, skip out to the
      next enclosing template parameter list because this routine is
@@ -4286,11 +4293,13 @@ Otherwise, return FALSE.
     start_decl_info = start_decl_info->enclosing_template_decl;
   }  /* if */
   type = member_sym->parent.class_type;
-  for (decl_info = start_decl_info;
-       decl_info != NULL || first_time;
-       decl_info = decl_info->enclosing_template_decl) {
+  decl_info = start_decl_info;
+  /* Loop as long as we have a decl_info or a parent type.  The loop
+     is terminated when both no longer represent templates (as happens
+     when processing a specialization) or when a mismatch has been found. */
+  for (;;) {
     a_symbol_ptr	class_sym;
-    first_time = FALSE;
+    a_symbol_ptr	template_sym = NULL;
     /* Find the nearest enclosing class template (class with a template
        argument list. */
     while (type != NULL && type->source_corresp.is_class_member &&
@@ -4301,36 +4310,38 @@ Otherwise, return FALSE.
     if (type == NULL) {
       /* The enclosing class is not a class template.  Okay as long as
          there is also no template declaration information. */
-      class_sym = NULL;
     } else {
       /* Get the symbol associated with the type.  This symbol is the
          template class symbol. */
       class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      /* Get a pointer to the symbol for the class template. */
-      class_sym =
+      if (is_prototype_instantiation_symbol(class_sym)) {
+        /* Get a pointer to the symbol for the class template. */
+        template_sym =
              class_sym->variant.class_struct_union.extra_info->class_template;
+      }  /* if */
     }  /* if */
     /* Make sure that the template nesting depth of this parameter list
        matches that of the original declaration.  There is no sense checking
        each of the parameters if the lists are at different levels. */
-    if (class_sym == NULL && decl_info == NULL) {
+    if (template_sym == NULL && decl_info == NULL) {
       /* Neither a class template symbol or any declaration information.
          This is okay, the enclosing class is a normal class. */
       break;
-    } else if (decl_info == NULL || class_sym == NULL ||
+    } else if (decl_info == NULL || template_sym == NULL ||
                !check_template_param_nesting_depths(decl_info->parameters,
-                                                    class_sym)) {
+                                                    template_sym)) {
       pos_sy_error(ec_template_depth_mismatch, error_pos, member_sym);
       any_mismatches = TRUE;
       break;
     }  /* if */
     if (!reconcile_template_param_lists(decl_info->parameters,
-                                        class_sym, error_pos)) {
+                                        template_sym, error_pos)) {
       any_mismatches = TRUE;
     }  /* if */
     /* Skip out to the enclosing class type. */
     type = type->source_corresp.is_class_member ?
                                type->source_corresp.parent.class_type : NULL;
+    if (decl_info != NULL) decl_info = decl_info->enclosing_template_decl;
   }  /* for */
   return !any_mismatches;
 }  /* member_template_param_list_matches_class */
@@ -4480,6 +4491,44 @@ any classes that declared the nested class as a template friend.
     }  /* if */
   }  /* if */
 }  /* set_nested_template_class_symbol_info */
+
+
+static
+void record_specialization(a_decl_state_ptr			decl_state,
+                           a_symbol_ptr				template_sym,
+   		           a_template_symbol_supplement_ptr	tssp)
+/*
+Update the template specified by template_sym to indicate that it is
+now specialized.  Make sure that no instantiations have already been
+generated. 
+*/
+{
+  tssp->is_specific_definition = TRUE;
+  tssp->prototype_template = NULL;
+  /* Check for any existing instantiations.  A specialization must be
+     declared before it is used. */
+  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+    a_template_instance_ptr	tip;
+    for (tip = tssp->variant.function.instantiations; tip != NULL;
+         tip = tip->next) {
+      pos_sy2_error(ec_specialization_of_referenced_template,
+                    &decl_state->start_pos, template_sym, tip->instance_sym);
+    }  /* for */
+  } else {
+    a_symbol_ptr	sym;
+    check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
+    for (sym = tssp->variant.class_template.instantiations; sym != NULL;
+         sym = sym->next) {
+      /* It is only an error if the class type is complete and is not a
+         itself a specialization. */
+      if (is_complete_class_struct_union_type(type_symbol_type(sym)) &&
+          !is_template_instance_specific_def_symbol(sym)) {
+        pos_sy2_error(ec_specialization_of_referenced_template,
+                      &decl_state->start_pos, template_sym, sym);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* specialization_permitted */
 
 
 static
@@ -4675,7 +4724,9 @@ instantiation.
     tssp = template_supplement_for_symbol(sym);
     is_nested_class_definition = is_class_struct_union_symbol(sym) &&
                                  sym->is_class_member &&
-                                 !decl_state->is_member_decl && tssp != NULL;
+                                 (!decl_state->is_member_decl ||
+                                  decl_state->is_template_friend) &&
+                                 tssp != NULL;
   }  /* if */
   /* See if the class being declared has the same name as one of its
      template parameters. */
@@ -4886,6 +4937,11 @@ instantiation.
       find_class_template_member(sym, sym->parent.class_type);
     }  /* if */
   }  /* if */
+  if (decl_state->is_specialization) {
+    /* This template is a specialization of a member template.  Update the
+       template information to reflect this. */
+    record_specialization(decl_state, sym, tssp);
+  }  /* if */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
     a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -5084,6 +5140,7 @@ the template declaration if the template needs to appear in the IL.
 */
 {
   a_token_set_array	stop_tokens;
+  a_boolean		is_specialization = FALSE;
   a_boolean		is_full_specialization = TRUE;
   a_token_cache_ptr	p_token_cache = &decl_state->param_list_cache;
 
@@ -5093,9 +5150,15 @@ the template declaration if the template needs to appear in the IL.
     /* Cache the current token and advance past it. */
     cache_curr_token(p_token_cache);
     (void)get_token();
-    /* One ore more template parameters are present in one of the template
-       parameter lists, so this is not a full specialization. */
-    if (next_token() != tok_gt) is_full_specialization = FALSE;
+    if (next_token() == tok_gt) {
+      /* Contains a template clause with no parameter list, so this is
+         a specialization of some kind. */
+      is_specialization = TRUE;
+    } else {
+      /* One ore more template parameters are present in one of the template
+         parameter lists, so this is not a full specialization. */
+      is_full_specialization = FALSE;
+    }  /* if */
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
     /* Cache all tokens up to the ">" that matches the current "<". */
@@ -5113,6 +5176,7 @@ the template declaration if the template needs to appear in the IL.
      assure that we don't scan past the end of the cache in the actual
      scan. */
   terminate_token_cache(p_token_cache);
+  decl_state->is_specialization = is_specialization;
   decl_state->is_full_specialization = is_full_specialization;
   db_exit();
 }  /* cache_template_param_list */
@@ -5192,10 +5256,10 @@ static a_template_nesting_depth template_nesting_depth(void)
 Computes the nesting depth of the current template declaration scope.
 The nesting depth indicates the number of template instantiation scopes
 that enclose the current one.  If no template instantiation scopes are
-present, the nesting depth "1" is used. 
+present, the nesting depth "0" is used. 
 */
 {
-  a_template_nesting_depth	curr_depth = 1;
+  a_template_nesting_depth	curr_depth = 0;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
   /* Note that we don't have to check for nested instantiation scopes
@@ -6154,6 +6218,11 @@ caller.
         tssp->cache_segment->last_token_number = last_token_number;
       }  /* if */
     }  /* if */
+    if (decl_state->is_specialization) {
+      /* This template is a specialization of a member template.  Update the
+         template information to reflect this. */
+      record_specialization(decl_state, sym, tssp);
+    }  /* if */
     if (!decl_state->is_template_friend ||
         !decl_state->in_prototype_instantiation) {
       /* This processing is skipped for template friends during the prototype
@@ -6215,7 +6284,7 @@ caller.
            the list of friend classes associated with this template. */
         add_befriending_class_to_function_template(
                                           tssp, decl_state->class_declared_in);
-      }        /* if */
+      }  /* if */
     } /* if */
   } /* if */
   if (err) {
@@ -6424,21 +6493,21 @@ lists must by non-empty.
        before the scope is pushed so that any pragma associated with the
        tok_template token will be processed in the current scope. */
     (void)get_token();
-    /* Create a template declaration information entry for this declaration.
-       A pointer to this entry will be stored in the template cache entries
-       that contain tokens from this declaration. */
-    template_decl_info = alloc_template_decl_info();
-    decl_state->decl_info = template_decl_info;
-    template_decl_info->enclosing_scope = decl_state->enclosing_scope;
-    /* If there are multiple template parameter clauses in a single
-       declaration, create a link to the template parameter list
-       declaration that preceded the current one. */
-    template_decl_info->enclosing_template_decl = prev_template_decl_info;
-    prev_template_decl_info = template_decl_info;
     if (curr_token == tok_lt) {
       /* Bypass the "<". */
       (void)get_token();
       if (curr_token != tok_gt) {
+        /* Create a template declaration information entry for this
+           declaration. A pointer to this entry will be stored in the
+           template cache entries that contain tokens from this declaration. */
+        template_decl_info = alloc_template_decl_info();
+        decl_state->decl_info = template_decl_info;
+        template_decl_info->enclosing_scope = decl_state->enclosing_scope;
+        /* If there are multiple template parameter clauses in a single
+           declaration, create a link to the template parameter list
+           declaration that preceded the current one. */
+        template_decl_info->enclosing_template_decl = prev_template_decl_info;
+        prev_template_decl_info = template_decl_info;
         push_template_declaration_scope(template_decl_info);
         decl_state->number_of_template_decl_scopes++;
         template_decl_info->parameters = scan_template_param_list(decl_state);
@@ -6579,8 +6648,12 @@ any non-empty template parameter lists that were scanned.
                                 decl_state->is_member_decl,
                                 decl_state->class_declared_in,
                                 decl_state->decl_scope_err,
+                                decl_state->is_specialization,
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers);
+      /* If an error occurred scanning the declarator, set the flag to
+         suppress subsequent errors. */
+      if (is_error_locator(locator)) decl_state->decl_scope_err = TRUE;
       if (!locator.is_qualified_name && !decl_state->decl_scope_err &&
           !decl_state->is_template_friend &&
           decl_state->number_of_template_param_clauses > 1) {
@@ -6802,7 +6875,7 @@ differs between function and nonfunction declarations.
      not enclosed within other templates are given a depth of "1".  The
      depth is incremented for each successive template declaration. */
   decl_state->nesting_depth =
-                decl_state->is_template_friend ? 1 : template_nesting_depth();
+                decl_state->is_template_friend ? 0 : template_nesting_depth();
 }  /* decl_level_of_template */
 
 
@@ -6856,7 +6929,18 @@ are either the specialization of a template or a template declaration.
      being processed. */
   cache_template_declaration(&decl_state, /*skip_params=*/FALSE);
   decl_level_of_template(&decl_state);
-  if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
+  /* Make sure that this template declaration is permitted in the current
+     scope. */
+  if (decl_state.is_specialization) {
+    /* A specialization declaration is only permitted in a namespace scope. */
+    a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth_scope_stack);
+    if (ssep->kind != (a_scope_kind)sck_file &&
+        ssep->kind != (a_scope_kind)sck_namespace &&
+        ssep->kind != (a_scope_kind)sck_namespace_extension) {
+      error(ec_explicit_specialization_not_in_namespace_scope);
+      decl_state.decl_scope_err = TRUE;
+    }  /* if */
+  } else if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
     pos_error(ec_bad_template_declaration_scope, &decl_state.start_pos);
     decl_state.decl_scope_err = TRUE;
   }  /* if */
@@ -8648,6 +8732,6 @@ Initializations for template.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

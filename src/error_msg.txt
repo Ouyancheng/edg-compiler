@@ -4,7 +4,7 @@
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-1994 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-1996 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 
@@ -836,13 +836,16 @@ ec_templ_param_list_not_allowed;;"template parameter list for %no is not allowed
 ec_bad_member_template_sym;;"%n is not a valid member class or function template"
 ec_bad_member_template_decl;;"not a valid member class or function template declaration"
 ec_specialization_follows_param_list;;"a template declaration containing a template parameter list may not be followed by an explicit specialization declaration"
+ec_specialization_of_referenced_template;;"explicit specialization of %n1 must precede the first use of %n2"
+ec_explicit_specialization_not_in_namespace_scope;;"explicit specialization is not allowed in the current scope"
+ec_partial_specialization_not_allowed;;"partial specialization of %n is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-1994 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-1996 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -155,7 +155,11 @@ abstract or real declarator.
 #define DI_IS_PARAMETER_DECL (a_decl_flag_set)(0x1000)
 			/* If this bit is set the declarator is part of a
 			   function parameter declaration. */
-#define DI_LAST DI_IS_PARAMETER_DECL
+#define DI_IS_TEMPLATE_SPECIALIZATION (a_decl_flag_set)(0x2000)
+			/* If this bit is set declarator is called for a
+			   declaration of a specialization of a function
+			   template. */
+#define DI_LAST DI_IS_TEMPLATE_SPECIALIZATION
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
@@ -254,6 +258,6 @@ extern void add_to_derived_type_list(a_type_ptr new_type_ptr,
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -312,11 +312,11 @@ typedef int an_identifier_options_set;
 			   non-class types and class types that have no
 			   destructors that are not part of a qualified name
 			   (e.g., ~A or ~int). */
-#define GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION \
-				      0x80
+#define GID_IS_TEMPLATE_DECLARATION   0x80
 			/* If the identifier is a qualified name the
 			   class component must refer to the prototype
-			   instantiation. */
+			   instantiation, unless GID_IS_TEMPLATE_SPECIALIZATION
+			   is also set. */
 #define GID_IS_NEW_TYPE_NAME	      0x100
 			/* Specifies that the name being scanned is the type
 			   name in a new expression.  This causes the check
@@ -342,6 +342,9 @@ typedef int an_identifier_options_set;
 			   the class template and should not be converted to
 			   the current instantiation of the template, if such
 			   an instantiation is currently in scope. */
+#define GID_IS_TEMPLATE_SPECIALIZATION 0x2000
+			/* If the identifier is a qualified name the
+			   identifier named must be a member template. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
@@ -1614,6 +1617,6 @@ Also set slmp for use in scanning the line with the "walk_.." macros.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

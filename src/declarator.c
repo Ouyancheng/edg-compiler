@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2431,7 +2431,10 @@ to FALSE if the entity being declared is not initializable.
     options |= GID_DISALLOW_GLOBAL_QUALIFIER;
   }  /* if */
   if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
-    options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
+    options |= GID_IS_TEMPLATE_DECLARATION;
+  }  /* if */
+  if (input_flags & DI_IS_TEMPLATE_SPECIALIZATION) {
+    options |= GID_IS_TEMPLATE_SPECIALIZATION;
   }  /* if */
   if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
       (!locator_for_curr_id.is_destructor_name ||
@@ -3406,6 +3409,6 @@ the parameters.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

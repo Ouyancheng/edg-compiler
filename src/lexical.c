@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -77,10 +77,11 @@ at the beginning of get_token need to be done.
 	f_check_for_generalized_identifier_errors(options, pos) : FALSE)
 
 /* Macro to call the routine to check for template declarator errors, but
-   only when the appropriate option has been specified. */
+   only when the appropriate options have been specified. */
 #define check_for_template_declarator_errors(options, pos)		\
-  (((options & GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION) != 0) ?	\
-	f_check_for_template_declarator_errors(pos) : FALSE)
+  (((options &								\
+     (GID_IS_TEMPLATE_DECLARATION | GID_IS_TEMPLATE_SPECIALIZATION)) != 0) ? \
+	f_check_for_template_declarator_errors(options, pos) : FALSE)
 
 
 /*
@@ -6618,9 +6619,12 @@ skip_processing:
 }  /* coalesce_template_class_reference */
 
 
-static
-a_boolean f_check_for_template_declarator_errors(a_source_position *error_pos)
+static a_boolean f_check_for_template_declarator_errors(
+				an_identifier_options_set	options,
+				a_source_position		*error_pos)
 /*
+Check for certain errors that can occur while scanning the identifier
+in a declarator of a template declaration.
 */
 {
   a_boolean		any_errors = FALSE;
@@ -6633,6 +6637,12 @@ a_boolean f_check_for_template_declarator_errors(a_source_position *error_pos)
   } else if (sym->kind == (a_symbol_kind)sk_class_template ||
              sym->kind == (a_symbol_kind)sk_function_template) {
     /* Okay -- the symbol found refers to a template. */
+  } else if (options & GID_IS_TEMPLATE_SPECIALIZATION) {
+    /* We are processing a template specialization (but not a full
+       specialization), and the symbol found does not represent a
+       template.  This is an error. */
+    pos_sy_error(ec_partial_specialization_not_allowed, error_pos, sym);
+    any_errors = TRUE;
   } else {
     /* The remaining valid cases are members of class templates or classes
        nested within class templates. */
@@ -6667,9 +6677,18 @@ a_boolean f_check_for_template_declarator_errors(a_source_position *error_pos)
            template parameter list, but this may also be caused if the
            class template definition is currently incomplete (so there is
            no prototype instantiation yet). */
-        a_symbol_ptr	template_sym;
+        a_symbol_ptr				template_sym;
+        a_template_symbol_supplement_ptr	tssp;
         template_sym =
               type_sym->variant.class_struct_union.extra_info->class_template;
+        tssp = template_supplement_for_symbol(template_sym);
+        /* See if this template is a subordinate template (a template in
+           a template class that is based on a member template from
+           the class template).  If so, use the prototype template to check
+           for a prototype instantiation. */
+        if (tssp->prototype_template != NULL) {
+          template_sym = tssp->prototype_template;
+        }  /* if */
         if (template_sym->variant.template_info->
                     variant.class_template.prototype_instantiation == NULL) {
           /* There is no prototype yet.  This is probably caused by the
@@ -8433,6 +8452,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
