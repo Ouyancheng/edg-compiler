@@ -1920,6 +1920,60 @@ done:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void check_friend_class_declaration(a_symbol_locator  *locator,
+                                           a_symbol_ptr      *tag_sym,
+                                           a_boolean         *is_template)
+/*
+Check that a friend class declaration is well-formed.  locator describes the
+source construct to name the class and tag_sym describes the associated class.
+For error cases, *tag_sym is set to NULL and locator is turned into an error
+locator.  Microsoft compilers allow "friend class X;" where X is a template:
+That case is handled entirely by this routine, after which *is_template is set
+to TRUE.
+*/
+{
+  if (!(gpp_mode || microsoft_mode) && locator->is_qualified_name &&
+      locator->specific_symbol->kind ==
+                                     (a_symbol_kind)sk_namespace_projection) {
+    /* Except in GNU C++ mode, a qualified friend declaration that finds a
+       using-declaration is an error. */
+    a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
+    if (nsp == NULL) {
+      /* Must be something like this:
+           namespace N { class X; }
+           using N::X;
+           class Y {
+             friend class ::Y;      // Error
+           };
+      */
+      check_assertion(locator->is_file_scope_qualified_name);
+      pos_st_error(ec_name_not_tag_in_file_scope,
+                   &locator->source_position,
+                   locator->symbol_header->identifier);
+    } else {
+      /* Must be something like this:
+           namespace N { class X; }
+           namespace M { using N::X; }
+           class Y {
+             friend class M::Y;     // Error
+           };
+      */
+      pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
+                     locator->symbol_header->identifier,
+                     (a_symbol_ptr)nsp->source_corresp.assoc_info);
+    }  /* if */
+    set_to_named_error_locator(*locator);
+    *tag_sym = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_class_template_symbol(*tag_sym)) {
+    /* Microsoft compilers accept "friend class X;" where X is a class
+       template.  It is treated as a friend template declaration. */
+    decl_nonstandard_friend_template(*tag_sym);
+    *is_template = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* check_friend_class_declaration */
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
     !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
@@ -2134,45 +2188,17 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
            (either namespace qualified or globally qualified), be sure the
            lookup did not find a namespace-projection symbol.  If it did,
            issue an error. */
-        if (locator.is_qualified_name &&
-            locator.specific_symbol->kind ==
-                                  (a_symbol_kind)sk_namespace_projection) {
-          a_namespace_ptr  nsp = qualifier_namespace_ptr(locator);
-          if (nsp == NULL) {
-            /* Must be something like this:
-                 namespace N { class X; }
-                 using N::X;
-                 class Y {
-                   friend class ::Y;      // Error
-                 };
-            */
-            check_assertion(locator.is_file_scope_qualified_name);
-            pos_st_error(ec_name_not_tag_in_file_scope,
-                         &locator.source_position,
-                         locator.symbol_header->identifier);
-          } else {
-            /* Must be something like this:
-                 namespace N { class X; }
-                 namespace M { using N::X; }
-                 class Y {
-                   friend class M::Y;     // Error
-                 };
-            */
-            pos_stsy_error(ec_not_an_actual_member, &locator.source_position,
-                           locator.symbol_header->identifier,
-                           (a_symbol_ptr)nsp->source_corresp.assoc_info);
-          }  /* if */
-          set_to_named_error_locator(locator);
-          tag_sym = NULL;
+        a_boolean  is_template = FALSE;
+        check_friend_class_declaration(&locator, &tag_sym, &is_template);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (is_class_template_symbol(tag_sym)) {
-          /* Microsoft compilers accept "friend class X;" where X is a class
-             template.  It is treated as a friend template declaration. */
-          decl_nonstandard_friend_template(tag_sym);
+        if (is_template) {
+          /* In Microsoft mode a friend class declaration may refer to a
+             template.  That case is full handled by the call to
+             check_friend_class_declaration. */
           *type_ptr = NULL;
           goto done;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if ((is_explicit_instantiation || is_template_specialization) &&
                  !is_declarator_start()) {
         /* This is an explicit instantiation directive or a specialization

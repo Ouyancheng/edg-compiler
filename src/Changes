@@ -1,5 +1,15 @@
 Version 3.4
 
+3/31/04  GNU/Microsoft compatibility: Using-declarations and friends
+
+In GNU and Microsoft C++ modes, the front end now accepts a friend class
+declaration involving a qualified name that refers to a using-declaration
+or a using-directive.  For example:
+
+  namespace N { struct S {}; }
+  using namespace N;
+  class C { friend class ::S; };  // Accepted in GNU and Microsoft C++ modes.
+
 3/31/04  Internal error in routine_needed_even_if_unreferenced
 
 In relatively rare cases involving function templates and nontemplate
