@@ -1419,9 +1419,20 @@ parameter controls the restrictions imposed by the context.
                             &dummy_storage_class, &dummy_type_ptr,
                             &qualifiers);
       if (is_reference_type(complete_type)) {
+#if RESTRICT_ALLOWED
+        if ((qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
+          qualifiers &= TQ_RESTRICT;
+          diagnostic(strict_ansi_mode ?
+                        strict_ansi_error_severity : es_warning,
+                     ec_qualified_reference_type);
+        }  /* if */
+#else /* !RESTRICT_ALLOWED */
+        qualifiers = TQ_NONE;
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
-      } else {
+#endif /* RESTRICT_ALLOWED */
+      }  /* if */
+      if (qualifiers != TQ_NONE) {
         complete_type = make_qualified_type(complete_type, qualifiers);
       }  /* if */
     }  /* if */
