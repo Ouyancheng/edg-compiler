@@ -67,46 +67,46 @@ compiling with a C++ compiler it is set to ``extern "C"''.
 /*
 Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 */
-#ifndef __WIN32__
+#ifndef EDG_WIN32
 #if defined(__WATCOMC__) && defined(__NT__)
-/* Some versions of the Watcom compiler fail to set _WIN32.  Set __WIN32__
+/* Some versions of the Watcom compiler fail to set _WIN32.  Set EDG_WIN32
    when running the Watcom compiler on NT. */
-#define __WIN32__ 1
+#define EDG_WIN32 1
 #endif /* defined(__WATCOMC__) && defined(__NT__) */
-#endif /* ifndef __WIN32__ */
+#endif /* ifndef EDG_WIN32 */
 
-#ifndef __WIN32__
+#ifndef EDG_WIN32
 #ifdef _WIN32
-#define __WIN32__ 1
+#define EDG_WIN32 1
 #else /* !_WIN32 */
-#define __WIN32__ 0
+#define EDG_WIN32 0
 #endif /* _WIN32 */
-#endif /* ifndef __WIN32__ */
+#endif /* ifndef EDG_WIN32 */
 
 /*
 __ANSIC__ should be set for all WIN32 systems.
 */
-#if __WIN32__
+#if EDG_WIN32
 #define __ANSIC__ 1
-#endif /* __WIN32__ */
+#endif /* EDG_WIN32 */
 
 /*
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No
-other MS-DOS compilers are considered at this time.  If "__MSDOS__"
-is defined, as in Turbo-C, use it as is.  If it is not defined, and some
-other compiler pre-defined macro indicates that this is MS-DOS,
-define "__MSDOS__".
+other MS-DOS compilers are considered at this time.  If this is MS-DOS
+(or, more likely, Windows) set EDG_MSDOS.  if this is Windows, EDG_WIN32
+will also be set.
 */
-#ifndef __MSDOS__
+#ifndef EDG_MSDOS
 /* Turbo-C defines __MSDOS__, so this is either not MS-DOS or it is Microsoft
    C under MS-DOS. */
-#ifdef MSDOS
-/* Microsoft C defines MSDOS, so this is MS-DOS. */
-#define __MSDOS__ 1
-#else /* ifndef MSDOS */
-#define __MSDOS__ 0
-#endif /* ifdef MSDOS */
-#endif /* ifdef __MSDOS__ */
+#if defined(MSDOS) || defined(__MSDOS__)
+/* Turbo-C defines __MSDOS__ and Microsoft C defines MSDOS, so this
+   is MS-DOS. */
+#define EDG_MSDOS 1
+#else /* !(defined(MSDOS) || defined(__MSDOS__)) */
+#define EDG_MSDOS 0
+#endif /* (defined(MSDOS) || defined(__MSDOS__)) */
+#endif /* ifdef EDG_MSDOS */
 
 /*
 Set a flag that indicates that some Microsoft operating system is being
@@ -114,11 +114,11 @@ used.  Most of the DOS/Windows code applies to all systems (i.e.,
 file name manipulation routines), and so can just test this flag.
 */
 #ifndef __MICROSOFT_OS__
-#if __WIN32__ || __MSDOS__
+#if EDG_WIN32 || EDG_MSDOS
 #define __MICROSOFT_OS__ 1
-#else /* !(__WIN32__ || __MSDOS__) */
+#else /* !(EDG_WIN32 || EDG_MSDOS) */
 #define __MICROSOFT_OS__ 0
-#endif /* !(__WIN32__ || __MSDOS__) */
+#endif /* !(EDG_WIN32 || EDG_MSDOS) */
 #endif /* ifndef __MICROSOFT_OS__ */
 
 /*
@@ -263,10 +263,10 @@ typedef unsigned int a_bit_field;
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 /* Note that size_t_arg may evaluate its argument more than once. */
 typedef size_t	true_size_t;
-#if !__MSDOS__
+#if !EDG_MSDOS
 typedef size_t	sizeof_t;
 #define size_t_arg(arg) ((size_t)(arg))
-#else /* !__MSDOS__ */
+#else /* !EDG_MSDOS */
 /* Most MS-DOS C compilers have a 16-bit size_t, so use unsigned long. */
 typedef unsigned long sizeof_t;
 /* size_t_arg checks for truncation. */
@@ -274,7 +274,7 @@ typedef unsigned long sizeof_t;
   ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (true_size_t)(arg))
 #define NEED_SIZE_T_ARG_ERROR 1
 extern true_size_t size_t_arg_error(void);
-#endif /* !__MSDOS__ */
+#endif /* !EDG_MSDOS */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef ptrdiff_t a_ptrdiff;

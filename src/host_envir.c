@@ -26,9 +26,9 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if __WIN32__
+#if EDG_WIN32
 #include <windows.h>
-#endif /* __WIN32__ */
+#endif /* EDG_WIN32 */
 
 /*
 Argument strings for fopen.
@@ -1742,7 +1742,7 @@ a_boolean is_directory(char   *file_name)
 #define IS_DIRECTORY_DEFINED
 
 #else /* defined(S_ISDIR) || defined(S_IFDIR) */
-#if __WIN32__
+#if EDG_WIN32
 /*
 WIN32 (e.g., Windows-NT) version.
 */
@@ -1757,7 +1757,7 @@ a_boolean is_directory(char *file_name)
    been supplied. */
 #define IS_DIRECTORY_DEFINED
 
-#endif /* __WIN32__ */
+#endif /* EDG_WIN32 */
 #endif /* defined(S_ISDIR) || defined(S_IFDIR) */
 
 #ifndef IS_DIRECTORY_DEFINED
@@ -1806,7 +1806,7 @@ returned when there are no more directory entries.  dir_name indicates
 the directory in which to search (or NULL for the current directory),
 and curr_dir_name is the current directory name.
 */
-#if __WIN32__
+#if EDG_WIN32
 /*
 WIN32 (e.g., Windows-NT) version.
 */
@@ -1859,8 +1859,8 @@ char *get_file_name_from_dir(a_boolean	first,
   }  /* if */
   return result;
 }  /* get_file_name_from_dir */
-#else /* !__WIN32__ */
-#if __MSDOS__
+#else /* !EDG_WIN32 */
+#if EDG_MSDOS
 /*
 DOS version.
 */
@@ -1911,7 +1911,7 @@ See comment above.
   }  /* if */
   return result;
 }  /* get_file_name_from_dir */
-#else /* !__MSDOS__ */
+#else /* !EDG_MSDOS */
 
 #if __VMS__
 /*
@@ -1988,8 +1988,8 @@ See comment above.
   return result;
 }  /* get_file_name_from_dir */
 #endif /* !__VMS__ */
-#endif /* __MSDOS__ */
-#endif /* __WIN32__ */
+#endif /* EDG_MSDOS */
+#endif /* EDG_WIN32 */
 
 
 static char *get_curr_dir_name(void)
@@ -2157,7 +2157,7 @@ Set module_id to the string.
 #if USE_MMAP_FOR_MEMORY_REGIONS
 
 
-#if __WIN32__
+#if EDG_WIN32
 
 static HANDLE	f_mmap_file;
 			/* The file handle for the mapped IL file. */
@@ -2356,7 +2356,7 @@ incremental_size must be a multiple of the page size.
 }  /* get_page_size */
 
 
-#else /* !__WIN32__ */
+#else /* !EDG_WIN32 */
 #include <sys/mman.h>
 
 #if __BSD__
@@ -2519,7 +2519,7 @@ memory for IL memory blocks.
   db_exit();
 }  /* open_mapped_il_temp_file */
 
-#endif /* __WIN32__ */
+#endif /* EDG_WIN32 */
 
 static int	page_size = 0;
 			/* The size of a host page.  Memory mapped blocks must

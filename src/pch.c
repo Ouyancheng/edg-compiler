@@ -2017,11 +2017,11 @@ may be used.
        the memory configuration needed by the PCH is compatible with
        what we can allocate. */
     last_event_from_pch = pch_is_applicable();
-#if __WIN32__ && USE_MMAP_FOR_MEMORY_REGIONS
+#if EDG_WIN32 && USE_MMAP_FOR_MEMORY_REGIONS
     /* Open the file a second time in a way that it can be used for
        file mapping purposes. */
     open_mapped_input_file(pch_input_file_name);
-#endif /* __WIN32__  && USE_MMAP_FOR_MEMORY_REGIONS */
+#endif /* EDG_WIN32  && USE_MMAP_FOR_MEMORY_REGIONS */
     if (last_event_from_pch != NULL && read_mem_alloc_history()) {
       /* Everything is OK. */
       pos_of_last_event_from_pch = last_event_from_pch->position;
@@ -2043,9 +2043,9 @@ may be used.
     using_a_pch_file = TRUE;
     read_saved_variables();
     read_memory_regions();
-#if __WIN32__ && USE_MMAP_FOR_MEMORY_REGIONS
+#if EDG_WIN32 && USE_MMAP_FOR_MEMORY_REGIONS
     close_mapped_input_file();
-#endif /* __WIN32__  && USE_MMAP_FOR_MEMORY_REGIONS */
+#endif /* EDG_WIN32  && USE_MMAP_FOR_MEMORY_REGIONS */
     if (new_alloc_history != NULL) {
       /* Free the new allocation history information. */
       free_general((a_void_ptr)new_alloc_history,

@@ -106,17 +106,17 @@ typedef struct an_il_entry_prefix {
 #define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
          /*lint --e(506)*/                                             \
          (3 + ((DO_IL_LOWERING != 0)?1:0) + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
-#if __MSDOS__
+#if EDG_MSDOS
   /* Under MS-DOS compilers this bit field is probably bigger than
      an "int", so use "unsigned long". */
 #define BITS_IN_ENTRY_NUMBER                                          \
   (sizeof(long)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
   unsigned long	entry_number:BITS_IN_ENTRY_NUMBER;
-#else /* !__MSDOS__ */
+#else /* !EDG_MSDOS */
 #define BITS_IN_ENTRY_NUMBER                                          \
   (sizeof(int)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
   unsigned int	entry_number:BITS_IN_ENTRY_NUMBER;
-#endif /* __MSDOS__ */
+#endif /* EDG_MSDOS */
 			/* Entry number for the IL entry. */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

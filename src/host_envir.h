@@ -106,11 +106,11 @@ USE_MMAP_FOR_MEMORY_REGIONS is TRUE, HOST_ALLOCATION_INCREMENT must
 be a multiple of 64K.
 */
 #ifndef HOST_ALLOCATION_INCREMENT
-#if __MSDOS__
+#if EDG_MSDOS
 #define HOST_ALLOCATION_INCREMENT 16384
-#else /* !__MSDOS__ */
+#else /* !EDG_MSDOS */
 #define HOST_ALLOCATION_INCREMENT 65536
-#endif /* __MSDOS__  */
+#endif /* EDG_MSDOS  */
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
 				   
 /*
@@ -177,11 +177,11 @@ to use this flag to test that a pointer lies in a certain range.
 /* Avoid CodeCenter warnings about non-standard comparisons. */
 #define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED FALSE
 #else /* !defined(__CENTERLINE__) */
-#if __MSDOS__
+#if EDG_MSDOS
 #define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED FALSE
-#else /* !__MSDOS__ */
+#else /* !EDG_MSDOS */
 #define ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED TRUE
-#endif /* __MSDOS__ */
+#endif /* EDG_MSDOS */
 #endif /* ifdef __CENTERLINE__ */
 #endif /* ifndef ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED */
 
@@ -269,12 +269,12 @@ source file to get the name of the generated C output file.
 */
 #ifndef GEN_C_FILE_SUFFIX
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-#if __MSDOS__
+#if EDG_MSDOS
 /* File names under MSDOS cannot have multiple periods. */
 #define GEN_C_FILE_SUFFIX ".ic"
-#else /* !__MSDOS__ */
+#else /* !EDG_MSDOS */
 #define GEN_C_FILE_SUFFIX ".int.c"
-#endif /* if __MSDOS__ */
+#endif /* if EDG_MSDOS */
 #endif /* BACK_END_IS_C_GEN_BE || ... */
 #endif /* ifndef GEN_C_FILE_SUFFIX */
 
@@ -1140,11 +1140,11 @@ on systems other than MS-DOS.  When compiling a standalone utility
 program, use of mmap is disabled by default.
 */
 #ifndef USE_MMAP_FOR_MEMORY_REGIONS
-#if __MSDOS__ || STANDALONE_UTILITY_PROGRAM
+#if EDG_MSDOS || STANDALONE_UTILITY_PROGRAM
 #define USE_MMAP_FOR_MEMORY_REGIONS FALSE
-#else /* !(__MSDOS__ || STANDALONE_UTILITY_PROGRAM) */
+#else /* !(EDG_MSDOS || STANDALONE_UTILITY_PROGRAM) */
 #define USE_MMAP_FOR_MEMORY_REGIONS TRUE
-#endif /* __MSDOS__ || STANDALONE_UTILITY_PROGRAM */
+#endif /* EDG_MSDOS || STANDALONE_UTILITY_PROGRAM */
 #endif /* ifndef USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
@@ -1183,11 +1183,11 @@ may be overridden by a command line option.
 */
 #if !USE_MMAP_FOR_MEMORY_REGIONS
 #ifndef DEFAULT_PREALLOCATED_PCH_MEM_SIZE
-#if __MSDOS__
+#if EDG_MSDOS
 #define DEFAULT_PREALLOCATED_PCH_MEM_SIZE ((long)0x100000)
-#else /* !__MSDOS__ */
+#else /* !EDG_MSDOS */
 #define DEFAULT_PREALLOCATED_PCH_MEM_SIZE (1024 * 1024 * 4)
-#endif /* __MSDOS__ */
+#endif /* EDG_MSDOS */
 #endif /* ifndef DEFAULT_PREALLOCATED_PCH_MEM_SIZE */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
@@ -1706,10 +1706,10 @@ Define a macro that can be used to compare two file names.
 #define compare_file_names(s1, s2) strcmp((s1), (s2))
 #endif /* __MICROSOFT_OS__ */
 
-#if __WIN32__
+#if EDG_WIN32
 extern void open_mapped_input_file(char *file_name);
 extern void close_mapped_input_file(void);
-#endif /* __WIN32__ */
+#endif /* EDG_WIN32 */
 
 /* Custom version of memcmp. */
 extern int smemcmp(char     *s1,

@@ -1,5 +1,14 @@
 Version 2.42
 
+6/28/99  __MSDOS__ and __WIN32__ macros no longer defined
+
+Formerly, the front end always defined __MSDOS__ and __WIN32__ to indicate
+whether the front end was being built on DOS and/or Windows.  These macros
+would be defined to zero when not building on DOS/Windows.  This created
+problems for header files that tested these macros using an #ifdef.  The
+front end has been changed to use macros named EDG_MSDOS and EDG_WIN32 to
+avoid this problem.
+
 6/28/99  Friend declaration in a class template could refer to wrong namespace
 
 The lookup of a friend declaration in a class template defined within
