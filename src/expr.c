@@ -5916,6 +5916,7 @@ Return TRUE for okay, FALSE for an error.
 
   if (identical_types(type_cast_to, operand->type)) {
     /* Do-nothing cast, okay. */
+    pos_warning(ec_nonstd_ignored_array_cast, type_position);
   } else {
     okay = FALSE;
     if (!is_error_operand(operand)) {

@@ -4,7 +4,7 @@
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2001 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2002 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 
@@ -1258,13 +1258,13 @@ ec_mythread_constant_not_allowed;;"MYTHREAD not allowed in this context"
 ec_bad_upc_shared_pointer_layout_qualifier;;"layout qualifier cannot qualify pointer to shared"
 ec_bad_upc_shared_array_layout_qualifier;;"layout qualifier cannot qualify an incomplete array"
 ec_decl_hides_catch_parameter;;"declaration of %sq hides handler parameter"
+ec_nonstd_ignored_array_cast;;"nonstandard cast to array type ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2001 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2002 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
-
