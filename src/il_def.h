@@ -5305,7 +5305,9 @@ enum an_expr_operator_kind_tag {
 			   can be a call that returns a struct, a struct
 			   assignment, or a comma operation. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  eok_assume,		/* Microsoft __assume(expr). */
+  eok_assume,		/* Microsoft __assume(expr).  Note that the
+			   operand is not evaluated in the traditional
+			   sendse of the word. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL

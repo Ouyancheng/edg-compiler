@@ -7859,6 +7859,15 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Lower pointer-to-member comparison before the operands have been
            lowered, to allow an optimization on comparisons to constants. */
         lower_pm_comparison(expr, /*operand1_lowered=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (op == (an_expr_operator_kind)eok_assume &&
+                 node_has_side_effects(operand_node, (a_boolean *)NULL)) {
+        /* Turn __assume(expr) into (void)0 if expr has side effects to
+           avoid problems with destructible entities inside the expression. */
+        operand_node = node_for_integer_constant((long)0,
+                                                 (an_integer_kind)ik_int);
+        change_to_cast(expr, operand_node, expr->type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has boolean-controlling-expression operands. */

@@ -4291,7 +4291,7 @@ the given expression is true.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = TRUE;
   /* Save the position of the __assume keyword. */
   copy_source_position(pos_curr_token, start_position);
   (void)get_token();
