@@ -1680,8 +1680,10 @@ the reason is that the constant is a template parameter constant).
     /* The constant is an error constant; set the result to an error
        constant and return. */
     set_error_constant(result);
-  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* An operation on a ck_template_param constant cannot be folded. */
+  } else if (!C_mode() &&
+             (constant->kind == (a_constant_repr_kind)ck_template_param ||
+              is_or_contains_template_param(result_type))) {
+    /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
   } else {
@@ -2859,9 +2861,11 @@ as the position for any diagnostics issued.
     /* One and/or the other of the constants is an error constant; set the
        result to an error constant and return. */
     set_error_constant(result);
-  } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param ||
-             constant_2->kind == (a_constant_repr_kind)ck_template_param) {
-    /* An operation on a ck_template_param constant cannot be folded. */
+  } else if (!C_mode() &&
+             (constant_1->kind == (a_constant_repr_kind)ck_template_param ||
+              constant_2->kind == (a_constant_repr_kind)ck_template_param ||
+              is_or_contains_template_param(result_type))) {
+    /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
   } else {
