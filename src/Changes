@@ -1,5 +1,15 @@
 Version 3.1
 
+5/15/02  Microsoft compatibility: disambiguation problem with __based
+
+Disambiguation of declarations vs. expressions did not handle the
+Microsoft __based feature properly.  This has been fixed.
+
+  char *pc;
+  int main() {
+    int(__based(pc) f(int));
+  }
+
 5/15/02  Alignment problems with IL entries read from file
 
 The code that reads IL files into memory did not properly ensure
