@@ -1202,7 +1202,7 @@ adjusted to make the implicit bit explicit.
     *is_negative = (val & 0x80000000) != 0;
     fp_ptr += offset;
     val = *fp_ptr;
-    if (val) is_zero = FALSE;
+    if (val != 0) is_zero = FALSE;
     mp->parts[0] |= (val >> 20);
     mp->parts[1] = val << 12;
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
@@ -1218,10 +1218,10 @@ adjusted to make the implicit bit explicit.
       *exponent = (long)((val & 0x7fff)) - 16383;
       *is_negative = (val & 0x8000) != 0;
       fp_ptr += offset;
-      if (*fp_ptr) is_zero = FALSE;
+      if (*fp_ptr != 0) is_zero = FALSE;
       mp->parts[0] = *fp_ptr;
       fp_ptr += offset;
-      if (*fp_ptr) is_zero = FALSE;
+      if (*fp_ptr != 0) is_zero = FALSE;
       mp->parts[1] = *fp_ptr;
     } else if (targ_ldbl_mant_dig == 113) {
       /* The code below constructs the value from fp_temp.  Copy the source to
@@ -1235,18 +1235,18 @@ adjusted to make the implicit bit explicit.
       *is_negative = (val & 0x80000000) != 0;
       mp->parts[0] = val << 16;
       fp_ptr += offset;
-      if (*fp_ptr) is_zero = FALSE;
+      if (*fp_ptr != 0) is_zero = FALSE;
       val = *fp_ptr;
       mp->parts[0] |= val >> 16;
       mp->parts[1] = val << 16;
       fp_ptr += offset;
-      if (*fp_ptr) is_zero = FALSE;
+      if (*fp_ptr != 0) is_zero = FALSE;
       val = *fp_ptr;
       mp->parts[1] |= val >> 16;
       mp->parts[2] = val << 16;
       val = *fp_ptr;
       fp_ptr += offset;
-      if (*fp_ptr) is_zero = FALSE;
+      if (*fp_ptr != 0) is_zero = FALSE;
       val = *fp_ptr;
       mp->parts[2] |= val >> 16;
       mp->parts[3] = val << 16;
