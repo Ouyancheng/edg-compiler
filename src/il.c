@@ -781,7 +781,7 @@ Dump the contents of the indicated type entry, for debug purposes.
 
   if (tp == NULL) {
     fputs("<null pointer>", f_debug);
-    } else {
+  } else {
     switch (tp->kind) {
       case tk_error:
         fputs("<error type>", f_debug);
