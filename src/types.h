@@ -213,10 +213,17 @@ type if tp is an array.
 /*
 Return TRUE if the type qualifiers on two types match.  Typedefs and
 the underlying types are ignored.  On an array type it is the element
-type that is checked for qualifiers.
+type that is checked for qualifiers.  (When UPC extensions are supported,
+UPC block sizes must match too.)
 */
+#if UPC_EXTENSIONS_ALLOWED
+#define type_qualifiers_match(tp1, tp2)                               \
+  (get_type_qualifiers(tp1) == get_type_qualifiers(tp2) &&            \
+   get_upc_block_size(tp1) == get_upc_block_size(tp2))
+#else /* !UPC_EXTENSIONS_ALLOWED */
 #define type_qualifiers_match(tp1, tp2)                               \
   (get_type_qualifiers(tp1) == get_type_qualifiers(tp2))
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*
 Return TRUE if tp1_qualifiers does not have some type qualifier that
@@ -813,6 +820,55 @@ a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern char *uuid_string_of_type(a_type_ptr  type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if UPC_EXTENSIONS_ALLOWED
+extern a_upc_block_size f_get_upc_block_size(a_type_ptr  tp,
+                                             a_boolean   top_level);
+
+extern a_boolean is_underlying_shared_qualified_type(a_type_ptr tp);
+extern a_boolean is_underlying_threads_dimensioned_array_type(a_type_ptr tp);
+extern a_boolean is_threads_dimensioned_array_type(a_type_ptr tp);
+extern void fixup_upc_block_size (a_type_ptr array_type);
+extern a_boolean is_shared_void_star_type(a_type_ptr tp);
+extern a_upc_access_method get_underlying_upc_access_method(a_type_ptr tp);
+extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
+
+#define typeref_is_shared_qualified(tp)                               \
+ (((tp)->variant.typeref.qualifiers & TQ_UPC_SHARED) != 0)
+#define typeref_is_relaxed_qualified(tp)                              \
+ (((tp)->variant.typeref.qualifiers & TQ_UPC_RELAXED) != 0)
+#define typeref_is_strict_qualified(tp)                               \
+ (((tp)->variant.typeref.qualifiers & TQ_UPC_STRICT) != 0)
+#define is_ptr_to_shared_type(tp)                                     \
+ (is_pointer_type(tp) &&                                             \
+  is_underlying_shared_qualified_type(type_pointed_to(tp)))
+
+#define is_shared_qualified_type(tp)                                  \
+  ((get_type_qualifiers(tp) & TQ_UPC_SHARED) != 0)
+#define is_relaxed_qualified_type(tp)                                 \
+  ((get_type_qualifiers(tp) & TQ_UPC_RELAXED) != 0)
+#define is_strict_qualified_type(tp)                                  \
+  ((get_type_qualifiers(tp) & TQ_UPC_STRICT) != 0)
+
+#define is_generic_shared_pointer_type(tp) \
+  (is_shared_void_star_type(tp) && \
+   get_underlying_upc_block_size(type_pointed_to(tp)) == 1)
+
+#define get_typeref_upc_block_size(tp) ((tp)->variant.typeref.upc_block_size)
+
+#define get_upc_block_size(tp)                                          \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                           \
+    (tp)->kind == (a_type_kind)tk_array) ?                             \
+      (f_get_upc_block_size((tp), /*top_level=*/C_mode())) :            \
+      UPC_BLOCK_SIZE_NONE)
+
+#define get_underlying_upc_block_size(tp)                               \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                           \
+    (tp)->kind == (a_type_kind)tk_array) ?                             \
+      (f_get_upc_block_size((tp), /*top_level=*/FALSE)) :               \
+      UPC_BLOCK_SIZE_NONE)
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef TYPES_H */
 

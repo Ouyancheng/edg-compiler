@@ -900,6 +900,16 @@ targ_sizeof_pointer and targ_alignof_pointer will not be declared at all.
 #endif /* defined(TARG_ALIGNOF_POINTER) */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
+#if UPC_EXTENSIONS_ALLOWED
+/*
+The maximum UPC block size (possibly limited by the target representation of a
+shared pointer).
+*/
+#ifndef MAX_UPC_BLOCK_SIZE
+#define MAX_UPC_BLOCK_SIZE ((a_upc_block_size)(INT_MAX/2))
+#endif /* defined(MAX_UPC_BLOCK_SIZE) */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 /* Indication of whether NULL pointer is like integer zero. */
 #ifndef TARG_NULL_IS_ALL_BITS_ZERO
 #define TARG_NULL_IS_ALL_BITS_ZERO TRUE

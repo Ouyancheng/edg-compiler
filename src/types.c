@@ -950,6 +950,262 @@ in *unqual_array_type and return TRUE.
   return is_qualified_array_typedef;
 }  /* is_qualified_version_of_array_typedef */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+a_upc_block_size f_get_upc_block_size(a_type_ptr  tp,
+                                      a_boolean   top_level)
+/*
+Return the UPC block size for the type tp.  If top_level is FALSE and tp
+is an array, this means checking the element type; top_level is usually TRUE
+in C mode (3.1.2.5).  As a general rule, macros get_upc_block_size and
+get_underlying_upc_block_size should be used instead of calling this routine
+directly.
+*/
+{
+  a_upc_block_size  result = UPC_BLOCK_SIZE_NONE;
+
+  for (;;) {
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      /* May be a typedef or a qualification. */
+      if (typeref_is_shared_qualified(tp)) {
+        result = tp->variant.typeref.upc_block_size;
+        break;
+      } else {
+        tp = tp->variant.typeref.type;
+      }  /* if */
+    } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
+      /* Check the array element type. */
+      tp = tp->variant.array.element_type;
+      if (tp == NULL) {
+        /* Array-of-NULL is a possible temporary state during construction of
+           a derived type. */
+        break;
+      }  /* if */
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  /* Did not find anything earlier, so return 0 block size */
+  return result;
+}  /* f_get_upc_block_size */
+
+
+a_boolean is_underlying_shared_qualified_type(a_type_ptr  tp)
+/*
+Return TRUE if this is fundamentally a shared type, i.e. if a pointer to
+this object must be a pointer-to-shared.
+*/
+{
+  a_boolean  result;
+
+  if (is_array_type(tp)) {
+    /* This is an array: Check the underlying element type (if any). */
+    tp = underlying_array_element_type(tp);
+    result = (tp != NULL && is_shared_qualified_type(tp));
+  } else {
+    /* Not an array: Check the type itself. */
+    result = is_shared_qualified_type(tp);
+  }  /* if */
+  return result;
+} /* is_underlying_shared_qualified_type */
+
+
+void fixup_upc_block_size(a_type_ptr  tp)
+/*
+Convert the specified type to pure block allocation.
+*/
+{
+  a_targ_size_t     num_elements;
+  a_type_ptr        elem_type;
+  a_boolean         bad_block_size;
+  a_upc_block_size  bsize;
+
+  while (tp != NULL && (is_pointer_type(tp) ||
+                        (is_array_type(tp) &&
+                        !is_underlying_shared_qualified_type(tp)))) {
+    /* Find shared type at the bottom (if any).  If the shared type is
+       an array type (with no underlying shared element type), use the
+       underlying element type. */
+    while (tp && is_pointer_type(tp)) {
+      tp = type_pointed_to(skip_typerefs(tp));
+    }  /* while */
+    if (tp && is_array_type(tp) && !is_underlying_shared_qualified_type(tp)) {
+      tp = underlying_array_element_type(tp);
+    }  /* if */
+  }  /* while */
+  if (tp != NULL) {
+    bsize = get_underlying_upc_block_size(tp);
+    if (bsize == UPC_BLOCK_SIZE_BLOCK) {
+      if (is_array_type(tp)) {
+        /* Handle special case of indeterminate array size that is
+           used as a pointer type.  */
+        check_assertion(!tp->variant.array.is_variable_size_array);
+        if (tp->variant.array.variant.number_of_elements == 0) {
+          tp = array_element_type(tp);
+        }  /* if */
+      }  /* if */
+      if (is_array_type(tp)) {
+        /* The block size is the product of all the array dimensions, divided
+           by THREADS.  The division only needs to be done if the number of
+           threads is specified at compile time. */
+        num_elements = num_array_elements(tp);
+        elem_type = underlying_array_element_type(tp);
+        if (!upc_dynamic_threads()) {
+          /* Make sure the result is rounded up. */
+          num_elements = (num_elements + upc_num_threads - 1)
+                                                            / upc_num_threads;
+        }  /* if */
+      } else {
+        elem_type = tp;
+        num_elements = 1;
+      }  /* if */
+      while (elem_type->kind == tk_typeref &&
+             !typeref_is_shared_qualified(elem_type)) {
+        elem_type = elem_type->variant.typeref.type;
+      }  /* while */
+      bad_block_size = warn_if_block_size_too_large(num_elements);
+      elem_type->variant.typeref.upc_block_size =
+                                            bad_block_size ? 1 : num_elements;
+    }  /* if */
+  }  /* if */
+} /* fixup_upc_block_size */
+
+
+a_upc_access_method get_underlying_upc_access_method(a_type_ptr  tp)
+/*
+Determines the UPC access setting (strict, relaxed, or unspecified) for a
+type.  If the type is an array, return the access setting for the array
+element type.  Note that access cannot be both strict and relaxed.
+*/
+{
+  a_upc_access_method  result = upc_access_unspecified;
+
+  if (tp != NULL && is_array_type(tp)) {
+    tp = underlying_array_element_type(tp);
+  }  /* if */
+  if (tp != NULL) {
+    if (is_strict_qualified_type(tp)) {
+      result = upc_access_strict;
+    } else if (is_relaxed_qualified_type(tp)) {
+      result = upc_access_relaxed;
+    }  /* if */
+  }  /* if */
+  return result;
+} /* get_underlying_upc_access_method */
+
+
+a_boolean is_underlying_threads_dimensioned_array_type(a_type_ptr  tp)
+/*
+Return TRUE if this is an array type that either is dimensioned
+to a THREADS multiple or has an element type that is a THREADS
+dimensioned array type.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (tp != NULL && upc_dynamic_threads()) {
+    for (; tp != NULL && is_array_type(tp);
+           tp = tp->variant.array.element_type) {
+      if (tp->variant.array.is_threads_dimension) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+} /* is_underlying_threads_dimensioned_array_type */
+
+
+a_boolean is_threads_dimensioned_array_type(a_type_ptr  tp)
+/*
+Returns TRUE if this is an array type that is dimensioned to a
+THREADS multiple.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (tp != NULL && upc_dynamic_threads()) {
+    /* With a dynamic number of threads, check that the array dimension
+       is marked as being a THREADS multiple. */
+    result = (tp->kind == (a_type_kind)tk_array &&
+              tp->variant.array.is_threads_dimension);
+  }  /* if */
+  return result;
+} /* is_threads_dimensioned_array_type */
+
+
+a_targ_size_t upc_local_type_size(a_type_ptr  tp)
+/*
+Calculates the locally allocated size for a shared array.  For
+anything else, returns the regular size.
+*/
+{
+  a_type_ptr     base_type = skip_typerefs(tp);
+  a_targ_size_t  length = base_type->size;
+
+  /* Make sure the allocated size of a shared array is enough to cover
+     the maximum possible number of elements on a single thread.  If the
+     number of local elements is a multiple of the block size, there is no
+     problem; otherwise, we need to add some elements to cover the skew. */
+  if (is_underlying_shared_qualified_type(base_type) &&
+      is_array_type(base_type)) {
+    a_type_ptr        elem_type = underlying_array_element_type(base_type);
+    a_upc_block_size  block_size = get_upc_block_size(elem_type);
+    a_targ_size_t     elem_size = skip_typerefs(elem_type)->size;
+    a_targ_size_t     nelems = length / elem_size;
+    a_targ_size_t     ref_thread_count;
+    a_targ_size_t     blocks_per_thread;
+
+    if (block_size == UPC_BLOCK_SIZE_INDEFINITE) {
+      check_assertion_str2(
+        !is_underlying_threads_dimensioned_array_type(base_type),
+        "Cannot find local size of indefinite block size ",
+        "threads-dimensioned array");
+    } else {
+      if (!upc_dynamic_threads()) {
+        /* In this case, nelems is the total number of elements, because
+           length is the total array length.  Determine how many elements
+           do not fit into neat block_size*threads slices.  This will be at
+           most one extra block per thread.  */
+        ref_thread_count = upc_num_threads;
+      } else {
+        /* In this case, nelems is the per-thread number of elements, so
+           use a thread count of 1 in the calculations. */
+        ref_thread_count = 1;
+      }  /* if */
+      blocks_per_thread = nelems / (ref_thread_count * block_size);
+      if (nelems - (blocks_per_thread * ref_thread_count * block_size) != 0) {
+        ++blocks_per_thread;
+      }  /* if */
+      nelems = blocks_per_thread * block_size;
+    }  /* if */
+    length = nelems * elem_size;
+  }  /* if */
+  return length;
+} /* upc_local_type_size */
+
+
+a_boolean is_shared_void_star_type(a_type_ptr tp)
+/*
+Returns TRUE if the specified type is a shared void*.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_pointer_type(tp)) {
+    tp = type_pointed_to(tp);
+    if (is_underlying_shared_qualified_type(tp)) {
+      tp = skip_typerefs(tp);
+      if (is_void_type(tp)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_shared_void_star_type */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 #if NEAR_AND_FAR_ALLOWED
 
 a_boolean is_far_type(a_type_ptr tp)

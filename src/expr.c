@@ -1831,7 +1831,12 @@ The result is placed in *result.
     did_not_fold = TRUE;
     template_constant = FALSE;
     if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
-        expr_stack->fold_constant_addr_exprs) {
+        expr_stack->fold_constant_addr_exprs
+#if UPC_EXTENSIONS_ALLOWED
+          /* Do not fold field operations for shared structs */
+          && !is_shared_qualified_type(class_struct_union_type)
+#endif /* UPC_EXTENSIONS_ALLOWED */
+                                             ) {
       /* Don't try to fold bit fields except when their addresses
          can be taken (as an extension). */
       if (!field->is_bit_field ||
@@ -4150,6 +4155,15 @@ Syntax:
   a_boolean             template_case = FALSE;
   a_boolean             in_constant_expression = (expr_stack != NULL &&
                                                   curr_expr_kind_is_const());
+#if UPC_EXTENSIONS_ALLOWED
+  a_token_kind          kind = curr_token;
+  a_upc_block_size      block_size;
+  a_boolean             upc_blocksizeof_scan = (kind == tok_upc_blocksizeof);
+  a_boolean             multiply_by_threads_needed = FALSE;
+  a_boolean             use_special_upc_size = FALSE;
+  a_host_large_unsigned special_upc_size;
+  a_boolean             err = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
   db_enter(4, "scan_sizeof_operator");
 
 #if CHECKING
@@ -4276,6 +4290,28 @@ Syntax:
   }  /* if */
 
   orig_sizeof_type = sizeof_type;
+#if UPC_EXTENSIONS_ALLOWED
+  /* Determine if the multiplication by THREADS is needed before the
+     typerefs are stripped off. */
+  multiply_by_threads_needed =
+                   (kind == tok_sizeof &&
+                    is_underlying_threads_dimensioned_array_type(sizeof_type));
+  if (upc_blocksizeof_scan) {
+    /* Save the block size before stripping the typerefs. */
+    block_size = get_underlying_upc_block_size(sizeof_type);
+    special_upc_size = (unsigned long)block_size;
+    if (block_size == UPC_BLOCK_SIZE_NONE) {
+      /* For non-shared data we return a value greater than the maximum legal
+         block size. */
+      if (is_pointer_type(sizeof_type) &&
+          is_underlying_shared_qualified_type(type_pointed_to(sizeof_type))) {
+        pos_warning(ec_nonshared_blocksizeof, &type_position);
+      }  /* if */
+      special_upc_size = max_upc_block_size + 1;
+    }  /* if */
+    use_special_upc_size = TRUE;
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   sizeof_type = skip_typerefs(sizeof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(sizeof_type);
@@ -4307,6 +4343,42 @@ Syntax:
     }  /* if */
   }  /* if */
 
+#if UPC_EXTENSIONS_ALLOWED
+  /* Special handling for VLAs.  Not all operations are defined for them. */
+  if (vla_enabled && is_vla_type(sizeof_type)) {
+    switch ((int)kind) {
+    case tok_upc_localsizeof:
+      /* Turn this into a sizeof. */
+      kind = tok_sizeof;
+      break;
+    case tok_upc_blocksizeof:
+      /* Return as if it were indefinite block size. */
+      special_upc_size = UPC_BLOCK_SIZE_INDEFINITE;
+      use_special_upc_size = TRUE;
+      kind = tok_sizeof;
+      break;
+    }  /* switch */
+  }  /* if */
+  if (multiply_by_threads_needed && in_constant_expression) {
+    /* Not allowed in a constant expression. */
+    pos_error(ec_expr_not_constant, &start_position);
+    make_error_operand(result);
+    err = TRUE;
+  } else if (kind == tok_upc_localsizeof) {
+    special_upc_size = upc_local_type_size(sizeof_type);
+    use_special_upc_size = TRUE;
+  } else if (kind == tok_upc_elemsizeof && is_array_type(sizeof_type)) {
+    sizeof_type = skip_typerefs(underlying_array_element_type(sizeof_type));
+  }  /* if */
+  if (err) {
+    /* Already handled */
+  } else if (use_special_upc_size) {
+    set_unsigned_integer_constant(&constant, special_upc_size,
+                                  targ_size_t_int_kind);
+    make_constant_operand(&constant, result);
+  } else
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  /* Do not add code here */
   if (vla_enabled && is_vla_type(sizeof_type)) {
     /* One or more of the top array types is a variable-length array. */
     if (in_constant_expression) {
@@ -4387,6 +4459,17 @@ Syntax:
     }  /* if */
     make_constant_operand(&constant, result);
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (multiply_by_threads_needed && !err && !is_error_operand(result)) {
+    /* Replace "result" by "result*THREADS". */
+    an_operand mo1, mo2;
+    make_upc_thread_operand(&mo2, (a_constant_repr_kind)ck_upc_threads);
+    copy_operand(result, &mo1);
+    do_binary_operation((an_expr_operator_kind)eok_imultiply,
+                        &mo1, &mo2, integer_type(targ_size_t_int_kind),
+                        result, &start_position);
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -10158,6 +10241,16 @@ standard.
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,
                            /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
                            &operation_type);
+#if UPC_EXTENSIONS_ALLOWED
+        if (is_shared_void_star_type(operation_type)) {
+          /* Cannot do lt/gt/le/ge comparisons involving shared void* pointers,
+             since they have no absolute ordering. */
+          pos_error(ec_upc_shared_void_comparison, &operator_position);
+          make_error_operand(result);
+          operand_will_not_be_used_because_of_error(operand_1);
+          operand_will_not_be_used_because_of_error(&operand_2);
+        }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
       } else {
         /* Both operands should be arithmetic or enum (we have ruled out all
            the pointer cases above).  We already know that operand_1 is
@@ -11985,6 +12078,10 @@ Return TRUE if the indicated token is one that could start an expression.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_threads:
+    case tok_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_dynamic_cast:
     case tok_const_cast:
     case tok_static_cast:
@@ -12634,6 +12731,11 @@ variable:
             if ((curr_expr_kind_is(ek_init_constant) ||
                  curr_expr_kind_is(ek_template_arg)) &&
                 has_static_storage_duration(var_ptr->storage_class) &&
+#if UPC_EXTENSIONS_ALLOWED
+                /* Disallow static initializations using addresses of shared
+                   data. */
+                !is_underlying_shared_qualified_type(var_ptr->type) &&
+#endif /* UPC_EXTENSIONS_ALLOWED */
                 /* Disallow C++ reference variables in constant
                    expressions, because of the extra indirection. */
                 !is_reference_type(var_ptr->type)) {
@@ -13473,6 +13575,19 @@ see expr.h).
       (void)get_token();
       break;
 
+#if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_threads:
+      make_upc_thread_operand(&local_result,
+                              (a_constant_repr_kind)ck_upc_threads);
+      (void)get_token();
+      break;
+    case tok_upc_mythread:
+      make_upc_thread_operand(&local_result,
+                              (a_constant_repr_kind)ck_upc_mythread);
+      (void)get_token();
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
     case tok_plus_plus:
     case tok_minus_minus:
       scan_prefix_incr_decr(&local_result);
@@ -13501,6 +13616,11 @@ see expr.h).
       scan_arith_prefix_operator(&local_result);
       break;
 
+#if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_localsizeof:
+    case tok_upc_elemsizeof:
+    case tok_upc_blocksizeof:
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_sizeof:
       /* Sizeof operation. */
       scan_sizeof_operator(&local_result);
@@ -15137,7 +15257,20 @@ and scan_aggregate_initializer_expression.
       *is_constant = FALSE;
       break;
     case ok_constant:
-      copy_constant(&result.variant.constant, constant);
+#if UPC_EXTENSIONS_ALLOWED
+      if (result.variant.constant.kind ==
+                                       (a_constant_repr_kind)ck_upc_threads ||
+          result.variant.constant.kind ==
+                                       (a_constant_repr_kind)ck_upc_mythread) {
+        *expression = make_node_from_operand(&result);
+        *expression = wrap_up_full_expression(*expression);
+        *is_constant = FALSE;
+      } else
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      /* Do not insert code here, this is an else clause */
+      {
+        copy_constant(&result.variant.constant, constant);
+      }  /* if */
       break;
 #if CHECKING
     default:
@@ -15640,6 +15773,55 @@ class type that can be converted to those types.
   db_exit();
   return expr;
 }  /* scan_boolean_controlling_expression */
+
+
+#if UPC_EXTENSIONS_ALLOWED
+an_expr_node_ptr scan_upc_forall_affinity(void)
+/*
+Scan the affinity expression for a upc_forall statement.  Return an
+an integer expression for the thread number.
+*/
+{
+  an_operand          operand;
+  an_expr_stack_entry expr_stack_entry;
+  an_expr_node_ptr    node;
+  a_source_position   operator_position;
+
+  copy_source_position(pos_curr_token, operator_position);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Scan an expression. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  /* Do not convert lvalues to rvalues, arrays to pointers,
+     or functions to pointers. */
+  do_operand_transformations(&operand,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                             TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                             TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                             TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+  if (is_pointer_type(operand.type)) {
+    if (!is_ptr_to_shared_type(operand.type)) {
+      pos_error(ec_bad_affinity, &operator_position);
+      make_error_operand(&operand);
+    }  /* if */
+  } else {
+    if (is_shared_qualified_type(operand.type)) {
+      pos_remark(ec_shared_affinity_type, &operator_position);
+    }  /* if */
+    /* Handle as an integer expression */
+    process_integer_expression(&operand, /*is_switch_expr=*/FALSE);
+  }  /* if */
+  if (is_error_operand(&operand)) {
+    node = error_node();
+  } else {
+    node = make_node_from_operand(&operand);
+    node = wrap_up_full_expression(node);
+  }  /* if */
+  pop_expr_stack();
+  return node;
+} /* scan_upc_forall_affinity */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 
 an_expr_node_ptr make_condition_value_expression(a_variable_ptr var,

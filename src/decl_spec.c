@@ -4103,11 +4103,13 @@ decl_specifiers.
 
 static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
                                      a_type_qualifier_set  *qualifiers,
+                                     a_upc_block_size      upc_block_size,
                                      a_source_position     *qualifier_pos,
                                      a_source_position     *restrict_pos)
 /*
 Add the type qualifiers specified by *qualifiers to the type specified by
-*type_ptr.  *qualifier_pos is the source position of the first of the type
+*type_ptr (upc_block_size is the block size associated with any UPC shared
+qualifier).  *qualifier_pos is the source position of the first of the type
 qualifiers (if any), not counting restrict.  *restrict_pos is the source
 position of the restrict keyword (if it's there).  This function is called
 from decl_specifiers only.
@@ -4117,6 +4119,14 @@ from decl_specifiers only.
   an_error_severity  severity;
 
   if (*qualifiers != TQ_NONE) {
+#if UPC_EXTENSIONS_ALLOWED
+     a_type_qualifier_set  new_upc_access, old_upc_access;
+     if (upc_mode) {
+       new_upc_access = *qualifiers & (TQ_UPC_RELAXED | TQ_UPC_STRICT);
+       old_upc_access = f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
+                                              (TQ_UPC_RELAXED | TQ_UPC_STRICT);
+     }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
       if (C_dialect == C_dialect_cplusplus) {
         /* In C++ adding a qualifier to a typedef name that is already
@@ -4191,13 +4201,44 @@ from decl_specifiers only.
       *qualifiers &= ~TQ_RESTRICT;
       err = TRUE;
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    if (upc_mode) {
+      /* Disallow upc_relaxed or upc_strict if the other is already specified.
+         */
+      if (!err && new_upc_access != TQ_NONE && old_upc_access != TQ_NONE &&
+          (new_upc_access != old_upc_access)) {
+        error(ec_dupl_type_qualifier);
+        err = TRUE;
+      }  /* if */
+      /* Disallow strict or relaxed without shared. */
+      if (new_upc_access != TQ_NONE && !(*qualifiers & TQ_UPC_SHARED)) {
+        /* Check whether shared was specified in the base type. */
+        if ((f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
+                                                         TQ_UPC_SHARED) == 0) {
+          /* Issue an error and remove the offending qualifiers. */
+          error(ec_nonshared_strict_relaxed);
+          *qualifiers &= ~(TQ_UPC_STRICT | TQ_UPC_RELAXED);
+          new_upc_access = TQ_NONE;
+        }  /* if */
+      }  /* if */
+      /* Disallow duplicate shared if the block sizes do not match. */
+      if ((*qualifiers & TQ_UPC_SHARED &
+           f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0 &&
+          upc_block_size !=
+                        f_get_upc_block_size(*type_ptr, /*top_level=*/FALSE)) {
+        error(ec_mismatched_shared_block_size);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     if (*qualifiers != TQ_NONE) {
       if (is_unknown_type(*type_ptr)) {
         *type_ptr = integer_type((an_integer_kind)ik_int);
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands
          the strange array case too. */
-      *type_ptr = make_qualified_type(*type_ptr, *qualifiers);
+      *type_ptr = f_make_qualified_type(*type_ptr, *qualifiers,
+                                        upc_block_size);
     }  /* if */
   }  /* if */
   return !err;
@@ -4335,6 +4376,92 @@ Returns NULL in case of error.
   return result;
 }  /* enclosing_class_type */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static a_upc_block_size scan_upc_block_size(a_basic_type  basic_type,
+                                            a_boolean     *err)
+/*
+Scan and return the (constant) integer block size specified on a UPC shared type 
+qualifier.  This routine also scans the enclosing brackets.  E.g.,
+	shared[100] int a[35];  // Block size 100
+*/
+{
+  /* If not otherwise specified, the block size will be 1. */
+  a_upc_block_size  block_size = 1;
+
+  if (curr_token == tok_lbracket) {
+    /* A shared block specifier. */
+    if (basic_type != bt_none) {
+      /* Usually one would write "shared [N] int ...", but "int shared [N] ..."
+         is possible too.  In the latter case, the rbackets are still treated
+         as a block size; not an abstract array declarator. */
+      remark(ec_ambiguous_block_size_spec);
+    }  /* if */
+    /* Skip over the left bracket. */
+    (void)get_token();
+    add_stop_token(tok_rbracket);
+    if (curr_token == tok_rbracket) {
+      /* Empty brackets indicate an indefinite block size. */
+      block_size = UPC_BLOCK_SIZE_INDEFINITE;
+    } else if (curr_token == tok_star) {
+      /* Pure block allocation requested. */
+      block_size = UPC_BLOCK_SIZE_BLOCK;
+    } else {
+      /* Get the integer constant for the block size */
+      a_constant  constant;
+      scan_integral_constant_expression(&constant);
+      switch(constant.kind) {
+        case ck_integer:
+          /* The block size must be greater than or equal to zero, with
+             zero indicating an indefinite block size. */
+          if (sign_of_integer_constant(&constant) < 0) {
+            error(ec_shared_block_size_must_be_positive);
+            *err = TRUE;
+          } else {
+            block_size = unsigned_value_of_integer_constant(&constant, err);
+            if (!*err) {
+              if (block_size == 0) {
+                block_size = UPC_BLOCK_SIZE_INDEFINITE;
+              } else {
+                *err = warn_if_block_size_too_large(block_size);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          break;
+        case ck_upc_threads:
+          error(ec_threads_constant_not_allowed);
+          /*FALLTHROUGH*/
+        case ck_error:
+          *err = TRUE;
+          break;
+#if CHECKING
+        default:
+          internal_error("UPC shared block size: bad constant kind");
+#endif /* if CHECKING */
+      }  /* switch */
+    }  /* if */
+    /* Make sure we have a right bracket */
+    (void)required_token(tok_rbracket, ec_exp_rbracket);
+    remove_stop_token(tok_rbracket);
+    if (curr_token == tok_lbracket) {
+      /* More than one block size found.  Scan them all
+         to avoid misleading error messages. */
+      error(ec_multiple_block_sizes);
+      *err = TRUE;
+      while (curr_token == tok_lbracket) {
+        a_constant  dummy_constant;
+        (void)get_token();
+        add_stop_token(tok_rbracket);
+        scan_integral_constant_expression(&dummy_constant);
+        (void)required_token(tok_rbracket, ec_exp_rbracket);
+        remove_stop_token(tok_rbracket);
+      }  /* while */
+    }  /* if */
+  }  /* if */
+  return block_size;
+}  /* scan_upc_block_size */
+
+#endif UPC_EXTENSIONS_ALLOWED
 
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is not used in that case. */
@@ -4346,7 +4473,8 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_type_qualifier_set       *qualifiers,
                           an_attribute_ptr           *attributes,
                           a_decl_modifiers_block_ptr decl_modifiers,
-                          a_decl_pos_block_ptr       decl_pos_block)
+                          a_decl_pos_block_ptr       decl_pos_block,
+                          a_upc_block_size           *upc_block_size)
 /*
 Scan a list of declaration specifiers.  Specifically, scan a
 declaration-specifiers (3.5), a specifier_qualifier_list (3.5.2.1), or
@@ -4448,7 +4576,9 @@ recognized as an omitted semi-colon or comma after a class or enum
 definition (e.g., "typedef int T; struct A { ... } T x;").
 When supporting GNU extensions, returns *attributes indicating any
 attributes that were present in the specifiers.  If attributes is
-NULL, then attributes are not allowed.
+NULL, then attributes are not allowed.  When upc_block_size is non-NULL,
+the block size associated with a UPC shared qualifier is passed back to
+the caller through that pointer.
 
 Returns TRUE if there is an error in the specifiers.
 */
@@ -4479,15 +4609,22 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  any_decl_specifiers_seen = FALSE;
   a_boolean                  marked_as_gnu_extension =
                                   (input_flags & DSI_MARKED_AS_GNU_EXTENSION);
-
+  a_upc_block_size           block_size = 0;
+#if UPC_EXTENSIONS_ALLOWED
+  a_upc_block_size           saved_block_size;
+  a_boolean                  multiple_shared_seen = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+ 
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
   *qualifiers = TQ_NONE;
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_block_size != NULL) *upc_block_size = 0;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  if (attributes)
-    *attributes = NULL;
+  if (attributes != NULL) *attributes = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   clear_decl_modifiers_block(decl_modifiers);
 #if GNU_EXTENSIONS_ALLOWED
@@ -4911,6 +5048,72 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
+#if UPC_EXTENSIONS_ALLOWED
+      case tok_upc_strict:
+        /* UPC strict type qualifier. */
+        check_assertion(C_mode() && upc_mode);
+        if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+          /* Duplicate qualifier are allowed in C99 mode (with a warning). */
+          es = c99_mode ? es_warning : es_error;
+          if (*qualifiers & TQ_UPC_RELAXED) {
+            /* It is an error to have both strict and relaxed. */
+            es = es_error;
+          }  /* if */
+          diagnostic(es, ec_dupl_type_qualifier);
+          if (es == es_error) err = TRUE;
+        } else {
+          non_restrict_qualifier_pos = pos_curr_token;
+          *qualifiers |= TQ_UPC_STRICT;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+        }  /* if */
+        break;
+      case tok_upc_relaxed:
+        /* UPC relaxed type qualifier. */
+        check_assertion(C_mode() && upc_mode);
+        if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+          /* Duplicate qualifiers are allowed in C99 mode (with a warning). */
+          es = c99_mode ? es_warning : es_error;
+          if (*qualifiers & TQ_UPC_STRICT) {
+            /* It is an error to have both strict and relaxed. */
+            es = es_error;
+          }  /* if */
+          diagnostic(es, ec_dupl_type_qualifier);
+          if (es == es_error) err = TRUE;
+        } else {
+          non_restrict_qualifier_pos = pos_curr_token;
+          *qualifiers |= TQ_UPC_RELAXED;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+        }  /* if */
+        break;
+      case tok_upc_shared:
+        /* UPC shared type qualifier. */
+        if (*qualifiers & TQ_UPC_SHARED) {
+          /* Duplicate qualifiers are allowed in C99 mode (with a warning). */
+          es = c99_mode ? es_warning : es_error;
+          /* Save information to compare the block sizes.  If the block
+             sizes do not match, the type will be rejected. */
+          multiple_shared_seen = TRUE;
+          saved_block_size = block_size;
+        } else {
+          non_restrict_qualifier_pos = pos_curr_token;
+          *qualifiers |= TQ_UPC_SHARED;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+        }  /* if */
+        /* Go past "shared" to see if a block size is specified. */
+        (void)get_token();
+        block_size = scan_upc_block_size(basic_type, &err);
+        if (multiple_shared_seen) {
+          /* We've seen multiple UPC shared qualifiers.  Sometimes this
+             is accepted with a warning, but if the block sizes are
+             different, an error must be issued (no matter what mode). */
+          if (block_size != saved_block_size) {
+            es = es_error;
+          }  /* if */
+          if (es == es_error) err = TRUE;
+          diagnostic(es, ec_dupl_type_qualifier);
+        }  /* if */
+        goto no_get_token;
+#endif /* UPC_EXTENSIONS_ALLOWED */
       case tok_restrict:
         /* restrict type qualifier. */
         if (*qualifiers & TQ_RESTRICT) {
@@ -6059,13 +6262,30 @@ exit_loop:
         err = TRUE;
       } else {
         /* Add any type qualifiers (const or volatile) to the type. */
-        if (!add_type_qualifiers(type_ptr, qualifiers,
+        if (!add_type_qualifiers(type_ptr, qualifiers, block_size,
                                  &non_restrict_qualifier_pos,
                                  &restrict_pos)) {
           err = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  } else if (upc_mode && !err) {
+    if (*qualifiers & TQ_UPC_SHARED) {
+    /* A shared type qualifier was correctly parsed.  Pass the associated
+       block size back to the caller if needed. */
+      if (upc_block_size != NULL) {
+        *upc_block_size = block_size;
+      }  /* if */
+    } else if (!err) {
+      /* The UPC strict and relaxed qualifiers can only appear combined with
+         the shared shared qualifier. */
+      if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+        error(ec_nonshared_strict_relaxed);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   /* If there was an error, assume something was declared.  Who knows what the
      correct code should have done. */

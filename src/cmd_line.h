@@ -212,6 +212,10 @@ typedef enum /*an_option_kind*/ {
   optk_long_long,
   optk_context_limit,
   optk_set_flag,
+#if UPC_EXTENSIONS_ALLOWED
+  optk_upc_mode,
+  optk_upc_threads,
+#endif /* UPC_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1458,6 +1462,21 @@ EXTERN a_boolean
 			   by zero) should be handled according to the IEEE
 			   floating-point standard, i.e., they generate NaNs
 			   and Infinities and no errors are issued. */
+
+
+#if UPC_EXTENSIONS_ALLOWED
+
+EXTERN a_host_large_integer
+		upc_num_threads
+#if VAR_INITIALIZERS
+			= 0
+#endif /* VAR_INITIALIZERS */
+			   ;
+			/* Indicates the compile-time number of threads.
+			   If zero, indicates the number is determined at
+			   run time. */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 
 /* Process the command line arguments. */

@@ -2822,6 +2822,13 @@ returned set to TRUE.
          again, and we have the variable from the earlier declaration). */
       pos_sy_error(ec_already_initialized, source_pos, symbol_ptr);
       var_err = TRUE;
+#if UPC_EXTENSIONS_ALLOWED
+    } else if (is_underlying_shared_qualified_type(vp_type)) {
+      /* Objects with shared types cannot have initializers. */
+      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
+      var_err = TRUE;
+      vp_type = NULL;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
       /* Only object types (except for VLAs) and incomplete arrays are
          allowed to be initialized. */

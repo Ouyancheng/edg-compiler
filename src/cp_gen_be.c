@@ -6909,7 +6909,8 @@ Generate code for the indicated "for" statement.
   /* Generate "for (init; test; incr) statement".
      "init" might be an expression or a declaration, or omitted;
      "test" and "incr" are expressions and may also be omitted. */
-  write_tok_str("for (");
+  write_tok_str(statement->kind == (a_statement_kind)stmk_for ?
+                                                     "for (" : "upc_forall (");
   if (for_init_scope != NULL) push_name_context(for_init_scope);
   /* Generate the initialization statement or declaration. */
   init_stmt = statement->variant.for_loop.extra_info->initialization;
@@ -6973,6 +6974,19 @@ Generate code for the indicated "for" statement.
     write_space();
     gen_full_expression(incr);
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (statement->kind == (a_statement_kind)stmk_upc_forall) {
+    /* Output the UPC affinity clause. */
+    an_expr_node_ptr  affinity = statement->variant.for_loop.extra_info
+                                          ->affinity;
+    if (affinity != NULL) {
+      write_tok_str("; ");
+      gen_full_expression(affinity);
+    } else {
+      write_tok_str("; continue");
+    }  /* if */
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   write_tok_str(") ");
   /* Generate the dependent statement. */
   gen_statement(statement->variant.for_loop.statement);
@@ -7906,6 +7920,25 @@ Generate code for a block statement ("{ ... }").
     push_name_context(scope);
     need_context_pop = TRUE;
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (statement->variant.block.extra_info != NULL) {
+    /* If necessary, output a pragma to override the default UPC access
+       method. */
+    a_upc_access_method  access_method = statement->variant.block.extra_info
+                                                  ->upc_access_method;
+    if (access_method == (a_upc_access_method)upc_access_unspecified) {
+      /* No pragma needed. */
+    } else if (access_method == (a_upc_access_method)upc_access_strict) {
+      begin_pp_directive("#pragma upc strict", (char*)NULL);
+      end_pp_directive();
+    } else if (access_method == (a_upc_access_method)upc_access_relaxed) {
+      begin_pp_directive("#pragma upc relaxed", (char*)NULL);
+      end_pp_directive();
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* Generate local label declarations (if any). */
   gen_local_label_declarations();
@@ -8213,6 +8246,9 @@ statement unless suppress_trailing_space is TRUE.
       gen_full_boolean_controlling_expression(statement->expr);
       write_tok_str(");");
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case stmk_for:
       /* "for" statement. */
       gen_for_statement(statement);
@@ -8395,6 +8431,23 @@ statement unless suppress_trailing_space is TRUE.
     case stmk_vla_decl:
       /* No output. */
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_notify:
+    case stmk_upc_wait:
+    case stmk_upc_barrier:
+      write_tok_str(kind == (a_statement_kind)stmk_upc_notify ? "upc_notify" :
+                    kind == (a_statement_kind)stmk_upc_wait ?   "upc_wait" :
+                                                                "upc_barrier");
+      if (statement->expr != NULL) {
+        write_space();
+        gen_full_expression(statement->expr);
+      }  /* if */
+      write_tok_ch(';');
+      break;
+    case stmk_upc_fence:
+      write_tok_str("upc_fence;");
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case stmk_vla_dealloc:
       /* VLA dealloc statements should not be generated in configurations with
          a C++-generating back end.  This should be controlled by the

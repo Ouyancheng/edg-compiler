@@ -955,6 +955,20 @@ Initialize the option information table.
   add_option_description(optk_set_flag, "clear_flag", '\0',
                          /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
+#if UPC_EXTENSIONS_ALLOWED
+  add_option_description(optk_upc_mode,
+                         "upc",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_upc_mode,
+                         "no_upc",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_upc_threads,
+                         "upc_threads",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -2491,6 +2505,28 @@ order of development of this front end, and is inconsistent and strange.
   }  /* if */
 }  /* check_dialect_and_language_modes */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void check_upc_mode(void)
+/*
+Check that UPC mode is enabled only in ANSI C or C99 mode; i.e., not K&R C
+(which has no type qualifiers) and not C++.
+*/
+{
+  check_assertion(upc_mode);
+  if (C_dialect != C_dialect_ANSI) {
+    if (option_kind_used[(int)optk_upc_mode]) {
+      /* UPC mode was explicitly enabled: Issue an error. */
+      command_line_error(ec_cl_upc_requires_ansi_c_dialect);
+    }  /* if */
+    /* If UPC mode is the default (and not mentioned on the command line),
+       this will silently turn it off. */
+    upc_mode = FALSE;
+  }  /* if */
+}  /* check_upc_mode */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
 
 static void check_for_duplicated_file_names(void)
@@ -3434,6 +3470,18 @@ enable_microsoft_mode:
         /* Set the value of a specified flag name. */
         set_flag_value(opt_arg, opt_value);
         break;
+#if UPC_EXTENSIONS_ALLOWED
+      case optk_upc_mode:
+        /* Enable (or disable) support for Unified Parallel C.  Specifying
+           these options also implies C mode. */
+        upc_mode = opt_value;
+        C_dialect = C_dialect_ANSI;
+        break;
+      case optk_upc_threads:
+        /* Set the number of UPC threads at compile time. */
+        upc_num_threads = scan_opt_arg_number(opt_arg);
+        break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -3559,6 +3607,11 @@ enable_microsoft_mode:
   } else {
     exclude_gcc_specific_options();
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) {
+    check_upc_mode();
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {
     /* -tlocal mode cannot be used with automatic instantiation.  If

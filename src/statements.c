@@ -102,6 +102,19 @@ static a_control_flow_descr_ptr
 #define function_scope_object_lifetime                                \
   (scope_stack[depth_innermost_function_scope].curr_scope_object_lifetime)
 
+#if UPC_EXTENSIONS_ALLOWED
+static a_statement_ptr
+	affinity_forall_loop;
+			/* The enclosing UPC forall loop with an affinity.
+			   NULL if there is no such loop.  */
+
+static a_statement_ptr
+	innermost_forall_loop;
+			/* The innermost enclosing UPC forall loop (with or
+			   without an affinity).  NULL if there is no such
+			   loop. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -496,6 +509,9 @@ to it.
 #if DEBUG
   cfdp->id_number = ++id_number;
 #endif /* DEBUG */
+#if UPC_EXTENSIONS_ALLOWED
+  cfdp->enclosing_forall = NULL;
+#endif /* UPC_EXTENSIONS_ALLOWED */
   switch (kind) {
     case cfdk_block:
       cfdp->variant.block.end_of_block = NULL;
@@ -1516,6 +1532,10 @@ should be set to TRUE.
       case stmk_end_test_while:
         head_ptr = &ssp->variant.loop_statement;
         break;
+#if UPC_EXTENSIONS_ALLOWED
+      /* Handle UPC forall like for. */
+      case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       case stmk_for:
         if (sssep->for_init) {
           head_ptr = &ssp->variant.for_loop.extra_info->initialization;
@@ -2768,6 +2788,9 @@ if the truth cannot be discovered, is FALSE.
 
   if (stmt->kind == (a_statement_kind)stmk_while ||
       stmt->kind == (a_statement_kind)stmk_end_test_while ||
+#if UPC_EXTENSIONS_ALLOWED
+      stmt->kind == (a_statement_kind)stmk_upc_forall ||
+#endif /* UPC_EXTENSIONS_ALLOWED */
       stmt->kind == (a_statement_kind)stmk_for) {
     expr = stmt->expr;
     /* In the "for" loop, the expression can be NULL and that implies an
@@ -4164,13 +4187,28 @@ either an expression statement or a declaration statement.
   a_statement_ptr   sp;
   a_boolean         saved_flag;
   a_boolean         is_condition_decl = FALSE;
+  a_boolean         processing_upc_forall = FALSE;
+#if UPC_EXTENSIONS_ALLOWED
+  an_expr_node_ptr  affinity_expr = NULL;
+  a_statement_ptr   saved_innermost_forall_loop;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
   db_enter(3, "for_statement");
   check_loop_unreachable_code();
   /* Push a scope in C99 mode. */
   push_c99_statement_scope();
   /* Allocate the for statement. */
-  sp = add_statement((a_statement_kind)stmk_for);
+#if UPC_EXTENSIONS_ALLOWED
+  if (curr_token == tok_upc_forall) {
+    /* This is a UPC forall statement. */
+    processing_upc_forall = TRUE;
+    sp = add_statement((a_statement_kind)stmk_upc_forall);
+  } else
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    sp = add_statement((a_statement_kind)stmk_for);
+  }  /* if */
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -4178,9 +4216,8 @@ either an expression statement or a declaration statement.
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_for, sp, (an_object_lifetime_ptr)NULL);
   /* Ignore the initial "for". */
-#if CHECKING
-  if (curr_token != tok_for) internal_error("for_statement: expected for");
-#endif /* CHECKING */
+  check_assertion_str(processing_upc_forall || curr_token == tok_for,
+                      "for_statement: expected for");
   (void)get_token();
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
@@ -4196,9 +4233,12 @@ either an expression statement or a declaration statement.
     scan_condition(sp, &is_condition_decl);
   }  /* if */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
-  remove_stop_token(tok_semicolon);
+  if (!processing_upc_forall) {
+    remove_stop_token(tok_semicolon);
+  }  /* if */
   /* Scan the incrementing expression if it is present. */
-  if (curr_token != tok_rparen) {
+  if (curr_token != tok_rparen &&
+      !(processing_upc_forall && curr_token == tok_semicolon)) {
     /* Be sure that no used-before-set warnings are issued in scanning
        the increment expression -- after all, a variable it references could
        be set within the body of the loop.  */
@@ -4211,11 +4251,57 @@ either an expression statement or a declaration statement.
     /* Restore the global variable. */
     suppress_used_before_set_warnings = saved_flag;
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  /* Process the affinity expression */
+  if (processing_upc_forall) {
+    /* Go past the required semicolon */
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
+    remove_stop_token(tok_semicolon);
+    if (curr_token == tok_rparen) {
+      /* Affinity expression was omitted */
+    } else if (curr_token == tok_continue) {
+      /* Skip the "continue" and treat as an omitted affinity expression */
+      (void)get_token();
+    } else {
+      affinity_expr = scan_upc_forall_affinity();
+    }  /* if */
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
+#if UPC_EXTENSIONS_ALLOWED
+  if (processing_upc_forall) {
+    if (affinity_forall_loop != NULL && affinity_expr != NULL) {
+      /* Ignore the affinity expression since we are inside another forall
+         loop, and it will never be needed.  */
+      remark(ec_nested_upc_forall);
+      affinity_expr = NULL;
+    }  /* if */
+    if (affinity_expr != NULL) {
+      /* Save the affinity expression for reference later. */
+      sp->variant.for_loop.extra_info->affinity = affinity_expr;
+      affinity_forall_loop = sp;
+    }  /* if */
+    /* When scanning the dependent statement, save and restore the pointer to
+       the innermost forall loop, replacing it with a pointer to the current
+       statement so we can check for attempts to branch into or out of the
+       loop.  */
+    saved_innermost_forall_loop = innermost_forall_loop;
+    innermost_forall_loop = sp;
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   /* Scan the dependent statement. */
   dependent_statement();
+#if UPC_EXTENSIONS_ALLOWED
+  /* Restore the innermost forall loop tracking. */
+  if (processing_upc_forall) {
+    innermost_forall_loop = saved_innermost_forall_loop;
+    if (affinity_expr != NULL) {
+      affinity_forall_loop = NULL;
+    }  /* if */
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* End the condition block, if necessary. */
@@ -4403,6 +4489,14 @@ diagnose the condition.
     db_cfd_and_parents(label_cfdp);
   }  /* if */
 #endif /* DEBUG */
+#if UPC_EXTENSIONS_ALLOWED
+  if (label_cfdp->enclosing_forall != goto_cfdp->enclosing_forall) {
+    /* goto and label are either in different forall statements or
+       one is in a forall and the other is not.  */
+    pos_error(ec_exit_forall, &goto_cfdp->source_pos);
+  } else
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (check_for_branch_into_try_or_catch_block(label_cfdp, goto_cfdp)) {
     /* Ignore the jump-over-initialization errors -- this is an illegal
        branch into a catch clause or try block.  (The diagnostic has
@@ -4591,6 +4685,11 @@ condition is not recognized till the label statement is reached.
             alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_label);
     label_cfdp->variant.label_statement = sp;
     label_cfdp->source_pos = *pos;
+#if UPC_EXTENSIONS_ALLOWED
+    /* Keep track of any enclosing forall loop to make sure no exits
+       or entries of forall loops are attempted.  */
+    label_cfdp->enclosing_forall = innermost_forall_loop;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     add_to_control_flow_descr_list(label_cfdp);
     label_sym->variant.label.assoc_control_flow_descr = label_cfdp;
     if (goto_cfdp != NULL) {
@@ -5165,6 +5264,14 @@ See also 3.6.6.4.
     stmt_update_source_sequence_entry(sp, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (innermost_forall_loop != NULL) {
+    /* Cannot issue return from inside a forall loop */
+    error(ec_exit_forall);
+    sp = NULL;
+    return_type = error_type();
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   if (sp != NULL) {
     /* Do processing required for any pragmas that are bound to the current
        statement. */
@@ -5879,6 +5986,91 @@ Scan a default case label definition.  The syntax is:
   db_exit();
 }  /* default_label */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void upc_barrier_style_statement(void)
+/*
+Parse the barrier-style UPC statements upc_notify, upc_wait, and upc_barrier.
+Each has the form
+    <keyword> <integer-expr> ;
+*/
+{
+  a_statement_ptr               sp;
+  a_statement_kind              kind;
+
+  switch (curr_token) {
+    case tok_upc_notify:
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, "UPC notify statement\n");
+      }  /* if */
+#endif /* DEBUG */
+      kind = stmk_upc_notify;
+      break;
+    case tok_upc_wait:
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, "UPC wait statement\n");
+      }  /* if */
+#endif /* DEBUG */
+      kind = stmk_upc_wait;
+      break;
+    case tok_upc_barrier:
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, "UPC barrier statement\n");
+      }  /* if */
+#endif /* DEBUG */
+      kind = stmk_upc_barrier;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+  check_for_unreachable_code();
+  /* Allocate the statement. */
+  sp = add_statement(kind);
+  stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  /* Skip the initial token */
+  (void)get_token();
+  add_stop_token(tok_semicolon);
+  sp->expr = NULL;
+  if (curr_token != tok_semicolon) {
+    /* Scan the notification condition expression */
+    sp->expr = scan_integer_expression(/*is_switch_expr=*/FALSE);
+  }  /* if */
+  /* Check for and ignore the final semicolon */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+}  /* upc_barrier_style_statement */
+
+
+static void upc_fence_statement(void)
+/*
+Parse a statement of the form
+	upc_fence ;
+*/
+{
+  a_statement_ptr sp;
+
+  check_for_unreachable_code();
+  /* Allocate the statement. */
+  sp = add_statement((a_statement_kind)stmk_upc_fence);
+  stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  /* Skip the "upc_fence" token */
+  check_assertion(curr_token == tok_upc_fence);
+  (void)get_token();
+  /* Check for and ignore the final semicolon */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+}  /* upc_fence_statement */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 static void statement(a_boolean is_dependent_statement,
                       a_boolean marked_as_gnu_extension)
@@ -5935,6 +6127,10 @@ rescan_statement:
       /* do .. while statement (3.6.5). */
       do_statement();
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_forall:
+    /* The upc_forall statement is similar to the standard for statement. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_for:
       /* For statement (3.6.5). */
       for_statement();
@@ -6111,6 +6307,17 @@ rescan_statement:
       remove_stop_token(tok_rbrace);
       empty_statement();
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    /* UPC-only constructs. */
+    case tok_upc_notify:
+    case tok_upc_wait:
+    case tok_upc_barrier:
+      upc_barrier_style_statement();
+      break;
+    case tok_upc_fence:
+      upc_fence_statement();
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     default:
 expr_statement:
       /* An expression statement or a declaration.  Declarations can be
@@ -6312,6 +6519,9 @@ e.g., ({ ... }).
   /* This is the only place within a compound statement where C99 predefined
      pragmas are permitted. */
   if (c99_mode) check_for_stdc_pragmas();
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) check_for_upc_pragmas(block);
+#endif /* UPC_EXTENSIONS_ALLOWED */
   /* It is also the only place where a GNU C local label can be declared.
      Normally, such labels should only appear in statement expressions. */
   while (gcc_mode && curr_token == tok_identifier &&

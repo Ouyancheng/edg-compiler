@@ -98,12 +98,14 @@ the type symbol for the typedef, for use in diagnostics.
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_type_qualifier_set collect_type_qualifiers(
-                                       a_decl_pos_block_ptr  decl_pos_block)
+                                       a_decl_pos_block_ptr  decl_pos_block,
+                                       a_upc_block_size      *upc_block_size)
 /*
 Call decl_specifiers to scan one or more declarator qualifiers, and return
 a bit vector describing what was found.  At least one qualifier must be
 present (i.e., the caller must have already checked that the current
-token is a qualifier).
+token is a qualifier).  If a UPC shared qualifier is seen, the associated
+block size is returned through upc_block_size (when non-NULL).
 */
 {
   a_decl_flag_set         dsi_flags, dso_flags;
@@ -119,7 +121,8 @@ token is a qualifier).
   (void)decl_specifiers(dsi_flags, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
                         &qualifiers, (an_attribute_ptr *)NULL, 
-			&dummy_decl_modifiers, &local_decl_pos_block);
+                        &dummy_decl_modifiers, &local_decl_pos_block,
+                        upc_block_size);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -632,7 +635,13 @@ property fields).
                could end up being instantiated with a class type). */
           } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
             /* Exactly one type qualifier -- "restrict".  No warning. */
-          } else if (is_reference_type(new_type_ptr)) {
+#if UPC_EXTENSIONS_ALLOWED
+          } else if (is_shared_qualified_type(new_type_ptr)) {
+            /* Functions cannot return a shared type. */
+            error(ec_function_returning_shared);
+            err = TRUE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+         } else if (is_reference_type(new_type_ptr)) {
             /* A diagnostic will already have been issued. */
           } else {
             /* Type qualifiers on a function return type are meaningless.
@@ -1323,7 +1332,8 @@ declaration.
         (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
                               &param_type_ptr, &qualifiers, 
                               &attributes, &decl_modifiers,
-                              &local_decl_pos_block);
+                              &local_decl_pos_block,
+                              /*upc_block_size=*/NULL);
 #if GNU_EXTENSIONS_ALLOWED
         /* Find the end of the current attribute list. */
         while (*last_attribute != NULL) {
@@ -1934,7 +1944,8 @@ declaration.
       a_source_position  qualifier_pos;
 
       copy_source_position(pos_curr_token, qualifier_pos);
-      qualifiers = collect_type_qualifiers(decl_pos_block);
+      qualifiers = collect_type_qualifiers(decl_pos_block,
+                                           /*upc_block_size=*/NULL);
       /* When a member function is declared with the restrict qualifier, the
          qualifier attaches to the this pointer, not to *this (as with const
          and volatile). */
@@ -2069,6 +2080,9 @@ declaration.
   an_expr_node_ptr        dim_expr = NULL;
   a_boolean               static_seen = FALSE;
   a_type_qualifier_set    qualifiers = TQ_NONE;
+#if UPC_EXTENSIONS_ALLOWED
+  a_boolean               upc_threads_dimension = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -2095,7 +2109,8 @@ declaration.
     a_source_position     qualifier_pos;
 
     qualifier_pos = pos_curr_token;
-    qualifiers = collect_type_qualifiers(decl_pos_block);
+    qualifiers = collect_type_qualifiers(decl_pos_block,
+                                         /*upc_block_size=*/NULL);
     if (top_level_param_decl) {
       /* This is a top-level declaration of a function parameter type. */
       /* Only C99 mode allows cv-qualifiers.  restrict is allowed in
@@ -2166,6 +2181,12 @@ declaration.
     }  /* if */
     if (dim_expr == NULL) {
       switch (constant.kind) {
+#if UPC_EXTENSIONS_ALLOWED
+        case ck_upc_threads:
+          /* The array is dimensioned to a multiple of THREADS.  Set the
+             flag and fall through to the integer case. */
+          upc_threads_dimension = TRUE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
         case ck_integer:
           /* Array size must be greater than zero. */
           if (sign_of_integer_constant(&constant) > 0) {
@@ -2288,6 +2309,11 @@ declaration.
       }  /* if */
       switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    /* Record whether the dimension is a multiple of THREADS. */
+    (*new_type_ptr)->variant.array.is_threads_dimension =
+                                                        upc_threads_dimension;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     /* The size of the array (in bytes) is updated in 
        add_to_derived_type_list. */
   }  /* if */
@@ -2570,7 +2596,8 @@ scanned and thrown away with a warning.
       /* Normal qualifiers like const, and declarator-only qualifiers like
          near. */
       *qual_pos = pos_curr_token;
-      new_qualifiers = collect_type_qualifiers(decl_pos_block);
+      new_qualifiers = collect_type_qualifiers(decl_pos_block,
+                                               /*upc_block_size=*/NULL);
       duplicates = (new_qualifiers & *qualifiers);
 #if NEAR_AND_FAR_ALLOWED
       if (near_and_far_enabled()) {
@@ -2777,6 +2804,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   a_call_conv_descr		ccd;
   a_source_position		based_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+  a_upc_block_size      upc_block_size = UPC_BLOCK_SIZE_NONE;
 
   db_enter(3, "pointer_declarator");
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
@@ -3032,7 +3060,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     { /* Just look for type qualifiers. */
       qualifiers = TQ_NONE;
       if (is_type_qualifier()) {
-        qualifiers = collect_type_qualifiers(decl_pos_block);
+        qualifiers = collect_type_qualifiers(decl_pos_block, &upc_block_size);
       }  /* if */
     }
     if (qualifiers != TQ_NONE) {
@@ -3060,7 +3088,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Restore the restrict bit if it was on. */
       qualifiers |= restrict_bit;
       /* Add the qualifiers to the complete type being built up. */
-      complete_type = make_qualified_type(complete_type, qualifiers);
+      complete_type = f_make_qualified_type(complete_type, qualifiers,
+                                            upc_block_size);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Attributes may appear after the pointer declarator in some cases. */
@@ -3569,6 +3598,40 @@ to FALSE if the entity being declared is not initializable.
   db_exit();
 }  /* scan_real_declarator_id */
 
+
+#if UPC_EXTENSIONS_ALLOWED
+static void check_and_update_upc_type(a_type_ptr       type,
+                                      a_decl_flag_set  input_flags)
+/*
+If the given type is an array, check whether it satisfies the UPC
+constraints regarding THREADS-dependent dimensions.  If necessary
+also resolve any UPC block sizes.  (input_flags is the set of flags
+passed to r_declarator.)
+*/
+{
+  if (is_array_type(type)) {
+    if (is_underlying_threads_dimensioned_array_type(type)) {
+      if (!is_underlying_shared_qualified_type(type)) {
+        /* Nonshared data cannot be THREADS-dimensioned. */
+        error(ec_nonshared_threads_dim);
+      }  /* if */
+    } else if (!(input_flags &
+                 (DI_IS_TYPEDEF_DECLARATION | DI_IS_PARAMETER_DECL)) &&
+               upc_dynamic_threads() &&
+               get_underlying_upc_block_size(type) !=
+                                                   UPC_BLOCK_SIZE_INDEFINITE &&
+               is_underlying_shared_qualified_type(type) &&
+               skip_typerefs(type)->
+                               variant.array.variant.number_of_elements != 0) {
+      /* Shared data must be THREADS-dimensions (except for parameters, but
+         they decay to pointers). */
+      error(ec_shared_nonthreads_dim);
+    }  /* if */
+  }  /* if */
+  /* Resolve any pure block or automatic block sizes. */
+  fixup_upc_block_size(type);
+}  /* check_and_update_upc_type */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
@@ -4259,6 +4322,11 @@ function_lparen:
       bottom_derived_type = NULL;
     }  /* if */
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode && complete_type != NULL) {
+    check_and_update_upc_type(complete_type, input_flags);
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
@@ -4303,6 +4371,14 @@ function_lparen:
         set_to_error_locator(*locator);
         complete_type = bottom_derived_type = error_type();
       }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+      if (is_underlying_shared_qualified_type(complete_type) &&
+          (input_flags & DI_NONSTATIC_MEMBER) != 0) {
+        /* Shared types cannot be allocated inside structs or unions. */
+        error(ec_shared_inside_struct);
+        complete_type = bottom_derived_type = error_type();
+      }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     } else if (func_info != NULL) {
       /* Set the declared type in the func_info block.  Note that further

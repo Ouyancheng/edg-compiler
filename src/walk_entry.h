@@ -548,6 +548,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         switch (ptr->kind) {
           case ck_error:
           case ck_integer:
+#if UPC_EXTENSIONS_ALLOWED
+          case ck_upc_threads:
+          case ck_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
           case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
           case ck_imaginary:
@@ -1409,6 +1413,9 @@ end_sizeof:;
         walk_ptr(ptr->initialization, a_statement_ptr, iek_statement);
         walk_ptr(ptr->increment, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->for_init_scope, a_scope_ptr, iek_scope);
+#if UPC_EXTENSIONS_ALLOWED
+        walk_ptr(ptr->affinity, an_expr_node_ptr, iek_expr_node);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       }
       break;
     case iek_switch_clause:
@@ -1520,7 +1527,13 @@ end_sizeof:;
 #if GNU_EXTENSIONS_ALLOWED
           case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */
-            /* No pointers. */
+#if UPC_EXTENSIONS_ALLOWED
+          case stmk_upc_notify:
+          case stmk_upc_wait:
+          case stmk_upc_barrier:
+          case stmk_upc_fence:
+#endif /* UPC_EXTENSIONS_ALLOWED */
+            /* No additional pointers. */
             break;
           case stmk_if:
             walk_ptr(ptr->variant.if_stmt.then_statement, a_statement_ptr,
@@ -1558,6 +1571,10 @@ end_sizeof:;
                       iek_statement);
             break;
 #ifdef CFE
+#if UPC_EXTENSIONS_ALLOWED
+          /* The upc_forall statement is handled like a for statement. */
+          case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
           case stmk_for:
             walk_ptr(ptr->variant.for_loop.extra_info, a_for_loop_ptr,
                      iek_for_loop);

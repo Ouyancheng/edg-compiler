@@ -795,6 +795,14 @@ Display the indicated constant entry.
     case ck_error:
       (void)printf("ck_error\n");
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case ck_upc_threads:
+      (void)printf("ck_upc_threads\n");
+      break;
+    case ck_upc_mythread:
+      (void)printf("ck_upc_mythread\n");
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       (void)printf("ck_integer\n");
       disp_name("integer_value");
@@ -1007,6 +1015,7 @@ Display a_param_type entry.
   if (ptr->qualifiers != TQ_NONE) {
     disp_name("qualifiers");
     form_type_qualifier((a_type_qualifier_set)ptr->qualifiers,
+                        UPC_BLOCK_SIZE_NONE,
                         /*need_trailing_space=*/FALSE, &octl);
     (void)printf("\n");
   }  /* if */
@@ -1053,7 +1062,8 @@ static void disp_type_qualifiers(a_type_qualifier_set qualifiers)
 Display a set of type qualifiers (e.g., const, volatile).
 */
 {
-  form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, &octl);
+  form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
+                      /*need_trailing_space=*/FALSE, &octl);
 }  /* disp_type_qualifiers */
 
 
@@ -3435,6 +3445,23 @@ do_label:
                iek_statement);
       disp_block(ptr->variant.block.extra_info);
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_notify:
+      (void)printf("stmk_upc_notify\n");
+      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      break;
+    case stmk_upc_wait:
+      (void)printf("stmk_upc_wait\n");
+      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      break;
+    case stmk_upc_barrier:
+      (void)printf("stmk_upc_barrier\n");
+      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      break;
+    case stmk_upc_fence:
+      (void)printf("stmk_upc_fence\n");
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #ifdef CFE
     case stmk_for:
       (void)printf("stmk_for\n");

@@ -444,8 +444,12 @@ extern a_type_ptr make_based_pointer_type(a_type_ptr     type_pointed_to,
 
 extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
 
-extern a_type_ptr make_qualified_type(a_type_ptr            old_type,
-                                      a_type_qualifier_set  qualifier);
+extern a_type_ptr f_make_qualified_type(a_type_ptr            old_type,
+                                        a_type_qualifier_set  qualifier,
+                                        a_upc_block_size      upc_block_size);
+
+#define make_qualified_type(old_type, qualifier)    \
+  f_make_qualified_type(old_type, qualifier, UPC_BLOCK_SIZE_NONE)
 
 /*
 Make a version of type that has the same qualifiers as model_type, and return
@@ -461,10 +465,17 @@ Make a version of type that has the same qualifiers as model_type, and return
 a pointer to it.  The original qualifiers on type, if any, are preserved,
 which means that the result type has all the qualifiers of both types.
 Note that type and model_type need not be the same (or even similar) types
-under the qualifiers.
+under the qualifiers.  When UPC extensions are supported, the UPC block size
+must also be transferred.
 */
+#if UPC_EXTENSIONS_ALLOWED
+#define type_plus_qualifiers_from_second_type(type, model_type)       \
+  (f_make_qualified_type(type, get_type_qualifiers(model_type),       \
+                         get_upc_block_size(model_type)))
+#else /* !UPC_EXTENSIONS_ALLOWED */
 #define type_plus_qualifiers_from_second_type(type, model_type)       \
   (make_qualified_type(type, get_type_qualifiers(model_type)))
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 
@@ -1269,6 +1280,30 @@ extern void il_one_time_init(void);
 extern void il_trans_unit_init(void);
 
 extern void il_init(void);
+
+
+#if UPC_EXTENSIONS_ALLOWED
+
+#define upc_dynamic_threads() (upc_num_threads == 0)
+
+extern void change_integer_constant_to_threads_constant(a_constant  *ic);
+
+extern void convert_threads_constant_to_integer_constant(a_constant  *tc,
+                                                         a_constant  *ic);
+
+extern void set_threads_constant(a_constant            *cp,
+                                 a_host_large_integer  value);
+
+extern a_boolean warn_if_block_size_too_large(a_upc_block_size  block_size);
+
+EXTERN a_upc_block_size
+		max_upc_block_size
+#if VAR_INITIALIZERS
+                         = MAX_UPC_BLOCK_SIZE
+#endif /* VAR_INITIALIZERS */
+                                             ;
+			/* The maximum allowable UPC block size. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef IL_H */
 

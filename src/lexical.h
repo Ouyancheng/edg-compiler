@@ -232,6 +232,22 @@ typedef enum /*a_token_kind*/ {
   tok_extension,
   /* Recognized in cfront compatibility mode only. */
   tok_overload,
+#if UPC_EXTENSIONS_ALLOWED
+  /* Recognized in UPC mode only. */
+  tok_upc_strict,
+  tok_upc_relaxed,
+  tok_upc_shared,
+  tok_upc_forall,
+  tok_upc_barrier,
+  tok_upc_notify,
+  tok_upc_wait,
+  tok_upc_fence,
+  tok_upc_threads,
+  tok_upc_mythread,
+  tok_upc_blocksizeof,
+  tok_upc_localsizeof,
+  tok_upc_elemsizeof,
+#endif UPC_EXTENSIONS_ALLOWED
   /* Token used to indicate keywords that are not yet implemented. */
   tok_unimplemented,
   /* Error token. */
@@ -290,7 +306,13 @@ EXTERN char	*token_names[(int)tok_last+1]
    "reinterpret_cast", "static_cast", "typeid", "using",
    "bool", "false", "true", "typename",
    "__typeof__", "__extension__",
-   "overload", "unimplemented", "error", "removed default arg",
+   "overload",
+#if UPC_EXTENSIONS_ALLOWED
+   "shared", "strict", "relaxed", "upc_forall", "upc_barrier", "upc_notify",
+   "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
+   "upc_localsizeof", "upc_elemsizeof",
+#endif /* UPC_EXTENSIONS_ALLOWED */
+   "unimplemented", "error", "removed default arg",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -677,6 +699,21 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_typeof */
    (an_opname_kind)onk_none,          /* tok_extension */
    (an_opname_kind)onk_none,          /* tok_overload */
+#if UPC_EXTENSIONS_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_upc_shared */
+   (an_opname_kind)onk_none,          /* tok_upc_strict */
+   (an_opname_kind)onk_none,          /* tok_upc_relaxed */
+   (an_opname_kind)onk_none,          /* tok_upc_forall */
+   (an_opname_kind)onk_none,          /* tok_upc_barrier */
+   (an_opname_kind)onk_none,          /* tok_upc_notify */
+   (an_opname_kind)onk_none,          /* tok_upc_wait */
+   (an_opname_kind)onk_none,          /* tok_upc_fence */
+   (an_opname_kind)onk_none,          /* tok_upc_threads */
+   (an_opname_kind)onk_none,          /* tok_upc_mythread */
+   (an_opname_kind)onk_none,          /* tok_upc_blocksizeof */
+   (an_opname_kind)onk_none,          /* tok_upc_localsizeof */
+   (an_opname_kind)onk_none,          /* tok_upc_elemsizeof */
+#endif /* UPC_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */
@@ -1776,9 +1813,20 @@ valid only with certain configurations.
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_unaligned_token(tok)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_type_qualifier_token(tok)                                   \
-  ((tok) == tok_const || (tok) == tok_volatile ||			\
-   (tok) == tok_restrict or_is_unaligned_token(tok))
+/*
+Unified Parallel C adds several new type qualifiers.
+*/
+#if UPC_EXTENSIONS_ALLOWED
+#define or_is_upc_qual_token(tok)                                              \
+  || (tok) == tok_upc_shared || (tok) == tok_upc_strict || (tok) == tok_upc_relaxed
+#else /* !UPC_EXTENSIONS_ALLOWED */
+#define or_is_upc_qual_token(tok) /* Nothing */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
+#define is_type_qualifier_token(tok)                                           \
+  ((tok) == tok_const || (tok) == tok_volatile || (tok) == tok_restrict        \
+  or_is_unaligned_token(tok))                                                  \
+  or_is_upc_qual_token((tok))
 
 
 /* Push a file onto the input stack. */

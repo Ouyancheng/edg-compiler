@@ -6151,6 +6151,23 @@ is TRUE.
   a_constant_ptr saved_wide_string_constants_to_unbind_at_end_of_scope =
                                wide_string_constants_to_unbind_at_end_of_scope;
 
+#if UPC_EXTENSIONS_ALLOWED
+  if (statement->variant.block.extra_info != NULL) {
+    /* If necessary, output a pragma to override the default UPC access
+       method. */
+    a_upc_access_method  access_method = statement->variant.block.extra_info
+                                                  ->upc_access_method;
+    if (access_method == (a_upc_access_method)upc_access_unspecified) {
+      /* No pragma needed. */
+    } else if (access_method == (a_upc_access_method)upc_access_strict) {
+      write_pp_directive("#pragma upc strict", (char*)NULL);
+    } else if (access_method == (a_upc_access_method)upc_access_relaxed) {
+      write_pp_directive("#pragma upc relaxed", (char*)NULL);
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   wide_string_constants_to_unbind_at_end_of_scope = NULL;
   dump_block_declarations(statement);
   dump_statement_list(statement->variant.block.statements, is_statement_expr);
@@ -6439,6 +6456,9 @@ statement expression, i.e., ({...}).
      line info. */
   if (kind != (a_statement_kind)stmk_label
       && kind != (a_statement_kind)stmk_for
+#if UPC_EXTENSIONS_ALLOWED
+      && kind != (a_statement_kind)stmk_upc_forall
+#endif /* UPC_EXTENSIONS_ALLOWED */
       && kind != (a_statement_kind)stmk_init
       && kind != (a_statement_kind)stmk_asm
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -6509,6 +6529,9 @@ statement expression, i.e., ({...}).
       indent -= 2;
       break;
     case stmk_for:
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       /* Put the initializing statement outside the "for" if it's not
          a simple expression statement. */
       need_for_init_closing_brace = FALSE;
@@ -6536,7 +6559,7 @@ statement expression, i.e., ({...}).
         }  /* if */
       }  /* if */
       set_output_position_for_stmt(&statement->position);
-      write_tok_str("for (");
+      write_tok_str(kind == (a_statement_kind)stmk_for ? "for (" : "upc_forall (");
       if (init_expr != NULL) {
 #if CHECKING
         check_result_not_used_flag(init_expr);
@@ -6556,6 +6579,19 @@ statement expression, i.e., ({...}).
 #endif /* CHECKING */
         dump_expression(incr);
       }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+      if (kind == (a_statement_kind)stmk_upc_forall) {
+        /* Output the UPC affinity clause. */
+        an_expr_node_ptr  affinity = statement->variant.for_loop.extra_info
+                                              ->affinity;
+        if (affinity != NULL) {
+          write_tok_ch(';');
+          dump_expression(affinity);
+        } else {
+          write_tok_str("; continue");
+        }  /* if */
+      }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
       write_tok_ch(')');
       indent += 2;
       dump_statement(statement->variant.for_loop.statement);
@@ -6728,6 +6764,23 @@ statement expression, i.e., ({...}).
     case stmk_vla_dealloc:
       /* No output. */
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_notify:
+    case stmk_upc_wait:
+    case stmk_upc_barrier:
+      write_tok_str(kind == (a_statement_kind)stmk_upc_notify ? "upc_notify" :
+                    kind == (a_statement_kind)stmk_upc_wait ?   "upc_wait" :
+                                                                "upc_barrier");
+      if (statement->expr != NULL) {
+        write_space();
+        dump_expression(statement->expr);
+      }  /* if */
+      write_tok_ch(';');
+      break;
+    case stmk_upc_fence:
+      write_tok_str("upc_fence;");
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("dump_statement_full: bad statement kind");
   }  /* switch */
@@ -6905,6 +6958,12 @@ its subtree.
       case stmk_set_vla_size:
       case stmk_vla_decl:
       case stmk_vla_dealloc:
+#if UPC_EXTENSIONS_ALLOWED
+      case stmk_upc_notify:
+      case stmk_upc_wait:
+      case stmk_upc_barrier:
+      case stmk_upc_fence:
+#endif /* UPC_EXTENSIONS_ALLOWED */
         /* No subtree of statements. */
         break;
       case stmk_return:
@@ -6936,6 +6995,9 @@ its subtree.
       case stmk_end_test_while:
         dump_prescan_temps(statement->variant.loop_statement);
         break;
+#if UPC_EXTENSIONS_ALLOWED
+      case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       case stmk_for:
         dump_prescan_temps(
                        statement->variant.for_loop.extra_info->initialization);

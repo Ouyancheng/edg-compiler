@@ -1823,6 +1823,100 @@ pragmas, process them now.
   }  /* for */
 }  /* check_for_stdc_pragmas */
 
+#if UPC_EXTENSIONS_ALLOWED
+void check_for_upc_pragmas(a_statement_ptr sp)
+/*
+Checks for any pending UPC pragmas inside a block; if found there, it affects
+local settings only, so pass along the block statement to which it will be
+associated.
+*/
+{
+  a_pending_pragma_ptr  ppp;
+  a_pending_pragma_ptr  prev_ppp = NULL;
+  a_pending_pragma_ptr  next_ppp;
+
+  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
+    next_ppp = ppp->next;
+    if (ppp->descr_ptr->kind == (a_pragma_kind)pk_upc) {
+      process_upc_pragma(ppp, sp);
+      /* Unlink this entry from the list of current token pragmas. */
+      if (prev_ppp == NULL) {
+        curr_token_pragmas = ppp->next;
+      } else {
+        prev_ppp->next = ppp->next;
+      }  /* if */
+      free_pending_pragma(ppp);
+    } else {
+      prev_ppp = ppp;
+    }  /* if */
+  }  /* for */
+}  /* check_for_upc_pragmas */
+
+
+void process_upc_pragma(a_pending_pragma_ptr   ppp,
+                        a_statement_ptr assoc_statement)
+/*
+Process a predefined UPC pragma.  These pragmas have the following form:
+
+  #pragma upc relaxed
+  #pragma upc strict
+
+This routine is called to process the pragmas when they are known to appear
+in a valid location.  It is called in compound_statement for block scope
+pragmas, and by upc_pragma for pragmas that appear in the file scope.
+*/
+{
+  a_upc_access_method   value;
+  a_boolean             err = FALSE;
+
+  begin_rescan_of_pragma_tokens(ppp);
+  switch (curr_token) {
+    case tok_upc_strict:
+      value = (a_upc_access_method)upc_access_strict;
+      break;
+    case tok_upc_relaxed:
+      value = (a_upc_access_method)upc_access_relaxed;
+      break;
+    default:
+      pos_warning(ec_unrecognized_upc_pragma, &ppp->id_position);
+      err = TRUE;
+  }  /* switch */
+  /* Bypass the value. */
+  if (!err) (void)get_token();
+  wrapup_rescan_of_pragma_tokens(err);
+  if (!err) {
+    if (assoc_statement == (a_statement_ptr)NULL) {
+      /* No associated statement, so update the global setting. */
+      /* FIXME: unimplemented. */
+      unexpected_condition_str("UPC pragma unimplemented");
+    } else {
+      check_assertion_str(assoc_statement->kind == stmk_block,
+                          "process_upc_pragma: expected block");
+      /* Save the local setting in the block. */
+      assoc_statement->variant.block.extra_info->upc_access_method = value;
+    }  /* if */
+  }  /* if */
+}  /* process_upc_pragma */
+
+
+void upc_pragma(a_pending_pragma_ptr   ppp)
+/*
+Process a predefined UPC pragma.  This is the routine that is
+registered with the pragma processing routines.  It calls process_upc_pragma
+for file scope pragmas.  Pragmas that appear elsewhere result in diagnostics.
+For block scope pragmas that appear in a valid location, process_upc_pragma
+is called directly by compound_statement.
+*/
+{
+  if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_file) {
+    process_upc_pragma(ppp, (a_statement_ptr)NULL);
+  } else {
+    pos_warning(ec_pragma_may_not_be_used_here, &ppp->pragma_position);
+  }  /* if */
+}  /* upc_pragma */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 
 #if ALIAS_DIRECTIVE
 static void proc_alias(void)

@@ -1288,6 +1288,10 @@ enum a_constant_repr_kind_tag {
 #endif /* ifdef FIL */
   ck_designator,        /* Used to change the "current object" in an
                            aggregate initializer (C99). */
+#if UPC_EXTENSIONS_ALLOWED
+  ck_upc_threads,       /* The UPC pseudo-constant THREADS. */
+  ck_upc_mythread,      /* The UPC pseudo-constant MYTHREAD. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   ck_last		/*lint -esym(769,a_constant_repr_kind_tag::ck_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -2659,6 +2663,11 @@ enum a_type_qualifier_tag {
   tqt_near,		/* near */
   tqt_far,		/* far */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  tqt_upc_shared,	/* UPC shared */
+  tqt_upc_strict,	/* UPC strict */
+  tqt_upc_relaxed,	/* UPC relaxed */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   tqt_last		/* Must be last. */
 };
 
@@ -2683,6 +2692,14 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 #define TQ_FAR		(1 << (int)tqt_far)
 			/* This bit is set to represent far. */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+#define TQ_UPC_SHARED	(1 << (int)tqt_upc_shared)
+			/* This bit is set to represent UPC shared. */
+#define TQ_UPC_STRICT	(1 << (int)tqt_upc_strict)
+			/* This bit is set to represent UPC strict. */
+#define TQ_UPC_RELAXED	(1 << (int)tqt_upc_relaxed)
+			/* This bit is set to represent UPC relaxed. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*
 The last type qualifier tag value is used as the number of bits required
@@ -2690,6 +2707,21 @@ to represent a type qualifier set.
 */
 #define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
 
+
+#if UPC_EXTENSIONS_ALLOWED
+
+/* Tag values indicating the specific UPC access setting. */
+enum a_upc_access_method_tag {
+  upc_access_unspecified,
+  upc_access_strict,
+  upc_access_relaxed
+};
+
+/* Storage size to be used to hold the UPC access setting. */
+typedef a_byte a_upc_access_method;
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+ 
 
 /* Entry used on parameter type lists for functions.  Note that these
    can be shared between multiple routine definitions. */
@@ -2863,6 +2895,10 @@ enum a_pragma_kind_tag {
 			   by typeid. */
   pk_stdc,		/* Used for the C99 predefined pragmas (i.e.,
 			   FP_CONTRACT, FENV_ACCESS, and CX_LIMITED_RANGE). */
+#if UPC_EXTENSIONS_ALLOWED
+  pk_upc,               /* UPC-specific pragma, controlling the default
+                           access method for shared data. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -2930,7 +2966,10 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_hdrstop */                "hdrstop",
 /* pk_no_pch */                 "no_pch",
 /* pk_define_type_info */       "define_type_info",
-/* pk_stdc */			"STDC",
+/* pk_stdc */                   "STDC",
+#if UPC_EXTENSIONS_ALLOWED
+/* pk_upc */                    "upc",
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
@@ -4307,6 +4346,21 @@ typedef struct a_based_type_list_member {
 } a_based_type_list_member;
 
 
+/* Type used for the internal representation of UPC block sizes. */
+typedef long a_upc_block_size;
+#define UPC_BLOCK_SIZE_NONE ((a_upc_block_size)(-1))
+
+#if UPC_EXTENSIONS_ALLOWED
+
+typedef unsigned int a_upc_phase;
+
+/* Coded values for UPC block size specifications. */
+#define UPC_BLOCK_SIZE_INDEFINITE ((a_upc_block_size)(0))
+#define UPC_BLOCK_SIZE_BLOCK ((a_upc_block_size)(-2))
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
+
 typedef struct a_type {
   /* Description of a type. */
   /* The source_corresp field must be first. */
@@ -4636,6 +4690,12 @@ typedef struct a_type {
 			   static, which indicates for a parameter that the
 			   argument passed must have at least as many members
 			   as the array size. */
+#if UPC_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_threads_dimension:1;
+			/* TRUE if this dimension is a THREADS dimension of
+			   a UPC shared array. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
       union {
         /* When is_variable_size_array and is_template_dependent_size_array
            are FALSE: */
@@ -4856,6 +4916,11 @@ typedef struct a_type {
 			   to something, this points to a copy of the original
 			   type.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
+#if UPC_EXTENSIONS_ALLOWED
+      a_upc_block_size
+		upc_block_size;
+			/* Block size for UPC shared data types. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
       a_bit_field
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Bit set with bits set to indicate the presence
@@ -7601,6 +7666,13 @@ enum a_statement_kind_tag {
 			   variable length array type) should be
 			   deallocated. */
 #endif /* ifdef CIL */
+#if UPC_EXTENSIONS_ALLOWED
+  stmk_upc_notify,	/* Notify statement (split barrier start) */
+  stmk_upc_wait,	/* Wait statement (split barrier end) */
+  stmk_upc_barrier,	/* Barrier statement (full barrier) */
+  stmk_upc_fence,	/* Fence statement */
+  stmk_upc_forall,	/* Forall statement */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #ifdef FIL
   stmk_fentry,		/* Code label for an ENTRY. */
   stmk_ido,		/* Integer DO. */
@@ -7744,6 +7816,13 @@ typedef struct a_block {
 		end_of_block_reachable;
 			/* TRUE if the end of the block is reachable.  The
 			   safe setting is TRUE. */
+#if UPC_EXTENSIONS_ALLOWED
+  a_upc_access_method
+		upc_access_method;
+			/* Indicates the default access method for shared
+			   variables within this block (can be modified with
+			   a UPC pragma). */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 } a_block;
 
@@ -7773,6 +7852,12 @@ typedef struct a_for_loop {
 			   mode if the for-init statement is not a declaration
 			   or if use_nonstandard_for_init_scope is TRUE;
 			   always NULL in C mode. */
+#if UPC_EXTENSIONS_ALLOWED
+  an_expr_node_ptr
+		affinity;
+			/* Pointer to an expression to be tested for affinity
+			   before executing each iteration of the loop. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 } a_for_loop;
 
 /* Information about a handler (or catch-clause) defined within a try block. */

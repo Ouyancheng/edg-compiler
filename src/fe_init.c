@@ -534,6 +534,23 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_export, "export");
     }  /* if */
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) {
+    enter_keyword((a_token_kind)tok_upc_shared,      "shared");
+    enter_keyword((a_token_kind)tok_upc_strict,      "strict");
+    enter_keyword((a_token_kind)tok_upc_relaxed,     "relaxed");
+    enter_keyword((a_token_kind)tok_upc_forall,      "upc_forall");
+    enter_keyword((a_token_kind)tok_upc_barrier,     "upc_barrier");
+    enter_keyword((a_token_kind)tok_upc_notify,      "upc_notify");
+    enter_keyword((a_token_kind)tok_upc_wait,        "upc_wait");
+    enter_keyword((a_token_kind)tok_upc_fence,       "upc_fence");
+    enter_keyword((a_token_kind)tok_upc_threads,     "THREADS");
+    enter_keyword((a_token_kind)tok_upc_mythread,    "MYTHREAD");
+    enter_keyword((a_token_kind)tok_upc_blocksizeof, "upc_blocksizeof");
+    enter_keyword((a_token_kind)tok_upc_localsizeof, "upc_localsizeof");
+    enter_keyword((a_token_kind)tok_upc_elemsizeof,  "upc_elemsizeof");
+  }  /* upc_mode */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* keyword_init */
 

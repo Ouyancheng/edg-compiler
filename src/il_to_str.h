@@ -192,6 +192,7 @@ extern char *float_kind_name(a_float_kind kind);
 #ifdef CFE
 extern void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
+                     a_upc_block_size                      upc_block_size,
                      a_boolean                             need_trailing_space,
                      an_il_to_str_output_control_block_ptr octl);
 #endif /* ifdef CFE */

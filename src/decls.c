@@ -519,6 +519,12 @@ list of GNU C attributes, if applicable.
     if (is_void_type(*type_ptr)) {
       pos_error(ec_void_param_not_allowed, error_pos);
       *type_ptr = error_type();
+#if UPC_EXTENSIONS_ALLOWED
+    } else if (upc_mode && is_shared_qualified_type(*type_ptr)) {
+      /* Do not allow directly shared (i.e. non-pointer) parameter types. */
+      pos_error(ec_shared_parameter, error_pos);
+      *type_ptr = error_type();
+#endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
       /* See if any type qualifiers were specified, and if they are
          okay. */
@@ -4766,6 +4772,27 @@ declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) {
+    if (storage_class == (a_storage_class)sc_auto ||
+        storage_class == (a_storage_class)sc_register) {
+      /* "shared" is only allowed for static and extern variables. */
+      if (is_underlying_shared_qualified_type(type_ptr)) {
+        pos_error(ec_bad_shared_storage_class, &locator->source_position);
+        set_to_error_locator(*locator);
+      }  /* if */
+    }  /* if */
+    if (get_underlying_upc_block_size(type_ptr) ==
+                                                  UPC_BLOCK_SIZE_INDEFINITE &&
+        is_underlying_threads_dimensioned_array_type(type_ptr)) {
+      /* Cannot declare a threads-dimensioned array with indefinite block size,
+         only scalars and arrays with finite array size.  */
+        pos_error(ec_threads_dimension_requires_definite_block_size,
+                  &locator->source_position);
+        set_to_error_locator(*locator);
+    }  /* if */
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
   idlb.storage_class = storage_class;
@@ -7508,9 +7535,9 @@ In C++ mode an error is issued if a type definition appears in a type-name
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-			&storage_class, type_ptr, &qualifiers,
-			(an_attribute_ptr *)NULL, &decl_modifiers,
-			(a_decl_pos_block_ptr)NULL);
+                        &storage_class, type_ptr, &qualifiers,
+                        (an_attribute_ptr *)NULL, &decl_modifiers,
+                        (a_decl_pos_block_ptr)NULL, (a_upc_block_size*)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -7619,8 +7646,8 @@ within this routine if is_parenthesized comes in FALSE.
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
-			(an_attribute_ptr *)NULL, &decl_modifiers,
-			&decl_pos_block);
+                        (an_attribute_ptr*)NULL, &decl_modifiers,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -7739,8 +7766,8 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
-			(an_attribute_ptr *)NULL, &decl_modifiers,
-			&decl_pos_block);
+                        (an_attribute_ptr*)NULL, &decl_modifiers,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7816,8 +7843,8 @@ is no parent.
     clear_decl_pos_block(&decl_pos_block);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
-			  (an_attribute_ptr *)NULL, &decl_modifiers,
-			  &decl_pos_block);
+                          (an_attribute_ptr*)NULL, &decl_modifiers,
+                          &decl_pos_block, (a_upc_block_size*)NULL);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -8292,8 +8319,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
-                              &qualifiers, (an_attribute_ptr *)NULL,
-			      &decl_modifiers, &decl_pos_block);
+                              &qualifiers, (an_attribute_ptr*)NULL,
+                              &decl_modifiers, &decl_pos_block,
+                              (a_upc_block_size*)NULL);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -8702,8 +8730,9 @@ Return a pointer to the variable that is declared.
               DSI_IS_CONDITION_DECL;
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers, (an_attribute_ptr *)NULL,
-			&decl_modifiers, &decl_pos_block);
+                        &qualifiers, (an_attribute_ptr*)NULL,
+                        &decl_modifiers, &decl_pos_block,
+                        (a_upc_block_size*)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &decl_pos);
@@ -10269,7 +10298,8 @@ continue_with_declaration:
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
                         &type_ptr, &qualifiers, &prefix_attributes,
-                        &decl_modifiers, &decl_pos_block);
+                        &decl_modifiers, &decl_pos_block,
+                        (a_upc_block_size*)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
   last_prefix_attribute = last_attribute_link(&prefix_attributes);

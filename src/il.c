@@ -908,7 +908,26 @@ Print the given qualifiers in human readable form.
   if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
   if (qualifiers & TQ_FAR) fputs("far ", f_debug);
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  /* TQ_UPC_SHARED is handled by db_shared_block_size. */
+  if (qualifiers & TQ_UPC_STRICT) fputs("strict ", f_debug);
+  if (qualifiers & TQ_UPC_RELAXED) fputs("relaxed ", f_debug);
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* db_qualifiers */
+
+
+#if UPC_EXTENSIONS_ALLOWED
+static void db_shared_block_size(a_type_ptr tp)
+/*
+If the given type is UPC shared, print the corresponding qualifier,
+including the associated block size.
+*/
+{
+  if (tp->variant.typeref.qualifiers & TQ_UPC_SHARED) {
+    fprintf(f_debug, "shared [%ld] ", tp->variant.typeref.upc_block_size);
+  }  /* if */
+} /* db_shared_block_size */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 
 void db_type(a_type *tp)
@@ -990,6 +1009,11 @@ Dump the contents of the indicated type entry, for debug purposes.
         } else {
           fprintf(f_debug, "%lu",
                   (unsigned long)tp->variant.array.variant.number_of_elements);
+#if UPC_EXTENSIONS_ALLOWED
+          if (tp->variant.array.is_threads_dimension) {
+            fprintf(f_debug, "*THREADS");
+          }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
         }  /* if */
         fputs("] of ", f_debug);
         db_abbreviated_type(tp->variant.array.element_type);
@@ -1207,6 +1231,9 @@ Dump the contents of the indicated type entry, for debug purposes.
       case tk_typeref:
         if (typeref_is_qualified(tp)) {
           db_qualifiers(tp->variant.typeref.qualifiers);
+#if UPC_EXTENSIONS_ALLOWED
+          db_shared_block_size(tp);
+#endif /* UPC_EXTENSIONS_ALLOWED */
         } else {
           fputs("typeref ", f_debug);
           if (has_name(tp)) { 
@@ -1678,6 +1705,10 @@ Dump a string identifying a constant-representation kind, for debug purposes.
     case ck_init_repeat:    s = "ck_init_repeat";	break;
     case ck_template_param: s = "ck_template_param";	break;
     case ck_designator:     s = "ck_designator";	break;
+#if UPC_EXTENSIONS_ALLOWED
+    case ck_upc_threads:    s = "ck_upc_threads";	break;
+    case ck_upc_mythread:   s = "ck_upc_mythread";	break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     default:                s = "**BAD CONSTANT KIND";
   }  /* switch */
   fputs(s, f_debug);
@@ -1858,6 +1889,13 @@ Dump a statement kind, for debug purposes.
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:   s = "assigned goto";     break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_notify:      s = "upc_notify";	break;
+    case stmk_upc_wait:        s = "upc_wait";		break;
+    case stmk_upc_barrier:     s = "upc_barrier";	break;
+    case stmk_upc_fence:       s = "upc_fence";		break;
+    case stmk_upc_forall:      s = "upc_forall";	break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     default:                   s = "<bad stmt kind>";   break;
   }  /* switch */
   fputs(s, f_debug);
@@ -3857,6 +3895,14 @@ bucket of the shareable_constants_table to use for the constant.
      hosts will generate different IL and perhaps different object code
      on those two machines. */
   switch (cp->kind) {
+#if UPC_EXTENSIONS_ALLOWED
+    case ck_upc_threads:
+      hash_value = 237;
+      break;
+    case ck_upc_mythread:
+      hash_value = 238;
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       /* Integer.  Use the constant itself as the hash value. */
       hash_value = (a_constant_hash_value)value_of_integer_constant(cp,&ovflo);
@@ -4237,6 +4283,11 @@ nonidentical.
   if (same_types) {
     switch (cp1->kind) {
       case ck_error:
+#if UPC_EXTENSIONS_ALLOWED
+      /* UPC pseudo-constants have only one value. */
+      case ck_upc_threads:
+      case ck_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
         /* No further field to check. */
         eq = TRUE;
         break;
@@ -4590,6 +4641,10 @@ region).
     case ck_imaginary:
     case ck_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if UPC_EXTENSIONS_ALLOWED
+    case ck_upc_threads:
+    case ck_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       /* No references. */
       break;
     case ck_string:
@@ -6307,20 +6362,23 @@ done:;
 }  /* add_to_based_type_fixup_list */
 
 
-#if !NEAR_AND_FAR_ALLOWED
+#if !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- Because expl_mem_attr_implicit is only used when near
-                     and far may be recognized. */
-#endif /* !NEAR_AND_FAR_ALLOWED */
+                     and far may be recognized and upc_block_size is only used
+                     when UPC extensions are enabled. */
+#endif /* !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED */
 static a_type_ptr get_based_type(a_type_ptr            base_type,
                                  a_based_type_kind     kind,
                                  a_type_qualifier_set  qualifiers,
                                  a_boolean             expl_mem_attr_implicit,
-                                 a_type_ptr            class_type)
+                                 a_type_ptr            class_type,
+                                 a_upc_block_size      upc_block_size)
 /*
 Search the based_types list of base_type to see if it contains a based type
 of the kind indicated by "kind".  If the kind is "btk_qualified", the
 "qualifiers" parameter must match the "qualifiers" field of the based type,
-and expl_mem_attr_implicit must match the
+the upc_block_size parameter must match the underlying block size of the
+type (if it is UPC shared), and expl_mem_attr_implicit must match the
 explicit_memory_attribute_made_implicit flag of the based type (that's used
 for memory attributes like near/far).  If the kind is
 "btk_ptr_to_member", the specified "class_type" must also match
@@ -6359,7 +6417,10 @@ list.
                                      explicit_memory_attribute_made_implicit
                                                   != expl_mem_attr_implicit
 #endif /* NEAR_AND_FAR_ALLOWED */
-                                                                           )) {
+#if UPC_EXTENSIONS_ALLOWED
+                  || ptr->variant.typeref.upc_block_size != upc_block_size
+#endif /* UPC_EXTENSIONS_ALLOWED */
+                                                                          )) {
         /* Qualifiers do not match -- keep looking. */
         ptr = NULL;
       } else {
@@ -6514,7 +6575,7 @@ existing type entry.
     tp = get_based_type(member_type, (a_based_type_kind)btk_ptr_to_member,
                         (a_type_qualifier_set)TQ_NONE,
                         /*expl_mem_attr_implicit=*/FALSE,
-                        class_type);
+                        class_type, UPC_BLOCK_SIZE_NONE);
   }  /* if */
   if (member_type == NULL || tp == NULL) {
     /* No member type (as of yet) or no previously allocated entry, need
@@ -6624,7 +6685,7 @@ an existing entry if possible.
   ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_pointer,
                        (a_type_qualifier_set)TQ_NONE,
                        /*expl_mem_attr_implicit=*/FALSE,
-                       /*class_type=*/(a_type_ptr)NULL);
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
@@ -6674,7 +6735,7 @@ an existing entry if possible.
   ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_reference,
                        (a_type_qualifier_set)TQ_NONE,
                        /*expl_mem_attr_implicit=*/FALSE,
-                       /*class_type=*/(a_type_ptr)NULL);
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
@@ -6736,8 +6797,13 @@ and return a pointer to the new array type.
 }  /* copy_array_type_replacing_element_type */
 
 
-a_type_ptr make_qualified_type(a_type_ptr            base_type,
-                               a_type_qualifier_set  qualifiers)
+#if !UPC_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- Because upc_block_size is only used when UPC extensions
+                     are enabled. */
+#endif /* !UPC_EXTENSIONS_ALLOWED */
+a_type_ptr f_make_qualified_type(a_type_ptr            base_type,
+                                 a_type_qualifier_set  qualifiers,
+                                 a_upc_block_size      upc_block_size)
 /*
 Make a version of the type base_type with the additional type qualifiers
 indicated by the set of flags in "qualifiers".  Attempt to find and reuse
@@ -6775,6 +6841,11 @@ are not already present.
 #endif /* NEAR_AND_FAR_ALLOWED */
   base_type_qualifiers = get_type_qualifiers(base_type);
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
+#if UPC_EXTENSIONS_ALLOWED
+  /* Always add shared if requested, so we can preserve the specified
+     block size. */
+  qualifiers_to_add |= (qualifiers & TQ_UPC_SHARED);
+#endif /* UPC_EXTENSIONS_ALLOWED */
   if (qualifiers_to_add != TQ_NONE) {
 #if NEAR_AND_FAR_ALLOWED
     if (qualifiers_to_add & (TQ_NEAR | TQ_FAR)) {
@@ -6811,9 +6882,8 @@ are not already present.
     /* See if the properly qualified version of base_type already exists.
        If so, a pointer to it is stored in the based_types for base_type. */
     ptr = get_based_type(base_type, (a_based_type_kind)btk_qualified,
-                         qualifiers_to_add,
-                         expl_mem_attr_implicit,
-                         /*class_type=*/(a_type_ptr)NULL);
+                         qualifiers_to_add, expl_mem_attr_implicit,
+                         /*class_type=*/(a_type_ptr)NULL, upc_block_size);
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
@@ -6823,6 +6893,11 @@ are not already present.
       ptr->variant.typeref.explicit_memory_attribute_made_implicit =
                                                         expl_mem_attr_implicit;
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+      if ((qualifiers_to_add & TQ_UPC_SHARED) != TQ_NONE) {
+        ptr->variant.typeref.upc_block_size = upc_block_size;
+      }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
       add_based_type_list_member(base_type, (a_based_type_kind)btk_qualified,
@@ -6844,7 +6919,7 @@ are not already present.
   }  /* if */
 
   return ptr;
-}  /* make_qualified_type */
+}  /* f_make_qualified_type */
 
 
 a_type_ptr make_unqualified_type(a_type_ptr type)
@@ -6988,11 +7063,25 @@ qualifiers added.  However, if the field was declared mutable, "const" in
 the qualifier set is ignored.
 */
 {
+  a_type_ptr  type;
+
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer -- except that const is removed if the
      field was declared to be mutable. */
   if (field->is_mutable) qualifiers &= ~TQ_CONST;
-  return make_qualified_type(field->type, qualifiers);
+#if UPC_EXTENSIONS_ALLOWED
+  /* Fields cannot be shared without the enclosing structure being
+     shared.  If the field is an array, the type must be constructed
+     so that all elements are on the same thread.  This is, by
+     definition, infinite block size, so specify that here. */
+  type = f_make_qualified_type(field->type, qualifiers,
+                               ((qualifiers & TQ_UPC_SHARED) != 0) ?
+                                                    UPC_BLOCK_SIZE_INDEFINITE
+                                                  : UPC_BLOCK_SIZE_NONE);
+#else /* UPC_EXTENSIONS_ALLOWED */
+  type = make_qualified_type(field->type, qualifiers);
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  return type;
 }  /* make_field_selection_type */
 
 
@@ -14009,6 +14098,27 @@ Display and return the amount of space used for various IL tables.
   return grand_total;
 }  /* show_il_space_used */
 #endif /* DEBUG */
+
+#if UPC_EXTENSIONS_ALLOWED
+
+a_boolean warn_if_block_size_too_large(a_upc_block_size  block_size)
+/*
+Check that the block size fits in the phase field.  If there is
+an error, return TRUE; otherwise, FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (block_size > max_upc_block_size) {
+    char  size_buf[20];
+    (void)sprintf(size_buf, "%ld", max_upc_block_size);
+    str_error(ec_shared_block_size_too_large, size_buf);
+    result = TRUE;
+  }  /* if */
+  return result;
+} /* warn_if_block_size_too_large */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 
 a_type_ptr init_predeclared_class(a_type_kind          kind,

@@ -4625,6 +4625,10 @@ value is used).
                 } else if (vla_enabled && is_vla_type(underlying_type)) {
                   /* Variable-length arrays cannot be checked for non-negative
                      subscripts. */
+#if UPC_EXTENSIONS_ALLOWED
+                } else if (array_type->variant.array.is_threads_dimension) {
+                  /* Do not check subscripts on threads-dimensioned arrays. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
                 } else if (array_type->variant.array.
                                             is_template_dependent_size_array) {
                   /* Can't check template-dependent-sized arrays. */
@@ -5217,6 +5221,19 @@ operand.
   return takes_lvalue;
 }  /* operator_takes_lvalue_operand */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static a_boolean is_upc_threads_operand(an_operand  *op)
+/*
+Return TRUE if the given operand correspond to THREADS or MYTHREAD.
+*/
+{
+  return is_constant_operand(op) &&
+         (op->variant.constant.kind == (a_constant_repr_kind)ck_upc_threads ||
+          op->variant.constant.kind == (a_constant_repr_kind)ck_upc_mythread);
+}  /* is_upc_threads_operand */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 void do_binary_operation(an_expr_operator_kind op,
 			 an_operand            *operand_1,
@@ -5249,6 +5266,12 @@ if possible.  operator_position indicates the operator position.
       /* Try folding only if the current expression is a constant
          expression. */
       try_folding = expr_stack->fold_constant_addr_exprs;
+#if UPC_EXTENSIONS_ALLOWED
+    } else if (upc_mode && (is_upc_threads_operand(operand_1) ||
+                            is_upc_threads_operand(operand_2))) {
+      /* THREADS and MYTHREAD are not compile-time constant. */
+      try_folding = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
       /* Not an addressing operation (normal case). */
       try_folding = TRUE;
@@ -6418,6 +6441,47 @@ operand, and set the operand type to the type of the field.
   result->state = (an_operand_state)os_none;
 }  /* make_field_operand */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+void make_upc_thread_operand(an_operand            *operand,
+                             a_constant_repr_kind  kind)
+/*
+Make an operand for the THREADS or MYTHREAD pseudo-constants.  kind can be
+ck_upc_threads or ck_upc_mythread.  The position of the current token is
+used as the operand position.  If the number of threads was specified on
+the command line and kind is ck_upc_threads, return an integer constant of 
+the appropriate value instead.
+*/
+{
+  check_assertion(kind == (a_constant_repr_kind)ck_upc_threads ||
+                  kind == (a_constant_repr_kind)ck_upc_mythread);
+  if (!upc_dynamic_threads() && kind == (a_constant_repr_kind)ck_upc_threads) {
+    /* The number of threads was specified on the command line.  Return an
+       integer constant with the specified value. */
+    make_integer_constant_operand(operand, upc_num_threads);
+  } else {
+    a_constant  *constant;
+    /* The actual number of threads will be determined at run time. */
+    constant = alloc_constant(kind);
+    constant->type = integer_type((an_integer_kind)ik_int);
+    if (1 || kind == (a_constant_repr_kind)ck_upc_threads) {
+      /* Set the value to "1" so we can declared arrays of size THREADS. */
+      set_integer_value(&constant->variant.integer_value,
+                        (a_host_large_integer)1);
+    }  /* if */
+    if (is_error_type(constant->type)) {
+      make_error_operand(operand);
+    } else {
+      clear_operand((an_operand_kind)ok_constant, operand);
+      copy_constant(constant, &operand->variant.constant);
+      operand->type = constant->type;
+    }  /* if */
+    operand->state = (an_operand_state)os_rvalue;
+    set_operand_position_to_pos_curr_token(operand);
+  }  /* if */
+}  /* make_upc_threads_operand */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 a_dynamic_init_ptr alloc_expr_dynamic_init(a_dynamic_init_kind kind)
 /*

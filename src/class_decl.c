@@ -10890,7 +10890,8 @@ the IL, the template header is passed via template_decl.
 #else /* !GNU_EXTENSIONS_ALLOWED */
                         (an_attribute_ptr *)NULL,
 #endif /* !GNU_EXTENSIONS_ALLOWED */
-                        &decl_info.decl_modifiers,  &decl_info.decl_pos_block);
+                        &decl_info.decl_modifiers,  &decl_info.decl_pos_block,
+                        /*upc_block_size=*/NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
   last_prefix_attribute = last_attribute_link(&prefix_attributes);

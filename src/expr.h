@@ -188,6 +188,10 @@ extern void typedef_initializer(a_symbol_ptr  symbol_ptr);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if UPC_EXTENSIONS_ALLOWED
+extern an_expr_node_ptr scan_upc_forall_affinity(void);
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 extern an_expr_node_ptr make_condition_value_expression(
                                                 a_variable_ptr var,
                                                 a_boolean      is_switch_expr);

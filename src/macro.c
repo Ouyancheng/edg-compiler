@@ -4606,6 +4606,13 @@ command line -D options.
     if (c99_mode) {
       init_c99_predefined_macros();
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    if (upc_mode) {
+      (void)enter_predef_macro("1", "__upc__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   /* __cplusplus is defined as 199711L if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */

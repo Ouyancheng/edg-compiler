@@ -1163,6 +1163,11 @@ extern void cast_node(an_expr_node_ptr  *p_node,
 
 extern a_type_ptr operand_type_after_integral_promotion(an_operand *operand);
 
+#if UPC_EXTENSIONS_ALLOWED
+extern void make_upc_thread_operand(an_operand            *operand,
+                                    a_constant_repr_kind  kind);
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 #if DEBUG
 extern unsigned long show_expr_space_used(void);
 #endif /* DEBUG */

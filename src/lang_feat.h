@@ -380,6 +380,13 @@ sun_mode and can be overridden by the command-line options --sun and --no_sun.
 #endif /* DEFAULT_SUN_COMPATIBILITY */
 
 /*
+Flag that is TRUE to include code for UPC (Unified Parallel C) support.
+*/
+#ifndef UPC_EXTENSIONS_ALLOWED
+#define UPC_EXTENSIONS_ALLOWED FALSE
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE to include code for GNU C compatibility features.
 */
 #ifndef GNU_EXTENSIONS_ALLOWED
@@ -607,7 +614,7 @@ EXTERN a_boolean
    Since lint would warn about such code, we do not do this when processed
    by lint. */
 #define gcc_mode FALSE
-#endif /*  GNU_EXTENSIONS_ALLOWED || defined(_lint) */
+#endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
 
 /*
 Global variables related to Microsoft compatibility mode are defined here
@@ -1045,6 +1052,25 @@ defined with a value of the form yyyymmL (e.g., 199712L).
  #error -- STDC_ISO_10646_VALUE must be defined when STDC_ISO_10646 is set
 #endif /* ifndef STDC_ISO_10646_VALUE */
 #endif /* STDC_ISO_10646 */
+
+/*
+Flag that is TRUE if, in ANSI C mode, support for UPC (Unified Parallel C)
+extensions is provided.  This is the default value for the global flag
+upc_mode, the value of which may be modified using command line options.
+*/
+#ifndef DEFAULT_UPC_MODE
+#define DEFAULT_UPC_MODE FALSE
+#endif /* ifndef DEFAULT_UPC_MODE */
+
+#if UPC_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		upc_mode
+#if VAR_INITIALIZERS
+			= DEFAULT_UPC_MODE
+#endif /* VAR_INITIALIZERS */
+			                  ;
+			/* TRUE if UPC extensions are to be accepted. */
+#endif UPC_EXTENSIONS_ALLOWED
 
 /*
 Flag that is TRUE if support for bool can be enabled.

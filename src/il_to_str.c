@@ -745,6 +745,7 @@ way described by octl.
 
 void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
+                     a_upc_block_size                      upc_block_size,
                      a_boolean                             need_trailing_space,
                      an_il_to_str_output_control_block_ptr octl)
 /*
@@ -802,6 +803,22 @@ Do the output in the way described by octl.
     output_qualifier(TQ_FAR,
                      (char *)(use_microsoft_form() ? "__far" : "far"));
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    output_qualifier(TQ_UPC_STRICT, "strict");
+    output_qualifier(TQ_UPC_RELAXED, "relaxed");
+    if (qualifiers & TQ_UPC_SHARED) {
+      output_qualifier(TQ_UPC_SHARED, "shared");
+      if (upc_block_size == UPC_BLOCK_SIZE_NONE) {
+        /* Nothing to be done. */
+      } else if (upc_block_size == UPC_BLOCK_SIZE_BLOCK) {
+        octl->output_str("[*]");
+      } else {
+        octl->output_str("[");
+        form_unsigned_num((a_host_large_unsigned)upc_block_size, octl);
+        octl->output_str("]");
+      }  /* if */
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
   }  /* if */
@@ -1296,6 +1313,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   a_boolean   near_and_far_need_trailing_space;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* ifdef CFE */
+  a_upc_block_size
+              upc_block_size = UPC_BLOCK_SIZE_NONE;
 
   if (type == NULL) {
     /* NULL type pointer. */
@@ -1334,6 +1353,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
         qualifiers &= ~TQ_CONST;
         suppress_const = FALSE;
       }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+      if (type->variant.typeref.qualifiers & TQ_UPC_SHARED) {
+        upc_block_size = type->variant.typeref.upc_block_size;
+      }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
@@ -1377,7 +1401,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
-      form_type_qualifier(qualifiers, need_trailing_space, octl);
+      form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
+                          octl);
     }  /* if */
 #endif /* ifdef CFE */
 #ifdef CFE
@@ -1395,7 +1420,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     octl->output_str("*");
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
-      form_type_qualifier(qualifiers, need_trailing_space, octl);
+      form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
+                          octl);
     }  /* if */
 #endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
@@ -1446,7 +1472,8 @@ handle_specifiers_type:
     /* No declarator part to process.  Handle the specifier type. */
     if ((options & FTO_SUPPRESS_SPECIFIERS) == 0) {
       if (qualifiers != TQ_NONE) {
-        form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
+        form_type_qualifier(qualifiers, upc_block_size,
+                            /*need_trailing_space=*/TRUE, octl);
       }  /* if */
       form_type_specifier(type, octl);
       /* Put out a trailing space if required. */
@@ -1456,7 +1483,7 @@ handle_specifiers_type:
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_qualifiers != TQ_NONE) {
     /* "near" or "far": display it next to the declarator name. */
-    form_type_qualifier(near_and_far_qualifiers,
+    form_type_qualifier(near_and_far_qualifiers, upc_block_size,
                         near_and_far_need_trailing_space, octl);
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -1550,7 +1577,8 @@ in the way described by octl.
       a_type_qualifier_set qualifiers = rtsp->qualifiers;
       if (qualifiers != TQ_NONE) {
         octl->output_str(" ");
-        form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, octl);
+        form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
+                            /*need_trailing_space=*/FALSE, octl);
       }  /* if */
     }  /* if */
 #endif /* ifdef CFE */
@@ -1566,7 +1594,7 @@ the way described by octl.
 */
 {
   octl->output_str("[");
-  form_type_qualifier(type->variant.array.qualifiers,
+  form_type_qualifier(type->variant.array.qualifiers, UPC_BLOCK_SIZE_NONE,
                       /*need_trailing_space=*/TRUE, octl);
 #if !SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE
   if (type->variant.array.is_static) {
@@ -1903,6 +1931,11 @@ precedence confusion.  Do the output in the way described by octl.
   }  /* if */
   if (minus_1_trick) octl->output_str("-1");
   output_optional_close_paren(need_negative_close_paren, octl);
+#if UP_EXTENSIONS_ALLOWED
+  if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
+    octl->output_str("*THREADS");
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   output_optional_close_paren(need_cast_close_paren, octl);
 }  /* form_integer_constant */
 
@@ -3370,6 +3403,14 @@ precedence confusion.  Do the output in the way described by octl.
                           "form_constant: error constant");
       octl->output_str("<error-constant>");
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    case ck_upc_threads:
+      octl->output_str("THREADS");
+      break;
+    case ck_upc_mythread:
+      octl->output_str("MYTHREAD");
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       /* See if the constant is an enum constant, but don't emit enum
          constants when generating K&R C from the C-generating back end. */

@@ -220,7 +220,7 @@ an integer cast to a pointer type.
   *err_severity = es_warning;
 
   /* Copy the old value to the new value. */
-  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer); 
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_integer);
   new_constant->variant.integer_value = old_constant->variant.integer_value;
   /* Determine attributes (size, signedness) of the new integer kind. */
@@ -1482,6 +1482,15 @@ to the constant is maintained, by adding a cast if necessary.
     *did_not_fold = TRUE;
     goto exit;
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode && (constant->kind == (a_constant_repr_kind)ck_upc_threads ||
+                   constant->kind == (a_constant_repr_kind)ck_upc_mythread)) {
+    /* THREADS and MYTHREAD are not compile-time constants and should
+       therefore not be folded. */
+    *did_not_fold = TRUE;
+    goto exit;
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* Any case where the constant is represented as an address should be
        converted by setting the implicit_cast flag.  This test has to be

@@ -375,6 +375,9 @@ possible.
 #endif /* PRAGMA_WEAK_ALLOWED */
     case pk_define_type_info:
     case pk_stdc:
+#if UPC_EXTENSIONS_ALLOWED
+    case pk_upc:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -1603,6 +1606,22 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/TRUE,
                  es_error);
   }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) {
+    (void)add_immediate_pragma_kind_description(
+                                         (a_pragma_kind)pk_upc,
+                                         upc_pragma,
+                                         /*is_pseudo_pragma=*/FALSE,
+                                         /*global=*/TRUE,
+                                         /*automatically_include_in_il=*/FALSE,
+                                         /*make_text_not_tokens=*/FALSE,
+                                         /*expand_macros=*/FALSE,
+                                         /*processing_C_code=*/TRUE,
+                                         /*ignore_in_back_end=*/TRUE,
+                                         /*il_info_is_complete=*/TRUE,
+                                         es_error);
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,

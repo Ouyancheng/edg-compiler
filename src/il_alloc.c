@@ -618,6 +618,11 @@ fields to default values.
     case ck_error:
       /* No variant fields to set. */
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    /* Handle UPC thread constants like integers. */
+    case ck_upc_threads:
+    case ck_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       set_integer_value(&cp->variant.integer_value,
                         (a_host_large_integer)0);
@@ -1222,6 +1227,9 @@ to default values.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       pte->variant.array.bound_constant = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#if UPC_EXTENSIONS_ALLOWED
+      pte->variant.array.is_threads_dimension = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case tk_class:
     case tk_struct:
@@ -1330,6 +1338,9 @@ to default values.
 #if DO_IL_LOWERING
       pte->variant.typeref.orig_type   = NULL;
 #endif /* DO_IL_LOWERING */
+#if UPC_EXTENSIONS_ALLOWED
+      pte->variant.typeref.upc_block_size = UPC_BLOCK_SIZE_NONE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
       pte->variant.typeref.qualifiers  = TQ_NONE;
       pte->variant.typeref.is_placeholder_for_class_instantiation = FALSE;
       pte->variant.typeref.is_placeholder_for_namespace_type = FALSE;
@@ -2448,6 +2459,12 @@ fields to default values.
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    case stmk_upc_notify:
+    case stmk_upc_wait:
+    case stmk_upc_barrier:
+    case stmk_upc_fence:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       /* No variant fields. */
       break;
     case stmk_if:
@@ -2461,6 +2478,10 @@ fields to default values.
     case stmk_end_test_while:
       sp->variant.loop_statement = NULL;
       break;
+#if UPC_EXTENSIONS_ALLOWED
+    /* The UPC forall statement is handled like the normal for statement. */
+    case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case stmk_for:
       sp->variant.for_loop.statement = NULL;
       sp->variant.for_loop.extra_info = flip =
@@ -2471,6 +2492,9 @@ fields to default values.
       flip->initialization = NULL;
       flip->increment = NULL;
       flip->for_init_scope = NULL;
+#if UPC_EXTENSIONS_ALLOWED
+      flip->affinity = NULL;
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case stmk_switch:
       sp->variant.switch_stmt.clause_list    = NULL;
@@ -2495,6 +2519,9 @@ fields to default values.
       bp->assoc_scope            = NULL;
       bp->lifetime               = NULL;
       bp->end_of_block_reachable = TRUE;
+#if UPC_EXTENSIONS_ALLOWED
+      bp->upc_access_method      = upc_access_unspecified;
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case stmk_init:
       sp->variant.dynamic_init = NULL;
@@ -2682,6 +2709,9 @@ in the current IL memory region.
     case pk_test_other:
     case pk_test_bind_next_pass:
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
+#if UPC_EXTENSIONS_ALLOWED
+    case pk_upc:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
 #if EXPENSIVE_CHECKING
     case pk_checking_pragma:

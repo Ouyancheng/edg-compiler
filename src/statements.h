@@ -89,6 +89,14 @@ typedef struct a_control_flow_descr {
   unsigned long id_number;
 			/* Unique identifying number for this entry. */
 #endif /* DEBUG */
+#if UPC_EXTENSIONS_ALLOWED
+  a_statement_ptr
+		enclosing_forall;
+			/* Used to track and match up enclosing forall
+			   statements for gotos and labels.  Gotos to labels in
+			   different forall statements, or into or out of
+			   forall statements, are not allowed.  */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   union {
     /* When kind == cfdk_case_label: no variant fields */
     /* When kind == cfdk_block: */
