@@ -1012,13 +1012,15 @@ entity is unnamed, generate a name.
     } else {
       m_write_tok_str(name);
     }  /* if */
-  } else if (scp->is_class_member || !scp->is_local_to_function) {
+  } else if (scp->is_class_member || !scp->is_local_to_function ||
+             scp->name_has_been_mangled) {
     /* No prefix on members of classes or things that aren't local to
-       functions (e.g., file-scope typedefs). */
+       functions (e.g., file-scope typedefs).  Also no prefix if the
+       name has been mangled already. */
     m_write_tok_str(name);
   } else {
     /* Name has no linkage; add the declaration position as a prefix to
-       the original name. */
+       the original name, e.g., "i" becomes "__16_12_i". */
     ensure_enough_room_on_line(strlen(name)+14);
     m_write_ch('_');
     m_write_ch('_');
