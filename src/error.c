@@ -1919,17 +1919,13 @@ a blank line instead of the caret line.
             ch = slmp->orig_char;
           }  /* if */
           if (ch == LE_ESCAPE) {
-            if (loc_in_line[1] == LE_NULL) {
-              /* Null (zero) character in line.  Output as blank. */
-              ch = ' ';
-              loc_in_line += LE_ESCAPE_LEN-1;
-            } else {
-              /* Exit on the newline at the end of the source line.  (If there
-                 wasn't one there originally, one has been added.) */
-              check_assertion_str(loc_in_line[1] == LE_NEWLINE,
-                                 "write_orig_source_line: bad lexical escape");
-              goto end_of_loop;
-            }  /* if */
+            /* LE_NULL is handled below (it has an associated modification
+               entry). */
+            /* Exit on the newline at the end of the source line.  (If there
+               wasn't one there originally, one has been added.) */
+            check_assertion_str(loc_in_line[1] == LE_NEWLINE,
+                                "write_orig_source_line: bad lexical escape");
+            goto end_of_loop;
           }  /* if */
           put_char(ch);
           loc_in_line++;
@@ -1961,6 +1957,11 @@ a blank line instead of the caret line.
             /* Exit the loop since this line splice marks the end of the
                physical line. */
             goto end_of_loop;
+          case olm_null:
+            /* Null (zero) character in source line. */
+            put_char(' ');
+            loc_in_line += LE_ESCAPE_LEN;
+            break;
 #if CHECKING
           default:
             internal_error(

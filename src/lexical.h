@@ -1055,7 +1055,8 @@ etc.).
 typedef enum /*an_orig_line_modif_kind*/ {
   olm_trigraph,
   olm_line_splice,
-  olm_multiline_string_splice
+  olm_multiline_string_splice,
+  olm_null		/* Null (zero) character in source line. */
 } an_orig_line_modif_kind;
 
 typedef struct an_orig_line_modif {
@@ -1077,6 +1078,7 @@ typedef struct an_orig_line_modif {
 		kind;
 			/* Kind of modification: trigraph or line splice. */
   union {
+    /* When kind == olm_null, no variant fields. */
     /* When kind == olm_trigraph: */
     char	trigraph_orig_char;
 			/* The original third character of the trigraph,

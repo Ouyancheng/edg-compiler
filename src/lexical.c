@@ -1938,6 +1938,9 @@ original source line because of trigraphs and line splices.
     case olm_multiline_string_splice:
       olmp->variant.line_splice_seq_number = 0;  /* To be neat. */
       break;
+    case olm_null:
+      /* No variant fields. */
+      break;
 #if CHECKING
     default:
       internal_error("add_orig_line_modif: bad kind");
@@ -2424,11 +2427,17 @@ is TRUE.
        must be constructed by using the information in
        source_line_modif_list. */
     if (source_line_modif_list == NULL &&
+        /* If there might be null (zero) characters in the line, do the
+           expensive processing. */
         (!null_chars_allowed_in_source ||
+         orig_line_modif_list == NULL ||
          strchr(curr_source_line, LE_ESCAPE)[1] == LE_NEWLINE)) {
       /* For the common case, output the line quickly. */
       /* We count on the fact that an LE_ESCAPE sequence will end the
          string. */
+#if LE_ESCAPE != 0
+ #error -- LE_ESCAPE expected to be zero
+#endif /* LE_ESCAPE != 0 */
       if (fputs(curr_source_line, f_pp_output) == EOF) {
         /* Error in writing the pp output file.  This check is done on 
            most lines and supplements the check done when the file is closed.
@@ -2571,50 +2580,25 @@ orig_line_modif_list modifications apply to the indicated text.
 {
   char                    *local_stop_loc;
   a_source_line_modif_ptr slmp;
-  a_boolean               unmodified_line;
-  a_boolean               possible_nulls = FALSE;
 
-  /* See whether the line has any modifications that require special
-     handling. */
-  unmodified_line = (source_line_modif_list == NULL);
-  if (null_chars_allowed_in_source) {
-    char *p = strchr(curr_source_line, LE_ESCAPE);
-    if (p != NULL && p[1] != LE_NEWLINE) {
-      /* The line might have LE_ESCAPE/LE_NULL escapes in it for
-         null (zero) source characters. */
-      unmodified_line = FALSE;
-      possible_nulls = TRUE;
-    }  /* if */
-  }  /* if */
   for (;;) {
-    if (unmodified_line) {
-      /* There are no macro modifications and no null characters, so the
-         text can just be written. */
+    if (source_line_modif_list == NULL) {
+      /* There are no macro modifications, so the text can just be written. */
       local_stop_loc = stop_loc;
     } else if (stop_loc == NULL) {
-      /* Writing to end of line, and there are macro modifications to or
-         nulls in the current line.  See if there are any attention markers
-         in the rest of the line.  Note that this scan will stop at the
+      /* Writing to end of line, and there are macro modifications to the
+         current line.  See if there are any attention markers in the rest
+         of the line.  Note that this scan will stop at the
          LE_ESCAPE/LE_NEWLINE lexical escape sequence at the end of the
          line if no attention marker is found. */
       local_stop_loc = strchr(loc_in_line, ATTENTION_MARKER);
-      if (possible_nulls && local_stop_loc == NULL) {
-        /* Stop on an LE_ESCAPE/LE_NULL escape if there is one. */
-        char *p = strchr(loc_in_line, LE_ESCAPE);
-        if (p[1] == LE_NULL) local_stop_loc = p;
-      }  /* if */
     } else {
       /* Writing part of the line, and there are macro modifications to the
-         current line.  See if there are any attention markers or nulls
-         in the part of the line we want to write. */
+         current line.  See if there are any attention markers in the part
+         of the line we want to write. */
       for (local_stop_loc = loc_in_line;
            local_stop_loc < stop_loc && *local_stop_loc != ATTENTION_MARKER;
-           local_stop_loc++) {
-        if (possible_nulls && *local_stop_loc == LE_ESCAPE) {
-          check_assertion(local_stop_loc[1] == LE_NULL);
-          break;
-        }  /* if */
-      }  /* for */
+           local_stop_loc++) {}
     }  /* if */
     /* Now write whatever is just raw text. */
     if (local_stop_loc == NULL) {
@@ -2638,33 +2622,26 @@ orig_line_modif_list modifications apply to the indicated text.
     loc_in_line = local_stop_loc;
     /* If the whole requested piece has now been written out, exit the loop. */
     if (loc_in_line == stop_loc) break;
-    if (*loc_in_line == LE_ESCAPE) {
-      check_assertion(loc_in_line[1] == LE_NULL);
-      /* An escape representing a null (zero) character.  Put out a blank. */
-      putc(' ', f_raw_listing);
-      loc_in_line += LE_ESCAPE_LEN;
+    /* *loc_in_line must be an attention marker.  Find and write the original
+       character for that position.  Note that there may be several
+       modifications on that same location, and we have to find the
+       original one. */
+    check_assertion(*loc_in_line == ATTENTION_MARKER);
+    for (slmp = source_line_modif_list; ; slmp = slmp->next) {
+      check_assertion(slmp != NULL);
+      if (slmp->line_loc == loc_in_line &&
+          slmp->orig_char != ATTENTION_MARKER) break;
+    }  /* for */
+    loc_in_line++;
+    if (slmp->orig_char != LE_ESCAPE) {
+      putc(slmp->orig_char, f_raw_listing);
     } else {
-      /* *loc_in_line must be an attention marker.  Find and write the original
-         character for that position.  Note that there may be several
-         modifications on that same location, and we have to find the
-         original one. */
-      check_assertion(*loc_in_line == ATTENTION_MARKER);
-      for (slmp = source_line_modif_list; ; slmp = slmp->next) {
-        check_assertion(slmp != NULL);
-        if (slmp->line_loc == loc_in_line &&
-            slmp->orig_char != ATTENTION_MARKER) break;
-      }  /* for */
-      loc_in_line++;
-      if (slmp->orig_char != LE_ESCAPE) {
-        putc(slmp->orig_char, f_raw_listing);
-      } else {
-        /* The original character is an escape.  This must be the first
-           character of a newline sequence, when the entire line is deleted.
-           Move past it and let the newline character be put out on the
-           normal exit above. */
-        check_assertion(*loc_in_line == LE_NEWLINE);
-        loc_in_line += LE_ESCAPE_LEN-1;
-      }  /* if */
+      /* The original character is an escape.  This must be the first
+         character of a newline sequence, when the entire line is deleted.
+         Move past it and let the newline character be put out on the
+         normal exit above. */
+      check_assertion(*loc_in_line == LE_NEWLINE);
+      loc_in_line += LE_ESCAPE_LEN-1;
     }  /* if */
     /* If the whole requested piece has now been written out, exit the loop. */
     if (loc_in_line == stop_loc) break;
@@ -2915,6 +2892,11 @@ only be called when f_raw_listing is non-NULL.
 partially_process_line_splice:
           putc('\n', f_raw_listing);
           putc(curr_raw_listing_line_code, f_raw_listing);
+          break;
+        case olm_null:
+          /* Null (zero) character.  Output as a blank. */
+          putc(' ', f_raw_listing);
+          loc_in_line = olmp->line_loc + LE_ESCAPE_LEN;
           break;
 #if CHECKING
         default:
@@ -4110,7 +4092,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
   an_orig_line_modif_ptr  olmp                     = orig_line_modif_list;
   char                    *start_of_curr_phys_line = curr_source_line;
   a_seq_number            seq_number               = curr_seq_number;
-  int                     trigraph_adjustment      = 0;
+  int                     column_adjustment        = 0;
 
   if (in_token_insertion_from_string) {
     /* We are processing a token insertion from a string.  Just use
@@ -4168,7 +4150,15 @@ macro_line_loc_to_source_pos should be used when speed is critical.
           start_of_curr_phys_line += 2;
         }  /* if */
         seq_number              = olmp->variant.line_splice_seq_number;
-        trigraph_adjustment     = 0;
+        column_adjustment       = 0;
+      } else if (adj_loc_in_line == olmp->line_loc) {
+        /* This position matches the position in the current entry, so
+           the position we have is right. */
+      } else if (olmp->kind == olm_null) {
+        /* Null (zero) character in source line. */
+        /* Adjust for the fact that the escape sequence is bigger than the
+           original null character. */
+        column_adjustment += (1 - LE_ESCAPE_LEN);
       } else {
 #if CHECKING
         if (olmp->kind != olm_trigraph) {
@@ -4177,7 +4167,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
         }  /* if */
 #endif /* CHECKING */
         /* Keep a column adjustment to compensate for trigraphs. */
-        trigraph_adjustment += 2;
+        column_adjustment += 2;
       }  /* if */
     } while ((olmp = olmp->next) != NULL);
   }  /* if */
@@ -4186,7 +4176,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
      line. */
   position_var->seq    = seq_number;
   position_var->column = adj_loc_in_line - start_of_curr_phys_line +
-                         trigraph_adjustment + 1;
+                         column_adjustment + 1;
 have_position:
   /* Save the position determined in the innermost source line modification
      that covers this location.  That will make succeeding calls of
@@ -4635,6 +4625,9 @@ simple_return:
               fprintf(f_debug, "multiline string splice: seq = %lu\n",
                                olmp->variant.line_splice_seq_number);
               break;
+            case olm_null:
+              fprintf(f_debug, "null\n");
+              break;
 #if CHECKING
             default:
               internal_error(
@@ -4786,6 +4779,10 @@ entry_for_null_character:
             after_curr_source_line_minus_term = after_end_of_curr_source_line -
                                                 2*LE_ESCAPE_LEN;
           }  /* if */
+          /* Add a modification so that we can get the column offsets right
+             (a single character is replaced by a lexical escape, which
+             is more than one character). */
+          (void)add_orig_line_modif(olm_null, loc_in_line);
           /* Put the LE_ESCAPE character into curr_source_line. */
           *loc_in_line++ = LE_ESCAPE;
           /* Fall into the normal code to store the LE_NULL character. */
@@ -5416,13 +5413,13 @@ normal_comment:
            loop, so it should be very fast. */
         while ((ch = *curr_char_loc) != '*' || *(curr_char_loc+1) != '/') {
           if (ch == LE_ESCAPE) {
-            /* End of a line of the comment. */
             ch = curr_char_loc[1];
             if (ch == LE_NULL) {
               /* Null (zero) character in comment.  Ignored. */
               curr_char_loc += LE_ESCAPE_LEN;
               continue;
             }  /* if */
+            /* End of a line of the comment. */
             check_assertion_str(ch == LE_NEWLINE ||
                                 ch == LE_END_OF_LINE,
                             "skip_white_space: bad lexical escape in comment");
@@ -6149,7 +6146,8 @@ responsible for issuing error messages.
         /* Token ends after the "\" -- this is an unclosed string.  This can
            happen because of macro definitions on the command line, e.g.,
            -DX="\ */
-        /* Also handles \ followed by an LE_ESCAPE/LE_NULL sequence. */
+        /* Also handles \ followed by an LE_ESCAPE/LE_NULL sequence, though
+           not terribly gracefully. */
         unterminated = TRUE;
         goto return_point;
       } else if ((ch == 'u' || ch == 'U') &&
@@ -6189,7 +6187,9 @@ responsible for issuing error messages.
     } else if (ch == LE_ESCAPE) {
       if (curr_char_loc[1] == LE_NULL) {
         /* Null (zero) character -- keep in string. */
-        warning_at_line_pos(ec_null_char_in_string, curr_char_loc);
+        warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
+                                             ec_null_char_in_string,
+                            curr_char_loc);
         nchars++;
         curr_char_loc += LE_ESCAPE_LEN;
       } else {
