@@ -261,10 +261,10 @@ for unions and aggregates at that level).
   a_boolean           took_extra_comma;
   an_expr_node_ptr    expression;
   a_dynamic_init_ptr  dip;
-  a_routine_ptr       rp;
   a_source_position   expr_pos;
   a_class_symbol_supplement_ptr
                       cssp;
+  a_symbol_ptr        ctor_sym;
 
   db_enter(4, "get_initializer");
   err = FALSE;
@@ -291,26 +291,23 @@ for unions and aggregates at that level).
     expression = scan_argument_expression();
     /* Look for a constructor to convert the right hand side to the
        required class type. */
-    if (!select_constructor(cssp->constructor, &rp, &expression, &expr_pos)) {
+    ctor_sym = select_constructor(cssp->constructor, &expression, &expr_pos);
+    if (ctor_sym == NULL) {
       /* No such constructor was found.  Abort the initialization. */
       err = TRUE;
-#if 0
-    } else if (rp != cssp->copy_constructor->variant.routine) {
-      /* Something other than the copy constructor was returned, so be sure
-         the copy constructor is accessible. */
-      if (!have_access_to_symbol(cssp->copy_constructor)) {
-        /* It is an error if the copy constructor is inaccessible, even
-           though it is being optimized away. */
-        pos_error(ec_inaccessible_copy_constructor, &expr_pos);
-        err = TRUE;
-      }  /* if */
-#endif /* if 0 */
-    }  /* if */
-    if (!err) {
+    } else if (ctor_sym != cssp->copy_constructor &&
+               !have_access_to_symbol(cssp->copy_constructor)) {
+      /* Something other than the copy constructor was returned, but the copy
+         constructor still has to be accessible (ARM 12.6.1). */
+      pos_error(ec_inaccessible_copy_constructor, &expr_pos);
+      err = TRUE;
+    } else {
+      /* Check that the constructor is accessible and mark it referenced. */
+      reference_to_special_member_function(ctor_sym);
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->variant.dynamic_init = dip =
                   alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-      dip->variant.constructor.routine = rp;
+      dip->variant.constructor.routine = ctor_sym->variant.routine;
       dip->variant.constructor.args = expression;
       if (*di_list == NULL) {
         *di_list = dip;
@@ -318,8 +315,6 @@ for unions and aggregates at that level).
         (*end_of_di_list)->next = dip;
       }  /* if */
       *end_of_di_list = dip;
-      /* Mark the constructor as referenced. */
-      reference_to_special_member_function(rp);
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && curr_token == tok_lbrace)) {
@@ -710,7 +705,7 @@ The syntax is:
   a_boolean                      initialization_is_dynamic;
   an_expr_node_ptr               arg_list;
   a_class_symbol_supplement_ptr  cssp = NULL;
-  a_routine_ptr                  rp;
+  a_symbol_ptr                   ctor_sym;
   a_source_position              expr_pos;
 
   db_enter(3, "initializer");
@@ -782,15 +777,16 @@ The syntax is:
        possibly the copy constructor, will be selected and returned.  The
        scan function returns FALSE if it finds no constructor for which the
        arguments match. */
-    if (!scan_ctor_arguments(cssp->constructor, &rp, &arg_list)) {
+    ctor_sym = scan_ctor_arguments(cssp->constructor, &arg_list);
+    if (ctor_sym == NULL) {
       err = TRUE;
     } else {
+      /* Check that the constructor is accessible and mark it referenced. */
+      reference_to_special_member_function(ctor_sym);
       /* Set the dynamic init entry to represent constructor initialization. */
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-      local_di.variant.constructor.routine = rp;
+      local_di.variant.constructor.routine = ctor_sym->variant.routine;
       local_di.variant.constructor.args = arg_list;
-      /* Mark the constructor referenced. */
-      reference_to_special_member_function(rp);
     }  /* if */
     initialization_is_dynamic = TRUE;
   } else if (cssp != NULL && cssp->constructor != NULL &&
@@ -842,38 +838,30 @@ The syntax is:
          the object being initialized -- e.g., complex x = 1 is treated as
          complex x(1). */
 #if CHECKING
-#if 0
       if (cssp->copy_constructor == NULL) {
         internal_error("initializer: missing copy constructor");
       }  /* if */
-#endif /* if 0 */
 #endif /* CHECKING */
       /* Look for a constructor to convert the right hand side to the
          required class type. */
-      if (!select_constructor(cssp->constructor, &rp,
-                              &expression, &expr_pos)) {
+      ctor_sym = select_constructor(cssp->constructor, &expression, &expr_pos);
+      if (ctor_sym == NULL) {
         /* No such constructor was found.  Abort the initialization. */
         err = TRUE;
-#if 0
-      } else if (rp != cssp->copy_constructor->variant.routine) {
-        /* Something other than the copy constructor was returned, so be sure
-           the copy constructor is accessible. */
-        if (!have_access_to_symbol(cssp->copy_constructor)) {
-          /* It is an error if the copy constructor is inaccessible, even
-             though it is being optimized away. */
-          pos_error(ec_inaccessible_copy_constructor, &expr_pos);
-          err = TRUE;
-        }  /* if */
-#endif /* if 0 */
-      }  /* if */
-      if (!err) {
+      } else if (ctor_sym != cssp->copy_constructor &&
+                 !have_access_to_symbol(cssp->copy_constructor)) {
+        /* Something other than the copy constructor was returned, but the copy
+           constructor still has to be accessible (ARM 12.6.1). */
+        pos_error(ec_inaccessible_copy_constructor, &expr_pos);
+        err = TRUE;
+      } else {
+        /* Check that the constructor is accessible and mark it referenced. */
+        reference_to_special_member_function(ctor_sym);
         /* Set the dynamic init entry to represent constructor
            initialization. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-        local_di.variant.constructor.routine = rp;
+        local_di.variant.constructor.routine = ctor_sym->variant.routine;
         local_di.variant.constructor.args = expression;
-        /* Mark the constructor as referenced. */
-        reference_to_special_member_function(rp);
       }  /* if */
     }  /* if */
     initialization_is_dynamic = TRUE;
@@ -987,9 +975,9 @@ The syntax is:
        defined a destructor but the object can be initialized without a
        constructor. */
     if (cssp != NULL && cssp->destructor != NULL) {
-      local_di.destructor = rp = cssp->destructor->variant.routine;
-      /* Mark the destructor referenced. */
-      rp->source_corresp.referenced = TRUE;
+      local_di.destructor = cssp->destructor->variant.routine;
+      /* Check that the destructor is accessible and mark it referenced. */
+      reference_to_special_member_function(cssp->destructor);
       initialization_is_dynamic = TRUE;
     }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
@@ -1055,7 +1043,6 @@ a_boolean def_initializer(a_symbol_ptr       sym,
   a_variable_ptr                 var;
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
-  a_routine_ptr                  rp;
   a_dynamic_init                 local_di, *ctor_dip;
 
   db_enter(3, "def_initializer");
@@ -1085,16 +1072,18 @@ a_boolean def_initializer(a_symbol_ptr       sym,
           pos_st_error(ec_no_default_constructor, err_pos,
                        tp->source_corresp.name);
         } else {
+          /* Check that the constructor is accessible and mark it
+             referenced. */
+          reference_to_special_member_function(cssp->default_constructor);
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-          local_di.variant.constructor.routine = rp =
+          local_di.variant.constructor.routine =
                                   cssp->default_constructor->variant.routine;
           local_di.variant.constructor.args = NULL;
-          /* Mark the constructor referenced. */
-          reference_to_special_member_function(rp);
           if (cssp->destructor != NULL) {
-            local_di.destructor = rp = cssp->destructor->variant.routine;
-            /* Mark the destructor referenced. */
-            reference_to_special_member_function(rp);
+            /* Check that the destructor is accessible and mark it
+               referenced. */
+            reference_to_special_member_function(cssp->destructor);
+            local_di.destructor = cssp->destructor->variant.routine;
           }  /* if */
           if (var_type != tp) {
             ctor_dip =
@@ -1122,9 +1111,9 @@ a_boolean def_initializer(a_symbol_ptr       sym,
            even though it is not actually initialized, so that the existence
            of the destructor can be duly recorded. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
-        local_di.destructor = rp = cssp->destructor->variant.routine;
-        /* Mark the destructor referenced. */
-        reference_to_special_member_function(rp);
+        local_di.destructor = cssp->destructor->variant.routine;
+        /* Check that the destructor is accessible and mark it referenced. */
+        reference_to_special_member_function(cssp->destructor);
         gen_dynamic_initialization(var, &local_di);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
            doesn't count as initialization. */
@@ -1177,8 +1166,8 @@ initialized.  These are addressed in the course of the processing.
   a_constructor_init_ptr        virtual_list, end_of_virtual_list;
   a_constructor_init_ptr        direct_list, end_of_direct_list;
   a_base_class_ptr              bcp;
-  a_routine_ptr                 rp;
   a_class_symbol_supplement_ptr cssp;
+  a_symbol_ptr                  ctor_sym;
   a_dynamic_init_ptr            dip, ctor_dip;
 
   db_enter(3, "ctor_initializer");
@@ -1474,18 +1463,18 @@ scan_paren:
                  on the arguments present, a constructor will be selected and
                  returned.  The scan function returns FALSE if it finds no
                  constructor for which the arguments match. */
-              if (!scan_ctor_arguments(cssp->constructor, &rp, &arg_list)) {
-                err = TRUE;
-              }  /* if */
-            }  /* if */
+              ctor_sym = scan_ctor_arguments(cssp->constructor, &arg_list);
+              if (ctor_sym == NULL) err = TRUE;
+            }   /* if */
             if (!err) {
               /* Set the dynamic init entry to represent constructor
                  initialization. */
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-              dip->variant.constructor.routine = rp;
+              dip->variant.constructor.routine = ctor_sym->variant.routine;
               dip->variant.constructor.args = arg_list;
-              /* Mark the constructor referenced. */
-              reference_to_special_member_function(rp);
+              /* Check that the constructor is accessible and mark it
+                 referenced. */
+              reference_to_special_member_function(ctor_sym);
             } else {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
@@ -1570,10 +1559,11 @@ scan_paren:
         /* A default constructor does exist.  Generate the dynamic init
            entry and mark the constructor routine referenced. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.constructor.routine = rp =
+        dip->variant.constructor.routine =
                                   cssp->default_constructor->variant.routine;
         dip->variant.constructor.args = NULL;
-        reference_to_special_member_function(rp);
+        /* Check that the constructor is accessible and mark it referenced. */
+        reference_to_special_member_function(cssp->default_constructor);
       }  /* if */
       if (array_type != NULL) {
         /* We have an array of objects with constructors.  Create a dynamic
@@ -1631,7 +1621,6 @@ though neither constructors nor initialization is involved here.)
   a_constructor_init_ptr        cip_list, end_of_cip_list;
   a_constructor_init_ptr        virtual_list;
   a_base_class_ptr              bcp;
-  a_routine_ptr                 rp;
   a_class_symbol_supplement_ptr cssp;
   a_dynamic_init_ptr            dip;
 
@@ -1665,9 +1654,9 @@ though neither constructors nor initialization is involved here.)
         cip->variant.base_class = bcp;
         /* Create a dynamic init entry. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        dip->destructor = rp = cssp->destructor->variant.routine;
-        /* Mark the destructor referenced. */
-        reference_to_special_member_function(rp);
+        dip->destructor = cssp->destructor->variant.routine;
+        /* Check that the destructor is accessible and mark it referenced. */
+        reference_to_special_member_function(cssp->destructor);
         /* Attach the new dynamic init entry to the constructor initializer. */
         cip->initializer = dip;
         /* Add the constructor init to the end of the appropriate list. */
@@ -1722,9 +1711,9 @@ though neither constructors nor initialization is involved here.)
           cip->variant.field = sym->variant.field;
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          dip->destructor = rp = cssp->destructor->variant.routine;
-          /* Mark the destructor referenced. */
-          reference_to_special_member_function(rp);
+          dip->destructor = cssp->destructor->variant.routine;
+          /* Check that the destructor is accessible and mark it referenced. */
+          reference_to_special_member_function(cssp->destructor);
           if (array_type != NULL) {
             /* We have an array of objects with destructors.  Create a dynamic
                init entry to handle the aggregate. */
