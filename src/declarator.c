@@ -350,17 +350,14 @@ type is legal.
                          ec_array_of_incomplete_type);
               if (strict_ansi_error_severity == es_error) err = TRUE;
             }  /* if */
-          } else if (is_abstract_class_type(temp_type)) {
-            error(ec_array_of_abstract_class);
-            err = TRUE;
           }  /* if */
         } else if (is_immediate_enum_type(temp_type)) {
           if (is_incomplete_type(temp_type)) {
             /* As an extension (in both C and C++ modes), allow an array of
-               incomplete class type.  Obviously, the element type has to be
+               incomplete enum type.  Obviously, the element type has to be
                completed before the array is actually used.  Add the array
-               type to a list of array types to be fixed up when the
-               class/struct/union declaration is completed. */
+               type to a list of array types to be fixed up when the enum
+               declaration is completed. */
             array_of_incomp_class_or_enum = TRUE;
             if (strict_ansi_mode) {
               diagnostic(strict_ansi_error_severity,
