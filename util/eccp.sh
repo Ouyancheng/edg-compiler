@@ -1322,7 +1322,6 @@ fi
 # sets some environment variables before invoking this script.
 if [ $automatic_instantiation -eq 1 ] ; then
   instantiation_command_line="$compile_command -c"$instantiation_command_line
-  instantiation_libraries="$LIBDIR/libC$EDG_LIB_SUFFIX.a"
 fi
 
 if [ $error -eq 1 ]
@@ -1743,7 +1742,7 @@ then
                      $EDG_LINKER_LIB_PATHS \
                      $EDG_DEFAULT_LIB_PATHS \
 		     $object_files -- \
-                     $instantiation_libraries"
+                     $EDG_STD_LIBS"
         if [ $driver_debug -ne 0 ] ; then
           echo $command
         fi
