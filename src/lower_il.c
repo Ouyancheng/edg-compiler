@@ -340,7 +340,10 @@ static void set_after_expr_insert_location(an_expr_node_ptr   node,
                                            an_insert_location *insert_location)
 /*
 Set *insert_location to indicate an insert location after the indicated
-expression node.  This can only be done if the expression has type void
+expression node.  This is a special and tricky mode, and should only be
+used at the top of an expression tree, since it may change the type of
+the node (and it wouldn't be possible to change the types of parent comma
+and question-mark nodes).  The expression must have type void
 or an assignable type.  In the assignable case, this routine changes the
 expression tree, so this routine should only be called when it is known
 that an insertion will be made.
@@ -2278,6 +2281,10 @@ will be after the expression added.
   /* Turn the original node into a comma node. */
   change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
                            second_operand->type, first_operand);
+  if (second_operand->kind == (an_expr_operator_kind)enk_operation) {
+    orig_expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+      second_operand->variant.operation.returns_lvalue_instead_of_usual_rvalue;
+  }  /* if */
 }  /* insert_expr */
 
 
@@ -4327,9 +4334,14 @@ larger expression tree.  The expression is not an lvalue.
          conditional destruction. */
       gen_expr_conditional_flag_var_initializations(expr_to_lower);
       /* Generate any cleanup actions for temporaries built within
-         the expression. */
+         the expression.  Note that this is a special "insert after"
+         mode, which can only be used in very limited circumstances,
+         e.g., at the top of an expression tree. */
       set_after_expr_insert_location(expr_to_lower, &insert_location);
       gen_cleanup_actions(curr_context, &insert_location);
+      /* The insertions may have changed the type of the node, so copy the
+         type up to the enk_object_lifetime node. */
+      expr->type = expr_to_lower->type;
     }  /* if */
     pop_context();
     curr_object_lifetime = saved_curr_object_lifetime;
