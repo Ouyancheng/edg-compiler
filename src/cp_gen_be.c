@@ -4442,9 +4442,13 @@ Generate code for a new or delete operation.
     need_type_parens = TRUE;
     { a_type_ptr  temp_type = type;
       a_type_kind tkind;
-      if (temp_type->kind == (a_type_kind)tk_array) {
-        /* Allow one array level in a simple new type. */
+      while (temp_type->kind == (a_type_kind)tk_array) {
+        /* Allow multiple array levels in a simple new type. */
         temp_type = temp_type->variant.array.element_type;
+      }  /* while */
+      while (temp_type->kind == (a_type_kind)tk_pointer) {
+        /* Then allow any number of pointer levels in a simple new type. */
+        temp_type = temp_type->variant.pointer.type;
       }  /* while */
       tkind = temp_type->kind;
       if (tkind == (a_type_kind)tk_integer ||

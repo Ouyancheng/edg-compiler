@@ -7,6 +7,10 @@ The C++-generating back end now puts parentheses around some "new"
 operations if needed to avoid ambiguity, e.g., "(new int)[0]" now
 comes out that way instead of the incorrect "new int[0]".
 
+Also, new operations on pointer or multi-level array types are now
+put out in the unparenthesized form, e.g., "new int *" rather
+than "new (int *)".
+
 4/21/99  C++-generating back end: avoid accidental digraph on template
          argument list
 
