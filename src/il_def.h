@@ -3660,7 +3660,7 @@ typedef struct a_template_arg {
      or template function.  A list of these is used to represent the actual
      argument list for such an instance. */
   a_template_arg_ptr
-                next;   /* Next in a linked list template arguments. */
+                next;   /* Next in a linked list of template arguments. */
   a_templ_arg_kind
 		kind;
 			/* Specifies whether this is a type, nontype,
