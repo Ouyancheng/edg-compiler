@@ -4928,7 +4928,7 @@ otherwise it is NULL.  The syntax is:
         /* Save information on the identifier to be declared. */
         *locator = locator_for_curr_id;
         (void)get_token();
-      } else if (simplify_curr_class_qualified_name(),
+      } else if ((void)simplify_curr_class_qualified_name(),
 		 ((curr_token == tok_identifier &&
                      locator_for_curr_id.is_destructor_name) ||
                   get_destructor_name())) {
