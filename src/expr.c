@@ -1225,7 +1225,6 @@ Syntax:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
-  a_boolean         ordinary_lookup_failed = FALSE;
   a_boolean         arg_dep_lookup_suppressed = FALSE;
   a_boolean         found_through_adl = FALSE;
 
@@ -1398,7 +1397,6 @@ Syntax:
       if (!C_mode() && do_arg_dep_lookup) {
         overloaded_function_case = TRUE;
         overloaded_function_symbol = func_sym;
-        ordinary_lookup_failed = TRUE;
         /* routine_type = NULL;  -- already set. */
       } else {
         /* Implicitly declare the symbol as a function. */
