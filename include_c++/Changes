@@ -4,7 +4,10 @@ Version 2.20, November 4, 1993
 
 The exit function has been changed to have C++ linkage.  A version of
 exit is now supplied with the C++ runtime to support exception handling.
+------------------------------------------------------------------------------
+Version 2.09, September 15, 1992
 
+9/13/92  stdarg.h updated for sparc architecture.
 ------------------------------------------------------------------------------
 Version 2.05, April 30, 1992
 
