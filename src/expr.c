@@ -3665,8 +3665,8 @@ operation is a pointer-to-member (see ARM 5.3).
 static void scan_address_of_label_expression(an_operand *result)
 /*
 Scan the GNU extended "&&label" expression, which evaluates to
-the address (as a void *) of the label.  Caller has processed
-the && operator.
+the address (as a void *) of the label.  The "&&" operator is the
+current token on entry.
 */
 {
   a_label_ptr	    label;
@@ -12849,6 +12849,8 @@ see expr.h).
 
 #if GNU_EXTENSIONS_ALLOWED
     case tok_and_and:
+      if (!gcc_mode ||
+          next_token() != tok_identifier) goto bad_start_of_primary;
       scan_address_of_label_expression(&local_result);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
