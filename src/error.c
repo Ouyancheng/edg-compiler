@@ -907,7 +907,8 @@ error code.
       m = "argument is incompatible with formal parameter";
       break;
     case ec_printf_arg_mismatch:
-      m = "invalid argument type for format string conversion";
+      m =
+        "argument is incompatible with corresponding format string conversion";
       break;
     case ec_empty_include_search_path:
       m = "could not open source file %sq (no directories in search list)";
