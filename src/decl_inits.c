@@ -1433,35 +1433,47 @@ the default constructor (if one exists) is called.
           }  /* if */
 #endif /* DEBUG */
         }  /* if */
-      } else if ((rp = select_destructor(tp)) != NULL) {
-        /* Default initialization of an object that has a destructor.  We
-           generate a dik_none dynamic initialization entry for this object,
-           even though it is not actually initialized, so that the existence
-           of the destructor can be duly recorded. */
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
-        local_di.destructor = rp;
-        if (var_type != tp) {
-          /* The object has an array type. */
-          a_dynamic_init  *dtor_dip;
-
-          /* Copy the dynamic init entry. */
-          dtor_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          *dtor_dip = local_di;
-          /* Now that the local_di has been copied, reinitialize it. */
-          clear_dynamic_init(&local_di,
-                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
-          /* Compute the repeat count. */
-          if (var_type->size == 0) {
-            count = 1;
-          } else {
-            count = var_type->size / tp->size;
-          }  /* if */
-          /* Build the repeat construct. */
-          repeat_nonconstant_init(dtor_dip, tp, &local_di, count);
+      } else {
+        /* No constructor. */
+        if (!cssp->any_nonstatic_data_members) {
+          /* We silently and automatically "initialize" an "empty" class object
+             -- i.e., one with no nonstatic data members (none of its own and
+             none in any base classes it may have). */
+          /* Note that the ARM can be read as requiring initialization of
+             const objects even when they are empty.  Other C++ compilers don't
+             enforce such a restriction, however. */
+          def_init_performed = TRUE;
         }  /* if */
-        gen_dynamic_initialization(var, &local_di, err_pos);
-        /* Don't set def_init_performed.  A dik_none dynamic initialization
-           doesn't count as initialization. */
+        if ((rp = select_destructor(tp)) != NULL) {
+          /* Default initialization of an object that has a destructor.  We
+             generate a dik_none dynamic initialization entry for this object,
+             even though it is not actually initialized, so that the existence
+             of the destructor can be duly recorded. */
+          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
+          local_di.destructor = rp;
+          if (var_type != tp) {
+            /* The object has an array type. */
+            a_dynamic_init  *dtor_dip;
+  
+            /* Copy the dynamic init entry. */
+            dtor_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+            *dtor_dip = local_di;
+            /* Now that the local_di has been copied, reinitialize it. */
+            clear_dynamic_init(&local_di,
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+            /* Compute the repeat count. */
+            if (var_type->size == 0) {
+              count = 1;
+            } else {
+              count = var_type->size / tp->size;
+            }  /* if */
+            /* Build the repeat construct. */
+            repeat_nonconstant_init(dtor_dip, tp, &local_di, count);
+          }  /* if */
+          gen_dynamic_initialization(var, &local_di, err_pos);
+          /* Don't set def_init_performed.  A dik_none dynamic initialization
+             doesn't count as initialization. */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
