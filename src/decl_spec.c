@@ -3518,9 +3518,13 @@ decl_specifiers.
         }
         /* In Microsoft Visual C++ 6.0 __int8 is a distinct type (not just a
            synonym for a char type). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         *type_ptr = extended_integer_type((an_integer_kind)ikind,
                                           microsoft_version >= 1200 &&
-                                          size == size_int8);
+                                          size == (int)size_int8);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+        *type_ptr = integer_type((an_integer_kind)ikind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       break;
     case bt_wchar_t:
@@ -3622,14 +3626,24 @@ decl_specifiers.
            they may mean different things as bit-field types.  The same
            applies to explicitly signed short, long, and long long. */
         *type_ptr = extended_signed_integer_type((an_integer_kind)ikind,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                                  microsoft_version >= 1200 &&
-                                                 size >= size_int8 &&
-                                                 size <= size_int64);
+                                                 size >= (int)size_int8 &&
+                                                 size <= (int)size_int64
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                                                 /*microsoft_intrinsic=*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                             );
       } else {
-        *type_ptr = extended_integer_type(
-                                     (an_integer_kind)ikind,
-                                     microsoft_version >= 1200 &&
-                                     size >= size_int8 && size <= size_int64);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        *type_ptr = extended_integer_type((an_integer_kind)ikind,
+                                          microsoft_version >= 1200 &&
+                                          size >= (int)size_int8 &&
+                                          size <= (int)size_int64
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                                          /*microsoft_intrinsic=*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                       );
       }  /* if */
       break;
     case bt_float:

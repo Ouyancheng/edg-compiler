@@ -4677,6 +4677,10 @@ indicated string type.
 }  /* char_int_kind_from_string_type */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- Because microsoft_intrinsic is only used when Microsoft
+                     extensions are allowed. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr extended_integer_type(an_integer_kind  kind,
                                  a_boolean        microsoft_intrinsic)
 /*
@@ -4710,6 +4714,10 @@ built-in type (as opposed to just a typedef for another integral type).
 }  /* extended_integer_type */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- Because microsoft_intrinsic is only used when Microsoft
+                     extensions are allowed. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr extended_signed_integer_type(an_integer_kind  kind,
                                         a_boolean        microsoft_intrinsic)
 /*

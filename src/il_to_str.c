@@ -468,12 +468,12 @@ are delegated to int_kind_name, but for intrinsic Microsoft __intN types
 */
 {
   char             *result;
-  an_integer_kind  kind;
 
   check_assertion(type->kind == (a_type_kind)tk_integer);
-  kind = type->variant.integer.int_kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (type->variant.integer.microsoft_sized_int_type) {
+    an_integer_kind  kind = type->variant.integer.int_kind;
+
     if (kind == (an_integer_kind)ik_signed_char ||
         kind == (an_integer_kind)ik_char) {
       result = "__int8";
@@ -496,6 +496,7 @@ are delegated to int_kind_name, but for intrinsic Microsoft __intN types
     }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   {
     result = int_kind_name(type->variant.integer.int_kind);
   }  /* if */
