@@ -1,5 +1,13 @@
 Version 2.22
 
+1/27/94  IL change: contains_try_block flag in routine entry
+
+The IL routine entry now contains the flag contains_try_block which
+is set to TRUE if the routine definition contains any "try" blocks.
+This can be helpful in suppressing certain optimizations relating
+to local variables which would interact badly with the setjmp/longjmp
+used to implement exception throws.
+
 1/27/94  address_taken flag on parameters and register variables
 
 One side effect of the changes for the address_taken flag in version 2.21
