@@ -1,5 +1,18 @@
 Version 2.42
 
+4/26/99  C++-generating back end: using-directive and namespace qualifier
+
+When a using-directive resulted in name overloading, the namespace
+qualifier that would resolve the ambiguity was sometimes omitted by the
+C++-generating back end.  Now fixed.
+
+  namespace N {
+    class X { };
+  }
+  using namespace N;
+  class X { };
+  ::X x;              // Formerly put out as "X x;", which is ambiguous
+
 4/24/99  C++-generating back end: comma lists, typedef for unnamed class
 
 The C++-generating back end's approach for deciding whether to put out

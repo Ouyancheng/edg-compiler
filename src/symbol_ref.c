@@ -1103,6 +1103,33 @@ hiding.
           }  /* if */
         }  /* for */
       }  /* if */
+      /* Special handling for an ambiguity resulting from a using-directive.
+           namespace N { void f(); }
+           using namespace N;
+           void f();
+           void g() { ::f(); }    // ambiguity resolved by qualifier
+      */
+      if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+          (!sym_ptr->is_class_member &&
+           sym_ptr->parent.namespace_ptr != NULL)) {
+        /* Do a lookup and see if a synthesized namespace projection is
+           found.  If it is, we can assume that sym_ptr is part of the mix
+           (though it may not actually be returned unless a function overload
+           set is produced), and if so qualifying sym_ptr will disambiguate
+           the reference. */
+        clear_specific_symbol(locator);
+        (void)normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
+        old_sym_ptr = locator.specific_symbol;
+        if (old_sym_ptr != NULL &&
+            old_sym_ptr->synthesized_namespace_projection) {
+          hidden_class_or_namespace_member = TRUE;
+          tag_hidden_by_nontag = FALSE;
+          record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
+                                        hidden_class_or_namespace_member,
+                                        (a_scope_ptr)NULL,
+                                        (a_symbol_ptr)NULL);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_for_defeatable_name_hiding */
