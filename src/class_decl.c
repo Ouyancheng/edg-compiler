@@ -7374,6 +7374,12 @@ next_declaration:
          is bypassed) because the actual definition has not yet appeared.  See
          pop_scope; they get added at the end of the scope. */
       add_to_types_list(class_type, effective_decl_level);
+      if (is_template_instantiation) {
+        /* Special processing in case this instantiation occurred in the
+           midst of a class definition, to enable il-lowering to get the
+           ordering right when it promotes the nested types to file scope. */
+        create_placeholder_for_class_instantiation(class_type);
+      }  /* if */
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
