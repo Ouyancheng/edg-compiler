@@ -852,12 +852,12 @@ class_struct_union:
       break;
     case tk_routine:
       rtsp = tp->variant.routine.extra_info;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (rtsp->calling_convention != (a_calling_convention)cc_default) {
         fprintf(f_debug, "%s ",
                 calling_convention_names[(int)rtsp->calling_convention]);
       }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (rtsp->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
         fputs("[", f_debug);
         db_name_linkage((a_name_linkage_kind)rtsp->routine_name_linkage);
@@ -4199,9 +4199,9 @@ to default values.
       rtsp->routine_name_linkage     = default_routine_name_linkage;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
-#if MICROSOFT_KEYWORDS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       rtsp->calling_convention       = (a_calling_convention)cc_default;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rtsp->implicit_this_param_type = NULL;
       rtsp->prototype_scope          = NULL;
       rtsp->exception_specification  = NULL;
