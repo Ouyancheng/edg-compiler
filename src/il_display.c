@@ -1190,6 +1190,9 @@ do_struct_union:
       if (ptr->variant.class_struct_union.is_template_class) {
         disp_boolean("is_template_class", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.is_nonreal_class) {
+        disp_boolean("is_nonreal_class", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.is_specialized) {
         disp_boolean("is_specialized", TRUE);
       }  /* if */
