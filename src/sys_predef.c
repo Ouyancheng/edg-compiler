@@ -794,7 +794,7 @@ Enter the standard predeclared functions for GCC.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
 
 static void enter_predefined_type(a_type_ptr type,
                                   char       *name)
@@ -810,7 +810,7 @@ Enter a predefined type.
   set_source_corresp(&type->source_corresp, sym_ptr);
 }  /* enter_predefined_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
