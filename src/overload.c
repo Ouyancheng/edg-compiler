@@ -36,7 +36,7 @@ static void prep_conversion_operand(an_operand        *source_operand,
 static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
-                                  a_boolean                need_lvalue_result,
+                                  a_boolean                is_initialization,
                                   a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
                                   a_candidate_function_ptr *ambiguity_list);
@@ -677,22 +677,24 @@ arg_operand (of class type) is being passed as an argument to a parameter
 of type param_type (also a class type, either the same one or a base type
 thereof).  Set *conversion to indicate the conversion that is required
 to do that (a bitwise copy or a copy constructor call).  Note that
-conversion->std.cast_base_class is set already, and that value is preserved
-in the bitwise copy case.
+*conversion is already cleared and conversion->std.cast_base_class is
+already set, with a value of NULL indicating a same-class copy.
 */
 {
-  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(param_type);
-  a_boolean                     ambiguous;
-
-  if (cssp->construction_by_bitwise_copy_allowed) {
-    /* This is a bitwise copy. */
-    /* Do NOT clear the conversion entry here.  We want to preserve the
-       cast_base_class pointer. */
+  if (conversion->std.cast_base_class == NULL &&
+      symbol_supplement_for_class(param_type)->
+                                        construction_by_bitwise_copy_allowed) {
+    /* This is a bitwise same-class copy. */
+    /* This could have been done by the call to conversion_to_class_possible;
+       doing it here is a small speed optimization. */
+    /* No need to clear the conversion here; that's been done already. */
     conversion->class_identity_or_bitwise_copy = TRUE;
   } else {
-    /* This case must require a copy constructor. */
+    /* This case must require a copy constructor or a derived-class
+       bitwise copy. */
+    a_boolean ambiguous;
     if (conversion_to_class_possible(arg_operand, param_type,
-                                     /*need_lvalue_result=*/FALSE,
+                                     /*is_initialization=*/TRUE,
                                      conversion, &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
         ambiguous) {
@@ -1068,7 +1070,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     check_assertion(orig_arg_operand != NULL);
     if (param_is_class_type &&
         (conversion_to_class_possible(orig_arg_operand, param_type,
-                                      /*need_lvalue_result=*/FALSE,
+                                      /*is_initialization=*/TRUE,
                                       &conversion, &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
          ambiguous)) {
@@ -4636,26 +4638,26 @@ set *ambiguous to TRUE.  Always set symbol to its fundamental symbol.
 static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
-                                  a_boolean                need_lvalue_result,
+                                  a_boolean                is_initialization,
                                   a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
                                   a_candidate_function_ptr *ambiguity_list)
 /*
-If source_operand can be converted to the class type dest_type
-(via a constructor or conversion function) set *conversion to describe
-the routine that can do the conversion and return TRUE.  Otherwise
-return FALSE.  If need_lvalue_result is TRUE, the result must be an
-lvalue.  If more than one function matches, set *ambiguous to TRUE
-and return FALSE.  If ambiguity_list is non-NULL in that case, it is set
-to point to a list describing the set of ambiguous functions; the caller must
+If source_operand can be converted to the class type dest_type (via a
+constructor, conversion function, or bitwise copy) set *conversion
+to describe the conversion and return TRUE.  Otherwise, return FALSE.
+If is_initialization is TRUE, this conversion is for an initialization;
+otherwise, it's for an assignment.  The result is always an rvalue.
+If more than one function matches, set *ambiguous to TRUE and return
+FALSE.  If ambiguity_list is non-NULL in that case, it is set to point
+to a list describing the set of ambiguous functions; the caller must
 free that list.  *ambiguity_list is set to NULL to indicate a case that
-is undecidable because of an error.  Note that this routine does not
-check for the possibility of bitwise copying (see class_bitwise_copy_possible).
-This routine is only used in C++ mode.
+is undecidable because of an error.  This routine is only used in C++
+mode.
 */
 {
-  a_boolean                     okay;
-  a_type_ptr                    class_type;
+  a_boolean                     okay, bitwise_copy_okay;
+  a_type_ptr                    class_type, source_type;
   a_candidate_function_ptr      candidate_functions;
   a_boolean                     matched_except_for_missing_selector = FALSE;
   a_symbol_ptr                  class_symbol, constructor_symbol;
@@ -4663,11 +4665,14 @@ This routine is only used in C++ mode.
   a_class_symbol_supplement_ptr cssp;
   an_arg_operand_ptr            arg_operand_list;
   a_boolean                     undecidable_because_of_error;
+  a_base_class_ptr              bcp;
 
   db_enter(4, "conversion_to_class_possible");
   /* Note that this routine is like a simplified version of
      select_overloaded_function that works for user-defined conversion
      functions (no arguments, just a "this" parameter). */
+  *ambiguous = FALSE;
+  okay = FALSE;
   clear_conv_descr(conversion);
   class_type = skip_typerefs(dest_type);
   /* If the class is a template class, instantiate it so that its
@@ -4675,81 +4680,115 @@ This routine is only used in C++ mode.
   instantiate_template_class(class_type);
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
-  /* candidate_functions will contain the list of viable functions. */
-  candidate_functions = NULL;
-  /* Make an argument list with just the source operand. */
-  arg_operand_list = alloc_arg_operand();
-  copy_operand(source_operand, &arg_operand_list->operand);
-  constructor_symbol = cssp->constructor;
-  /* Constructors don't create lvalues, so don't try them if we need
-     an lvalue result. */
-  if (constructor_symbol != NULL && !need_lvalue_result) {
-    /* The class has constructors. */
-    /* Try all the constructors with that argument list. */
-    try_overloaded_function_match(constructor_symbol,
-                                  arg_operand_list,
-                                  /*have_selector=*/FALSE, /* sic */
-                                  (an_operand *)NULL,
-                                  /*selector_is_object_pointer=*/FALSE,
-                                  /*user_conversion_case=*/TRUE,
-                                  &candidate_functions,
-                                  &matched_except_for_missing_selector);
-  }  /* if */
-  if (is_class_struct_union_type(source_operand->type) &&
-      cssp->target_of_conversion_function) {
-    /* There is at least one conversion function that converts some other
-       class into the desired class, and the source type is a class.
-       See if there is a conversion function that does the job. */
-    try_conversion_function_match(source_operand, dest_type,
-                                  (a_builtin_type_kind_set)BTK_NONE,
-                                  need_lvalue_result,
-                                  &candidate_functions);
-  }  /* if */
-  /* The candidate_functions list now contains all the viable functions.
-     Find the best ones. */
-  select_best_candidate_functions(&candidate_functions,
-                                  &source_operand->position,
-                                  &undecidable_because_of_error);
-  *ambiguous = FALSE;
-  okay = FALSE;
-  if (undecidable_because_of_error) {
-    *ambiguous = TRUE;
-    /* Note that candidate_functions is NULL (select_best_candidate_functions
-       returns it that way in this case), so a NULL ambiguity_list will
-       be returned to indicate "undecidable because of error". */
-  } else if (candidate_functions == NULL) {
-    /* No constructor or conversion function is suitable. */
-  } else if (candidate_functions->next != NULL) {
-    /* More than one constructor or conversion function matches at the same
-       level.  Ambiguity. */
-    *ambiguous = TRUE;
-#if DEBUG
-    if (debug_level >= 4) {
-      db_candidate_function_list(candidate_functions);
-    }  /* if */
-#endif /* DEBUG */
+  source_type = source_operand->type;
+  source_type = skip_typerefs(source_type);
+  /* Check for a same-class bitwise copy.  The derived-class bitwise copy
+     is checked for below. */
+  bitwise_copy_okay = (is_initialization ?
+                                   cssp->construction_by_bitwise_copy_allowed :
+                                   cssp->assignment_by_bitwise_copy_allowed);
+  if (bitwise_copy_okay && identical_types(class_type, source_type)) {
+    /* The source and destination types are the same class type, and a
+       bitwise copy is allowed on that type.  That means there are no
+       copy constructors, and therefore the bitwise copy is the best
+       match. */
+    conversion->class_identity_or_bitwise_copy = TRUE;
+    okay = TRUE;
   } else {
-    /* Exactly one constructor or conversion function matches best. */
-    conversion_symbol = candidate_functions->function_symbol;
-    /* If the function is a conversion function that is inherited from a base
-       class, check to see if it's ambiguous by inheritance. */
-    check_symbol_ambiguous_by_inheritance(conversion_symbol, ambiguous);
-    if (!*ambiguous) {
+    /* A same-class bitwise copy is not possible, so do the full overload
+       resolution. */
+    /* candidate_functions will contain the list of viable functions. */
+    candidate_functions = NULL;
+    /* Make an argument list with just the source operand. */
+    arg_operand_list = alloc_arg_operand();
+    copy_operand(source_operand, &arg_operand_list->operand);
+    constructor_symbol = cssp->constructor;
+    /* Constructors don't create lvalues, so don't try them if we need
+       an lvalue result. */
+    if (constructor_symbol != NULL) {
+      /* The class has constructors. */
+      /* Try all the constructors with that argument list. */
+      try_overloaded_function_match(constructor_symbol,
+                                    arg_operand_list,
+                                    /*have_selector=*/FALSE, /* sic */
+                                    (an_operand *)NULL,
+                                    /*selector_is_object_pointer=*/FALSE,
+                                    /*user_conversion_case=*/TRUE,
+                                    &candidate_functions,
+                                    &matched_except_for_missing_selector);
+    }  /* if */
+    if (is_class_struct_union_type(source_type) &&
+        cssp->target_of_conversion_function) {
+      /* There is at least one conversion function that converts some other
+         class into the desired class, and the source type is a class.
+         See if there is a conversion function that does the job. */
+      try_conversion_function_match(source_operand, dest_type,
+                                    (a_builtin_type_kind_set)BTK_NONE,
+                                    /*need_lvalue_result=*/FALSE,
+                                    &candidate_functions);
+    }  /* if */
+    /* If no functions are viable, check for the possibility of a bitwise
+       copy from a derived class to a base class. */
+    if (candidate_functions == NULL && bitwise_copy_okay &&
+        is_class_struct_union_type(source_type) &&
+        (bcp = find_base_class_of(source_type, class_type)) != NULL &&
+        /* Watch out for the case where the source type's definition
+           has been partially processed -- we know that the destination
+           type is a base class, but the source class is still
+           incomplete, and one can't make an rvalue of an
+           incomplete type. */
+        !is_incomplete_type(source_type)) {
+      /* Yes, this is a bitwise copy from a derived class to a base class. */
+      conversion->class_identity_or_bitwise_copy = TRUE;
+      conversion->std.cast_base_class = bcp;
       okay = TRUE;
-      /* Return information on how the conversion is to be done. */
-      *conversion = candidate_functions->conversion;
+    }  else {
+      /* The candidate_functions list now contains all the viable functions.
+         Find the best ones. */
+      select_best_candidate_functions(&candidate_functions,
+                                      &source_operand->position,
+                                      &undecidable_because_of_error);
+      if (undecidable_because_of_error) {
+        *ambiguous = TRUE;
+        /* Note that candidate_functions is NULL
+           (select_best_candidate_functions returns it that way in this case),
+           so a NULL ambiguity_list will be returned to indicate "undecidable
+           because of error". */
+      } else if (candidate_functions == NULL) {
+        /* No constructor or conversion function is suitable. */
+      } else if (candidate_functions->next != NULL) {
+        /* More than one constructor or conversion function matches at the same
+           level.  Ambiguity. */
+        *ambiguous = TRUE;
+#if DEBUG
+        if (debug_level >= 4) {
+          db_candidate_function_list(candidate_functions);
+        }  /* if */
+#endif /* DEBUG */
+      } else {
+        /* Exactly one constructor or conversion function matches best. */
+        conversion_symbol = candidate_functions->function_symbol;
+        /* If the function is a conversion function that is inherited from a
+           base class, check to see if it's ambiguous by inheritance. */
+        check_symbol_ambiguous_by_inheritance(conversion_symbol, ambiguous);
+        if (!*ambiguous) {
+          okay = TRUE;
+          /* Return information on how the conversion is to be done. */
+          *conversion = candidate_functions->conversion;
+        }  /* if */
+      }  /* if */
+      conversion->ambiguous = *ambiguous;
+      if (*ambiguous && ambiguity_list != NULL) {
+        /* Return the candidate functions list to the caller, for use in
+           generating an ambiguity error.  The caller will free the list. */
+        *ambiguity_list = candidate_functions;
+      } else {
+        /* Free the candidate functions list. */
+        free_candidate_function_list(candidate_functions);
+      }  /* if */
     }  /* if */
+    free_arg_operand_list(arg_operand_list);
   }  /* if */
-  conversion->ambiguous = *ambiguous;
-  if (*ambiguous && ambiguity_list != NULL) {
-    /* Return the candidate functions list to the caller, for use in generating
-       an ambiguity error.  The caller will free the list. */
-    *ambiguity_list = candidate_functions;
-  } else {
-    /* Free the candidate functions list. */
-    free_candidate_function_list(candidate_functions);
-  }  /* if */
-  free_arg_operand_list(arg_operand_list);
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "conversion_to_class_possible: %s\n",
@@ -4786,9 +4825,8 @@ that case, it is set to point to a list describing the set of ambiguous
 functions; the caller must free that list.  *ambiguity_list is set to
 NULL to indicate a case that is undecidable because of an error.  Note
 that this routine does not look for constructors that can be used as
-conversion functions (see conversion_to_class_possible) or for the
-possibility of bitwise copying (see class_bitwise_copy_possible).
-This routine is only used in C++ mode.
+conversion functions or for the possibility of bitwise copying (see
+conversion_to_class_possible).  This routine is only used in C++ mode.
 */
 {
   a_boolean                okay;
@@ -4904,45 +4942,6 @@ set *processed to TRUE if the conversion is ambiguous.
 }  /* try_to_convert_class_operand_to_builtin_type */
 
 
-static a_boolean class_bitwise_copy_possible(a_type_ptr source_type,
-                                             a_type_ptr dest_type,
-                                             a_boolean  is_initialization)
-/*
-Return TRUE if an entity of type dest_type (a class type) can be initialized
-from (is_initialization == TRUE) or assigned from (is_initialization == FALSE)
-an entity of type source_type using a bitwise copy.  This routine is
-used only in C++ mode.
-*/
-{
-  a_boolean                     bitwise_copy_allowed = FALSE;
-  a_class_symbol_supplement_ptr cssp;
-
-  dest_type = skip_typerefs(dest_type);
-  cssp = symbol_supplement_for_class(dest_type);
-  if (is_initialization ? cssp->construction_by_bitwise_copy_allowed :
-                          cssp->assignment_by_bitwise_copy_allowed) {
-    /* The destination class can be set by a bitwise copy from something
-       of the same type or a derived type thereof. */
-    source_type = skip_typerefs(source_type);
-    if (types_are_compatible(dest_type, source_type)) {
-      /* Same type, bitwise copy is allowed. */
-      bitwise_copy_allowed = TRUE;
-    } else if (is_class_struct_union_type(source_type) &&
-               find_base_class_of(source_type, dest_type) != NULL &&
-               /* Watch out for the case where the source type's definition
-                  has been partially processed -- we know that the destination
-                  type is a base class, but the source class is still
-                  incomplete, and one can't make an rvalue of an
-                  incomplete type. */
-               !is_incomplete_type(source_type)) {
-      /* Derived class, bitwise copy is allowed. */
-      bitwise_copy_allowed = TRUE;
-    }  /* if */
-  }  /* if */
-  return bitwise_copy_allowed;
-}  /* class_bitwise_copy_possible */
-
-
 a_boolean user_defined_conversion_possible(an_operand   *source_operand,
                                            a_type_ptr   dest_type,
                                            a_boolean    is_initialization,
@@ -4984,18 +4983,13 @@ caller should have rewritten that case).
   to_class = is_class_struct_union_type(dest_type);
   if (to_class) {
     /* The destination type is a class. */
-    to_class = TRUE;
-    if (class_bitwise_copy_possible(source_type, dest_type,
-                                    is_initialization)) {
-      /* A bitwise copy of the class is allowed. */
-      conversion->class_identity_or_bitwise_copy = TRUE;
-      okay = TRUE;
-    } else if (conversion_to_class_possible(source_operand, dest_type,
-                                            need_lvalue_result,
-                                            conversion, &ambiguous,
-                                            &ambiguity_list)) {
-      /* A user-defined conversion (constructor or conversion function) is
-         available to convert to the destination type. */
+    check_assertion(!need_lvalue_result);
+    if (conversion_to_class_possible(source_operand, dest_type,
+                                     is_initialization,
+                                     conversion, &ambiguous,
+                                     &ambiguity_list)) {
+      /* A user-defined conversion (constructor or conversion function) or
+         bitwise copy is available to convert to the destination type. */
       okay = TRUE;
     } else {
       /* The conversion is not possible. */
