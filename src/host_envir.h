@@ -510,10 +510,17 @@ per object file should be included.  This involves maintaining a separate
 contains only what is required.  That takes extra space and, if the
 feature is enabled (via --one_instantiation_per_object), extra time.
 However, it's useful bordering on essential for building libraries.
+This feature is incompatible with earlier drivers, so it is only enabled
+for driver versions >= 2.37.  It also requires back end support, so it
+is disabled by default except when using the C generating back end.
 */
 #ifndef ONE_INSTANTIATION_PER_OBJECT
 #if DRIVER_COMPATIBILITY_VERSION >= 237
+#if BACK_END_IS_C_GEN_BE
 #define ONE_INSTANTIATION_PER_OBJECT TRUE
+#else /* !BACK_END_IS_C_GEN_BE */
+#define ONE_INSTANTIATION_PER_OBJECT FALSE
+#endif /* !BACK_END_IS_C_GEN_BE */
 #else /* DRIVER_COMPATIBILITY_VERSION < 237 */
 #define ONE_INSTANTIATION_PER_OBJECT FALSE
 #endif /* DRIVER_COMPATIBILITY_VERSION >= 237 */
