@@ -108,18 +108,6 @@ the named namespace.
     f(std::A<int>());
   }
 
-2/4/04   GNU mode: Type of computed goto target
-
-In GNU mode, the front end previously issued a warning when the type of a
-target of a computed goto is "void const*" as opposed to plain "void*".
-Now both types are accepted with no warning.  For example:
-
-  void f() {
-    void const *gt = &&t;
-  t:
-    goto *gt;  // Accepted with no warning.
-  }
-
 2/4/04   GNU C++ mode: Out-of-class member specialization
 
 In GNU C++ mode, the front end now accepts nondefining declarations of
