@@ -988,7 +988,7 @@ list.  Return a pointer to the list of arguments.
           continue;
         }   /* if */
       } else if (any_named_args) {
-        /* A position argument cannot follow a named one. */
+        /* A positional argument cannot follow a named one. */
         error(ec_positional_after_named);
         /* Flush to the next argument. */
         flush_tokens();
@@ -1015,7 +1015,7 @@ list.  Return a pointer to the list of arguments.
 static void scan_unrecognized_ms_attribute_arg_list(void)
 /*
 Scan the arguments of an unrecognized Microsoft attribute reference.  The
-current token is the "=" that precedes a single argument or the "(" the
+current token is the "=" that precedes a single argument or the "(" that
 precedes an argument list.  Because the attribute is unrecognized, we don't
 know the form of the parameter list expected.  This routine just scans tokens
 until the end of the attribute is found.
@@ -1180,7 +1180,7 @@ void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
 				an_ms_attribute_target	target)
 /*
 This routine is used to indicate that the list of Microsoft attributes
-specified by "attributes" should apply to the entity specified by "scp".
+specified by "attributes" should apply to the entity specified by "entity".
 The attributes must apply to the entity kind specified by "target".
 */
 {
