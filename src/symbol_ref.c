@@ -689,13 +689,8 @@ hiding.
       if (sym_ptr->decl_scope != FILE_SCOPE_NUMBER) {
         an_id_lookup_options_set	options;
         clear_specific_symbol(locator);
-        options = IDL_HIDDEN_NAME_LOOKUP | IDL_SKIP_CURR_SCOPE;
-        if (sym_ptr->kind == (a_symbol_kind)sk_function_template) {
-          /* If this is a function template, skip any template declaration
-             scopes before skipping the "current" scope (the one in which
-             the template is declared). */
-          options |= IDL_SKIP_TEMPLATE_DECL_SCOPES;
-        }  /* if */
+        options = IDL_HIDDEN_NAME_LOOKUP | IDL_SKIP_CURR_SCOPE |
+                  IDL_SKIP_TEMPLATE_DECL_SCOPES;
         old_sym_ptr = normal_id_lookup(&locator, options);
         if (old_sym_ptr != NULL) {
           an_il_entry_kind  il_kind;
