@@ -697,7 +697,7 @@ place in file_name where the suffix begins.
        saved from last time. */
     /* Determine the length of the current suffix. */
     check_assertion(*(*suffix_loc-1) == SUFFIX_DELIMITER);
-    curr_suffix_length = &file_name[curr_file_name_size-1] - *suffix_loc;
+    curr_suffix_length = &file_name[curr_file_name_size] - *suffix_loc;
   } else {
     /* *suffix_loc is NULL, so this is the first attempt to replace the suffice
        on this file name. */
@@ -761,6 +761,7 @@ place in file_name where the suffix begins.
     fprintf(f_debug, "new file name = \"%s\"\n", new_file_name);
   }  /* if */
 #endif /* DEBUG */
+  db_exit();
   /* Return a pointer to the new file name. */
   return new_file_name;
 #undef SUFFIX_DELIMITER
