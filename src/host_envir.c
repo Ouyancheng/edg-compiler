@@ -2023,9 +2023,9 @@ Set module_id to the string.
          variable != NULL; variable = variable->next) {
       /* Only consider variables that are defined.  Make sure that the
          init_kind is not none -- this eliminates tentative definitions.
-	 Also ignore variables whose names begin with "__"; one such case
-	 is typeinfo variables, and when this routine is called from IL lowering
-	 they may yet become static variables. */
+         Also ignore variables whose names begin with "__"; one such case
+         is typeinfo variables, and when this routine is called from IL
+         lowering they may yet become static variables. */
       if (variable->storage_class == (a_storage_class)sc_unspecified &&
           variable->init_kind != (an_init_kind)initk_none &&
 	  variable->source_corresp.name[0] != '_' &&
