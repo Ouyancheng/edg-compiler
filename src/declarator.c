@@ -1596,12 +1596,15 @@ of a class.
                         unsigned_value_of_integer_constant(&constant, &err);
             if (err) error(ec_array_size_too_large);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (microsoft_mode && C_mode() && top_level_field_decl &&
+          } else if (microsoft_mode && top_level_field_decl &&
                      sign_of_integer_constant(&constant) == 0) {
             /* In Microsoft C mode a field may be zero-size array type if
                it is the last field of the struct.  Thus
                  struct S { int a,b,c[0]; }
-               is allowed, and "c[0]" has the same semantics as "c[]". */
+               is allowed, and "c[0]" has the same semantics as "c[]".  Also
+               allowed in Microsoft C++ mode, as long as the class is an
+               "aggregate".  Note: last-field restriction and the aggregate
+               restriction in C++ are enforced in scan_class_definition. */
             num_of_elements = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
