@@ -16575,12 +16575,16 @@ file specified by "sfp", and any of its child files.
 */
 {
   for (; sfp != NULL; sfp = sfp->next) {
-    /* Write a dependency line that specifies the file name to the
-       template information file. */
-    write_to_template_info_file(tilt_dependency, sfp->full_name,
-                                (char*)NULL, (a_symbol_ptr)NULL);
-    if (sfp->first_child_file != NULL) {
-      write_dependency_information_for_file(sfp->first_child_file);
+    /* Source file entries resulting from #line directives will not have
+       a full_name and should be ignored. */
+    if (sfp->full_name != NULL) {
+      /* Write a dependency line that specifies the file name to the
+         template information file. */
+      write_to_template_info_file(tilt_dependency, sfp->full_name,
+                                  (char*)NULL, (a_symbol_ptr)NULL);
+      if (sfp->first_child_file != NULL) {
+        write_dependency_information_for_file(sfp->first_child_file);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* write_dependency_information_for_file */
