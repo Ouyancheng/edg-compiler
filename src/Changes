@@ -1,5 +1,15 @@
 Version 2.40
 
+10/13/98  Avoiding &array+n in generated C code
+
+The il_to_str routines have been changed to avoid generating &array+n,
+because some compilers have difficulty with the increment size in that case
+(since the pointer is a pointer to array, the scaling should be
+by the size of the array, but that isn't always implemented correctly).
+
+A related problem when generating pcc-compatible C code has also been
+corrected.
+
 10/7/98   Error recovery abort
 
 An "error recovery" abort occurred in the following code fragment, where

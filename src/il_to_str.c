@@ -2193,7 +2193,6 @@ precedence confusion.  Do the output in the way described by octl.
     if (octl->gen_pcc_code) {
       /* Don't do address-of-array in pcc mode, because pcc gives warnings
          on that and uses the pointer-to-element type anyway. */
-      final_cast_needed = TRUE;
       type_decay_used = TRUE;
     } else if (octl->gen_compilable_code &&
                constant->variant.address.kind ==
@@ -2203,13 +2202,23 @@ precedence confusion.  Do the output in the way described by octl.
       /* Address of a string constant, e.g., &"abc".  Some ANSI/ISO C
          compilers have difficulty with that, perhaps because they don't
          believe a string is an lvalue.  Force type decay and a cast. */
-      final_cast_needed = TRUE;
       type_decay_used = TRUE;
+    } else if (offset != 0) {
+      /* Some compilers have difficulty with getting the size right when
+         adding an offset to the address of an array. */
+      type_decay_used = TRUE;
+    }  /* if */
+    if (type_decay_used) {
+      /* If we've turned on array type decay, adjust the type.  Note that
+         because of the convention used for the achieved type, the
+         pointer-to part of the type is not needed. */
+      achieved_type = array_element_type(achieved_type);
+      final_cast_needed = TRUE;
     }  /* if */
   }  /* if */
   if (offset != 0) {
     /* The offset is nonzero.  The general way of dealing with this is to cast
-       to "char *" add add in the offset.  However, in the right situation
+       to "char *" and add in the offset.  However, in the right situation
        the addition can be done without going to "char *". */
     need_char_star_cast = TRUE;
     if (!form_lvalue) {
