@@ -648,7 +648,17 @@ processing).
     /* Too many characters to fit. */
     *err_code = ec_too_many_characters;
     *err_pos = start_of_curr_token;
-  } else {
+    /* For wide character literals, make this a warning because the C standard
+       says it is implementation-defined, and several test suites have
+       something like L'ab' in them. */
+    if (is_wide) {
+      conv_line_loc_to_source_pos(*err_pos, &error_position);
+      warning(*err_code);
+      *err_code = ec_no_error;
+      *err_pos = NULL;
+    }  /* if */
+  }  /* if */
+  if (*err_code == ec_no_error) {
     /* Accumulate the characters. */
     set_unsigned_integer_value(&number, 0L);
     for (i = 0; i < num_chars; i += chars_taken) {
@@ -659,6 +669,9 @@ processing).
       } else {
         conv_single_wide_char(&temp_ptr, &ch, &chars_taken, centity_mask);
       }  /* if */
+      /* For wide character constants with too many characters, ignore
+         characters that don't fit. */
+      if (is_wide && i > 0) continue;
       /* Put the character in the right place. */
       set_unsigned_integer_value(&ch_int_val, ch);
       if (targ_char_constant_first_char_most_significant) {
