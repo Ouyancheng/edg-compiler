@@ -5088,8 +5088,11 @@ by the options.  Returns TRUE if any errors were diagnosed.
 			qualifier_class_type)->source_corresp.assoc_info;
       if (!is_template_class_symbol(type_sym)) {
         /* The class is not a template class. */
-        pos_ty_error(ec_not_a_class_template, &pos_curr_token, 
-		     locator_for_curr_id.qualifier_class_type);
+        a_type_ptr	type = locator_for_curr_id.qualifier_class_type;
+        while (type->source_corresp.class_of_which_a_member != NULL) {
+          type = type->source_corresp.class_of_which_a_member;
+        }  /* while */
+        pos_ty_error(ec_not_a_class_template, &pos_curr_token, type);
         any_errors = TRUE;
       } else if (!is_prototype_instantiation_symbol(type_sym)) {
 	/* The class is a template class but not the prototype

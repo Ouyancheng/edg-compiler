@@ -2800,7 +2800,9 @@ entry is pushed on the scope stack.
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
     remove_stop_token(tok_colon);
-    if (!is_function_type(type) && locator.specific_symbol != NULL) {
+    if (!is_function_type(type) && 
+        (locator.specific_symbol != NULL ||
+         (is_error_locator(locator) && curr_token == tok_assign))) {
       /* Name is a member of a class template (or a class nested within a class
          template).  It is not a function, so (in a legal program) it must be
          a static data member. */
@@ -2809,7 +2811,12 @@ entry is pushed on the scope stack.
       a_token_cache  local_token_cache, *p_token_cache;
 
       sym = locator.specific_symbol;
-      if (sym->kind != (a_symbol_kind)sk_static_data_member) {
+      if (is_error_locator(locator)) {
+        /* An error occurred while scanning the declarator of what we assume
+	   is a static data member.  We make this assumption because the
+           declarator is not a function and is followed by an equals sign. */
+        err = TRUE;
+      } else if (sym->kind != (a_symbol_kind)sk_static_data_member) {
         /* Not a static data member. */
         if (sym->kind == (a_symbol_kind)sk_field) {
           pos_error(ec_nonstatic_member_def_not_allowed,
