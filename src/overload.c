@@ -8977,12 +8977,7 @@ in that case.
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion from or to a template-dependent type in a prototype
        instantiation.  Render as a cast. */
-    an_expr_node_ptr expr;
-    prep_generic_operand(operand);
-    expr = make_node_from_operand(operand);
-    expr = make_operator_node((an_expr_operator_kind)eok_cast, dest_type,
-                              expr);
-    make_expression_operand(expr, dest_type, operand);
+    generic_cast_operand(operand, dest_type);
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
@@ -9862,6 +9857,7 @@ direct binding is "possible" and not whether it is "valid".
 */
 {
   a_boolean  direct_binding_possible, type_is_correct_or_derived;
+  a_boolean  template_case = FALSE;
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
                                            
   if (function_symbol != NULL) *function_symbol = NULL;                   
@@ -9884,6 +9880,7 @@ direct binding is "possible" and not whether it is "valid".
               is_or_contains_template_param(unqual_source_type))) {
     /* Assume a match for unknown template parameter types. */
     type_is_correct_or_derived = TRUE;
+    template_case = TRUE;
   } else if (is_class_struct_union_type(unqual_dest_type) &&
              is_class_struct_union_type(unqual_source_type) &&
              find_base_class_of(unqual_source_type,
@@ -9951,7 +9948,8 @@ direct binding is "possible" and not whether it is "valid".
     *ref_to_const_volatile = TRUE;
   }  /* if */
   if (type_is_correct_or_derived && !*binding_to_rvalue_allowed &&
-      source_operand != NULL && is_an_rvalue(source_operand)) {
+      source_operand != NULL && is_an_rvalue(source_operand) &&
+      !template_case) {
     /* The reference may not be bound to an rvalue, and the source_operand
        is an rvalue.  The binding is still possible, though not allowed,
        if the operand has a class type, and using that interpretation
@@ -9962,7 +9960,7 @@ direct binding is "possible" and not whether it is "valid".
   }  /* if */
   /* The destination type must have no fewer type qualifiers than the source
      type to be usable without conversion (ARM 8.4.3). */
-  *dropping_qualifiers = type_is_correct_or_derived &&
+  *dropping_qualifiers = type_is_correct_or_derived && !template_case &&
                          any_qualifier_missing(base_dest_type,
                                                source_type);
   if (*dropping_qualifiers) {
@@ -9971,7 +9969,8 @@ direct binding is "possible" and not whether it is "valid".
     direct_binding_possible = FALSE;
   }  /* if */
   if (type_is_correct_or_derived && *binding_to_rvalue_allowed &&
-      source_operand != NULL && is_bit_field_operand(source_operand)) {
+      source_operand != NULL && is_bit_field_operand(source_operand) &&
+      !template_case) {
     /* For a bit-field case like
          struct A { int i:2; } a;
          const int &r = a.i;
@@ -10100,7 +10099,7 @@ to be acceptable, and *conversion describes it.
   a_boolean    direct_binding_possible, binding_to_rvalue_allowed;
   a_boolean    direct_binding_conversion_possible = FALSE;
   a_boolean    ref_to_const, ref_to_const_volatile, operand_was_rvalue;
-  a_boolean    warn = FALSE;
+  a_boolean    warn = FALSE, template_case = FALSE;
   a_conv_descr conv_for_direct_binding;
   a_candidate_function_ptr
                ambiguity_list = NULL;
@@ -10114,6 +10113,12 @@ to be acceptable, and *conversion describes it.
        to convert the source operand to an lvalue to which the reference can
        be directly bound. */
     direct_binding_conversion_possible = TRUE;
+  } else if (is_template_dependent_context() &&
+             (is_or_contains_template_param(dest_type) ||
+              is_or_contains_template_param(orig_source_type))) {
+    /* When dealing with unknown types in a prototype instantiation,
+       assume a match. */
+    template_case = TRUE;
   } else {
     /* Compare the operand type and the reference type to see if direct
        binding is possible. */
@@ -10167,6 +10172,10 @@ to be acceptable, and *conversion describes it.
   } else if (is_error_type(base_dest_type)) {
     /* If the reference is to an error type, return an error operand. */
     conv_to_error_operand(source_operand);
+  } else if (template_case) {
+    /* Some unknown types in a prototype instantiation.  Assume the binding
+       can be done. */
+    generic_cast_operand(source_operand, result_ptr_type);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */
