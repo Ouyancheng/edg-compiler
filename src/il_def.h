@@ -4132,10 +4132,6 @@ enum a_statement_kind_tag {
   stmk_init,            /* Do a dynamic initialization. */
   stmk_asm,             /* "asm" statement (or declaration). */
   stmk_try_block,       /* Try block (C++ only). */
-  stmk_object_lifetime,	/* Wrapper statement defining an object lifetime
-			   that surrounds the attached statement.  Used in
-			   cfront mode for dependent statements that create
-			   temporaries. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   stmk_decl,		/* One or more consecutive declarations within a
 			   given function or block scope. */
@@ -4216,6 +4212,13 @@ typedef struct a_block {
                            function (i.e., the block for the compound 
                            statement that is the body of a function has
                            assoc_scope == NULL). */
+  an_object_lifetime_ptr
+		lifetime;
+			/* The object lifetime associated with this block,
+			   or NULL if there isn't one.  Useful in the case that
+			   assoc_scope is NULL but nevertheless there is
+			   an object lifetime region associated with this
+			   block (e.g., for cfront dependent statements). */
   a_statement_ptr
 		parent_block;
 			/* Pointer to the statement for the innermost block
@@ -4721,15 +4724,6 @@ typedef struct a_statement {
 			/* A linked list of entries describing the handlers
 			   (or catch-clauses) defined in the try block. */
     } try_block;
-    /* When kind == stmk_object_lifetime (C++ only): */
-    struct {
-      a_statement_ptr
-		statement;
-			/* The statement with which the object lifetime is
-			   associated. */
-      an_object_lifetime_ptr
-		ptr;	/* The object lifetime itself. */
-    } object_lifetime;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */
@@ -5056,17 +5050,16 @@ typedef struct an_object_lifetime {
 	iek_expr_node	Full expression; points to enk_object_lifetime node
 			  which is the top node of expression.  Used for
 			  temporaries that last to end of full expression.
-	iek_statement	Statement; points to stmk_object_lifetime statement
-			  that points to dependent statement.  Used in cfront
-			  mode for dependent statements (they have no
-			  associated scope, but there is an associated object
-			  lifetime).
 	iek_label	Label; points to label.  The object lifetime
 			  region is from after the label to the end of the
 			  scope containing the label.  Used to deal with
 			  gotos backwards in a block to before initialization
 			  of some entities (such gotos exit the object lifetime
 			  associated with the label).
+	iek_block	Block; points to a_block entry.  Used in cfront
+			  mode for dependent statements (they have no
+			  associated scope, but there is an associated object
+			  lifetime).
 	iek_switch_clause
 			Switch clause; points to switch clause.  Used to limit
 			  the lifetime of expression temporaries created in

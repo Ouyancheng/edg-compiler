@@ -1922,6 +1922,7 @@ Display the indicated block.
                             ptr->final_position);
 #ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
+  disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
   disp_boolean("end_of_block_reachable",
                (a_boolean)ptr->end_of_block_reachable);
@@ -2039,14 +2040,6 @@ do_label:
                iek_statement);
       disp_ptr("handlers", (char *)ptr->variant.try_block.handlers,
                iek_handler);
-      break;
-    case stmk_object_lifetime:
-      /* Object lifetime statement. */
-      (void)printf("stmk_object_lifetime\n");
-      disp_ptr("statement", (char *)ptr->variant.object_lifetime.statement,
-               iek_statement);
-      disp_ptr("ptr", (char *)ptr->variant.object_lifetime.ptr,
-               iek_object_lifetime);
       break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:

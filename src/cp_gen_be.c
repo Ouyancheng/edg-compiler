@@ -4331,10 +4331,6 @@ Generate code for the indicated statement.
       /* "try" block. */
       gen_try_block_statement(statement);
       break;
-    case stmk_object_lifetime:
-      /* Statement defining an object lifetime for temporaries.  Ignore. */
-      gen_statement(statement->variant.object_lifetime.statement);
-      break;
     case stmk_init:
       /* Initialization for declaration.  Ignored at this level (the
          initialization was processed earlier when the stmk_decl was

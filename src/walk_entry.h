@@ -670,6 +670,7 @@ the file scope, do not process it (but record an orphan in the latter case).
            scopes for the current scope.  Therefore, here we just remap
            the pointer but do not walk the subtree. */
         remap_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+        walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
         remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
       }
 #endif /* ifdef CFE */
@@ -747,12 +748,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_statement);
             walk_list(ptr->variant.try_block.handlers, a_handler_ptr,
                       iek_handler);
-            break;
-          case stmk_object_lifetime:
-            walk_ptr(ptr->variant.object_lifetime.statement, a_statement_ptr,
-                     iek_statement);
-            walk_ptr(ptr->variant.object_lifetime.ptr, an_object_lifetime_ptr,
-                     iek_object_lifetime);
             break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           case stmk_decl:

@@ -6692,6 +6692,7 @@ fields to default values.
 #endif /* DEBUG */
       clear_stmt_source_position(bp->final_position);
       bp->assoc_scope      = NULL;
+      bp->lifetime         = NULL;
       bp->parent_block     = NULL;
       bp->end_of_block_reachable = TRUE;
 #if CHECKING
@@ -6707,10 +6708,6 @@ fields to default values.
     case stmk_try_block:
       sp->variant.try_block.statement = NULL;
       sp->variant.try_block.handlers  = NULL;
-      break;
-    case stmk_object_lifetime:
-      sp->variant.object_lifetime.statement = NULL;
-      sp->variant.object_lifetime.ptr       = NULL;
       break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
@@ -7147,11 +7144,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       char      *s;
       a_statement_ptr   sp = (a_statement_ptr)ssep->entity.ptr;
 
-      while (sp->kind == (a_statement_kind)stmk_object_lifetime) {
-        /* For an object lifetime statement, display the underlying
-           statement. */
-        sp = sp->variant.object_lifetime.statement;
-      }  /* while */
       switch (sp->kind) {
         case stmk_expr:           s = "expr";     break;
         case stmk_if:             s = "if";       break;
@@ -7166,7 +7158,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       /*case stmk_init:           Missing on purpose. */
         case stmk_asm:            s = "asm";      break;
         case stmk_try_block:      s = "try";      break;
-      /*case stmk_object_lifetime:Handled above.      */
         default:  s = "*** BAD STMT KIND ***"; break;
       }  /* if */
       fprintf(f_debug, " (at %lu): %s",
