@@ -1209,7 +1209,8 @@ static a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type)
 Return TRUE if type is (or was, before lowering) a pointer to data member.
 */
 {
-  a_boolean is_ptr_to_data = FALSE;
+  a_boolean  is_ptr_to_data = FALSE;
+  a_type_ptr member_type;
 
   /* Drop typerefs, but look for a special entry that indicates that
      it was some other type rewritten by IL lowering. */
@@ -1217,17 +1218,17 @@ Return TRUE if type is (or was, before lowering) a pointer to data member.
     if (type->variant.typeref.orig_member_type != NULL) {
       /* A type transformed to something else (e.g., a pointer to
          data member changed to a small integer). */
-      type = type->variant.typeref.orig_member_type;
-      break;
+      member_type = type->variant.typeref.orig_member_type;
+      goto have_member_type;
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
   if (is_ptr_to_member_type(type)) {
+    member_type = pm_member_type(type);
+have_member_type:
     /* The type is a pointer-to-member type.  See if the member type is
        a non-function type. */
-    if (!is_function_type(pm_member_type(type))) {
-      is_ptr_to_data = TRUE;
-    }  /* if */
+    if (!is_function_type(member_type)) is_ptr_to_data = TRUE;
   }  /* if */
   return is_ptr_to_data;
 }  /* is_or_was_ptr_to_data_member_type */
