@@ -2410,7 +2410,7 @@ diagnostics.
           case dmt_nothrow:
           case dmt_noreturn:
             break;
-#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
             break;
@@ -2487,7 +2487,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
             break;
           case dmt_thread:
             break;
-#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
             break;
@@ -9138,7 +9138,7 @@ continue_with_declaration:
             local_decl_modifiers.flags &= ~DM_SELECTANY;
           }  /* if */
         }  /* if */
-#endif /* MICROSOFT_EXTENTIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
                       &symbol_ptr, &linkage, &old_type, &ext_sym,
