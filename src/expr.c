@@ -11436,8 +11436,8 @@ except for standard operand transformations.
   pointer_case = is_pointer_type(result->type) ||
                  is_ptr_to_member_type(result->type);
   was_constant = (is_constant_operand(result) &&
-                  constant_bool_value_known_at_compile_time(
-                                                   &result->variant.constant));
+                  result->variant.constant.kind !=
+                                      (a_constant_repr_kind)ck_template_param);
   /* Check that the operand is scalar or a pointer to member.  Note that
      this is done even for the cases where a class type has been converted
      to such a type, because the subroutine does some additional checking
@@ -11455,8 +11455,21 @@ except for standard operand transformations.
     if (was_constant) {
       if (pointer_case) {
         /* A test of a constant address is always pretty suspicious. */
-        pos_warning(ec_boolean_controlling_expr_is_constant,
-                    &result->position);
+#if GNU_EXTENSIONS_ALLOWED
+        a_constant_ptr con = &result->variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_address &&
+            ((con->variant.address.kind == (an_address_base_kind)abk_routine &&
+              con->variant.address.variant.routine->is_weak) ||
+             (con->variant.address.kind == (an_address_base_kind)abk_variable&&
+              con->variant.address.variant.variable->is_weak))) {
+          /* No warning for GNU weak externals. */
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          pos_warning(ec_boolean_controlling_expr_is_constant,
+                      &result->position);
+        }  /* if */
       } else if (!curr_expr_kind_is_const()) {
         pos_remark(ec_boolean_controlling_expr_is_constant, &result->position);
       }  /* if */
