@@ -791,7 +791,7 @@ values of gnu_version.  If we are in a mode or configuration for which *kind
 is not a recognized kind of attribute, set *kind to ak_last.
 */
 {
-  long  min_gnu_version = MIN_GNU_VERSION, max_gnu_version = 999999;
+  unsigned long  min_gnu_version = MIN_GNU_VERSION, max_gnu_version = 999999;
 
   switch (*kind) {
     case ak_deprecated:
