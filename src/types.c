@@ -761,10 +761,15 @@ be found.
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     if (bcp->type == base_class->type) {
       /* The types match. */
-      if (base_class->is_virtual && bcp->is_virtual) {
-        /* Both are virtual, so they match. */
-        new_base_class = bcp;
-        goto done;
+      if (base_class->is_virtual) {
+        if (bcp->is_virtual) {
+          /* Both are virtual, so they match. */
+          new_base_class = bcp;
+          goto done;
+        }  /* if */
+      } else if (bcp->is_virtual) {
+        /* base_class is nonvirtual, so keep looking for a nonvirtual with
+           the same type. */
       } else if (base_class->direct) {
         for (step = bcp->derivation; step != NULL; step = step->next) {
           if (step->base_class->type == base_class->derived_class) {
@@ -783,16 +788,18 @@ be found.
           new_base_class = bcp;
           goto done;
         } else {
-#if 0
+        /* We still don't have a match.  The last possibility is to check
+           for cases where the paths are congruent once should move far
+           enough along bcp's derivation -- for instance, if the derivation
+           of bcp is A==>B==>C and the derivation of base_class is B==>C. */
           for (step = bcp->derivation; step != NULL; step = step->next) {
             if (step->base_class->type ==
-                               base_class->derivation->base_class->type &&
+                                 base_class->derivation->base_class->type &&
                 congruent_paths(step, base_class->derivation)) {
               new_base_class = bcp;
               goto done;
             }  /* if */
           }  /* for */
-#endif /* if 0 */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -818,13 +825,6 @@ be found.
   new_base_class = NULL;
 #endif /* CHECKING */
 done:
-#if CHECKING
-  if (new_base_class != NULL && base_class != NULL &&
-      new_base_class->is_virtual != base_class->is_virtual) {
-    /* Virtual and nonvirtual base classes shouldn't match. */
-    internal_error("corresponding_base_class: virtual-nonvirtual mismatch");
-  }  /* if */
-#endif /* CHECKING */
 #if DEBUG
   if (debug_level >= 4) {
     fputs("found base class: ", f_debug);
