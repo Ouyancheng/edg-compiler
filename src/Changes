@@ -1,5 +1,17 @@
 Version 2.33
 
+7/31/96 Ignoring carriage returns in continuation lines
+
+When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE but
+READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS is FALSE, carriage returns were
+not ignored in continuation lines.  More precisely, the routine that
+reads a source line has two loops, a fast one used if the line contains
+no unusual characters, and a slower and more general one entered on
+the first appearance of some unusual character (backslash for line
+continuation, trigraph, etc.); the code to deal with carriage
+return in the second loop is conditional on a #if that tested
+the wrong condition.
+
 7/30/96 Some cached tokens not freed for explicit specializations
 
 The declaration token cache and the parameter token cache were

@@ -3840,7 +3840,7 @@ entry_for_expand_buffer:
       }  /* if */
       if (is_eof_char(ch)) goto partial_final_line;
     } while (ch != '\n');
-#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
     /* Ignore carriage return right before newline. */
     if (*(loc_in_line-1) == '\r') {
       loc_in_line--;
@@ -3850,7 +3850,7 @@ entry_for_expand_buffer:
         goto add_newline_and_null_and_return;
       }  /* if */
     }  /* if */
-#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     /* Check for backslash indicating line-splice.  Go add trailing newline
        and null, and then exit, if no backslash is present. */
     if (*(loc_in_line-1) == '\\') {
