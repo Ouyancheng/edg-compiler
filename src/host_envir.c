@@ -922,7 +922,14 @@ of the file name is bad.
     /* Check the file type.  Use the stat call instead of fstat because some
        implementations do not have the _file field in the structure. */
     if (stat(file_name, &buf) == 0) {
-      if ((buf.st_mode & S_IFREG) == 0) {
+      /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
+         non-POSIX test using S_IFREG. */
+#ifdef S_ISREG
+      if (!S_ISREG(buf.st_mode))
+#else
+      if ((buf.st_mode & S_IFREG) == 0)
+#endif
+					{
         /* Not a "regular" file. */
         *bad_format = TRUE;
         (void)fclose(temp_file);
