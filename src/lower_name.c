@@ -24,6 +24,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #include "const_ints.h"
 #include "float_pt.h"
 #include "types.h"
+#include "mem_manage.h"
+
 
 static sizeof_t mangled_encoding_for_type(a_type_ptr type,
                                           char       *store_at);
@@ -31,8 +33,55 @@ static sizeof_t mangled_function_name(a_routine_ptr routine,
                                       a_boolean     suppress_param_encoding,
                                       char          *store_at);
 static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
-                                                a_type_ptr     class_type,
                                                 char           *store_at);
+
+
+/*
+Dynamically allocated buffer used to contain transient mangled names,
+those created to find out the mangled name of an entity without recording
+the mangled name in the IL entry.
+*/
+static char	*mangled_name_buffer = NULL;
+			/* Not allocated on a per-file basis. */
+#define MANGLED_NAME_BUFFER_INITIAL_ALLOCATION 300
+#define MANGLED_NAME_BUFFER_INCREMENTAL_ALLOCATION 300
+			/* Initial and incremental allocation sizes for
+			   mangled_name_buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+static sizeof_t	size_mangled_name_buffer = 0;
+			/* Current allocated size of mangled_name_buffer. */
+
+
+static void expand_mangled_name_buffer(sizeof_t size_needed)
+/*
+Expand the mangled_name_buffer by reallocating it, so that its total size is at
+least size_needed.  Called by ensure_mangled_name_buffer_space.
+*/
+{
+  sizeof_t new_size;
+
+  db_enter(4, "expand_mangled_name_buffer");
+  new_size = size_mangled_name_buffer +
+             MANGLED_NAME_BUFFER_INCREMENTAL_ALLOCATION;
+  if (new_size < size_needed) new_size  = size_needed;
+  mangled_name_buffer = realloc_general(mangled_name_buffer,
+                                        size_mangled_name_buffer, new_size);
+  size_mangled_name_buffer = new_size;
+  db_exit();
+}  /* expand_mangled_name_buffer */
+
+
+/*
+Ensure that mangled_name_buffer has at least size_needed bytes in it.
+If not, expand mangled_name_buffer by reallocating it.
+*/
+#define ensure_mangled_name_buffer_space(size_needed)                 \
+{ if (size_mangled_name_buffer < size_needed) {                       \
+    expand_mangled_name_buffer((sizeof_t)(size_needed));              \
+  }  /* if */                                                         \
+}  /* ensure_mangled_name_buffer_space */
 
 
 static sizeof_t digits_to_represent(unsigned long value)
@@ -220,7 +269,7 @@ used to encode constants as part of the mangled names of template classes.
     case ck_address:
       /* Address.  Put out the name of the entity whose address is involved. */
       { a_variable_ptr       variable;
-        a_type_ptr           class_type;
+        a_type_ptr           class_type = NULL;
         a_routine_ptr        routine;
         an_address_base_kind abkind;
 
@@ -243,7 +292,6 @@ used to encode constants as part of the mangled names of template classes.
           if (class_type != NULL) {
             /* Static data member. */
             str_length = mangled_static_data_member_name(variable,
-                                                         class_type,
                                                          (char *)NULL);
           } else {
             /* Normal variable. */
@@ -274,9 +322,7 @@ used to encode constants as part of the mangled names of template classes.
           if (abkind == (an_address_base_kind)abk_variable) {
             if (class_type != NULL) {
               /* Static data member. */
-              (void)mangled_static_data_member_name(variable,
-                                                    class_type,
-                                                    store_at);
+              (void)mangled_static_data_member_name(variable, store_at);
             } else {
               /* Normal variable. */
               (void)memcpy(store_at, str, size_t_arg(str_length));
@@ -1139,36 +1185,50 @@ types; just put out the base encoded name.
 }  /* mangled_function_name */
 
 
+static a_boolean function_name_mangling_needed(
+                                        a_routine_ptr routine,
+                                        a_boolean     *suppress_param_encoding)
+/*
+Return TRUE if the name of the indicated routine needs to be mangled.
+If so, also return *suppress_param_encoding TRUE if the name should be
+mangled without parameter encoding.
+*/
+{
+  a_boolean mangling_needed = FALSE;
+
+  *suppress_param_encoding = FALSE;
+  /* All names except C external names must be mangled, because they might
+     be overloaded.  All member function names must be mangled because
+     they exist in a scope that does not exist in the C version of the
+     program (of course, none of them have C external linkage, so no
+     separate test is needed). */
+  if (routine->source_corresp.name_linkage !=
+                                           (a_name_linkage_kind)nlk_external) {
+    mangling_needed = TRUE;
+  } else if (routine->special_kind != (a_special_function_kind)sfk_none) {
+    /* Operator function names must be somewhat mangled even if they are
+       not C++ external, because their names are not normal C names --
+       they contain special characters, etc. */
+    mangling_needed = TRUE;
+    *suppress_param_encoding = TRUE;
+  }  /* if */
+  return mangling_needed;
+}  /* function_name_mangling_needed */
+
+
 static void mangle_function_name(a_routine_ptr routine)
 /*
 Mangle the name of the indicated function, if necessary.
 */
 {
-  a_boolean mangling_needed, suppress_param_encoding;
+  a_boolean suppress_param_encoding;
   sizeof_t  mangled_name_length, alloc_length;
   char      *mangled_name;
 
   error_position = routine->source_corresp.decl_position;
   /* Compiler-generated routines have no name, and they are left alone. */
   if (routine->source_corresp.name != NULL) {
-    mangling_needed = FALSE;
-    /* All names except C external names must be mangled, because they might
-       be overloaded.  All member function names must be mangled because
-       they exist in a scope that does not exist in the C version of the
-       program (of course, none of them have C external linkage, so no
-       separate test is needed). */
-    if (routine->source_corresp.name_linkage !=
-                                           (a_name_linkage_kind)nlk_external) {
-      mangling_needed = TRUE;
-      suppress_param_encoding = FALSE;
-    } else if (routine->special_kind != (a_special_function_kind)sfk_none) {
-      /* Operator function names must be somewhat mangled even if they are
-         not C++ external, because their names are not normal C names --
-         they contain special characters, etc. */
-      mangling_needed = TRUE;
-      suppress_param_encoding = TRUE;
-    }  /* if */
-    if (mangling_needed) {
+    if (function_name_mangling_needed(routine, &suppress_param_encoding)) {
       /* Mangle the function name. */
       /* Determine how long the mangled name is. */
       mangled_name_length = mangled_function_name(routine,
@@ -1192,19 +1252,57 @@ Mangle the name of the indicated function, if necessary.
 }  /* mangle_function_name */
 
 
+char *get_mangled_function_name(a_routine_ptr routine)
+/*
+Get the mangled name for the indicated routine, and return a pointer
+to it.  If the routine name has not been mangled yet, create a copy
+of the mangled name in mangled_name_buffer but do not change the
+name in the routine entry.
+*/
+{
+  a_boolean suppress_param_encoding;
+  sizeof_t  mangled_name_length, alloc_length;
+  char      *mangled_name;
+
+  /* The routine should not be unnamed. */
+  mangled_name = routine->source_corresp.name;
+  check_assertion(mangled_name != NULL);
+  if (routine->source_corresp.name_has_been_mangled ||
+      !function_name_mangling_needed(routine, &suppress_param_encoding)) {
+    /* The name has already been mangled, or it doesn't need to be
+       mangled, so just return it. */
+  } else {
+    /* Generate the mangled name in a buffer. */
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_function_name(routine,
+                                                suppress_param_encoding,
+                                                (char *)NULL);
+    /* Make sure we have enough space in mangled_name_buffer. */
+    alloc_length = mangled_name_length + 1;
+    ensure_mangled_name_buffer_space(alloc_length);
+    mangled_name = mangled_name_buffer;
+    /* Create the name. */
+    (void)mangled_function_name(routine, suppress_param_encoding,
+                                mangled_name);
+    /* Store the final null. */
+    mangled_name[mangled_name_length] = '\0';
+  }  /* if */
+  return mangled_name;
+}  /* get_mangled_function_name */
+
+
 static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
-                                                a_type_ptr     class_type,
                                                 char           *store_at)
 /*
 Determine the mangled form of the name of the static data member "variable".
 Place the mangled name at *store_at if store_at != NULL, and (always) return
 the length of the name.  See ARM 7.2.1c for name encoding.  This routine
-must only be called for static data member variables; class_type indicates
-the class of which the variable is a member.
+must only be called for static data member variables.
 */
 {
-  sizeof_t mangled_name_length, section_length;
-  char     *name;
+  a_type_ptr class_type = variable->source_corresp.class_of_which_a_member;
+  sizeof_t   mangled_name_length, section_length;
+  char       *name;
 
   /* The mangled name of a static data member is the original name followed
      by two underscores followed by the mangled class name.  For example:
@@ -1238,8 +1336,7 @@ the class of which the variable is a member.
 }  /* mangled_static_data_member_name */
 
 
-static void mangle_static_data_member_name(a_variable_ptr variable,
-                                           a_type_ptr     class_type)
+static void mangle_static_data_member_name(a_variable_ptr variable)
 /*
 Mangle the name of the indicated static data member.
 */
@@ -1250,7 +1347,6 @@ Mangle the name of the indicated static data member.
   error_position = variable->source_corresp.decl_position;
   /* Determine how long the mangled name is. */
   mangled_name_length = mangled_static_data_member_name(variable,
-                                                        class_type,
                                                         (char *)NULL);
   /* Allocate space for the mangled name and build it.  The old name is
      just thrown away. */
@@ -1259,12 +1355,46 @@ Mangle the name of the indicated static data member.
 #if DEBUG
   allocated_name_string_length += alloc_length;
 #endif /* DEBUG */
-  (void)mangled_static_data_member_name(variable, class_type, mangled_name);
+  (void)mangled_static_data_member_name(variable, mangled_name);
   /* Store the final null. */
   mangled_name[mangled_name_length] = '\0';
   variable->source_corresp.name = mangled_name;
   variable->source_corresp.name_has_been_mangled = TRUE;
 }  /* mangle_static_data_member_name */
+
+
+char *get_mangled_static_data_member_name(a_variable_ptr variable)
+/*
+Get the mangled name for the indicated static data member, and return
+a pointer to it.  If the variable name has not been mangled yet, create a
+copy of the mangled name in mangled_name_buffer but do not change the
+name in the variable entry.
+*/
+{
+  sizeof_t   mangled_name_length, alloc_length;
+  char       *mangled_name;
+
+  /* The variable should not be unnamed. */
+  mangled_name = variable->source_corresp.name;
+  check_assertion(mangled_name != NULL);
+  if (variable->source_corresp.name_has_been_mangled) {
+    /* The name has already been mangled, so just return it. */
+  } else {
+    /* Generate the mangled name in a buffer. */
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_static_data_member_name(variable,
+                                                          (char *)NULL);
+    /* Make sure we have enough space in mangled_name_buffer. */
+    alloc_length = mangled_name_length + 1;
+    ensure_mangled_name_buffer_space(alloc_length);
+    mangled_name = mangled_name_buffer;
+    /* Create the name. */
+    (void)mangled_static_data_member_name(variable, mangled_name);
+    /* Store the final null. */
+    mangled_name[mangled_name_length] = '\0';
+  }  /* if */
+  return mangled_name;
+}  /* get_mangled_static_data_member_name */
 
 
 static void mangle_class_name(a_type_ptr class_type)
@@ -1415,7 +1545,7 @@ sub-scopes.
     for (variable = scope->variables;
          variable != NULL;
          variable = variable->next) {
-      mangle_static_data_member_name(variable, scope->variant.assoc_type);
+      mangle_static_data_member_name(variable);
     }  /* for */
   }  /* if */
 }  /* do_scope_other_name_mangling */
