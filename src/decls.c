@@ -9977,7 +9977,7 @@ continue_with_declaration:
   if (curr_token == tok_semicolon && !decl_specifiers_omitted) {
     if (err) {
       /* There was a previous error, so do not check further. */
-    } else if (is_old_style_param_decl && C_dialect != C_dialect_pcc &&
+    } else if (is_old_style_param_decl &&
                (declares_something || defines_something)) {
       /* ANSI C does not allow freestanding declarations (as of structs)
          within an old-style parameter list.  pcc, on the other hand,
@@ -9987,8 +9987,13 @@ continue_with_declaration:
             struct s a;
             { ... }
       */
-      diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                 ec_decl_should_be_of_param);
+      if (C_dialect != C_dialect_pcc) {
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                   ec_decl_should_be_of_param);
+      }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      set_autonomous_tag_decl_flag(type_ptr, defines_something);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
                defines_something && type_ptr->kind == (a_type_kind)tk_union &&
                storage_class != (a_storage_class)sc_typedef) {
