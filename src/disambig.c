@@ -1090,10 +1090,13 @@ evidence to the contrary.
     }  /* for */
     /* If multiple types are not allowed, then break out of the loop. */
     if ((!real_declarator_allowed(flags) &&
-         single_type_required(flags)) || curr_token != tok_comma) break;
+         single_type_required(flags)) ||
+         (curr_token != tok_comma && curr_token != tok_ellipsis)) break;
     /* Advance past the comma then scan the next declaration. */
-    cache_curr_token(&state->cache);
-    get_token_and_coalesce_if_identifier(flags);
+    if (curr_token != tok_ellipsis) {
+      cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+    }  /* if */
   }  /* for */
 done:
   db_exit();
