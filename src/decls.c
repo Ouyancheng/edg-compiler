@@ -2207,16 +2207,6 @@ scope is that of a class definition.
                      &param_ssep, (a_func_info_block_ptr)NULL);
         } else {
           /* No declarator. */
-          if (!is_error_type(param_type_ptr) && defines_something &&
-              !(dso_flags & DSO_DECLARES_SOMETHING)) {
-            /* Issue a warning on cases like this:
-                 void f(struct { int i; });
-               It will come up in C mode only, since the definition is already
-               outlawed in C++. */
-            diagnostic(strict_ansi_mode ?
-                         strict_ansi_error_severity : es_warning,
-                       ec_useless_decl);
-          }  /* if */
           set_to_error_locator(param_locator);
         }  /* if */
         /* Adjust the type if necessary (for example, "array of x"
