@@ -334,7 +334,8 @@ the dynamic init entry.
       expr_temp_lifetime = curr_object_lifetime;
     }  /* if */
     /* Copy the default-arg list. */
-    dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+    dip->variant.constructor.args =
+      copy_default_arg_expr_list(ptp, /*inside_conditional_expression=*/FALSE);
     if (!long_lifetime_temps) {
       /* Pop the object lifetime for the temp, binding the lifetime and
          dynamic init entry if appropriate. */

@@ -1,5 +1,27 @@
 Version 2.37
 
+8/23/97   Temporary in default argument expression inside conditional
+          expression destroyed when not constructed
+
+Temporaries in default argument expressions inside parts of expressions
+that are conditional should be destroyed only if they were constructed,
+i.e., only if the part of the expression that constructs them was
+executed.  This was not being done: such temporaries were destroyed
+unconditionally, with the consequence that sometimes the destructor
+for a class was called for a temporary that was never constructed.
+Now fixed.
+
+  struct A {
+    A(const char *);
+    ~A() ;
+  };
+  int foo(const A & = "");
+  int main() {
+    int i = 5;
+    return  (i == 5 || foo()) ? 0 : 1; // The temporary is not constructed
+                                       // and should not be destroyed
+  }
+
 8/21/97   Member class bodies not removed when nonclass template instantiations
           are included in the source sequence list
 

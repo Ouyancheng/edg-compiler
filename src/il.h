@@ -307,6 +307,9 @@ typedef int an_expr_copy_options_set;
 			/* TRUE if, when copying a dynamic initialization
 			   entry, the pointer to the destructible entity
 			   description should be transferred to the copy. */
+#define CE_INSIDE_CONDITIONAL_EXPRESSION 0x4
+			/* TRUE if the expression is being copied into a
+			   context that is under a conditional operator. */
 
 a_constant_ptr copy_unshared_constant_full(
                                          a_constant_ptr           old_constant,
@@ -438,11 +441,15 @@ extern an_expr_node_ptr copy_list_of_expr_trees(
 extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
                                        an_expr_copy_options_set options);
 
-extern an_expr_node_ptr copy_default_arg_expr(an_expr_node_ptr expr);
+extern an_expr_node_ptr copy_default_arg_expr(
+                               an_expr_node_ptr expr,
+                               a_boolean        inside_conditional_expression);
 
 extern an_expr_node_ptr duplicate_default_arg_expr(an_expr_node_ptr expr);
 
-extern an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp);
+extern an_expr_node_ptr copy_default_arg_expr_list(
+                               a_param_type_ptr ptp,
+                               a_boolean        inside_conditional_expression);
 
 extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
 

@@ -6359,7 +6359,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
              first param is ignored even if it is declared to have a default
              arg. */
           ptp = ptp->next;
-          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          dip->variant.constructor.args =
+           copy_default_arg_expr_list(ptp,
+                                      /*inside_conditional_expression=*/FALSE);
           /* Only at runtime is the source known. */
           dip->variant.constructor.
                              is_copy_constructor_with_implied_source = TRUE;

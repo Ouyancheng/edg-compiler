@@ -4069,7 +4069,9 @@ be processed under an ellipsis).
 #endif /* CHECKING */
     arg = param->default_arg_expr;
     if (arg != NULL) {
-      arg = copy_default_arg_expr(arg);
+      arg = copy_default_arg_expr(
+                         arg,
+                         (a_boolean)expr_stack->inside_conditional_expression);
     } else {
       /* In cases where there was an error in the declaration of a function
          template (a parameter with an default argument expression was
@@ -7098,7 +7100,9 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
   /* If the constructor has default arguments after the first, add
      arguments for them. */
   if (param_list != NULL) {
-    (*arg_expr_list)->next = copy_default_arg_expr_list(param_list->next);
+    (*arg_expr_list)->next = copy_default_arg_expr_list(
+                         param_list->next,
+                         (a_boolean)expr_stack->inside_conditional_expression);
   }  /* if */
 }  /* set_up_for_constructor_call */
 

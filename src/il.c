@@ -5632,6 +5632,9 @@ expression node.  options is a set of options for the copy.
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
+  if (options & CE_INSIDE_CONDITIONAL_EXPRESSION) {
+    new_dip->inside_conditional_expression = TRUE;
+  }  /* if */
 #if MINIMAL_INLINING
   if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
     /* Look for variables that get remapped while copying the expressions
@@ -6718,34 +6721,47 @@ scope memory region.
 }  /* duplicate_default_arg_expr */
 
 
-an_expr_node_ptr copy_default_arg_expr(an_expr_node_ptr expr)
+an_expr_node_ptr copy_default_arg_expr(
+                                an_expr_node_ptr expr,
+                                a_boolean        inside_conditional_expression)
 /*
 Copy a default argument expression and return a pointer to the copy.
 This routine is used to copy such expressions when they are added implicitly
 to calls, but not to copy them when function types pointing to default
 argument expressions are copied.  The difference between the two is in the
 handling of object lifetimes.  In addition, a flag is set to identify this
-as a "generated" default argument expression.
+as a "generated" default argument expression.  inside_conditional_expression
+is TRUE if the default argument expression copy will be inside a conditional
+part of an expression.
 */
 {
+  an_expr_copy_options_set options = CE_NO_OPTIONS;
+
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     /* The top node is an enk_object_lifetime.  The lifetime is not copied.
        Instead, copies of dynamic inits associated with that lifetime will be
        bound into the curr_object_lifetime. */
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
-  expr = copy_expr_tree(expr, CE_NO_OPTIONS);
+  if (inside_conditional_expression) {
+    /* The copy will be inside a conditional part of an expression. */
+    options |= CE_INSIDE_CONDITIONAL_EXPRESSION;
+  }  /* if */
+  expr = copy_expr_tree(expr, options);
   expr->generated_default_arg = TRUE;
   return expr;
 }  /* copy_default_arg_expr */
 
 
-an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp)
+an_expr_node_ptr copy_default_arg_expr_list(
+                                a_param_type_ptr ptp,
+                                a_boolean        inside_conditional_expression)
 /*
 Make an expression list containing copies of the default argument expressions
 for the parameter indicated by ptp and all parameters following that.
 If ptp is non-NULL, it must point to a parameter with a default argument
-expression.
+expression.  inside_conditional_expression is TRUE if the default argument
+expression copies will be inside a conditional part of an expression.
 */
 {
   an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
@@ -6766,7 +6782,8 @@ expression.
       if (ptp->default_arg_expr == NULL) {
         arg_node = error_node();
       } else {
-        arg_node = copy_default_arg_expr(ptp->default_arg_expr);
+        arg_node = copy_default_arg_expr(ptp->default_arg_expr,
+                                         inside_conditional_expression);
       }  /* if */
       if (first_node == NULL) {
         first_node = arg_node;

@@ -1216,7 +1216,9 @@ build an argument operand list and return a pointer to it in
       /* Not enough arguments? */
       /* If there is a default argument value, or several, use them. */
       if (curr_param_type->default_arg_expr != NULL) {
-        curr_node = copy_default_arg_expr_list(curr_param_type);
+        curr_node = copy_default_arg_expr_list(
+                         curr_param_type,
+                         (a_boolean)expr_stack->inside_conditional_expression);
         if (argument_head == NULL) {
           argument_head = curr_node;
         } else {
@@ -5081,7 +5083,8 @@ specification allow a variable-sized array as the top type.
           /* Provide default arguments if any. */
           init_arg_expr_list = copy_default_arg_expr_list(
                 skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
-                                                              param_type_list);
+                                                              param_type_list,
+                (a_boolean)expr_stack->inside_conditional_expression);
           do_const_test = TRUE;
           is_generated_ctor = ctor_routine->compiler_generated;
         }  /* if */
