@@ -479,23 +479,23 @@ issue it at *err_pos;
         if (dsp->base_class->any_virtual_steps_in_derivation) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a whole object of the derived class type. */
-          *did_not_fold = TRUE;
           if (constant_1->kind == (a_constant_repr_kind)ck_address &&
               constant_1->variant.address.kind ==
                                           (an_address_base_kind)abk_variable &&
               offset == 0 &&
               !constant_1->implicit_cast) {
-            /* The constant is the unmodified address of a variable. */
-            a_variable_ptr variable =
-                                  constant_1->variant.address.variant.variable;
-            a_type_ptr     var_type = skip_typerefs(variable->type);
-            if (is_class_struct_union_type(var_type)) {
-              /* The constant is the address of a class variable. */
-              *did_not_fold = FALSE;
-            }  /* if */
+            /* The constant is the unmodified address of a variable.  We know
+               the variable has the proper class type or we wouldn't have
+               identified the cast as a base class cast.  We don't try to
+               handle any cases where the address has been cast to another
+               type because we don't have the history of casts -- there may
+               have been several, and they might not all have been base
+               class casts. */
+          } else {
+            /* We cannot fold the cast. */
+            *did_not_fold = TRUE;
+            break;
           }  /* if */
-          /* Exit the loop if we could not fold the cast. */
-          if (*did_not_fold) break;
         }  /* if */
         /* Take the pointer offset, ... */
         /* ... add the offset to the base class, ... */
