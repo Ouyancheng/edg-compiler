@@ -8538,8 +8538,6 @@ continue_with_declaration:
             if (local_storage_class == (a_storage_class)sc_static) {
               an_error_severity  severity;
               if (C_dialect == C_dialect_cplusplus) {
-                pos_error(ec_block_scope_function_must_be_extern,
-                          &decl_pos_block.storage_class_pos);
                 /* id_linkage doesn't expect block level statics in
                    C++ mode. */
                 severity = es_error;
