@@ -6881,7 +6881,7 @@ qualified name.
             /* Make sure that this class has been instantiated.  This is
                only needed for the first class name because template classes
                must be at file scope. */
-            check_for_uninstantiated_template_class(class_type);
+            complete_class_type_is_needed(class_type);
           }  /* if */
           /* Make sure that the class type is a complete type. */
           if (class_type_is_really_a_class && is_incomplete_type(class_type) &&
@@ -7006,7 +7006,7 @@ qualified name.
     if (is_qualified_name) {
       /* Make sure that the class has been instantiated. */
       if (!err && class_type != NULL && class_type_is_really_a_class) {
-        check_for_uninstantiated_template_class(class_type);
+        complete_class_type_is_needed(class_type);
       }  /* if */
     }  /* if */
     set_err_pos_to_curr_token();

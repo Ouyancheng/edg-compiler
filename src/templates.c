@@ -573,20 +573,6 @@ class a friend and update the friend information.
 }  /* update_befriending_classes_for_class */
 
 
-void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
-/*
-tp is an incomplete type.  If it is a class in need of instantiation or an
-array whose underlying element type is such a class, instantiate it.
-Otherwise, do nothing.
-*/
-{
-  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-  if (tp != NULL && is_class_struct_union_type(tp)) {
-    instantiate_template_class(tp);
-  }  /* if */
-}  /* f_check_for_uninstantiated_template_class */
-
-
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
 class_type is an incomplete class type.  If it is an instance of a class
@@ -753,6 +739,22 @@ might not be able to if the template itself has not yet been defined.
   }  /* if */
   db_exit();
 }  /* f_instantiate_template_class */
+
+
+void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
+/*
+tp is an incomplete type.  If it is a class in need of instantiation or an
+array whose underlying element type is such a class, instantiate it.
+Otherwise, do nothing.
+*/
+{
+  if (is_array_type(tp)) {
+    tp = underlying_array_element_type(tp);
+    if (tp == NULL && !is_incomplete_type(tp)) goto done;
+  }  /* if */
+  if (is_class_struct_union_type(tp)) f_instantiate_template_class(tp);
+done:;
+}  /* f_check_for_uninstantiated_template_class */
 
 
 static void instantiate_class_template(a_symbol_ptr  template_sym,
@@ -1106,7 +1108,7 @@ and the class instantiation will detect the runaway case.
 #endif /* CHECKING */
   /* If the type of the static data member is a template class, make sure
      it is instantiated. */
-  check_for_uninstantiated_template_class(var_ptr->type);
+  complete_type_is_needed(var_ptr->type);
   if (tssp->token_cache.first_token != NULL) {
     a_boolean  incomplete_type_error_reported;
     a_boolean  has_parenthesized_initializer;
@@ -4559,7 +4561,7 @@ the size of arr can be computed.
 	     instantiating the template class.  The call to do the array
 	     fixup is made from scan_class_defintion. */
 	  instantiate_template_class(instance_sym->
-				     variant.class_struct_union.type);
+                                          variant.class_struct_union.type);
 	  break;
 	}  /* if */
       }  /* for */
@@ -6196,7 +6198,7 @@ as requiring instantiations.
   ciep = can_instantiate_list;
   while (ciep != NULL) {
     a_type_ptr	class_type = ciep->class_type;
-    check_for_uninstantiated_template_class(class_type);
+    complete_class_type_is_needed(class_type);
     ciep = ciep->next;
   }  /* while */
   db_exit();
@@ -6388,7 +6390,7 @@ data members within a given template class.
     add_to_can_instantiate_list(class_type);
   } else {
     /* Instantiate the class, if not already done. */
-    check_for_uninstantiated_template_class(class_type);
+    complete_class_type_is_needed(class_type);
     if (is_incomplete_type(class_type)) {
       pos_error(ec_incomplete_type_not_allowed, pos);
     } else {

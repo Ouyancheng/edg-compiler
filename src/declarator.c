@@ -335,7 +335,7 @@ type is legal.
           /* This is a declaration in the midst of a template declaration.
              Okay. */
         } else if (is_immediate_class_type(temp_type)) {
-          check_for_uninstantiated_template_class(temp_type);
+          complete_class_type_is_needed(temp_type);
           if (is_incomplete_type(temp_type)) {
             /* As an extension in C mode, allow an array of incomplete struct
                or or union type.  In C++ this is apparently not an extension,

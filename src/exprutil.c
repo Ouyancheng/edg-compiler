@@ -2927,7 +2927,7 @@ See section 3.1.2.5 of the standard.
   } else {
     /* Instantiate the underlying type if it is a template class. */
     underlying_type = type_pointed_to(operand->type);
-    check_for_uninstantiated_template_class(underlying_type);
+    complete_type_is_needed(underlying_type);
     if (!is_object_type(underlying_type)) {
       error_in_operand(err_code, operand);
       okay = FALSE;
@@ -2958,7 +2958,7 @@ array case in strict ANSI mode.
   } else {
     underlying_type = type_pointed_to(operand->type);
     /* Instantiate the underlying type if it is a template class. */
-    check_for_uninstantiated_template_class(underlying_type);
+    complete_type_is_needed(underlying_type);
     if (is_object_type(underlying_type)) {
       /* okay = TRUE; -- Already set. */
     } else if ((!strict_ansi_mode ||
@@ -3570,7 +3570,7 @@ void add_reference_indirection(an_operand *result)
   make_expression_operand(node, result_type, result);
   result->state = result_state;
   /* Instantiate the underlying type if it is a template class. */
-  check_for_uninstantiated_template_class(result_type);
+  complete_type_is_needed(result_type);
   /* Restore the original source position, etc.  Note that the reference
      entries are NOT restored, on purpose. */
   restore_operand_details(result, &orig_result);
@@ -3624,7 +3624,7 @@ reference entry, or is NULL if none is needed.
     result->state = (an_operand_state)os_lvalue;
     copy_source_position(pos_curr_token, result->position);
     /* Instantiate the underlying type if it is a template class. */
-    check_for_uninstantiated_template_class(variable_type);
+    complete_type_is_needed(variable_type);
     /* Start a list of reference entries related to the operand. */
     result->ref_entries_list = rep;
     /* If the variable has a reference type, add an implicit indirection. */

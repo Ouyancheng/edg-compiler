@@ -5027,7 +5027,7 @@ functions could still apply).
         if (operand_1_is_class) {
           /* Instantiate the type if it is a template class.  This ensures that
              member operator functions that could apply are declared. */
-          check_for_uninstantiated_template_class(operand_1->type);
+          complete_class_type_is_needed(operand_1->type);
           member_functions_symbol = opname_member_function_symbol(kind,
                                                skip_typerefs(operand_1->type));
           if (member_functions_symbol != NULL) {
@@ -5314,7 +5314,7 @@ because of an error.  This routine is only used in C++ mode.
   class_type = skip_typerefs(dest_type);
   /* If the class is a template class, instantiate it so that its
      constructors are visible. */
-  instantiate_template_class(class_type);
+  complete_class_type_is_needed(class_type);
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;

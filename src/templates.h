@@ -116,18 +116,6 @@ extern void update_auto_instantiation_flags(void);
 
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
 
-
-/* If tp is a class in need of instantiation, instantiate it.  Otherwise,
-   do nothing. */
-#define check_for_uninstantiated_template_class(tp)                     \
-{									\
-  if (C_dialect == C_dialect_cplusplus) {				\
-    if (is_incomplete_type(tp)) {					\
-      f_check_for_uninstantiated_template_class(tp);		        \
-    }  /* if */							        \
-  }  /* if */							        \
-}
-
 /* tp is a class type.  If it is incomplete, see if it is a template class in
    need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \
@@ -135,6 +123,38 @@ extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
   if (is_incomplete_type(tp)) {						\
     f_instantiate_template_class(tp);					\
   }  /* if */							        \
+}
+
+/* This macro is just a stub.  It can be replaced in implementations that
+   need to track uses that require a complete class type. */
+#define record_complete_class_type_needed(tp)  /* Nothing */
+
+/* tp is a pointer to a class type.  This is a context in which a type is
+   required to be complete, so if tp is incomplete see if it is a template
+   class that can be instantiated.  Issuing a diagnostic on an incomplete
+   type is done separately.  Also (if appropriate for the implementation)
+   record that the class was required to be complete in the current context. */
+#define complete_class_type_is_needed(tp)                               \
+{                                                                       \
+  if (C_dialect == C_dialect_cplusplus) {                               \
+    instantiate_template_class(tp);                                     \
+  }  /* if */                                                           \
+  record_complete_class_type_needed(tp);                                \
+}
+
+/* This is a context in which a type is required to be complete, so if tp
+   is incomplete see if it is a template class that can be instantiated (or
+   array thereof).  Issuing a diagnostic on an incomplete type is done
+   separately.  Also (if appropriate for the implementation) record that the
+   class was required to be complete in the current context. */
+#define complete_type_is_needed(tp)                                     \
+{                                                                       \
+  if (C_dialect == C_dialect_cplusplus) {                               \
+    if (is_incomplete_type(tp)) {                                       \
+      f_check_for_uninstantiated_template_class(tp);                    \
+    }  /* if */                                                         \
+  }  /* if */                                                           \
+  record_complete_class_type_needed(tp);                                \
 }
 
 #endif /* TEMPLATES_H */

@@ -786,7 +786,7 @@ returned.
        template class.  This is necessary so that we can see what its base
        classes are.  Note that this can potentially force instantiation
        of the base class as well. */
-    instantiate_template_class(derived_class);
+    complete_class_type_is_needed(derived_class);
     if (derived_class->variant.class_struct_union.extra_info->
                                                          assoc_scope != NULL &&
         base_class->variant.class_struct_union.extra_info->

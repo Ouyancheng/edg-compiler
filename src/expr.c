@@ -2114,7 +2114,7 @@ bound with the function in *bound_function_selector.
         class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
         if (is_class_struct_union_type(class_struct_union_type)) {
           /* Instantiate the class if it is a template class. */
-          instantiate_template_class(class_struct_union_type);
+          complete_class_type_is_needed(class_struct_union_type);
           operand_1_is_complete_class =
                                   !is_incomplete_type(class_struct_union_type);
         }  /* if */
@@ -3297,7 +3297,7 @@ See section 3.3.3.2 of the standard.
       if (check_pointer_operand(&operand, ec_bad_indirection_operand)) {
         operand.type = type_pointed_to(operand.type);
         /* Instantiate the underlying type if it is a template class. */
-        check_for_uninstantiated_template_class(operand.type);
+        complete_type_is_needed(operand.type);
         if (is_function_type(operand.type)) {
           /* This will become a function designator. */
           operand.state = (an_operand_state)os_function_designator;
@@ -3604,7 +3604,7 @@ Syntax:
 
   sizeof_type = skip_typerefs(sizeof_type);
   /* Instantiate the type if it is a template class. */
-  check_for_uninstantiated_template_class(sizeof_type);
+  complete_type_is_needed(sizeof_type);
   /* The operand of a sizeof may not have function type or incomplete type. */
   if (is_function_type(sizeof_type)) {
     pos_error(ec_sizeof_function, &type_position);
@@ -3684,7 +3684,7 @@ be inappropriate, because the feature is probably used to implement
   }  /* if */
   alignof_type = skip_typerefs(alignof_type);
   /* Instantiate the type if it is a template class. */
-  check_for_uninstantiated_template_class(alignof_type);
+  complete_type_is_needed(alignof_type);
   /* The result of __ALIGNOF__ is an integer indicating the alignment of
      the operand, of type size_t. */
   if (is_error_type(alignof_type)) {
@@ -3790,7 +3790,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   typeid_type = make_unqualified_type(typeid_type);
   typeid_type = skip_typerefs(typeid_type);
   /* Instantiate the type if it is a template class. */
-  check_for_uninstantiated_template_class(typeid_type);
+  complete_type_is_needed(typeid_type);
   /* The type must be complete or void. */
   if (is_incomplete_type(typeid_type) && !is_void_type(typeid_type)) {
     error(ec_incomplete_type_not_allowed);
@@ -4405,7 +4405,7 @@ specification allow a variable-sized array as the top type.
   new_type_name(trapped_left_paren, &new_type);
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
-  check_for_uninstantiated_template_class(new_type);
+  complete_type_is_needed(new_type);
   /* Determine the type of pointer returned from "new". */
   base_new_type = new_type;
   new_array_dimension = NULL;
@@ -4892,7 +4892,7 @@ As an anachronism, allow an expression inside the [ ].
       dtor_routine = NULL;
       if (is_class_struct_union_type(base_delete_type)) {
         /* Instantiate the class if it is a template class. */
-        instantiate_template_class(base_delete_type);
+        complete_type_is_needed(base_delete_type);
         if (is_incomplete_type(base_delete_type)) {
           /* Deleting a pointer to an incomplete class.  Give a warning,
              because we may not know how to do the right thing (like call
@@ -5028,7 +5028,7 @@ source position of the type.
 
   *cast_to_func_ptr = FALSE;
   /* Instantiate the type if it is a template class. */
-  check_for_uninstantiated_template_class(type_cast_to);
+  complete_type_is_needed(type_cast_to);
   /* Check the type to see if it's permissible. */
   if (is_error_type(type_cast_to)) {
     err = TRUE;
@@ -8029,7 +8029,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
          a clearer error message. */
       /* Instantiate the type if it is a template class.  This ensures that
          the operator= function is declared. */
-      check_for_uninstantiated_template_class(operand_1->type);
+      complete_type_is_needed(operand_1->type);
       has_predef_meaning = symbol_supplement_for_class(operand_1->type)->
                                           assignment_by_bitwise_copy_allowed ||
                            is_incomplete_type(operand_1->type);

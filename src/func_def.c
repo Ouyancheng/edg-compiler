@@ -327,7 +327,7 @@ being taken.
   return_type = skip_typerefs(rout_type->variant.routine.return_type);
   /* If return_type is an uninstantiated template class, force its
      instantiation. */
-  check_for_uninstantiated_template_class(return_type);
+  complete_type_is_needed(return_type);
   /* 3.7.1, constraints: The return type of a function shall be void
      or an object type other than array.  See also the constraints of
      3.5.4.3 on function declarators, enforced previously by
@@ -452,7 +452,7 @@ a new symbol is created and entered in the symbol table.
      In the second declaration the param-id type is int[], but the composite
      type produced for the routine's interface is int[3]. */
   tp = function_instantiation ? ptp->type : param_id->type;
-  check_for_uninstantiated_template_class(tp);
+  complete_type_is_needed(tp);
   if (is_incomplete_type(tp)) {
     /* Incomplete type is not allowed. */
     pos_error(ec_incomplete_type_not_allowed, &param_id->type_pos);

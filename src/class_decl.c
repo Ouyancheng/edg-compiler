@@ -2701,7 +2701,7 @@ or struct definition.  The syntax is
          it is a union or if it has been declared but not yet defined (ARM
          10, p. 196), issue an error and skip over this class: it is not a
          valid base class name. */
-      check_for_uninstantiated_template_class(base_class_type);
+      complete_class_type_is_needed(base_class_type);
       if (is_qualified_type(base_class_type) ||
           (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
           base_class_type->kind == (a_type_kind)tk_union ||
@@ -7160,8 +7160,7 @@ Scan the body of a class definition, including the base classes list.
             } else {
               /* Non-static data member (= field). */
               /* The type specified must be complete. */
-              check_for_uninstantiated_template_class(local_type);
-
+              complete_type_is_needed(local_type);
               if (C_mode() && is_function_type(local_type) &&
                   member_storage_class != (a_storage_class)sc_typedef) {
                 error(ec_function_type_not_allowed);

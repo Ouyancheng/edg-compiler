@@ -4808,7 +4808,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           type_ptr = error_type();
         } else if (!is_error_type(type_ptr)) {
           /* Force instantiation of template class. */
-          check_for_uninstantiated_template_class(type_ptr);
+          complete_type_is_needed(type_ptr);
           /* Adjust the type if necessary (for example, "array of x"
              becomes "pointer to x"). */
           adjust_parameter_type(&type_ptr, /*restrict_qualified=*/FALSE);
@@ -6202,7 +6202,7 @@ continue_with_declaration:
            is dereferenced. */
         a_type_ptr  tp = local_type_ptr;
         if (is_reference_type(tp)) tp = type_pointed_to(tp);
-        check_for_uninstantiated_template_class(tp);
+        complete_type_is_needed(tp);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       /* Set the error position to the start of the initializer (that is, to
