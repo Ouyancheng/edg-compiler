@@ -1467,6 +1467,68 @@ the line number to 0.
   db_exit();
 }  /* conv_seq_to_file_and_line */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean seq_is_in_include_file(a_seq_number seq_number)
+/*
+Return TRUE if the sequence number seq_number falls within an include file.
+*/
+{
+  a_boolean         in_include_file;
+  a_source_file_ptr proper_file, primary_file, first_file_under_primary;
+  a_line_number     line_number;
+  a_boolean         at_end_of_source;
+  unsigned long     nesting_depth;
+
+  primary_file = il_header.primary_source_file;
+  proper_file = source_file_for_seq(seq_number, &line_number,
+                                    &at_end_of_source, &nesting_depth);
+  if (proper_file == NULL) {
+    /* Sequence number is not in a file, so it's not in an include file. */
+    in_include_file = FALSE;
+  } else if (proper_file == primary_file) {
+    /* Sequence number is in the primary source file. */
+    in_include_file = FALSE;
+  } else if (proper_file->full_name == NULL && nesting_depth == 2) {
+    /* Sequence number is in a section headed by a #line directive,
+       and it's not within an #include.  The position might be in
+       an #include in the original source; we have to examine the
+       file name from the #line to find out.  We determine the effective
+       primary source file name by looking for a #line directive that
+       is the first line in the input, and compare it with the file name
+       associated with the present #line directive.  If they match, the
+       sequence number is in the primary source file; otherwise, it's
+       in an include file. */
+    in_include_file = TRUE;
+    if (primary_file != NULL) {
+      first_file_under_primary = primary_file->first_child_file;
+      if (first_file_under_primary != NULL) {
+        /* See if the first file entry under the primary file entry is for
+           a #line directive that is the first line of the input and
+           specifies a line number of 1. */
+        if (first_file_under_primary->full_name == NULL &&
+            first_file_under_primary->first_seq_number == 1+1 &&
+            first_file_under_primary->first_line_number == 1) {
+          /* Compare the effective primary file name (from the #line directive
+             that's first in the input) with the file name from the
+             #line associated with the sequence number we're investigating. */
+          if (strcmp(first_file_under_primary->file_name,
+                     proper_file->file_name) == 0) {
+            /* Match -- consider the sequence number to be in the primary
+               source file. */
+            in_include_file = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Sequence number is in an include file. */
+    in_include_file = TRUE;
+  }  /* if */
+  return in_include_file;
+}  /* seq_is_in_include_file */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if ORPHAN_PROCESSING_NEEDED
 
 void add_orphaned_file_scope_il_entry (char             *entry_ptr,
@@ -1555,66 +1617,6 @@ added to the orphaned_file_scope_il_entries array.
 
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
-
-a_boolean seq_is_in_include_file(a_seq_number seq_number)
-/*
-Return TRUE if the sequence number seq_number falls within an include file.
-*/
-{
-  a_boolean         in_include_file;
-  a_source_file_ptr proper_file, primary_file, first_file_under_primary;
-  a_line_number     line_number;
-  a_boolean         at_end_of_source;
-  unsigned long     nesting_depth;
-
-  primary_file = il_header.primary_source_file;
-  proper_file = source_file_for_seq(seq_number, &line_number,
-                                    &at_end_of_source, &nesting_depth);
-  if (proper_file == NULL) {
-    /* Sequence number is not in a file, so it's not in an include file. */
-    in_include_file = FALSE;
-  } else if (proper_file == primary_file) {
-    /* Sequence number is in the primary source file. */
-    in_include_file = FALSE;
-  } else if (proper_file->full_name == NULL && nesting_depth == 2) {
-    /* Sequence number is in a section headed by a #line directive,
-       and it's not within an #include.  The position might be in
-       an #include in the original source; we have to examine the
-       file name from the #line to find out.  We determine the effective
-       primary source file name by looking for a #line directive that
-       is the first line in the input, and compare it with the file name
-       associated with the present #line directive.  If they match, the
-       sequence number is in the primary source file; otherwise, it's
-       in an include file. */
-    in_include_file = TRUE;
-    if (primary_file != NULL) {
-      first_file_under_primary = primary_file->first_child_file;
-      if (first_file_under_primary != NULL) {
-        /* See if the first file entry under the primary file entry is for
-           a #line directive that is the first line of the input and
-           specifies a line number of 1. */
-        if (first_file_under_primary->full_name == NULL &&
-            first_file_under_primary->first_seq_number == 1+1 &&
-            first_file_under_primary->first_line_number == 1) {
-          /* Compare the effective primary file name (from the #line directive
-             that's first in the input) with the file name from the
-             #line associated with the sequence number we're investigating. */
-          if (strcmp(first_file_under_primary->file_name,
-                     proper_file->file_name) == 0) {
-            /* Match -- consider the sequence number to be in the primary
-               source file. */
-            in_include_file = FALSE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } else {
-    /* Sequence number is in an include file. */
-    in_include_file = TRUE;
-  }  /* if */
-  return in_include_file;
-}  /* seq_is_in_include_file */
-
 
 static void add_to_scopes_list(a_scope_ptr             scope_ptr,
                                a_scope_stack_entry_ptr ssep)
