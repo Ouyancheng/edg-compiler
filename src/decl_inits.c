@@ -184,7 +184,7 @@ Initialize an entry of type an_aggregreate_init_context.
     check_assertion((levels_down > 0) == (init_con != NULL));
     if (init_con != NULL) {
       /* Propagate the pending constant to the next context, and clear it
-         from the current current, decrementing the level indicator. */
+         from the current context, decrementing the level indicator. */
       init_context->pending_init_con = init_con;
       init_context->pending_init_levels = levels_down - 1;
       prev_init_context->pending_init_con = NULL;
@@ -989,7 +989,9 @@ resulting constant is placed on context->pending_init_con for use further on.
     is_whole_object_init = TRUE;
     cssp = symbol_supplement_for_class(context->type);
     check_assertion_str(cssp->has_copy_constructor ||
-                          cssp->construction_by_bitwise_copy_allowed,
+                          cssp->construction_by_bitwise_copy_allowed ||
+                          skip_typerefs(context->type)->
+                                  variant.class_struct_union.is_nonreal_class,
                         "get_initializer: missing copy constructor");
     /* This is an array element that can only be initialized by a
        constructor.  Treat the expression as an argument for the constructor
@@ -1653,9 +1655,15 @@ this function points to a tree that includes a dynamic-init entry.
     if (curr_token == tok_lbrace) {
       /* Make sure it's truly an aggregate and not some non-aggregate class: */
       if (is_class_struct_union_type(context.type) &&
-          !(symbol_supplement_for_class(context.type)->is_class_aggregate)) {
-        pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
-                     context.type);
+          !symbol_supplement_for_class(context.type)->is_class_aggregate) {
+        if (!context.type->variant.class_struct_union.is_nonreal_class) {
+          /* For a nonreal class, we cannot relate the initializers to the
+             inner type structure of that class.  An error type ensures that
+             we just collect the expressions, but no diagnostic should be
+             issued. */
+          pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
+                       context.type);
+        }  /* if */
         context.type = error_type();
       }  /* if */
       check_for_opening_brace(&brace_flag);
@@ -2674,7 +2682,10 @@ returned set to TRUE.
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(vp_type)) {
     cssp = symbol_supplement_for_class(vp_type);
-    if (!cssp->is_class_aggregate && curr_token == tok_lbrace) {
+    if (curr_token == tok_lbrace &&
+        !(cssp->is_class_aggregate ||
+          skip_typerefs(vp_type)->
+                               variant.class_struct_union.is_nonreal_class)) {
       /* This is an attempt to do C-style aggregate initialization on a class
          object for which there is a constructor, nonpublic members, base
          classes, or virtual functions.  In such cases a constructor must be
