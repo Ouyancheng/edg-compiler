@@ -2616,7 +2616,7 @@ Display the indicated class type supplement entry.
 
 static void disp_constructor_init(a_constructor_init_ptr ptr)
 /*
-display the indicated constructor init entry.
+Display the indicated constructor init entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_constructor_init);
@@ -2642,6 +2642,21 @@ do_base_class:
 }  /* disp_constructor_init */
 
 #endif /* CFE */
+#if ORPHAN_PROCESSING_NEEDED
+
+static void disp_orphaned_il_list(an_orphaned_il_list_ptr ptr)
+/*
+Display the indicated an_orphaned_il_list entry.
+*/
+{
+  disp_ptr("orphaned_types", (char *)ptr->orphaned_types, iek_type);
+  disp_ptr("orphaned_variables", (char *)ptr->orphaned_variables,
+           iek_variable);
+  disp_ptr("next", (char *)ptr->next, iek_orphaned_il_list);
+}  /* disp_orphaned_il_list */
+
+
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 static void disp_entry(char             *entry_ptr,
                        an_il_entry_kind entry_kind)
@@ -2755,6 +2770,11 @@ This routine is called during IL walking.
         case iek_constructor_init:
           disp_constructor_init((a_constructor_init_ptr)entry_ptr);
           break;
+#if ORPHAN_PROCESSING_NEEDED
+        case iek_orphaned_il_list:
+          disp_orphaned_il_list((an_orphaned_il_list_ptr)entry_ptr);
+          break;
+#endif /* ORPHAN_PROCESSING_NEEDED */
 #endif /* ifdef CFE */
         default:
           (void)printf("**BAD ENTRY KIND**\n");
