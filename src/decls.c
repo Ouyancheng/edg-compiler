@@ -2826,10 +2826,10 @@ merging of the default arguments occurs in composite_type.
 }  /* check_default_arg_compatibility */
 
 
-static void reconcile_routine_types(a_routine_ptr  routine_ptr,
-                                    a_type_ptr     type_ptr,
-                                    a_boolean      preserve_rout_type,
-                                    a_boolean      preserve_type_ptr)
+void reconcile_routine_types(a_routine_ptr  routine_ptr,
+                             a_type_ptr     type_ptr,
+                             a_boolean      preserve_rout_type,
+                             a_boolean      preserve_type_ptr)
 /*
 The routine routine_ptr has been given both the type it already has (i.e.,
 routine_ptr->type) and the other type given by type_ptr; it may be assumed
