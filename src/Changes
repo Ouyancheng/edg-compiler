@@ -1,5 +1,35 @@
 Version 2.37
 
+8/8/97    TARG_SIZE_T_INT_MAX default inappropriate when host long long
+          is used as a_host_large_integer
+
+The recent changes to use a_host_large_integer in place of "long" in
+various places, to better support the mode where the host "long long" is
+used as the container for all target integers, introduced an inappropriate
+default for TARG_SIZE_T_INT_MAX.  That has been corrected to match the
+default setting chosen for TARG_SIZE_T_INT_KIND.
+
+The current recommendation for #defines to support long long using the
+host long long are as follows (assuming a host machine with 32-bit
+int and long and 64-bit long long):
+
+#define LONG_LONG_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
+#define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
+#define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
+#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%lld"
+#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%llu"
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%llx"
+#define MAX_INTEGER_VALUE 9223372036854775807LL
+#define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
+#define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
+#define HOST_ALIGNMENT_REQUIRED 8
+
+Priot to this latest change, something like the following was also
+required:
+
+#define TARG_SIZE_T_MAX ((unsigned int)0xffffffff)
+
 8/1/97    cv-qualifiers preserved on type of lvalue result of assignment
           operation
 

@@ -311,6 +311,7 @@ typedef ptrdiff_t a_ptrdiff;
 #define SHRT_MAX ((short)0x7fff)
 #define USHRT_MAX ((unsigned short)0xffff)
 #define INT_MAX ((int)0x7fffffff)
+#define UINT_MAX ((unsigned int)0xffffffff)
 #define LONG_MAX ((long)0x7fffffffL)
 #define LONG_MIN ((long)0x80000000L)
 #define ULONG_MAX ((unsigned long)0xffffffffL)

@@ -744,16 +744,6 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
    be larger. */
 typedef a_host_large_unsigned a_targ_size_t;  /* Must be
 						 a_host_large_unsigned. */
-/* TARG_SIZE_T_MAX defines the limit of the host representation
-   of size_t constants; the range it defines can be equal to or smaller
-   than the integer size implied by TARG_SIZE_T_INT_KIND.  Except when
-   the target size_t is smaller than the host long, it should be ULONG_MAX. */
-#ifndef TARG_SIZE_T_MAX
-#define TARG_SIZE_T_MAX ((a_targ_size_t)MAX_HOST_LARGE_UNSIGNED)
-			/* Default value, used to initialize global variable
-			   targ_size_t_max. */
-#endif /* ifndef TARG_SIZE_T_MAX */
-
 #ifndef TARG_SIZE_T_INT_KIND
 /* Pick a typical representation for size_t: the smaller of unsigned int or
    unsigned long that can hold a pointer value. */
@@ -761,16 +751,33 @@ typedef a_host_large_unsigned a_targ_size_t;  /* Must be
 /* Pointers all have the same size. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
+#ifndef TARG_SIZE_T_MAX
+#define TARG_SIZE_T_MAX ((a_targ_size_t)UINT_MAX)
+#endif /* ifndef TARG_SIZE_T_MAX */
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#ifndef TARG_SIZE_T_MAX
+#define TARG_SIZE_T_MAX ((a_targ_size_t)ULONG_MAX)
+#endif /* ifndef TARG_SIZE_T_MAX */
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
 /* Pointers have different sizes -- use of unsigned long is arbitrary. */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#ifndef TARG_SIZE_T_MAX
+#define TARG_SIZE_T_MAX ((a_targ_size_t)ULONG_MAX)
+#endif /* ifndef TARG_SIZE_T_MAX */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 			/* Default value, used to initialize global variable
 			   targ_size_t_int_kind. */
 #endif /* ifndef TARG_SIZE_T_INT_KIND */
+/* TARG_SIZE_T_MAX defines the limit of the host representation
+   of size_t constants; the range it defines can be equal to or smaller
+   than the integer size implied by TARG_SIZE_T_INT_KIND. */
+#ifndef TARG_SIZE_T_MAX
+#define TARG_SIZE_T_MAX ((a_targ_size_t)ULONG_MAX)
+			/* Default value, used to initialize global variable
+			   targ_size_t_max. */
+#endif /* ifndef TARG_SIZE_T_MAX */
 
 /* Specification of a target alignment requirement.  1 means no alignment
    requirement. */
