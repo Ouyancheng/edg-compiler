@@ -31,15 +31,14 @@ decls.c -- Scanning of declarations.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
-Macro that is TRUE if the current token is a Microsoft storage class
-specifier.
+Macro to test whether the current token is a Microsoft storage class
+specifier.  Includes an "||" at the beginning.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_microsoft_storage_class()					\
+#define or_is_microsoft_storage_class() ||			      \
   (curr_token == tok_declspec || curr_token == tok_microsoft_inline)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-/* When Microsoft keywords are not allowed, simply return FALSE. */
-#define is_microsoft_storage_class() (FALSE)
+#define or_is_microsoft_storage_class() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -50,8 +49,8 @@ specifier (3.5.1).
 #define is_storage_class()                                            \
   (curr_token == tok_typedef  || curr_token == tok_extern   ||        \
    curr_token == tok_static   || curr_token == tok_auto     ||        \
-   curr_token == tok_register || curr_token == tok_mutable  ||        \
-   is_microsoft_storage_class())
+   curr_token == tok_register || curr_token == tok_mutable            \
+   or_is_microsoft_storage_class())
 
 /*
 Macro that is TRUE if the current token is the start of a function
