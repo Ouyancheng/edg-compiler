@@ -7558,9 +7558,13 @@ that is the current function scope, but for locally declared labels it
 might be the current block scope.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
   a_scope_ptr  scope = label_ptr->locally_declared ?
                                         scope_stack[decl_scope_level].il_scope
                                       : innermost_function_scope;
+#else /* !GNU_EXTENSIONS_ALLOWED */
+  a_scope_ptr  scope = innermost_function_scope;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Get pointer to the current function scope entry. */
 #if CHECKING
   if (innermost_function_scope == NULL) {
