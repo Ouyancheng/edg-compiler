@@ -1,5 +1,19 @@
 Version 3.5
 
+5/20/04  Abort on unknown function bound to reference nontype template
+         parameter
+
+The front end aborted in extract_constant_from_operand ("bad operand")
+or in types.c in exception_spec_is_less_restrictive (assertion failed)
+on a use of a template-dependent function as the template argument
+for a nontype template parameter of reference type.  Now fixed.
+
+  template <void(&)()> struct A {};
+  template <typename T> void f() {}
+  template <typename T> struct B {
+    typedef A< f<T> > type;    // Caused abort
+  };
+
 5/20/04  "controlling expression is constant" remarks eliminated
 
 The remark "controlling expression is constant" on a constant value

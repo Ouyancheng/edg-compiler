@@ -2578,6 +2578,25 @@ is_qualified_name is TRUE if the source form used a qualified name.
 }  /* make_unknown_dependent_function_operand */
 
 
+void conv_indefinite_function_operand_to_unknown_dependent_function(
+                                                           an_operand *operand)
+/*
+Convert the indicated operand (which must be an indefinite function) to
+an unknown dependent function.  This is used in prototype instantiations
+when the function to be selected is not known.
+*/
+{
+  check_assertion(is_indefinite_function_operand(operand) &&
+                  is_template_dependent_context());
+  make_unknown_dependent_function_operand(operand->variant.symbol,
+                                          (a_boolean)operand->is_template_id,
+                                          operand->template_arg_list,
+                                          (a_boolean)operand->
+                                                             is_qualified_name,
+                                          operand);
+}  /* conv_indefinite_function_operand_to_unknown_dependent_function */
+
+
 void cast_operand(a_type_ptr new_type,
                   an_operand *operand,
                   a_boolean  check_cast_access,
@@ -2725,13 +2744,8 @@ user-defined conversions.
         if (unknown_dependent_function) {
           /* The cast is in a prototype instantiation, and we don't know
              which function is selected. */
-          make_unknown_dependent_function_operand(overloaded_function_symbol,
-                                                  (a_boolean)operand->
-                                                                is_template_id,
-                                                  operand->template_arg_list,
-                                                  (a_boolean)operand->
-                                                             is_qualified_name,
-                                                  operand);
+          conv_indefinite_function_operand_to_unknown_dependent_function(
+                                                                      operand);
         } else {
 #if CHECKING
           if (function_symbol == NULL) {
@@ -5865,12 +5879,7 @@ what will be done with the operand.
   if (is_indefinite_function_operand(operand)) {
     /* Replace an indefinite function by the address of an unknown
        function in the set.  The result is always an rvalue. */
-    make_unknown_dependent_function_operand(operand->variant.symbol,
-                                            (a_boolean)operand->is_template_id,
-                                            operand->template_arg_list,
-                                            (a_boolean)operand->
-                                                             is_qualified_name,
-                                            operand);
+    conv_indefinite_function_operand_to_unknown_dependent_function(operand);
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand);

@@ -682,6 +682,7 @@ extern a_boolean direct_reference_binding_possible(
                                        a_boolean    *ref_to_const_volatile,
                                        a_boolean    *binding_to_rvalue_allowed,
                                        a_boolean    *dropping_qualifiers,
+                                       a_boolean    *template_case,
                                        a_symbol_ptr *function_symbol);
 
 extern void prep_initializer_operand(an_operand    *source_operand,

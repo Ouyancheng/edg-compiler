@@ -1109,6 +1109,9 @@ extern void make_unknown_dependent_function_operand(
                                           a_boolean          is_qualified_name,
                                           an_operand         *operand);
 
+extern void conv_indefinite_function_operand_to_unknown_dependent_function(
+                                                          an_operand *operand);
+
 extern void cast_operand(a_type_ptr new_type,
 		         an_operand *operand,
                          a_boolean  check_cast_access,

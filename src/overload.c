@@ -1291,6 +1291,7 @@ array).
 {
   a_boolean transform_needed = TRUE, dropping_qualifiers;
   a_boolean ref_to_const, ref_to_const_volatile, binding_to_rvalue_allowed;
+  a_boolean template_case;
 
   /* The array --> pointer transformation is wanted except when initializing
      a reference to the right array type, e.g.,
@@ -1303,6 +1304,7 @@ array).
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
                                         &dropping_qualifiers,
+                                        &template_case,
                                         (a_symbol **)NULL)) {
     transform_needed = FALSE;
     if (arg_operand != NULL) *arg_type = arg_operand->type;
@@ -1322,6 +1324,7 @@ pointer transformation should be done.
 {
   a_boolean transform_needed = TRUE, dropping_qualifiers;
   a_boolean ref_to_const, ref_to_const_volatile, binding_to_rvalue_allowed;
+  a_boolean template_case;
 
   /* The function --> pointer transformation is wanted except when
      initializing a reference to the right function type, as in
@@ -1335,6 +1338,7 @@ pointer transformation should be done.
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
                                         &dropping_qualifiers,
+                                        &template_case,
                                         (a_symbol **)NULL)) {
     transform_needed = FALSE;
   }  /* if */
@@ -11724,6 +11728,7 @@ a_boolean direct_reference_binding_possible(
                                        a_boolean    *ref_to_const_volatile,
                                        a_boolean    *binding_to_rvalue_allowed,
                                        a_boolean    *dropping_qualifiers,
+                                       a_boolean    *p_template_case,
                                        a_symbol_ptr *function_symbol)
 /*
 See if it is possible to directly bind a reference of type dest_type
@@ -11735,6 +11740,8 @@ TRUE if the reference is to const volatile.
 bound to an rvalue.  *dropping_qualifiers is returned TRUE if the
 reference binding would drop type qualifiers (i.e., the types are such
 that the binding could be done except for the qualifiers).
+*p_template_case is returned TRUE if the match was assumed to be
+possible because we have some template-dependent types.
 If function_symbol is non-NULL, consider also the possibility that
 the source operand is an indefinite function and the reference is
 a reference to function.  Set *function_symbol to the specific function
@@ -11832,7 +11839,10 @@ direct binding is "possible" and not whether it is "valid".
                    &source_operand->position,
                    source_operand->variant.symbol);
       conv_to_error_operand(source_operand);
-    } else if (*function_symbol != NULL || unknown_dependent_function) {
+    } else if (unknown_dependent_function) {
+      type_is_correct_or_derived = TRUE;
+      template_case = TRUE;
+    } else if (*function_symbol != NULL) {
       type_is_correct_or_derived = TRUE;
     }  /* if */
   }  /* if */
@@ -11882,6 +11892,7 @@ direct binding is "possible" and not whether it is "valid".
        message about taking the address of a bit field. */
     direct_binding_possible = FALSE;
   }  /* if */
+  *p_template_case = template_case;
   return direct_binding_possible;
 }  /* direct_reference_binding_possible */
 
@@ -12073,6 +12084,7 @@ to be acceptable, and *conversion describes it.
                                                     &ref_to_const_volatile,
                                                     &binding_to_rvalue_allowed,
                                                     &dropping_qualifiers,
+                                                    &template_case,
                                                     &function_symbol);
     if (!direct_binding_possible && !curr_expr_kind_is_const() &&
         is_class_struct_union_type(source_operand->type)) {
@@ -12132,6 +12144,12 @@ to be acceptable, and *conversion describes it.
                  !is_sym_for_member_operand(source_operand)) {
         conv_function_designator_to_ptr_to_function(source_operand,
                                                     /*allow_ctor=*/FALSE);
+        if (is_indefinite_function_operand(source_operand)) {
+          /* Replace an indefinite function by the address of an unknown
+             function in the set. */
+          conv_indefinite_function_operand_to_unknown_dependent_function(
+                                                               source_operand);
+        }  /* if */
       } else {
         /* Binding a reference to an rvalue in a constant expression. */
         if (!is_error_operand(source_operand)) {
@@ -12892,6 +12910,7 @@ used only in C++ mode.
   if (is_an_lvalue(op2)) {
     a_boolean ref_to_const, ref_to_const_volatile;
     a_boolean binding_to_rvalue_allowed, dropping_qualifiers;
+    a_boolean template_case;
     /* op2 is an lvalue.  Attempt to convert op1 to an lvalue of the type
        of op2.  The standard defines this in terms of a notional
        conversion to "reference to op2_type". */
@@ -12903,6 +12922,7 @@ used only in C++ mode.
                                           &ref_to_const_volatile,
                                           &binding_to_rvalue_allowed,
                                           &dropping_qualifiers,
+                                          &template_case,
                                           (a_symbol **)NULL)) {
       possible = TRUE;
       conv->class_identity_or_bitwise_copy = TRUE;

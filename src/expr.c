@@ -8260,6 +8260,7 @@ for non-class operands).  This routine is called only in C++ mode.
     if (cast_to_reference) {
       a_boolean    ref_to_const, ref_to_const_volatile;
       a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
+      a_boolean    template_case;
       a_symbol_ptr function_symbol;
       revert_microsoft_rvalue_to_lvalue_if_possible(operand);
       if (direct_reference_binding_possible(operand,
@@ -8269,6 +8270,7 @@ for non-class operands).  This routine is called only in C++ mode.
                                             &ref_to_const_volatile,
                                             &binding_to_rvalue_allowed,
                                             &dropping_qualifiers,
+                                            &template_case,
                                             &function_symbol)) {
         /* The operand can be cast directly to the reference type,
            so don't look for a way to do the cast using a conversion
@@ -8619,12 +8621,7 @@ to select one of the functions in the overload set.  See [over.over].
   } else if (unknown_dependent_function) {
     /* The cast occurs in a prototype instantiation and it is not possible
        to determine which function to use. */
-    make_unknown_dependent_function_operand(operand->variant.symbol,
-                                            (a_boolean)operand->is_template_id,
-                                            operand->template_arg_list,
-                                            (a_boolean)operand->
-                                                             is_qualified_name,
-                                            operand);
+    conv_indefinite_function_operand_to_unknown_dependent_function(operand);
   } else {
     /* The cast doesn't select one of the overloaded functions, so it's
        an error. */
@@ -16177,7 +16174,8 @@ for the converted result in *constant.  Do various error checks.
     extract_constant_from_operand(operand, constant);
     /* If the template parameter has a reference type, give the constant
        a reference type (instead of the pointer type it has). */
-    if (is_reference_type(param_type) && !is_error_operand(operand)) {
+    if (is_reference_type(param_type) && !is_error_operand(operand) &&
+        !is_template_param_type(constant->type)) {
       check_assertion(is_pointer_type(constant->type));
       constant->type = param_type;
     }  /* if */
