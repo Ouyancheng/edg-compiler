@@ -1511,8 +1511,8 @@ is FALSE, field subobjects are ignored while searching for a conflict.
         for (field = subobject_type->variant.class_struct_union.field_list;
              field != NULL;
              field = field->next) {
-        /* Skip compiler generated fields. */
-        if (field->compiler_generated) continue;
+          /* Skip compiler generated fields. */
+          if (field->compiler_generated) continue;
           /* If the field type is an array get the (ultimate) element type. */
           num_field_array_elts = 1;
           if (is_array_type(field->type)) {
