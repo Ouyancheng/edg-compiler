@@ -1,5 +1,17 @@
 Version 2.42
 
+6/11/99  Abort on double block-scope declaration of an intrinsic function
+
+The front end aborted compilation upon encountering two declarations of an
+intrinsic (non-member) function in the sam block scope:
+
+  void f() {
+    extern void operator delete(void*);
+    extern void operator delete(void*); // Used to abort here
+  }
+
+This is now fixed.
+
 6/10/99  Repeated diagnostics for certain kinds of aggregate initialization
 
 The front-end occasionally went into a loop generating the same error
@@ -11,7 +23,7 @@ following example is such a case:
 
 This is now fixed.
 
-6/9/99   Abort on use of a template parameter in a pointer-to-member type
+6/10/99   Abort on use of a template parameter in a pointer-to-member type
 
 The front end did not correctly handle pointer-to-member types in which
 the class type is actually a template parameter type.  This could result
