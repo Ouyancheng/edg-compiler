@@ -1642,12 +1642,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list_not_needed(ptr->template_arg_list, a_template_arg_ptr,
                              iek_template_arg);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-        remap_ptr_not_needed(ptr->assoc_operator_new_routine, a_routine_ptr,
-                             iek_routine);
+        remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr, iek_routine);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-        remap_ptr_not_needed(ptr->assoc_operator_delete_routine, a_routine_ptr,
-                             iek_routine);
+        remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
+                  iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
         /* ptr->virtual_function_table_var not processed. */
