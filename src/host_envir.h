@@ -1733,7 +1733,6 @@ up file names.
 #if __MICROSOFT_OS__
 /* On MS-DOS, the comparison must be case insensitive. */
 #define compare_file_chars(s1, s2) strnicmp((s1), (s2), INT_MAX)
-  strnicmp((s1), (s2), (length))
 #else /* !__MICROSOFT_OS__ */
 /* On other systems, the comparison is case sensitive. */
 #define compare_file_chars(s1, s2) strcmp((s1), (s2))
