@@ -170,6 +170,8 @@ extern void set_statement_kind(a_statement_ptr  sp,
 
 extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
+extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
+
 extern a_scope_ptr alloc_scope(a_scope_number number,
                                a_scope_kind   kind);
 
