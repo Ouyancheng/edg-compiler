@@ -4296,6 +4296,7 @@ class template.
     /* Bind the throw specification to the routine entry's type. */
     add_throw_specification(func_info, rout_ptr);
   } else {
+    if (func_info->is_inline) rout_ptr->is_inline = TRUE;
     /* Be sure the current throw specification is consistent with the one
        on the previous declaration. */
     check_throw_specification(func_info, rout_ptr);
