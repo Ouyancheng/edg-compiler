@@ -1,5 +1,20 @@
 Version 2.46
 
+5/25/01  Internal error when a template refers to a real instantiation of
+         itself
+
+The front end used to abort with an internal error when it encountered a real
+instantiation of a member function with at least one parameter of a class
+template while parsing that class template.  For example:
+
+  template<class T> struct S {
+    void f1() { S<int> s; s.f2(0); }  // Causes the instantiation of
+                                      // S<int>::f2(int) while parsing S<T>
+    void f2(int) {}  // Abort in func_def.c on this function
+  };
+
+This is now fixed.
+
 5/25/01  C++-generating back end: storage class on for-initialization
 
 The storage class put out by the C++-generating back end on a
