@@ -450,9 +450,11 @@ typedef enum /*an_il_entry_kind*/ {
   iek_switch_case_entry,
 			/* a_switch_case_entry */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   iek_template_decl,	/* a_template_decl */
   iek_template_parameter,
 			/* a_template_parameter */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -569,8 +571,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_decl_position_supplement */	"decl-position-supplement",
 /* iek_switch_case_entry */		"switch-case-entry",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 /* iek_template_decl */			"template-decl",
 /* iek_template_parameter */		"template-parameter",
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -4631,13 +4635,6 @@ typedef struct a_variable {
 		initializer;
 			/* Union discriminated by init_kind and indicating the
 			   initializer. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-  a_template_decl_ptr
-		template_decl;
-			/* For template entities this points to information
-			   describing the template parameterization of that
-			   entity; otherwise, this is NULL. */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		initializer_range;
@@ -4647,6 +4644,13 @@ typedef struct a_variable {
 			   construct (i.e, including "=" or "(" and ")").
 			   May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr
+		template_decl;
+			/* For template entities this points to information
+			   describing the template parameterization of that
+			   entity; otherwise, this is NULL. */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
@@ -7373,6 +7377,8 @@ typedef struct a_hidden_name {
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
 /* Kind of template parameter. */
 enum a_template_parameter_kind_tag {
   tpk_error,
@@ -7388,7 +7394,7 @@ typedef struct a_template_parameter *a_template_parameter_ptr;
 typedef struct a_template_parameter {
   /* Description of a template parameter (type, nontype or template).  A list
      of such items can be assembled through the "next" pointers and should
-     normally be header by a_template_decl entry. */
+     normally be headed by a_template_decl entry. */
   /* The source_corresp field must be first. */
   a_source_correspondence
 		source_corresp;
@@ -7397,6 +7403,9 @@ typedef struct a_template_parameter {
   a_template_parameter_ptr
 		next;
 			/* Next parameter in this template declaration. */
+  a_template_parameter_kind
+		kind;
+			/* The kind of parameter: type, nontype or template. */
   union {
     /* When kind == tpk_type: */
     struct {
@@ -7431,16 +7440,17 @@ typedef struct a_template_parameter {
 			   (or NULL if none) for this template parameter. */
     } templ;
   } variant;
-  a_template_parameter_kind
-		kind;
-			/* The kind of parameter: type, nontype or template. */
 } a_template_parameter;
 
+
 typedef struct a_template_decl {
-  /* The description of the template parameterization of a declaration.  The
-     declarative entity (routine, variable or class supplement) points to an
-     entry of this type, and the nesting structure (for nested templates) is
-     maintained through a parent pointer.
+  /* The description of the "header" of a template declaration.  The templated
+     entity (routine, variable or class supplement) points to an entry of this
+     type, and the nesting structure (for nested templates) is maintained
+     through a parent pointer.
+         template <class T> void f(T x) { ... }
+                            ^^^^^^^^^^^^^^^^^^^ ----- a_routine entry info
+         ^^^^^^^^^^^^^^^^^^ ------------------------- a_template_decl info
   */
   a_template_decl_ptr
 		parent;
@@ -7457,6 +7467,7 @@ typedef struct a_template_decl {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_template_decl;
 
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
 The kind of template that is recorded in the IL template representation

@@ -108,10 +108,12 @@ static unsigned long
 static unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 static unsigned long
 		num_template_decls_allocated;
 static unsigned long
 		num_template_parameters_allocated;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 static unsigned long
 		num_templates_allocated;
 #if RECORD_MACROS_IN_IL
@@ -1332,12 +1334,12 @@ to it.
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-  vp->template_decl               = NULL;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  vp->template_decl               = NULL;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->modified_within_try_block   = FALSE;
@@ -2688,6 +2690,8 @@ fields, and return a pointer to it.
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
 a_template_parameter_ptr alloc_template_parameter(void)
 /*
 Allocate a template parameter entry in the file-scope memory region,
@@ -2729,6 +2733,7 @@ initialize its fields, and return a pointer to it.
   return tdp; 
 }  /* alloc_template_decl */
 
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 a_template_ptr alloc_template(void)
 /*
@@ -2934,10 +2939,12 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   db_space_used("template_parameters", num_template_parameters_allocated,
                 a_template_parameter);
   db_space_used("template_decls", num_template_decls_allocated,
                 a_template_decl);
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   db_space_used("templates", num_templates_allocated, a_template);
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
@@ -3118,8 +3125,10 @@ in il_init.)
 #if RECORD_HIDDEN_NAMES_IN_IL
       pch_saved_var_array_elem(num_hidden_names_allocated),
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
       pch_saved_var_array_elem(num_template_parameters_allocated),
       pch_saved_var_array_elem(num_template_decls_allocated),
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       pch_saved_var_array_elem(num_templates_allocated),
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
@@ -3229,8 +3238,10 @@ of the front end.
 #if RECORD_HIDDEN_NAMES_IN_IL
   num_hidden_names_allocated             = 0;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   num_template_parameters_allocated      = 0;
   num_template_decls_allocated           = 0;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   num_templates_allocated                = 0;
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
