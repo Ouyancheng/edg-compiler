@@ -4457,9 +4457,6 @@ make_new_type:
         prev_ptp = new_ptp;
       }  /* if */
       set_routine_calling_method_flag(new_type);
-      /* A brand new type has been created -- add it to the file scope types
-         list. */
-      add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
       break;
     case tk_array:
       /* Make an array type based on "type", making modifications as
@@ -4472,7 +4469,6 @@ make_new_type:
         switch_back_to_original_region(region_to_switch_back_to);
         *new_type = *type;
         new_type->variant.array.element_type = tp;
-        add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
       }  /* if */
       break;
     case tk_typeref:
