@@ -656,6 +656,9 @@ a try block with a catch that matches the type of the object thrown.
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       /* Do nothing with function blocks at this time. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+#if 0
+       /* Skip over try blocks for which a catch is active. */
+#endif /* 0 */
       int result = check_catches(ehsep, thrown_typeinfo, thrown_is_pointer,
                                  &object_ptr);
       if (result != 0) {
@@ -707,6 +710,20 @@ a try block with a catch that matches the type of the object thrown.
   }  /* if */
   return 0;
 }  /* __throw */
+
+
+EXTERN_C void __rethrow(void)
+/*
+Rethrow the current thrown obejct.
+*/
+{
+#if 0
+  /* Additional memory management stuff needs to go here. */
+#else
+  fprintf(stderr, "rethrow not yet implemented\n");
+  exit(1);
+#endif /* 0 */
+}  /* __rethrow */
 
 
 EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
