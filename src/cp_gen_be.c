@@ -2056,6 +2056,25 @@ Return a string that describes the tag kind for the indicated type (i.e.,
 }  /* tag_keyword */
 
 
+static a_boolean type_is_publicly_accessible(a_type_ptr type)
+/*
+Returns TRUE if type can be named without access errors in an unrelated
+scope -- i.e., if type and any classes in which it is nested are either
+non-members or are public members of their containing classes.  If any
+name appearing in the fully-qualified name of type is a non-public class
+member, return FALSE.
+*/
+{
+  a_boolean is_public = TRUE;
+  while (type->source_corresp.is_class_member && is_public) {
+    is_public =
+               (type->source_corresp.access == (an_access_specifier)as_public);
+    type = type->source_corresp.parent.class_type;
+  }  /* while */
+  return is_public;
+}  /* type_is_publicly_accessible */
+
+
 static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
 /*
 Called from the il_to_str routines.  Returns TRUE if the indicated typedef
@@ -2102,8 +2121,7 @@ is called.
        <stdarg.h> header is included). */
     if (type->is_builtin_va_list) invisible = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
-  } else if (type->source_corresp.is_class_member &&
-             type->source_corresp.access != (an_access_specifier)as_public) {
+  } else if (!type_is_publicly_accessible(type)) {
     /* The typedef is a non-public member of a class.  There might be
        an access problem for this if we're not inside the class, so drop
        the typedef in that case.  This comes up, from example, on template
@@ -2128,9 +2146,10 @@ is called.
     a_type_ptr underlying_type = skip_typerefs(type);
 
     invisible = TRUE;
-    if (underlying_type->source_corresp.is_class_member &&
-        underlying_type->source_corresp.access !=
-                                              (an_access_specifier)as_public) {
+    if (!type_is_publicly_accessible(underlying_type)) {
+      /* The underlying type is not generally accessible, but if we're inside
+         the scope of the underlying types's containing class, we will still
+         have access. */
       a_type_ptr parent_of_underlying_type =
                              underlying_type->source_corresp.parent.class_type;
       if (!class_is_in_name_context_stack(parent_of_underlying_type,
