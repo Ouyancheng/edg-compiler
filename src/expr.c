@@ -6535,10 +6535,16 @@ specification allow a variable-sized array as the top type.
     if (!use_global_new && (array_new_and_delete_enabled || !array_new) &&
         is_class_struct_union_type(base_new_type)) {
       /* Check for a member "operator new" or "operator new[]". */
-      operator_new_symbol = opname_member_function_symbol(opname_kind,
+      if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
+        /* A nonreal class in a prototype instantiation.  Can't do lookup. */
+        unknown_dependent_new = TRUE;
+      } else {
+        operator_new_symbol = opname_member_function_symbol(
+                                                         opname_kind,
                                                          unqual_base_new_type);
+      }  /* if */
     }  /* if */
-    if (operator_new_symbol == NULL) {
+    if (operator_new_symbol == NULL && !unknown_dependent_new) {
       /* Use the global "operator new" or "operator new[]". */
       operator_new_symbol = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6562,7 +6568,7 @@ specification allow a variable-sized array as the top type.
          looking for a non-array operator new.  Do a tentative match
          on the array new, and if that fails fall back to the non-array
          new.*/
-      if (operator_new_symbol == NULL ||
+      if ((operator_new_symbol == NULL && !unknown_dependent_new) ||
           !overloaded_function_match_possible(
                                       operator_new_symbol,
                                       /*is_template_id=*/FALSE,
@@ -6576,10 +6582,11 @@ specification allow a variable-sized array as the top type.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Select the proper "new" function if there are several.  Note that
-       this call does not adjust the argument types or build the function
-       call, since we may yet fold the call into a constructor call. */
-    proj_function_symbol = select_overloaded_function(
+    if (!unknown_dependent_new) {
+      /* Select the proper "new" function if there are several.  Note that
+         this call does not adjust the argument types or build the function
+         call, since we may yet fold the call into a constructor call. */
+      proj_function_symbol = select_overloaded_function(
                                               operator_new_symbol,
                                               /*is_template_id=*/FALSE,
                                               (a_template_arg_ptr)NULL,
@@ -6595,14 +6602,15 @@ specification allow a variable-sized array as the top type.
                                               &unknown_dependent_new,
                                               (a_symbol_ptr *)NULL,
                                               &arg_match_list);
-    if (proj_function_symbol != NULL) {
-      function_symbol = fundamental_symbol_of(proj_function_symbol);
-    } else {
-      function_symbol = NULL;
+      if (proj_function_symbol != NULL) {
+        function_symbol = fundamental_symbol_of(proj_function_symbol);
+      } else {
+        function_symbol = NULL;
+      }  /* if */
+      /* We check later for function_symbol != NULL.  We don't set err
+         here for that case because it shouldn't affect the scanning of
+         the initial value. */
     }  /* if */
-    /* We check later for function_symbol != NULL.  We don't set err
-       here for that case because it shouldn't affect the scanning of
-       the initial value. */
   }  /* if */
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */

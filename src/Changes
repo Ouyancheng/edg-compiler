@@ -1,5 +1,13 @@
 Version 2.46
 
+2/13/02  "new" of nonreal class in prototype instantiation
+
+In some cases, a "new" of a nonreal class processed inside a prototype
+instantiation of a template was not processed properly.  Aborts
+were possible on certain configurations.  Now fixed.  This happened
+only when prototype instantiations were done, i.e., in strict mode
+or with --parse_templates.
+
 2/12/02  RECORD_CONSTANT_EXPRESSIONS_IN_IL: parenthesized constants
 
 When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, an expression is now

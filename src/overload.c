@@ -2767,6 +2767,9 @@ is known to be visible and the visibility check should be suppressed.
       /* Template -- might be a member function template. */
       routine=function_symbol->variant.template_info->variant.function.routine;
     } else {
+      check_assertion(function_symbol->kind == (a_symbol_kind)sk_routine ||
+                      function_symbol->kind ==
+                                            (a_symbol_kind)sk_member_function);
       routine = function_symbol->variant.routine.ptr;
     }  /* if */
     routine_type = skip_typerefs(routine->type);
