@@ -98,6 +98,13 @@ an enum type).
 
 #define is_unknown_type(tp) ((tp)->kind == (a_type_kind)tk_unknown)
 
+#define typeref_is_qualified(tp)                                      \
+ ((tp)->variant.typeref.qualifier != TQ_NONE)
+#define typeref_is_const_qualified(tp)                                \
+ ((tp)->variant.typeref.qualifier & TQ_CONST)
+#define typeref_is_volatile_qualified(tp)                             \
+ ((tp)->variant.typeref.qualifier & TQ_VOLATILE)
+
 /*
 Check for type qualifiers.  In C++ this includes looking for qualifiers
 on the underlying element type of an array.
@@ -127,6 +134,7 @@ type if tp is an array.
 #define is_top_level_volatile_qualified_type(tp)                      \
   ((tp)->kind == (a_type_kind)tk_typeref &&                           \
    f_is_volatile_qualified_type((tp), /*top_level=*/TRUE))
+
 /*
 Return TRUE if the type qualifiers on two types match.  Typedefs and
 the underlying types are ignored.  On an array type it is the element
