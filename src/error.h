@@ -373,7 +373,7 @@ typedef enum /*an_error_code*/ {
   ec_duplicate_friend_decl,
   ec_inline_and_nonfunction,
   ec_inline_not_allowed,
-  ec_inline_and_extern_not_allowed,
+  ec_bad_storage_class_with_inline,
   ec_bad_member_storage_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;

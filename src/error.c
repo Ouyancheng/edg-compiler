@@ -1053,8 +1053,8 @@ error code.
     case ec_inline_not_allowed:
       m = "\"inline\" is not allowed";
       break;
-    case ec_inline_and_extern_not_allowed:
-      m = "a function may not be both extern and inline";
+    case ec_bad_storage_class_with_inline:
+      m = "invalid storage class for an inline function";
       break;
     case ec_bad_member_storage_class:
       m = "invalid storage class for a class member";
