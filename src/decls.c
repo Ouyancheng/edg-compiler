@@ -6132,15 +6132,19 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_const:
         /* const type qualifier (3.5.3). */
-        if (input_flags & DSI_IS_NEW_TYPE_NAME && !cfront_compatibility_mode) {
-          /* const may not appear in a new-type-name. */
-          error(ec_const_volatile_not_allowed);
-          err = TRUE;
-        } else if (is_const_qualified) {
+        if (is_const_qualified) {
           /* const may not appear more than once. */
           error(ec_dupl_type_qualifier);
           err = TRUE;
         } else {
+#if 0
+/* The ARM requires the following check, but its author has stated that that
+   is probably an error.  We expect this to be changed. */
+#endif /* if 0 */
+          if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
+            /* volatile may not appear in a new-type-name -- ARM 5.3.3. */
+            warning(ec_const_volatile_not_allowed);
+          }  /* if */
           is_const_qualified = TRUE;
           /* Set the output_flags bit, for the case where only type qualifiers
 	     are acceptable, and therefore there is no type entry in which to
@@ -6150,15 +6154,19 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_volatile:
         /* volatile type qualifier (3.5.3). */
-        if (input_flags & DSI_IS_NEW_TYPE_NAME && !cfront_compatibility_mode) {
-          /* volatile may not appear in a new-type-name. */
-          error(ec_const_volatile_not_allowed);
-          err = TRUE;
-        } else if (is_volatile_qualified) {
+        if (is_volatile_qualified) {
           /* volatile may not appear more than once. */
           error(ec_dupl_type_qualifier);
           err = TRUE;
         } else {
+#if 0
+/* The ARM requires the following check, but its author has stated that that
+   is probably an error.  We expect this to be changed. */
+#endif /* if 0 */
+          if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
+            /* volatile may not appear in a new-type-name -- ARM 5.3.3. */
+            warning(ec_const_volatile_not_allowed);
+          }  /* if */
           is_volatile_qualified = TRUE;
           /* Set the output_flags bit, for the case where only type qualifiers
 	     are acceptable, and therefore there is no type entry in which to
