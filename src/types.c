@@ -5345,10 +5345,10 @@ bound (i.e., one declared with "[*]").
   return found;
 }  /* ttt_is_or_contains_vla_with_unspecified_bound */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
-a_boolean ttt_is_variably_modified_type(a_type_ptr  type_ptr,
-                                        a_boolean   *force_end_of_traversal)
+static a_boolean ttt_is_variably_modified_type(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
 /*
 Return TRUE if type_ptr is a VLA or a typedef type that has been marked as
 referring to a variably modified type.
@@ -5364,6 +5364,7 @@ referring to a variably modified type.
   return found;
 }  /* ttt_is_variably_modified_type */    
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
