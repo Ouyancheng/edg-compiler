@@ -22,7 +22,7 @@ type of void * rather than the first operand type.  Now fixed.
   {
     struct A a;
     void *p=&a;
-    (x?&a:p)->dummy = 0;
+    ((struct A *)(x?&a:p))->dummy = 0;
   }
 
 7/15/00  Sun compatibility: extern "C" functions with internal linkage
