@@ -1,5 +1,18 @@
 Version 3.2
 
+3/6/03   Incorrect construction vtable setup, with multiple translation
+         units
+
+In compilations with multiple translation units (e.g., with exported
+templates), where a base class requires the special construction
+vtable handling (it has virtual functions in virtual base classes),
+and the constructor and or destructor for the derived class is
+defined only in a secondary translation unit, the code generated
+to do construction or destruction sometimes did not properly pass
+a set of virtual function tables to the subobject constructor or
+destructor.  As a consequence, the program was likely to abort
+at runtime.
+
 3/6/03   "restrict" keyword in template strings
 
 When building template strings, the processing for the "restrict" keyword
