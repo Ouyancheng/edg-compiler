@@ -1654,6 +1654,9 @@ Set the name_linkage field of the class or enum type pointed to by tp.
 }  /* set_name_linkage_for_type */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- sym is only used when GNU extension are allowed. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean is_symbol_from_strong_using_namespace(a_symbol_ptr	sym)
 /*
 Determine whether sym is from a namespace that has been made visible by
