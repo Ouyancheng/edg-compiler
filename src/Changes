@@ -19,8 +19,9 @@ default-initialization of const variable d):
   static void g (const Base& x) { x.f(); };
   int main () { g(d); return 0; }
 
-The side effect in this case was that the virtual function table was not
-defined and an abort occurred at run time.
+The side effect in this case was that code to call the compiler-generated
+constructor was not generated; consequently, the virtual function table was
+not initialized and a run-time abort resulted.
 
 12/15/96 Enum types are not treated as integral
 
