@@ -850,22 +850,22 @@ to the copy.  Use length as the length of the string to be copied.
 }  /* pl_copy_string_with_length */
 
 
-static a_boolean pl_is_explicit_specialization(char	 *name,
-                                               int	 length)
+static a_boolean pl_is_explicit_specialization(char	 *name)
 /*
 Return TRUE if name represents an explicit specialization of a template.
 */
 {
+  char		*ptr;
   /* Explicit specializations contain the string "__S" somewhere. */
-  return strstr(name, "__S") != 0;
+  ptr =  strstr(name, "__S");
+  return ptr != NULL;
 }  /* pl_is_explicit_specialization */
 
 
 /* The maximum size of an name that cane be processed. */
 #define NAME_DECODE_BUFFER_SIZE 32767
 
-static char *get_nonspecialized_name(char *name,
-				    int	 length)
+static char *get_nonspecialized_name(char *name)
 /*
 Given a specialized name "name", return a pointer to the name of the
 nonspecialized version of the name.
@@ -1680,7 +1680,7 @@ call.
     pl_symbol_table[bucket_number] = sym_ptr;
     sym_ptr->name = pl_copy_string_with_length(name, length);
     sym_ptr->name_length = length;
-    if (pl_is_explicit_specialization(sym_ptr->name, length)) {
+    if (pl_is_explicit_specialization(sym_ptr->name)) {
       /* This name is an explicit specialization.  Add it to a list
          of specializations. */
       sym_ptr->is_specialization = TRUE;
@@ -2559,7 +2559,7 @@ if any errors were detected.
     char		*nonspec_name;
     /* Get the name of the nonspecialized symbol.  Normally, the string
        returned is expected to point to a portion of the original name. */
-    nonspec_name = get_nonspecialized_name(psp->name, psp->name_length);
+    nonspec_name = get_nonspecialized_name(psp->name);
     /* Look up the nonspecialized symbol. */
     nonspec_psp = pl_find_symbol(nonspec_name, (a_pl_symbol_ptr)NULL,
                                  /*add=*/TRUE, &is_new);
@@ -3164,7 +3164,7 @@ end_of_options:
      leaked. */
   pl_free_all();
   free(command);
-  free(L_directories);
+  if (L_directories != NULL) free(L_directories);
 #endif /* USING_PURIFY */
 
   return (return_status);
