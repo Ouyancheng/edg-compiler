@@ -2759,8 +2759,7 @@ returned set to TRUE.
          dynamic init entry.  Normally, such entries only appear in unlowered
          C++ IL.  Lower it to C if configured that way. */
       if (microsoft_mode && C_mode() &&
-          vp->initializer.dynamic->kind ==
-                        (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+          init_dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         lower_microsoft_C_mode_nonconstant_aggregate_init(vp, init_stmt);
         /* Force re-determination of the last statement of the current
            sequence. */
