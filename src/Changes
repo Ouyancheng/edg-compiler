@@ -1,5 +1,10 @@
 Version 3.6
 
+12/16/04 Possible abort when using precompiled headers
+
+An abort could occur when dereferencing an invalid pointer to a directory
+name entry when using a precompiled header file.  Now fixed.
+
 12/15/04 Hidden name table performance improvement
 
 The hidden name table routines have been improved to deal better with large
