@@ -1100,9 +1100,11 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #ifdef CFE
           case sck_block:
+#if !NEEDED_FLAG_WALK
             /* Call remap_ptr on the handler entry since it is also on a list
                pointed to from the try-block statement. */
             remap_ptr(ptr->variant.assoc_handler, a_handler_ptr, iek_handler);
+#endif /* !NEEDED_FLAG_WALK */
             /* Also see assoc_block below. */
             break;
           case sck_func_prototype:
@@ -1170,7 +1172,13 @@ the file scope, do not process it (but record an orphan in the latter case).
            needed unless they are referenced or they are external; the
            external part is handled elsewhere.  Note that dynamic inits
            are walked, which will cause dynamically initialized static
-           variables to be retained. */
+           variables to be retained.  Inside a function, variables and
+           types are walked to avoid orphan problems. */
+        if (ptr->kind == (a_scope_kind)sck_function ||
+            ptr->kind == (a_scope_kind)sck_block) {
+          walk_list(ptr->types, a_type_ptr, iek_type);
+          walk_list(ptr->variables, a_variable_ptr, iek_variable);
+        }  /* if */
 #else /* !NEEDED_FLAG_WALK */
         if (walking_file_scope) {
           walk_list(ptr->types, a_type_ptr, iek_type);
@@ -1191,12 +1199,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->types, a_type_ptr, iek_type);
         remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* DO_SUBTREE_WALK */
-#if !NEEDED_FLAG_WALK
-        /* Nonstatic variables aren't needed unless they are referenced.
-           Note that dynamic inits are walked, which will cause initialized
-           variables to be retained. */
+#if NEEDED_FLAG_WALK
+        /* Nonstatic variables are always inside a function, so they
+           are always walked to avoid orphan problems. */
+#endif /* NEEDED_FLAG_WALK */
         walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
-#endif /* !NEEDED_FLAG_WALK */
 #else /* ifndef CFE */
         /* Not the C/C++ front end. */
         walk_list(ptr->types, a_type_ptr, iek_type);
