@@ -2068,15 +2068,18 @@ scan_arg_for_scan_initialization:
   for (cip = cip_list; cip != NULL; cip = next_cip) {
     next_cip = cip->next;
     if (cip->initializer == NULL) {
-      a_boolean  is_const_qualified = FALSE;
+      a_boolean          is_const_qualified = FALSE;
+      a_source_position  err_pos;
       /* object_class_type is the type of the object being created.
          For base classes it will be different than the type associated
-	 with the constructor being called.  For fields it will be
+         with the constructor being called.  For fields it will be
          the same as the field type.  This is needed to check protected
-	 member access. */
-      a_type_ptr object_class_type = NULL;
+         member access. */
+      a_type_ptr         object_class_type = NULL;
+
       /* No initializer was explicitly specified. */
       array_type = NULL;
+      if (user_defined) err_pos = pos_curr_token;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         /* Get the field type.  For arrays, we want the element type. */
         tp = cip->variant.field->type;
@@ -2087,10 +2090,14 @@ scan_arg_for_scan_initialization:
         if (is_const_qualified_type(tp)) is_const_qualified = TRUE;
         tp = skip_typerefs(tp);
         object_class_type = tp;
+        if (!user_defined) {
+          err_pos = cip->variant.field->source_corresp.decl_position;
+        }
       } else {
         /* Get the type of the base class. */
         tp = cip->variant.base_class->type;
-	object_class_type = class_type;
+        object_class_type = class_type;
+        if (!user_defined) err_pos = cip->variant.base_class->decl_position;
       }  /* if */
       cssp = is_class_struct_union_type(tp) ? symbol_supplement_for_class(tp) :
                                               NULL;
@@ -2114,8 +2121,8 @@ scan_arg_for_scan_initialization:
              be returned TRUE. */
           rp = select_copy_constructor(tp,
                                        const_object_okay, volatile_object_okay,
-                                       &ctor_init_pos, object_class_type,
-				       &bitwise_copy, /*evaluated=*/TRUE);
+                                       &err_pos, object_class_type,
+                                       &bitwise_copy, /*evaluated=*/TRUE);
         }  /* if */
         if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */
@@ -2184,7 +2191,7 @@ scan_arg_for_scan_initialization:
           }  /* if */
           continue;
         }  /* if */
-        rp = select_default_constructor(tp, &ctor_init_pos, object_class_type,
+        rp = select_default_constructor(tp, &err_pos, object_class_type,
                                         /*evaluated=*/TRUE);
         if (rp == NULL) {
           /* Error in trying to find a default constructor. */
