@@ -52,6 +52,10 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
+static void push_init_expr_lifetime(an_object_lifetime_ptr *init_expr_lifetime,
+                                    a_boolean              copy_lifetime,
+                                    a_context              *context,
+                                    an_insert_location     *insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -1644,17 +1648,18 @@ A pointer to the expression created is returned.
 
 static void add_object_lifetime_to_function_scope(a_scope_ptr scope)
 /*
-Add an object lifetime to the indicated scope (a function scope).  The
-scope should not have an object lifetime.
+Add an object lifetime to the indicated scope (a function scope) if it
+doesn't already have one.
 */
 {
-  an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+  if (scope->lifetime == NULL) {
+    an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
 
-  check_assertion(scope->lifetime == NULL);
-  curr_object_lifetime = il_header.primary_scope->lifetime;
-  push_object_lifetime(iek_scope, (char *)(scope),
-                       (an_object_lifetime_kind)olk_block);
-  curr_object_lifetime = saved_curr_object_lifetime;
+    curr_object_lifetime = il_header.primary_scope->lifetime;
+    push_object_lifetime(iek_scope, (char *)(scope),
+                         (an_object_lifetime_kind)olk_block);
+    curr_object_lifetime = saved_curr_object_lifetime;
+  }  /* if */
 }  /* add_object_lifetime_to_function_scope */
 
 
@@ -1668,8 +1673,12 @@ typedef struct a_generated_routine_context {
 		region_to_switch_back_to;
   a_scope_depth	depth_innermost_function_scope;
   a_scope_ptr	innermost_function_scope;
-  a_dynamic_init_ptr
-		curr_cleanup_state;
+  a_byte_boolean
+		processing_file_scope_init_routine;
+  a_return_memo_ptr
+		return_memo_list;
+  an_eh_lowering_context
+		ehcontext;
 } a_generated_routine_context;
 
 
@@ -1691,11 +1700,20 @@ grcontext is a local variable used to save state for later restoration.
      for object lifetimes in this function (there is no scope stack entry). */
   grcontext->depth_innermost_function_scope = depth_innermost_function_scope;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
-  grcontext->curr_cleanup_state = curr_cleanup_state;
   grcontext->innermost_function_scope = innermost_function_scope;
   innermost_function_scope = scope;
+  grcontext->processing_file_scope_init_routine =
+                                            processing_file_scope_init_routine;
+  processing_file_scope_init_routine = FALSE;
+  grcontext->return_memo_list = return_memo_list;
+  return_memo_list = NULL;
+  save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
+  if (exceptions_enabled) {
+    /* Initialize for exception handling lowering. */
+    eh_function_lower_init();
+  }  /* if */
 }  /* push_generated_routine_context */
 
 
@@ -1739,8 +1757,12 @@ Pop function corresponding to push_generated_routine_context.
     mark_as_needed((char *)rout, iek_routine);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  restore_eh_lowering_context(&grcontext->ehcontext);
+  free_return_memo_list(return_memo_list);
+  return_memo_list = grcontext->return_memo_list;
+  processing_file_scope_init_routine =
+                                 grcontext->processing_file_scope_init_routine;
   innermost_function_scope = grcontext->innermost_function_scope;
-  curr_cleanup_state = grcontext->curr_cleanup_state;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
   check_for_done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
@@ -1748,8 +1770,9 @@ Pop function corresponding to push_generated_routine_context.
 
 
 static a_routine_ptr default_version_of_routine(
-                                             a_routine_ptr    routine,
-                                             an_expr_node_ptr default_arg_list)
+                                     a_routine_ptr          routine,
+                                     an_expr_node_ptr       default_arg_list,
+                                     an_object_lifetime_ptr init_expr_lifetime)
 /*
 Return a pointer to a routine that does the same thing as "routine" but
 in which the parameters that have default argument expressions have been
@@ -1758,8 +1781,10 @@ by default_arg_list (the expressions are NOT already lowered; this is
 important, since they have to be copied, and you can't successfully copy
 a lowered expression, since it might have temporaries in it).  Implicitly-
 generated parameters of constructors and destructors are also removed.
-This is used to generate a version of a constructor or destructor that
-can be called with just a "this" parameter, or of a copy constructor
+init_expr_lifetime, if non-NULL, is an object lifetime that surrounds the
+call of the routine, used for temporaries that appear in default arguments.
+This information is used to generate a version of a constructor or destructor
+that can be called with just a "this" parameter, or of a copy constructor
 that can be called with just a "this" parameter and a source pointer.
 The routine must have a "this" parameter.  If the original routine has
 no default arguments, no wrapper routine is created; the original
@@ -1784,7 +1809,8 @@ routine is returned.
   a_statement_ptr  return_stmt;
   a_generated_routine_context
                    grcontext;
-  a_boolean        any_implied_args, insert_as_statement;
+  a_context        context;
+  a_boolean        any_implied_args, insert_as_statement, void_return;
 
   /* Determine if any implicit arguments are required for a constructor or
      destructor. */
@@ -1795,6 +1821,7 @@ routine is returned.
                                      (a_special_function_kind)sfk_destructor) {
     any_implied_args = dtor_needs_implied_arg_list(routine);
   }  /* if */
+  check_assertion(init_expr_lifetime == NULL || default_arg_list != NULL);
   if (default_arg_list != NULL || any_implied_args) {
     /* There are some implicit or default arguments, so a wrapper routine
        must be created and used in place of the original routine. */
@@ -1827,8 +1854,15 @@ routine is returned.
     new_routine_scope = make_routine_definition(new_routine,
                                                 /*make_return=*/FALSE,
                                                 &new_routine_il_region);
+    set_block_start_insert_location(new_routine_scope->assoc_block,
+                                    &insert_location);
     push_generated_routine_context(new_routine_scope, new_routine_il_region,
                                    &grcontext);
+    if (init_expr_lifetime != NULL) {
+      /* Push an object lifetime for temporaries in the default arguments. */
+      push_init_expr_lifetime(&init_expr_lifetime, /*copy_lifetime=*/TRUE,
+                              &context, &insert_location);
+    }  /* if */
     /* Make a parameter variable for the "this" parameter (again, in lowered
        form as a normal parameter). */
     new_routine_scope->variant.routine.parameters = this_param_var =
@@ -1893,6 +1927,12 @@ routine is returned.
       /* Copy the default argument expressions into the function memory
          region. */
       default_arg_list = copy_list_of_expr_trees(default_arg_list);
+      if (init_expr_lifetime != NULL) {
+        /* Activate the object lifetime for temporaries in default arguments.
+           This must be done after the default argument expressions are
+           copied but before they are lowered. */
+        begin_object_lifetime(init_expr_lifetime, &insert_location);
+      }  /* if */
       /* Lower the default argument expressions.  Note that this must be done
          after the copy because you can't copy an expression once it has been
          lowered -- temporaries might have been added. */
@@ -1907,22 +1947,57 @@ routine is returned.
     /* Add the "this" parameter at the front of the argument list. */
     this_arg = var_rvalue_expr(this_param_var);
     this_arg->next = default_arg_list;
-    /* If the routine has a void type, insert a statement for the call
-       followed by a return statement.  Otherwise, attach the call directly
-       to the return. */
-    insert_as_statement =
-                       is_void_type(routine_type->variant.routine.return_type);
-    set_block_start_insert_location(new_routine_scope->assoc_block,
-                                    &insert_location);
-    /* Make a call statement that calls the original routine with all
+    /* Make a call node that calls the original routine with all
        the implicit arguments, i.e., that passes all the extra arguments
        to the original routine. */
     call_node = make_call_node(routine, this_arg, /*honor_virtual=*/FALSE,
-                               insert_as_statement ? &insert_location :
-                                                   (an_insert_location *)NULL);
+                               (an_insert_location *)NULL);
+    /* If the routine has a void type, insert a statement for the call
+       followed by a return statement.  Otherwise, attach the call directly
+       to the return. */
+    void_return = is_void_type(routine_type->variant.routine.return_type);
+    insert_as_statement = void_return;
+    /* If we might have to insert destructor calls, insert the call as
+       a statement. */
+    if (init_expr_lifetime != NULL) insert_as_statement = TRUE;
+    if (insert_as_statement) {
+      /* The call will be inserted as a separate statement. */
+      a_variable_ptr temp_var;
+      /* If the routine has a non-void return, put the value in a temporary
+         and then return the temporary later. */
+      if (!void_return) {
+        an_expr_node_ptr temp_node;
+        temp_var = make_lowered_temporary(call_node->type);
+        temp_node = var_lvalue_expr(temp_var);
+        temp_node->next = call_node;
+        call_node = make_operator_node(
+                                  lowered_assignment_operator(call_node->type),
+                                  call_node->type, temp_node);
+      }  /* if */
+      /* Insert the call as a statement. */
+      insert_expr_statement(call_node, &insert_location);
+      /* Set up the expression to be used in the return statement (the value
+         of the temporary). */
+      if (void_return) {
+        call_node = NULL;
+      } else {
+        call_node = var_rvalue_expr(temp_var);
+      }  /* if */
+    }  /* if */
+    if (init_expr_lifetime != NULL) {
+      /* Generate the destructions. */
+      gen_cleanup_actions(init_expr_lifetime, &insert_location);
+      pop_context();
+    }  /* if */
+    /* Add the return statement. */
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
-    return_stmt->expr = insert_as_statement ? NULL : call_node;
+    return_stmt->expr = call_node;
     insert_statement(return_stmt, &insert_location);
+    add_to_return_memo_list(return_stmt);
+    if (exceptions_enabled) {
+      /* Add prologue/epilogue code for exceptions if needed. */
+      add_eh_function_prologue(new_routine_scope);
+    }  /* if */
     pop_generated_routine_context(new_routine_scope, new_routine_il_region,
                                   &grcontext);
     routine = new_routine;
@@ -1959,7 +2034,8 @@ in default_version_of_routine).
 #endif /* CHECKING */
   ctor_routine = dip->variant.constructor.ptr;
   ctor_routine = default_version_of_routine(ctor_routine,
-                                            dip->variant.constructor.args);
+                                            dip->variant.constructor.args,
+                                            dip->init_expr_lifetime);
   if (source_node != NULL) {
     /* Copy constructor case. */
     call_node = make_vec_cctor_call(entity_node, source_node,
@@ -2398,10 +2474,11 @@ Make the code that will ensure that the file-scope initialization routine
 
 
 static a_routine_ptr make_file_scope_init_or_term_routine(
-                                       char                   *prefix,
-                                       an_insert_location_ptr insert_location,
-                                       a_scope_ptr            *init_rout_scope,
-                                       a_memory_region_number *il_region)
+                                  char                        *prefix,
+                                  an_insert_location_ptr      insert_location,
+                                  a_scope_ptr                 *init_rout_scope,
+                                  a_memory_region_number      *il_region,
+                                  a_generated_routine_context *grcontext)
 /*
 Make a routine to do file-scope initialization or termination.  prefix is
 the prefix for the name of the routine, or is NULL if the routine should
@@ -2410,7 +2487,8 @@ the start of the block statement that is the body of the routine, set
 *init_rout_scope to point to the scope entry for the routine, set
 *il_region to the IL memory region number for the routine, and return a
 pointer to the routine.  The routine is external if named, and static
-if unnamed.
+if unnamed.  A generated routine context is pushed, with *grcontext used
+to save the old state for later restoration.
 */
 {
   a_routine_ptr   init_rout;
@@ -2441,10 +2519,14 @@ if unnamed.
   /* Make a memory region, scope, and block for the routine definition. */
   *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
                                              il_region);
+  /* Save the current state and push a new context for the generated
+     routine. */
+  push_generated_routine_context(*init_rout_scope, *il_region, grcontext);
   /* Add the return statement at the end of the routine to the return memo
      list. */
-  return_memo_list = NULL;
   return_stmt = (*init_rout_scope)->assoc_block->variant.block.statements;
+  check_assertion(return_stmt != NULL &&
+                  return_stmt->kind == (a_statement_kind)stmk_return);
   add_to_return_memo_list(return_stmt);
   /* Set the insert location to the start of the top-level block. */
   set_block_start_insert_location((*init_rout_scope)->assoc_block,
@@ -2454,12 +2536,15 @@ if unnamed.
 
 
 static a_scope_ptr file_scope_init_insert_location(
-                                        an_insert_location_ptr insert_location,
-                                        a_memory_region_number *region_number)
+                                   an_insert_location_ptr      insert_location,
+                                   a_memory_region_number      *region_number,
+                                   a_generated_routine_context *grcontext)
 /*
 Create the file-scope initialization routine.  Set *insert location so it
 can be used to insert code in that routine, and set *region_number to
 the memory region number for the routine.  Return the scope for the routine.
+A generated routine context is pushed, with *grcontext used to save the
+old state for later restoration.
 */
 {
   a_scope_ptr scope;
@@ -2468,14 +2553,16 @@ the memory region number for the routine.  Return the scope for the routine.
                                       IL_LOWERING_INIT_ROUTINE_PREFIX,
                                       insert_location,
                                       &scope,
-                                      region_number);
+                                      region_number,
+                                      grcontext);
   return scope;
 }  /* file_scope_init_insert_location */
 
 
 static a_scope_ptr file_scope_term_insert_location(
-                                        an_insert_location_ptr insert_location,
-                                        a_memory_region_number *region_number)
+                                   an_insert_location_ptr      insert_location,
+                                   a_memory_region_number      *region_number,
+                                   a_generated_routine_context *grcontext)
 /*
 Create a file-scope termination routine.  Set *insert_location so it
 can be used to insert code in that routine, and set *region_number to
@@ -2483,6 +2570,8 @@ the memory region number for the routine.  Return the scope for the routine.
 Such routines are used for code that destroys a single variable (not, as
 in cfront, for the code for all the file-scope destructions), so there
 may be many different such routines generated (all unnamed).
+A generated routine context is pushed, with *grcontext used to save the
+old state for later restoration.
 */
 {
   a_scope_ptr scope;
@@ -2490,7 +2579,8 @@ may be many different such routines generated (all unnamed).
   (void)make_file_scope_init_or_term_routine((char *)NULL,  /* Unnamed. */
                                              insert_location,
                                              &scope,
-                                             region_number);
+                                             region_number,
+                                             grcontext);
   return scope;
 }  /* file_scope_term_insert_location */
 
@@ -2644,24 +2734,18 @@ is described by ipdp.
   a_generated_routine_context
                          grcontext;
   a_routine_ptr          routine;
-  a_return_memo_ptr      saved_return_memo_list;
 
-  /* The return_memo_list is saved and restored because we may be inside
-     a routine. */
-  saved_return_memo_list = return_memo_list;
   /* Create a routine. */
-  scope = file_scope_term_insert_location(&insert_location, &region_number);
+  scope = file_scope_term_insert_location(&insert_location, &region_number,
+                                          &grcontext);
   /* Save the routine pointer because the scope won't be around at the
      end of this routine. */
   routine = scope->variant.routine.ptr;
-  push_generated_routine_context(scope, region_number, &grcontext);
   /* Generate the code for the destruction. */
   add_destructor_call(dip->destructor, ipdp, /*have_complete_object=*/TRUE,
                       &insert_location);
   /* Mark the variable as referenced from another function. */
   ipdp->variable->referenced_non_locally = TRUE;
-  free_return_memo_list(return_memo_list);
-  return_memo_list = saved_return_memo_list;
   pop_generated_routine_context(scope, region_number, &grcontext);
   return routine;
 }  /* make_destruction_routine */
@@ -2809,6 +2893,65 @@ resulting expression.
 }  /* copy_expr_to_function_memory_region */
 
 
+static void push_init_expr_lifetime(an_object_lifetime_ptr *init_expr_lifetime,
+                                    a_boolean              copy_lifetime,
+                                    a_context              *context,
+                                    an_insert_location     *insert_location)
+/*
+*init_expr_lifetime points to an object lifetime that is attached to a
+dynamic initialization and surrounds the initialization.  Push it onto the
+context stack.  If copy_lifetime is TRUE, Push a copy instead, update
+*init_expr_lifetime to point to the copy, and unbind the original.  context is
+the address of a context block to be pushed onto the stack.  *insert_location
+is the point at which any generated code should be inserted; it may be
+updated (by inserting a block statement) if necessary.
+*/
+{
+  if (copy_lifetime) {
+    /* Copy the lifetime to the current function scope if necessary.
+       (For example, when generating the file-scope initialization routine,
+       the object lifetime is in the file scope but we need it in the
+       function scope.) */
+    an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+    curr_object_lifetime = innermost_function_scope->lifetime;
+    push_object_lifetime(iek_none, (char *)NULL, (*init_expr_lifetime)->kind);
+    /* The original lifetime won't be used, so unbind it. */
+    unbind_object_lifetime(*init_expr_lifetime);
+    *init_expr_lifetime = curr_object_lifetime;
+    curr_object_lifetime = saved_curr_object_lifetime;
+  }  /* if */
+  /* Push a context for the lifetime.  */
+  push_context(context, (a_scope_ptr)NULL, *init_expr_lifetime);
+  if (keep_object_lifetime_info_in_lowered_il) {
+    a_statement_ptr block_stmt;
+    /* The dynamic init entry will be rewritten in lowering, so it probably
+       won't end up in the IL tree.  We have to keep the object lifetime,
+       but to do so we have to attach it to some other entity (instead of
+       the dynamic init).  We add a block statement and attach the lifetime
+       to the block statement.  This is only possible if the insert location
+       passed in is a statement position rather than an expression
+       position.  The only case where there could potentially be a
+       problem is on a constructor_init being expanded on an assignment
+       to "this", but assignment to "this" is suppressed when exceptions
+       are enabled, so it ends up not being a problem. */
+    check_assertion_str(!is_expr_insert_location_kind(insert_location->kind),
+ "push_init_expr_lifetime: cannot preserve obj lifetime with expr insert loc");
+    /* Add a block and update the caller's insert location to follow the
+       block.  Then use an insert location inside the block for the rest
+       of the lowering of the initialization. */
+    block_stmt = alloc_statement((a_statement_kind)stmk_block);
+    insert_statement(block_stmt, insert_location);
+    set_block_start_insert_location(block_stmt, insert_location);
+    /* Rebind the object lifetime to the block. */
+    if (!copy_lifetime) {
+      unbind_object_lifetime(*init_expr_lifetime);
+    }  /* if */
+    bind_object_lifetime(*init_expr_lifetime, iek_block,
+                         (char *)block_stmt->variant.block.extra_info);
+  }  /* if */
+}  /* push_init_expr_lifetime */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         an_expr_node_ptr       implied_arg_list,
@@ -2868,6 +3011,7 @@ in this routine must be FALSE in that case.
   a_context          context, static_context;
   a_context_ptr      eff_context = curr_context;
   a_boolean          expr_is_lvalue, local_keep_dynamic_init = FALSE;
+  a_boolean          constructor_array_init = FALSE;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -2924,53 +3068,25 @@ in this routine must be FALSE in that case.
     }  /* if */
   }  /* if */
   init_expr_lifetime = dip->init_expr_lifetime;
+  /* See if this is an initialization of an array via a constructor.  For
+     such initializations certain things get delayed because the actual
+     initialization gets done by a runtime routine. */
+  if (dip->kind == (a_dynamic_init_kind)dik_constructor && ipdp->whole_array) {
+    constructor_array_init = TRUE;
+    /* The init_expr_lifetime comes up in this case only if default arguments
+       of the constructor require temporaries.  Leave that lifetime to be
+       handled in default_version_of_routine. */
+    init_expr_lifetime = NULL;
+  }  /* if */
   if (init_expr_lifetime != NULL) {
     /* The dynamic init defines a lifetime that surrounds the
-       initialization. */
-    if (processing_file_scope_init_routine) {
-      /* When generating the file-scope initialization routine, the object
-         lifetime is in the file scope but we need it in the function scope,
-         so make a copy. */
-      an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
-      curr_object_lifetime = innermost_function_scope->lifetime;
-      push_object_lifetime(iek_none, (char *)NULL, init_expr_lifetime->kind);
-      /* The file-scope lifetime won't be used, so unbind it. */
-      unbind_object_lifetime(init_expr_lifetime);
-      init_expr_lifetime = curr_object_lifetime;
-      curr_object_lifetime = saved_curr_object_lifetime;
-    }  /* if */
-    /* Push a context for the lifetime.  */
-    push_context(&context, (a_scope_ptr)NULL, init_expr_lifetime);
-    if (keep_object_lifetime_info_in_lowered_il) {
-      a_statement_ptr block_stmt;
-      /* This dynamic initialization entry defines an object lifetime that
-         surrounds the initialization.  The dynamic init entry will be
-         rewritten in the code following, so it probably won't end up in
-         the IL tree.  We have to keep the object lifetime, but to do so
-         we have to attach it to some other entity (instead of the dynamic
-         init).  We add a block statement and attach the lifetime to the
-         block statement.  This is only possible if the insert location
-         passed in is a statement position rather than an expression
-         position.  The only case where there could potentially be a
-         problem is on a constructor_init being expanded on an assignment
-         to "this", but assignment to "this" is suppressed when exceptions
-         are enabled, so it ends up not being a problem. */
-      check_assertion_str(!is_expr_insert_location_kind(insert_location->kind),
-      "lower_dynamic_init: cannot preserve obj lifetime with expr insert loc");
-      /* Add a block and update the caller's insert location to follow the
-         block.  Then use an insert location inside the block for the rest
-         of the processing below. */
-      block_stmt = alloc_statement((a_statement_kind)stmk_block);
-      insert_statement(block_stmt, insert_location);
-      set_block_start_insert_location(block_stmt, &insert_location2);
-      eff_insert_location = &insert_location2;
-      /* Rebind the object lifetime to the block. */
-      if (!processing_file_scope_init_routine) {
-        unbind_object_lifetime(init_expr_lifetime);
-      }  /* if */
-      bind_object_lifetime(init_expr_lifetime, iek_block,
-                           (char *)block_stmt->variant.block.extra_info);
-    }  /* if */
+       initialization.  Push that lifetime onto the context stack. */
+    insert_location2 = *insert_location;
+    eff_insert_location = &insert_location2;
+    push_init_expr_lifetime(&init_expr_lifetime,
+                            processing_file_scope_init_routine,
+                            &context,
+                            eff_insert_location);
   }  /* if */
   if (processing_file_scope_init_routine) {
     /* When processing an initialization in the file-scope initialization
@@ -2985,8 +3101,12 @@ in this routine must be FALSE in that case.
                   copy_expr_to_function_memory_region(dip->variant.expression);
       dip->variant.expression = expr;
     } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-      dip->variant.constructor.args =
+      /* Don't copy for the constructor array case; a copy will be done later
+         for that, so a copy here would be rdeundant. */
+      if (!constructor_array_init) {
+        dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (init_expr_lifetime != NULL) {
@@ -3536,7 +3656,8 @@ arrays with class elements.
     /* Note that elem_dip->variant.constructor.args must not be lowered
        before passing it to default_version_of_routine. */
     ctor_routine = default_version_of_routine(ctor_routine,
-                                           elem_dip->variant.constructor.args);
+                                           elem_dip->variant.constructor.args,
+                                           elem_dip->init_expr_lifetime);
     /* If exceptions are enabled, a destructor will be specified if
        appropriate. */
     dtor_routine = dip->destructor;
@@ -5486,12 +5607,8 @@ Do lowering on the file-scope dynamic initializations list.
   if (dip != NULL) {
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
-    scope = file_scope_init_insert_location(&insert_location, &region_number);
-    push_generated_routine_context(scope, region_number, &grcontext);
-    if (exceptions_enabled) {
-      /* Initialize for exception handling lowering. */
-      eh_function_lower_init();
-    }  /* if */
+    scope = file_scope_init_insert_location(&insert_location, &region_number,
+                                            &grcontext);
     processing_file_scope_init_routine = TRUE;
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
@@ -5527,8 +5644,6 @@ Do lowering on the file-scope dynamic initializations list.
       /* Add prologue/epilogue code for exceptions if needed. */
       add_eh_function_prologue(scope);
     }  /* if */
-    /* Free any return memos that were not used. */
-    free_return_memo_list(return_memo_list);
     processing_file_scope_init_routine = FALSE;
     pop_generated_routine_context(scope, region_number, &grcontext);
     file_scope->dynamic_inits = NULL;
