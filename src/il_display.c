@@ -1518,8 +1518,6 @@ do_exec_stmt:
 #endif /* ifdef FFE */
 #ifdef CFE
   disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
-  disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
-           iek_object_lifetime);
   disp_ptr("lifetime_following_label", (char *)ptr->lifetime_following_label,
            iek_object_lifetime);
 #endif /* ifdef CFE */
@@ -1922,6 +1920,20 @@ Display the indicated handler.
   disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
 }  /* disp_handler */
 
+
+static void disp_try_supplement(a_try_supplement_ptr ptr)
+/*
+Display the indicated exception-handling "try" supplement.
+*/
+{
+  disp_ptr("statement", (char *)ptr->variant.try_block.statement,
+           iek_statement);
+  disp_ptr("handlers", (char *)ptr->variant.try_block.handlers,
+           iek_handler);
+  disp_ptr("lifetime", (char *)ptr->variant.try_block.lifetime,
+           iek_object_lifetime);
+}  /* disp_try_supplement */
+
 #endif /* ifdef CFE */
 
 static void disp_block(a_block_ptr ptr)
@@ -2006,7 +2018,9 @@ do_loop:
     case stmk_label:
       (void)printf("stmk_label\n");
 do_label:
-      disp_ptr("label", (char *)ptr->variant.label, iek_label);
+      disp_ptr("label", (char *)ptr->variant.label.ptr, iek_label);
+      disp_ptr("lifetime", (char *)ptr->variant.label.lifetime,
+               iek_object_lifetime);
       break;
     case stmk_block:
       (void)printf("stmk_block\n");
@@ -2049,10 +2063,7 @@ do_label:
     case stmk_try_block:
       /* Try block. */
       (void)printf("stmk_try_block\n");
-      disp_ptr("statement", (char *)ptr->variant.try_block.statement,
-               iek_statement);
-      disp_ptr("handlers", (char *)ptr->variant.try_block.handlers,
-               iek_handler);
+      disp_try_supplement(ptr->variant.try_block);
       break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
@@ -2987,6 +2998,7 @@ This routine is called during IL walking.
     case iek_do_loop:
 #endif /* ifdef FFE */
 #ifdef CFE
+    case iek_try_supplement:
     case iek_for_loop:
     case iek_derivation_step:
     case iek_class_list_entry:

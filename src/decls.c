@@ -4196,10 +4196,10 @@ clause is to be attached.  catch_pos is the source position of "catch".
         handler->dynamic_init = dip;
       }  /* if */
     }  /* if */
-    prev_handler = try_block_stmt->variant.try_block.handlers;
+    prev_handler = try_block_stmt->variant.try_block->handlers;
     if (prev_handler == NULL) {
       /* This is the first handler declared for this try block. */
-      try_block_stmt->variant.try_block.handlers = handler;
+      try_block_stmt->variant.try_block->handlers = handler;
     } else {
       a_boolean  masked = FALSE;
       /* Make a pass over the previously declared handlers in this try block

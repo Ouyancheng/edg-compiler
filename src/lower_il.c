@@ -6510,10 +6510,10 @@ Generate any cleanup actions required preceding the indicated goto statement.
   a_boolean            any_label_block_temp_cleanup_actions_needed;
   a_boolean            any_exited_block_cleanup_actions_needed;
   a_cleanup_action_ptr cap;
-  a_label_ptr          label = statement->variant.label;
+  a_label_ptr          label = statement->variant.label.ptr;
 
   goto_context = curr_context;
-  label_block = statement->variant.label->parent_block;
+  label_block = label->parent_block;
 #if CHECKING
   if (label_block == NULL) {
     internal_error(
@@ -6649,7 +6649,7 @@ statement.
   a_cleanup_action_ptr cap, next_cap;
   a_boolean            first = TRUE;
   a_statement_ptr      statement = *label_statement;
-  a_label_ptr          label = statement->variant.label;
+  a_label_ptr          label = statement->variant.label.ptr;
   an_insert_location   insert_location;
 
   /* Go through the list of cleanup actions, find the ones for temporaries,
@@ -6768,7 +6768,7 @@ Do IL lowering of the indicated statement and everything under it.
                                  /*applies_on_block_exit=*/FALSE,
                                  /*applies_on_exception_cleanup=*/FALSE,
                                  (an_insert_location *)NULL);
-        cap->variant.label = statement->variant.label;
+        cap->variant.label = statement->variant.label.ptr;
         if (exceptions_enabled) {
           /* Exceptions are enabled. Reset eh_curr_region. */
           set_insert_location(statement, &insert_location);

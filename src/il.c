@@ -89,6 +89,7 @@ static unsigned long
 		num_accessible_base_classes_allocated,
 		num_switch_clauses_allocated,
 		num_handlers_allocated,
+		num_try_supplements_allocated,
 		num_blocks_allocated,
 		num_for_loops_allocated,
 		num_statements_allocated,
@@ -5487,7 +5488,6 @@ to it.
 #endif /* CHECKING */
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
-  lp->parent_lifetime = NULL;
   lp->lifetime_following_label = NULL;
 #ifdef FIL
   lp->kind = (a_label_kind)lk_executable;
@@ -6648,8 +6648,9 @@ Set the kind of the statement sp to stmt_kind, and set the associated variant
 fields to default values.
 */
 {
-  a_block_ptr     bp;
-  a_for_loop_ptr  flip;
+  a_block_ptr          bp;
+  a_for_loop_ptr       flip;
+  a_try_supplement_ptr tsp;
 
   sp->kind = stmt_kind;
   sp->expr = NULL;
@@ -6681,7 +6682,8 @@ fields to default values.
       break;
     case stmk_goto:
     case stmk_label:
-      sp->variant.label = NULL;
+      sp->variant.label.ptr      = NULL;
+      sp->variant.label.lifetime = NULL;
       break;
     case stmk_return:
       sp->variant.return_dynamic_init = NULL;
@@ -6709,8 +6711,14 @@ fields to default values.
       sp->variant.asm_entry = NULL;
       break;
     case stmk_try_block:
-      sp->variant.try_block.statement = NULL;
-      sp->variant.try_block.handlers  = NULL;
+      sp->variant.try_block = tsp =
+                  (a_try_supplement_ptr)alloc_cil(sizeof(a_try_supplement));
+#if DEBUG
+      num_try_supplements_allocated++;
+#endif /* DEBUG */
+      tsp->statement = NULL;
+      tsp->handlers  = NULL;
+      tsp->lifetime  = NULL;
       break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
@@ -8466,6 +8474,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("switch clause",
                 num_switch_clauses_allocated, a_switch_clause);
   db_space_used("handler", num_handlers_allocated, a_handler);
+  db_space_used("try supplement", num_try_supplements_allocated,
+                a_try_supplement);
   db_space_used("block", num_blocks_allocated, a_block);
   db_space_used("for_loop", num_for_loops_allocated, a_for_loop);
   db_space_used("statement", num_statements_allocated, a_statement);
@@ -8677,6 +8687,7 @@ in il_init.)
       pch_saved_var_array_elem(num_func_shareable_constants),
       pch_saved_var_array_elem(num_get_based_type_calls),
       pch_saved_var_array_elem(num_handlers_allocated),
+      pch_saved_var_array_elem(num_try_supplements_allocated),
       pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
       pch_saved_var_array_elem(num_labels_allocated),
       pch_saved_var_array_elem(num_new_delete_supplements_allocated),
@@ -8794,6 +8805,7 @@ of the front end.
   num_accessible_base_classes_allocated  = 0;
   num_switch_clauses_allocated           = 0;
   num_handlers_allocated                 = 0;
+  num_try_supplements_allocated          = 0;
   num_blocks_allocated                   = 0;
   num_for_loops_allocated                = 0;
   num_statements_allocated               = 0;

@@ -253,6 +253,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_for_loop,         /* a_for_loop */
   iek_switch_clause,	/* a_switch_clause */
   iek_handler,          /* a_handler */
+  iek_try_supplement,	/* a_try_supplement */
 #endif /* ifdef CIL */
   iek_block,		/* a_block */
   iek_statement,	/* a_statement */
@@ -364,6 +365,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_for_loop */			"for-loop",
 /* iek_switch_clause */			"switch-clause",
 /* iek_handler */			"handler",
+/* iek_try_supplement */		"try-supplement",
 #endif /* ifdef CIL */
 /* iek_block */				"block",
 /* iek_statement */			"statement",
@@ -3507,9 +3509,6 @@ typedef struct a_label {
 			   by the front end are not "real" and are therefore
 			   not pointed to as parents. */
   an_object_lifetime_ptr
-		parent_lifetime;
-			/* The object lifetime which this label is part of. */
-  an_object_lifetime_ptr
 		lifetime_following_label;
 			/* If non-NULL, indicates an object lifetime that runs
 			   from after the label to the end of the scope.
@@ -4263,6 +4262,26 @@ typedef struct a_handler {
 			   to be used, if any.  NULL when the exception
 			   declaration is an ellipsis. */
 } a_handler;
+
+/* Description of an exception-handling "try" statement and the associated
+   "catch" clauses. */
+typedef struct a_try_supplement *a_try_supplement_ptr;
+typedef struct a_try_supplement {
+  a_statement_ptr
+		statement;
+			/* The list of statements contained within the try
+			   block (i.e., those preceding the first handler). */
+  a_handler_ptr	handlers;
+			/* A linked list of entries describing the handlers
+			   (or catch-clauses) defined in the try block. */
+  an_object_lifetime_ptr
+		lifetime;
+			/* An object lifetime enclosing the try block and
+			   catch clauses.  There are no user-declared objects
+			   that have this lifetime, but there may be runtime
+			   objects with this lifetime. */
+} a_try_supplement;
+
 #endif /* ifdef CIL */
 
 #ifdef FIL
@@ -4655,7 +4674,19 @@ typedef struct a_statement {
     } switch_stmt;
 #endif /* ifdef CIL */
     /* When kind == stmk_goto or stmk_label: */
-    a_label_ptr label;
+    struct {
+      a_label_ptr
+		ptr;	/* The label itself. */
+      an_object_lifetime_ptr
+		lifetime;
+			/* For stmk_goto, the innermost object lifetime that
+			   contains both the goto and the label.  Any lifetimes
+			   inside of this that the goto is part of are left
+			   by the goto, and cleanup must be done for them.
+			   For stmk_label, the innermost object lifetime
+			   which the label is part of.  NULL if there are
+			   no object lifetimes involved, e.g., in C. */
+    } label;
     /* When kind == stmk_return: */
     a_dynamic_init_ptr
 		return_dynamic_init;
@@ -4689,16 +4720,8 @@ typedef struct a_statement {
                            of the "asm" statement, i.e., an assembly-language
                            line. */
     /* When kind == stmk_try_block: */
-    struct {
-      a_statement_ptr
-                statement;
-                        /* The list of statements contained within the try
-                           block (i.e., those preceding the first handler). */
-      a_handler_ptr
-		handlers;
-			/* A linked list of entries describing the handlers
-			   (or catch-clauses) defined in the try block. */
-    } try_block;
+    a_try_supplement_ptr
+		try_block;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */

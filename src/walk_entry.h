@@ -558,8 +558,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
 #ifdef CFE
         remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
-        remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
-                  iek_object_lifetime);
         walk_ptr(ptr->lifetime_following_label, an_object_lifetime_ptr,
                  iek_object_lifetime);
 #endif /* ifdef CFE */
@@ -661,6 +659,14 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;
+    case iek_try_supplement:
+      {
+        a_try_supplement_ptr ptr = (a_try_supplement_ptr)entry_ptr;
+        walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
+        walk_list(ptr->handlers, a_handler_ptr, iek_handler);
+        walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+      }
+      break;
 #endif /* ifdef CFE */
     case iek_block:
 #ifdef CFE
@@ -709,7 +715,9 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
           case stmk_goto:
           case stmk_label:
-            remap_ptr(ptr->variant.label, a_label_ptr, iek_label);
+            remap_ptr(ptr->variant.label.ptr, a_label_ptr, iek_label);
+            remap_ptr(ptr->variant.label.lifetime,
+                      an_object_lifetime_ptr, iek_object_lifetime);
             break;
           case stmk_return:
             walk_ptr(ptr->variant.return_dynamic_init, a_dynamic_init_ptr,
@@ -744,10 +752,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                       iek_asm_entry);
             break;
           case stmk_try_block:
-            walk_ptr(ptr->variant.try_block.statement, a_statement_ptr,
-                     iek_statement);
-            walk_list(ptr->variant.try_block.handlers, a_handler_ptr,
-                      iek_handler);
+            walk_ptr(ptr->variant.try_block, a_try_supplement_ptr,
+                     iek_try_supplement);
             break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           case stmk_decl:

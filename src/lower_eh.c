@@ -2623,8 +2623,8 @@ Do IL lowering for an stmk_try_block statement.
                            /*applies_on_exception_cleanup=*/FALSE,
                            (an_insert_location *)NULL);
   cap->variant.try_frame = try_frame;
-  stmt_to_try = copy_of_orig_stmt->variant.try_block.statement;
-  handlers = copy_of_orig_stmt->variant.try_block.handlers;
+  stmt_to_try = copy_of_orig_stmt->variant.try_block->statement;
+  handlers = copy_of_orig_stmt->variant.try_block->handlers;
   /* Lower the dependent statement of the try. */
   lower_statement(stmt_to_try);
   /* Generate a description of the catch clause types. */

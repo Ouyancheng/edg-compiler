@@ -5011,7 +5011,7 @@ destructor scope, and also lower the user code.
        returns to gotos to that label. */
     epilogue_label = alloc_label();
     label_stmt = alloc_statement((a_statement_kind)stmk_label);
-    label_stmt->variant.label = epilogue_label;
+    label_stmt->variant.label.ptr = epilogue_label;
     epilogue_label->variant.exec_stmt = label_stmt;
     epilogue_label->parent_block = scope->assoc_block;
     epilogue_label->source_corresp.referenced = TRUE;
@@ -5022,7 +5022,7 @@ destructor scope, and also lower the user code.
       a_statement_ptr stmt = rmp->stmt;
       rmp_next = rmp->next;
       set_statement_kind(stmt, (a_statement_kind)stmk_goto);
-      stmt->variant.label = epilogue_label;
+      stmt->variant.label.ptr = epilogue_label;
       rmp->next = NULL;
       free_return_memo_list(rmp);
     }  /* for */

@@ -3704,7 +3704,7 @@ source sequence entry points to the switch clause.
      representation of an implicit fall-through), so ignore it. */
   if (stmt != NULL && 
       stmt->kind == (a_statement_kind)stmk_label &&
-      !has_name(stmt->variant.label)) {
+      !has_name(stmt->variant.label.ptr)) {
     stmt = stmt->next;
   }  /* if */
   /* Generate the statements. */
@@ -3792,7 +3792,7 @@ non-top-level clause.  That is, it's the label at the case in the following:
 
   if (clause_stmt != NULL &&
       clause_stmt->kind == (a_statement_kind)stmk_goto &&
-      clause_stmt->variant.label == label) {
+      clause_stmt->variant.label.ptr == label) {
     is_label = TRUE;
   }  /* if */
   return is_label;
@@ -3857,9 +3857,9 @@ exception-handling "try" block.
   a_handler_ptr handler;
 
   write_tok_str("try ");
-  gen_statement(statement->variant.try_block.statement);
+  gen_statement(statement->variant.try_block->statement);
   /* Put out each handler ("catch" clause). */
-  for (handler = statement->variant.try_block.handlers;
+  for (handler = statement->variant.try_block->handlers;
        handler != NULL;
        handler = handler->next) {
     a_variable_ptr handler_var = handler->parameter;
@@ -3997,12 +3997,12 @@ on the list, or NULL if the list is empty.
            preceding a switch clause. */
         if (statement != NULL &&
             statement->kind == (a_statement_kind)stmk_goto) {
-          a_label_ptr label = statement->variant.label;
+          a_label_ptr label = statement->variant.label.ptr;
           if (!has_name(label)) {
             a_statement_ptr clause_stmt = scp->statements;
             if (clause_stmt != NULL &&
                 clause_stmt->kind == (a_statement_kind)stmk_label &&
-                clause_stmt->variant.label == label) {
+                clause_stmt->variant.label.ptr == label) {
               /* Note that the source sequence entry for the switch clause
                  is left in place for processing on a subsequent iteration. */
               statement_processed = TRUE;
@@ -4174,9 +4174,9 @@ Generate code for the indicated statement.
          for implicitly-generated returns and some compiler-generated
          labels and block statements. */
       if (kind == (a_statement_kind)stmk_label &&
-          !has_name(statement->variant.label)) {
+          !has_name(statement->variant.label.ptr)) {
         /* The current statement is a compiler-generated label. */
-        a_label_ptr label = statement->variant.label;
+        a_label_ptr label = statement->variant.label.ptr;
         if (num_curr_switch_statements != 0 &&
             curr_source_seq_entry_is_for_switch_clause(&scp) &&
             is_label_for_non_top_level_switch_clause(scp, label)) {
@@ -4259,7 +4259,7 @@ Generate code for the indicated statement.
       break;
     case stmk_goto:
       /* "goto" statement: generate "goto name;". */
-      { a_label_ptr label = statement->variant.label;
+      { a_label_ptr label = statement->variant.label.ptr;
         if (label->break_label) {
           /* This is really a "break". */
           write_tok_str("break");
@@ -4276,7 +4276,7 @@ Generate code for the indicated statement.
     case stmk_label:
       /* Label statement: generate "name:;".  Note that labels generated for
          "break" and "continue" were thrown away above and do not get here. */
-      gen_unqualified_name(&statement->variant.label->source_corresp,
+      gen_unqualified_name(&statement->variant.label.ptr->source_corresp,
                            iek_label);
       write_tok_str(":;");
       break;

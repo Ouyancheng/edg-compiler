@@ -4401,16 +4401,17 @@ Generate C for a statement.
       break;
     case stmk_goto:
       write_tok_str("goto ");
-      dump_label_name(statement->variant.label);
+      dump_label_name(statement->variant.label.ptr);
       write_tok_ch(';');
       break;
     case stmk_label:
       if (start_unreferenced_bracket(
-                                  &statement->variant.label->source_corresp)) {
+                              &statement->variant.label.ptr->source_corresp)) {
         set_output_position_for_stmt(&statement->position);
-        dump_label_name(statement->variant.label);
+        dump_label_name(statement->variant.label.ptr);
         write_tok_ch(':');
-        end_unreferenced_bracket(&statement->variant.label->source_corresp);
+        end_unreferenced_bracket(
+                                &statement->variant.label.ptr->source_corresp);
       }  /* if */
       write_tok_ch(';');
       break;

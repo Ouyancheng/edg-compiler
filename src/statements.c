@@ -206,13 +206,13 @@ purposes.
     case cfdk_goto:
       fprintf(f_debug, "goto %s (line %lu)",
               cfdp->variant.goto_statement.ptr->
-                           variant.label->source_corresp.name,
+                           variant.label.ptr->source_corresp.name,
               cfdp->source_pos.seq);
       break;
     case cfdk_label:
       fprintf(f_debug, "%s:",
               cfdp->variant.label_statement->
-                           variant.label->source_corresp.name);
+                           variant.label.ptr->source_corresp.name);
       break;
     case cfdk_init:
       fprintf(f_debug, "initializing ");
@@ -1012,7 +1012,7 @@ the current statement sequence.
         statement_list_allowed = TRUE;
         break;
       case stmk_try_block:
-        head_ptr = &ssp->variant.try_block.statement;
+        head_ptr = &ssp->variant.try_block->statement;
         break;
 #if CHECKING
       default:
@@ -1358,7 +1358,7 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
     label->reachable_by_fall_through = curr_reachability.reachable;
     sp = add_statement((a_statement_kind)stmk_label);
     label->variant.exec_stmt = sp;
-    sp->variant.label = label;
+    sp->variant.label.ptr = label;
     label->parent_block = nearest_enclosing_compound_statement();
   }  /* if */
   db_exit();
@@ -2130,7 +2130,7 @@ where handler-seq is a sequence of one or more handlers of the form
   (void)get_token();
   /* Scan the compound statement, and save a pointer to it in the try-block
      statement. */
-  sp->variant.try_block.statement = compound_statement(
+  sp->variant.try_block->statement = compound_statement(
                                                /*at_function_level=*/FALSE,
                                                /*explicit_return_type=*/FALSE,
                                                /*is_catch_clause=*/FALSE);
@@ -2580,7 +2580,7 @@ condition is not recognized till the label statement is reached.
   db_enter(3, "check_for_jump_over_initialization");
   check_assertion (sp->kind == (a_statement_kind)stmk_label ||
                    sp->kind == (a_statement_kind)stmk_goto);
-  label_sym = (a_symbol_ptr)sp->variant.label->source_corresp.assoc_info;
+  label_sym = (a_symbol_ptr)sp->variant.label.ptr->source_corresp.assoc_info;
   if (sp->kind == (a_statement_kind)stmk_label) {
     /* This is the definition of the label. */
     goto_cfdp = label_sym->variant.label.assoc_control_flow_descr;
@@ -2596,6 +2596,7 @@ condition is not recognized till the label statement is reached.
       check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/TRUE);
     }  /* if */
   } else {
+    /* This is a goto to the label. */
     /* Allocate and fill in a goto entry. */
     goto_cfdp = alloc_control_flow_descr(
                                      (a_control_flow_descr_kind)cfdk_goto);
@@ -2613,7 +2614,7 @@ condition is not recognized till the label statement is reached.
       check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/FALSE);
       remove_control_flow_descr(goto_cfdp);
     } else {
-      /* This is a forwards goto -- i.e., it references a label that has not
+      /* This is a forward goto -- i.e., it references a label that has not
          yet been defined.  Record information about it so that, when the
          label definition is reached, a check can made whether it involves
          jumping over any initializing declarations. */
@@ -2656,7 +2657,7 @@ See also 3.6.6.1.
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* Scan the label identifier. */
-  sp->variant.label = scan_label(/*is_definition=*/FALSE);
+  sp->variant.label.ptr = scan_label(/*is_definition=*/FALSE);
   /* If this is a forward reference to a label, record information about
      the goto to allow diagnosis of jump-over-initialization errors.  If
      it is backward reference, do the checking immediately. */
@@ -2706,7 +2707,7 @@ See also 3.6.6.2.
     sp = add_statement((a_statement_kind)stmk_goto);
     stmt_update_source_sequence_list(sp);
     /* Put the destination label into the goto. */
-    sp->variant.label = dest_label;
+    sp->variant.label.ptr = dest_label;
     /* Do processing required for any pragmas that are bound to the current
        statement. */
     process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
@@ -2782,7 +2783,7 @@ See also 3.6.6.3.
       sp = add_statement((a_statement_kind)stmk_goto);
       stmt_update_source_sequence_list(sp);
       /* Put the destination label into the goto. */
-      sp->variant.label = dest_label;
+      sp->variant.label.ptr = dest_label;
     }  /* if */
   }  /* if */
   /* Ignore the initial "break". */
@@ -3109,7 +3110,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     if (!label_directly_in_switch &&
         clause_stmts != NULL &&
         clause_stmts->kind == (a_statement_kind)stmk_goto) {
-      clause_stmts = clause_stmts->variant.label->variant.exec_stmt;
+      clause_stmts = clause_stmts->variant.label.ptr->variant.exec_stmt;
     }  /* if */
     /* Ignore any number of labels at this point. */
     while (clause_stmts != NULL &&
@@ -3178,7 +3179,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       if (curr_reachability.reachable) {
         label = alloc_temp_label();
         goto_stmt = add_statement((a_statement_kind)stmk_goto);
-        goto_stmt->variant.label = label;
+        goto_stmt->variant.label.ptr = label;
       }  /* if */
     } else {
       /* When the destination is inside a structured statement nested within
@@ -3186,7 +3187,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
          transfers control to the proper point in the nested statement. */
       label = alloc_temp_label();
       goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
-      goto_stmt->variant.label = label;
+      goto_stmt->variant.label.ptr = label;
       scp->statements = goto_stmt;
     }  /* if */
     /* Note that it is not appropriate to terminate the previous

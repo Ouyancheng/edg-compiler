@@ -77,6 +77,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_for_loop),
   sizeof(a_switch_clause),
   sizeof(a_handler),
+  sizeof(a_try_supplement),
 #endif /* ifdef CIL */
   sizeof(a_block),
   sizeof(a_statement),
