@@ -3172,10 +3172,14 @@ ct_symbol is the symbol of the class template.
 
 a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
                                            a_source_position  *pos,
-                                           a_type_ptr         rout_type)
+                                           a_type_ptr         conv_type)
 /*
 Create a symbol for a template function.  Do not enter it into the symbol
 table, since it is accessed from the associated function instantiation entry.
+conv_type is the return type of the function being created.  When the
+function is a conversion function, conv_type is used to generate the name
+of the instance symbol.  For example, the template may be called "operator T",
+but the instance needs to be called "operator int".
 */
 {
   a_symbol_ptr  	sym;
@@ -3185,7 +3189,7 @@ table, since it is accessed from the associated function instantiation entry.
      is usually the same symbol header as the template.  But for conversion
      operators, a new name must be generated based on the type. */
   if (is_special_function_symbol(templ_sym, sfk_conversion)) {
-    sym_hdr = symbol_header_for_conversion_function(rout_type);
+    sym_hdr = symbol_header_for_conversion_function(conv_type);
   } else {
     sym_hdr = templ_sym->header;
   }  /* if */
