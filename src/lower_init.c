@@ -3942,12 +3942,13 @@ aggregate, set *keep_constant to TRUE.
       repeated_con = con_ptr->variant.init_repeat.constant;
       /* Repeat the constant the right number of times.  It must be a
          ck_dynamic_init constant. */
-      if (C_mode()) {
+      if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
         /* With designated initializers, it is possible to get a repeated
            constant.  Leave it alone, except for lowering the underlying
            constant.  This comes up in C mode when IL lowering is used to
            lower nonconstant initializers.  (However, the repeated constant
            will be actually constant.) */
+        check_assertion(designators_allowed);
 #if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode) {
           lower_c99_constant(repeated_con);
@@ -3958,12 +3959,8 @@ aggregate, set *keep_constant to TRUE.
         }  /* if */
         *keep_constant = TRUE;
       } else {
-#if CHECKING
-        if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-          internal_error(
-    "lower_dynamic_init_aggregate_constant: repeated con not ck_dynamic_init");
-        }  /* if */
-#endif /* CHECKING */
+        /* Repeated ck_dynamic_init constant. */
+        check_assertion(!C_mode());
         ipd.array_element_sequence = TRUE;
         ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
