@@ -2499,6 +2499,8 @@ Do IL lowering for an stmk_try_block statement.
     bind_object_lifetime(lifetime, iek_block,
                          (char *)statement->variant.block.extra_info);
   }  /* if */
+  begin_object_lifetime(lifetime, /*follows_an_exec_statement=*/TRUE,
+                        &insert_location);
   stmt_to_try = tsp->statement;
   handlers = tsp->handlers;
   /* Lower the dependent statement of the try. */
