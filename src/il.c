@@ -1604,6 +1604,7 @@ Dump a statement kind, for debug purposes.
     case stmk_set_vla_size:    s = "set-vla-size";      break;
     case stmk_alloc_vla_variable:
                                s = "alloc-vla-variable"; break;
+    case stmk_vla_typedef:     s = "vla-typedef";       break;
     default:                   s = "<bad stmt kind>"; break;
   }  /* switch */
   fputs(s, f_debug);
