@@ -466,13 +466,8 @@ Process the arguments on the command line that invoked the compiler.
         exceptions_enabled = !DEFAULT_EXCEPTIONS_ENABLED;
         break;
       case 'j':
-#if 0
         /* Suppress used-before-set warnings. */
         suppress_used_before_set_warnings = TRUE;
-#else
-/* Temporarily the default is TRUE and -j makes it FALSE. */
-        suppress_used_before_set_warnings = FALSE;
-#endif /* if 0 */
         break;
       case 'I':
         /* Include file directory, add to list. */

@@ -136,23 +136,12 @@ EXTERN a_boolean
 			   conclusively make such a determination, TRUE
 			   indicates that the definition should NOT be
 			   made. */
-#if 0
 EXTERN a_boolean
 		suppress_used_before_set_warnings /* = FALSE */;
 			/* TRUE if used-before-set warnings should not be
 			   issued on automatic local variables that are used
 			   before a value is assigned to them; FALSE by
 			   default.  Set by the -j command line option. */
-#else
-EXTERN a_boolean
-		suppress_used_before_set_warnings
-/* Temporarily the default is TRUE and -j makes it FALSE. */
-#if VAR_INITIALIZERS
-                                                  = TRUE
-#endif /* VAR_INITIALIZERS */
-                                                        ;
-#endif /* if 0 */
-
 EXTERN a_boolean
 		exceptions_enabled
 #if VAR_INITIALIZERS
