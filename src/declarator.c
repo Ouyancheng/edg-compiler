@@ -1063,8 +1063,7 @@ type.  For templates, use the class template scope.
       ssep->kind == (a_scope_kind)sck_template_instantiation) {
     --ssep;
   }  /* if */
-  if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
-       ssep->kind == (a_scope_kind)sck_class_reactivation) &&
+  if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
       ssep->assoc_type == type) {
     result = TRUE;
   } else {
