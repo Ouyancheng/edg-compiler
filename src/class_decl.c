@@ -3305,11 +3305,23 @@ of the function, and again overloading is a possibility.
           pos_error(ec_inline_main, &locator->source_position);
           func_info->is_inline = FALSE;
         }  /* if */
-      } else if (func_info->is_definition &&
-                 class_type->source_corresp.is_local_to_function) {
-        /* It is an error to define a function in a friend declaration of a
-           local class.  To avoid confusion down the road, clear is_inline. */
-        func_info->is_inline = FALSE;
+      } else if (func_info->is_definition) {
+        if (class_type->source_corresp.is_local_to_function) {
+          /* It is an error to define a function in a friend declaration
+             of a local class.  To avoid confusion down the road, clear
+             is_inline. */
+          func_info->is_inline = FALSE;
+        } else if (qualifier_namespace_ptr(*locator) != NULL) {
+          /* Disallowing a function definition in a friend declaration
+             involving a namespace-qualified name in the declarator is not
+             yet required by the WP, but it is necessary to avoid difficult
+             scoping and lookup issues. */
+          pos_sy_error(ec_bad_scope_for_definition,
+                       &locator->source_position, sym);
+          sym = NULL;
+          clear_qualifier_from_locator(locator);
+          set_to_named_error_locator(*locator);
+        }  /* if */
       }  /* if */
       if (func_info->is_inline) {
         storage_class = (a_storage_class)sc_static;
