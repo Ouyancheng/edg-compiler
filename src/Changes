@@ -1,5 +1,16 @@
 Version 2.32
 
+2/14/96   IL lowering: problem with template from one namespace instantiated
+          first in class in another namespace
+
+Having a template in one namespace that is first instantiated inside a
+class in another namespace caused an abort in IL lowering:
+
+namespace X { template<class T> class A {}; }
+namespace Y { class B { X::A<int> t; }; }
+
+This was a problem with the handling of placeholder typerefs and is now fixed.
+
 2/13/96   C++-generating back end: no code for implicit casts for array decay
 
 The C++-generating back end no longer puts out casts that implement the
