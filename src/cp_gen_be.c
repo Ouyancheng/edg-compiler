@@ -677,7 +677,9 @@ Advance the source sequence list to the next entry.
 static void advance_past_preprocessing_directives(void)
 /*
 Advance curr_source_sequence_entry past any pragmas, macros, or
-insignificant entries.
+insignificant entries.  Note that the entries are NOT processed; this is
+appropriate only when doing a lookahead.  Usually, it is better to call
+process_preprocessing_directives.
 */
 {
   while (curr_source_sequence_entry != NULL &&
@@ -700,11 +702,8 @@ Return TRUE if the current source sequence entry is for a declaration.
 */
 {
   a_boolean                   is_decl = FALSE;
-  a_source_sequence_entry_ptr ssep;
+  a_source_sequence_entry_ptr ssep = curr_source_sequence_entry;
 
-  /* Look past any pragmas or macros. */
-  advance_past_preprocessing_directives();
-  ssep = curr_source_sequence_entry;
   if (ssep != NULL) {
     switch (ss_entry_kind(ssep)) {
       case iek_constant:
@@ -1901,7 +1900,7 @@ will be put out when they are encountered when generating the parameter types.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition;
 
-  while(advance_past_preprocessing_directives(),
+  while((void)process_preprocessing_directives(),
         curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
     /* In C mode, we know all the types will be in the prototype scope,
        so it's easy to find the end of the list.  In C++, there can be
@@ -1935,7 +1934,7 @@ will be put out when they are encountered when generating the parameter types.
   a_boolean                    is_definition;
 
   for (;;) {
-    advance_past_preprocessing_directives();
+    (void)process_preprocessing_directives();
     if (ss_entry_kind(curr_source_sequence_entry) == iek_variable) {
       /* Bypass a parameter declaration. */
       adv_curr_source_sequence_entry();
@@ -2377,7 +2376,7 @@ it is a typedef.
          type->variant.class_struct_union.originally_unnamed)))) {
     a_source_sequence_entry_ptr ssep;
     /* Skip macros and pragmas. */
-    advance_past_preprocessing_directives();
+    (void)process_preprocessing_directives();
     ssep = curr_source_sequence_entry;
     /* See if the next source sequence entry is for a declaration, and if so,
        get its type. */
@@ -5447,7 +5446,8 @@ Generate code for the indicated statement.
            for the closing brace of the function, so we won't run off the
            end of the list. */
         while (curr_source_sequence_entry != stop_on_decl &&
-               curr_src_seq_entry_is_decl()) {
+               ((void)process_preprocessing_directives(),
+                curr_src_seq_entry_is_decl())) {
           /* Process the declaration entry and its source sequence entry. */
           gen_declaration(/*for_init=*/FALSE);
         }  /* while */
