@@ -504,12 +504,8 @@ ref field of a class object (or an array of same) remains uninitialized.
            level in the routine "initializer" and replaced by an error type),
            so we don't have to check for them here. */
       } else {
-#if CHECKING
-        if (!is_immediate_class_type(local_type)) {
-          internal_error("get_initializer: not array or class/struct/union");
-        }  /* if */
-#endif /* CHECKING */
         /* Class/struct/union.  Start with first field. */
+        check_assertion(is_immediate_class_type(local_type));
         curr_field = local_type->variant.class_struct_union.field_list;
         any_more_members = (curr_field != NULL);
       }  /* if */
@@ -582,13 +578,8 @@ ref field of a class object (or an array of same) remains uninitialized.
             fputc('\n', f_debug);
           }  /* if */
 #endif /* DEBUG */
-#if CHECKING
           /* Members of unions or aggregates cannot be incomplete. */
-          if (is_incomplete_type(member_type)) {
-            internal_error(
-                    "get_initializer: member of aggregate has incomp type");
-          }  /* if */
-#endif /* CHECKING */
+          check_assertion(!is_incomplete_type(member_type));
         }  /* if */
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
@@ -648,13 +639,9 @@ ref field of a class object (or an array of same) remains uninitialized.
             any_more_members = FALSE;
           }  /* if */
         } else {
-#if CHECKING
-          if (kind != (a_type_kind)tk_union) {
-            internal_error("get_initializer: in loop, not array/struct/union");
-          }  /* if */
-#endif /* CHECKING */
           /* Only the first field in a union is initialized, so having done
              that field, we are done with the union. */
+          check_assertion(kind == (a_type_kind)tk_union);
           any_more_members = FALSE;
         }  /* if */
         /* See if there are any more initializer expressions in the source
@@ -979,26 +966,18 @@ unreachable code).
   new_dip->variable = vp;
   if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_function ||
       scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_block) {
-#if CHECKING
-    if (vp->source_corresp.class_of_which_a_member != NULL) {
-      internal_error("gen_dynamic_initialization: expected local static var");
-    }  /* if */
-#endif /* CHECKING */
     /* Must be the initialization of a local static variable.  Build the
        initialization statement and add it to the statement block. */
+    check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
     init_stmt = add_statement((a_statement_kind)stmk_init);
     init_stmt->seq_number = vp->source_corresp.decl_position.seq;
     init_stmt->variant.dynamic_init = new_dip;
   } else {
-#if CHECKING
-    if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
-        vp->source_corresp.class_of_which_a_member == NULL) {
-      internal_error("gen_dynamic_intialization: expected file-scope var");
-    }  /* if */
-#endif /* CHECKING */
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement, so attach the dynamic initialization
        entry to the scope list. */
+    check_assertion(decl_scope_level == DEPTH_OF_FILE_SCOPE ||
+                    vp->source_corresp.class_of_which_a_member != NULL);
     add_to_dynamic_inits_list(new_dip);
   }  /* if */
   /* Mark all dynamically initialized variables as referenced.  (They are
@@ -1044,11 +1023,7 @@ vp had an incomplete array type that has been completed by an initializer.
                            variant.variable.ptr->source_corresp.name_linkage;
       ext_sym = find_external_symbol(&locator, name_linkage,
                                      (a_type_ptr)NULL, &ext_locator);
-#if CHECKING
-      if (ext_sym == NULL) {
-        internal_error("put_type_back_into_variable: ext_sym not found");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion(ext_sym != NULL);
       (void)reconcile_external_symbol_types(ext_sym, source_pos, vp_type,
                                         /*suppress_incompatible_error=*/FALSE);
     }  /* if */
@@ -1166,16 +1141,13 @@ issuing an error on an incomplete type.
   if (vp_type == NULL) vp_type = error_type();
   initialization_is_dynamic = FALSE;
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+    /* Though static data members may be given storage class of extern or
+       unspecified, that fixup should not have taken place yet. */
+    check_assertion(vp == NULL ||
+                    vp->storage_class == (a_storage_class)sc_static);
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
-#if CHECKING
-    /* Though static data members may be given storage class of extern or
-       unspecified, that fixup should not have taken place yet. */
-    if (vp != NULL && vp->storage_class != (a_storage_class)sc_static) {
-      internal_error("initializer: bad storage class for static data member");
-    }  /* if */
-#endif /* CHECKING */
   }  /* if */
   if (vp != NULL && vp->storage_class == (a_storage_class)sc_static) {
     /* Variables with static storage class, even when declared at function
@@ -1286,13 +1258,10 @@ issuing an error on an incomplete type.
         *incomplete_type_error_reported = TRUE;
       }  /* if */
     } else {
-#if CHECKING
-      if (cp->kind != (a_constant_repr_kind)ck_aggregate &&
-          (di_list != NULL ||
-           cp->kind != (a_constant_repr_kind)ck_string)) {
-        internal_error("initializer: unexpected constant kind");
-      }  /* if */
-#endif /* CHECKING */
+      /* Check the constant kind. */
+      check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate ||
+                      (di_list == NULL &&
+                       cp->kind == (a_constant_repr_kind)ck_string));
       if (di_list != NULL) initialization_is_dynamic = TRUE;
       clear_dynamic_init(&local_di,
                          (a_dynamic_init_kind)(initialization_is_dynamic ?
@@ -1628,9 +1597,7 @@ initialized.  These are addressed in the course of the processing.
   db_enter(3, "ctor_initializer");
   class_type = ((a_symbol_ptr)ctor_rout->source_corresp.assoc_info)->
                                                    class_of_which_a_member;
-#if CHECKING
-  if (class_type == NULL) internal_error("ctor_initializer: NULL class type");
-#endif /* if CHECKING */
+  check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
   is_generated_cctor = !user_defined &&
                        is_copy_constructor(ctor_rout, class_type,
@@ -1772,11 +1739,7 @@ initialized.  These are addressed in the course of the processing.
                declared virtual it is on the virtual list. */
             new_cip = (direct_list != NULL) ? direct_list : virtual_list;
             bcp = new_cip->variant.base_class;
-#if CHECKING
-            if (!bcp->direct) {
-              internal_error("ctor_initializer: not a direct base class");
-            }  /* if */
-#endif /* CHECKING */
+            check_assertion(bcp->direct);
             init_type = bcp->type;
             if (new_cip->initializer != NULL) {
               type_error(ec_base_class_already_initialized, init_type);
@@ -2325,9 +2288,7 @@ though neither constructors nor initialization is involved here.)
   source_pos = dtor_rout->source_corresp.decl_position;
   class_type = ((a_symbol_ptr)dtor_rout->source_corresp.assoc_info)->
                                                    class_of_which_a_member;
-#if CHECKING
-  if (class_type == NULL) internal_error("dtor_initializer: NULL class type");
-#endif /* if CHECKING */
+  check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* The order of destructor calls is exactly the reverse of the order of
      constructor calls.  In other words, destructors for virtual base classes
