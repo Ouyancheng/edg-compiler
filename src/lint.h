@@ -226,6 +226,10 @@ extern int fileno(FILE *);
 /*lint -esym(769, an_asm_operand_modifier_tag::aom_poor_choice)*/
 /*lint -esym(769, an_asm_operand_modifier_tag::aom_bad_choice)*/
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
+/*lint -esym(769,ec_bad_variable_for_init_priority)*/
+/*lint -esym(769,ec_init_priority_reserved)*/
+#endif /* !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
 #if CHECKING && DEBUG && ALTERNATE_IL_FILE_FORMAT
 /*lint -esym(765, trace_entry)*/
 /*lint -esym(714, trace_entry)*/
