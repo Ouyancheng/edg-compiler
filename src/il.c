@@ -7688,10 +7688,12 @@ rest.
   } else {
     /* These operators take an lvalue as their input, so use an
        eok_field for the added field selection. */
+    a_type_ptr  tp = type_pointed_to(node->type);
+
     new_op = (an_expr_operator_kind)eok_field;
     /* Carry through any cv-qualifiers on the left operand. */
-    new_selection_type = type_plus_qualifiers_from_second_type(
-                              new_selection_type, type_pointed_to(node->type));
+    new_selection_type =
+               type_plus_qualifiers_from_second_type(new_selection_type, tp);
     new_selection_type = make_pointer_type(new_selection_type);
   }  /* if */
   au_field_node = alloc_expr_node((an_expr_node_kind)enk_field);
