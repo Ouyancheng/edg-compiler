@@ -3405,32 +3405,30 @@ special function kind (e.g., constructor, destructor), if any.
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
       rtn->special_kind = (a_special_function_kind)sfk_conversion;
-      if (!cssp->is_nonreal_class) {
-        /* Create a conversion list entry.  This list provides an alternative
-           to traversing the entire symbols list for a class to find its
-           conversion functions. */
-        clep = alloc_conversion_list_entry();
-        clep->symbol = sym;
-        clep->next = cssp->conversion_list;
-        cssp->conversion_list = clep;
-        /* If the return type of the conversion is a class type or ref
-           class type, set a flag to mark it as target of a conversion. */
-        tp = rtn->type->variant.routine.return_type;
-        tp = skip_typerefs(tp);
-        switch (is_reference_type(tp)) {
-          case TRUE:
-            tp = type_pointed_to(tp);
-            /* Special handling for "reference to const/volatile class" --
-               flag is not set in such cases. */
-            if (is_qualified_type(tp)) break;
-            /* Fall through to default processing. */
-          default:
-            if (is_class_struct_union_type(tp)) {
-              (symbol_supplement_for_class(skip_typerefs(tp)))->
-                        target_of_conversion_function = TRUE;
-            }  /* if */
-        }  /* switch */
-      }  /* if */
+      /* Create a conversion list entry.  This list provides an alternative
+         to traversing the entire symbols list for a class to find its
+         conversion functions. */
+      clep = alloc_conversion_list_entry();
+      clep->symbol = sym;
+      clep->next = cssp->conversion_list;
+      cssp->conversion_list = clep;
+      /* If the return type of the conversion is a class type or ref
+         class type, set a flag to mark it as target of a conversion. */
+      tp = rtn->type->variant.routine.return_type;
+      tp = skip_typerefs(tp);
+      switch (is_reference_type(tp)) {
+        case TRUE:
+          tp = type_pointed_to(tp);
+          /* Special handling for "reference to const/volatile class" --
+             flag is not set in such cases. */
+          if (is_qualified_type(tp)) break;
+          /* Fall through to default processing. */
+        default:
+          if (is_class_struct_union_type(tp)) {
+            (symbol_supplement_for_class(skip_typerefs(tp)))->
+                      target_of_conversion_function = TRUE;
+          }  /* if */
+      }  /* switch */
     } else {
       rtn->special_kind = spec_kind;
     }  /* if */
@@ -6214,6 +6212,22 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 if (curr_token == tok_semicolon) {
                   /* Advance past the optional semicolon. */
                   (void)get_token();
+                }  /* if */
+                if (!friend_specified && is_nonreal_instantiation) {
+                  /* A member function of a nonreal class serves as a
+                     template, and since this is the definition the
+                     template-info associated with this member function must
+                     be updated, based on the template-info of the prototype
+                     instantiation.  Note that the current class may be
+                     nested within the prototype instantiation. */
+                  a_template_symbol_supplement_ptr  tssp, class_tssp;
+
+                  tssp = rout_sym->variant.routine.instance_ptr->template_info;
+                  class_tssp =
+                       scope_stack[depth_innermost_instantiation_scope].
+                                           template_sym->variant.template_info;
+                  tssp->parameters = class_tssp->parameters;
+                  tssp->declaration_scope = class_tssp->declaration_scope;
                 }  /* if */
                 /* A comma-list of function definitions is not allowed. */
                 goto next_declaration;
