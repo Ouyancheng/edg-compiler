@@ -3397,7 +3397,7 @@ Only the first form is accepted in C.
   a_token_cache  token_cache;
 
 
-  db_enter(4, "pointer_declarator");
+  db_enter(3, "pointer_declarator");
   for (;;) {
     /* Add a pointer type to the top of the existing type.  Note that this
        works out right.  For example, if one has
