@@ -1,5 +1,19 @@
 Version 3.2
 
+5/6/03   Microsoft compatibility: nonstandard uses of typename
+
+The standard requires that the typename keyword be followed by
+a qualified name.  The Microsoft compiler accepts other keywords and
+unqualified identifiers following the typename keyword.  We now emulate
+this behavior in Microsoft mode.
+
+  template <class T> struct B {
+     typedef typename void (T::*pfunc)();
+     typename pfunc my_pfunc;
+  };
+  struct A {};
+  B<A> ba;
+
 5/6/03   Correspondence between functions defined in friend declarations
 
 During compilations involving multiple translation units, a function with

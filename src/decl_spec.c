@@ -3628,7 +3628,15 @@ a block of source position information when the context is a declaration.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
-  if (!is_generalized_identifier_start(GID_IS_TYPENAME)) {
+  (void)is_generalized_identifier_start(GID_IS_TYPENAME);
+  if (microsoft_mode &&
+      (curr_token != tok_identifier ||
+       !locator_for_curr_id.is_qualified_name)) {
+    /* An invalid typename specifier that is accepted in Microsoft mode.
+       Simply return and let decl_specifiers process the rest of the type. */
+    goto done;
+  }  /* if */
+  if (curr_token != tok_identifier) {
     syntax_error(ec_exp_identifier);
   } else {
     a_boolean	               err = FALSE;
@@ -3675,6 +3683,7 @@ a block of source position information when the context is a declaration.
   /* If no type was created, an error must have occurred above.  Return
      an error type. */
   if (tp == NULL) tp = error_type();
+done:
   *type_ptr = tp;
 }  /* typename_specifier */
 
@@ -5892,6 +5901,14 @@ process_class_specifier:
           if (basic_type == bt_none) {
             typename_specifier(type_ptr, /*within_using_decl=*/FALSE,
                                decl_pos_block);
+            if (*type_ptr == NULL) {
+              /* In Microsoft mode a NULL type is returned for a
+                 nonstandard typename specifier in which the typename
+                 keyword is followed by something other than a qualified
+                 name. */
+              check_assertion(microsoft_mode);
+              goto no_get_token;
+            }  /* if */
             basic_type = bt_typename;
             is_elaborated_type_specifier = TRUE;
           } else {
