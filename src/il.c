@@ -1215,16 +1215,6 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_node(node->variant.typeid_info.expr, level + 2);
       }  /* if */
       break;
-    case enk_uuidof:
-      fputs("uuidof: type = ", f_debug);
-      db_abbreviated_type(node->variant.typeid_info.type);
-      if (node->variant.typeid_info.expr == NULL) {
-        fputc('\n', f_debug);
-      } else {
-        fputs(", expr =\n", f_debug);
-        db_expr_node(node->variant.typeid_info.expr, level + 2);
-      }  /* if */
-      break;
     case enk_address_of_ellipsis:
       fputs("address of ellipsis\n", f_debug);
       break;
@@ -2984,6 +2974,12 @@ bucket of the shareable_constants_table to use for the constant.
             hash_value = hash_constant(cp->variant.address.variant.constant);
           }  /* if */
           break;
+        case abk_uuidof:
+          hash_value = 231;
+          if (cp->variant.address.variant.type != NULL) {
+            hash_value += hash_type(cp->variant.address.variant.type);
+          }  /* if */
+          break;
 #if CHECKING
         default:
           internal_error("hash_constant: bad address constant kind");
@@ -3156,6 +3152,24 @@ nonidentical.
             case abk_constant:
               eq = (cp1->variant.address.variant.constant ==
                     cp2->variant.address.variant.constant);
+              break;
+            case abk_uuidof:
+              /* Microsoft __uuidof. */
+              { a_type_ptr uuid_type1 = cp1->variant.address.variant.type;
+                a_type_ptr uuid_type2 = cp2->variant.address.variant.type;
+
+                if (uuid_type1 == NULL && uuid_type2 == NULL) {
+                  eq = TRUE;
+                } else if (uuid_type1 == NULL || uuid_type2 == NULL) {
+                  /* eq = FALSE; -- already set. */
+                } else {
+                  /* Compare the uuid strings. */
+                  eq = strcmp(uuid_type1->variant.class_struct_union.
+                                                 extra_info->uuid_string,
+                              uuid_type2->variant.class_struct_union.
+                                                 extra_info->uuid_string) == 0;
+                }  /* if */
+              }
               break;
 #if CHECKING
             default:
@@ -3344,6 +3358,9 @@ region).
         case abk_constant:
           has_nfs_ref =
                   !in_file_scope((char *)cp->variant.address.variant.constant);
+          break;
+        case abk_uuidof:
+          /* The type pointed to must be in the file scope. */
           break;
 #if CHECKING
         default:
@@ -6500,7 +6517,6 @@ a set of options for the copy.
 #endif /* MINIMAL_INLINING */
       break;
     case enk_typeid:
-    case enk_uuidof:
       /* If the expr field is non-NULL, copy it. */
       if (expr->variant.typeid_info.expr != NULL) {
         expr_copy->variant.typeid_info.expr =

@@ -475,7 +475,7 @@ integral type.
 static char *base_object(a_constant *constant)
 /*
 Return a pointer to the "base object" that underlies the pointer constant.
-This is NULL is the pointer is an integer cast to a pointer type.  Otherwise,
+This is NULL if the pointer is an integer cast to a pointer type.  Otherwise,
 it points to the variable, routine, or constant entry.
 */
 {
@@ -499,6 +499,12 @@ it points to the variable, routine, or constant entry.
         break;
       case abk_constant:
         object = (char *)constant->variant.address.variant.constant;
+        break;
+      case abk_uuidof:
+        /* Use the address constant as the "base object" for a __uuidof.
+           It's weird, but we need to return a non-NULL base object for this
+           case, and the constant seems like the best of the possibilities. */
+        object = (char *)constant;
         break;
 #if CHECKING
       default:
@@ -2446,6 +2452,10 @@ the object.
         if (cp->kind == (a_constant_repr_kind)ck_string) {
           object_size = cp->variant.string.length;
         }  /* if */
+        break;
+      case abk_uuidof:
+        tp = type_pointed_to(constant->type);
+        object_size = tp->size;
         break;
 #if CHECKING
       default:

@@ -516,6 +516,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                 walk_ptr(ptr->variant.address.variant.constant, a_constant_ptr,
                          iek_constant);
                 break;
+              case abk_uuidof:
+                /* Class types will be visited from the scope. */
+                remap_ptr(ptr->variant.address.variant.type, a_type_ptr,
+                          iek_type);
+                break;
               default:
                 unexpected_condition_str(
                              "walk_entry_and_subtree: bad address const kind");
@@ -1066,14 +1071,6 @@ do_set_proper_definition_needed_flag:
           case enk_typeid:
             walk_ptr(ptr->variant.typeid_info.type, a_type_ptr, iek_type);
             definition_needed_if_class(ptr->variant.typeid_info.type);
-            walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
-                     iek_expr_node);
-            break;
-          case enk_uuidof:
-            walk_ptr(ptr->variant.typeid_info.type, a_type_ptr, iek_type);
-            if (ptr->variant.typeid_info.type != NULL) {
-              set_proper_definition_needed_flag(ptr->variant.typeid_info.type);
-            }  /* if */
             walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
                      iek_expr_node);
             break;

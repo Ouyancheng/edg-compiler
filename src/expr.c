@@ -159,7 +159,6 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
     case enk_routine_address:
     case enk_field:
     case enk_address_of_ellipsis:
-    case enk_uuidof:
       /* No side effects. */
       break;
     case enk_operation:
@@ -4065,7 +4064,6 @@ The value of the operation is an lvalue of type "const struct _GUID".
 {
   a_source_position start_position;
   an_operand        operand;
-  an_expr_node_ptr  expr = NULL, uuidof_node;
   a_type_ptr        uuidof_type;
   a_boolean         err = FALSE;
 
@@ -4078,9 +4076,9 @@ The value of the operation is an lvalue of type "const struct _GUID".
     internal_error("scan_uuidof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  if (curr_expr_kind_is_const()) {
-    /* __uuidof is not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &start_position);
+  if (curr_expr_kind_is(ek_integral_constant)) {
+    /* __uuidof is not allowed in integral constant expression. */
+    pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
   }  /* if */
   /* Advance past __uuidof. */
@@ -4112,9 +4110,6 @@ The value of the operation is an lvalue of type "const struct _GUID".
     if (is_constant_operand(&operand) &&
         is_null_pointer_constant(&operand.variant.constant)) {
       uuidof_type = NULL;
-      expr = NULL;
-    } else {
-      expr = make_node_from_operand(&operand);
     }  /* if */
     pop_expr_stack();
   }  /* if */
@@ -4144,23 +4139,21 @@ The value of the operation is an lvalue of type "const struct _GUID".
   if (err) {
     make_error_operand(result);
   } else {
-    /* Create a uuidof expression node. */
-    a_type_ptr const_guid= make_qualified_type(type_of_guid,
+    /* Create an expression node that is the value of a ck_address/abk_uuidof
+       constant.  The value of such a constant is the address of the lvalue
+       that is the result of the __uuidof operation. */
+    a_constant uuidof_con;
+    a_type_ptr const_guid_type = make_qualified_type(
+                                               type_of_guid,
                                                (a_type_qualifier_set)TQ_CONST);
-    uuidof_node = alloc_expr_node((an_expr_node_kind)enk_uuidof);
-    uuidof_node->variant.typeid_info.expr = expr;
-    uuidof_node->variant.typeid_info.type = uuidof_type;
-    uuidof_node->implicit_reference_indirection = TRUE;
-    /* The result is a reference to const _GUID, which means a pointer to
-       _GUID as an lvalue address. */
-    uuidof_node->type = make_pointer_type(const_guid);
-    make_expression_operand(uuidof_node, const_guid, result);
+
+    clear_constant(&uuidof_con, (a_constant_repr_kind)ck_address);
+    uuidof_con.variant.address.kind = (an_address_base_kind)abk_uuidof;
+    uuidof_con.variant.address.variant.type = uuidof_type;
+    uuidof_con.type = make_pointer_type(const_guid_type);
+    make_constant_operand(&uuidof_con, result);
     result->state = (an_operand_state)os_lvalue;
-    /* The IL operand expression is supposed to be an lvalue.  Make sure
-       it is.  We are counting on the fact that a Microsoft extension makes
-       functions that return classes return lvalues. */
-    check_assertion_str(expr == NULL || is_an_lvalue(&operand),
-                        "scan_uuidof_operator: operand is not an lvalue");
+    result->type = const_guid_type;
   }  /* if */
   /* Set the error position to the starting position. */
   error_position = start_position;
@@ -10891,7 +10884,7 @@ e.g., a local variable.
 */
 {
   a_boolean               refs_non_ext = FALSE;
-  a_source_correspondence *scp;
+  a_source_correspondence *scp = NULL;
 
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* An address constant.  See if the object referenced is external. */
@@ -10906,13 +10899,20 @@ e.g., a local variable.
       case abk_constant:
         scp = &constant->variant.address.variant.constant->source_corresp;
         break;
+      case abk_uuidof:
+        if (constant->variant.address.variant.type != NULL) {
+          scp = &constant->variant.address.variant.type->source_corresp;
+        }  /* if */
+        break;
 #if CHECKING
       default:
         internal_error(
                   "constant_references_non_external_entity: bad address kind");
 #endif /* CHECKING */
     }  /* switch */
-    if (scp->is_class_member) {
+    if (scp == NULL) {
+      /* Nothing referenced. */
+    } else if (scp->is_class_member) {
       /* The entity is a class member.  If the class is a local class,
          the entity is non-external.  Otherwise, the class will be forced
          to be external by this reference. */

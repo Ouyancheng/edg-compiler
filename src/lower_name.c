@@ -464,6 +464,339 @@ the length of the mangled form.
 }  /* mangled_encoding_for_sizeof */
 
 
+static sizeof_t mangled_encoding_for_float_constant(a_constant_ptr con,
+                                                    a_boolean      old_form,
+                                                    char           *store_at)
+/*
+Place the literal form of the ck_float constant con at *store_at
+if store_at != NULL, and (always) return the length of the literal
+representation.  This is used to encode floating-point constants as
+part of the mangled names of template classes.  If old_form is TRUE,
+use the old form of length specification in the mangling for lengths of
+literals.
+*/
+{
+  sizeof_t literal_length, str_length, digits;
+  char     *str;
+
+  /* Float: the encoding is like
+       L4n1p5 <-- encoding for "-1.5"
+          ^^^---- Literal value ("p" for decimal point).
+         ^------- "n" indicates negative.
+        ^-------- Length of the literal.
+       ^--------- "L" indicates a number.
+     cfront 3.0.1 does not implement this, so we made it up. */
+  str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
+                     &con->variant.float_value);
+  str_length = strlen(str);  /* Includes "-" sign if any. */
+  /* Remove unnecessary trailing zeroes, e.g., change
+     "1.50000e+10" to "1.5    e+10".  The blanks are then dropped
+     in the copy below. */
+  { char *p = strchr(str, '.'), *last_signif;
+    if (p != NULL) {
+      /* There is a decimal point.  Find the last significant digit
+         following the decimal point. */
+      /* The first digit after the decimal is considered significant even
+         if it is a zero. */
+      for (last_signif = ++p; isdigit((unsigned char)*p); p++) {
+        if (*p != '0') last_signif = p;
+      }  /* for */
+      /* Change any insignificant zeroes to blanks. */
+      while (last_signif < --p) {
+        *p = ' ';
+        str_length--;
+      }  /* while */
+    }  /* if */
+  }
+  digits = digits_to_represent_with_underscore((unsigned long)str_length,
+                                               old_form);
+  literal_length = 1 + digits + str_length;
+  if (store_at != NULL) {
+    *store_at++ = 'L';
+    store_digits_and_underscore((unsigned long)str_length, digits,
+                                old_form, store_at);
+    store_at += digits;
+    while (str_length > 0) {
+      /* Move the string and recode non-alphanumeric characters. */
+      char c = *str++;
+      if (c == ' ') {
+        /* A blank is an insignificant digit removed above. */
+      } else {
+        if (c == '-') {
+          /* Use "n" to represent a minus sign. */
+          c = 'n';
+        } else if (c == '.') {
+          /* Use "d" to represent a decimal point. */
+          c = 'd';
+        } else if (c == '+') {
+          /* Use "p" to represent a plus sign. */
+          c = 'p';
+        }  /* if */
+        *store_at++ = c;
+        str_length--;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  return literal_length;
+}  /* mangled_encoding_for_float_constant */
+
+
+static sizeof_t mangled_encoding_for_address_constant(a_constant_ptr con,
+                                                      char           *store_at)
+/*
+Place the literal form of the ck_address constant con at *store_at if
+store_at != NULL, and (always) return the length of the literal
+representation.  This is used to encode address constants as part of
+the mangled names of template classes.
+*/
+{
+  sizeof_t             literal_length, str_length, digits;
+  char                 *str;
+  a_variable_ptr       variable;
+  a_boolean            is_member = FALSE;
+  a_routine_ptr        routine;
+  an_address_base_kind abkind;
+
+  /* The offset can be non-zero in cases where a pointer to class was
+     cast to a related class.  That's ignored in the output. */
+  abkind = con->variant.address.kind;
+  check_assertion_str(abkind != (an_address_base_kind)abk_constant,
+                      "mangled_encoding_for_address_constant: abk_constant");
+  /* Address of something other than a constant, i.e., a variable or
+     routine.  The encoding is like
+       4abcd <-- encoding for address of "abcd"
+        ^^^^---- Name of entity.
+       ^-------- Length of the name.
+     This is compatible with cfront 3.0.1. */
+  if (abkind == (an_address_base_kind)abk_variable) {
+    variable = con->variant.address.variant.variable;
+    if (variable->source_corresp.is_class_member ||
+        variable->source_corresp.parent.namespace_ptr != NULL) {
+      /* Static data member or namespace member variable. */
+      is_member = TRUE;
+      str_length = mangled_member_variable_name(variable, (char *)NULL);
+    } else {
+      /* Normal variable. */
+      str = variable->source_corresp.name;
+      check_assertion_str(str != NULL,
+                     "mangled_encoding_for_address_constant: addr of unnamed");
+      str_length = strlen(str);
+    }  /* if */
+  } else if (abkind == (an_address_base_kind)abk_routine) {
+    /* Routine. */
+    routine = con->variant.address.variant.routine;
+    str_length = mangled_function_name(routine,
+                                       /*suppress_param_encoding=*/TRUE,
+                                       (char *)NULL);
+  } else {
+    check_assertion_str(abkind == (an_address_base_kind)abk_uuidof,
+                        "mangled_encoding_for_address_constant: bad abkind");
+    /* Microsoft __uuidof. */
+    /* The uuid string attached to the associated type has the format
+         hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+       (where "h" is a hexadecimal digit).  The mangled form is
+       a length followed by "__UUID" followed by the string, with hyphens
+       removed.  This is just made up; the Microsoft compiler uses a
+       completely different mangling scheme, so compatibility is a moot
+       point here. */
+#define UUID_STR "__UUID"
+    str_length = 32 + sizeof(UUID_STR)-1;
+  }  /* if */
+  digits = digits_to_represent((unsigned long)str_length);
+  literal_length = digits + str_length;
+  if (store_at != NULL) {
+    (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+    store_at += digits;
+    if (abkind == (an_address_base_kind)abk_variable) {
+      if (is_member) {
+        /* Static data member or namespace member variable. */
+        (void)mangled_member_variable_name(variable, store_at);
+      } else {
+        /* Normal variable. */
+        (void)memcpy(store_at, str, size_t_arg(str_length));
+      }  /* if */
+      store_at += str_length;
+    } else if (abkind == (an_address_base_kind)abk_routine) {
+      (void)mangled_function_name(routine,
+                                  /*suppress_param_encoding=*/TRUE,
+                                  store_at);
+      store_at += str_length;
+    } else {
+      a_type_ptr uuid_type;
+      char       *uuid_str;
+
+      check_assertion_str(abkind == (an_address_base_kind)abk_uuidof,
+                          "mangled_encoding_for_address_constant: bad abkind");
+      /* Microsoft __uuidof. */
+      uuid_type = con->variant.address.variant.type;
+      (void)strcpy(store_at, UUID_STR);
+      store_at += sizeof(UUID_STR)-1;
+      if (uuid_type == NULL) {
+        /* Null GUID case. */
+        uuid_str = "00000000-0000-0000-000000000000";
+      } else {
+        uuid_str=uuid_type->variant.class_struct_union.extra_info->uuid_string;
+      }  /* if */
+      for (; *uuid_str != '\0'; uuid_str++) {
+        if (*uuid_str != '-') *store_at++ = *uuid_str;
+      }  /* for */
+#undef UUID_STR
+    }  /* if */
+  }  /* if */
+  return literal_length;
+}  /* mangled_encoding_for_address_constant */
+
+
+static sizeof_t mangled_encoding_for_ptr_to_member_constant(
+                                                      a_constant_ptr con,
+                                                      a_boolean      old_form,
+                                                      char           *store_at)
+/*
+Place the literal form of the ck_ptr_to_member constant con at *store_at
+if store_at != NULL, and (always) return the length of the literal
+representation.  This is used to encode pointer-to-member constants as
+part of the mangled names of template classes.  If old_form is TRUE,
+use the old form of length specification in the mangling for lengths of
+literals.
+*/
+{
+  sizeof_t literal_length, str_length, digits;
+  char     *str;
+  char     buffer[50];
+
+  /* Pointer to member:
+     For pointers to data members, the offset value encoded as an integer:
+       L212  <--- encoding for an offset of "12"
+         ^^------ Literal value.
+        ^-------- Length of the literal.
+       ^--------- "L" indicates a number.
+     For pointers to member functions, the __mptr triplet of
+     values (delta, index, function or offset), encoded as follows:
+       LM0_L2n1_1j
+                ^^- Function name, or alternatively "0" if the pointer
+                    to member uses an offset (e.g., LM0_L11_0).
+           ^^^^---- Index value, encoded as an integer.
+         ^--------- Delta value.
+       ^^---------- "LM" indicates a pointer to member function.
+     This is compatible with cfront 3.0.1.  Note that "0" is always
+     used for the offset, not the actual offset value.  This follows
+     cfront.  The idea seems to be that "0" is really a way of saying
+     "there is no function;" the offset value itself would not be
+     of interest to a name demangler. */
+  if (!con->variant.ptr_to_member.is_function_ptr) {
+    /* Pointer to data member. */
+    a_targ_ptrdiff_t delta;
+    repr_for_ptr_to_data_member_constant(con, &delta);
+    (void)sprintf(buffer, "%ld", (long)delta);
+    str = buffer;
+    str_length = strlen(str);  /* Includes "-" sign if any. */
+    digits = digits_to_represent_with_underscore((unsigned long)str_length,
+                                                 old_form);
+    literal_length = 1 + digits + str_length;
+    if (store_at != NULL) {
+      *store_at++ = 'L';
+      store_digits_and_underscore((unsigned long)str_length, digits,
+                                  old_form, store_at);
+      store_at += digits;
+      (void)memcpy(store_at, str, size_t_arg(str_length));
+      /* Use "n" to represent a minus sign. */
+      if (*store_at == '-') *store_at = 'n';
+      store_at += str_length;
+    }  /* if */
+  } else {
+    /* Pointer to member function. */
+    a_targ_ptrdiff_t delta, index, offset;
+    a_routine_ptr    func;
+
+    repr_for_ptr_to_member_function_constant(con, &delta, &index, &func,
+                                             &offset);
+    literal_length = 2;  /* "LM" */
+    if (store_at != NULL) {
+      *store_at++ = 'L';
+      *store_at++ = 'M';
+    }  /* if */
+    /* Delta value. */
+    (void)sprintf(buffer, "%ld", (long)delta);
+    str = buffer;
+    str_length = strlen(str);  /* Includes "-" sign if any. */
+    literal_length += str_length;
+    if (store_at != NULL) {
+      (void)memcpy(store_at, str, size_t_arg(str_length));
+      /* Use "n" to represent a minus sign. */
+      if (*store_at == '-') *store_at = 'n';
+      store_at += str_length;
+    }  /* if */
+    /* Index value. */
+    (void)sprintf(buffer, "%ld", (long)index);
+    str = buffer;
+    str_length = strlen(str);  /* Includes "-" sign if any. */
+    digits = digits_to_represent_with_underscore((unsigned long)str_length,
+                                                 old_form);
+    literal_length += 2 + digits + str_length + 1;
+    if (store_at != NULL) {
+      *store_at++ = '_';
+      *store_at++ = 'L';
+      store_digits_and_underscore((unsigned long)str_length, digits,
+                                  old_form, store_at);
+      store_at += digits;
+      (void)memcpy(store_at, str, size_t_arg(str_length));
+      /* Use "n" to represent a minus sign. */
+      if (*store_at == '-') *store_at = 'n';
+      store_at += str_length;
+      *store_at++ = '_';
+    }  /* if */
+    if (func != NULL) {
+      /* Name of function. */
+      /* The newer version of this includes parent information, but that's
+         not compatible with cfront. */
+      a_boolean include_parent_info;
+#if ABI_COMPATIBILITY_VERSION < 235
+      include_parent_info = FALSE;
+#else /* ABI_COMPATIBILITY_VERSION >= 235 */
+      /* Making this conditional on the new-style mangling for templates
+         is a little strange, but if you have the new-style mangling
+         you're completely incompatible with cfront, so it's not
+         a ridiculous idea. */
+      include_parent_info = distinct_mangling_for_templates;
+#endif /* ABI_COMPATIBILITY_VERSION < 235 */
+      if (include_parent_info) {
+        /* Include class and namespace information in the name. */
+        str_length = mangled_function_name(func,
+                                           /*suppress_param_encoding=*/TRUE,
+                                           (char *)NULL);
+      } else {
+        /* Use a simple name (no class or namespace information). */
+        str = func->source_corresp.name;
+        /* Determine the size of the name.  Stop on two underscores. */
+        for (str_length = 0;
+             str[str_length] != '\0' &&
+               (str[str_length] != '_' || str[str_length+1] != '_');
+             str_length++) {}
+      }  /* if */
+      digits = digits_to_represent((unsigned long)str_length);
+      literal_length += digits + str_length;
+      if (store_at != NULL) {
+        (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+        store_at += digits;
+        if (include_parent_info) {
+          (void)mangled_function_name(func,
+                                      /*suppress_param_encoding=*/TRUE,
+                                      store_at);
+        } else {
+          (void)memcpy(store_at, str, size_t_arg(str_length));
+        }  /* if */
+        store_at += str_length;
+      }  /* if */
+    } else {
+      /* Offset, always coded as "0". */
+      literal_length++;
+      if (store_at != NULL) *store_at++ = '0';
+    }  /* if */
+  }  /* if */
+  return literal_length;
+}  /* mangled_encoding_for_ptr_to_member_constant */
+
+
 static sizeof_t literal_representation(a_constant_ptr con,
                                        a_boolean      old_form,
                                        char           *store_at)
@@ -475,9 +808,8 @@ If old_form is TRUE, use the old form of length specification in the
 mangling for lengths of literals.
 */
 {
-  sizeof_t       literal_length, str_length, digits;
-  char           *str;
-  char           buffer[50];
+  sizeof_t literal_length, str_length, digits;
+  char     *str;
 
   switch (con->kind) {
     case ck_error:
@@ -510,266 +842,19 @@ mangling for lengths of literals.
       }  /* if */
       break;
     case ck_float:
-      /* Float: the encoding is like
-           L4n1p5 <-- encoding for "-1.5"
-              ^^^---- Literal value ("p" for decimal point).
-             ^------- "n" indicates negative.
-            ^-------- Length of the literal.
-           ^--------- "L" indicates a number.
-         cfront 3.0.1 does not implement this, so we made it up. */
-      str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
-                         &con->variant.float_value);
-      str_length = strlen(str);  /* Includes "-" sign if any. */
-      /* Remove unnecessary trailing zeroes, e.g., change
-         "1.50000e+10" to "1.5    e+10".  The blanks are then dropped
-         in the copy below. */
-      { char *p = strchr(str, '.'), *last_signif;
-        if (p != NULL) {
-          /* There is a decimal point.  Find the last significant digit
-             following the decimal point. */
-          /* The first digit after the decimal is considered significant even
-             if it is a zero. */
-          for (last_signif = ++p; isdigit((unsigned char)*p); p++) {
-            if (*p != '0') last_signif = p;
-          }  /* for */
-          /* Change any insignificant zeroes to blanks. */
-          while (last_signif < --p) {
-            *p = ' ';
-            str_length--;
-          }  /* while */
-        }  /* if */
-      }
-      digits = digits_to_represent_with_underscore((unsigned long)str_length,
-                                                   old_form);
-      literal_length = 1 + digits + str_length;
-      if (store_at != NULL) {
-        *store_at++ = 'L';
-        store_digits_and_underscore((unsigned long)str_length, digits,
-                                    old_form, store_at);
-        store_at += digits;
-        while (str_length > 0) {
-          /* Move the string and recode non-alphanumeric characters. */
-          char c = *str++;
-          if (c == ' ') {
-            /* A blank is an insignificant digit removed above. */
-          } else {
-            if (c == '-') {
-              /* Use "n" to represent a minus sign. */
-              c = 'n';
-            } else if (c == '.') {
-              /* Use "d" to represent a decimal point. */
-              c = 'd';
-            } else if (c == '+') {
-              /* Use "p" to represent a plus sign. */
-              c = 'p';
-            }  /* if */
-            *store_at++ = c;
-            str_length--;
-          }  /* if */
-        }  /* while */
-      }  /* if */
+      /* Float constant. */
+      literal_length = mangled_encoding_for_float_constant(con, old_form,
+                                                           store_at);
       break;
     case ck_address:
       /* Address.  Put out the name of the entity whose address is involved. */
-      { a_variable_ptr       variable;
-        a_boolean            is_member = FALSE;
-        a_routine_ptr        routine;
-        an_address_base_kind abkind;
-
-        /* The offset can be non-zero in cases where a pointer to class was
-           cast to a related class.  That's ignored in the output. */
-        abkind = con->variant.address.kind;
-#if CHECKING
-        if (abkind == (an_address_base_kind)abk_constant) {
-          internal_error("literal_representation: addr of const");
-        }  /* if */
-#endif /* CHECKING */
-        /* Address of something other than a constant, i.e., a variable or
-           routine.  The encoding is like
-             4abcd <-- encoding for address of "abcd"
-              ^^^^---- Name of entity.
-             ^-------- Length of the name.
-           This is compatible with cfront 3.0.1. */
-        if (abkind == (an_address_base_kind)abk_variable) {
-          variable = con->variant.address.variant.variable;
-          if (variable->source_corresp.is_class_member ||
-              variable->source_corresp.parent.namespace_ptr != NULL) {
-            /* Static data member or namespace member variable. */
-            is_member = TRUE;
-            str_length = mangled_member_variable_name(variable, (char *)NULL);
-          } else {
-            /* Normal variable. */
-            str = variable->source_corresp.name;
-#if CHECKING
-            if (str == NULL) {
-              internal_error("literal_representation: addr of unnamed");
-            }  /* if */
-#endif /* CHECKING */
-            str_length = strlen(str);
-          }  /* if */
-        } else {
-#if CHECKING
-          if (abkind != (an_address_base_kind)abk_routine) {
-            internal_error("literal_representation: bad abkind");
-          }  /* if */
-#endif /* CHECKING */
-          routine = con->variant.address.variant.routine;
-          str_length = mangled_function_name(routine,
-                                             /*suppress_param_encoding=*/TRUE,
-                                             (char *)NULL);
-        }  /* if */
-        digits = digits_to_represent((unsigned long)str_length);
-        literal_length = digits + str_length;
-        if (store_at != NULL) {
-          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-          store_at += digits;
-          if (abkind == (an_address_base_kind)abk_variable) {
-            if (is_member) {
-              /* Static data member or namespace member variable. */
-              (void)mangled_member_variable_name(variable, store_at);
-            } else {
-              /* Normal variable. */
-              (void)memcpy(store_at, str, size_t_arg(str_length));
-            }  /* if */
-          } else {
-            (void)mangled_function_name(routine,
-                                        /*suppress_param_encoding=*/TRUE,
-                                        store_at);
-          }  /* if */
-          store_at += str_length;
-        }  /* if */
-      }
+      literal_length = mangled_encoding_for_address_constant(con, store_at);
       break;
     case ck_ptr_to_member:
-      /* Pointer to member:
-         For pointers to data members, the offset value encoded as
-         an integer:
-           L212  <--- encoding for an offset of "12"
-             ^^------ Literal value.
-            ^-------- Length of the literal.
-           ^--------- "L" indicates a number.
-         For pointers to member functions, the __mptr triplet of
-         values (delta, index, function or offset), encoded as follows:
-           LM0_L2n1_1j
-                    ^^- Function name, or alternatively "0" if the pointer
-                        to member uses an offset (e.g., LM0_L11_0).
-               ^^^^---- Index value, encoded as an integer.
-             ^--------- Delta value.
-           ^^---------- "LM" indicates a pointer to member function.
-         This is compatible with cfront 3.0.1.  Note that "0" is always
-         used for the offset, not the actual offset value.  This follows
-         cfront.  The idea seems to be that "0" is really a way of saying
-         "there is no function;" the offset value itself would not be
-         of interest to a name demangler. */
-      if (!con->variant.ptr_to_member.is_function_ptr) {
-        /* Pointer to data member. */
-        a_targ_ptrdiff_t delta;
-        repr_for_ptr_to_data_member_constant(con, &delta);
-        (void)sprintf(buffer, "%ld", (long)delta);
-        str = buffer;
-        str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits = digits_to_represent_with_underscore((unsigned long)str_length,
-                                                     old_form);
-        literal_length = 1 + digits + str_length;
-        if (store_at != NULL) {
-          *store_at++ = 'L';
-          store_digits_and_underscore((unsigned long)str_length, digits,
-                                      old_form, store_at);
-          store_at += digits;
-          (void)memcpy(store_at, str, size_t_arg(str_length));
-          /* Use "n" to represent a minus sign. */
-          if (*store_at == '-') *store_at = 'n';
-          store_at += str_length;
-        }  /* if */
-      } else {
-        /* Pointer to member function. */
-        a_targ_ptrdiff_t delta, index, offset;
-        a_routine_ptr    func;
-        repr_for_ptr_to_member_function_constant(con, &delta, &index, &func,
-                                                 &offset);
-        literal_length = 2;  /* "LM" */
-        if (store_at != NULL) {
-          *store_at++ = 'L';
-          *store_at++ = 'M';
-        }  /* if */
-        /* Delta value. */
-        (void)sprintf(buffer, "%ld", (long)delta);
-        str = buffer;
-        str_length = strlen(str);  /* Includes "-" sign if any. */
-        literal_length += str_length;
-        if (store_at != NULL) {
-          (void)memcpy(store_at, str, size_t_arg(str_length));
-          /* Use "n" to represent a minus sign. */
-          if (*store_at == '-') *store_at = 'n';
-          store_at += str_length;
-        }  /* if */
-        /* Index value. */
-        (void)sprintf(buffer, "%ld", (long)index);
-        str = buffer;
-        str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits = digits_to_represent_with_underscore((unsigned long)str_length,
-                                                     old_form);
-        literal_length += 2 + digits + str_length + 1;
-        if (store_at != NULL) {
-          *store_at++ = '_';
-          *store_at++ = 'L';
-          store_digits_and_underscore((unsigned long)str_length, digits,
-                                      old_form, store_at);
-          store_at += digits;
-          (void)memcpy(store_at, str, size_t_arg(str_length));
-          /* Use "n" to represent a minus sign. */
-          if (*store_at == '-') *store_at = 'n';
-          store_at += str_length;
-          *store_at++ = '_';
-        }  /* if */
-        if (func != NULL) {
-          /* Name of function. */
-          /* The newer version of this includes parent information, but that's
-             not compatible with cfront. */
-          a_boolean include_parent_info;
-#if ABI_COMPATIBILITY_VERSION < 235
-          include_parent_info = FALSE;
-#else /* ABI_COMPATIBILITY_VERSION >= 235 */
-          /* Making this conditional on the new-style mangling for templates
-             is a little strange, but if you have the new-style mangling
-             you're completely incompatible with cfront, so it's not
-             a ridiculous idea. */
-          include_parent_info = distinct_mangling_for_templates;
-#endif /* ABI_COMPATIBILITY_VERSION < 235 */
-          if (include_parent_info) {
-            /* Include class and namespace information in the name. */
-            str_length = mangled_function_name(func,
-                                              /*suppress_param_encoding=*/TRUE,
-                                               (char *)NULL);
-          } else {
-            /* Use a simple name (no class or namespace information). */
-            str = func->source_corresp.name;
-            /* Determine the size of the name.  Stop on two underscores. */
-            for (str_length = 0;
-                 str[str_length] != '\0' &&
-                   (str[str_length] != '_' || str[str_length+1] != '_');
-                 str_length++) {}
-          }  /* if */
-          digits = digits_to_represent((unsigned long)str_length);
-          literal_length += digits + str_length;
-          if (store_at != NULL) {
-            (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-            store_at += digits;
-            if (include_parent_info) {
-              (void)mangled_function_name(func,
-                                          /*suppress_param_encoding=*/TRUE,
-                                          store_at);
-            } else {
-              (void)memcpy(store_at, str, size_t_arg(str_length));
-            }  /* if */
-            store_at += str_length;
-          }  /* if */
-        } else {
-          /* Offset, always coded as "0". */
-          literal_length++;
-          if (store_at != NULL) *store_at++ = '0';
-        }  /* if */
-      }  /* if */
+      /* Pointer to member. */
+      literal_length = mangled_encoding_for_ptr_to_member_constant(con,
+                                                                   old_form,
+                                                                   store_at);
       break;
     case ck_template_param:
       /* This comes up when mangling the names for template entities using

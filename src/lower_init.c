@@ -6594,6 +6594,11 @@ GUID.
     int            i;
 
     /* Create the (unnamed) uuid variable. */
+    /* Note that the Microsoft implementation uses linker support to allocate
+       a single structure per GUID across all compilation units.  We don't
+       have the ability to do that in a portable way.  This should be
+       changed on implementations that want to make compilers for a
+       Microsoft environment. */
     uuid_var = make_lowered_variable((char *)NULL, /*already_il_name=*/TRUE,
                                      make_guid_type(),
                                      (a_storage_class)sc_static);
@@ -6661,25 +6666,34 @@ GUID.
 }  /* uuid_variable_for_type */
 
 
-void lower_uuidof(an_expr_node_ptr expr)
+void lower_uuidof(a_constant *con)
 /*
-Lower the Microsoft C++ extension __uuidof() operator, which returns
-a struct of type _GUID that provides information about the
-__declspec(uuid(...)) attribute with which the operand class was declared.
+Lower a constant generated for the Microsoft C++ extension __uuidof().
+Its value is the address of a struct of type _GUID, which provides
+information about the __declspec(uuid(...)) attribute with which the
+associated class was declared.
 */
 {
-  a_type_ptr       class_type = expr->variant.typeid_info.type;
-  a_variable_ptr   uuid_var;
-  an_expr_node_ptr addr_uuid_var;
+  a_type_ptr     class_type = con->variant.address.variant.type;
+  a_type_ptr     orig_con_type = con->type;
+  a_boolean      orig_needed = con->source_corresp.needed;
+  a_variable_ptr uuid_var;
 
-  /* Note that the expression in the enk_uuidof node is not used. */
   /* Create the initialized uuid variable for the type, if it doesn't
      exist already. */
   uuid_var = uuid_variable_for_type(class_type);
-  /* Replace the expression tree with a cast of the address of the
-     uuid variable to the right type. */
-  addr_uuid_var = var_lvalue_expr(uuid_var);
-  change_to_cast(expr, addr_uuid_var, expr->type);
+  /* Replace the constant with one that is the address of the uuid
+     variable, cast to the right type.  The cast is needed at least
+     to add "const", but it also covers any mismatch between the runtime
+     idea of _GUID and the actual declaration in the user's source. */
+  set_variable_address_constant(uuid_var, con,
+                                /*set_address_taken_flag=*/TRUE);
+  implicit_cast(con, orig_con_type);
+#if MAINTAIN_NEEDED_FLAGS
+  /* If the constant has already been marked as needed, mark it as
+     needed again and visit its new subtree. */
+  if (orig_needed) mark_as_needed((char *)con, iek_constant);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* lower_uuidof */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -1561,7 +1561,6 @@ fields to default values.
       node->variant.object_lifetime.ptr  = NULL;
       break;
     case enk_typeid:
-    case enk_uuidof:
       node->variant.typeid_info.type = NULL;
       node->variant.typeid_info.expr = NULL;
       break;

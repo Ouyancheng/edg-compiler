@@ -146,7 +146,7 @@ extern void add_body_for_covariant_return_type_entry_routine(
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern void lower_uuidof(an_expr_node_ptr expr);
+extern void lower_uuidof(a_constant *con);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void make_code_to_invoke_file_scope_init_routine(void);

@@ -569,6 +569,11 @@ display_constant_value:
           disp_ptr("constant", (char *)ptr->variant.address.variant.constant,
                    iek_constant);
           break;
+        case abk_uuidof:
+          (void)printf("abk_uuidof\n");
+          disp_ptr("type", (char *)ptr->variant.address.variant.type,
+                   iek_type);
+          break;
         default:
           (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */
@@ -2058,11 +2063,6 @@ do_variable:
       break;
     case enk_typeid:
       (void)printf("enk_typeid\n");
-      disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
-      disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
-      break;
-    case enk_uuidof:
-      (void)printf("enk_uuidof\n");
       disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
       disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
       break;

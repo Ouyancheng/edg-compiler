@@ -832,7 +832,6 @@ if there are any temp inits (unordered or not) in the expression.
     case enk_routine_address:
     case enk_field:
     case enk_address_of_ellipsis:
-    case enk_uuidof:
       /* No temp inits. */
       break;
     case enk_operation:

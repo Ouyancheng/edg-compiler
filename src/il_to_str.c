@@ -1785,7 +1785,7 @@ parentheses are not needed.
 */
 {
   a_type_ptr              type, orig_type;
-  a_constant_ptr          con;
+  a_constant_ptr          con = NULL;
   a_source_correspondence *entity_scp = NULL;
   an_il_entry_kind        entity_kind;
   a_field_ptr             field;
@@ -1841,6 +1841,11 @@ parentheses are not needed.
                  "form_lvalue_for_addressed_entity: address of nonstring con");
       type = con->type;
       break;
+    case abk_uuidof:
+      /* Address of a structure that represents the uuid information for a
+         given class type. */
+      type = type_pointed_to(constant->type);
+      break;
     default:
       unexpected_condition_str(
                    "form_lvalue_for_addressed_entity: bad addr constant kind");
@@ -1852,9 +1857,25 @@ parentheses are not needed.
   if (gen_output) {
     if (entity_scp != NULL) {
       form_name(entity_scp, entity_kind, octl);
-    } else {
+    } else if (con != NULL) {
       /* Constant case. */
       form_constant(con, /*need_parens=*/FALSE, octl);
+    } else {
+      /* Microsoft __uuidof. */
+      a_type_ptr uuid_type;
+
+      check_assertion_str(constant->variant.address.kind ==
+                                              (an_address_base_kind)abk_uuidof,
+                          "form_lvalue_for_addressed_entity: bad kind");
+      uuid_type = constant->variant.address.variant.type;
+      octl->output_str("__uuidof(");
+      if (uuid_type != NULL) {
+        form_type(uuid_type, octl);
+      } else {
+        /* Zero GUID. */
+        octl->output_str("0");
+      }  /* if */
+      octl->output_str(")");
     }  /* if */
   }  /* if */
   /* If the type is right and the offset is zero, we have what we need. */
