@@ -83,12 +83,17 @@ static a_pch_saved_variable_ptr
 			   lists.  Each element points to an array of
 			   saved variable entries. */
 
-static int	num_of_saved_variable_lists;
+static int	num_of_saved_variable_lists /* = 0 */;
 			/* Number of entries in the saved variable array list
 			   that have been used. */
 
 static char	*curr_dir_name /* = NULL */;
 			/* String containing the current directory name. */
+
+static an_error_code
+		mismatch_reason;
+			/* An error code that specifies why a given
+			   precompiled header file could not be used. */
 
 #if DEBUG
 static long	num_pch_events_allocated;
@@ -665,7 +670,7 @@ child files encountered.
     pch_write_string(sfp->full_name);
     pch_write_value(time);
 #if DEBUG
-    if (debug_level >= 0) {
+    if (debug_level >= 5) {
       fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
               sfp->full_name, time);
     }  /* if */
@@ -692,6 +697,68 @@ changed.
 }  /* write_include_file_timestamps */
 
 
+static void write_saved_variables(void)
+/*
+Save the contents of the variables as specified by the saved
+variable lists.
+*/
+{
+  int				i;
+  a_pch_saved_variable_ptr	psvp;
+
+  db_enter(4, "write_saved_variables");
+  for (i = 0; i < num_of_saved_variable_lists; ++i) {
+    psvp = saved_variable_array_list[i];
+    for (psvp = saved_variable_array_list[i];
+         psvp->var_address != NULL;
+         psvp++) {
+#if DEBUG
+      if (debug_level >= 5) {
+        fprintf(f_debug, "Saving %5lu bytes at %p, variable %s\n",
+                psvp->var_size, psvp->var_address,
+                psvp->var_name == NULL
+                  ? "(name not available)"
+                  : psvp->var_name);
+      }  /* if */
+#endif /* DEBUG */
+      (void)fwrite(psvp->var_address, psvp->var_size, 1, f_pch_output);
+    }  /* for */
+  }  /* for */
+  db_exit();
+}  /* write_saved_variables */
+
+
+static void read_saved_variables(void)
+/*
+Save the contents of the variables as specified by the saved
+variable lists.
+*/
+{
+  int				i;
+  a_pch_saved_variable_ptr	psvp;
+
+  db_enter(4, "read_saved_variables");
+  for (i = 0; i < num_of_saved_variable_lists; ++i) {
+    psvp = saved_variable_array_list[i];
+    for (psvp = saved_variable_array_list[i];
+         psvp->var_address != NULL;
+         psvp++) {
+#if DEBUG
+      if (debug_level >= 5) {
+        fprintf(f_debug, "Restoring %5lu bytes at %p, variable %s\n",
+                psvp->var_size, psvp->var_address,
+                psvp->var_name == NULL
+                  ? "(name not available)"
+                  : psvp->var_name);
+      }  /* if */
+#endif /* DEBUG */
+      fread_with_check(psvp->var_address, psvp->var_size, f_pch_input);
+    }  /* for */
+  }  /* for */
+  db_exit();
+}  /* read_saved_variables */
+
+
 void write_precompiled_header_file(void)
 /*
 Create a precompiled header file for the compilation up to the
@@ -704,12 +771,14 @@ current point.
   (void)fwrite(pch_id_string, pch_id_string_length, 1, f_pch_output);
   /* Current directory name. */
   pch_write_string(curr_dir_name);
-  /* Include file names and timestamps. */
-  write_include_file_timestamps();
   /* Write the event list that will be used for PCH file matching. */
   write_pch_events(pch_cmd_line_event_list_head);
   write_pch_events(pch_event_list_head);
   /* Write dependency checking information. */
+  /* Include file names and timestamps. */
+  write_include_file_timestamps();
+  /* Write the compilation state to be restored. */
+  write_saved_variables();
   (void)fclose(f_pch_output);
 }  /* write_precompiled_header_file */
 
@@ -732,6 +801,9 @@ version.
       match = TRUE;
     }  /* if */
   }  /* if */
+  if (!match) {
+    mismatch_reason = ec_invalid_pch_file;
+  }  /* if */
   return match;
 }  /* id_string_matches */
 
@@ -742,9 +814,14 @@ Return TRUE if the next string in the candidate PCH file matches
 the current directory.
 */
 {
-  char	*ptr;
+  char		*ptr;
+  a_boolean	result;
   ptr = pch_read_string();
-  return strcmp(ptr, curr_dir_name) == 0;
+  result = strcmp(ptr, curr_dir_name) == 0;
+  if (!result) {
+    mismatch_reason = ec_pch_curr_directory_changed;
+  }  /* if */
+  return result;
 }  /* curr_dir_matches */
 
 
@@ -772,6 +849,7 @@ and make the modification times match the current values for the files.
          Note that we require the times to be identical, so even if the include
          file seems to be older than the last one we still consider it to be
          a change. */
+      mismatch_reason = ec_pch_header_files_have_changed;
       match = FALSE;
       break;
     }  /* if */
@@ -806,6 +884,9 @@ all match.
      any, then there is a mismatch. */
   if (match && read_pch_event(&event)) {
     match = FALSE;
+  }  /* if */
+  if (!match) {
+    mismatch_reason = ec_pch_cmd_line_option_mismatch;
   }  /* if */
   db_exit();
   return match;
@@ -906,7 +987,10 @@ pch file.  Return a pointer to the last matching event.
     pep = pep->next;
   }  /* while */
   /* If the candidate file doesn't match, return a NULL to the caller. */
-  if (!match) last_matching_event = NULL;
+  if (!match) {
+    last_matching_event = NULL;
+    mismatch_reason = ec_pch_file_prefix_mismatch;
+  }  /* if */
   db_exit();
   return last_matching_event;
 }  /* compare_event_lists */
@@ -924,11 +1008,19 @@ matching event is returned.
   a_pch_event_ptr	last_matching_event = NULL;
 
   db_enter(3, "pch_is_applicable");
-  if (id_string_matches() && curr_dir_matches() &&
-      include_files_have_not_changed()) {
+  mismatch_reason = ec_no_error;
+  if (id_string_matches() && curr_dir_matches()) {
     /* This is a valid precompiled header -- see if the event lists match. */
     if (cmd_line_events_match()) {
       last_matching_event = compare_event_lists();
+      if (last_matching_event != NULL) {
+        if (include_files_have_not_changed()) {
+          /* The include files have not changed.  We can use this PCH. */
+        } else {
+          /* This PCH cannot be used because the include files have changed. */
+          last_matching_event = NULL;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
@@ -936,7 +1028,7 @@ matching event is returned.
 }  /* pch_is_applicable */
 
 
-static void compare_prefix_with_existing_headers(void)
+static void find_applicable_pch(void)
 /*
 Compare the prefix information for this file with the prefix
 information for the other precompiled headers in the current
@@ -950,9 +1042,9 @@ directory.
 
 #if 0
 #else
-  debug_level=3;
+  debug_level=1;
 #endif
-  db_enter(3, "compare_prefix_with_existing_headers");
+  db_enter(3, "find_applicable_pch");
   for (first = TRUE;
        (file_name = get_file_name_from_curr_dir(first)) != NULL;
        first = FALSE) {
@@ -970,7 +1062,7 @@ directory.
     last_matching_event = pch_is_applicable();
     is_applicable = last_matching_event != NULL;
 #if DEBUG
-    if (debug_level >= 3) {
+    if (debug_level >= 1) {
       fprintf(f_debug, "PCH file %s, applicable: %s",
               file_name, is_applicable ? "TRUE" : "FALSE");
       if (is_applicable) {
@@ -979,6 +1071,9 @@ directory.
                 last_matching_event->position.column);
       } else {
         fprintf(f_debug, "\n");
+        if (debug_level >= 2) {
+          pos_st_warning(mismatch_reason, &null_source_position, file_name);
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
@@ -997,12 +1092,64 @@ directory.
     }  /* if */
     (void)fclose(f_pch_input);
   }  /* for */
+  /* Save a copy of the precompiled header file name to be used. */
+  pch_input_file_name = (char *)alloc_general(strlen(file_name_buffer) + 1);
+  (void)strcpy(pch_input_file_name, file_name_buffer);
   db_exit();
 #if 0
 #else
   debug_level=0;
 #endif
-}  /* compare_prefix_with_existing_headers */
+}  /* find_applicable_pch */
+
+
+static a_boolean open_pch_input_file(void)
+/*
+Open the PCH input file.  Return TRUE if the file could be opened.
+If the file cannot be opened, and the name was explicitly specified by the
+user, then issue an error.
+*/
+{
+  f_pch_input = open_input_file(pch_input_file_name, /*binary_file=*/TRUE);
+  if (f_pch_input == NULL && !automatic_pch_processing) {
+    /* Only issue an error if the input file was explicitly specified. */
+    str_command_line_error(ec_cl_cannot_open_pch_input_file,
+                           pch_input_file_name);
+  }  /* if */
+  return f_pch_input != NULL;
+}  /* open_pch_input_file */
+
+
+void restore_precompiled_header_information(void)
+/*
+Reload the compiler state information so that a precompiled header file
+may be used.
+*/
+{
+  a_boolean	can_use_pch = TRUE;
+
+  if (open_pch_input_file()) {
+    if (pch_is_applicable()) {
+      /* Everything is OK. */
+    } else {
+      /* The file is not applicable for some reason. */
+      can_use_pch = FALSE;
+      if (!automatic_pch_processing) {
+        /* Issue a warning that the precompiled header cannot be used. */
+        pos_st_warning(mismatch_reason, &null_source_position,
+                       pch_input_file_name);
+      } else {
+        /* Something must have changed since was last read the PCH file.
+           Silently suppress use of the PCH file. */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (can_use_pch) {
+#if 0
+    read_saved_variables();
+#endif /* 0 */
+  }  /* if */
+}  /* restore_precompiled_header_information */
 
 
 void precompiled_header_processing(void)
@@ -1023,7 +1170,10 @@ be used as part of the applicability check in subsequent compilations.
   /* We have not encountered a condition that would prevent us from
      using a precompiled header. */
   build_prefix_information();
-  compare_prefix_with_existing_headers();
+  if (automatic_pch_processing) {
+    find_applicable_pch();
+  }  /* if */
+  restore_precompiled_header_information();
   db_exit();
 }  /* precompiled_header_processing */
 
