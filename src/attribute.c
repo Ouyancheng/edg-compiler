@@ -1178,7 +1178,7 @@ static void ensure_routine_type_is_modifiable(a_type_ptr  *tp)
 /*
 Before applying an attribute to the type field of a routine, we must make
 sure that that type is not a typedef (which could be shared with other
-routines).  This makes a private copy of the underlying type is that is
+routines).  This makes a private copy of the underlying type if that is
 the case.
 */
 {
