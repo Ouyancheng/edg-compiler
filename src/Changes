@@ -1,5 +1,19 @@
 Version 2.33
 
+9/30/96 Removing front-end-only types from based-types lists
+
+The based-types lists that are passed to a back end (or to IL lowering) no
+longer will include entries for pointer-to-member types that involve
+"nonreal" classes or template parameter types; such types do not otherwise
+escape from the front end.  For example:
+
+  template <class T> class S { int S<T>::* pmi; ... };
+  S<int> s;
+
+The based-type list for "int" will include "int S<int>::*", but
+"int S<T>::*" will be removed from the list when front-end processing is
+completed.  a_based_type_list_member now has a new field, front_end_only.
+
 9/30/96 Indication of point in throw where exception has been started
         (IL CHANGE if EH partially lowered)
 
