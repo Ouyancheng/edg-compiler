@@ -2533,8 +2533,8 @@ of each kind.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
-     nor for its subordinate entries like iek_src_seq_secondary_decl,
-     iek_src_seq_end_of_construct, and iek_comment, since such entries will
+     nor for its subordinate entries like iek_src_seq_secondary_decl
+     and iek_src_seq_end_of_construct, since such entries will
      never appear on an orphan list.  Ditto for iek_src_seq_sublist. */
   /* Likewise iek_per_instantiation_needed_flags_entry. */
 }  /* walk_orphaned_file_scope_il_entries */

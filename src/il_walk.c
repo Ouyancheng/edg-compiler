@@ -1536,10 +1536,10 @@ running them through walk_remap_func.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
-     subordinate entries like iek_comment, iek_src_seq_secondary_decl, and
+     subordinate entries like iek_src_seq_secondary_decl and
      iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list.  Ditto for iek_src_seq_sublist. */
-  /* Nothing needed for iek_comment, iek_scope_orphaned_list_header,
+  /* Nothing needed for iek_scope_orphaned_list_header,
      iek_hidden_name, iek_pragma, iek_template, iek_macro, and
      iek_per_instantiation_needed_flags_entry. */
 #undef remap_orphan_entry_first
@@ -1629,10 +1629,10 @@ running them through walk_remap_func.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
-     subordinate entries like iek_comment, iek_src_seq_secondary_decl, and
+     subordinate entries like iek_src_seq_secondary_decl and
      iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list. */
-  /* Nothing needed for iek_comment, iek_scope_orphaned_list_header,
+  /* Nothing needed for iek_scope_orphaned_list_header,
      iek_hidden_name, iek_pragma, iek_template, iek_macro, and
      iek_per_instantiation_needed_flags_entry. */
 #undef remap_orphan_entry_last
