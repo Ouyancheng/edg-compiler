@@ -3434,7 +3434,7 @@ of the function, and again overloading is a possibility.
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else {
     update_friend_function_info(sym->variant.routine.ptr, class_type,
-                                func_info->is_definition);
+                                (a_boolean)func_info->is_definition);
   }  /* if */
   if (func_info->is_definition) {
     /* Since this is a definition, record the current lint argsused and
