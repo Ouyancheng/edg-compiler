@@ -2281,6 +2281,7 @@ Returns TRUE if there is an error in the specifiers.
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
   a_source_position          restrict_pos;
+  a_boolean                  bad_type_name_error;
 
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
@@ -3137,14 +3138,12 @@ process_class_specifier:
              class A, we simply fall through this test. */
           goto destructor_name;
         }  /* if */
+        bad_type_name_error = FALSE;
         if (is_error_locator(locator_for_curr_id) &&
             locator_for_curr_id.is_template_id) {
           /* An error was detected in scanning a class template id.  Since
              a template id can only be a type, treat it as an error type. */
-          err = TRUE;
-          basic_type = bt_typedef;
-          *type_ptr = error_type();
-          break;
+          bad_type_name_error = TRUE;
         } else if (num_specifiers == 0 &&
                    !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
           /* If this is the first specifier, and this identifier is undefined,
@@ -3153,119 +3152,97 @@ process_class_specifier:
              declarations, so this bit of error recovery tweaking applies
              only to things like prototyped parameter declarations and
              members of structs/unions. */
-          if (!is_error_locator(locator_for_curr_id) &&
-              (symbol_list_from_locator(locator_for_curr_id)) == NULL &&
-              (inactive_symbol_list_from_locator(
-                                        locator_for_curr_id)) == NULL) {
-            /* The identifier is undefined.  Assume it's an undefined
-               typedef name. */
-            str_error(ec_undefined_identifier,
-                      locator_for_curr_id.symbol_header->identifier);
-            err = TRUE;
-            basic_type = bt_typedef;
-            *type_ptr = error_type();
-            reference_to_invalid_name(&locator_for_curr_id);
-            break;
-          }  /* if */
+          bad_type_name_error = TRUE;
         } else if (num_specifiers == 0 &&
                    is_error_locator(locator_for_curr_id) &&
                    locator_for_curr_id.is_global_qualified_name) {
           /* An error was detected in scanning a qualified name that started
              with "::".  Since declarators may not start with "::" we assume
              this to be like an unidentified type name. */
+          bad_type_name_error = TRUE;
+        } else if (type_specifier_allowed && basic_type == bt_none &&
+                   sign == sign_none && size == size_none &&
+                   (locator_for_curr_id.specific_symbol == NULL ||
+                    locator_for_curr_id.specific_symbol->kind ==
+                                         (a_symbol_kind)sk_undefined)) {
+          /* No type name has been seen and the current token may be
+             undeclared identifier or an invalid qualified name.  If the
+             next token is the start of a declarator, we may plausibly
+             have something like "extern x y" or "static x *z", where x
+             can be interpreted as a type name. */
+          a_token_cache  cache;
+
+          clear_token_cache(&cache, /*reusable=*/FALSE);
+          /* Put the current token in the cache. */
+          cache_curr_token(&cache);
+          /* Advance to next token. */
+          (void)get_token();
+          /* Check next token for start of a declarator.  "(" may be part
+             of a function declaration, so it doesn't count. */
+          if (is_declarator_start() && curr_token != tok_lparen) {
+            /* Assume that the undefined identifier that is apparently
+               followed by a declarator was intended to be a type name. */
+            bad_type_name_error = TRUE;
+          }  /* if */
+          /* Restore the token state. */
+          rescan_cached_tokens(&cache);
+        }  /* if */
+        if (bad_type_name_error) {
+          if (!is_error_locator(locator_for_curr_id)) {
+            if (normal_id_lookup(&locator_for_curr_id,
+                                 IDL_NO_OPTIONS) == NULL) {
+              str_error(ec_undefined_identifier,
+                        locator_for_curr_id.symbol_header->identifier);
+            } else {
+              error(ec_exp_type_specifier);
+            }  /* if */
+            reference_to_invalid_name(&locator_for_curr_id);
+          }  /* if */
           err = TRUE;
           basic_type = bt_typedef;
           *type_ptr = error_type();
           break;
-        } else {
-          /* Two special cases. */
-          if (type_specifier_allowed && basic_type == bt_none &&
-              sign == sign_none && size == size_none &&
-              (locator_for_curr_id.specific_symbol == NULL ||
-               locator_for_curr_id.specific_symbol->kind ==
-                                   (a_symbol_kind)sk_undefined)) {
-            /* No type name has been seen and the current token may be
-               undeclared identifier or an invalid qualified name.  If the
-               next token is the start of a declarator, we may plausibly
-               have something like "extern x y" or "static x *z", where x
-               can be interpreted as a type name. */
-            a_token_cache  cache;
-            a_boolean      is_declarator;
-
-            clear_token_cache(&cache, /*reusable=*/FALSE);
-            /* Put the current token in the cache. */
-            cache_curr_token(&cache);
-            /* Advance to next token. */
-            (void)get_token();
-            /* Check next token for start of a declarator.  "(" may be part
-               of a function declaration, so it doesn't count. */
-            is_declarator = is_declarator_start() && curr_token != tok_lparen;
-            /* Restore the token state. */
-            rescan_cached_tokens(&cache);
-            if (is_declarator) {
-              /* Assume that the undefined identifier that is apparently
-                 followed by a declarator was intended to be a type name. */
-              err = TRUE;
-              if (locator_for_curr_id.specific_symbol == NULL) {
-                /* This is not an invalid qualified name, but it may be that
-                   it is a valid identifier, just not a type name.  Treat
-                   undefined-names and defined-but-not-a-type-names with
-                   different diagnostics. */
-                if (normal_id_lookup(&locator_for_curr_id,
-                                     IDL_NO_OPTIONS) == NULL) {
-                  str_error(ec_undefined_identifier,
-                            locator_for_curr_id.symbol_header->identifier);
-                } else {
-                  error(ec_exp_type_specifier);
-                }  /* if */
-              }  /* if */
-              basic_type = bt_typedef;
-              *type_ptr = error_type();
-              reference_to_invalid_name(&locator_for_curr_id);
-              break;
-            }  /* if */
-          }  /* if */
-          if (num_specifiers ==
+        }  /* if */
+        if (num_specifiers ==
                      ((is_friend_decl ? 1 : 0) + (is_inline ? 1 : 0))) {
-            a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
+          a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
 
-            /* A function declaration without declaration specifiers is
-               permitted. */
-            if (num_specifiers == 0) {
-              *output_flags |= DSO_NO_DECL_SPECIFIERS;
-            }  /* if */
-            /* Set the type appropriately if this the name of a constructor
-               member function. */
-            if (sym != NULL) {
-              if (is_constructor_symbol(sym)) {
-                *output_flags |= DSO_CONSTRUCTOR;
-                basic_type = bt_no_type;
-              } else if (is_destructor_symbol(sym)) {
-                *output_flags |= DSO_DESTRUCTOR;
-                basic_type = bt_no_type;
-              } else if (is_friend_decl) {
-                /* This is a declaration of the form "... friend X ... ",
-                   where X is already known to be neither the name of a class
-                   in a friend class declaration nor the name of a type for a
-                   function return type.  That means it is probably the name
-                   of a function with an implicit return type.  Clear the
-                   specific symbol pointer in the locator to deal with this
-                   sort of case:
-                     class A {
-                       int x;         // Declare A::x
-                       friend x();    // Cause injection of ::x at file scope
-                     };
-                */
-                clear_specific_symbol(locator_for_curr_id);
-              }  /* if */
-            }  /* if */
-            goto exit_loop;
-          } else if (is_friend_decl) {
-            /* Clear the specific symbol pointer in the locator so that
-               subsequent lookups will be done correctly. */
-            clear_specific_symbol(locator_for_curr_id);
-            goto exit_loop;
+          /* A function declaration without declaration specifiers is
+             permitted. */
+          if (num_specifiers == 0) {
+            *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
+          /* Set the type appropriately if this the name of a constructor
+             member function. */
+          if (sym != NULL) {
+            if (is_constructor_symbol(sym)) {
+              *output_flags |= DSO_CONSTRUCTOR;
+              basic_type = bt_no_type;
+            } else if (is_destructor_symbol(sym)) {
+              *output_flags |= DSO_DESTRUCTOR;
+              basic_type = bt_no_type;
+            } else if (is_friend_decl) {
+              /* This is a declaration of the form "... friend X ... ",
+                 where X is already known to be neither the name of a class
+                 in a friend class declaration nor the name of a type for a
+                 function return type.  That means it is probably the name
+                 of a function with an implicit return type.  Clear the
+                 specific symbol pointer in the locator to deal with this
+                 sort of case:
+                   class A {
+                     int x;         // Declare A::x
+                     friend x();    // Cause injection of ::x at file scope
+                   };
+              */
+              clear_specific_symbol(locator_for_curr_id);
+            }  /* if */
+          }  /* if */
+          goto exit_loop;
+        } else if (is_friend_decl) {
+          /* Clear the specific symbol pointer in the locator so that
+             subsequent lookups will be done correctly. */
+          clear_specific_symbol(locator_for_curr_id);
+          goto exit_loop;
         }  /* if */
         /* For non-typedef identifiers, branch to the default case. */
         goto something_unexpected;
