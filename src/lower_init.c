@@ -4401,7 +4401,6 @@ location is the insert_location2 value (after the assignment statement).
 #endif /* IA64_ABI */
                                                    int_kind,
                                                  &guarded_var->source_corresp);
-    (*test_var)->source_corresp.name_has_been_mangled = TRUE;
 #if IA64_ABI
     if (guarded_var->comdat_group != NULL) {
       (*test_var)->comdat_group = guarded_var->comdat_group;
