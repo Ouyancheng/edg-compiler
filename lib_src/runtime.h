@@ -112,6 +112,9 @@ typedef void (*a_cfront_constructor_ptr)(void*, void* b1, void* b2, void*b3,
 typedef void (*a_constructor_ptr)(void*);
 			/* Type of a default constructor called from
 			   vec_new. */
+typedef void (*a_copy_constructor_ptr)(void*, void*);
+			/* Type of a copy constructor called from
+			   vec_cctor. */
 
 
 #endif /* RUNTIME_H */

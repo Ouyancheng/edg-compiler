@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C++  Runtime                           - | \^/ | -      *
+* Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -329,14 +329,15 @@ inline size_t get_array_size(void*	array_ptr,
 
 
 /*ARGSUSED*/ /* <-- "dtor" is only used when EXCEPTION_HANDLING is TRUE. */
-EXTERN_C void *__array_new_general(void                  *array_ptr,
-                                   int                   number_of_elements,
-                                   size_t                element_size,
-                                   a_constructor_ptr	 ctor,
-                                   a_destructor_ptr	 dtor,
-				   a_new_ptr		 new_routine,
-                                   a_delete_ptr          delete_routine,
-				   int			 is_two_arg)
+static void *array_new_general(void                  *array_ptr,
+                               int                   number_of_elements,
+                               size_t                element_size,
+                               void                  *src_array_ptr,
+                               a_constructor_ptr     ctor,
+                               a_destructor_ptr	     dtor,
+		               a_new_ptr	     new_routine,
+                               a_delete_ptr          delete_routine,
+			       int		     is_two_arg)
 /*
 Allocate storage for an array, then call a constructor for each
 element of the array.  If array_ptr is NULL, allocate the space for an
@@ -348,6 +349,9 @@ it points to an already-allocated array.  If ctor is non-NULL, it
 points to a constructor function to be called for each element of the
 array (whether the array is allocated here or pre-allocated).  Return
 the address of the array.
+
+src_array_ptr points to the array to be copied when ctor points to a
+copy constructor.
 
 dtor is a pointer to the destructor for objects of the element type.
 This is used by the exception handling mechanism for object cleanup
@@ -417,14 +421,22 @@ use.
     for (i = 0, arr_ptr = array_ptr;
          i < number_of_elements;
          i++, increment_ptr(arr_ptr, element_size)) {
+     if (src_array_ptr == NULL) {
+       /* Call the default constructor. */
 #if CFRONT_COMPATIBILITY_MODE
-      a_cfront_constructor_ptr	cfront_ctor;
-      cfront_ctor = (a_cfront_constructor_ptr)ctor;
-      (*cfront_ctor)(arr_ptr, (void *)0, (void *)0, (void *)0, (void *)0,
-                     (void *)0, (void *)0, (void *)0, (void *)0);
+        a_cfront_constructor_ptr	cfront_ctor;
+        cfront_ctor = (a_cfront_constructor_ptr)ctor;
+        (*cfront_ctor)(arr_ptr, (void *)0, (void *)0, (void *)0, (void *)0,
+                       (void *)0, (void *)0, (void *)0, (void *)0);
 #else /* CFRONT_COMPATIBILITY_MODE */
-      (*ctor)(arr_ptr); 
+        (*ctor)(arr_ptr); 
 #endif /* CFRONT_COMPATIBILITY_MODE */
+      } else {
+        /* Call the copy constructor. */
+        a_copy_constructor_ptr	cctor;
+        cctor = (a_copy_constructor_ptr)ctor;
+        (*cctor)(arr_ptr, src_array_ptr);
+      }  /* if */
 #if EXCEPTION_HANDLING
       if (dtor != NULL) {
         /* Update the counter of the number of elements processed in the
@@ -432,6 +444,9 @@ use.
         aaehi.elements_processed++;
       }  /* if */
 #endif /* EXCEPTION_HANDLING */
+      /* Go to the next element in the source array when the constructor
+         being called is a copy constructor. */
+      if (src_array_ptr != NULL) increment_ptr(src_array_ptr, element_size);
     }  /* for */
   }  /* if */
 #if EXCEPTION_HANDLING
@@ -443,7 +458,7 @@ use.
 error_exit:
   /* Return the pointer to the array. */
   return array_ptr;
-}  /* __array_new_general */
+}  /* array_new_general */
 
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
@@ -461,9 +476,9 @@ by new_routine and delete_routine.  is_two_arg is TRUE if the delete
 routine is one that requires two arguments.
 */
 {
-  return (__array_new_general((void*)NULL, number_of_elements, element_size,
-                              ctor, dtor, new_routine,
-                              delete_routine, is_two_arg));
+  return (array_new_general((void*)NULL, number_of_elements, element_size,
+                            (void*)NULL, ctor, dtor, new_routine,
+                            delete_routine, is_two_arg));
 }  /* __array_new */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
@@ -479,9 +494,9 @@ new operations that do not involve the use of a class specific
 operator new.
 */
 {
-  return (__array_new_general(array_ptr, number_of_elements, element_size,
-                              ctor, dtor, (a_new_ptr)NULL,
-                              (a_delete_ptr)NULL, /*is_two_arg=*/FALSE));
+  return (array_new_general(array_ptr, number_of_elements, element_size,
+                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
+                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE));
 }  /* __vec_new_eh */
 
 
@@ -495,10 +510,33 @@ before EH was supported.  This is similar to vec_new_eh, except that
 no destructor pointer is provided.
 */
 {
-  return (__array_new_general(array_ptr, number_of_elements, element_size,
-                              ctor, /*a_destructor_ptr*/NULL, (a_new_ptr)NULL,
-                              (a_delete_ptr)NULL, /*is_two_arg=*/FALSE));
+  return (array_new_general(array_ptr, number_of_elements, element_size,
+                            (void*)NULL, ctor, /*a_destructor_ptr*/NULL,
+                            (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                            /*is_two_arg=*/FALSE));
 }  /* __vec_new */
+
+
+EXTERN_C void __vec_cctor_eh(void                       *array_ptr,
+                             size_t                     number_of_elements,
+                             size_t                     element_size,
+                             a_copy_constructor_ptr	ctor,
+                	     void                       *src_array_ptr,
+                             a_destructor_ptr		dtor)
+/*
+This is an entry point to array_new_general used to call the copy
+constructor for each element of an array.  The corresponding element of
+the array pointed to by src_array_ptr is the source operand for the
+copy constructor.  Because this runtime routine will only be called for
+constructor initialization of member arrays, the number_of_elements
+can never be zero.
+*/
+{
+  (void)array_new_general(array_ptr, number_of_elements, element_size,
+                          src_array_ptr, (a_constructor_ptr)ctor, dtor,
+                          (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                          /*is_two_arg=*/FALSE);
+}  /* __vec_ctor_eh */
 
 
 #if EXCEPTION_HANDLING
@@ -553,13 +591,13 @@ an exception.
 #endif /* EXCEPTION_HANDLING */
 
 
-EXTERN_C void __array_delete_general(void                *array_ptr,
-                                     int                 number_of_elements,
-                                     size_t              element_size,
-                                     a_destructor_ptr    dtor,
-				     int		 delete_flag,
-                                     a_delete_ptr	 delete_routine,
-				     int		 is_two_arg)
+static void array_delete_general(void                *array_ptr,
+                                 int                 number_of_elements,
+                                 size_t              element_size,
+                                 a_destructor_ptr    dtor,
+				 int		     delete_flag,
+                                 a_delete_ptr	     delete_routine,
+				 int		     is_two_arg)
                                      
 /*
 Call a destructor for each element of an array, then delete the storage
@@ -630,7 +668,7 @@ must be -1 for that case.
       free_array(array_ptr, array_size, delete_routine, is_two_arg);
     }  /* if */
   }  /* if */
-}  /* __array_delete_general */
+}  /* array_delete_general */
 
 
 /*ARGSUSED*/ /* <-- "unused" is unused. */
@@ -645,8 +683,8 @@ Entry point used for the normal vector delete operation.  The unused
 parameter is there for cfront compatibility.
 */
 {
-  __array_delete_general(array_ptr, number_of_elements, element_size, dtor,
-                         delete_flag, (a_delete_ptr)NULL,
+  array_delete_general(array_ptr, number_of_elements, element_size, dtor,
+                       delete_flag, (a_delete_ptr)NULL,
                          /*is_two_arg=*/FALSE);
 }  /* __vec_delete */
 
@@ -665,8 +703,8 @@ by delete_routine.  is_two_arg is TRUE if the delete routine is one that
 requires two arguments.
 */
 {
-  __array_delete_general(array_ptr, number_of_elements, element_size, dtor,
-                         /*delete_flag=*/TRUE, delete_routine, is_two_arg);
+  array_delete_general(array_ptr, number_of_elements, element_size, dtor,
+                       /*delete_flag=*/TRUE, delete_routine, is_two_arg);
 }  /* __array_delete */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
@@ -685,9 +723,9 @@ The name is intended to describe the nature of the problem to the user
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C++  Runtime                           - | \^/ | -      *
+* Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

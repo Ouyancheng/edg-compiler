@@ -1,5 +1,14 @@
 Version 2.31
 
+1/15/96  Exceptions thrown by routines called by vec_cctor handled incorrectly
+
+__vec_cctor is called for constructor initialization of member arrays.
+If calling the constructor for one of the elements of the array directly
+or indirectly resulted in an exception being thrown that would transfer
+control out of vec_cctor, the constructed array elements should be
+destroyed, but were not.  A new runtime routine __vec_cctor_eh is
+now called so that the cleanup can be done, if needed.
+
 1/12/96  Type of an_object_offset now automatically configured
 
 The type "an_object_offset" is required to match the type specified

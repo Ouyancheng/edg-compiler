@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C++  Runtime                           - | \^/ | -      *
+* Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -14,21 +14,15 @@ C++ runtime routine to execute a copy constructor for each element of an array.
 */
 
 #include <stdlib.h>
+#include "basics.h"
+#include "runtime.h"
 
 
-typedef void (*a_ptr_to_func_returning_void) (void *, void *);
-
-extern "C" {
-	void __vec_cctor(void *, size_t, size_t, a_ptr_to_func_returning_void,
-                        void *);
-}
-
-
-void __vec_cctor(void                         *array_ptr,
-                size_t                       number_of_elements,
-                size_t                       element_size,
-                a_ptr_to_func_returning_void ctor,
-                void                         *src_array_ptr)
+EXTERN_C void __vec_cctor(void                         *array_ptr,
+                          size_t                       number_of_elements,
+                          size_t                       element_size,
+                          a_copy_constructor_ptr       ctor,
+                          void                         *src_array_ptr)
 /*
 Walk through the array, calling the specified copy constructor for each
 array element.  The corresponding element of the array pointed to by
@@ -54,9 +48,9 @@ of member arrays, the number_of_elements can never be zero.
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C++  Runtime                           - | \^/ | -      *
+* Edison Design Group C++ Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
