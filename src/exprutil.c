@@ -7342,10 +7342,12 @@ non-NULL return *con_value == NULL.
     node = add_indirection_to_node(node);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Restore the original expression position. */
-  node->expr_range = saved_expr_range;
-  if (is_operation_node(node)) {
-    node->operator_position = saved_operator_position;
+  if (node != NULL) {
+    /* Restore the original expression position. */
+    node->expr_range = saved_expr_range;
+    if (is_operation_node(node)) {
+      node->operator_position = saved_operator_position;
+    }  /* if */
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return node;
