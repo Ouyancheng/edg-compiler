@@ -6655,6 +6655,7 @@ routine assumes the class type is as complete as it will ever get.
           if (bcp->is_virtual
 #if IA64_ABI
               /* Ignore direct or indirect primary virtual bases. */
+              && bcp != ctsp->primary_base_class
               && !bcp->shares_virtual_function_info
               /* Ignore optimized empty bases, too. */
               && !bcp->is_optimized_empty_base
