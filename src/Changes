@@ -1,16 +1,5 @@
 Version 2.46
 
-1/29/01  Extraneous warning on new operators
-
-The front end used to indiscriminately warn about class-specific new operators
-without corresponding delete operator.  Now, the warning is inhibited if the
-new operator carries an empty exception specification.
-
-  struct S {
-    void* operator(size_t, void*) throw(); // No warning anymore
-    void* operator(size_t, int);           // Still triggers a warning
-  };
-
 1/29/01  Lowering of for-initializations in C99 mode can result in
          dropped initialization
 
