@@ -688,7 +688,7 @@ do
       echo $instantiation_command_line $cfile >$ii_file_name
       if [ $old_ii_format -ne 1 ] ; then
         pwd >>$ii_file_name
-	echo $cfile >>$$ii_file_name
+	echo $cfile >>$ii_file_name
       fi
       cat $ii_tmp_file >>$ii_file_name
       rm -f $ii_tmp_file
