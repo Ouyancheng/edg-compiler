@@ -699,6 +699,12 @@ type.
          class is a virtual base of the derived class. */
       fold_derived_class_cast(old_constant, bcp, new_constant, err_pos);
     }  /* if */
+    /* If the qualifiers aren't right, adjust them. */
+    if (!*did_not_fold && 
+        !is_error_type(new_constant->type) &&
+        !identical_types(new_constant->type, new_type)) {
+      implicit_cast(new_constant, new_type);
+    }  /* if */
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
      the cast has already been handled because it was a related class cast. */

@@ -1,6 +1,13 @@
 Version 2.31
 
-1/17/96   IL Lowering: exception handling code for "try" within constructor
+1/18/96   cv-qualifier adjustment on cast of pointer to class to related class
+
+When a constant pointer to a class is cast to a related (base or derived)
+class, conv_pointer_to_whatever failed to deal with a request for
+cv-qualifiers on the desired pointer type that are different from those
+on the source pointer.  Now fixed.
+
+1/17/96   IL lowering: exception handling code for "try" within constructor
 
 The code generated for a "try" block within a constructor, where the
 constructor is configured to do allocation at the beginning if the "this"
