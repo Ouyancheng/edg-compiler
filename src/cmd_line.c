@@ -2853,6 +2853,11 @@ enable_microsoft_mode:
     arg_dependent_lookup_enabled = TRUE;
     implicit_typename_enabled = FALSE;
   }  /* if */
+  if (prototype_instantiations_in_il) {
+    /* Don't record prototype instantiations in the IL if we don't actually
+       do nonclass prototype instantiations. */
+    prototype_instantiations_in_il = nonclass_prototype_instantiations;
+  }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();
   }  /* if */

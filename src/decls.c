@@ -5785,7 +5785,7 @@ recorded in the IL, the template header is passed via template_decl.
   if (!is_error_locator(*locator)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
     a_boolean  saved_sses_disallowed;
-    if (!nonclass_prototype_instantiations || is_template_symbol(sym)) {
+    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
       /* Prevent the generation of a source sequence entry for the a_template
          entry: we already did so elsewhere or we are generating prototype
          instantiations and hence do not want to record a_template entries. */
@@ -5808,7 +5808,7 @@ recorded in the IL, the template header is passed via template_decl.
       } /* if */
     } /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (!nonclass_prototype_instantiations || is_template_symbol(sym)) {
+    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
       /* Restore the previous state wrt. the generation of source sequence
          entries. */
       source_sequence_entries_disallowed = saved_sses_disallowed;
@@ -5861,7 +5861,7 @@ recorded in the IL, the template header is passed via template_decl.
 #endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (nonclass_prototype_instantiations) {
+  if (prototype_instantiations_in_il) {
     a_source_sequence_entry_ptr  ssep;
     if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* We have already recorded (mark_defined/mark_declared) the template in

@@ -10737,7 +10737,7 @@ the IL, the template header is passed via template_decl.
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
         if (func_info.declarator_ssep == NULL) {
           /* A member of a real instantiation. */
-        } else if (nonclass_prototype_instantiations) {
+        } else if (prototype_instantiations_in_il) {
           /* Record member templates of prototype instantiations.  (For real
              instantiations, func_info.declarator_ssep will be NULL. */
           a_routine_ptr  rout_ptr = rout_sym->variant.template_info

@@ -2583,7 +2583,7 @@ user later during real instantiations.
        flushing until end-of-source is found. */
     flush_past_token_cache_terminator();
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (nonclass_prototype_instantiations) {
+    if (prototype_instantiations_in_il) {
       add_to_routines_list(rout_ptr, NO_SCOPE_DEPTH);
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -11162,7 +11162,7 @@ returned to the caller.
   if (tssp != NULL) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
     a_boolean  saved_sses_disallowed;
-    if (!nonclass_prototype_instantiations) {
+    if (!prototype_instantiations_in_il) {
       /* Prevent the generation of a source sequence entry for the a_template
          entry since we already did so elsewhere. */
       saved_sses_disallowed = source_sequence_entries_disallowed;
@@ -11175,7 +11175,7 @@ returned to the caller.
                             decl_state->decl_info);
     mark_defined(sym, &locator->source_position);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (!nonclass_prototype_instantiations) {
+    if (!prototype_instantiations_in_il) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Restore the previous state wrt. the generation of source sequence
          entries. */
@@ -12002,13 +12002,11 @@ also for template template parameters (when is_template_param is TRUE).
         /* Bypass the ">". */
         (void)get_token();
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        {
+        if (prototype_instantiations_in_il) {
           a_template_decl_ptr template_decl =
                                          make_template_decl(/*tp_list=*/NULL);
           template_decl->parent = decl_state->template_decl;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
           template_decl->template_pos = template_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           decl_state->template_decl = template_decl;
         }
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -12320,8 +12318,7 @@ any non-empty template parameter lists that were scanned.
                                                 class_templ_cache_segments,
                                                 /*keep_default_args=*/TRUE);
   } /* if */
-  if (!prototype_instantiations_in_il ||
-      (!is_class_template && !nonclass_prototype_instantiations)) {
+  if (!prototype_instantiations_in_il) {
     /* Link in the a_template entry only if no prototype instantiation was
        recorded. */
     complete_il_template_entry(decl_state, sym, p_template_body_cache);
