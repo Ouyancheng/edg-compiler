@@ -126,7 +126,7 @@ constant had a exponent that was too large but a mantissa of zero.  Now fixed.
 
 3/26/03  GNU C mode: Declarations can appear anywhere in a block
 
-In GNU C mode, the front end now no longer requires that all the declaration
+In GNU C mode, the front end now no longer requires that all the declarations
 in a block appear at the beginning of that block.  For example:
 
   void f(int *p) {
