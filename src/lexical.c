@@ -7744,7 +7744,8 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
            field selection class or a base class thereof. */
         a_type_ptr	qualifier_type;
         qualifier_type = type_symbol_type(qualifier_sym);
-        if (!identical_types(field_sel_type, qualifier_type) &&
+        if (!type_matches_type_or_proxy_class(field_sel_type,
+                                              qualifier_type) &&
             find_base_class_of(field_sel_type, qualifier_type) == NULL) {
           pos_ty2_error(ec_destructor_qualifier_type_mismatch,
                        &locator_for_curr_id.source_position,
@@ -7774,7 +7775,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         if (normal_sym != NULL && is_class_symbol(normal_sym)) {
           normal_tp = type_symbol_type(normal_sym);
           normal_tp = skip_typerefs(normal_tp);
-          if (identical_types(field_sel_type, normal_tp)) {
+          if (type_matches_type_or_proxy_class(field_sel_type, normal_tp)) {
             type_sym = normal_sym;
             destructor_okay = TRUE;
             locator_for_curr_id = normal_locator;
@@ -7802,7 +7803,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           }  /* if */
           if (other_sym != NULL && is_class_symbol(other_sym)) {
             other_tp = skip_typerefs(other_sym->variant.type.ptr);
-            if (identical_types(field_sel_type, other_tp)) {
+            if (type_matches_type_or_proxy_class(field_sel_type, other_tp)) {
               type_sym = other_sym;
               destructor_okay = TRUE;
               locator_for_curr_id = other_locator;

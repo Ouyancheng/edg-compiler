@@ -463,7 +463,7 @@ as the class type, and use as a base class.
     templ_param_sym =
                      (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
     if (templ_param_sym == NULL) {
-      /* No template parameter symbol.  This is the case when geting the
+      /* No template parameter symbol.  This is the case when getting the
          proxy class for type_of_unknown_templ_param_nontype. */
       sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
                                     &null_source_position);
