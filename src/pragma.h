@@ -315,6 +315,7 @@ extern void discard_curr_construct_pragmas(void);
 
 extern a_pending_pragma_ptr extract_curr_construct_pragmas(void);
 
+extern
 void reactivate_curr_construct_pragmas(a_pending_pragma_ptr pragma_list);
 
 extern
