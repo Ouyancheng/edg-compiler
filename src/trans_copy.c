@@ -862,7 +862,7 @@ source correspodence field is scp and whose kind is "kind" are consistent.
     }  /* if */
   } else {
     if (tucp->canonical == tucp->primary) {
-      if (corresp_ranking(tucp->primary, kind) >
+      if (corresp_ranking(tucp->primary, kind) <
           corresp_ranking((char*)scp, kind)) {
         /* The primary IL entry is the canonical one, but the current entry
            is better.  That means the correspondence information is wrong. */
