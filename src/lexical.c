@@ -3813,6 +3813,69 @@ involve macro expansion or scanning of a preprocessing directive.
 }  /* next_token */
 
 
+a_boolean get_class_qualifier(a_scope_number *scope_number)
+/*
+Scan an optional class qualifier, e.g., "A::B::" (note that the final
+identifier of a qualified name is not scanned here; see get_qualified_name).
+Return TRUE if there was a qualifier, FALSE if not.  If there was a qualifier,
+set *scope_number to the scope number for the class indicated by the
+qualifier.  This routine should only be called in C++ mode.
+*/
+{
+  a_boolean      is_qualifier = FALSE;
+  a_symbol_ptr   class_symbol, first_symbol_in_class;
+  a_scope_number class_scope;
+
+  if (curr_token == tok_identifier) {
+    /* Look up the symbol to see if it could be a class name.  Note that
+       we don't consider the normal eclipsing rules.  A class can be found
+       even when hidden by something else:
+         class A {int i;};
+         int f() {
+           int A;
+           A::i = 1;   // The class A is found.
+         }
+    */
+    class_symbol = normal_id_lookup(&locator_for_curr_id,
+                                    /*must_be_class=*/TRUE);
+    if (class_symbol != NULL && next_token() == tok_colon_colon) {
+      /* This is a qualified name. */
+      /* Keep looping while there are more levels of class qualification.
+         Stop on something that is not a class name followed by "::". */
+      do {
+        /* Skip over the "class-name ::". */
+        (void)get_token();
+        (void)get_token();
+        /* Determine the scope number for the class. */
+        first_symbol_in_class =
+                              class_symbol->variant.class_struct_union.symbols;
+        /* Clear class_symbol early to end the loop in the error case. */
+        class_symbol = NULL;
+        if (first_symbol_in_class == NULL) {
+          /* There are no members of the class, so we cannot determine the
+             scope number */
+          class_scope = NO_SCOPE_NUMBER;
+          break;
+        }  /* if */
+        class_scope = first_symbol_in_class->decl_scope;
+        if (curr_token == tok_identifier) {
+          /* The next thing is an identifier (it must be, but if it's not,
+             the error is given later).  See if the identifier could be a
+             class name, indicating further qualification, as in A::B::x. */
+          /* Search for the identifier in the given scope. */
+          class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
+                                                   class_scope,
+                                                   /*must_be_class=*/TRUE);
+        }  /* if */
+      } while (class_symbol != NULL && next_token() == tok_colon_colon);
+      is_qualifier = TRUE;
+      *scope_number = class_scope;
+    }  /* if */
+  }  /* if */
+  return is_qualifier;
+}  /* get_class_qualifier */
+
+
 a_boolean get_qualified_name(void)
 /*
 If the current token is an identifier, see if it is the start of a
@@ -3831,56 +3894,14 @@ e.g., "int A:: = 1;"; the error is already issued in that case.
 */
 {
   a_boolean      is_qualified_name = FALSE, okay = TRUE;
-  a_symbol_ptr   class_symbol, name_symbol;
+  a_symbol_ptr   name_symbol;
   a_scope_number class_scope;
-  a_symbol_ptr   first_symbol_in_class;
 
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_identifier) {
-      /* Look up the symbol to see if it could be a class name.  Note that
-         we don't consider the normal eclipsing rules.  A class can be found
-         even when hidden by something else:
-           class A {int i;};
-           int f() {
-             int A;
-             A::i = 1;   // The class A is found.
-           }
-      */
-      for (class_symbol = symbol_list_for_curr_id;
-           class_symbol != NULL;
-           class_symbol = class_symbol->next) {
-        if (class_symbol->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-            class_symbol->kind == (a_symbol_kind)sk_union_tag) break;
-      }  /* for */
-      if (class_symbol != NULL && next_token() == tok_colon_colon) {
-        /* This is a qualified name. */
-        /* Keep looping while there are more levels of class qualification.
-           Stop on something that is not a class name followed by "::". */
-        do {
-          /* Skip over the "class-name ::". */
-          (void)get_token();
-          (void)get_token();
-          /* Determine the scope number for the class. */
-          first_symbol_in_class =
-                              class_symbol->variant.class_struct_union.symbols;
-          class_symbol = NULL;
-          if (first_symbol_in_class == NULL) {
-            /* There are no members of the class, so we cannot determine the
-               scope number */
-            class_scope = NO_SCOPE_NUMBER;
-            break;
-          }  /* if */
-          class_scope = first_symbol_in_class->decl_scope;
-          if (curr_token == tok_identifier) {
-            /* The next thing is an identifier (it must be, but if it's not,
-               the error is given later).  See if the identifier could be a
-               class name, indicating further qualification, as in A::B::x. */
-            /* Search for the identifier in the given scope. */
-            class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                                     class_scope,
-                                                     /*must_be_class=*/TRUE);
-          }  /* if */
-        } while (class_symbol != NULL && next_token() == tok_colon_colon);
+      /* See if there is a class qualifier (the "A::" part of "A::x"), and
+         if so, get it and determine the scope number it represents. */
+      if (get_class_qualifier(&class_scope)) {
         /* The current token must now be the final identifier of the qualified
            name, e.g., "x" in "A::B::x". */
         if (curr_token != tok_identifier) {
@@ -3909,6 +3930,16 @@ e.g., "int A:: = 1;"; the error is already issued in that case.
           }  /* if */
         }  /* if */
       }  /* if */
+#if DEBUG
+      if (debug_level >= 4) {
+        if (is_qualified_name) {
+          fprintf(f_debug, "get_qualified_name: name = %s\n",
+                           locator_for_curr_id.symbol_header->identifier);
+        } else {
+          fprintf(f_debug, "get_qualified_name: not qualified name\n");
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* if */
   return okay;
