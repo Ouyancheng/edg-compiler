@@ -1,5 +1,16 @@
 Version 2.35
 
+1/6/97   Microsoft compatibility: __asm blocks in template member functions
+
+A bug has been fixed that caused a spurious error to be issued when a
+Microsoft __asm block appeared in a member function of a class template.
+
+  template<class T> struct X {
+    void f() {
+     __asm { int 1 };
+    }
+  };
+
 1/6/97   Checking for volatile-qualified left operand of bitwise assignment
 
 In strict mode and Microsoft mode, for a class for which no operator=

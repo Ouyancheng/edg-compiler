@@ -772,6 +772,7 @@ a template argument list or is just a less-than sign.
   a_boolean	error = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_token_kind	prev_token = curr_token;
+  a_boolean	skip_this_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "cache_token_stream_until_matching_token");
@@ -794,6 +795,9 @@ a template argument list or is just a less-than sign.
   while (!done && (curr_token != closing_token ||
                    paren_count != 0 || bracket_count != 0 ||
 		   brace_count != 0)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_boolean	is_asm_block;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Never scan past a zero level right brace.  This prevents
        caching past the end of a class or function in the event of
        a mismatched paren or bracket. */
@@ -802,66 +806,96 @@ a template argument list or is just a less-than sign.
       break;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    {
-      a_boolean	is_asm_block;
-      /* Check for the start of an Microsoft-style asm block.  This can
-         take one of two forms:
+    /* Check for the start of an Microsoft-style asm block.  This can
+       take one of two forms:
  
-		asm { asm-instructions }
+                asm { asm-instructions }
 		asm asm-instruction newline-or-right-brace
 
-         The asm-instruction(s) are fetches as pp-tokens, and so must be
-         handled specially during the caching process. */
-      is_asm_block = prev_token == tok_asm && curr_token != tok_lparen;
-      if (is_asm_block) {
-        in_asm_block_or_function = TRUE;
-        fetch_pp_tokens = TRUE;
-        if (curr_token == tok_lbrace) {
-          /* Call this routine recursively to scan the brace enclosed asm
-             block. */
-          error = cache_token_stream_until_matching_token(cache, coalesce_ids,
-                                                          last_tsn_in_cache);
-          if (error) break;
-        } else {
-          /* An asm that is not enclosed in braces.  Take all tokens up to a
-             newline or a right brace. */
-          while (curr_token != tok_newline && curr_token != tok_rbrace &&
-                 curr_token != tok_end_of_source) {
-            if (!coalesce_ids) cache_curr_token(cache);
-            get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
-          }  /* while */
+       The asm-instruction(s) are fetches as pp-tokens, and so must be
+       handled specially during the caching process.   Microsoft does not
+       support standard asms of the form "asm (...)", so anything that starts
+       with asm is assumed to be a Microsoft asm.  All tokens from the "asm"
+       to the final token of the asm are cached as pp-tokens.  When
+       a single line asm is terminated by a right brace, the right brace
+       is not cached as a pp-token. */
+    is_asm_block = prev_token == tok_asm && microsoft_mode;
+    skip_this_token = FALSE;
+    if (is_asm_block) {
+      skip_this_token = TRUE;
+      if (curr_token == tok_lbrace) {
+        /* Call this routine recursively to scan the brace enclosed asm
+           block. */
+        error = cache_token_stream_until_matching_token(cache, coalesce_ids,
+                                                        last_tsn_in_cache);
+        if (error) {
+          /* Switch out of pp-token mode. */
+          in_asm_block_or_function = FALSE;
+          fetch_pp_tokens = FALSE;
+          break;
         }  /* if */
-        in_asm_block_or_function = FALSE;
-        fetch_pp_tokens = FALSE;
+      } else {
+        /* An asm that is not enclosed in braces.  Take all tokens up to a
+           newline or a right brace. */
+        while (curr_token != tok_newline && curr_token != tok_rbrace &&
+               curr_token != tok_end_of_source) {
+          if (!coalesce_ids) cache_curr_token(cache);
+          get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
+        }  /* while */
+        if (curr_token == tok_rbrace) {
+          /* This is a single-line __asm that is terminated by a right brace.
+             In this case, the right brace should not be considered part of
+             the __asm.  Reset pp-token mode before the token is cached. */
+          in_asm_block_or_function = FALSE;
+          fetch_pp_tokens = FALSE;
+          is_asm_block = FALSE;
+          skip_this_token = FALSE;
+        }  /* if */
       }  /* if */
-    }
-    prev_token = curr_token;
+    }  /* if */
+    if (!skip_this_token) {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Count paired tokens within the skip. */
-    if (closing_token == tok_rbrace) {
-      /* When looking for a right brace, don't consider any other
-         delimiters.  Braces can't be nested inside parens, brackets,
-         etc. */
-      switch (curr_token) {
-        case tok_lbrace:                         brace_count++;   break;
-        case tok_rbrace:    if (brace_count > 0) brace_count--;   break;
-        default:;
-      }  /* switch */
-    } else {
-      switch (curr_token) {
-        case tok_lparen:                           paren_count++;   break;
-        case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
-        case tok_lbracket:                         bracket_count++; break;
-        case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
-        case tok_lbrace:                           brace_count++;   break;
-        case tok_rbrace:    if (brace_count > 0) brace_count--;     break;
-        default:;
-      }  /* switch */
+      /* Count paired tokens within the skip. */
+      if (closing_token == tok_rbrace) {
+        /* When looking for a right brace, don't consider any other
+           delimiters.  Braces can't be nested inside parens, brackets,
+           etc. */
+        switch (curr_token) {
+          case tok_lbrace:                         brace_count++;   break;
+          case tok_rbrace:    if (brace_count > 0) brace_count--;   break;
+          default:;
+        }  /* switch */
+      } else {
+        switch (curr_token) {
+          case tok_lparen:                           paren_count++;   break;
+          case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
+          case tok_lbracket:                         bracket_count++; break;
+          case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
+          case tok_lbrace:                           brace_count++;   break;
+          case tok_rbrace:    if (brace_count > 0) brace_count--;     break;
+          default:;
+        }  /* switch */
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     }  /* if */
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
     if (!coalesce_ids) cache_curr_token(cache);
+    if (curr_token == tok_asm && microsoft_mode) {
+      /* This is the start of a __asm block.  Switch into pp-token mode.
+         This must be done after the __asm is cached but before the token
+         after __asm is fetched. */
+      in_asm_block_or_function = TRUE;
+      fetch_pp_tokens = TRUE;
+    }  /* if */
+    if (is_asm_block) {
+      /* The end of an asm block.  Switch out of pp-token mode. */
+      in_asm_block_or_function = FALSE;
+      fetch_pp_tokens = FALSE;
+    }  /* if */
+    prev_token = curr_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   db_exit();
@@ -939,11 +973,14 @@ be copies to the new cache.
 		asm asm-instruction newline-or-right-brace
 
        The asm-instruction(s) are fetches as pp-tokens, and so must be
-       handled specially during the caching process. */
-    is_asm_block = prev_token == tok_asm && curr_token != tok_lparen;
+       handled specially during the caching process.   Microsoft does not
+       support standard asms of the form "asm (...)", so anything that starts
+       with asm is assumed to be a Microsoft asm.  All tokens from the "asm"
+       to the final token of the asm are cached as pp-tokens.  When
+       a single line asm is terminated by a right brace, the right brace
+       is not cached as a pp-token. */
+    is_asm_block = prev_token == tok_asm && microsoft_mode;
     if (is_asm_block) {
-      in_asm_block_or_function = TRUE;
-      fetch_pp_tokens = TRUE;
       one_line_asm = curr_token != tok_lbrace;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -961,6 +998,15 @@ be copies to the new cache.
         if (!coalesce_ids) cache_curr_token(cache);
         get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
       }  /* while */
+      if (curr_token == tok_rbrace) {
+        /* This is a single-line __asm that is terminated by a right brace.
+           In this case, the right brace should not be considered part of
+           the __asm.  Reset pp-token mode before the token is cached. 
+           These are reset again below, but the code below must be executed
+           so that the stop token test will be done. */
+        in_asm_block_or_function = FALSE;
+        fetch_pp_tokens = FALSE;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Stop immediately when end of source is reached. */
@@ -968,7 +1014,15 @@ be copies to the new cache.
     /* Add the current token to the cache and advance to its successor. */
     if (!coalesce_ids) cache_curr_token(cache);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    if (curr_token == tok_asm && microsoft_mode) {
+      /* This is the start of a __asm block.  Switch into pp-token mode.
+         This must be done after the __asm is cached but before the token
+         after __asm is fetched. */
+      in_asm_block_or_function = TRUE;
+      fetch_pp_tokens = TRUE;
+    }  /* if */
     if (is_asm_block) {
+      /* The end of an asm block.  Switch out of pp-token mode. */
       in_asm_block_or_function = FALSE;
       fetch_pp_tokens = FALSE;
       if (one_line_asm && stop_tokens[(int)curr_token] != 0) break;
