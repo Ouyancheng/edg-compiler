@@ -45,29 +45,20 @@ position of the error.  A zero-length number is converted as zero.
 Other than the zero-length pathology, the input number is guaranteed
 to be syntactically correct (except for digits 8 and 9 in octal 
 constants).  The number may have a "u" or "l" suffix, or both.
+(Or a "ll" or "ull" suffix, if long long is allowed.)
 */
 {
-  unsigned long temp = 0;
-  a_boolean     has_u_suffix = FALSE, has_l_suffix = FALSE;
+  an_integer_value number, ten, digit, mask;
+  a_boolean        has_u_suffix = FALSE, has_l_suffix = FALSE;
 #if LONG_LONG_ALLOWED
-  a_boolean     has_ll_suffix = FALSE;
+  a_boolean        has_ll_suffix = FALSE;
 #endif /* LONG_LONG_ALLOWED */
-  char          *temp_ptr;
-  a_boolean     ovflo = FALSE;
-  a_boolean     non_arith = (radix != 10);
-  char          *real_end_pos = end_of_curr_token;
-  int           digit;
-  an_integer_kind
-		kind;
-  unsigned long max_value, max_value_div_10;
-
-  /* Determine the maximum constant value to be dealt with. */
-#if LONG_LONG_ALLOWED
-  max_value = TARG_ULONG_LONG_MAX;
-#else /* !LONG_LONG_ALLOWED */
-  max_value = TARG_ULONG_MAX;
-#endif /* LONG_LONG_ALLOWED */
-  max_value_div_10 = max_value / 10;
+  char             *temp_ptr;
+  a_boolean        err, ovflo = FALSE;
+  a_boolean        non_arith = (radix != 10);
+  char             *real_end_pos = end_of_curr_token;
+  unsigned long    intdigit;
+  an_integer_kind  kind;
 
   *err_code = ec_no_error;
   /* Locate and logically remove the suffix, if any.  The suffix is "u"
@@ -101,44 +92,51 @@ constants).  The number may have a "u" or "l" suffix, or both.
   /* Evaluate the literal as an unsigned long. */
   if (radix == 10) {
     /* Decimal. */
-    temp = *start_of_curr_token - '0';
+    set_unsigned_integer_value(&ten, 10L);
+    intdigit = *start_of_curr_token - '0';
+    set_unsigned_integer_value(&number, intdigit);
     for (temp_ptr = start_of_curr_token+1;
          temp_ptr <= real_end_pos; temp_ptr++) {
-      digit = *temp_ptr - '0';
+      intdigit = *temp_ptr - '0';
       /* Multiply previous value by 10, checking for overflow. */
-      if (temp > max_value_div_10) ovflo = TRUE;
-      temp *= 10;
+      multiply_integer_values(&number, &ten, /*is_signed=*/FALSE, &err);
+      if (err) ovflo = TRUE;
       /* Add in digit, checking for overflow. */
-      if (temp > max_value-(unsigned long)digit) ovflo = TRUE;
-      temp += digit;
+      set_unsigned_integer_value(&digit, intdigit);
+      add_integer_values(&number, &digit, /*is_signed=*/FALSE, &err);
+      if (err) ovflo = TRUE;
     }  /* for */
   } else if (radix == 8) {
     /* Octal.*/
+    set_unsigned_integer_value(&number, 0L);
     for (temp_ptr = start_of_curr_token+1;
          temp_ptr <= real_end_pos; temp_ptr++) {
-      digit = *temp_ptr - '0';
-      if (C_dialect != C_dialect_pcc && (digit >= 8)) {
+      intdigit = *temp_ptr - '0';
+      if (C_dialect != C_dialect_pcc && (intdigit >= 8)) {
         /* Digits 8 and 9 are allowed by K&R/pcc, but not by ANSI. */
         *err_pos = temp_ptr;
         *err_code = ec_bad_octal_digit;
         goto wrapup;
       }  /* if */
       /* Multiply previous value by 8, checking for overflow. */
-      if (temp > max_value>>3) ovflo = TRUE;
-      temp <<= 3;
+      shift_left_integer_value(&number, 3, &err);
+      if (err) ovflo = TRUE;
       /* Or in digit. */
-      temp |= digit;
+      set_unsigned_integer_value(&digit, intdigit);
+      or_integer_values(&number, &digit);
     }  /* for */
   } else {
     /* radix == 16 (hexadecimal). */
+    set_unsigned_integer_value(&number, 0L);
     for (temp_ptr = start_of_curr_token+2;
          temp_ptr <= real_end_pos; temp_ptr++) {
-      digit = hexvalue(*temp_ptr);
+      intdigit = hexvalue(*temp_ptr);
       /* Multiply previous value by 16, checking for overflow. */
-      if (temp > max_value>>4) ovflo = TRUE;
-      temp <<= 4;
+      shift_left_integer_value(&number, 4, &err);
+      if (err) ovflo = TRUE;
       /* Or in digit. */
-      temp |= digit;
+      set_unsigned_integer_value(&digit, intdigit);
+      or_integer_values(&number, &digit);
     }  /* for */
   }  /* if */
   /* Determine the type based on the value and the suffixes.  See standard,
@@ -159,38 +157,59 @@ constants).  The number may have a "u" or "l" suffix, or both.
     if (has_l_suffix) {
       /* An explicit "L" suffix makes the constant long. */
       kind = (an_integer_kind)ik_long;
-    } else if (radix == 10 && temp <= TARG_INT_MAX) {
+    } else if (radix == 10 &&
+               le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                            (an_integer_kind)ik_int)) {
       /* A decimal constant that is no larger than the largest signed int
          is an int. */
       kind = (an_integer_kind)ik_int;
-    } else if (radix != 10 && temp <= TARG_UINT_MAX) {
+    } else if (radix != 10 &&
+               le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                           (an_integer_kind)ik_unsigned_int)) {
       /* A hexadecimal or octal constant that is no larger than the largest
          unsigned int is treated as an int (there are no unsigned int
          constants in K&R/pcc). */
       kind = (an_integer_kind)ik_int;
-    } else if (temp <= TARG_ULONG_MAX) {
+    } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                          (an_integer_kind)ik_unsigned_long)) {
       /* A constant that is no larger than the largest unsigned long is
          treated as a long (there are no unsigned long constants in
          K&R/pcc). */
       kind = (an_integer_kind)ik_long;
-      /* A decimal constant that is greater than TARG_LONG_MAX is considered
+      /* A decimal constant that is greater than the largest long is considered
          a long, but tagged as non-arithmetic because the source looks
          positive but the internal value is negative.  This helps in
          avoiding an error when converting the smallest integer. */
-      if (radix == 10 && temp > TARG_LONG_MAX) non_arith = TRUE;
+      if (!non_arith &&
+          !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                        (an_integer_kind)ik_long)) {
+        non_arith = TRUE;
+      }  /* if */
 #if LONG_LONG_ALLOWED
-    } else if (temp <= TARG_ULONG_LONG_MAX) {
+    } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_unsigned_long_long)) {
       /* long long. */
       kind = (an_integer_kind)ik_long_long;
-      /* A value that is larger than LONG_LONG_MAX is tagged as
+      /* A decimal constant that is larger than LONG_LONG_MAX is tagged as
          non-arithmetic because the source looks positive but the internal
          value is negative.  This helps in avoiding an error when
          converting the smallest integer. */
-      if (temp > TARG_LONG_LONG_MAX) non_arith = TRUE;
+      if (!non_arith &&
+          !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                        (an_integer_kind)ik_long_long)) {
+        non_arith = TRUE;
+      }  /* if */
 #endif /* LONG_LONG_ALLOWED */
     } else {
-      /* Doesn't fit in target integers. */
+      /* Doesn't fit in target integers.  This can only happen when the
+         host representation for integer values can hold values larger
+         than the largest target integer. */
       ovflo = TRUE;
+#if LONG_LONG_ALLOWED
+      kind = (an_integer_kind)ik_long_long;
+#else /* !LONG_LONG_ALLOWED */
+      kind = (an_integer_kind)ik_long;
+#endif /* LONG_LONG_ALLOWED */
     }  /* if */
     if (ovflo) {
       /* A warning is generated for overflow, but the overflow is then
@@ -199,10 +218,11 @@ constants).  The number may have a "u" or "l" suffix, or both.
       /* Convert the character position into an error position. */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       warning(ec_integer_too_large);
+      /* Mask off any bits past the end of the largest target integer. */
+      make_integer_value_mask(&mask,
+                              TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT);
+      and_integer_values(&number, &mask);
       ovflo = FALSE;
-#if 0
-      /* Do truncation for case where host long > target long? */
-#endif
     }  /* if */
   } else if (!ovflo) {
     /* ANSI C constant checking. */
@@ -210,33 +230,50 @@ constants).  The number may have a "u" or "l" suffix, or both.
     if (has_ll_suffix) goto ll_check;
 #endif /* LONG_LONG_ALLOWED */
     if (has_l_suffix) goto l_check;
-    if (!has_u_suffix && temp <= TARG_INT_MAX) {
+    if (!has_u_suffix &&
+        le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_int)) {
       kind = (an_integer_kind)ik_int;
       goto kind_established;
-    } else if ((has_u_suffix || radix != 10) && temp <= TARG_UINT_MAX) {
+    } else if ((has_u_suffix || radix != 10) &&
+               le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                           (an_integer_kind)ik_unsigned_int)) {
       kind = (an_integer_kind)ik_unsigned_int;
       goto kind_established;
     }  /* if */
 l_check:
-    if (!has_u_suffix && temp <= TARG_LONG_MAX) {
+    if (!has_u_suffix &&
+        le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_long)) {
       kind = (an_integer_kind)ik_long;
       goto kind_established;
-    } else if (temp <= TARG_ULONG_MAX) {
+    } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                          (an_integer_kind)ik_unsigned_long)) {
       kind = (an_integer_kind)ik_unsigned_long;
       goto kind_established;
     }  /* if */
 #if LONG_LONG_ALLOWED
 ll_check:
-    if (!has_u_suffix && temp <= TARG_LONG_LONG_MAX) {
+    if (!has_u_suffix &&
+        le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_long_long)) {
       kind = (an_integer_kind)ik_long_long;
       goto kind_established;
-    } else if (temp <= TARG_ULONG_LONG_MAX) {
+    } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_unsigned_long_long)) {
       kind = (an_integer_kind)ik_unsigned_long_long;
       goto kind_established;
     }  /* if */
 #endif /* LONG_LONG_ALLOWED */
-    /* Doesn't fit in target integers. */
+    /* Doesn't fit in target integers.  This can only happen when the
+       host representation for integer values can hold values larger
+       than the largest target integer. */
     ovflo = TRUE;
+#if LONG_LONG_ALLOWED
+    kind = (an_integer_kind)ik_long_long;
+#else /* !LONG_LONG_ALLOWED */
+    kind = (an_integer_kind)ik_long;
+#endif /* LONG_LONG_ALLOWED */
 kind_established:;
   }  /* if */
   if (ovflo) {
@@ -246,7 +283,7 @@ kind_established:;
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type                  = integer_type(kind);
-    const_for_curr_token.variant.integer_value = (long)temp;
+    const_for_curr_token.variant.integer_value = number;
     const_for_curr_token.non_arithmetic        = non_arith;
   }  /* if */
 wrapup:
@@ -270,7 +307,7 @@ is set to the character position of the error.
 {
   a_float_kind kind;
   an_internal_float_value
-               temp;
+               number;
   char         *actual_end;
   char         old_next_char, old_next2_char;
   a_boolean    err;
@@ -308,7 +345,7 @@ is set to the character position of the error.
     *(actual_end+1) = '\0';
   }  /* if */
   /* Do the conversion. */
-  fp_string_to_float(kind, start_of_curr_token, &temp, &err);
+  fp_string_to_float(kind, start_of_curr_token, &number, &err);
   *(actual_end+1) = old_next_char;
   *(actual_end+2) = old_next2_char;
   if (err) {
@@ -318,8 +355,7 @@ is set to the character position of the error.
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_float);
     const_for_curr_token.type = float_type(kind);
-    memcpy((char *)&const_for_curr_token.variant.float_value, (char *)&temp,
-           sizeof(an_internal_float_value));
+    const_for_curr_token.variant.float_value = number;
   }  /* if */
   if (*err_code != ec_no_error) {
     /* Return an error constant. */
@@ -330,16 +366,13 @@ is set to the character position of the error.
 
 static void conv_single_char(char          **temp_ptr,
                              unsigned long *ch,
-                             unsigned long centity_mask,
-                             unsigned long centity_sign_bit,
-                             a_boolean     centity_is_signed)
+                             unsigned long centity_mask)
 /*
 Fetch one character of a character constant or string literal.  The current
 position in the token is *temp_ptr (it is incremented appropriately
-for what is taken).  The character gotten is returned (sign-extended
-if necessary) in ch.  centity_mask, centity_sign_bit, and centity_is_signed
-define the character entity into which this character is going (char or
-wchar_t).
+for what is taken).  The character gotten is returned (not sign-extended)
+in ch.  centity_mask defines the size of the character entity into which
+this character is going (char or wchar_t).
 */
 {
   register unsigned long targ_ch;
@@ -441,12 +474,9 @@ wchar_t).
     }  /* if */
   }  /* if */
 return_point:
-  /* Drop sign extension, then add it again if the target wants it. */
+  /* Drop sign extension (from host C compiler with signed characters)
+     and out-of-range bits. */
   targ_ch &= centity_mask;
-  if (centity_is_signed) {
-    /* Sign-extend the value (the char or wchar_t type is signed). */
-    if (targ_ch & centity_sign_bit) targ_ch |= ~centity_mask;
-  }  /* if */
   *ch = targ_ch;
   *temp_ptr = lptr;
   return;
@@ -477,24 +507,20 @@ range_check:
 static void conv_single_wide_char(char          **temp_ptr,
                                   unsigned long *ch,
                                   unsigned long *chars_taken,
-                                  unsigned long centity_mask,
-                                  unsigned long centity_sign_bit,
-                                  a_boolean     centity_is_signed)
+                                  unsigned long centity_mask)
 /*
 Fetch one wide character of a wide character constant or string literal.
 The current position in the token is *temp_ptr (it is incremented
 appropriately for what is taken).  More than one source character
 may be taken to produce one wide character as output.  The number of
 source characters taken is returned in *chars_taken.  The wide character
-gotten is returned (sign-extended if necessary) in ch.  centity_mask,
-centity_sign_bit, and centity_is_signed define the attributes of wchar_t.
-This routine works like mbtowc (see 4.10.7.2 and 3.1.3.4 in the ANSI C
-standard).
+gotten is returned (not sign-extended) in ch.  centity_mask defines
+the size of wchar_t.  This routine works like mbtowc (see 4.10.7.2 and
+3.1.3.4 in the ANSI C standard).
 */
 {
   /* Simple version: one character in means one wchar_t out. */
-  conv_single_char(temp_ptr, ch, centity_mask, centity_sign_bit,
-                   centity_is_signed);
+  conv_single_char(temp_ptr, ch, centity_mask);
   *chars_taken = 1;
 }  /* conv_single_wide_char */
 
@@ -529,9 +555,12 @@ and 3.1.3.4 in the ANSI C standard).
 Set variables describing the attributes of the character entity to be
 used to match the type "char".
 */
-#define set_centity_attributes_for_char()                             \
+#define set_basic_centity_attributes_for_char()                       \
 { centity_mask = TARG_UCHAR_MAX;                                      \
-  centity_sign_bit = (unsigned long)TARG_SCHAR_MAX + 1;               \
+}  /* set_basic_centity_attributes_for_char */
+#define set_centity_attributes_for_char()                             \
+{ set_basic_centity_attributes_for_char();                            \
+  centity_size = TARG_CHAR_BIT;                                       \
   centity_is_signed = targ_has_signed_chars;                          \
 }  /* set_centity_attributes_for_char */
 
@@ -540,13 +569,17 @@ used to match the type "char".
 Set variables describing the attributes of the character entity to be
 used to match the type "wchar_t".
 */
-#define set_centity_attributes_for_wchar_t()                          \
+#define set_basic_centity_attributes_for_wchar_t()                    \
 { /* Make the sign bit. */                                            \
-  centity_sign_bit = (unsigned long)1 <<                              \
+  unsigned long sign_bit = (unsigned long)1 <<                        \
                               ((TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT)-1);\
   /* Combine the sign bit with all the bits below the sign bit to     \
      get the full mask. */                                            \
-  centity_mask = (centity_sign_bit) | ((centity_sign_bit) - 1);       \
+  centity_mask = sign_bit | (sign_bit - 1);                           \
+}  /* set_basic_centity_attributes_for_wchar_t */
+#define set_centity_attributes_for_wchar_t()                          \
+{ set_basic_centity_attributes_for_wchar_t();                         \
+  centity_size = TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT;                   \
   centity_is_signed = int_kind_is_signed[(int)TARG_WCHAR_T_INT_KIND]; \
 }  /* set_centity_attributes_for_wchar_t */
 
@@ -565,20 +598,20 @@ the number of characters contained within the quotes (after escape
 processing).
 */
 {
-  unsigned long   i;
-  unsigned long   ch;
-  unsigned long   temp;
-  char            *temp_ptr;
-  a_boolean       is_wide = FALSE;
-  a_type_ptr      con_type;
-  an_integer_kind int_kind;
-  sizeof_t        constant_size;
-  a_targ_size_t   num_elems;
-  unsigned long   chars_taken;
-  unsigned long   centity_mask;
-  unsigned long   centity_sign_bit;
-  a_boolean       centity_is_signed;
-  int             centity_bits;
+  unsigned long    i;
+  unsigned long    ch;
+  an_integer_value number, ch_int_val;
+  char             *temp_ptr;
+  a_boolean        is_wide = FALSE, err;
+  a_type_ptr       con_type;
+  an_integer_kind  int_kind;
+  sizeof_t         constant_size;
+  a_targ_size_t    num_elems;
+  unsigned long    chars_taken;
+  unsigned long    centity_mask;
+  int              centity_size;
+  a_boolean        centity_is_signed;
+  int              centity_bits;
 
   *err_code = ec_no_error;
   *err_pos = NULL;
@@ -618,36 +651,42 @@ processing).
     *err_pos = start_of_curr_token;
   } else {
     /* Accumulate the characters. */
-    temp = 0;
+    set_unsigned_integer_value(&number, 0L);
     for (i = 0; i < num_chars; i += chars_taken) {
       /* Convert one character of the char constant. */
       if (!is_wide) {
-        conv_single_char(&temp_ptr, &ch, centity_mask, centity_sign_bit,
-                         centity_is_signed);
+        conv_single_char(&temp_ptr, &ch, centity_mask);
         chars_taken = 1;
       } else {
-        conv_single_wide_char(&temp_ptr, &ch, &chars_taken,
-                              centity_mask, centity_sign_bit,
-                              centity_is_signed);
+        conv_single_wide_char(&temp_ptr, &ch, &chars_taken, centity_mask);
       }  /* if */
       /* Put the character in the right place. */
+      set_unsigned_integer_value(&ch_int_val, ch);
 #if TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
       /* 'ab' == 0x6162. */
-      /* Drop any sign extension on the new character if it's not the first. */
-      if (i != 0 && centity_is_signed) ch &= centity_mask;
-      temp <<= centity_bits;
-#else
+      /* Do sign extension if necessary, but only on the first character. */
+      if (i == 0 && centity_is_signed) {
+        sign_extend_integer_value(&ch_int_val, centity_size);
+      }  /* if */
+      shift_left_integer_value(&number, centity_bits, &err);
+#else /* !TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT */
       /* 'ab' == 0x6261. */
+      /* Do sign extension on the new character if necessary. */
+      if (centity_is_signed) {
+        sign_extend_integer_value(&ch_int_val, centity_size);
+      }  /* if */
       if (i != 0) {
         /* Drop any sign extension on the previous value if this isn't the
            first character. */
         if (centity_is_signed) {
-          temp &= ~(~(unsigned long)0 << (i*centity_bits));
+          an_integer_value mask;
+          make_integer_value_mask(&mask, i*centity_bits);
+          and_integer_values(&number, &mask);
         }  /* if */
-        ch <<= (i*centity_bits);
+        shift_left_integer_value(&ch_int_val, i*centity_bits, &err);
       } /* if */
 #endif /* TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT */
-      temp |= ch;
+      or_integer_values(&number, &ch_int_val);
     }  /* for */
 #if CHECKING
     /* Make sure the whole constant was taken.  If not, the character count
@@ -658,7 +697,7 @@ processing).
 #endif /* CHECKING */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type = con_type;
-    const_for_curr_token.variant.integer_value = temp;
+    const_for_curr_token.variant.integer_value = number;
   }  /* if */
   if (*err_code != ec_no_error) {
     /* Return an error constant. */
@@ -714,8 +753,6 @@ processing).
   a_targ_size_t num_elems;
   unsigned long chars_taken;
   unsigned long centity_mask;
-  unsigned long centity_sign_bit;
-  a_boolean     centity_is_signed;
   
   *err_code = ec_no_error;
   *err_pos = NULL;  /* To make lint happy. */
@@ -728,11 +765,11 @@ processing).
     temp_ptr++;
     determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/TRUE,
                                       &constant_size, &num_elems);
-    set_centity_attributes_for_wchar_t();
+    set_basic_centity_attributes_for_wchar_t();
   } else {
     /* Normal string literal. */
     constant_size = num_elems = num_chars+1;  /* "+1" is space for the null. */
-    set_centity_attributes_for_char();
+    set_basic_centity_attributes_for_char();
   }  /* if */
   /* Allocate enough space to hold the final string, including the null
      added to it. */
@@ -741,15 +778,12 @@ processing).
   for (i = 0; i < num_chars; i += chars_taken) {
     /* Convert one character of the string literal. */
     if (!is_wide) {
-      conv_single_char(&temp_ptr, &ch, centity_mask, centity_sign_bit,
-                       centity_is_signed);
+      conv_single_char(&temp_ptr, &ch, centity_mask);
       /* Put the character in the right place. */
-      *pstr++ = (char)ch;
+      *pstr++ = ch;
       chars_taken = 1;
     } else {
-      conv_single_wide_char(&temp_ptr, &ch, &chars_taken,
-                            centity_mask, centity_sign_bit,
-                            centity_is_signed);
+      conv_single_wide_char(&temp_ptr, &ch, &chars_taken, centity_mask);
       put_wide_char_into_string(ch, &pstr);
     }  /* if */
   }  /* for */
