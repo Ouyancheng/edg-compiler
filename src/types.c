@@ -4723,73 +4723,83 @@ make_new_comp_type:
     comp_type = alloc_type((a_type_kind)tk_routine);
     comp_type->variant.routine.return_type = comp_return_type;
     rtsp = comp_type->variant.routine.extra_info;
-    /* In case only one of the types has a param types list, be sure it is
-       param_list1 that is non-NULL. */
-    if (param_list1 == NULL && param_list2 != NULL) {
-      /* Swap the lists pointers. */
-      param_list1 = param_list2;
-      param_list2 = NULL;
-    }  /* if */
-    ptp1 = param_list1;
-    ptp2 = param_list2;
-    end_of_list = NULL;
-    while (ptp1 != NULL) {
-      /* Pass a NULL source position to make_param_type to avoid inappropriate
-         diagnostics on a type that doesn't correspond directly to a source
-         construct. */
-      new_ptp = make_param_type(ptp2 == NULL ?
-                                  ptp1->type :
-                                  composite_parameter_type(ptp1->type,
+    if (!comp_prototyped) {
+      /* Both types have old-style (non-prototyped) interfaces, so there is
+         no real parameter information in the composite. However, if one or
+         the other has parameter information because it's a function with a
+         definition, preserve that information in the composite; but if both
+         have parameter lists, the composite type should have a NULL param
+         type list. */
+      if (param_list1 == NULL) {
+        rtsp->param_type_list = param_list2;
+      } else if (param_list2 == NULL) {
+        rtsp->param_type_list = param_list1;
+      }  /* if */
+    } else if (!rtsp1->prototyped) {
+      /* Simply reuse the param-type list from type2, which is prototyped. */
+      rtsp->param_type_list = param_list2;
+    } else if (!rtsp2->prototyped) {
+      /* Simply reuse the param-type list from type1, which is prototyped. */
+      rtsp->param_type_list = param_list1;
+    } else {
+      ptp1 = param_list1;
+      ptp2 = param_list2;
+      check_assertion_str((ptp1 == NULL) == (ptp2 == NULL),
+                          "composite_routine_type: param lists out of sync");
+      end_of_list = NULL;
+      while (ptp1 != NULL) {
+        /* Pass a NULL source position to make_param_type to avoid
+           inappropriate diagnostics on a type that doesn't correspond
+           directly to a source construct. */
+        new_ptp = make_param_type(composite_parameter_type(ptp1->type,
                                                            ptp2->type),
-                                &null_source_position);
-      if (!C_mode()) {
-        /* Form the composite of the C++ default argument expressions; it's
-           guaranteed that at most one of the parameter lists has a default
-           argument expression. */
-        if (ptp1->has_default_arg) {
-          new_ptp->has_default_arg = TRUE;
-          if (ptp1->default_arg_expr != NULL) {
-            new_ptp->default_arg_expr =
+                                  &null_source_position);
+        if (!C_mode()) {
+          /* Form the composite of the C++ default argument expressions; it's
+             guaranteed that at most one of the parameter lists has a default
+             argument expression. */
+          if (ptp1->has_default_arg) {
+            new_ptp->has_default_arg = TRUE;
+            if (ptp1->default_arg_expr != NULL) {
+              new_ptp->default_arg_expr =
                           duplicate_default_arg_expr(ptp1->default_arg_expr);
-          }  /* if */
-        } else if (ptp2 != NULL && ptp2->has_default_arg) {
-          new_ptp->has_default_arg = TRUE;
-          if (ptp2->default_arg_expr != NULL) {
-            new_ptp->default_arg_expr =
+            }  /* if */
+          } else if (ptp2->has_default_arg) {
+            new_ptp->has_default_arg = TRUE;
+            if (ptp2->default_arg_expr != NULL) {
+              new_ptp->default_arg_expr =
                           duplicate_default_arg_expr(ptp2->default_arg_expr);
+            }  /* if */
+          }  /* if */
+          if (ptp1->type_involves_deduced_template_param) {
+            check_assertion(ptp2->type_involves_deduced_template_param);
+            new_ptp->type_involves_deduced_template_param = TRUE;
+          }  /* if */
+          if (ptp1->passed_via_copy_constructor) {
+            check_assertion(ptp2->passed_via_copy_constructor);
+            new_ptp->passed_via_copy_constructor = TRUE;
+          }  /* if */
+          if (remove_qualifiers_from_param_types) {
+            /* Arbitrarily select the qualifiers from one of the types for
+               the composite. */
+            new_ptp->qualifiers = ptp1->qualifiers;
           }  /* if */
         }  /* if */
-        if (ptp1->type_involves_deduced_template_param) {
-          check_assertion(ptp2 == NULL ||
-                          ptp2->type_involves_deduced_template_param);
-          new_ptp->type_involves_deduced_template_param = TRUE;
+        /* Add the parameter type entry to the end of the list. */
+        if (rtsp->param_type_list == NULL) {
+          rtsp->param_type_list = new_ptp;
+        } else {
+          end_of_list->next = new_ptp;
         }  /* if */
-        if (ptp1->passed_via_copy_constructor) {
-          check_assertion(ptp2 == NULL || ptp2->passed_via_copy_constructor);
-          new_ptp->passed_via_copy_constructor = TRUE;
-        }  /* if */
-        if (remove_qualifiers_from_param_types) {
-          /* Arbitrarily select the qualifiers from one of the types for
-             the composite. */
-          new_ptp->qualifiers = ptp1->qualifiers;
-        }  /* if */
-      }  /* if */
-      /* Add the parameter type entry to the end of the list. */
-      if (rtsp->param_type_list == NULL) {
-        rtsp->param_type_list = new_ptp;
-      } else {
-        end_of_list->next = new_ptp;
-      }  /* if */
-      end_of_list = new_ptp;
-      /* Advance to the next param-type in list1. */
-      ptp1 = ptp1->next;
-      if (ptp2 != NULL) {
-        /* list2 must not have been NULL, so advance to the next in that list
-           also.  Note that both lists will be of equal length. */
+        end_of_list = new_ptp;
+        /* Advance to the next param-type enties.  Both lists will be of
+           equal length. */
+        ptp1 = ptp1->next;
         ptp2 = ptp2->next;
-        check_assertion((ptp1 == NULL) == (ptp2 == NULL));
-      }  /* if */
-    }  /* while */
+        check_assertion_str((ptp1 == NULL) == (ptp2 == NULL),
+                            "composite_routine_type: param lists out of sync");
+      }  /* while */
+    }  /* if */
     rtsp->prototyped = comp_prototyped;
     rtsp->has_ellipsis = rtsp1->has_ellipsis;
 #if MICROSOFT_EXTENSIONS_ALLOWED
