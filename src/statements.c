@@ -285,7 +285,9 @@ to it.
 */
 {
   register a_control_flow_descr_ptr  cfdp;
+#if DEBUG
   static   unsigned long             id_number = 0;
+#endif /* DEBUG */
 
   db_enter(5, "alloc_control_flow_descr");
   if (avail_control_flow_descrs != NULL) {
