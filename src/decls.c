@@ -902,7 +902,8 @@ type is legal.
         temp_type = skip_typerefs(new_type_ptr);
         if (is_object_type(temp_type) || is_pointer_type(temp_type) ||
             (temp_type->kind == (a_type_kind)tk_array &&
-             temp_type->variant.array.number_of_elements != 0)) {
+             temp_type->variant.array.number_of_elements != 0) ||
+             try_template_class_instantiation(temp_type)) {
           /* Okay. */
         } else if (is_ptr_to_member_type(temp_type) &&
                    pm_member_type(temp_type) == NULL) {
@@ -3998,7 +3999,8 @@ a pointer to it in *symbol_ptr.
   a_variable_ptr vp;
 
   db_enter(3, "decl_parameter");
-  if (is_incomplete_type(ptp->type)) {
+  if (is_incomplete_type(ptp->type) &&
+      !try_template_class_instantiation(ptp->type)) {
     /* Incomplete type is not allowed. */
     pos_error(ec_incomplete_type_not_allowed, &param_id->type_pos);
     ptp->type = error_type();
@@ -6758,6 +6760,9 @@ explicitly specified (rather than defaulted to "int").
       (is_object_type(return_type) && !is_array_type(return_type)) ||
       is_reference_type(return_type)) {
     /* Okay. */
+  } else if (is_incomplete_type(return_type) &&
+             try_template_class_instantiation(return_type)) {
+    /* Okay. */
   } else if (!is_error_type(return_type)) {
     /* Bad return type. */
     error(ec_bad_function_return_type);
@@ -7081,6 +7086,9 @@ processing of function definition.
   if (is_void_type(return_type) ||
       (is_object_type(return_type) && !is_array_type(return_type)) ||
       is_reference_type(return_type)) {
+    /* Okay. */
+  } else if (is_incomplete_type(return_type) &&
+             try_template_class_instantiation(return_type)) {
     /* Okay. */
   } else {
     /* Bad return type. */
@@ -8114,6 +8122,10 @@ continue_with_declaration:
         /* All static data member declarations that that pass though this
            code are definitions. */
         is_definition = TRUE;
+      }  /* if */
+      if (is_definition && C_dialect == C_dialect_cplusplus &&
+          is_incomplete_type(local_type_ptr)) {
+        (void)try_template_class_instantiation(local_type_ptr);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       if (has_initializer) {
