@@ -25,12 +25,6 @@ typedef struct a_macro_def     *a_macro_def_ptr;
 
 /* Some other things declared up front to avoid mutual recursion problems. */
 
-/* Type of a scope nesting depth.  This is the depth within the scope_stack. */
-typedef int	a_scope_depth;
-
-#define NO_SCOPE_DEPTH (-1)
-#define DEPTH_OF_FILE_SCOPE 0
-
 /*
 Options for normal_id_lookup, class_qualified_id_lookup, etc.,
 represented as a bit set:
