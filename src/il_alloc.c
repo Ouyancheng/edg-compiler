@@ -1335,10 +1335,10 @@ variant fields to default values.
 #ifdef GUARD_MACRO2_FOR_VA_LIST
   pte->va_list_guard_macro2_was_defined = FALSE;
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
-#if ENSURE_TYPE_LIST_ORDERING
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
   pte->type_processed_for_ordering = FALSE;
   pte->type_processed_as_complete_for_ordering = FALSE;
-#endif /* ENSURE_TYPE_LIST_ORDERING */
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 #if DO_IL_LOWERING
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */

@@ -3065,9 +3065,9 @@ before lowering and needed flag marking of the primary IL.
   db_exit();
 }  /* rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary */
 
-#if ENSURE_TYPE_LIST_ORDERING
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
 #if !DO_IL_LOWERING
- #error -- ENSURE_TYPE_LIST_ORDERING requires IL lowering
+ #error -- ENSURE_LOWERED_TYPE_LIST_ORDERING requires IL lowering
 #endif /* !DO_IL_LOWERING */
 
 static void process_type_for_ordering(a_type_ptr type,
@@ -3311,7 +3311,7 @@ processed.  This code runs after IL lowering.
   translation_units->file_scope_pointers_block.last_type = insert_pointer;
 }  /* fix_type_list_ordering_problems */
 
-#endif /* ENSURE_TYPE_LIST_ORDERING */
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
 /******************************************************************************
 *                                                             \  ___  /       *

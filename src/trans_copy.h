@@ -25,9 +25,9 @@ extern void copy_secondary_trans_unit_IL_to_primary(void);
 extern
 void mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed(void);
 
-#if ENSURE_TYPE_LIST_ORDERING
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
 extern void fix_type_list_ordering_problems(void);
-#endif /* ENSURE_TYPE_LIST_ORDERING */
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
 #endif /* ifndef TRANS_COPY_H */
 
