@@ -1,5 +1,12 @@
 Version 2.30, October 10, 1995
 
+12/1/95  Remove include of iostream.h from assert.h
+
+The assert.h include file was changed to use stdio.h instead of iostream.h.
+This change was made to reduce the number of header files that are pulled
+in by assert.h.  Strictly speaking, assert.h should not include anything
+else.  A "real" library will need to do assert.h differently.
+
 9/1/95   Changes for namespaces
 
 typeinfo.h, stdexcept.h, new.h, and exception.h have been changed to
