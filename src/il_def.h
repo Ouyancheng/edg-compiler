@@ -4029,10 +4029,10 @@ typedef struct a_variable {
 			/* The variable is a variable length array, i.e., its
 			   type is a VLA type.  Any variable for which this
 			   flag is set will also be specified in a
-			   stmk_vla_decl statement, which indicates when in
-			   execution stream its memory should be allocated.
+			   stmk_vla_decl statement, which indicates where in
+			   the execution stream its memory is to be allocated.
 			   This variable will also require deallocation at
-			   the end of the scope in which the VLA was allocated
+			   the end of the scope in which it was allocated
 			   and/or at a branch out of that scope; there is no
 			   statement for VLA deallocation that corresponds to
 			   stmk_vla_decl.  (Note: this flag is TRUE only
