@@ -3407,7 +3407,7 @@ of the front end.
   num_switch_clauses_allocated           = 0;
   num_blocks_allocated                   = 0;
   num_statements_allocated               = 0;
-  num_constructor_inits_allocated        - 0;
+  num_constructor_inits_allocated        = 0;
   num_scopes_allocated                   = 0;
   string_literal_text_space_allocated    = 0;
   num_shareable_constants                = 0;
