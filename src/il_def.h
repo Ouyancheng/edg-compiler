@@ -2395,7 +2395,6 @@ enum a_calling_convention_tag {
    parameters (they can return a calling convention via a parameter even
    though it is never used). */
 typedef a_byte a_calling_convention;
-typedef a_byte *a_calling_convention_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* Display names for calling conventions. */
 EXTERN char *calling_convention_names[(int)cc_last]
@@ -2492,7 +2491,6 @@ about variables and routines.
 Type used to represent a set of decl modifiers.
 */
 typedef a_byte a_decl_modifier;
-typedef a_decl_modifier *a_decl_modifier_ptr;
 
 #endif /* ifdef CIL */
 
