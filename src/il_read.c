@@ -147,6 +147,40 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
 
 #if ALTERNATE_IL_FILE_FORMAT
 
+sizeof_t entry_length_with_prefix(an_il_entry_kind entry_kind,
+                                  a_boolean        is_in_file_scope,
+                                  sizeof_t         *offset_to_entry)
+/*
+Determine the size of an IL entry of kind entry_kind, including the prefix,
+and return that size.  Also return in *offset_to_entry the offset of
+the entry proper relative to the start of the prefix.  For string
+entries, the size is 1 and the offset is 0.
+*/
+{
+  sizeof_t gross_entry_size;
+
+  if (is_string_entry_kind(entry_kind)) {
+    /* For string entries the "entry number" is really a byte offset, and
+       the "entry size" is 1.  Things like space for the prefix have
+       been accounted for in the entry numbers/byte offsets assigned. */
+    gross_entry_size = 1;
+    *offset_to_entry = 0;
+  } else {
+    /* Non-string entry. */
+    *offset_to_entry = SPACE_FOR_IL_ENTRY_PREFIX;
+    if (is_in_file_scope) {
+      /* File-scope entries are preceded by an orphan list pointer. */
+      *offset_to_entry += SPACE_FOR_FS_ORPHAN_POINTER;
+    }  /* if */
+    gross_entry_size = sizeof_il_entry[(int)entry_kind] + *offset_to_entry;
+  }  /* if */
+  return gross_entry_size;
+}  /* entry_length_with_prefix */
+
+
+#endif /* ALTERNATE_IL_FILE_FORMAT */
+#if ALTERNATE_IL_FILE_FORMAT
+
 static char *remap_entry_number_to_ptr(an_il_entry_number entry_number,
                                        a_boolean          is_in_file_scope,
                                        an_il_entry_kind   entry_kind)
@@ -187,21 +221,8 @@ is TRUE.
 #endif /* CHECKING */
   /* Determine the size of an entry of this kind including the prefix
      and (if in file scope) the orphan pointer. */
-  offset_to_entry = 0;
-  if (is_string_entry_kind(entry_kind)) {
-    /* For string entries the "entry number" is really a byte offset, and
-       the "entry size" is 1.  Things like space for the prefix have
-       been accounted for in the entry numbers/byte offsets assigned. */
-    gross_entry_size = 1;
-  } else {
-    /* Non-string entry. */
-    offset_to_entry = SPACE_FOR_IL_ENTRY_PREFIX;
-    if (is_in_file_scope) {
-      /* File-scope entries are preceded by an orphan list pointer. */
-      offset_to_entry += SPACE_FOR_FS_ORPHAN_POINTER;
-    }  /* if */
-    gross_entry_size = sizeof_il_entry[(int)entry_kind] + offset_to_entry;
-  }  /* if */
+  gross_entry_size = entry_length_with_prefix(entry_kind, is_in_file_scope,
+                                              &offset_to_entry);
   /* Compute the entry address by multiplying the entry number minus one
      by the size of the entry, and adding the base address of the array of
      entries of that kind. */
@@ -399,22 +420,11 @@ necessary to make it directly accessible in memory.
   for (byte_entry_kind = 1+(int)iek_none;
        byte_entry_kind < (int)iek_last;
        byte_entry_kind++) {
-    sizeof_t gross_entry_size;
-    if (is_string_entry_kind((an_il_entry_kind)byte_entry_kind)) {
-      /* For string entries the "entry number" is really a byte offset, and
-         the "entry size" is 1.  Things like space for the prefix have
-         been accounted for in the entry numbers/byte offsets assigned. */
-      gross_entry_size = 1;
-    } else {
-      /* Non-string entry. */    
-      /* Include space for the prefix for each entry. */
-      gross_entry_size = sizeof_il_entry[byte_entry_kind] +
-                         SPACE_FOR_IL_ENTRY_PREFIX;
-      /* For non-string entries, add in the size of the orphan pointer. */
-      if (reading_file_scope_il) {
-        gross_entry_size += SPACE_FOR_FS_ORPHAN_POINTER;
-      }  /* if */
-    }  /* if */
+    sizeof_t offset_to_entry;
+    sizeof_t gross_entry_size =
+                    entry_length_with_prefix((an_il_entry_kind)byte_entry_kind,
+                                             reading_file_scope_il,
+                                             &offset_to_entry);
     entry_array_base_array_ptr[byte_entry_kind] =
              alloc_in_region(region_number,
                              (sizeof_t)(entry_count_array_ptr[byte_entry_kind]*
@@ -436,13 +446,14 @@ necessary to make it directly accessible in memory.
     }
 #endif /* CHECKING && DEBUG */
   }  /* for */
-  /* Remap the entry numbers in the header to pointers, if reading the 
-     file-scope IL. */
   if (reading_file_scope_il) {
+    /* In the alternate file format, the IL tree is not walked on the reading
+       end -- each IL entry's pointers are remapped as the entry is read.
+       Therefore header pointers (like these) are remapped as a separate
+       step here. */
     remap_il_header_pointers(remap_ptr_to_ptr);
-    /* Also remap the entry numbers in the orphaned file scope IL entry
-       table. */
-    remap_orphaned_file_scope_entry_array_ptrs(remap_ptr_to_ptr);
+    remap_first_ptr_of_orphaned_file_scope_entry_array(remap_ptr_to_ptr);
+    remap_last_ptr_of_orphaned_file_scope_entry_array(remap_ptr_to_ptr);
   }  /* if */
   /* Remember the location of the primary scope entry.  It's the LAST scope
      entry, because local scopes (prototype scopes, block scopes) get processed
@@ -704,7 +715,7 @@ necessary to make it directly accessible in memory.
        The "first" pointers are left alone for now; they will be remapped
        by the call of walk_orphaned_file_scope_il_entries at the end
        of the file-scope IL walk. */
-    remap_orphaned_file_scope_entry_array_ptrs(ptr_remap_function);
+    remap_last_ptr_of_orphaned_file_scope_entry_array(ptr_remap_function);
     /* Walk the file scope IL tree. */
     walk_file_scope_il((an_entry_process_function_ptr)NULL,
                        (a_string_entry_process_function_ptr)NULL,
