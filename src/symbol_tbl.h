@@ -261,13 +261,13 @@ typedef struct an_extern_symbol_descr {
 } an_extern_symbol_descr;
 
 
-typedef struct a_derivation_path *a_derivation_path_ptr;
-typedef struct a_derivation_path {
+typedef struct a_derivation_node *a_derivation_node_ptr;
+typedef struct a_derivation_node {
   /* Description of one step in the derivation of a projection symbol
      from an original class member.  A list of these gives a complete
      reverse history of the derivation, in order from the most derived
      class to the original class. */
-  a_derivation_path_ptr
+  a_derivation_node_ptr
                 next;
 			/* The next step in the derivation path.  If next
 			   is NULL, this is the end of the derivation. */
@@ -276,7 +276,7 @@ typedef struct a_derivation_path {
 			/* A pointer to the base class entry representing
 			   the class to which the current object should
 			   be cast in traversing the derivation path. */
-} a_derivation_path;
+} a_derivation_node;
 
 
 typedef struct a_projection_descr *a_projection_descr_ptr;
@@ -300,7 +300,7 @@ typedef struct a_projection_descr {
 			   example, B::i is the progenitor symbol for C::i,
 			   but A::i is the original symbol.  If ambiguous
 			   is TRUE, this symbol is one of several possible. */
-  a_derivation_path_ptr
+  a_derivation_node_ptr
                 derivation;
 			/* Pointer to a linked list of entries together
 			   specifying a path between the current class object
@@ -308,10 +308,11 @@ typedef struct a_projection_descr {
 			   This path can be interpreted as a sequence of
 			   casts, the final cast being to the class of
 			   the original base class member.  If ambiguous is
-			   TRUE this is one of several possible paths. */
-  a_derivation_path_ptr
+			   TRUE this node identifies one of several possible
+                           paths. */
+  a_derivation_node_ptr
 		hidden_sym_path;
-			/* Pointer to a linked list of derivation path
+			/* Pointer to a linked list of derivation node
                            entries associated with the virtual base class(es)
 			   along the derivation paths of symbols hidden by
 			   original_symbol.  This field is updated when a
@@ -746,7 +747,7 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
                                          a_boolean        is_static,
                                          a_symbol_locator *ext_location);
 
-extern a_derivation_path_ptr alloc_derivation_path(void);
+extern a_derivation_node_ptr alloc_derivation_node(void);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
