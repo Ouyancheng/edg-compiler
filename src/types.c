@@ -1873,8 +1873,15 @@ is allocated, it is allocated in the file scope.
           comp_prototyped = list1_prototyped || list2_prototyped;
           if (!comp_prototyped) {
             /* Both types have old-style (non-prototyped) interfaces, so
-               there is no parameter information in the composite. */
-            comp_param_list = NULL;
+               there is no real parameter information in the composite.
+               However, if one or the other has parameter information because
+               it's a function with a definition, preserve that information
+               in the composite. */
+            if (list1 != NULL) {
+              comp_param_list = list1;
+            } else {
+              comp_param_list = list2;
+            }  /* if */
           } else if (!list2_prototyped) {
             /* Type 2 has an old-style interface, so use the prototyped
                interface from type 1. */
@@ -1890,7 +1897,7 @@ is allocated, it is allocated in the file scope.
                the parameter lists. */
             for (comp_equals_list1 = comp_equals_list2 = TRUE,
                                                 param1 = list1, param2 = list2;
-                 param1 != NULL && (comp_equals_list1 || comp_equals_list2);
+                 param1 != NULL;
                  param1 = param1->next, param2 = param2->next) {
 #if CHECKING
               if (param2 == NULL) {
@@ -1901,11 +1908,12 @@ is allocated, it is allocated in the file scope.
               }  /* if */
 #endif /* CHECKING */
               /* Compare the two parameter types against their composite
-                 type.  Note that if a new type is allocated here for the
-                 composite, it will probably just be wasted. */
+                 type.  Stop if it is no longer true that one of the original
+                 parameter lists can serve as the composite list. */
               comp_param_type = composite_type(param1->type, param2->type);
               if (comp_param_type != param1->type) comp_equals_list1 = FALSE;
               if (comp_param_type != param2->type) comp_equals_list2 = FALSE;
+              if (!comp_equals_list1 && !comp_equals_list2) break;
             }  /* for */
             if (comp_equals_list1) {
               comp_param_list = list1;
@@ -1923,12 +1931,29 @@ is allocated, it is allocated in the file scope.
                    int f(int (*)(char *), double (*)[3]);
 
               */
+              a_param_type_ptr param1_on_which_first_loop_failed = param1;
               comp_param_list = end_comp_param_list = NULL;
               for (param1 = list1,  param2 = list2;
                    param1 != NULL;
                    param1 = param1->next, param2 = param2->next) {
                 comp_param = alloc_param_type(/*at_file_scope=*/TRUE);
-                comp_param->type = composite_type(param1->type, param2->type);
+                if (param1 == param1_on_which_first_loop_failed) {
+                  /* Little optimization: when we get to the parameters on
+                     which the loop above failed, use the composite type
+                     already formed.  This is nice when that type is something
+                     distinct from the two parameter types.  Without this
+                     trick, that type would be lost. */
+                  comp_param->type = comp_param_type;
+                } else {
+                  /* For the other parameter pairs, we call composite_type.
+                     For the parameters preceding the key pair, composite_type
+                     will do what it did in the loop above and return one of
+                     the original types; for parameters following that pair,
+                     composite_type must be called because it has not been
+                     called yet for those parameters. */
+                  comp_param->type = composite_type(param1->type,
+                                                    param2->type);
+                }  /* if */
                 /* Add the parameter type entry to the end of the list. */
                 if (comp_param_list == NULL) {
                   comp_param_list = comp_param;
