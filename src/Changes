@@ -505,6 +505,13 @@ instead of when the lvalue is constructed.  This fixes a bug with
 calling a function that returns a reference to an uninstantiated template
 class, and matches the newer Working Paper specification.
 
+8/29/95  New source files scope_stk.c/h, lookup.c/h
+
+To reduce the size of symbol_tbl.c, some of the symbol table code has
+been moved into new files.  scope_stk.c contains scope-stack maintenance
+code.  lookup.c contains symbol table lookup code.  scope_stk.h and
+lookup.h are new corresponding header files.
+
 8/28/95  C++-generating back end: bug with address of class temporary
 
 A program like the following, which casts a class rvalue to a reference
