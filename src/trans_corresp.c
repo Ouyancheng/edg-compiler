@@ -2283,9 +2283,9 @@ declaration modifiers.
     }  /* if */
   }  /* if */
   if (!result &&
-      (((rp1->decl_modifiers & DM_FORCEINLINE) !=
+      (((rp1->decl_modifiers & DM_FORCEINLINE) &&
                                        (rp2->decl_modifiers & DM_NOINLINE)) ||
-       ((rp1->decl_modifiers & DM_NOINLINE) !=
+       ((rp1->decl_modifiers & DM_NOINLINE) &&
                                    (rp2->decl_modifiers & DM_FORCEINLINE)))) {
     /* A routine shouldn't be declared both with __forceinline and with
        __declspec(noinline). */
