@@ -1809,6 +1809,10 @@ have_kind:;
 }  /* int_kind_for_size_and_alignment */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* The following routine is only called to map Microsoft keywords __int32
+and __int64 to the appropriate int kind. */
+
 an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
                                       a_boolean     is_signed)
 /*
@@ -1844,6 +1848,7 @@ have_kind:;
   return int_kind;
 }  /* int_kind_for_bit_size */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*
