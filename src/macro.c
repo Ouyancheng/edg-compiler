@@ -1996,7 +1996,7 @@ associated global variables will also have been set).
 #endif /* DEBUG */
   /* One we begin rescanning a macro, don't allow a PCH to be generated
      at this point. */
-  next_token_is_top_level_decl_start = FALSE;
+  num_macro_invocations_in_process++;
   copy_source_position(pos_curr_token, start_pos);
   /* If possible, clear the macro buffer (a buffer where characters of
      expansions are put).  This is tricky in that we can't clear the
@@ -2836,6 +2836,7 @@ return_point:
   }  /* if */
 #endif /* DEBUG */
   macro_depth = saved_macro_depth;
+  num_macro_invocations_in_process--;
   db_exit();
   return (ctoken);
 }  /* macro_invocation */
@@ -5191,6 +5192,7 @@ initialized for each compilation.
 */
 {
   /* avail_macro_args is not per-compilation and should not be cleared. */
+  num_macro_invocations_in_process = 0;
 #if DEBUG
   num_macro_params_allocated    = 0;
   num_macro_defs_allocated      = 0;

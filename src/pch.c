@@ -1521,6 +1521,10 @@ write out the precompiled header file.
     /* We are in the middle of a construct.  We must be between top level
        declarations in order to generate a precompiled header. */
     db_cannot_generate_reason("not between top level declarations");
+  } else if (num_macro_invocations_in_process != 0) {
+    /* We are in the middle of processing a macro invocation.  Don't generate
+       a PCH here. */
+    db_cannot_generate_reason("macro invocation in process");
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* Don't save the header files if we are not currently at file scope. */
     db_cannot_generate_reason("not at file scope");
