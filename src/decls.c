@@ -4793,12 +4793,18 @@ Only the first form is accepted in C.
       a_storage_class    dummy_storage_class;
       a_type_ptr         dummy_type_ptr;
 
+      set_err_pos_to_curr_token();
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr);
       /* Note -- the check for dangling_type_specifier is not relevant here. */
-      complete_type = make_qualified_type(complete_type,
-				          dso_flags & DSO_CONST_QUALIFIED,
-				          dso_flags & DSO_VOLATILE_QUALIFIED);
+      if (is_reference_type(complete_type)) {
+        warning(ec_useless_type_qualifiers);
+      } else {
+        complete_type = 
+                    make_qualified_type(complete_type,
+                                        dso_flags & DSO_CONST_QUALIFIED,
+                                        dso_flags & DSO_VOLATILE_QUALIFIED);
+      }  /* if */
     }  /* if */
   }  /* while */
 
