@@ -59,7 +59,7 @@ This is now fixed.
 
 7/27/04  C mode: Diagnostic on unnamed parameter in function definition
 
-The error issued in C mode on an unnamed parameters in a function definition
+The error issued in C mode on an unnamed parameter in a function definition
 has been made discretionary (i.e., its severity can be lowered from the
 command-line).  For example:
 
