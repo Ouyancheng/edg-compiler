@@ -98,7 +98,7 @@ typedef enum /* a_template_info_line_type */ {
 The template information line type string to be written to the
 file for the various line type kinds.
 */
-static char	*line_type_names[(int)tilt_last+1] = {
+static char	*template_info_line_type_namess[(int)tilt_last+1] = {
   /* tilt_command_line */		"cmd",
   /* tilt_curr_dir */			"dir",
   /* tilt_file_name */			"fnm",
@@ -106,6 +106,24 @@ static char	*line_type_names[(int)tilt_last+1] = {
   /* tilt_instantiation_dir_name */	"idn",
   /* tilt_instantiation_file_name */	"ifn",
   /* tilt_last */			NULL
+};
+
+/*
+Enumeration used to specify the kind of template information file line to
+be written.
+*/
+typedef enum /* an_exported_template_line_type */ {
+  etlt_template_name,
+  etlt_last
+} an_exported_template_line_type;
+
+/*
+The template information line type string to be written to the
+file for the various line type kinds.
+*/
+static char	*exported_template_line_type_namess[(int)etlt_last+1] = {
+  /* etlt_template_name */		"tnm",
+  /* etlt_last */			NULL
 };
 
 /*
@@ -163,6 +181,7 @@ static char	*instantiation_request_file_name;
 			   be instantiated.  Intended to be used for linker
 			   feedback mechanisms to provide automatic
 			   instantiation. */
+
 static FILE	*f_instantiation_request;
 			/* File from which the instantiation list should be
 			   read.  Only valid when do_auto_instantiation is
@@ -180,6 +199,10 @@ static a_boolean
 static FILE	*f_template_info;
 			/* File variable associated with the template
 			   information file. */
+
+static FILE	*f_exported_template;
+			/* File variable associated with the exported
+			   template file. */
 
 static a_boolean
 		any_instantiated_entities_added_to_request_file;
@@ -261,6 +284,17 @@ static a_boolean
 			   instantiation wrapup.  An implicit inclusion
 			   could make it possible to instantiate some entity
 			   that previously could not be instantiated. */
+
+static a_symbol_list_entry_ptr
+		exported_templates_list;
+			/* List of exported templates whose definitions
+			   were provided in this compilation.  This list
+			   includes only functions and static data members
+			   (i.e., not classes). */
+
+static a_symbol_list_entry_ptr
+		exported_templates_tail;
+			/* The end of the exported templates list. */
 
 static a_symbol_list_entry_ptr
 		deferred_instantiations;
@@ -694,6 +728,21 @@ request file if names were not provided on the command line.
       template_info_file_name = "default.ti";
     }  /* if */
   }  /* if */
+  if (exported_template_file_name == NULL) {
+    if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+      /* A file name was specified on the command line, but no exported
+         template file was specified on the command line.  Use a name
+         based on the primary source file name. */
+      exported_template_file_name = 
+         derived_name(primary_source_file_name, EXPORTED_TEMPLATE_FILE_SUFFIX);
+    } else {
+      /* If the input is coming from standard input and no exported template
+         file name was specified, use a default value.  This should be
+         supplied by the driver, so this is only intended for testing
+         purposes. */
+      exported_template_file_name = "default.et";
+    }  /* if */
+  }  /* if */
   /* The name of the instantiation request file can be specified on the
      command line.  If none is specified, then a default name is
      generated.  This file is only used when input is coming from a file. */
@@ -748,7 +797,8 @@ associated with this information file line.
   if (f_template_info == NULL) {
     open_template_info_file();
   }  /* if */
-  fprintf(f_template_info, "%s:%s", line_type_names[(int)line_type], string);
+  fprintf(f_template_info, "%s:%s",
+          template_info_line_type_namess[(int)line_type], string);
   if (flags_string) {
     fprintf(f_template_info, ":%s", flags_string);
   }  /* if */
@@ -781,6 +831,75 @@ already exists.
   }  /* if */
   f_template_info = NULL;
 }  /* close_or_remove_template_info_file */
+
+
+static void close_or_remove_exported_template_file(void)
+/*
+If any entries were written to the exported template definition file,
+close it now.  If no entries were written, remove any file that might
+have already existed.
+*/
+{
+  if (f_exported_template != NULL) {
+    /* Close the file if it is open. */
+    if (fclose(f_exported_template)) {
+      str_catastrophe(ec_file_write_error, "exported template file");
+    }  /* if */
+  }  /* if */
+  if (f_exported_template == NULL || total_errors != 0) {
+    /* If there were no entries written to the exported template file,
+       delete any old version of the file.  The file is also deleted if any
+       errors occurred during this compilation. */
+    if (is_regular_file(exported_template_file_name)) {
+      delete_file(exported_template_file_name);
+    }  /* if */
+  }  /* if */
+  f_exported_template = NULL;
+}  /* close_or_remove_exported_template_file */
+
+
+static void open_exported_template_file(void)
+/*
+Open the template information file.
+*/
+{
+  a_boolean	cannot_open;
+  a_boolean	bad_name;
+
+  check_assertion_str2(generate_template_files(),
+                       "open_exported_template_file:",
+                       "generate_template_files() is FALSE");
+  /* Open the file into which information about exported template will
+     be written. */
+  f_exported_template = open_output_file(exported_template_file_name,
+                                         /*binary_file=*/FALSE,
+                                         /*update_mode=*/FALSE,
+                                         &cannot_open, &bad_name);
+  if (bad_name) {
+    str_catastrophe(ec_invalid_output_file, exported_template_file_name);
+  } else if (cannot_open) {
+    str_catastrophe(ec_cannot_open_output_file, exported_template_file_name);
+  }  /* if */
+}  /* open_exported_template_file */
+
+
+static void write_to_exported_template_file(
+				an_exported_template_line_type	line_type,
+				char				*string)
+/*
+Write a line to the exported template file.  line_type specifies
+the kind of line to be written.  string specifies the value to
+be written.
+*/
+{
+  if (f_exported_template == NULL) {
+    open_exported_template_file();
+  }  /* if */
+  fprintf(f_exported_template, "%s:%s",
+          exported_template_line_type_namess[(int)line_type],
+          string);
+  fputs("\n", f_exported_template);
+}  /* write_to_exported_template_file */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -11237,6 +11356,27 @@ the size of arr can be computed.
 }  /* fixup_types_that_refer_to_incomplete_instantiations */
 
 
+static void add_to_exported_templates_list(a_symbol_ptr	sym)
+/*
+sym is the symbol of a template function, member function of a class
+template, or static data member of a class template that is an exported
+template defined in the current translation unit.  Add it to the list
+of exported templates for this translation unit.
+*/
+{
+  a_symbol_list_entry_ptr	slep;
+
+  slep = alloc_symbol_list_entry();
+  slep->symbol = sym;
+  /* Add it to the end of the list of exported templates. */
+  if (exported_templates_list == NULL) exported_templates_list = slep;
+  if (exported_templates_tail != NULL) {
+    exported_templates_tail->next = slep;
+  }  /* if */
+  exported_templates_tail = slep;
+}  /* add_to_exported_templates_list */
+
+
 #if RECORD_TEMPLATE_STRINGS
 
 static void select_caches_and_make_template_string(
@@ -11672,6 +11812,7 @@ returned to the caller.
     check_assertion(tssp->il_template_entry != NULL);
     if (decl_state->export_present) {
       tssp->il_template_entry->is_exported = TRUE;
+      add_to_exported_templates_list(sym);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Restore the previous state wrt. the generation of source sequence
@@ -11986,12 +12127,13 @@ instantiation.
 static void update_export_flag_for_function(
 			a_tmpl_decl_state_ptr			decl_state,
 			a_routine_ptr				rout_ptr,
+			a_symbol_ptr				sym,
 			a_template_symbol_supplement_ptr	tssp)
 /*
-tssp is the template symbol supplement for a function template or a member
-function of a class template.  Its is_exported flag may or may not have
-been set by a previous declaration.  Update it to reflect an export
-keyword present on the current declaration.
+sym is the symbol for a function template or a member function of a class
+template, tssp is its template symbol supplement.  Its is_exported flag
+may or may not have been set by a previous declaration.  Update it to
+reflect an export keyword present on the current declaration.
 */
 {
   if (rout_ptr->is_inline) {
@@ -12008,6 +12150,10 @@ keyword present on the current declaration.
       pos_error(ec_export_after_definition, &decl_state->export_position);
     }  /* if */
     tssp->il_template_entry->is_exported = TRUE;
+  }  /* if */
+  if (tssp->il_template_entry->is_exported) {
+    /* Add the template to the list of exported templates. */
+    add_to_exported_templates_list(sym);
   }  /* if */
 }  /* update_export_flag_for_function */
 
@@ -12185,7 +12331,7 @@ caller.
     /* Save the IL template entry pointer for this symbol. */
     set_il_template_entry(decl_state, sym, tssp);
     /* Update the exported flag, if necessary. */
-    update_export_flag_for_function(decl_state, rout_ptr, tssp);
+    update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
   }  /* if */
   if (decl_state->defines_something) {
     /* A function template definition -- leave it to the caller to advance
@@ -14660,9 +14806,10 @@ request file.
 }  /* init_auto_instantiation_information */
 
 
-static char *get_mangled_name_of_instance(a_symbol_ptr	sym)
+static char *get_mangled_name_for_symbol(a_symbol_ptr	sym)
 /*
-Return the mangled name of the variable or routine specified by "sym".
+Return the mangled name of the variable, routine, or template specified
+by "sym".
 */
 {
   char	*name;
@@ -14671,13 +14818,21 @@ Return the mangled name of the variable or routine specified by "sym".
     a_variable_ptr	variable;
     variable = sym->variant.static_data_member.variable;
     name = get_mangled_static_data_member_name(variable);
-  } else {
+  } else if (is_function_symbol(sym)) {
     a_routine_ptr	routine;
     routine = sym->variant.routine.ptr;
     name = get_mangled_function_name(routine);
+  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+    a_routine_ptr			routine;
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = sym->variant.template_info;
+    routine = tssp->variant.function.routine;
+    name = get_mangled_function_name(routine);
+  } else {
+    unexpected_condition_str("get_mangled_name_for_symbol: bad kind");
   }  /* if */
   return name;
-}  /* get_mangled_name_of_instance */
+}  /* get_mangled_name_for_symbol */
 
 
 static void check_if_present_in_request_file(
@@ -14697,7 +14852,7 @@ object or library with which this file is being linked).
 
   *not_defined_elsewhere = FALSE;
   *instantiate = FALSE;
-  name = get_mangled_name_of_instance(tip->instance_sym);
+  name = get_mangled_name_for_symbol(tip->instance_sym);
   ilp = find_instance(name, /*add=*/FALSE);
   if (ilp != NULL && ilp->in_request_file) {
     /* The entity was named in the instantiation request file. */
@@ -14828,12 +14983,13 @@ otherwise they are removed.
     if (total_errors == 0) {
       create_or_remove_instantiation_request_file();
     }  /* if */
-    /* The template information file, if being used, is closed or removed
-       even in the presence of errors, but not if doing preprocessing only
-       or suppressing the back end. */
+    /* The template information file (if being used) and the exported
+       template file, are closed or removed even in the presence of errors,
+       but not if doing preprocessing only or suppressing the back end. */
     if (use_template_info_file) {
       close_or_remove_template_info_file();
     }  /* if */
+    close_or_remove_exported_template_file();
   }  /* if */
   check_assertion_str2(f_template_info == NULL,
                        "wrapup_auto_instantiation_information:",
@@ -15319,7 +15475,7 @@ and "do not instantiate" flags are set here.
           generate_template_files()) {
         /* The flags are to be placed in the template information file. */
         char	*name;
-        name = get_mangled_name_of_instance(instance_sym);
+        name = get_mangled_name_for_symbol(instance_sym);
         write_instantiation_flags_to_template_info_file(
              name, instance_required, do_not_instantiate, can_be_instantiated);
 #if DO_IL_LOWERING
@@ -15372,6 +15528,26 @@ and "do not instantiate" flags are set here.
   }  /* if */
   db_exit();
 }  /* update_auto_instantiation_flags */
+
+
+static void generate_exported_template_file(void)
+/*
+Create the file containing information about exported templates.
+*/
+{
+  a_symbol_list_entry_ptr	slep;
+
+  for (slep = exported_templates_list; slep != NULL; slep = slep->next) {
+    a_symbol_ptr	sym;
+    char		*mangled_name;
+    sym = slep->symbol;
+    /* Get the signature for the template that is defined. */
+    mangled_name = get_mangled_name_for_symbol(sym);
+    /* Write an entry to the exported template file. */
+    write_to_exported_template_file(etlt_template_name, mangled_name);
+  }  /* for */
+}  /* generate_exported_template_file */
+
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -15549,6 +15725,13 @@ specific definition that made it unnecessary.
   check_assertion_str2(!any_friend_state_changed || total_errors != 0,
                        "instantiation_wrapup:",
                        "silent change in friend state");
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Output information about exported templates defined in this
+     translation unit. */
+  if (export_template_allowed) {
+    generate_exported_template_file();
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if CHECKING
   after_instantiation_wrapup = TRUE;
 #endif /* CHECKING */
@@ -16665,8 +16848,14 @@ brace) is returned in *final_token.  options is a bit set of option flags.
   check_assertion(*final_token == tok_semicolon);
   /* Check for the presence of the "export" keyword. */
   if (curr_token == tok_export) {
-    export_present = TRUE;
-    export_pos = pos_curr_token;
+    if (!export_template_allowed) {
+      /* Export processing is disabled.  Issue a diagnostic. */
+      pos_diagnostic(es_discretionary_error, ec_no_export_support,
+                     &pos_curr_token);
+    } else {
+      export_present = TRUE;
+      export_pos = pos_curr_token;
+    }  /* if */
     (void)get_token();
   }  /* if */
   if (curr_token != tok_template) {
@@ -16782,6 +16971,9 @@ One-time initialization for templates.c static variables.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(instantiations_required),
       pch_saved_var_array_elem(instantiations_required_tail),
+      pch_saved_var_array_elem(exported_templates_list),
+      pch_saved_var_array_elem(exported_templates_tail),
+
       pch_saved_var_array_elem(can_instantiate_list),
       pch_saved_var_array_elem(inline_function_list),
       pch_saved_var_array_elem(avail_partial_order_candidates),
@@ -16798,6 +16990,8 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(type_of_unknown_templ_param_nontype);
   register_trans_unit_variable(instantiations_required);
   register_trans_unit_variable(instantiations_required_tail);
+  register_trans_unit_variable(exported_templates_list);
+  register_trans_unit_variable(exported_templates_tail);
   register_trans_unit_variable(inline_function_list);
   register_trans_unit_variable(entries_updated_during_instantiation_wrapup);
   register_trans_unit_variable(can_instantiate_list);
@@ -16827,6 +17021,8 @@ given translation unit.
   implicit_inclusion_done_during_instantiation_wrapup = FALSE;
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
+  exported_templates_list = NULL;
+  exported_templates_tail = NULL;
   inline_function_list = NULL;
   entries_updated_during_instantiation_wrapup = FALSE;
   can_instantiate_list = NULL;

@@ -1084,6 +1084,16 @@ the primary input file to get the template information file name.
 #endif /* ifndef TEMPLATE_INFO_FILE_SUFFIX */
 
 /*
+Exported template file suffix.  This is added to the base name of
+the primary input file to get the exported template file name.
+The exported template file contains information about the exported
+templates that are defined by a given file.
+*/
+#ifndef EXPORTED_TEMPLATE_FILE_SUFFIX
+#define EXPORTED_TEMPLATE_FILE_SUFFIX ".et"
+#endif /* ifndef EXPORTED_TEMPLATE_FILE_SUFFIX */
+
+/*
 Flag that is TRUE if a template information file should be created for
 information such as instantiation files (in one instantiation per object
 file mode), or to contain template instantiation flags. 

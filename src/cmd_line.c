@@ -265,6 +265,10 @@ Initialize the option information table.
                          "definition_list_file",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_exported_template_file_name,
+                         "exported_template_file",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   add_option_description(optk_implicit_template_inclusion,
@@ -2510,6 +2514,9 @@ Process the arguments on the command line that invoked the compiler.
       case optk_definition_list_file_name:
         definition_list_file_name = opt_arg;
         break;
+      case optk_exported_template_file_name:
+        exported_template_file_name = opt_arg;
+        break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       case optk_implicit_template_inclusion:
@@ -3499,6 +3506,7 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
+  export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED;
   export_keyword_enabled = TRUE;
   curr_command_line_macro_def = NULL;
 }  /* cmd_line_early_init */

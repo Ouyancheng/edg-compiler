@@ -358,7 +358,7 @@ to define and use exported templates should be done.  The variable can
 also be controlled from the command line by --[no_]export_template.
 */
 #ifndef DEFAULT_EXPORT_TEMPLATE_ALLOWED
-#define DEFAULT_EXPORT_TEMPLATE_ALLOWED FALSE
+#define DEFAULT_EXPORT_TEMPLATE_ALLOWED TRUE
 #endif /* DEFAULT_EXPORT_TEMPLATE_ALLOWED */
 
 /*

@@ -58,6 +58,7 @@ typedef enum /*an_option_kind*/ {
   optk_ii_file_name,
   optk_template_info_file,
   optk_definition_list_file_name,
+  optk_exported_template_file_name,
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   optk_implicit_template_inclusion,
@@ -793,6 +794,11 @@ EXTERN char	*template_info_file_name /* = NULL*/;
 			/* The name of a file into which the front end should
 			   write a list of files that were created that contain
 			   instantiations. */
+
+EXTERN char	*exported_template_file_name /* = NULL*/;
+			/* The name of a file into which the front end should
+			   write information about the exported templates
+			   defined by the compilation. */
 
 EXTERN char	*definition_list_file_name /* = NULL*/;
 			/* The name of a file containing a list of functions
