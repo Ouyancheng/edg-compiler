@@ -1,5 +1,15 @@
 Version 2.28
 
+2/15/95  Support for template friend declarations
+
+Template declarations that declare friend classes or friend functions
+are now supported.
+
+  template <class T> struct A {
+    template <class X> friend void f(X);
+    template <class X> friend struct Z;
+  };
+
 2/14/95  Return types of operator new and operator delete
 
 We now issue errors on declarations of operator new() with a return type of
