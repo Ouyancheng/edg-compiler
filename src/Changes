@@ -1,5 +1,17 @@
 Version 2.43
 
+8/16/99  C linkage ignored on pointer-to-member-function
+
+The front end no longer distinguishes pointer-to-member-functions with C
+linkage from those with C++ linkage.  Hence the following example is no
+longer accepted:
+
+  struct S {};
+  extern "C" typedef void (S::*PMF1)();  // extern "C" ignored on type PMF1
+  extern "C++" typedef void (S::*PMF2)();
+  extern "C" void f(PMF1);
+  extern "C++" void f(PMF2); // Error: same signatures, but different linkage
+
 8/16/99  Microsoft compatibility: repeated typedef of integral type (C mode)
 
 In Microsoft bugs C mode, the front end now allows a typedef for an integral
