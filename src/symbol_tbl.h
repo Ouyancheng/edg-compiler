@@ -824,10 +824,8 @@ and call a subroutine for class members.
 }  /* check_ambiguity_and_verify_access */
 
 
-
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
-
 
 /*
 If symbol is a projection symbol, change it to the fundamental symbol pointed
@@ -838,6 +836,15 @@ to by the projection.
     (symbol) = (symbol)->variant.projection.extra_info->fundamental_symbol;\
   }  /* if */                                                         \
 }  /* reduce_projection_symbol_to_fundamental_symbol */
+
+/*
+Extract the fundamental symbol from a locator.
+*/
+#define fundamental_symbol_from_locator(locator)                      \
+  ((locator)->specific_symbol->kind == (a_symbol_kind)sk_projection ? \
+         (locator)->specific_symbol->variant.projection.extra_info->  \
+                                                 fundamental_symbol : \
+         (locator)->specific_symbol)
 
 
 extern a_symbol_ptr project_into_class(a_symbol_ptr basis_sym,
