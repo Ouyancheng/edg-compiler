@@ -4043,7 +4043,9 @@ enum an_expr_operator_kind_tag {
   eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue in
 			   pcc mode.  An lvalue cast to a like-sized type
 			   can remain an lvalue. */
-  eok_dynamic_cast,     /* C++ dynamic_cast operation (see 5.2.6). */
+  eok_dynamic_cast,	/* C++ dynamic_cast operation [expr.dynamic.cast].
+			   The operand is an lvalue if the result type is
+			   a reference, and an rvalue otherwise. */
   eok_complement,       /* Integer bitwise complement ("~" operator). */
   eok_ipost_incr,       /* Integer post increment. */
   eok_ipost_decr,       /* Integer post decrement. */
