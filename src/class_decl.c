@@ -9362,13 +9362,32 @@ next_declaration:
         /* Restore the scope stack to its original state. */
         pop_class_reactivation_scope();
       }  /* if */
-      if (is_template_class_type(class_type) ||
-          class_type->variant.class_struct_union.
-                    referenced_by_class_instantiation_placeholder_typeref) {
+      if (is_template_class_type(class_type)) {
         /* No nested class placeholders are put out for instances of member
            templates -- instantiation placeholders are used where needed (see
-           add_to_types_list).  The same may apply to nontemplate classes
-           that are nested within template class instantiations. */
+           add_to_types_list). */
+      } else if (class_type->variant.class_struct_union.
+                    referenced_by_class_instantiation_placeholder_typeref) {
+        /* A class-instantiation placeholder may also be put out for
+           nontemplate classes that are nested within template class
+           instantiations (see add_to_types_list). */
+      } else if (is_template_instantiation &&
+                 class_type->source_corresp.parent.class_type->
+                     variant.class_struct_union.extra_info->
+                     assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+        /* Another case involving a nontemplate class nested in a template
+           class -- its parent class is still on the scope stack.  That can
+           happen when a nested class of a template class (which is not
+           instantiated immediately when it is encountered in the parent
+           class) ends up being instantiated before the parent class
+           definition is completed.  Here's an example:
+             template <class T> class A {
+               class B { ... };
+               B b;
+             };
+             A<int> a;
+           When A<int> is instantiated, the instantiation of A<int>::B is
+           delayed but then triggered by the declaration of A<int>::b. */
       } else {
         a_type_ptr  placeholder;
 
