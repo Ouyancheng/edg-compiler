@@ -1166,6 +1166,7 @@ projection symbol.
 {
   a_source_correspondence *scptr;
   a_symbol_kind           sym_kind = sym_ptr->kind;
+  a_boolean		  first_reference = !sym_ptr->referenced;
  
   check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_projection &&
                       sym_ptr->kind != (a_symbol_kind)sk_namespace_projection,
@@ -1237,7 +1238,7 @@ projection symbol.
         sym_ptr->variant.routine.ptr->is_virtual) {
       /* Do not set IL referenced flag. */
     } else {
-      if (!scptr->referenced &&
+      if (first_reference &&
           sym_kind == (a_symbol_kind)sk_static_data_member) {
         /* If we are marking a template static data member as referenced, also
            set its instantiation required flag. */
