@@ -7,6 +7,7 @@ source sequence entries are put out for function template instantiations,
 and when CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
 they are put out for class template instantiations.  Defined in
 host_envir.h, both flags require GENERATE_SOURCE_SEQUENCE_LISTS to be set.
+Both are FALSE by default.
 
 8/17/94  Diagnostic on type qualifier applied to reference type
 
