@@ -1,6 +1,26 @@
 Version 2.41, March 5, 1999
 
-3/2/99   IL version number changed to 2.33
+3/5/99   IL version number changed to 2.33
+
+3/3/99   Spurious error when in member class template parameter depends on
+         type of enclosing template parameter
+
+If a template parameter of a member class template depends on a template
+parameter of an enclosing class template, and if that member class template
+is defined later outside of the class, spurious errors could result when
+an argument value is supplied for the member class template parameter.
+This has been fixed.
+
+  template<class T> struct A {
+    template<T& TR> struct B;
+  };
+  // Problem goes away of B is defined in A.
+  template<class T> template<T& TR> struct A<T>::B {
+     static B b;
+  };
+  template<class T> template<T& TR> A<T>::B<TR>  A<T>::B<TR>::b;
+  int i;
+  A<int>::B<i> ab;
 
 3/2/99   Microsoft C compatibility: relax restrictions on use of old-style
          function parameter lists

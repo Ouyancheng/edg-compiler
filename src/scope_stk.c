@@ -1736,7 +1736,8 @@ to the namespace and class that must be reactivated.
     parent_type = NULL;
     parent_namespace = sp->variant.assoc_namespace;
   }  /* if */
-  if (instance_sym == NULL) {
+  if (instance_sym == NULL &&
+      template_sym->kind == (a_symbol_kind)sk_function_template) {
     /* Use the parent information determined above.
 
        When there is no specific instance being instantiated, that indicates
@@ -1746,9 +1747,9 @@ to the namespace and class that must be reactivated.
        the case when scanning the function declaration of a function template
        to do the partial instantiation of the function.  Note that this
        is not the case when scanning the default function arguments
-       though.  In such cases, the parent information is determined by the
-       scope that contained the template declaration based on which the
-       current instantiation is being done. */
+       though.  For the function template case, the parent information is
+       determined by the scope that contained the template declaration
+       based on which the current instantiation is being done. */
     *p_tp = parent_type;
     *p_nsp = parent_namespace;
   } else if (!template_sym->is_class_member && 
@@ -1765,9 +1766,11 @@ to the namespace and class that must be reactivated.
   } else {
     /* If we are instantiating a particular instance of a template, get
        the parent information from the template being instantiated. */
-    *p_nsp = parent_namespace_for_symbol(instance_sym);
-    if (instance_sym->is_class_member) {
-      *p_tp = instance_sym->parent.class_type;
+    a_symbol_ptr	sym_to_use;
+    sym_to_use = instance_sym != NULL ? instance_sym : template_sym;
+    *p_nsp = parent_namespace_for_symbol(sym_to_use);
+    if (sym_to_use->is_class_member) {
+      *p_tp = sym_to_use->parent.class_type;
     } else {
       *p_tp = NULL;
     }  /* if */
