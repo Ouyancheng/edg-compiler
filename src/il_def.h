@@ -682,6 +682,8 @@ enum an_integer_kind_tag {
                         /* Not used in pcc mode; ik_signed_char or
                            ik_unsigned_char is used instead. */
 #endif /* ifdef CIL */
+  /* Note that the unsigned version must immediately follow the signed
+     version in each case. */
   ik_signed_char,
   ik_unsigned_char,
   ik_short,
@@ -1806,8 +1808,8 @@ typedef struct a_field {
                            struct/union, NULL if this field is the last in the
                            struct/union. */
   a_type_ptr    type;
-                        /* Type of the field.  This will be set even for
-                           bit fields. */
+                        /* Type of the field.  For bit fields, this is the
+                           base type. */
   a_targ_size_t bit_offset;
                         /* Offset of this field from the start of the
                            struct (in bits).  Zero for members of unions. */
@@ -1815,6 +1817,9 @@ typedef struct a_field {
                         /* Size of this field (in bits).  Only non-zero
                            for bit-fields; for the others, the size is
                            gotten from the type. */
+  a_byte_boolean
+		bit_field_is_signed;
+			/* TRUE if the field is a signed bit field. */
 } a_field;
 
 #endif /* ifdef CIL */
