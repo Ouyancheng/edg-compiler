@@ -858,7 +858,12 @@ the lists.
       /* This is a placeholder typeref, used to give guidance to IL lowering
          on the order of types promoted out of classes and namespaces.
          Keep the placeholder only if the type pointed to is being kept. */
-      a_type_ptr ref_type = type->variant.typeref.type;
+      a_type_ptr ref_type = type;
+      /* Loop to handle placeholders that point to placeholders. */
+      do {
+        ref_type = ref_type->variant.typeref.type;
+      } while (ref_type->kind == (a_type_kind)tk_typeref &&
+               !typeref_is_typedef(ref_type));
       keep_on_list = entry_should_be_copied(ref_type, iek_type);
     }  /* if */
     if (keep_on_list) {
