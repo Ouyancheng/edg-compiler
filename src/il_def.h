@@ -454,6 +454,10 @@ typedef struct a_constant {
                            for results of folding constant bit operations.
                            Used to suppress some warnings on implicit type
                            changes. */
+  unsigned int	is_simple_zero:1;
+			/* TRUE if the original version of this constant
+			   was simply "0".  This is significant for the
+			   case of a virtual function pure specifier in C++. */
   unsigned int	avoid_codecenter_warnings:2;
 			/* Cleared to avoid warnings from CodeCenter about
 			   uninitialized storage. */

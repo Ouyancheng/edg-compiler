@@ -2010,6 +2010,7 @@ associated variant fields to default values.
   cp->type           = NULL;
   cp->implicit_cast  = FALSE;
   cp->non_arithmetic = FALSE;
+  cp->is_simple_zero = FALSE;
 #if CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

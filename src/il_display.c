@@ -927,8 +927,15 @@ Display the indicated constant entry.
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_boolean("implicit_cast", (a_boolean)ptr->implicit_cast);
-  disp_boolean("non_arithmetic", (a_boolean)ptr->non_arithmetic);
+  if (ptr->implicit_cast) {
+    disp_boolean("implicit_cast", (a_boolean)ptr->implicit_cast);
+  }  /* if */
+  if (ptr->non_arithmetic) {
+    disp_boolean("non_arithmetic", (a_boolean)ptr->non_arithmetic);
+  }  /* if */
+  if (ptr->is_simple_zero) {
+    disp_boolean("is_simple_zero", (a_boolean)ptr->is_simple_zero);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

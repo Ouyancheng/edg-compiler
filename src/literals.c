@@ -285,6 +285,12 @@ kind_established:;
     const_for_curr_token.type                  = integer_type(kind);
     const_for_curr_token.variant.integer_value = number;
     const_for_curr_token.non_arithmetic        = non_arith;
+    /* is_simple_zero is TRUE if the constant is simply "0".  It's useful to
+       know that when the constant is used in a virtual function pure specifier
+       in C++. */
+    const_for_curr_token.is_simple_zero        = (start_of_curr_token ==
+                                                  end_of_curr_token &&
+                                                  *start_of_curr_token == '0');
   }  /* if */
 wrapup:
   if (*err_code != ec_no_error) {
