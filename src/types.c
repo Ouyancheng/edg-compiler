@@ -968,23 +968,60 @@ because any exception it can handle would be caught by type_1's handler.
   a_base_class_ptr  bcp;
 
   db_enter(5, "type_masks_handler_param_type");
+  /* "Reference" on top of a type is ignored for handlers as are type
+      qualifiers. */
   if (is_reference_type(type_1)) type_1 = type_pointed_to(type_1);
   type_1 = skip_typerefs(type_1);
   if (is_reference_type(type_2)) type_2 = type_pointed_to(type_2);
   type_2 = skip_typerefs(type_2);
   if (identical_types(type_1, type_2)) {
+    /* A type is masked by another type that is the same. */
     masked = TRUE;
-  } else if (is_class_struct_union_type(type_1) &&
-             is_class_struct_union_type(type_2)) {
-    bcp = find_base_class_of(type_2, type_1);
-    masked = (bcp != NULL && is_accessible_base_class(bcp,
-                                                      skip_typerefs(type_2)));
+  } else {
+    /* A handler for a derived class is masked by a handler for a base
+       class, and a handler for a pointer-to-derived-class is masked by a
+       handler for a pointer-to-base-class. */
+    if (is_pointer_type(type_1) &&
+        is_class_struct_union_type(type_pointed_to(type_1)) &&
+        is_pointer_type(type_2) &&
+        is_class_struct_union_type(type_pointed_to(type_2))) {
+      type_1 = skip_typerefs(type_pointed_to(type_1));
+      type_2 = skip_typerefs(type_pointed_to(type_2));
+    }  /* if */
+    if (is_class_struct_union_type(type_1) &&
+        is_class_struct_union_type(type_2)) {
+      bcp = find_base_class_of(type_2, type_1);
 #if 0
-  } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
-    /* Implicit conversions involving pointer types are not yet implemented. */
+      /* Strict interpretation of 15.4 para 2. */
+      masked = (bcp != NULL);
+#else
+      /* 15.4 para 1 is clear that a handler for a base class will not
+         handle the derived class if the base class is not accessible.
+         Does this apply to masking that can be diagnosed at compile time?
+         Or is it a restriction on runtime behavior?  For now, we will
+         ignore a strict literal interpretation of 15.4 para 2, even
+         though it is very explcit about when a masking error is required and
+         does not provide a loophole when the base class is inaccessible. */
+      masked = (bcp != NULL && is_accessible_base_class(bcp, type_2));
 #endif /* if 0 */
-  }  /* if */
+    } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
+      /* A pointer-type masks another pointer-type if the latter can be
+         implicitly converted to the former.  (This is not explcit in
+         the working paper or the ARM and may turn out to be an incorrect
+         inference; see 15.4 para 1 and para 2.) */
+      a_constant     dummy_con;
+      a_boolean      dummy_flag;
+      an_error_code  dummy_error_code;
 
+      if (impl_pointer_conversion(type_2, /*source_is_constant=*/FALSE,
+                                  &dummy_con, type_1,
+                                  /*check_as_operands_not_conversion=*/FALSE,
+                                  &dummy_flag, /*suppress_extensions=*/TRUE,
+                                  ec_no_error, &dummy_error_code)) {
+        masked = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   db_exit();
   return masked;
 }  /* type_masks_handler_param_type */
