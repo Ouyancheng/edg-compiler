@@ -4969,7 +4969,7 @@ C++ mode.  The destination type must not be a reference type (the
 caller should have rewritten that case).
 */
 {
-  a_boolean                okay = FALSE, ambiguous, to_class;
+  a_boolean                okay = FALSE, ambiguous;
   a_type_ptr               source_type;
   an_error_code            err_code;
   a_candidate_function_ptr ambiguity_list;
@@ -4982,10 +4982,11 @@ caller should have rewritten that case).
   }  /* if */
 #endif /* CHECKING */
   source_type = source_operand->type;
-  to_class = is_class_struct_union_type(dest_type);
-  if (to_class) {
+  if (!need_lvalue_result && is_class_struct_union_type(dest_type)) {
     /* The destination type is a class. */
-    check_assertion(!need_lvalue_result);
+    /* Note that the need_lvalue_result case does not come here, because
+       the only way to get an lvalue result is through a conversion
+       function. */
     if (conversion_to_class_possible(source_operand, dest_type,
                                      is_initialization,
                                      conversion, &ambiguous,
@@ -5011,7 +5012,8 @@ caller should have rewritten that case).
       }  /* if */
     }  /* if */
   } else if (is_class_struct_union_type(source_type)) {
-    /* The source type is a class (and the destination type is not a class). */
+    /* The source type is a class (and the destination type is not a class,
+       or we want an lvalue result). */
     if (conversion_from_class_possible(source_operand, dest_type,
                                        (a_builtin_type_kind_set)BTK_NONE,
                                        need_lvalue_result,
