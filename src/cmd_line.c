@@ -2880,6 +2880,8 @@ enable_microsoft_mode:
     nonclass_prototype_instantiations = TRUE;
     /* Do argument dependent lookup when doing dependent name processing. */
     arg_dependent_lookup_enabled = TRUE;
+  }  /* if */
+  if (nonclass_prototype_instantiations) {
     implicit_typename_enabled = FALSE;
   }  /* if */
   if (prototype_instantiations_in_il) {
