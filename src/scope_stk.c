@@ -1002,12 +1002,6 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_hidden_name             = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   spbp->last_template                = NULL;
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  spbp->last_scope_orphaned_list_header = NULL;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if RECORD_MACROS_IN_IL
-  spbp->last_macro                   = NULL;
-#endif /* RECORD_MACROS_IN_IL */
   spbp->unnamed_namespace_sym        = NULL;
   spbp->add_symbols_to_inactive_list = FALSE;
 #if CHECKING 

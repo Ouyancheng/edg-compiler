@@ -659,18 +659,6 @@ after the command-line processing has been done.
 #if NEED_NAME_MANGLING
   name_lower_one_time_init();
 #endif /* NEED_NAME_MANGLING */
-  /* Register variables that must be saved and restored when switching
-     between translation units. */
-  register_trans_unit_variable(il_header.primary_scope);
-  register_trans_unit_variable(il_header.main_routine);
-#if RECORD_MACROS_IN_IL
-  register_trans_unit_variable(il_header.macros);
-#endif /* RECORD_MACROS_IN_IL */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  register_trans_unit_variable(il_header.scope_orphaned_list_headers);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  register_trans_unit_variable(
-                             il_header.nontag_types_used_in_exception_or_rtti);
 }  /* fe_one_time_init */
 
 

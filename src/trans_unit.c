@@ -161,6 +161,17 @@ pointed to by the translation unit entry.
     dest = (a_void_ptr)(((char*)var_block) + vrp->offset);
     memcpy(dest, src, size_t_arg(vrp->size));
   }  /* for */
+  /* Save several per-translation-unit fields of il_header. */
+  tup->il_header.main_routine = il_header.main_routine;
+#if RECORD_MACROS_IN_IL
+  tup->il_header.macros = il_header.macros;
+#endif /* RECORD_MACROS_IN_IL */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  tup->il_header.scope_orphaned_list_headers =
+                                         il_header.scope_orphaned_list_headers;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  tup->il_header.nontag_types_used_in_exception_or_rtti =
+                              il_header.nontag_types_used_in_exception_or_rtti;
 }  /* save_translation_unit_state */
 
 
@@ -181,6 +192,18 @@ pointed to by the translation unit entry.
     src = (a_void_ptr)(((char*)var_block) + vrp->offset);
     memcpy(dest, src, size_t_arg(vrp->size));
   }  /* for */
+  /* Restore several per-translation-unit fields of il_header. */
+  il_header.primary_scope = tup->primary_scope;
+  il_header.main_routine = tup->il_header.main_routine;
+#if RECORD_MACROS_IN_IL
+  il_header.macros = tup->il_header.macros;
+#endif /* RECORD_MACROS_IN_IL */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  il_header.scope_orphaned_list_headers =
+                                    tup->il_header.scope_orphaned_list_headers;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  il_header.nontag_types_used_in_exception_or_rtti =
+                         tup->il_header.nontag_types_used_in_exception_or_rtti;
 }  /* restore_translation_unit_state */
 
 
@@ -217,6 +240,13 @@ a pointer to the entry created.
   tup->primary_scope = NULL;
   clear_scope_pointers_block(&tup->file_scope_pointers_block);
   tup->source_file = NULL;
+  memzero(&tup->il_header, sizeof(an_il_header));
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+   tup->last_scope_orphaned_list_header = NULL;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_MACROS_IN_IL
+  tup->last_macro = NULL;
+#endif /* RECORD_MACROS_IN_IL */
   return tup;
 }  /* alloc_translation_unit */
 

@@ -2731,8 +2731,6 @@ processing for add_scope_orphaned_il_lists.
                                          || sublists != NULL
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                                                             ) {
-    a_scope_pointers_block_ptr pointers_block =
-                    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
     /* At least one of the IL pointers is not NULL; create
        a_scope_orphaned_list_header in the file scope region and add it to
        the list headed by il_header.scope_orphaned_list_headers. */
@@ -2750,9 +2748,9 @@ processing for add_scope_orphaned_il_lists.
     if (il_header.scope_orphaned_list_headers == NULL) {
       il_header.scope_orphaned_list_headers = solhp;
     } else {
-      pointers_block->last_scope_orphaned_list_header->next = solhp;
+      curr_translation_unit->last_scope_orphaned_list_header->next = solhp;
     }  /* if */
-    pointers_block->last_scope_orphaned_list_header = solhp;
+    curr_translation_unit->last_scope_orphaned_list_header = solhp;
   }  /* if */
   /* Process subscopes of this scope. */
   for (block_scope = scope->scopes;
@@ -11034,15 +11032,12 @@ void add_to_macros_list(a_macro_ptr  mp)
 Add the IL macro entry pointed to by mp to the list for the file scope.
 */
 {
-  a_scope_pointers_block_ptr pointers_block =
-                    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
-
   if (il_header.macros == NULL) {
     il_header.macros = mp;
   } else {
-    pointers_block->last_macro->next = mp;
+    curr_translation_unit->last_macro->next = mp;
   }  /* if */
-  pointers_block->last_macro = mp;
+  curr_translation_unit->last_macro = mp;
 }  /* add_to_macros_list */
 
 #endif /* RECORD_MACROS_IN_IL */

@@ -52,6 +52,22 @@ typedef struct a_translation_unit {
 		source_file;
 			/* The source file for the primary source file of the
 			   translation unit. */
+  an_il_header	il_header;
+			/* Copy of il_header for this translation unit.
+			   Note that only the translation-unit-specific
+			   field are maintained.  See
+			   save_translation_unit_state to see the list. */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+   a_scope_orphaned_list_header_ptr
+		last_scope_orphaned_list_header;
+			/* End of the il_header.scope_orphaned_list_headers
+			   list; NULL if the list is empty. */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_MACROS_IN_IL
+   a_macro_ptr	last_macro;
+			/* End of the il_header.macros list; NULL if the
+			   list is empty. */
+#endif /* RECORD_MACROS_IN_IL */
 } a_translation_unit;
 
 
