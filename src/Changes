@@ -54,7 +54,7 @@ same during an actual instantiation.  Now fixed.
   template <class T1, class T2> void f(T1, T2) {
     typedef T1 X;
     typedef T2 X;
-  };
+  }
 
 2/26/04  File returned when converting the end-of-source sequence number
 
