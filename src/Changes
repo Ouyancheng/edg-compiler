@@ -1,5 +1,11 @@
 Version 2.42
 
+4/14/99  Spurious errors on asm functions
+
+Version 2.41 introduced a bug whereby the storage class on asm functions
+was set incorrectly, resulting in spurious errors.  Now fixed.  (This
+problem appeared only if ASM_FUNCTION_ALLOWED was configured to TRUE.)
+
 4/13/99  Statement stack address used after possibly reallocation of stack
 
 A bug in switch_statement has been fixed where a statement stack address
