@@ -358,7 +358,11 @@ l_check:
     }  /* if */
 #if LONG_LONG_ALLOWED
 ll_check:
-    if (!has_u_suffix &&
+    if (strict_ansi_mode && !long_long_is_standard && !has_ll_suffix) {
+      /* long long is not supported, so skip these range checks to force
+         a constant-too-large error.  Don't skip if there is an explicit
+         "ll" suffix, to avoid two errors. */
+    } else if (!has_u_suffix &&
         le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                      (an_integer_kind)ik_long_long)) {
       kind = (an_integer_kind)ik_long_long;
