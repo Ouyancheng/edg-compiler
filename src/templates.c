@@ -8357,7 +8357,7 @@ using a qualified name.  Return TRUE if an error was detected.
   } else if (is_definition) {
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(sym);
-    if (tssp->is_nonreal_member) {
+    if (tssp != NULL && tssp->is_nonreal_member) {
       /* An attempt to define a nonreal member. */
       pos_sy_error(ec_bad_template_name, &locator->source_position, sym);
       result = TRUE;
