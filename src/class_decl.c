@@ -2484,7 +2484,7 @@ special function kind (e.g., constructor, destructor), if any.
        its appearance in the base classes of the current class. */
     if (check_for_virtual_function(is_virtual, sym, class_type,
                                    &locator->source_position)) {
-      /* Classes with virtual functions required constructors. */
+      /* Classes with virtual functions require constructors. */
       cssp->constructor_required = TRUE;
     }  /* if */
     /* Do processing for special member functions, including assignment
@@ -3931,7 +3931,7 @@ assignment operator.
     arg_type = sym->variant.routine->type->
                       variant.routine.extra_info->param_type_list->type;
     if (is_reference_type(arg_type) &&
-        type_pointed_to(arg_type) == class_type) {
+        skip_typerefs(type_pointed_to(arg_type)) == class_type) {
       /* Found it. */
       break;
     }  /* if */
@@ -3950,19 +3950,27 @@ static a_statement_ptr make_default_assignment_body(a_scope_ptr  scope)
 /*
 */
 {
-  a_type_ptr        class_type, tp, array_type;
-  a_statement_ptr   block, sp;
-  a_statement       head_of_statement_list;
-  a_variable_ptr    source_var;
-  an_expr_node_ptr  source_expr, dest_expr;
-  a_base_class_ptr  bcp;
-  a_field_ptr       fp;
-  a_routine_ptr     rp;
+  a_type_ptr                     class_type, tp, array_type;
+  a_routine_type_supplement_ptr  rtsp;
+  a_statement_ptr                block, sp;
+  a_statement                    head_of_statement_list;
+  a_variable_ptr                 source_var;
+  an_expr_node_ptr               source_expr, dest_expr;
+  a_base_class_ptr               bcp;
+  a_field_ptr                    fp;
+  a_routine_ptr                  rp;
+  a_symbol_ptr                   sym;
 
   /* The source variable of the copy is the first parameter on the paramters
      list for the routine.  There must be exactly one parameter for an
      assignment function. */
-  source_var = scope->variant.routine.parameters;
+  rtsp = scope->variant.routine.ptr->type->variant.routine.extra_info;
+  source_var = alloc_variable();
+  source_var->type = rtsp->param_type_list->type;
+  source_var->assoc_param_type = rtsp->param_type_list;
+  source_var->storage_class = (a_storage_class)sc_auto;
+  source_var->is_parameter = TRUE;
+  scope->variant.routine.parameters = source_var;
   class_type = type_pointed_to(scope->
                                 variant.routine.this_param_variable->type);
   /* "head_of_statement_list" is a local statement variable whose only
@@ -3998,73 +4006,69 @@ static a_statement_ptr make_default_assignment_body(a_scope_ptr  scope)
           continue;
         }  /* if */
         dest_expr = base_class_selection_expr(this_param_value_expr(), bcp);
+        source_expr = base_class_selection_expr(var_rvalue_expr(source_var),
+                                                bcp);
         if (symbol_supplement_for_class(bcp->type)->
                          assignment_by_bitwise_copy_allowed) {
           check_access_on_assignment_operator();
-          source_expr = base_class_selection_expr(var_rvalue_expr(source_var),
-                                                  bcp);
           source_expr = make_operator_node((an_expr_operator_kind)eok_indirect,
                                            make_pointer_type(bcp->type),
                                            source_expr);
           sp = sp->next = make_assignment_statement(dest_expr, source_expr);
         } else {
           rp = select_assignment_operator(bcp->type);
-          source_expr = base_class_selection_expr(var_lvalue_expr(source_var),
-                                                  bcp);
           sp = sp->next = make_call_assignment_statement(rp, dest_expr,
                                                          source_expr);
         }  /* if */
       }  /* if */
     }  /* if */
-    fp = class_type->variant.class_struct_union.field_list;
-    for (; fp != NULL; fp = fp->next) {
-      tp = fp->type;
+    sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
+                           variant.class_struct_union.extra_info->symbols;
+    for (; sym != NULL; sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_field) {
+        fp = sym->variant.field;
+        tp = fp->type;
 #if 0
-      if (is_reference_type(tp)) {
-        error();
-        continue;
-      }  /* if */
-      if (is_const_qualified_or_has_const_element_or_has_const_member) error;
+        if (is_reference_type(tp)) {
+          error();
+          continue;
+        }  /* if */
+        if (is_const_qualified_or_has_const_element_or_has_const_member) error;
 #endif /* if 0 */
-      array_type = NULL;
-      if (is_array_type(tp)) {
-        array_type = tp;
-        do {
-          tp = array_element_type(tp);
-        } while(is_array_type(tp));
+        array_type = NULL;
         tp = skip_typerefs(tp);
-      }  /* if */
-      if (is_class_struct_union_type(tp)) {
-        check_access_on_assignment_operator();
-        if (symbol_supplement_for_class(tp)->
-                         assignment_by_bitwise_copy_allowed) {
-          if (array_type != NULL) tp = array_type;
-          dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
-          source_expr =
-                  field_rvalue_selection_expr(var_rvalue_expr(source_var), fp);
-          sp = sp->next = make_assignment_statement(dest_expr, source_expr);
-        } else {
-          if (array_type != NULL) {
+        if (is_array_type(tp)) {
+          array_type = tp;
+          do {
+            tp = array_element_type(tp);
+          } while(is_array_type(tp));
+          tp = skip_typerefs(tp);
+        }  /* if */
+        dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
+        source_expr = var_rvalue_expr(source_var);
+        if (is_class_struct_union_type(tp)) {
+          check_access_on_assignment_operator();
+          if (symbol_supplement_for_class(tp)->
+                           assignment_by_bitwise_copy_allowed) {
+            source_expr = field_rvalue_selection_expr(source_expr, fp);
+            sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+          } else if (array_type == NULL) {
+            rp = select_assignment_operator(tp);
+            source_expr = field_lvalue_selection_expr(source_expr, fp);
+            sp = sp->next = make_call_assignment_statement(rp, dest_expr,
+                                                           source_expr);
+          } else {
 #if 0
             add_statement(for, ...call...);
 #else
-            internal_error("make_default_assignment_body: array of ctor NYI");
+            internal_error(
+    "make_default_assignment_body: operator=() calls on array not implmented");
 #endif /* if 0 */
-          } else {
-            rp = select_assignment_operator(bcp->type);
-            dest_expr =
-                  field_lvalue_selection_expr(this_param_value_expr(), fp);
-            source_expr =
-                  field_lvalue_selection_expr(var_lvalue_expr(source_var), fp);
-            sp = sp->next = make_call_assignment_statement(rp, dest_expr,
-                                                           source_expr);
           }  /* if */
+        } else {
+          source_expr = field_rvalue_selection_expr(source_expr, fp);
+          sp = sp->next = make_assignment_statement(dest_expr, source_expr);
         }  /* if */
-      } else {
-        dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
-        source_expr =
-                  field_rvalue_selection_expr(var_rvalue_expr(source_var), fp);
-        sp = sp->next = make_assignment_statement(dest_expr, source_expr);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -4134,7 +4138,7 @@ empty statement block.
         internal_error("define_special_member_function: bad opname kind");
       }  /* if */
 #endif /* CHECKING */
-      make_default_assignment_body(scope);
+      scope->assoc_block = make_default_assignment_body(scope);
       break;
 #if CHECKING
     default:
@@ -4209,6 +4213,7 @@ copied.
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
       tp = sym->variant.routine->type->
                 variant.routine.extra_info->param_type_list->type;
+      tp = skip_typerefs(tp);
       /* We are looking for a reference to the current class. */
       if (is_reference_type(tp)) {
         tp = type_pointed_to(tp);
@@ -4222,6 +4227,23 @@ copied.
             *const_okay = TRUE;
             break;
           }  /* if */
+        }  /* if */
+      } else if (tp == sym->class_of_which_a_member) {
+        /* The argument is not the class object by reference but rather
+           the class object by value.  We accept this, but it presents a
+           special set of problems. */
+        a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(tp);
+        found_assignment_operator_for_copy = TRUE;
+        /* Since passing a class object by value involves a copy constructor
+           call if a copy constructor exists, the logic for setting *const_okay
+           is more complicated. */
+        if (cssp->constructor == NULL) {
+          /* No constructor exists. */
+          *const_okay = TRUE;
+        } else if (cssp->has_copy_constructor_for_const_object) {
+          /* A copy constructor exists that can copy an object without
+             modifying it. */
+          *const_okay = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
