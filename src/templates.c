@@ -5062,36 +5062,44 @@ declaration.
 				 defines_something, sym);
     if (!scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* Suppress this processing during prototype instantiations. */
+      if (tssp->variant.function.decl_token_cache.first_token == NULL) {
+        /* The decl_token_cache is always saved from the initial declaration
+           of the template.  Note that this may be different than the one
+           for which the func_info block is saved.  This is done so that
+           the return type and declarator will be of an appropriate form
+           so that partial instantiations of the function can be done in
+           the context of the original declaration. */
+        tssp->variant.function.decl_token_cache = *decl_token_cache;
+        *decl_token_cache_used = TRUE;
+        tssp->parameters = template_param_list;
+        tssp->declaration_scope = scope_stack[decl_scope_level].number;
+        tssp->variant.function.class_declared_in = class_declared_in;
+      }  /* if */
       if (*defines_something || 
-	  tssp->variant.function.decl_token_cache.first_token == NULL) {
-	/* The decl_token_cache should point to the declaration associated
-	   with the definition, if a definition is present. */
-	tssp->variant.function.decl_token_cache = *decl_token_cache;
-	*decl_token_cache_used = TRUE;
-	/* Copy the func_info block and then null out its the param-id
-	   pointer so that it won't be freed. */
-	tssp->variant.function.func_info = *func_info;
-	func_info->param_id_list = NULL;
-	tssp->parameters = template_param_list;
-	tssp->declaration_scope = scope_stack[decl_scope_level].number;
-	tssp->variant.function.class_declared_in = class_declared_in;
+          tssp->variant.function.func_info.param_id_list == NULL) {
+        /* The func_info block should point to the declaration associated
+           with the definition, if a definition is present. */
+        tssp->variant.function.func_info = *func_info;
+        /* Copy the func_info block and then null out its the param-id
+           pointer so that it won't be freed. */
+        func_info->param_id_list = NULL;
       } /* if */
       /* Link the default argument list from the template supplement
-	 onto the end of the list of current default arguments.  The
-	 list in the supplement must be for arguments that follow the
-	 new list (otherwise it would be an error).  Find the end
-	 of the current list and link the existing list to the end. */
+         onto the end of the list of current default arguments.  The
+         list in the supplement must be for arguments that follow the
+         new list (otherwise it would be an error).  Find the end
+         of the current list and link the existing list to the end. */
       daefp = curr_default_args;
       if (daefp != NULL) {
-	while (daefp->next != NULL) daefp = daefp->next;
-	daefp->next = tssp->variant.function.def_arg_expr_list;
-	tssp->variant.function.def_arg_expr_list = curr_default_args;
+        while (daefp->next != NULL) daefp = daefp->next;
+        daefp->next = tssp->variant.function.def_arg_expr_list;
+        tssp->variant.function.def_arg_expr_list = curr_default_args;
       } /* if */
       if (is_template_friend) {
-	/* This is a template friend declaration, add the current class to
-	   the list of friend classes associated with this template. */
+        /* This is a template friend declaration, add the current class to
+           the list of friend classes associated with this template. */
         add_befriending_class_to_function_template(tssp, class_declared_in);
-      }	/* if */
+      }        /* if */
     } /* if */
   } /* if */
   if (sym->is_class_member) {
