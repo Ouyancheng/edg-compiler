@@ -469,6 +469,9 @@ and indentation is the indentation desired.
         if (cssp->assignment_by_bitwise_copy_allowed) {
           put_string("op= bitwise copy okay");
         }  /* if */
+        if (cssp->target_of_conversion_function) {
+          put_string("conv target");
+        }  /* if */
         if (cssp->class_template != NULL) {
           if (debug_level >= 4) put_string("has class template ptr");
         }  /* if */
