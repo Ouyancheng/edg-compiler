@@ -2162,6 +2162,53 @@ there's only one) declared in the condition scope.
 }  /* is_redeclared_condition_decl_name */
 
 
+a_boolean namespace_is_enclosed_by_curr_scope(a_symbol_ptr sym)
+/*
+Determine whether the namespace in which sym is defined is enclosed
+within the current scope.  Return TRUE if it is, FALSE otherwise.
+*/
+{
+  a_boolean	result = FALSE;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  if (ssep->kind == (a_scope_kind)sck_file) {
+    /* Everything is enclosed within the file scope. */
+    result = TRUE;
+  } else if (ssep->kind != (a_scope_kind)sck_namespace &&
+             ssep->kind != (a_scope_kind)sck_namespace_extension) {
+    /* This is not a namespace scope.  A namespace cannot be enclosed
+       within. */
+  } else {
+    a_namespace_ptr	nsp;
+    /* If this is a class member, skip out to the outermost class type. */
+    if (sym->is_class_member) {
+      a_type_ptr	tp = sym->parent.class_type;
+      while (tp->source_corresp.is_class_member) {
+        tp = tp->source_corresp.parent.class_type;
+      }  /* while */
+      /* Get the namespace pointer from the outermost class. */
+      nsp = tp->source_corresp.parent.namespace_ptr;
+    } else {
+      nsp = sym->parent.namespace_ptr;
+    }  /* if */
+    if (nsp == NULL) {
+      /* The symbol has no associated namespace, and so, is not enclosed
+         within the current namespace. */
+    } else {
+      /* The symbol has a namespace.  See if its namespace, or one of
+         its parent namespaces, matches the current namespace. */
+      a_namespace_ptr     curr_nsp;
+      curr_nsp = ssep->il_scope->variant.assoc_namespace;
+      while (curr_nsp != nsp && nsp != NULL) {
+        nsp = nsp->source_corresp.parent.namespace_ptr;
+      }  /* while */
+      if (nsp != NULL) result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* namespace_is_enclosed_by_curr_scope */
+
+
 static void add_symbol_to_inactive_list(a_symbol_ptr sym_ptr)
 /*
 Add the given symbol to its symbol header's inactive list.
