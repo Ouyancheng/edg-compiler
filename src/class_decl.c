@@ -6581,8 +6581,9 @@ to indicate whether the class/struct/union is actually defined.
         }  /* if */
 #endif /* CHECKING */
         /* Error -- tag-kind mismatch in a specialization. */
-        pos_st_error(ec_tag_mismatch_in_template_instance, &decl_start_pos,
-                     tag_sym->header->identifier);
+        pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos,
+                     tag_sym->variant.class_struct_union.extra_info->
+                                                            class_template);
         set_to_error_locator(locator);
         tag_sym = NULL;
       }  /* if */
