@@ -4921,7 +4921,6 @@ is_definition is TRUE if the label is being scanned as part of a label.
   if (!is_error_locator(locator_for_curr_id)) {
     /* Record the right kind of reference to the label symbol. */
     if (is_definition) {
-      check_assertion(!label_sym->defined);
       /* Note that we want mark_declared called even if the symbol
          was previously entered.  Labels are strange in that a reference
          can come up before a declaration. */
