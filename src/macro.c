@@ -5018,9 +5018,11 @@ to deallocate the buffer using free_general.
           percent_v_seen = TRUE;
         }  /* if */
         ++src;
-        dst += sprintf(dst, "%ld.%ld", major, minor);
+        (void)sprintf(dst, "%ld.%ld", major, minor);
+        while (*dst != '\0') ++dst;
         if (patch != 0) {
-          dst += sprintf(dst, ".%ld", patch);
+          (void)sprintf(dst, ".%ld", patch);
+          while (*dst != '\0') ++dst;
         }  /* if */
         --dst;
       } else {
