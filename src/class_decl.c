@@ -374,7 +374,8 @@ routine recursively for each nested class.
 
 
 #if DEBUG
-static db_virtual_function_override(an_overriding_virtual_function_ptr ovfp)
+static void db_virtual_function_override(
+                                       an_overriding_virtual_function_ptr ovfp)
 /*
 Dump a virtual function override entry, for debug purposes.
 */
@@ -389,7 +390,7 @@ Dump a virtual function override entry, for debug purposes.
 }  /* db_virtual_function_override */
 
 
-static db_virtual_function_number_sequence(a_base_class_ptr  bcp)
+static void db_virtual_function_number_sequence(a_base_class_ptr  bcp)
 /*
 Dump a sequence of virtual function numbers, for debug purposes.
 */

@@ -204,7 +204,7 @@ End a comment, for real if we're at the outermost level.
 Print a number of spaces for indentation.
 */
 #define space_over()							\
-{ register a;								\
+{ register int a;							\
   for (a = 0; a < indent; a++) {					\
     putc(' ', f_C_output);						\
   }  /* for */								\
