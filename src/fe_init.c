@@ -847,7 +847,7 @@ source file's compilation.
        table initialization) because routine entries are also created. */
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
-    if (!microsoft_mode) {
+    if (!microsoft_mode && array_new_and_delete_enabled) {
       /* Add symbols for the array versions, too. */
       make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
       make_global_operator_new_or_delete_symbol(

@@ -1,5 +1,12 @@
 Version 2.42
 
+6/7/99   Symbols for predeclared new[] and delete[]
+
+Symbols are no longer created for predeclared new[] and delete[] if global
+variable array_new_and_delete_enabled is FALSE (whether because it is
+turned off by default or because the front end is invoked with command
+line option --no_array_new_and_delete).
+
 6/7/99   Improper logical right shift of negative value
 
 When TARG_RIGHT_SHIFT_IS_ARITHMETIC is TRUE, a right shift of a negative
