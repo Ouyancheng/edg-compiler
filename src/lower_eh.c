@@ -563,16 +563,14 @@ used as an output routine when using the il_to_str routines.
 }  /* put_str_to_temp_text_buffer */
 
 
-static a_constant_ptr make_typeinfo_name_constant(a_type_ptr type)
+static char *make_typeinfo_name(a_type_ptr type)
 /*
-Make a constant that is the address of a string for the name of the indicated
-type, for use in typeinfo implementation constants.
+Make a null-terminated string for the name of the indicated type (in the
+file scope IL memory region), and return a pointer to it.
 */
 {
-  a_constant                        constant;
-  a_constant_ptr                    string_con, addr_con;
   an_il_to_str_output_control_block octl;
-  char                              *pstr;
+  char                              *name;
 
   /* Set up for use of form_type. */
   clear_il_to_str_output_control_block(&octl);
@@ -583,13 +581,27 @@ type, for use in typeinfo implementation constants.
   /* Add 1 to typeinfo_name_length for the final null.  The null has already
      been stored. */
   typeinfo_name_length++;
+  name = alloc_text_of_string_literal(typeinfo_name_length);
+  (void)strcpy(name, temp_text_buffer);
+  return name;
+}  /* make_typeinfo_name */
+
+
+static a_constant_ptr make_typeinfo_name_constant(char *name)
+/*
+Make a constant that is the address of a string for the given name, for
+use in typeinfo implementation constants.
+*/
+{
+  sizeof_t       name_length = strlen(name) + 1;
+  a_constant     constant;
+  a_constant_ptr string_con, addr_con;
+
   /* Generate a string constant. */
   clear_constant(&constant, (a_constant_repr_kind)ck_string);
-  constant.type = string_type((a_targ_size_t)typeinfo_name_length);
-  constant.variant.string.length = typeinfo_name_length;
-  constant.variant.string.value  = pstr =
-                            alloc_text_of_string_literal(typeinfo_name_length);
-  (void)strcpy(pstr, temp_text_buffer);
+  constant.type = string_type((a_targ_size_t)name_length);
+  constant.variant.string.length = name_length;
+  constant.variant.string.value  = name;
   string_con = alloc_shareable_constant(&constant);
   /* Generate a constant for the address of the string. */
   set_constant_address_constant(string_con, &constant);
@@ -698,10 +710,13 @@ have been called on it at some previous point.
     type_info_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     type_info_con->variant.aggregate.first_constant = vptr_con;
     type_info_con->variant.aggregate.last_constant = vptr_con;
-    /* Make the name constant. */
+    /* Make the name constant.  The string for the name was made previously
+       and is pointed to by assoc_info. */
     curr_field = curr_field->next;
     curr_field_type = curr_field->type;
-    name_con = make_typeinfo_name_constant(type);
+    name_con = make_typeinfo_name_constant(
+                              (char *)typeinfo_var->source_corresp.assoc_info);
+    typeinfo_var->source_corresp.assoc_info = NULL;  /* Be neat. */
     curr_field = curr_field->next;
 #endif /* ABI_CHANGES_FOR_RTTI */
     /* Id object pointer. */
@@ -1011,6 +1026,10 @@ via the typeid operator (but it contains it).
     typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
     /* Remember the variable in the type. */
     type->typeinfo_var = typeinfo_var;
+    /* Develop a string that names the type.  This must be done now because
+       later the names involved might be mangled.  A pointer to the string
+       is stored in the assoc_info pointer of the typeinfo variable. */
+    typeinfo_var->source_corresp.assoc_info = make_typeinfo_name(type);
     if (define_now) {
       /* The typeinfo variable is supposed to be defined right now (for
          non-class cases). */
