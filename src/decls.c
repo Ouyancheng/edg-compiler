@@ -8422,12 +8422,18 @@ and for the instantiation of template functions.
     fixup_parameters(scope_ptr->variant.routine.parameters,
                      rtsp->param_type_list);
   }  /* if */
-  check_assertion(rtsp->assoc_routine_is_ctor ==
-                  (rout_ptr->special_kind ==
+#if CHECKING
+  if (total_errors == 0) {
+    /* Except where there are invalid declarations, the flags in the types
+       should be consistent with the special function kinds. */
+    check_assertion(rtsp->assoc_routine_is_ctor ==
+                    (rout_ptr->special_kind ==
                                    (a_special_function_kind)sfk_constructor));
-  check_assertion(rtsp->assoc_routine_is_dtor ==
-                  (rout_ptr->special_kind ==
+    check_assertion(rtsp->assoc_routine_is_dtor ==
+                    (rout_ptr->special_kind ==
                                    (a_special_function_kind)sfk_destructor));
+  }  /* if */
+#endif /* CHECKING */
   /* Enter the constructor initializers.  If the current token is a ":",
      explicit initialization for the constructor follows, but even without
      an explicit initializer, any implicit initializers should be recorded. */
