@@ -1,5 +1,19 @@
 Version 2.32
 
+2/12/96   Spurious access errors on definitions of nested classes
+
+Spurious errors were issued when a nested class was defined outside
+of the class, and the qualified name used to define the class named
+an inaccessible class member.  This has been fixed.
+
+  class A {
+    class B {
+      class C;
+    };
+  };
+
+  class A::B::C {};  // spurious error on this line
+
 2/11/96   C++-generating back end: address of lvalue-returning operation
 
 The C++-generating was failing to put out a "&" in front of an lvalue-returning

@@ -247,9 +247,27 @@ caution when modifying this routine.
   a_token_kind      next_tok;
   a_boolean	    err = FALSE;
   a_boolean	    tag_err = FALSE;
+  a_boolean	    is_tag_definition = FALSE;
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
+  /* Coalesce the identifier that follows the class, struct, union, or
+     enum keyword. */
+  (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
+  /* Determine whether this is a definition or something else (a
+     declaration or an elaborated type specifier). */
+  next_tok = next_token();
+  if (next_tok == tok_lbrace ||
+      (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
+       tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr)) {
+    /* The token following the tag marks the start of a class or enum
+       definition. Determine whether it is the resolution of a previous
+       incomplete declaration. */
+    /* Note that we had to check the is_ref_within_new_expr flag because
+       a colon has a different meaning in an expression context than
+       in a declaration context (namely, it may belong to a ?: operator). */
+    is_tag_definition = TRUE;
+  }  /* if */
   /* Check for the presence of a qualified name.  If we have a qualified
      name, do the lookup in a manner that will only find tag names. */
   if (coalesce_and_lookup_qualified_name(GID_TEMPLATE_ARGS_OPTIONAL,
@@ -261,6 +279,15 @@ caution when modifying this routine.
       tag_err = TRUE;
     } else {
       check_ambiguity_and_verify_access(&locator_for_curr_id);
+      if (is_tag_definition) {
+        /* When defining a class member outside of its class definition
+           using a qualified name, any access errors that may have been
+           detected when scanning the qualified name should be suppressed.
+           This context is not really a declarator, but the concept is
+           the same as suppressing access errors when scanning the declarator
+           of a member function or static data member. */
+        discard_declarator_access_errors();
+      }  /* if */
       tag_sym = locator_for_curr_id.specific_symbol;
       if (tag_sym != NULL) {
         reduce_projection_symbol_to_fundamental_symbol(tag_sym);
@@ -384,24 +411,12 @@ caution when modifying this routine.
        an ambiguous namespace projection. */
     tag_err = TRUE;
   } else {
-    a_boolean  is_tag_definition = FALSE;
     a_boolean  is_vacuous_declaration = FALSE;
 
     /* Save the symbol locator for this identifier. */
     *locator = locator_for_curr_id;
-    next_tok = next_token();
-    if (next_tok == tok_lbrace ||
-        (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
-         tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr)) {
-      /* The token following the tag marks the start of a class or enum
-         definition. Determine whether it is the resolution of a previous
-         incomplete declaration. */
-      /* Note that we had to check the is_ref_within_new_expr flag because
-         a colon has a different meaning in an expression context than
-         in a declaration context (namely, it may belong to a ?: operator). */
-      is_tag_definition = TRUE;
-    } else if (next_tok == tok_semicolon && check_for_vacuous_decl &&
-               C_dialect != C_dialect_pcc) {
+    if (next_tok == tok_semicolon && check_for_vacuous_decl &&
+        C_dialect != C_dialect_pcc) {
       /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
          The effect of a vacuous declaration (unless we are in pcc mode) is
          to establish the name in the current scope, even if the tag name

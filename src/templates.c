@@ -3952,6 +3952,7 @@ instantiation.
   a_template_param_ptr		    templ_params =
                                                 template_decl_info->parameters;
   a_token_cache_ptr		    definition_token_cache = NULL;
+  a_token_kind			    next_tok;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -3989,10 +3990,13 @@ instantiation.
   (void)get_token();
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
-                                         GID_USE_PROTOTYPE_NOT_NONREAL)) {
+                                       GID_USE_PROTOTYPE_NOT_NONREAL)) {
     /* Not an identifier. */
     error(ec_exp_identifier);
     set_to_error_locator(locator);
+    /* Probably a missing class name -- use the current token as the next
+       token for lookahead purposes. */
+    next_tok = curr_token;
   } else {
     /* Look up the identifier.  If it's a qualified name there will be an
        error down the line.  The options used when coalescing the 
@@ -4003,9 +4007,21 @@ instantiation.
     sym = coalesce_and_lookup_generalized_identifier
                              (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
     locator = locator_for_curr_id;
-    (void)get_token();
+    next_tok = next_token();
   }  /* if */
-  is_definition = (curr_token == tok_colon || curr_token == tok_lbrace);
+  is_definition = (next_tok == tok_colon || next_tok == tok_lbrace);
+  if (is_definition && locator_for_curr_id.is_qualified_name) {
+    /* When defining a class member outside of its class definition
+       using a qualified name, any access errors that may have been
+       detected when scanning the qualified name should be suppressed.
+       This context is not really a declarator, but the concept is
+       the same as suppressing access errors when scanning the declarator
+       of a member function or static data member. */
+    discard_declarator_access_errors();
+  }  /* if */
+  /* If we didn't report a missing identifier above, skip over the identifier
+     token now. */
+  if (curr_token == tok_identifier) (void)get_token();
   /* Make sure this declaration is valid in this scope. */
   if (is_template_friend && is_member_decl) {
     /* A friend declaration in a class scope -- okay (provided it is not
