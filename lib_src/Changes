@@ -1,4 +1,4 @@
-Version 2.36
+Version 2.36, June 17, 1997
 
 6/5/97   Incorrect exception rethrown during processing of nested throw
 
@@ -20,6 +20,7 @@ an entry being added to the list more than once (which could result
 in an infinite loop during the destruction of static objects).  If such
 a condition is detected, __already_marked_for_destruction() is called,
 which in turn calls abort().
+
 -------------------------------------------------------------------------------
 Version 2.35, February 28, 1997
 
