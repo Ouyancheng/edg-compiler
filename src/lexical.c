@@ -842,7 +842,9 @@ scan the tokens in a Microsoft __asm block.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean	is_asm_block;
     if (inside_microsoft_asm && curr_token == tok_semicolon) {
-      /* Discard asm comments. */
+      /* Discard asm comments, but retain the ";" that began the comment. */
+      if (!coalesce_ids) cache_curr_token(cache);
+      get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
       while (curr_token != tok_newline && curr_token != tok_end_of_source) {
         (void)get_token();
       }  /* while */
@@ -873,6 +875,13 @@ scan the tokens in a Microsoft __asm block.
     skip_this_token = FALSE;
     if (is_asm_block) {
       skip_this_token = TRUE;
+      /* Reset prev_token as this code can go to the next iteration of
+         the loop without updating prev_token below. */
+      prev_token = tok_error;
+      /* Because this token is fetched in pp_tokens mode, there could be
+         newline tokens.  Skip over any newlines that are found before the
+         start of the asm. */
+      while (curr_token == tok_newline) (void)get_token();
       if (curr_token == tok_lbrace) {
         /* Call this routine recursively to scan the brace enclosed asm
            block. */
@@ -909,6 +918,7 @@ scan the tokens in a Microsoft __asm block.
           fetch_pp_tokens = FALSE;
           is_asm_block = FALSE;
           skip_this_token = FALSE;
+          continue;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1042,6 +1052,9 @@ be copies to the new cache.
        is not cached as a pp-token. */
     is_asm_block = prev_token == tok_asm && microsoft_mode;
     if (is_asm_block) {
+      /* Discard any newline tokens between __asm and the start of the
+         directive. */
+      if (curr_token == tok_newline) (void)get_token();
       one_line_asm = curr_token != tok_lbrace;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1058,7 +1071,9 @@ be copies to the new cache.
       while (curr_token != tok_newline && curr_token != tok_rbrace &&
              curr_token != tok_end_of_source) {
         if (curr_token == tok_semicolon) {
-          /* Discard asm comments. */
+          /* Discard asm comments but retain the ";" that began the comment. */
+          if (!coalesce_ids) cache_curr_token(cache);
+          get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
           while (curr_token != tok_newline &&
                  curr_token != tok_end_of_source) {
             (void)get_token();

@@ -1,5 +1,13 @@
 Version 2.38
 
+1/5/97    Microsoft compatibility: improved handing of __asm blocks
+
+In some cases the front end did not correctly handle Microsoft __asm
+blocks in which the opening brace of the __asm was not on the same line
+as the "__asm".  The problem would only occur in contexts in which
+the function containing the __asm was cached and rescanned, such as
+member functions and function templates.  This has been fixed.
+
 1/3/98    EH cleanup state in partially constructed aggregate
 
 The exception handling cleanup state when an exception is thrown

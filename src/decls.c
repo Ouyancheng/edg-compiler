@@ -6749,6 +6749,10 @@ instructions (unquoted).
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    /* Because this token is fetched in pp_tokens mode, there could be newline
+       tokens.  Skip over any newlines that are found before the start of the
+       asm. */
+    while (curr_token == tok_newline) (void)get_token();
     /* Restore the flag to do normal token fetching. */
     fetch_pp_tokens = FALSE;
     if (!is_asm_statement) {
