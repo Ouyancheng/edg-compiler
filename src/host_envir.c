@@ -89,6 +89,7 @@ typedef void a_signal_handler_return_value;
 typedef int a_signal_handler_return_value;
 #endif /* defined(SIGNAL_HANDLER_RETURNS_VOID) */
 
+#include <errno.h>
 #if __ANSIC__
 /* Files that are included for functions that conform to ANSI C libraries. */
 #include <stdlib.h>
@@ -96,7 +97,6 @@ typedef int a_signal_handler_return_value;
 EXTERN_C char *getenv(char *name);
 EXTERN_C int abort(void);
 EXTERN_C void exit(int status);
-#include <errno.h>
 #if __BSD__
 /* BSD errno.h doesn't define "errno". */
 EXTERN_C int errno;
@@ -128,6 +128,23 @@ CLOCK_FREQUENCY is defined properly below.
 #endif /* defined(sun) */
 #endif /* __ANSIC__ */
 
+/*
+Determine whether getcwd or getwd should be used to get the current
+directory.  getwd is used on BSD, getcwd on other systems.
+*/
+#if __MSDOS__
+#define USE_GETCWD 1
+#include <direct.h>
+#else /* !__MSDOS___ */
+#if __BSD__
+#include <sys/param.h>
+#define USE_GETCWD 0
+#else /* !__BSD__ */
+#include <unistd.h>
+#define USE_GETCWD 1
+#endif /* __BSD__ */
+#endif /* __MSDOS__ */
+
 #if __MSDOS__
 /* Function definitions for MS-DOS compilers. */
 #if __TURBOC__ || __ZTC__
@@ -145,10 +162,12 @@ static int getpid(void)
 /* Function definitions for non MS-DOS compilers. */
 /* The SUN does not have the getpid(), unlink(), and time() calls defined 
    in include files. */
+#if __BSD__
 EXTERN_C int getpid(void);
 /* Unlink (delete) a file. */
 EXTERN_C int unlink(char *path);
 EXTERN_C time_t time(time_t* tloc);
+#endif /* __BSD__ */
 #endif /* __cplusplus */
 #endif /* __MSDOS__ */
 
@@ -1781,20 +1800,6 @@ See comment above.
 }  /* get_file_name_from_curr_dir */
 #endif /* __MSDOS__ */
 #endif /* __WIN32__ */
-
-
-#if __MSDOS__
-#define USE_GETCWD 1
-#include <direct.h>
-#else /* !__MSDOS___ */
-#if __BSD__
-#include <sys/param.h>
-#define USE_GETCWD 0
-#else /* !__BSD__ */
-#include <unistd.h>
-#define USE_GETCWD 1
-#endif /* __BSD__ */
-#endif /* __MSDOS__ */
 
 
 char *get_curr_dir_name(void)
