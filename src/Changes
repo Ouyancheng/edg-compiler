@@ -1,5 +1,13 @@
 Version 3.2
 
+2/11/03  Missing strict-mode error on implicit "int" in template parameter
+
+A nontype template parameter declaration that omits an explicit type
+specifier resulted in a warning instead of an error in strict mode.
+Now fixed.
+
+  template <const> struct A {};
+
 2/11/03  GNU C++ mode: Old-style parameter lists and attributes
 
 In GNU C++ mode, the front end would sometimes erroneously treat as an

@@ -11535,7 +11535,12 @@ depends on a template parameter type, return TRUE in *template_dependent
   }  /* if */
   if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    warning(ec_missing_type_specifier);
+    a_boolean	no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
+    report_missing_type_specifier(&error_position,
+                                  /*is_function=*/FALSE,
+                                  /*function_def_present=*/FALSE,
+                                  /*is_main_function=*/FALSE,
+                                  !no_decl_specifiers);
   }  /* if */
   /* Scan the declarator. */
   declarator((DI_REAL_DECLARATOR_ALLOWED |
