@@ -35,7 +35,7 @@ Walk through the array, calling the specified copy constructor for each
 array element.  The corresponding element of the array pointed to by
 src_array_ptr is the source operand for the copy constructor.  Because
 this runtime routine will only be called for constructor initialization
-of member arrays,  the number_of_elements can never be zero.
+of member arrays, the number_of_elements can never be zero.
 */
 {
   int  i;
