@@ -12049,10 +12049,11 @@ returned instead of the unqualified function name.
 */
 {
   a_variable_ptr           name_var = NULL;
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_innermost_function_scope];
+  a_scope_stack_entry_ptr  ssep;
 
   check_assertion(microsoft_mode || (c99_mode && !decorated_name));
   check_assertion(depth_innermost_function_scope != 0);
+  ssep = &scope_stack[depth_innermost_function_scope];
   /* Check if this scope already has an associated generated entity block. */
   if (ssep->generated_entities == NULL) {
     ssep->generated_entities = (a_generated_entity_block_ptr)
