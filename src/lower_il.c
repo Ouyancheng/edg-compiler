@@ -3635,7 +3635,7 @@ whether or not to put out the virtual function table.
            entry routine that is a wrapper for the overriding function
            that adds the necessary cast. */
         a_base_class_ptr bcp = override_list->return_adjustment_base_class;
-        if (bcp->offset != NULL || bcp->is_virtual) {
+        if (bcp->offset != 0 || bcp->is_virtual) {
           func_to_call = make_covariant_return_type_entry_routine(
                                              func_to_call,
                                              override_list->primary_function);
@@ -4904,7 +4904,7 @@ not include the function scope memory region, if any.
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     if (routine->overriding_function_for_covariant_return_type != NULL &&
         routine->overriding_function_for_covariant_return_type->assoc_scope !=
-                                                                        NULL) {
+                                                          NULL_region_number) {
       /* Add a definition for an entry/wrapper to handle covariant
          return types, if the primary routine is defined. */
       add_body_for_covariant_return_type_entry_routine(routine);
@@ -10272,7 +10272,7 @@ when a base class return type is needed.  Definitions will be put out later.
         /* This is an override for the function we care about. */
         a_base_class_ptr adjustment_bcp = ovf->return_adjustment_base_class;
         check_assertion(adjustment_bcp != NULL);
-        if (adjustment_bcp->offset != NULL || adjustment_bcp->is_virtual) {
+        if (adjustment_bcp->offset != 0 || adjustment_bcp->is_virtual) {
           /* The adjustment offset is non-NULL, or the base class is
              virtual, so an entry/wrapper routine is needed. */
           (void)make_covariant_return_type_entry_routine(
