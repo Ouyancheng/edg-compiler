@@ -5605,13 +5605,19 @@ Returns TRUE if there is an error in the specifiers.
                warning, but in GNU C++ it is an error. */
             diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
                        ec_dupl_decl_specifier);
+#if LONG_LONG_ALLOWED && GNU_EXTENSIONS_ALLOWED
+          } else if (gcc_mode &&
+                     *storage_class == (a_storage_class)sc_typedef &&
+                     size == size_long_long && curr_token == tok_long) {
+            /* GNU C (but not GNU C++) accepts extraneous "long" specifiers
+               in some contexts.  This appears in some sources that create
+               typedef declarations using macros. */
+            warning(ec_dupl_decl_specifier);
+#endif /* LONG_LONG_ALLOWED && GNU_EXTENSIONS_ALLOWED */
           } else {
-            /* Some other bad combination.  GNU C tends to ignore these. */
-            bad_combination_of_type_specifiers =
-                  !(gcc_mode && *storage_class == (a_storage_class)sc_typedef);
-            diagnostic(bad_combination_of_type_specifiers ? es_error
-                                                          : es_warning,
-                       ec_bad_combination_of_type_specifiers);
+            /* Some other bad combination. */
+            bad_combination_of_type_specifiers = TRUE;
+            error(ec_bad_combination_of_type_specifiers);
           }  /* if */
         } else {
           /* First specification of size. */

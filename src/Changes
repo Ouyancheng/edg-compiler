@@ -1,5 +1,12 @@
 Version 3.1
 
+9/11/02  GNU C compatibility: Extraneous long specifiers
+
+In GNU C mode (but not in GNU C++ mode) the front end now ignores extraneous
+"long" specifiers in typedef declarations (with a warning).  For example:
+
+  typedef long long long LL; // Same as "typedef long long LL;"
+
 9/11/02  Microsoft compatibility: Declaration in for-initializer can be
          hidden by declaration in surrounding scope
 
@@ -81,15 +88,6 @@ in the std namespace.  It is now put into the std namespace and a
 using-declaration is put into the global namespace if the include was
 of "stdarg.h" (rather than "cstdarg").  The old behavior can be obtained
 by setting DEFAULT_VA_LIST_IN_STD_NAMESPACE to FALSE.
-
-9/10/02  GNU C compatibility: Invalid type specifier combinations
-
-In GNU C mode (but not in GNU C++ mode) the front end now ignores extraneous
-"short" and "long" specifiers in typedef declarations (with a warning).
-For example:
-
-  typedef long short L;      // Same as "typedef long L;"
-  typedef long long long LL; // Same as "typedef long long LL;"
 
 9/9/02   Pragma redefine_extname
 
