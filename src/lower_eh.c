@@ -117,7 +117,7 @@ static a_variable_ptr make_typeinfo_var(a_type_ptr type)
 /*
 Make a typeinfo variable for the indicated type (if it does not exist
 already) and return a pointer to it.  The variable points to runtime
-type information.  Typerefs on the type are stripped off.
+type information.
 */
 {
   a_variable_ptr  typeinfo_var;
@@ -125,7 +125,6 @@ type information.  Typerefs on the type are stripped off.
   sizeof_t        mangled_name_length, alloc_length;
   a_storage_class storage_class;
 
-  type = skip_typerefs(type);
   /* No need to create the variable if it exists already. */
   typeinfo_var = type->typeinfo_var;
   if (typeinfo_var == NULL) {
@@ -723,7 +722,9 @@ to a type, make the typeinfo variable for the underlying type and set
     typeinfo_type = type_pointed_to(typeinfo_type);
     *flags_value |= ETS_IS_POINTER;
   }  /* if */
-  /* Note that make_typeinfo_var drops type qualifiers on the type. */
+  /* Strip typerefs but watch out for rewritten pointers-to-members. */
+  typeinfo_type = underlying_type(typeinfo_type);
+  /* Create the typeinfo variable. */
   typeinfo_var = make_typeinfo_var(typeinfo_type);
   return typeinfo_var;
 }  /* typeinfo_var_for_type */
