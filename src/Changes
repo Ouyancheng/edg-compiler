@@ -1,5 +1,16 @@
 Version 3.0
 
+5/2/02   Microsoft compatibility: Qualified constructor declarations
+
+In Microsoft mode, the front end now accepts nested class constructors
+declared with a qualified name.  For example:
+
+  struct S {
+    struct N {
+      S::N();  // Accepted in Microsoft mode.
+    };
+  };
+
 5/1/02   Explicit instantiation of pure virtual permitted
 
 An error was issued on an attempt to instantiate a pure virtual function,
