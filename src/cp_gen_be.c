@@ -1515,6 +1515,11 @@ omit the space.
     case sc_typedef:
       str = "typedef";
       break;
+#if ASM_FUNCTION_ALLOWED
+    case sc_asm:
+      str = "__asm";
+      break;
+#endif /* ASM_FUNCTION_ALLOWED */
     default:
       unexpected_condition_str("gen_storage_class: bad storage class");
   }  /* switch */
@@ -3950,6 +3955,25 @@ is the one associated with the pragma.
 }  /* gen_pragma */
 
 
+static void write_code_string(char *p)
+/*
+Write a string of code (e.g., a template or an asm function body).  Newline
+characters in the string indicate new source lines.
+*/
+{
+  char *eol;
+
+  for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
+    /* Write a sequence of characters ending with a newline. */
+    *eol = '\0';
+    write_str(p);
+    end_output_line();
+    *eol = '\n';
+  }  /* for */
+  write_str(p);
+}  /* write_code_string */
+
+
 static void gen_template(void)
 /*
 Generate a declaration for a template.  The current source sequence entry
@@ -3962,17 +3986,8 @@ is the one associated with the template.
   /* Advance past the source sequence entry for the template. */
   adv_curr_source_sequence_entry();
   set_output_position(&tp->source_corresp.decl_position);
-  /* Write the template string.  Newline characters in the string indicate
-     new source lines. */
-  p = tp->text;
-  for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
-    /* Write a sequence of characters ending with a newline. */
-    *eol = '\0';
-    write_str(p);
-    end_output_line();
-    *eol = '\n';
-  }  /* for */
-  write_str(p);
+  /* Write the template string. */
+  write_code_string(tp->text);
 }  /* gen_template */
 
 #if RECORD_MACROS_IN_IL
@@ -3998,6 +4013,20 @@ for #undef.
 }  /* gen_macro */
 
 #endif /* RECORD_MACROS_IN_IL */
+#if ASM_FUNCTION_ALLOWED
+
+static void gen_asm_function_body(an_asm_entry_ptr  aep)
+/*
+Generate an asm function body.
+*/
+{
+  write_tok_ch('{');
+  write_code_string(aep->variant.asm_func_body);
+  end_output_line_if_begun();
+  write_tok_ch('}');
+}  /* gen_asm_function_body */
+
+#endif /* ASM_FUNCTION_ALLOWED */
 
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch)
@@ -4373,6 +4402,14 @@ Generate code for the indicated statement.
       break;
     case stmk_asm:
       /* asm statement. */
+#if ASM_FUNCTION_ALLOWED
+      if (statement->variant.asm_entry->is_asm_func_body) {
+        /* Generate "{ ... }". */
+        gen_asm_function_body(statement->variant.asm_entry);
+        break;
+      }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
+      gen_asm_entry(statement->variant.asm_entry);
       write_tok_str("asm(");
       gen_constant(statement->variant.asm_entry->variant.asm_string,
                    /*need_parens=*/FALSE);
