@@ -272,39 +272,28 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
-void add_dtor_for_partially_constructed_aggregate(a_routine_ptr     dtor_rp,
-                                                  a_dynamic_init_ptr dip,
-                                                  a_type_ptr        class_type,
-                                                  a_source_position *pos)
+static void add_dtor_for_partially_constructed_aggregate(
+                                                 a_routine_ptr       dtor_rp,
+                                                 a_dynamic_init_ptr  dip)
 /*
 This routine should really be called, "add destructor to dynamic init for
 member of partially constructed aggregate".  dtor_rp is the destructor
-routine; if it is NULL, it will be looked up.  dip is a dynamic-init entry
-created for the initialization of a field or array element.  class_type is
-the type of the member.  *pos is the source position in case there's an error
-looking up the destructor.
+routine.  dip is a dynamic-init entry created for the initialization of a
+field or array element.
 */
 {
-  if (dip->destructor == NULL) {
-    if (dtor_rp == NULL) {
-      class_type = skip_typerefs(class_type);
-      dtor_rp = select_destructor(class_type, class_type, pos,
-                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                  /*suppress_access_check=*/FALSE);
-    }  /* if */
-    if (dtor_rp != NULL) {
-      dip->destructor = dtor_rp;
-      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-      /* Since the destructor has been added to a dynamic init entry that
-         will not be "on top" when gen_dynamic_initialization is called,
-         record the destruction, if needed, with the appropriate
-         object-lifetime entry.  Note -- static_lifetime is FALSE because
-         (for function-local static variables) even though the underlying
-         entity has static lifetime, the lifetime of the destruction is as
-         though it were automatic. */
-      record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/FALSE);
-    }  /* if */
+  if (dip->destructor == NULL && dtor_rp != NULL) {
+    dip->destructor = dtor_rp;
+    dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+    /* Since the destructor has been added to a dynamic init entry that
+       will not be "on top" when gen_dynamic_initialization is called,
+       record the destruction, if needed, with the appropriate
+       object-lifetime entry.  Note -- static_lifetime is FALSE because
+       (for function-local static variables) even though the underlying
+       entity has static lifetime, the lifetime of the destruction is as
+       though it were automatic. */
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/FALSE);
   }  /* if */
 }  /* add_dtor_for_partially_constructed_aggregate */
 
@@ -492,13 +481,12 @@ routine is called in C++ mode only.
         }  /* if */
       }  /* if */
       if (cssp != NULL) {
-        if (exceptions_enabled) {
+        if (exceptions_enabled && cssp->destructor != NULL) {
           /* If appropriate, add a destructor pointer to the dynamic init
              entry.  This is for the case in which an exception is thrown by
              the constructor before the entire array has been initialized. */
-          add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL,
-                                                       dip, element_type,
-                                                       &pos_curr_token);
+          a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+          add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
         }  /* if */
       }  /* if */
       /* Now create the constant entry that will point to the new dynamic
@@ -606,13 +594,12 @@ routine is called in C++ mode only.
       }  /* if */
       if (cssp != NULL) {
         if (exceptions_enabled && cssp->destructor != NULL) {
-          found_constructible_field = TRUE;
           /* If appropriate, add a destructor pointer to the dynamic init
              entry.  This is for the case in which an exception is thrown by
              the constructor before the entire array has been initialized. */
-          add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL,
-                                                       dip, tp,
-                                                       &pos_curr_token);
+          a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+          add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+          found_constructible_field = TRUE;
         }  /* if */
       }  /* if */
       /* Create the constant entry that will point to the new dynamic
@@ -763,23 +750,24 @@ tokens were taken because the entity being initialized is an empty
 class.
 */
 {
-  a_constant_ptr             init_con = NULL;
-  a_boolean                  err = FALSE;
-  a_boolean                  is_incomplete_array;
-  a_type_ptr                 local_type, member_type;
-  a_boolean                  brace_flag;
-  a_constant_ptr             member_con;
-  a_targ_size_t              curr_array_element;
-  a_field_ptr                curr_field;
-  a_boolean                  any_more_initializers, any_more_members;
-  a_boolean                  local_nothing_taken;
-  a_type_kind                kind;
-  a_boolean                  array_too_long_error_given = FALSE;
-  a_boolean                  took_extra_comma;
-  a_dynamic_init_ptr         dip;
-  a_boolean                  whole_object_initialization = FALSE;
-  an_aggregate_init_context  init_context;
-  a_boolean                  top_level = (prev_init_context == NULL);
+  a_constant_ptr                 init_con = NULL;
+  a_boolean                      err = FALSE;
+  a_boolean                      is_incomplete_array;
+  a_type_ptr                     local_type, member_type;
+  a_boolean                      brace_flag;
+  a_constant_ptr                 member_con;
+  a_targ_size_t                  curr_array_element;
+  a_field_ptr                    curr_field;
+  a_boolean                      any_more_initializers, any_more_members;
+  a_boolean                      local_nothing_taken;
+  a_type_kind                    kind;
+  a_boolean                      array_too_long_error_given = FALSE;
+  a_boolean                      took_extra_comma;
+  a_dynamic_init_ptr             dip;
+  a_boolean                      whole_object_initialization = FALSE;
+  a_class_symbol_supplement_ptr  cssp;
+  an_aggregate_init_context      init_context;
+  a_boolean                      top_level = (prev_init_context == NULL);
 
   db_enter(4, "get_initializer");
   err = FALSE;
@@ -837,18 +825,12 @@ class.
   }  /* if */
   check_for_opening_brace(&brace_flag);
   if (whole_object_initialization) {
-#if CHECKING
-    if (top_level) {
-      internal_error("get_initializer: class encountered at top level");
-    } else {
-      a_class_symbol_supplement_ptr cssp;
-      cssp = symbol_supplement_for_class(local_type);
-      if (!cssp->has_copy_constructor &&
-          !cssp->construction_by_bitwise_copy_allowed) {
-        internal_error("get_initializer: missing copy constructor");
-      }  /* if */
-    }  /* if */
-#endif /* CHECKING */
+    cssp = symbol_supplement_for_class(local_type);
+    check_assertion_str(!top_level,
+                        "get_initializer: class encountered at top level");
+    check_assertion_str(cssp->has_copy_constructor ||
+                          cssp->construction_by_bitwise_copy_allowed,
+                        "get_initializer: missing copy constructor");
     /* This is an array element that can only be initialized by a
        constructor.  Treat the expression as an argument for the constructor
        call. */
@@ -861,13 +843,12 @@ class.
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
       init_info->any_dynamic_initialization = TRUE;
-      if (exceptions_enabled) {
+      if (exceptions_enabled && cssp->destructor != NULL) {
         /* If appropriate, add a destructor pointer to the dynamic init entry.
            This is for the case in which an exception is thrown by the
            constructor before the entire array has been initialized. */
-        add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL, dip,
-                                                     local_type,
-                                                     &pos_curr_token);
+        a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+        add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
       }  /* if */
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
@@ -1046,17 +1027,18 @@ class.
                                      &local_nothing_taken);
         if (exceptions_enabled &&
             member_con->kind != (a_constant_repr_kind)ck_dynamic_init &&
-            is_class_struct_union_type(member_type) &&
-            symbol_supplement_for_class(member_type)->destructor != NULL) {
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-          dip->variant.constant = member_con;
-          add_dtor_for_partially_constructed_aggregate((a_routine_ptr)NULL,
-                                                       dip, member_type,
-                                                       &pos_curr_token);
-          member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-          member_con->type = member_type;
-          member_con->variant.dynamic_init = dip;
-          init_info->any_dynamic_initialization = TRUE;
+            is_class_struct_union_type(member_type)) {
+          cssp = symbol_supplement_for_class(member_type);
+          if (cssp->destructor != NULL) {
+            a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+            dip->variant.constant = member_con;
+            add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+            member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+            member_con->type = member_type;
+            member_con->variant.dynamic_init = dip;
+            init_info->any_dynamic_initialization = TRUE;
+          }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
         check_assertion(!(local_nothing_taken && is_incomplete_array));
@@ -2204,12 +2186,12 @@ the default constructor (if one exists) is called.
             /* Build the repeat construct. */
             repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
                                     array_element_count(var_type, tp));
-            if (exceptions_enabled) {
+            if (exceptions_enabled && dtor != NULL) {
               /* Set up the representation to deal with the possibility of
                  an exception being thrown before the entire construction of
                  the array is complete. */
-              add_dtor_for_partially_constructed_aggregate(dtor, orig_init_dip,
-                                                          tp, &pos_curr_token);
+              add_dtor_for_partially_constructed_aggregate(dtor,
+                                                           orig_init_dip);
             }  /* if */
           }  /* if */
         } else {
