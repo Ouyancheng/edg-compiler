@@ -2495,6 +2495,7 @@ state.
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
         cssp->friend_functions = NULL;
+        cssp->enclosing_routine = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->super_lookup_symbols = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

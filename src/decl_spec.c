@@ -2231,6 +2231,12 @@ new expression and should therefore not be treated as a declaration.
       if (!is_local_class) {
         /* Nonlocal class. */
         set_name_linkage_for_type(class_type);
+      } else {
+        /* For a local class, save information about the enclosing function. */
+        a_class_symbol_supplement_ptr	cssp;
+        cssp = symbol_supplement_for_class(class_type);
+        cssp->enclosing_routine = 
+                     scope_stack[depth_innermost_function_scope].assoc_routine;
       }  /* if */
       if (is_friend_decl && tag_id_present &&
           secondary_translation_unit_seen()) {

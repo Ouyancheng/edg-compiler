@@ -771,6 +771,9 @@ typedef struct a_class_symbol_supplement {
 			   point to sk_namespace_projection symbols).  This
 			   list is used to assist with namespace and class
 			   directed lookup. */
+  a_routine_ptr	enclosing_routine;
+			/* For local classes, the routine in which the class
+			   was defined. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_ptr	super_lookup_symbols;
 			/* A list of symbols created when doing a Microsoft
