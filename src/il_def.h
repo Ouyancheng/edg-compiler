@@ -1621,10 +1621,10 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if PRAGMA_WEAK_ALLOWED
 /* pk_weak */			"weak",
+#endif /* PRAGMA_WEAK_ALLOWED */
 /* pk_once */                   "once",
 /* pk_hdrstop */                "hdrstop",
 /* pk_no_pch */                 "no_pch",
-#endif /* PRAGMA_WEAK_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
