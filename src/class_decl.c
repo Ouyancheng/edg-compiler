@@ -2781,11 +2781,6 @@ without it.
   } else {
     is_overloaded_function = FALSE;
   }  /* if */
-#if CHECKING
-  if (sym->kind != (a_symbol_kind)sk_member_function) {
-    internal_error("member_function_redecl_sym: bad sym kind");
-  }  /* if */
-#endif /* CHECKING */
   /* Make the check without regard to the presence of an implicit "this"
      parameter.  types_are_compatible should do the comparison based only
      on the return type and parameters. */
@@ -2797,7 +2792,16 @@ without it.
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
-    orig_type = sym->variant.routine.ptr->type;
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
+      orig_type = sym->variant.template.extra_info->
+                                          variant.function.routine->type;
+#if CHECKING
+    } else if (sym->kind != (a_symbol_kind)sk_member_function) {
+      internal_error("member_function_redecl_sym: bad sym kind");
+#endif /* CHECKING */
+    } else {
+      orig_type = sym->variant.routine.ptr->type;
+    }  /* if */
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
     orig_function_is_qualified =
@@ -3053,6 +3057,7 @@ Return TRUE is sym is a symbol for an operator delete() function.
 
 static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
                                                a_type_ptr        type,
+                                               a_symbol_kind     symbol_kind,
                                                a_symbol_ptr      *overload_sym)
 /*
 Return a pointer to an sk_member_function symbol to represent a function
@@ -3085,7 +3090,8 @@ function symbols.
       } else if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
         /* Matches a name in the current scope. */
         if (sym->kind == (a_symbol_kind)sk_member_function ||
-            sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            sym->kind == (a_symbol_kind)sk_overloaded_function ||
+            sym->kind == (a_symbol_kind)sk_function_template) {
           /* Remember sym -- it represents a member function. */
         } else {
           /* Found the name in the current class, but it is not a member
@@ -3126,8 +3132,8 @@ function symbols.
         suppress_redecl_error = TRUE;
       } else {
         /* Enter this symbol as an instance of overloading. */
-        new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
-                                          locator, sym, overload_sym);
+        new_sym = enter_overloaded_symbol(symbol_kind, locator, sym,
+                                          overload_sym);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3135,8 +3141,7 @@ function symbols.
     /* No member function symbol with this name exists yet, or else this is a
        redeclaration which will cause an error to be issued.  Create a new
        member function symbol. */
-    new_sym = enter_local_symbol((a_symbol_kind)sk_member_function,
-                                 locator, decl_scope_level,
+    new_sym = enter_local_symbol(symbol_kind, locator, decl_scope_level,
                                  suppress_redecl_error);
   }  /* if */
   db_exit()
@@ -3237,7 +3242,8 @@ static a_symbol_ptr decl_member_function(
                                    a_boolean               is_inline,
                                    a_boolean               is_virtual,
                                    a_boolean               compiler_generated,
-                                   a_special_function_kind spec_kind)
+                                   a_special_function_kind spec_kind,
+                                   a_boolean               is_func_template)
 /*
 For a member function declaration:  create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
@@ -3269,8 +3275,25 @@ special function kind (e.g., constructor, destructor), if any.
      declarations should be handled. */
 #endif /* if 0 */
   /* Look for a prior declaration or function overloading. */
-  sym = symbol_for_member_function(locator, member_type, &overload_sym);
-  if (sym->variant.routine.ptr != NULL) {
+  sym = symbol_for_member_function(locator, member_type,
+                                   is_func_template ?
+                                     (a_symbol_kind)sk_function_template :
+                                     (a_symbol_kind)sk_member_function,
+                                   &overload_sym);
+
+  if (is_func_template) {
+#if 0
+    rtn = sym->variant.template.extra_info->variant.function.routine;
+#else
+    /* What about redeclaration when a function template is involved?  Is that
+       important to worry about in a prototype instantiation?  For now we'll
+       ignore redeclarations. */
+    rtn = NULL;
+#endif /* if 0 */
+  } else {
+    rtn = sym->variant.routine.ptr;
+  }  /* if */
+  if (rtn != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  It is an error to redeclare a member function, but we try
        merge the declarations anyway. */
@@ -3283,9 +3306,13 @@ special function kind (e.g., constructor, destructor), if any.
        by curr_il_region_number -- i.e., in the memory region of the scope in
        which its class is declared. */
     /* Member functions are static by default. */
-    sym->variant.routine.ptr = rtn = make_routine(member_type,
-                                                  (a_storage_class)sc_static,
-                                                  /*at_file_scope=*/FALSE);
+    rtn = make_routine(member_type, (a_storage_class)sc_static,
+                       /*at_file_scope=*/FALSE);
+    if (is_func_template) {
+      sym->variant.template.extra_info->variant.function.routine = rtn;
+    } else {
+      sym->variant.routine.ptr = rtn;
+    }  /* if */
     /* Set the source correspondence, including the access specifier. */
     set_source_corresp(&rtn->source_corresp, sym);
     rtn->source_corresp.class_of_which_a_member = class_type;
@@ -3323,45 +3350,49 @@ special function kind (e.g., constructor, destructor), if any.
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
       rtn->special_kind = (a_special_function_kind)sfk_conversion;
-      /* Create a conversion list entry.  This list provides an alternative
-         to traversing the entire symbols list for a class to find its
-         conversion functions. */
-      clep = alloc_conversion_list_entry();
-      clep->symbol = sym;
-      clep->next = cssp->conversion_list;
-      cssp->conversion_list = clep;
-      /* If the return type of the conversion is a class type or ref
-         class type, set a flag to mark it as target of a conversion. */
-      tp = rtn->type->variant.routine.return_type;
-      tp = skip_typerefs(tp);
-      switch (is_reference_type(tp)) {
-        case TRUE:
-          tp = type_pointed_to(tp);
-          /* Special handling for "reference to const/volatile class" --
-             flag is not set in such cases. */
-          if (is_qualified_type(tp)) break;
-          /* Fall through to default processing. */
-        default:
-          if (is_class_struct_union_type(tp)) {
-            (symbol_supplement_for_class(skip_typerefs(tp)))->
-                      target_of_conversion_function = TRUE;
-          }  /* if */
-      }  /* switch */
+      if (!is_func_template) {
+        /* Create a conversion list entry.  This list provides an alternative
+           to traversing the entire symbols list for a class to find its
+           conversion functions. */
+        clep = alloc_conversion_list_entry();
+        clep->symbol = sym;
+        clep->next = cssp->conversion_list;
+        cssp->conversion_list = clep;
+        /* If the return type of the conversion is a class type or ref
+           class type, set a flag to mark it as target of a conversion. */
+        tp = rtn->type->variant.routine.return_type;
+        tp = skip_typerefs(tp);
+        switch (is_reference_type(tp)) {
+          case TRUE:
+            tp = type_pointed_to(tp);
+            /* Special handling for "reference to const/volatile class" --
+               flag is not set in such cases. */
+            if (is_qualified_type(tp)) break;
+            /* Fall through to default processing. */
+          default:
+            if (is_class_struct_union_type(tp)) {
+              (symbol_supplement_for_class(skip_typerefs(tp)))->
+                        target_of_conversion_function = TRUE;
+            }  /* if */
+        }  /* switch */
+      }  /* if */
     } else {
       rtn->special_kind = spec_kind;
     }  /* if */
-    /* If "virtual" was specified in the declaration, mark the routine as
-       virtual.  Even if it wasn't, its virtualness can be inherited.  In
-       either case record the relationship between the current routine and
-       its appearance in the base classes of the current class. */
-    if (check_for_virtual_function(is_virtual, sym, class_type,
-                                   &locator->source_position)) {
-      /* Classes with virtual functions require constructors. */
-      cssp->constructor_required = TRUE;
-      /* Classes with virtual functions cannot be constructed or assigned
-         by bitwise copying. */
-      cssp->construction_by_bitwise_copy_allowed = FALSE;
-      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    if (!is_func_template) {
+      /* If "virtual" was specified in the declaration, mark the routine as
+         virtual.  Even if it wasn't, its virtualness can be inherited.  In
+         either case record the relationship between the current routine and
+         its appearance in the base classes of the current class. */
+      if (check_for_virtual_function(is_virtual, sym, class_type,
+                                     &locator->source_position)) {
+        /* Classes with virtual functions require constructors. */
+        cssp->constructor_required = TRUE;
+        /* Classes with virtual functions cannot be constructed or assigned
+           by bitwise copying. */
+        cssp->construction_by_bitwise_copy_allowed = FALSE;
+        cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      }  /* if */
     }  /* if */
     /* If this is a user-defined conversion or an overloaded operator,
        check for errors in the argument list. */
@@ -3384,7 +3415,8 @@ special function kind (e.g., constructor, destructor), if any.
       }  /* if */
       /* Determine if this is a copy constructor.  If so, set the class symbol
          supplement flags appropriately. */
-      if (is_copy_constructor_symbol(sym, &const_object_okay, &dummy_flag)) {
+      if (is_copy_constructor(rtn, class_type, &const_object_okay,
+          &dummy_flag)) {
         cssp->has_copy_constructor = TRUE;
         cssp->has_copy_constructor_for_const_object |= const_object_okay;
         if (!compiler_generated) {
@@ -3401,7 +3433,7 @@ special function kind (e.g., constructor, destructor), if any.
       cssp->destructor = sym;
     }  /* if */
     /* Do checking associated with function overloading. */
-    if (overload_sym != NULL) {
+    if (overload_sym != NULL && !is_func_template) {
       a_symbol_ptr  other_sym = sym->next;
 #if CHECKING
       if (sym != overload_sym->variant.overloaded_function.symbols ||
@@ -3445,8 +3477,15 @@ and it is legal for virtual member functions only.
   db_enter(4, "scan_pure_specifier");
   /* A pure specifier is allowed for virtual functions only.  (Check the
      class_of_which_a_member to exclude friend declarations.) */
-  pure_specifier_allowed = (rout_sym->class_of_which_a_member == class_type &&
-                            rout_sym->variant.routine.ptr->is_virtual);
+  if (rout_sym->class_of_which_a_member != class_type) {
+    pure_specifier_allowed = FALSE;
+  } else {
+    pure_specifier_allowed =
+             (rout_sym->kind == (a_symbol_kind)sk_function_template) ?
+                  rout_sym->variant.template.extra_info->
+                                  variant.function.routine->is_virtual :
+                  rout_sym->variant.routine.ptr->is_virtual;
+  }  /* if */
   if (!pure_specifier_allowed && !suppress_error) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
   }  /* if */
@@ -4044,7 +4083,8 @@ routine body is generated at this time.
   (void)decl_member_function(&locator, class_type, rout_type,
                              (an_access_specifier)as_public,
                              /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
-                             /*compiler_generated=*/TRUE, sfkind);
+                             /*compiler_generated=*/TRUE, sfkind,
+                             /*is_func_template=*/FALSE);
   db_exit();
 }  /* generate_special_function */
 
@@ -5545,9 +5585,6 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             a_type_ptr         bottom_derived_type;
             an_expr_node_ptr   dim_expr_ptr;
 
-            if (C_dialect == C_dialect_cplusplus) {
-              curr_routine_fixup = alloc_routine_fixup();
-            }  /* if */
             /* Set the various flags for declarator processing. */
             declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
             if (dso_flags & DSO_DESTRUCTOR) {
@@ -5589,8 +5626,9 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               error(ec_function_type_not_allowed);
               local_type = error_type();
             } else {
-              /* Member function. */
+              /* Member or friend function. */
               a_boolean      suppress_pure_specifier_error = FALSE;
+              a_boolean      function_def_present, is_func_template;
               a_special_function_kind
                              spec_kind = (a_special_function_kind)sfk_none;
 
@@ -5657,6 +5695,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 }  /* if */
               }  /* if */
               spec_kind = (a_special_function_kind)sfk_none;
+              function_def_present = (curr_token == tok_lbrace);
               if (friend_specified) {
                 rout_sym = decl_friend_function(&locator, class_type,
                                                 local_type, inline_specified);
@@ -5665,21 +5704,25 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                   spec_kind = (a_special_function_kind)sfk_destructor;
                 } else if (is_constructor) {
                   spec_kind = (a_special_function_kind)sfk_constructor;
+                  if (curr_token == tok_colon) function_def_present = TRUE;
                 }  /* if */
+                /* If this is a non-inline-defined member function within a
+                   prototype instantiation, generate a function template
+                   symbol instead of a member function symbol. */
+                is_func_template = (is_unreal_instantiation &&
+                                    !function_def_present);
                 /* Create a symbol for the member function. */
-                rout_sym = decl_member_function(&locator, class_type,
-                                                local_type, access,
-                                                inline_specified,
-                                                virtual_specified,
-                                                /*compiler_generated=*/FALSE,
-                                                spec_kind);
+                rout_sym = decl_member_function(
+                                     &locator, class_type, local_type, access,
+                                     inline_specified, virtual_specified,
+                                     /*compiler_generated=*/FALSE, spec_kind,
+                                     is_func_template);
               }  /* if */
-              curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
-              curr_routine_fixup->func_info = func_info;
-              if (curr_token == tok_lbrace ||
-                  (spec_kind == (a_special_function_kind)sfk_constructor &&
-                   curr_token == tok_colon)) {
+              if (function_def_present) {
                 /* Next token indicates start of a function definition. */
+                curr_routine_fixup = alloc_routine_fixup();
+                curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
+                curr_routine_fixup->func_info = func_info;
                 if (local_type == member_type) {
                   /* When scanning the declarator does not change the type,
                      we know this member is a function based on the
@@ -5992,37 +6035,41 @@ next_declaration:
         }  /* for */
         end_error();
       }  /* if */
-      /* Create compiler-generated default constructor, copy constructor,
-         destructor, and assignment operator, if any is needed. */
-      check_special_member_functions(class_type);
-      /* Since check_special_member_functions can have added new symbols or
-         modified the head of the old list, update the symbols list attached
-         to the class. */
-      cssp->symbols = scope_stack[depth_scope_stack].symbols;
+      if (!is_unreal_instantiation) {
+        /* Create compiler-generated default constructor, copy constructor,
+           destructor, and assignment operator, if any is needed. */
+        check_special_member_functions(class_type);
+        /* Since check_special_member_functions can have added new symbols or
+           modified the head of the old list, update the symbols list attached
+           to the class. */
+        cssp->symbols = scope_stack[depth_scope_stack].symbols;
+      }  /* if */
     }  /* if */
     /* Wrap up field allocation. */
     finish_laying_out_class(&layout_block);
     if (C_dialect == C_dialect_cplusplus) {
-      /* Check for inherited conversion functions.  This must be done before
-         rescanning inline function definitions. */
-      project_base_class_conversion_functions(class_type);
-      /* Since project_base_class_conversion_functions can have added new
-         symbols, update the symbols list attached to the class. */
-      cssp->symbols = scope_stack[depth_scope_stack].symbols;
-      /* Report errors in virtual function declarations that result from
-         the failure to redeclare a virtual function originally declared in
-         a virtual base class. */
-      copy_source_position(pos_curr_token, error_position);
-      report_virtual_function_ambiguities(class_type);
-      /* If the current class is not already marked as "abstract", run
-         through its base classes to determine whether it is abstract by
-         inheritance and set the flag accordingly. */
-      check_abstract_class(class_type);
-      /* Classes with no constructors, no private or protected members, no
-         base classes, and no virtual functions are used to declare
-         "aggregate" objects (ARM 8.4.1). */
-      if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
-        cssp->is_class_aggregate = TRUE;
+      if (!is_unreal_instantiation) {
+        /* Check for inherited conversion functions.  This must be done before
+           rescanning inline function definitions. */
+        project_base_class_conversion_functions(class_type);
+        /* Since project_base_class_conversion_functions can have added new
+           symbols, update the symbols list attached to the class. */
+        cssp->symbols = scope_stack[depth_scope_stack].symbols;
+        /* Report errors in virtual function declarations that result from
+           the failure to redeclare a virtual function originally declared in
+           a virtual base class. */
+        copy_source_position(pos_curr_token, error_position);
+        report_virtual_function_ambiguities(class_type);
+        /* If the current class is not already marked as "abstract", run
+           through its base classes to determine whether it is abstract by
+           inheritance and set the flag accordingly. */
+        check_abstract_class(class_type);
+        /* Classes with no constructors, no private or protected members, no
+           base classes, and no virtual functions are used to declare
+           "aggregate" objects (ARM 8.4.1). */
+        if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
+          cssp->is_class_aggregate = TRUE;
+        }  /* if */
       }  /* if */
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
