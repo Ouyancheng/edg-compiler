@@ -2482,6 +2482,17 @@ to represent a type qualifier set.
 #define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
 
 /*
+Determine whether any decl modifiers are being used.  This value is used
+to decide whether the variable and routine entries should include a
+decl modifiers field.
+*/
+#if MICROSOFT_KEYWORDS_ALLOWED
+#define DECL_MODIFIERS_IN_USE TRUE
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+#define DECL_MODIFIERS_IN_USE FALSE
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+/*
 Enumeration of declaration modifiers that are accepted.  The enumeration values
 are used to create bit masks that are used to represent the modifiers.
 */
@@ -2543,17 +2554,6 @@ Type used to represent a set of decl modifiers.
 */
 typedef char	a_decl_modifier;
 typedef a_decl_modifier *a_decl_modifier_ptr;
-
-/*
-Determine whether any decl modifiers are being used.  This value is used
-to decide whether the variable and routine entries should include a
-decl modifiers field.
-*/
-#if MICROSOFT_KEYWORDS_ALLOWED
-#define DECL_MODIFIERS_IN_USE TRUE
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
-#define DECL_MODIFIERS_IN_USE FALSE
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 typedef struct a_type {
   /* Description of a type. */
