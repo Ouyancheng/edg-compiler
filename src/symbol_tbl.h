@@ -90,9 +90,6 @@ declared.
 #ifndef IL_TO_STR_H
 #include "il_to_str.h"
 #endif /* ifndef IL_TO_STR_H */
-#ifndef SCOPE_STK_H
-#include "scope_stk.h"
-#endif /* ifndef SCOPE_STK_H */
 
 /*
 The scope number for the file scope.  Equal to FILE_SCOPE_NUMBER (zero)
@@ -330,6 +327,9 @@ Clear a symbol locator.
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
+#ifndef SCOPE_STK_H
+#include "scope_stk.h"
+#endif /* ifndef SCOPE_STK_H */
 
 /*
 Kinds of symbols in the symbol table.

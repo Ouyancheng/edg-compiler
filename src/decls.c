@@ -5094,34 +5094,10 @@ declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (c99_mode) {
-    if (is_variable_def &&
-        depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-        variable_ptr->storage_class == (a_storage_class)sc_static) {
-      a_type_ptr var_type = variable_ptr->type;
-      if (is_array_type(var_type)) {
-        /* In C, an array of const element type is not considered const,
-           so drop down to the element type to do the test. */
-        var_type = underlying_array_element_type(var_type);
-      }  /* if */
-      if (!is_const_qualified_type(var_type)) {
-        /* The definition of a local static variable that is modifiable --
-           in C99 it is an error for such a variable to be defined within the
-           body of an inline function with external linkage. */
-        a_routine_ptr      rp;
-        an_error_severity  severity;
-
-        rp = scope_stack[depth_innermost_function_scope].assoc_routine;
-        check_assertion(rp != NULL);
-        if (rp->is_inline &&
-            rp->storage_class == (a_storage_class)sc_unspecified) {
-          severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
-                                        es_discretionary_error;
-          pos_diagnostic(severity, ec_static_variable_in_inline_function,
-                         &locator->source_position);
-        }  /* if */
-      }  /* if */
-    }  /* if */
+  if (c99_mode && !gcc_mode && is_variable_def &&
+      depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+      variable_ptr->storage_class == (a_storage_class)sc_static) {
+    check_c99_local_static_variable(variable_ptr, locator);
   }  /* if */
   if (vla_enabled) {
     if (is_variably_modified_type(type_ptr)) {
