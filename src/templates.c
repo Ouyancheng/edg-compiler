@@ -48,21 +48,33 @@ for tp is currently in progress.
 }  /* instantiation_in_progress */
 
 
-void instantiate_template_class(a_type_ptr  tp)
+void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
 /*
-If tp is an instance of a class template, perform a full instantiation of it.
-This entails rescanning the tokens that were cached when the template
-definition was originally encountered; the cached tokens include the
-base specifiers list, if any, and the class body (from opening left brace
-through closing right brace).  The template arguments (the real values which
-the template parameters take on) have been recorded in tp and will be
+*/
+{
+
+  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+  if (tp != NULL && is_class_struct_union_type(tp)) {
+    instantiate_template_class(tp);
+  }  /* if */
+}  /* f_check_for_uninstantiated_template_class */
+
+
+void f_instantiate_template_class(a_type_ptr  class_type)
+/*
+If class_type is an instance of a class template, perform a full instantiation
+of it.  This entails rescanning the tokens that were cached when the template
+definition was originally encountered; the cached tokens include the base
+specifiers list, if any, and the class body (from opening left brace through
+closing right brace).  The template arguments (the real values which the
+template parameters take on) have been recorded in class_type and will be
 substituted for the template parameters when the instantiation scope is
 pushed.
 
-This routine should be called from check_for_uninstantiated_template_class,
-which determines that tp is an incomplete type.  If it also turns out to
-be a template type, this routine attempts to instantiate it; it might not be
-able to if the template itself has not yet been defined.
+This routine should be called from macro instantiatiate_template_class, which
+determines that class_type is an incomplete type.  If it also turns out to be
+a template type, this routine attempts to instantiate it; it might not be able
+to if the template itself has not yet been defined.
 */
 {
   a_symbol_ptr                      template_sym;
@@ -70,93 +82,96 @@ able to if the template itself has not yet been defined.
   a_token_cache                     *p_token_cache;
   a_class_symbol_supplement_ptr     cssp;
 
-  db_enter(3, "instantiate_template_class");
-  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-  if (tp != NULL && is_class_struct_union_type(tp)) {
-    tp = skip_typerefs(tp);
-    cssp = symbol_supplement_for_class(tp);
-    template_sym = cssp->class_template;
-    if (template_sym == NULL) {
-      /* Not a class based on a class template. */
-    } else if (cssp->is_nonreal_class) {
-      /* Don't try to instantiate a template class without real template
-         arguments. */
+  db_enter(3, "f_instantiate_template_class");
 #if CHECKING
-    } else if (cssp->is_specific_template_def) {
-      internal_error("instantiate_template_class: is specific template def");
+  if (!is_class_struct_union_type(class_type)) {
+    internal_error("f_instantiate_template_class: not a class");
+  }  /* if */
 #endif /* CHECKING */
+  class_type = skip_typerefs(class_type);
+  cssp = symbol_supplement_for_class(class_type);
+  template_sym = cssp->class_template;
+  if (template_sym == NULL) {
+    /* Not a class based on a class template. */
+  } else if (cssp->is_nonreal_class) {
+    /* Don't try to instantiate a template class without real template
+       arguments. */
+#if CHECKING
+  } else if (cssp->is_specific_template_def) {
+    internal_error("f_instantiate_template_class: is specific template def");
+#endif /* CHECKING */
+  } else {
+    /* There is a class template from which to generate this class and its
+       a real instantiation. */
+    tssp = template_sym->variant.template.extra_info;
+    p_token_cache = &tssp->body_token_cache;
+    if (p_token_cache->first_token == NULL) {
+      /* The template itself has not yet been defined.  The caller will
+         issue an incomplete-type error. */
+    } else if (instantiation_of_type_is_in_progress(class_type)) {
+      /* This particular template class (not just some other one based on
+         the same template) is currently being instantiated. */
+    } else if (tssp->variant.class.pending_instantiations >=
+                                                 MAX_PENDING_INSTANTIATIONS) {
+      /* This class instantiation occurs within the context of other
+         instantiations of the same class template.  When the number of
+         such instantiations-in-progress exceeds a configuration
+         constant value, we assume this to be runaway recursion -- for
+         for instance (to give a rather unlikely example):
+            template <class T, int I> class X {
+              X<T,I+1> x;
+            };
+      */                
+      type_error(ec_runaway_recursive_instantiation, class_type);
+      /* Give class_type a size of 1 so it won't be treated as incomplete in
+         subsequent processing. */
+      class_type->size = 1;
     } else {
-      /* There is a class template from which to generate this class and its
-         a real instantiation. */
-      tssp = template_sym->variant.template.extra_info;
-      p_token_cache = &tssp->body_token_cache;
-      if (p_token_cache->first_token == NULL) {
-        /* The template itself has not yet been defined.  The caller will
-           issue an incomplete-type error. */
-      } else if (instantiation_of_type_is_in_progress(tp)) {
-        /* This particular template class (not just some other one based on
-           the same template) is currently being instantiated. */
-      } else if (tssp->variant.class.pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
-        /* This class instantiation occurs within the context of other
-           instantiations of the same class template.  When the number of
-           such instantiations-in-progress exceeds a configuration
-           constant value, we assume this to be runaway recursion -- for
-           for instance (to give a rather unlikely example):
-              template <class T, int I> class X {
-                X<T,I+1> x;
-              };
-         */                
-        type_error(ec_runaway_recursive_instantiation, tp);
-        /* Give tp a size of 1 so it won't be treated as incomplete in
-           subsequent processing. */
-        tp->size = 1;
-      } else {
-        /* We proceed with the instantiation. */
-        /* Increment the count of instantiations-in-progress for the current
-           class template.  It will be decremented when the instantiation is
-           complete. */
-        ++(tssp->variant.class.pending_instantiations);
+      /* We proceed with the instantiation. */
+      /* Increment the count of instantiations-in-progress for the current
+         class template.  It will be decremented when the instantiation is
+         complete. */
+      ++(tssp->variant.class.pending_instantiations);
 #if DEBUG
-        if (debug_level >= 3) {
-          fprintf(f_debug, "instantiating: ");
-          db_type(tp);
-          db_symbol(template_sym, "\nbased on: ", 2);
-        }  /* if */
-#endif /* DEBUG */
-        /* Push a template instantiation scope.  The real values of the
-           the template arguments will be associated with the template
-           parameter names. */
-        (void)push_scope((a_scope_kind)sck_template_instantiation,
-                         tssp->declaration_scope, tp, (a_routine_ptr)NULL,
-                         (a_function_instantiation_entry_ptr)NULL);
-        /* The tokens of the template definition have been cached away.
-           Activate the cache so that they can be rescanned in light of
-           the new values associated with the template parameters. */
-        rescan_reusable_cache(p_token_cache);
-#if CHECKING
-        if (curr_token != tok_lbrace && curr_token != tok_colon) {
-          internal_error("instantiate_template_class: bad 1st token in cache");
-        }  /* if */
-#endif /* CHECKING */
-        /* Scan the base specifiers list, if any, and the body of the class. */
-        (void)scan_class_definition(tp, DEPTH_OF_FILE_SCOPE,
-                                    /*is_local_class=*/FALSE,
-                                    /*is_prototype_instantiation=*/FALSE);
-        pop_scope();
-        /* In the normal case the current token should be end_of_source,
-           which was inserted to mark the end of the cached token stream.
-           If necessary, keep flushing until end-of-source is found. */
-        while (curr_token != tok_end_of_source) (void)get_token();
-        /* Advance past the end-of-source token. */
-        (void)get_token();
-        /* Decrement the count of instantiations-in-progress for the current
-           class template. */
-        --(tssp->variant.class.pending_instantiations);
+      if (debug_level >= 3) {
+        fprintf(f_debug, "instantiating: ");
+        db_type(class_type);
+        db_symbol(template_sym, "\nbased on: ", 2);
       }  /* if */
+#endif /* DEBUG */
+      /* Push a template instantiation scope.  The real values of the
+         the template arguments will be associated with the template
+         parameter names. */
+      (void)push_scope((a_scope_kind)sck_template_instantiation,
+                       tssp->declaration_scope, class_type, (a_routine_ptr)NULL,
+                       (a_function_instantiation_entry_ptr)NULL);
+      /* The tokens of the template definition have been cached away.
+         Activate the cache so that they can be rescanned in light of
+         the new values associated with the template parameters. */
+      rescan_reusable_cache(p_token_cache);
+#if CHECKING
+      if (curr_token != tok_lbrace && curr_token != tok_colon) {
+        internal_error("f_instantiate_template_class: bad 1st token in cache");
+      }  /* if */
+#endif /* CHECKING */
+      /* Scan the base specifiers list, if any, and the body of the class. */
+      (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
+                                  /*is_local_class=*/FALSE,
+                                  /*is_prototype_instantiation=*/FALSE);
+      pop_scope();
+      /* In the normal case the current token should be end_of_source,
+         which was inserted to mark the end of the cached token stream.
+         If necessary, keep flushing until end-of-source is found. */
+      while (curr_token != tok_end_of_source) (void)get_token();
+      /* Advance past the end-of-source token. */
+      (void)get_token();
+      /* Decrement the count of instantiations-in-progress for the current
+         class template. */
+      --(tssp->variant.class.pending_instantiations);
     }  /* if */
   }  /* if */
   db_exit();
-}  /* instantiate_template_class */
+}  /* f_instantiate_template_class */
 
 
 static void instantiate_class_template(a_symbol_ptr  template_sym,
@@ -1905,122 +1920,45 @@ done:;
 }  /* class_template_declaration */
 
 
-static a_boolean function_template_declaration(a_symbol_ptr  *sym)
+static void cache_function_template_tokens(a_token_cache  *p_token_cache,
+                                           a_boolean      is_constructor)
 /*
 */
 {
-  a_storage_class                   storage_class;
-  a_type_ptr                        type;
-  a_symbol_locator                  locator;
-  a_decl_flag_set                   do_flags, dso_flags;
-  a_func_info_block                 func_info;
-  a_type_ptr                        bottom_derived_type = NULL;
-  an_expr_node_ptr                  dim_expr_ptr;
-  a_token_cache                     local_token_cache, *p_token_cache;
-  a_template_symbol_supplement_ptr  tssp;
-  a_boolean                         err = FALSE;
-  a_source_position                 decl_start_pos;
-
-  db_enter(3, "function_template_declaration");
-
-  decl_start_pos = pos_curr_token;
-  add_stop_token(tok_semicolon);
-  add_stop_token(tok_lbrace);
-  add_stop_token(tok_colon);
-  clear_token_cache(&local_token_cache);
-  cache_token_stream(&local_token_cache);
-  /* Add an end-of-source token to the end of the token cache to assure that
-     we don't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(&local_token_cache);
-  rescan_reusable_cache(&local_token_cache);
-  (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
-                         DSI_INLINE_ALLOWED |
-                         DSI_TYPE_SPECIFIER_ALLOWED |
-                         DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                         DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
-                         &dso_flags, &storage_class, &type);
-  declarator(DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
-             &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-             &bottom_derived_type, &func_info, &dim_expr_ptr);
-  if (is_error_locator(locator) || !is_function_type(type)) {
-    if (!is_error_locator(locator)) {
-      pos_error(ec_bad_template_declaration, &decl_start_pos);
+  db_enter(3, "cache_function_template_tokens");
+  if (curr_token == tok_lbrace ||
+      (curr_token == tok_colon && is_constructor)) {
+    if (curr_token == tok_colon) {
+      add_stop_token(tok_lbrace);
+      add_stop_token(tok_semicolon);
+      cache_token_stream(p_token_cache);
+      remove_stop_token(tok_lbrace);
+      remove_stop_token(tok_semicolon);
     }  /* if */
-    err = TRUE;
-    discard_token_cache(&local_token_cache);
-    clear_token_cache(&local_token_cache);
-    p_token_cache = &local_token_cache;
-  } else {
-    decl_function_template(&locator, type, sym, storage_class,
-                           (dso_flags & DSO_INLINE) != 0);
-    if (is_error_locator(locator)) err = TRUE;
-    tssp = (*sym)->variant.template.extra_info;
-    tssp->variant.function.decl_token_cache = local_token_cache;
-    tssp->variant.function.func_info = func_info;
-    p_token_cache = &tssp->body_token_cache;
-  }  /* if */
-  remove_stop_token(tok_lbrace);
-  remove_stop_token(tok_semicolon);
-  remove_stop_token(tok_colon);
-  if (curr_token == tok_end_of_source) {
-    /* Advance past the end-of-source token. */
-    (void)get_token();
-    if (curr_token == tok_lbrace ||
-        (curr_token == tok_colon && *sym != NULL &&
-         is_constructor_symbol(*sym))) {
-      if (*sym != NULL) {
-        if ((*sym)->defined) {
-          err = TRUE;
-          pos_sy_error(ec_already_defined, &locator.source_position, *sym);
-          discard_token_cache(&local_token_cache);
-          clear_token_cache(&local_token_cache);
-          p_token_cache = &local_token_cache;
-        } else {
-          (*sym)->defined = TRUE;
-        }  /* if */
-      }  /* if */
-      if (curr_token == tok_colon) {
-        add_stop_token(tok_lbrace);
-        add_stop_token(tok_semicolon);
-        cache_token_stream(p_token_cache);
-        remove_stop_token(tok_lbrace);
-        remove_stop_token(tok_semicolon);
-      }  /* if */
-      if (curr_token == tok_lbrace) {
-        /* Cache the "{" and advance past it. */
+    if (curr_token == tok_lbrace) {
+      /* Cache the "{" and advance past it. */
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+      /* Cache all tokens up to the "}" (or end-of-source). */
+      add_stop_token(tok_rbrace);
+      cache_token_stream(p_token_cache);
+      remove_stop_token(tok_rbrace);
+      /* Cache the "}" and append an end-of-source token. */
+      if (curr_token == tok_rbrace) {
         cache_curr_token(p_token_cache);
+        /* Advance to the next token. */
         (void)get_token();
-        /* Cache all tokens up to the "}" (or end-of-source). */
-        add_stop_token(tok_rbrace);
-        cache_token_stream(p_token_cache);
-        remove_stop_token(tok_rbrace);
-        /* Cache the "}" and append an end-of-source token. */
-        if (curr_token == tok_rbrace) {
-          cache_curr_token(p_token_cache);
-          /* Advance to the next token. */
-          (void)get_token();
-        }  /* if */
-        if (!err) {
-          /* Add an end-of-source token to the end of the token cache to
-             assure that we don't scan past the end of the cache in the actual
-             scan. */
-          terminate_token_cache(p_token_cache);
-        } else {
-          discard_token_cache(p_token_cache);
-        }  /* if */
       }  /* if */
-    } else {
-      /* No body to cache.  Check for final semicolon. */
-      (void)required_token(tok_semicolon, ec_exp_semicolon);
+      /* Add an end-of-source token to the end of the token cache to
+         assure that we don't scan past the end of the cache in the actual
+         scan. */
+      terminate_token_cache(p_token_cache);
     }  /* if */
   } else {
+    /* No body to cache.  Check for final semicolon. */
     (void)required_token(tok_semicolon, ec_exp_semicolon);
-    while (curr_token != tok_end_of_source) (void)get_token();
-    /* Advance past the end-of-source token. */
-    (void)get_token();
   }  /* if */
   db_exit();
-  return !err;
 }  /* function_template_declaration */
 
 
@@ -2277,7 +2215,7 @@ entry is pushed on the scope stack.
   a_symbol_ptr                      sym, param_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
-  a_type_ptr                        rout_type, prototype_type = NULL;
+  a_type_ptr                        prototype_type = NULL;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -2312,35 +2250,121 @@ entry is pushed on the scope stack.
                                  &prototype_type)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
-  } else if (function_template_declaration(&sym)) {
-    tssp = sym->variant.template.extra_info;
-    tssp->parameters = template_param_list;
-    tssp->declaration_scope = scope_stack[decl_scope_level].number;
-    if (sym->class_of_which_a_member != NULL) {
-      /* Out-of-line definition of a member function of a class template.
-         Don't impose requirements on the use of template parameters in the
-         parameters. */
-    } else {
-      /* Go back through the template params and be sure there are only type
-         args.  The other kind is allowed only for class templates. */
-      rout_type = tssp->variant.function.routine->type;
-      for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
-        param_sym = tpp->param_symbol;
-        if (param_sym->kind != (a_symbol_kind)sk_type) {
-          pos_error(ec_not_a_type_arg, &param_sym->decl_position);
-        } else if (!param_sym->referenced ||
-                   (template_param_appears_in_type_tree(
-                                    param_sym->variant.type,
-                                    rout_type->variant.routine.return_type) &&
-                    !template_param_appears_in_param_list(
-                                    param_sym->variant.type, rout_type))) {
-          pos_sy2_error(ec_not_used_in_template_function_params,
-                       &param_sym->decl_position, param_sym, sym);
-        }  /* if */
-      }  /* for */
-    }  /* if */
   } else {
-    /* Error. */
+    /* Not a class template declaration.  Check for a function template
+       declaration or a static data member template definition. */
+    a_storage_class    storage_class;
+    a_type_ptr         type;
+    a_symbol_locator   locator;
+    a_decl_flag_set    do_flags, dso_flags;
+    a_func_info_block  func_info;
+    a_type_ptr         bottom_derived_type = NULL;
+    an_expr_node_ptr   dim_expr_ptr;
+    a_source_position  decl_start_pos;
+
+    decl_start_pos = pos_curr_token;
+    add_stop_token(tok_semicolon);
+    add_stop_token(tok_lbrace);
+    add_stop_token(tok_colon);
+    (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
+                           DSI_INLINE_ALLOWED |
+                           DSI_TYPE_SPECIFIER_ALLOWED |
+                           DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+                           DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
+                           &dso_flags, &storage_class, &type);
+    declarator(DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
+               &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+               &bottom_derived_type, &func_info, &dim_expr_ptr);
+    remove_stop_token(tok_lbrace);
+    remove_stop_token(tok_semicolon);
+    remove_stop_token(tok_colon);
+    sym = locator.specific_symbol;
+    if (sym != NULL) {
+      a_type_ptr  parent_type = sym->class_of_which_a_member;
+      if (parent_type != NULL) {
+        if (!(symbol_supplement_for_class(parent_type))->is_nonreal_class ||
+            parent_type->variant.class_struct_union.extra_info->
+                                                      assoc_scope == NULL) {
+          if (!is_error_locator(locator)) {
+            pos_error(ec_bad_template_declaration, &decl_start_pos);
+            set_to_error_locator(locator);
+            sym = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!is_function_type(type) && sym != NULL &&
+        sym->kind == (a_symbol_kind)sk_static_data_member) {
+      /* Special processing for static data member declarations. */
+      if (curr_token == tok_assign) {
+        (void)get_token();
+        add_stop_token(tok_semicolon);
+#if 0
+        cache_initializer_tokens(sym);
+#endif /* if 0 */
+        remove_stop_token(tok_semicolon);
+      }  /* if */
+      required_token(tok_semicolon, ec_exp_semicolon);
+    } else if (is_function_type(type)) {
+      a_boolean  err = FALSE;
+
+      /* Process a function template declaration. */
+      decl_function_template(&locator, type, &sym, storage_class,
+                             (dso_flags & DSO_INLINE) != 0);
+      if (is_error_locator(locator)) {
+        err = TRUE;
+      } else if (curr_token == tok_lbrace ||
+                 (curr_token == tok_colon && is_constructor_symbol(sym))) {
+        if (sym->defined) {
+          pos_sy_error(ec_already_defined, &locator.source_position, sym);
+          err = TRUE;
+        }  /* if */
+        sym->defined = TRUE;
+      }
+      if (err) {
+        a_token_cache  local_token_cache;
+        clear_token_cache(&local_token_cache);
+        cache_function_template_tokens(&local_token_cache, /*is_ctor=*/TRUE);
+        discard_token_cache(&local_token_cache);
+      } else {
+        tssp = sym->variant.template.extra_info;
+        tssp->variant.function.func_info = func_info;
+        tssp->parameters = template_param_list;
+        tssp->declaration_scope = scope_stack[decl_scope_level].number;
+        cache_function_template_tokens(&tssp->body_token_cache,
+                                       is_constructor_symbol(sym));
+      }  /* if */
+      if (sym->class_of_which_a_member != NULL) {
+        /* Out-of-line definition of a member function of a class template.
+           Don't impose requirements on the use of template parameters in the
+           parameters. */
+      } else {
+        /* Go back through the template params and be sure there are only
+           type args.  The other kind is allowed only for class templates. */
+        for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+          param_sym = tpp->param_symbol;
+          if (param_sym->kind != (a_symbol_kind)sk_type) {
+            pos_error(ec_not_a_type_arg, &param_sym->decl_position);
+          } else if (!param_sym->referenced ||
+                     (template_param_appears_in_type_tree(
+                                    param_sym->variant.type,
+                                    type->variant.routine.return_type) &&
+                      !template_param_appears_in_param_list(
+                                    param_sym->variant.type, type))) {
+            pos_sy2_error(ec_not_used_in_template_function_params,
+                          &param_sym->decl_position, param_sym, sym);
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else {
+      /* Error -- not a class template, a function template, nor a static
+         data member template. */
+      if (!is_error_locator(locator)) {
+        pos_error(ec_bad_template_declaration, &decl_start_pos);
+      }  /* if */
+      /* Flush tokens to end of declaration. */
+      (void)required_token(tok_semicolon, ec_exp_semicolon);
+    }  /* if */
   }  /* if */
   /* Note that the template declaration scope must be popped before doing the
      prototype instantiation. */
