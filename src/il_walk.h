@@ -55,7 +55,9 @@ typedef a_walk_termination_test_function *a_walk_termination_test_function_ptr;
 /*
 If this flag is TRUE, the IL walk routines that allow remapping of the
 pointers in an entry in isolation (i.e., not as part of an IL tree walk) are
-compiled.
+compiled.  Note that the top-level routine remap_pointers_in_il_entry is
+compiled regardless of the setting of this flag, because it is used
+by the trans_copy.c code.
 */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
 #define REMAP_ONLY_ROUTINES_NEEDED TRUE
@@ -151,10 +153,10 @@ EXTERN a_boolean
 			   and classes to set needed flags. */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
-#if REMAP_ONLY_ROUTINES_NEEDED
 extern void remap_pointers_in_il_entry(char             *entry_ptr,
                                        an_il_entry_kind entry_kind);
 
+#if REMAP_ONLY_ROUTINES_NEEDED
 extern void remap_il_header_pointers(void);
 
 extern void remap_first_ptr_of_orphaned_file_scope_entry_array(void);
