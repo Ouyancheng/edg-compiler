@@ -19,8 +19,12 @@ This is the version for Linux.
 #ifndef COMPILE_MULTIPLE_SOURCE_FILES
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
-#define TARG_ALIGNOF_DOUBLE 4
-#define TARG_ALIGNOF_LONG_LONG 4
+/* double and long long have two different alignments on Linux. */
+#define TARG_ALIGNOF_DOUBLE 8
+#define TARG_DOUBLE_FIELD_ALIGNMENT 4
+#define TARG_ALIGNOF_LONG_LONG 8
+#define TARG_LONG_LONG_FIELD_ALIGNMENT 4
+
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 39

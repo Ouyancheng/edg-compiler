@@ -1,5 +1,16 @@
 Version 3.1
 
+10/7/02  Dual alignments for built-in types
+
+A new configuration macro TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES causes the
+front end to consider an alternative alignment for builtin types when a field
+of such appears in a class type (including structs and unions).  These
+alternative alignments are configured through macros of the form
+TARG_<XYZ>_FIELD_ALIGNMENT (where <XYZ> can be SHORT, INT, LONG, LONG_LONG,
+FLOAT, DOUBLE, and LONG_DOUBLE).  This allows the front end to emulate more
+accurately the object layout behavior of some GNU compilers on Intel x86-based
+platforms.
+
 10/4/02  Spurious error on static member template friend declaration
 
 A spurious error was issued if a friend declaration referred to an instance

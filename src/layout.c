@@ -149,6 +149,96 @@ B.  Layout options
 #endif /*USER_CONTROL_OF_STRUCT_PACKING */
 
 
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+/*
+GNU C and C++ distinguishes between two alignments for fundamental types:
+The intrinsic alignment (returned by __alignof__ and imbued on complete
+objects of that type), and the field alignment (used to align fields of
+that type).  For example, on some Intel-based configurations, long long is
+normally 8-byte aligned, but a struct containing a long long need only be
+4-byte aligned.  The a_type entry contains the intrinsic alignment.  The
+field alignment is accessed through the following arrays.
+*/
+a_targ_alignment  int_field_alignments[(int)ik_last];
+a_targ_alignment  float_field_alignments[(int)fk_last];
+
+
+static void init_field_alignment_tables(void)
+/*
+Set up tables containing he field alignments for the various integer and
+floating point types.
+*/
+{
+#if CHECKING
+  int k;
+#endif /* CHECKING */
+
+  int_field_alignments[(int)ik_char] = 1;
+  int_field_alignments[(int)ik_signed_char] = 1;
+  int_field_alignments[(int)ik_unsigned_char] = 1;
+  int_field_alignments[(int)ik_short] = targ_short_field_alignment;
+  int_field_alignments[(int)ik_unsigned_short] = targ_short_field_alignment;
+  int_field_alignments[(int)ik_int] = targ_int_field_alignment;
+  int_field_alignments[(int)ik_unsigned_int] = targ_int_field_alignment;
+  int_field_alignments[(int)ik_long] = targ_long_field_alignment;
+  int_field_alignments[(int)ik_unsigned_long] = targ_long_field_alignment;
+#if LONG_LONG_ALLOWED
+  int_field_alignments[(int)ik_long_long] = targ_long_long_field_alignment;
+  int_field_alignments[(int)ik_unsigned_long_long] =
+                                               targ_long_long_field_alignment;
+#endif /* LONG_LONG_ALLOWED */
+#if CHECKING
+  for (k = 0; k<(int)ik_last; ++k) {
+    if (int_field_alignments[k] == 0) {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+#endif /* CHECKING */
+  float_field_alignments[(int)fk_float] = targ_float_field_alignment;
+  float_field_alignments[(int)fk_double] = targ_double_field_alignment;
+  float_field_alignments[(int)fk_long_double] =
+                                             targ_long_double_field_alignment;
+#if CHECKING
+  for (k = 0; k<(int)fk_last; ++k) {
+    if (float_field_alignments[k] == 0) {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+#endif /* CHECKING */
+}  /* init_field_alignment_tables */
+
+
+static a_targ_alignment field_alignment_for(a_type_ptr  type)
+/*
+Return the field alignment for the given type.
+*/
+{
+  a_targ_alignment  result;
+
+  switch (type->kind) {
+    case tk_integer:
+      result = int_field_alignments[type->variant.integer.int_kind];
+      break;
+    case tk_float:
+      result = float_field_alignments[type->variant.float_kind];
+      break;
+    case tk_typeref:
+      result = field_alignment_for(skip_typerefs(type));
+      break;
+    default:
+      result = type->alignment;
+  }  /* switch */
+  return result;
+}  /* field_alignment_for */
+
+#else /* !TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+/*
+The field alignment is therefore equal to the intrinsic alignment of the type.
+*/
+#define field_alignment_for(tp) ((tp)->alignment)
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+
+
 /* Data structure to track some information about the layout of a class
    as it is being constructed. */
 typedef struct a_layout_block *a_layout_block_ptr;
@@ -816,7 +906,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
     } else {
       /* targ_zero_width_bit_field_alignment < 0 */
       /* Use the base type alignment. */
-      container_alignment = base_type->alignment;
+      container_alignment = field_alignment_for(base_type);
     }  /* if */
     if (targ_microsoft_bit_field_allocation) {
       /* Special handling of zero-width bit fields in Microsoft mode,
@@ -869,7 +959,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
 #endif /* LONG_LONG_ALLOWED */
       int_type = integer_type(int_kind);
       container_size = int_type->size;
-      container_alignment = int_type->alignment;
+      container_alignment = field_alignment_for(int_type);
 #if BACK_END_IS_C_GEN_BE
       field->bit_field_alignment_type = int_type;
 #endif /* BACK_END_IS_C_GEN_BE */
@@ -965,9 +1055,9 @@ targ_microsoft_bit_field_allocation is FALSE.)
       /* targ_bit_field_container_size < 0 */
       /* Always use the base type size and alignment. */
       container_size      = base_type->size;
-      container_alignment = base_type->alignment;
+      container_alignment = field_alignment_for(base_type);
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
-      if (field->alignment) {
+      if (field->alignment != 0) {
         /* Honor the "packed" or "alignment" attribute, even on bit
            fields. */
         container_alignment = field->alignment;
@@ -1449,7 +1539,7 @@ there's no overflow TRUE is returned.
            proceeding. */
         pad_ms_bit_field_container(lob);
       }  /* if */
-      field_alignment = field_type->alignment;
+      field_alignment = field_alignment_for(field_type);
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED
       /* If the alignment of this field was explicitly specified,
@@ -3654,6 +3744,9 @@ that need to be reinitialized with each new translation unit are handled in
 layout_init.)
 */
 {
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+  init_field_alignment_tables();
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Save variable needed for precompiled headers */
   if (precompiled_header_processing_required) {

@@ -2204,6 +2204,58 @@ the initial value of old_specializations_for_generated_instances.
 #endif /* DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES */
 
 /*
+Flag that is TRUE if a field of some built-in type requires a different
+alignment than a variable of that same type.  Some GNU compilers exhibit
+this behavior on Intel x86-based platforms.
+*/
+#ifndef TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+#if GCC_IS_GENERATED_CODE_TARGET
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES TRUE
+#else /* !GCC_IS_GENERATED_CODE_TARGET */
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES FALSE
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+#endif /* ifndef TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+/*
+The default field alignments for built-in types.  For some GNU compilers
+compilers, this is different from the intrinsic alignment of the type.
+By default however, we define these equal to the corresponding intrinsic
+alignments.
+*/
+#ifndef TARG_SHORT_FIELD_ALIGNMENT
+#define TARG_SHORT_FIELD_ALIGNMENT TARG_ALIGNOF_SHORT
+#endif /* TARG_SHORT_FIELD_ALIGNMENT */
+
+#ifndef TARG_INT_FIELD_ALIGNMENT
+#define TARG_INT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
+#endif /* TARG_INT_FIELD_ALIGNMENT */
+
+#ifndef TARG_LONG_FIELD_ALIGNMENT
+#define TARG_LONG_FIELD_ALIGNMENT TARG_ALIGNOF_LONG
+#endif /* TARG_LONG_FIELD_ALIGNMENT */
+
+#if LONG_LONG_ALLOWED
+#ifndef TARG_LONG_LONG_FIELD_ALIGNMENT
+#define TARG_LONG_LONG_FIELD_ALIGNMENT TARG_ALIGNOF_LONG_LONG
+#endif /* TARG_SHORT_FIELD_ALIGNMENT */
+#endif /* LONG_LONG_ALLOWED */
+
+#ifndef TARG_FLOAT_FIELD_ALIGNMENT
+#define TARG_FLOAT_FIELD_ALIGNMENT TARG_ALIGNOF_FLOAT
+#endif /* TARG_FLOAT_FIELD_ALIGNMENT */
+
+#ifndef TARG_DOUBLE_FIELD_ALIGNMENT
+#define TARG_DOUBLE_FIELD_ALIGNMENT TARG_ALIGNOF_DOUBLE
+#endif /* TARG_DOUBLE_FIELD_ALIGNMENT */
+
+#ifndef TARG_LONG_DOUBLE_FIELD_ALIGNMENT
+#define TARG_LONG_DOUBLE_FIELD_ALIGNMENT TARG_ALIGNOF_LONG_DOUBLE
+#endif /* TARG_LONG_DOUBLE_FIELD_ALIGNMENT */
+
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+
+/*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
 C++/C-generating back end (cp_gen_be) is run, references to the
 <stdarg.h> macros should be scanned specially and output in the

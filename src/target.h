@@ -622,6 +622,68 @@ EXTERN a_type_mode_kind
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+
+EXTERN a_targ_alignment
+		targ_short_field_alignment
+#if VAR_INITIALIZERS
+			= TARG_SHORT_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+			                            ;
+			/* Default alignment for fields of type short. */
+
+EXTERN a_targ_alignment
+		targ_int_field_alignment
+#if VAR_INITIALIZERS
+			= TARG_INT_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+			                          ;
+			/* Default alignment for fields of type int. */
+
+EXTERN a_targ_alignment
+		targ_long_field_alignment
+#if VAR_INITIALIZERS
+			= TARG_LONG_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+			                           ;
+			/* Default alignment for fields of type long. */
+
+#if LONG_LONG_ALLOWED
+EXTERN a_targ_alignment
+		targ_long_long_field_alignment
+#if VAR_INITIALIZERS
+			= TARG_LONG_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+			                           ;
+			/* Default alignment for fields of type long_long. */
+#endif /* LONG_LONG_ALLOWED */
+
+EXTERN a_targ_alignment
+		targ_float_field_alignment
+#if VAR_INITIALIZERS
+			= TARG_FLOAT_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+			                            ;
+			/* Default alignment for fields of type float. */
+
+EXTERN a_targ_alignment
+		targ_double_field_alignment
+#if VAR_INITIALIZERS
+			= TARG_DOUBLE_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+			                             ;
+			/* Default alignment for fields of type double. */
+
+EXTERN a_targ_alignment
+		targ_long_double_field_alignment
+#if VAR_INITIALIZERS
+			= TARG_LONG_DOUBLE_FIELD_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+			                                  ;
+			/* Default alignment for fields of type long double. */
+
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+
 /*
 C++ pointer-to-member type.
 */
