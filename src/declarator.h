@@ -23,13 +23,38 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 #endif /* ifndef DECLS_H */
 
 /*
+Macro that is TRUE if the current token is the start of a Microsoft
+calling convention.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_microsoft_calling_convention()                             \
+  (microsoft_mode &&                                                  \
+   (curr_token == tok_cdecl ||                                        \
+    curr_token == tok_fastcall ||                                     \
+    curr_token == tok_stdcall))
+#else /* MICROSOFT_EXTENSIONS_ALLOWED */
+/* When Microsoft keywords are not allowed simply return FALSE. */
+#define is_microsoft_calling_convention() FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Macro that is TRUE if the current token is one of the extension type
+qualifiers that can appear in a declarator in Microsoft mode.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_microsoft_declarator_qualifier()                           \
+  (curr_token == tok_near || curr_token == tok_far)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_microsoft_declarator_qualifier() FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Macro that is TRUE if the current token is one of the extension keywords
 that can appear in a declarator in Microsoft mode.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_declarator_keyword()                             \
-  (is_microsoft_calling_convention() ||                               \
-   curr_token == tok_near || curr_token == tok_far)
+  (is_microsoft_calling_convention() || is_microsoft_declarator_qualifier())
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_microsoft_declarator_keyword() FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -175,6 +200,13 @@ typedef struct a_call_conv_descr {
 			   specifier. */
 } a_call_conv_descr;
 
+/*
+Clear a calling convention description.
+*/
+#define clear_call_conv_descr(call_conv_descr)                        \
+  ((call_conv_descr)->call_conv = (a_calling_convention)cc_default)
+
+
 extern
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_flag_set             *output_flags,
@@ -189,8 +221,9 @@ extern
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
                       a_boolean   	    reference_allowed,
-                      a_call_conv_descr_ptr p_calling_convention,
-                      a_call_conv_descr_ptr p_unbound_calling_convention,
+                      a_call_conv_descr_ptr left_calling_convention,
+                      a_call_conv_descr_ptr unbound_calling_convention,
+                      a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers);
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
