@@ -4221,6 +4221,22 @@ template.
       }  /* if */
     }  /* if */
     goto done;
+  } else if (is_tag_symbol(inst) && inst->is_class_member) {
+    a_type_ptr  class_type = type_symbol_type(inst);
+    a_type_ptr  parent_type = inst->parent.class_type;
+    if (class_type->variant.class_struct_union.is_prototype_instantiation &&
+        parent_type->variant.class_struct_union.is_template_class &&
+        !parent_type->variant.class_struct_union.is_nonreal_class) {
+      /* inst represents a prototype instantiation of a member template of
+         a real instantiation.  The a_template entry for such member templates
+         does not have a parent class pointer in some configurations, which
+         makes determining the correspondence difficult at this point.
+         Instead, we record the instantiation for processing later on (when
+         we are sure that the correspondences of all parent classes have been
+         determined). */
+      add_pending_instantiation(inst);
+      goto done;
+    }  /* if */
   }  /* if */
   if (is_primary_translation_unit) {
     a_template_ptr  templ;
