@@ -3751,7 +3751,7 @@ the same access, the function returns FALSE.
 }  /* max_access_of_overloaded_function */
 
 
-void f_check_protected_member_access(a_symbol_ptr      sym,
+void f_check_protected_member_access(a_symbol_ptr      sym_param,
 				     a_source_position *err_pos,
                                      a_type_ptr        access_class)
 /*
@@ -3768,6 +3768,7 @@ function.
 */
 {
   a_boolean             have_access;
+  a_symbol_ptr		sym = fundamental_symbol_of(sym_param);
   a_type_ptr            base_class, class_type;
   a_base_class_ptr      bcp;
   a_derivation_step_ptr dsp;
@@ -3780,7 +3781,7 @@ function.
     have_access = TRUE;
   } else {
     /* Get the class of the symbol being referenced. */
-    base_class = fundamental_symbol_of(sym)->class_of_which_a_member;
+    base_class = sym->class_of_which_a_member;
     /* Try to find a class class_type such that
          (1)  class_type is on the derivation list between base_class
               and access_class.  That is,
