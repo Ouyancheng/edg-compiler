@@ -475,11 +475,13 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         f_get_token_and_coalesce_if_identifier(
                        flags, curr_token == tok_typename ? GID_IS_TYPENAME
                                                          : GID_NO_OPTIONS);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           /* Check for a Microsoft decl modifier, such as
              __single_inheritence. */
           prescan_microsoft_extended_decl_modifiers(state, flags);
         }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (type_specifier_seen) {
           /* We've already seen a type specifier, this is probably an
              error. */
