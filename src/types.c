@@ -74,7 +74,9 @@ predicates.
   (is_integral(tp) && \
    ((tp)->variant.integer.int_kind == (an_integer_kind)ik_char || \
     (tp)->variant.integer.int_kind == (an_integer_kind)ik_unsigned_char || \
-    (tp)->variant.integer.int_kind == (an_integer_kind)ik_signed_char))
+    (tp)->variant.integer.int_kind == (an_integer_kind)ik_signed_char) && \
+   !(tp)->variant.integer.wchar_t_type && \
+   !(tp)->variant.integer.bool_type)
 
 /* The floating types comprise all sizes of float. */
 #define is_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
