@@ -395,6 +395,35 @@ is TRUE.
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 /*
+Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
+language to C intermediate language, allowing the C++ front end to be used
+with a C back end.
+*/
+#ifndef DO_IL_LOWERING
+#if BACK_END_IS_CP_GEN_BE
+#define DO_IL_LOWERING FALSE /* Do not change this. */
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define DO_IL_LOWERING TRUE /* You can change this. */
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef DO_IL_LOWERING */
+#if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
+ #error -- IL lowering must be done for the C-generating back end.
+#endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
+
+/*
+If DO_IL_LOWERING is TRUE, this gives the routine name used for the
+C++ file-scope initialization routine.  The name is not really
+significant (except as a cfront compatibility issue), but the C-generating
+back end needs to know what it is in order to recognize it for special
+handling.
+*/
+#if DO_IL_LOWERING
+#ifndef IL_LOWERING_INIT_ROUTINE_PREFIX
+#define IL_LOWERING_INIT_ROUTINE_PREFIX "__sti__"
+#endif /* ifndef IL_LOWERING_INIT_ROUTINE_PREFIX */
+#endif /* DO_IL_LOWERING */
+
+/*
 Flag that is TRUE to cause source-sequence lists to be generated.  These
 lists are attached to scope entries and represent the sequence in which
 declarations, statements, comments, macros, and pragmas appear in the
@@ -410,6 +439,16 @@ back end is being used.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef GENERATE_SOURCE_SEQUENCE_LISTS */
 /* The C++/C-generating back end requires this feature. */
+#if DO_IL_LOWERING && GENERATE_SOURCE_SEQUENCE_LISTS
+/* This combination is supported, but is generally useless, since IL
+   lowering does not update the source sequence information.  In fact,
+   if IL lowering is run, generation of source sequence entries is
+   suppressed. */
+/* Special switch that says "trust me, I really want this". */
+#ifndef ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+ #error -- Source sequence lists are useless when doing IL lowering 
+#endif /* ifndef ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+#endif /* DO_IL_LOWERING && GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
@@ -451,35 +490,6 @@ should include class template instantiations.
 /* Do not change this: */
 #define CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
-/*
-Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
-language to C intermediate language, allowing the C++ front end to be used
-with a C back end.
-*/
-#ifndef DO_IL_LOWERING
-#if BACK_END_IS_CP_GEN_BE
-#define DO_IL_LOWERING FALSE /* Do not change this. */
-#else /* !BACK_END_IS_CP_GEN_BE */
-#define DO_IL_LOWERING TRUE /* You can change this. */
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* ifndef DO_IL_LOWERING */
-#if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
- #error -- IL lowering must be done for the C-generating back end.
-#endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
-
-/*
-If DO_IL_LOWERING is TRUE, this gives the routine name used for the
-C++ file-scope initialization routine.  The name is not really
-significant (except as a cfront compatibility issue), but the C-generating
-back end needs to know what it is in order to recognize it for special
-handling.
-*/
-#if DO_IL_LOWERING
-#ifndef IL_LOWERING_INIT_ROUTINE_PREFIX
-#define IL_LOWERING_INIT_ROUTINE_PREFIX "__sti__"
-#endif /* ifndef IL_LOWERING_INIT_ROUTINE_PREFIX */
-#endif /* DO_IL_LOWERING */
 
 /*
 Flag that is TRUE to enable support for processing of orphaned file scope
