@@ -40,6 +40,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "il.h"
 #include "il_walk.h"
 #include "float_pt.h"
+#include "const_ints.h"
 #include "lang_feat.h"
 
 #if STANDALONE_UTILITY_PROGRAM
@@ -471,26 +472,6 @@ Print a short version of the type at *tp.
 }  /* summarize_type */
 
 
-static a_boolean is_signed_int_kind(an_integer_kind kind)
-/*
-Return TRUE if the given integer kind is signed.
-*/
-/*
-This is a copy of the routine int_kind_is_signed in types.c of the C front end.
-*/
-{
-  return (
-#ifdef CFE
-         (kind == (an_integer_kind)ik_char &&
-                                           il_header.plain_chars_are_signed) ||
-#endif /* ifdef CFE */
-         kind == (an_integer_kind)ik_signed_char ||
-         kind == (an_integer_kind)ik_short       ||
-         kind == (an_integer_kind)ik_int         ||
-         kind == (an_integer_kind)ik_long);
-}  /* is_signed_int_kind */
-
-
 static void summarize_constant(a_constant *cp)
 /*
 Print a short version of the constant at *cp.
@@ -532,7 +513,7 @@ Print a short version of the constant at *cp.
     case ck_integer:
       /* Print unsigned types as unsigned, signed as signed. */
       if (con_type->kind == (a_type_kind)tk_integer &&
-          is_signed_int_kind(con_type->variant.integer.int_kind)) {
+          int_kind_is_signed(con_type->variant.integer.int_kind)) {
         (void)printf("%ld", cp->variant.integer_value);
       } else {
         (void)printf("%lu", cp->variant.integer_value);
@@ -937,7 +918,7 @@ Display the indicated constant entry.
       (void)printf("ck_integer\n");
       /* Print unsigned types as unsigned, signed as signed. */
       if (ptr->type->kind == (a_type_kind)tk_integer &&
-          is_signed_int_kind(ptr->type->variant.integer.int_kind)) {
+          int_kind_is_signed(ptr->type->variant.integer.int_kind)) {
         disp_long("integer_value", (long)ptr->variant.integer_value);
       } else {
         disp_unsigned_long("integer_value",
