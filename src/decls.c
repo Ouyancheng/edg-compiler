@@ -10648,11 +10648,13 @@ continue_with_declaration:
               }  /* if */
             }  /* if */
           }  /* if */
-        } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+        } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable ||
+                   symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
           /* No default initialization, so do some additional checking. */
           check_for_missing_initializer(symbol_ptr, local_type_ptr);
-          if (!var_ptr->source_corresp.is_local_to_function ||
-              var_ptr->storage_class == (a_storage_class)sc_static) {
+          if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+              (!var_ptr->source_corresp.is_local_to_function ||
+               var_ptr->storage_class == (a_storage_class)sc_static)) {
             mark_variable_value_set(symbol_ptr);
           }  /* if */
         }  /* if */

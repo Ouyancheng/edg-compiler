@@ -1,5 +1,19 @@
 Version 2.46
 
+3/1/01   Missing initializer for static data member definitions
+
+The front end used to not diagnose missing initializers on definitions of
+const static data members.
+
+  struct S {
+    static bool const Yes = true;
+    static bool const No;
+  };
+  bool const S::Yes;  // OK: initializer already seen
+  bool const S::No;   // Used to be OK, now an error: missing initializer
+
+This is now fixed.
+
 3/1/01   C++-generating back end: suppressing implicit related-class
          conversions
 

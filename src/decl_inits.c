@@ -4869,7 +4869,6 @@ are created by a new expression (in which case sym is NULL).  In both cases
 */
 {
   a_variable_ptr       vp;
-  a_name_linkage_kind  name_linkage;
   a_boolean            init_required;
   a_base_class_ptr     bcp;
   a_boolean            is_empty_POD_class = FALSE;
@@ -4878,9 +4877,11 @@ are created by a new expression (in which case sym is NULL).  In both cases
 
   db_enter(4, "check_for_missing_initializer");
   if (sym != NULL) {
-    /* This must be a variable declaration. */
-    check_assertion(sym->kind == (a_symbol_kind)sk_variable);
-    vp = sym->variant.variable.ptr;
+    /* This must be a variable or static data member declaration. */
+    check_assertion(sym->kind == (a_symbol_kind)sk_variable ||
+                    sym->kind == (a_symbol_kind)sk_static_data_member);
+    vp = (sym->kind == (a_symbol_kind)sk_variable) ? 
+          sym->variant.variable.ptr : sym->variant.static_data_member.variable;
   } else {
     /* This must be a "new" expression. */
     vp = NULL;
@@ -4912,14 +4913,18 @@ are created by a new expression (in which case sym is NULL).  In both cases
     }  /* if */
     if (vp != NULL) {
       /* Uninitialized const variable.  In C++ this is permitted only for
-         externally linked variables.  In ordinary C we issue a warning for
-         local variables (both static and automatic) here, but the warning
-         for static file scope variables is given later. */
-      name_linkage = (a_name_linkage_kind)vp->source_corresp.name_linkage;
+         externally linked variables (without an initializer, they are not
+         definitions), but not for static data member definitions.
+         In ordinary C we issue a warning for local variables (both static
+         and automatic) here, but the warning for static file scope variables
+         is given later. */
+      a_name_linkage_kind  name_linkage =
+                         (a_name_linkage_kind)vp->source_corresp.name_linkage;
       if (C_dialect == C_dialect_cplusplus) {
         if (name_linkage == (a_name_linkage_kind)nlk_none ||
             (name_linkage == (a_name_linkage_kind)nlk_internal &&
-             decl_scope_level <= depth_innermost_namespace_scope)) {
+             decl_scope_level <= depth_innermost_namespace_scope) ||
+            sym->kind == (a_symbol_kind)sk_static_data_member) {
           /* In C++ const qualified variables that are internally linked
              must be initialized (ARM 7.1.6). */
           if (is_empty_POD_class && !strict_ansi_mode &&
