@@ -4422,7 +4422,7 @@ the error is issued immediately.
     } else {
       an_access_error_descr_ptr	aedp;
       aedp = alloc_access_error_descr();
-      aedp->sym = fundamental_symbol_of(sym);
+      aedp->sym = sym;
       aedp->position = locator->source_position;
       if (ssep->deferred_access_checks == NULL) {
         ssep->deferred_access_checks = aedp;
