@@ -5979,6 +5979,7 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     result->is_simple_string_literal = FALSE;
     result->is_cfront_null_pointer_constant = FALSE;
     if (is_constant_operand(result)) {
+      break_source_corresp(&result->variant.constant.source_corresp);
       if ((other_operand != NULL &&
            (!is_constant_operand(other_operand) ||
             other_operand->
