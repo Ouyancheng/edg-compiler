@@ -147,6 +147,58 @@ extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 /* Initialize memory management. */
 extern void mem_manage_init(void);
 
+
+/*
+Structure used to record the memory allocations that have been done.
+This is used in PCH processing so that the process that reads in
+a PCH file can duplicate the sequence of memory allocations done by
+the creator of the PCH.
+*/
+typedef struct a_mem_alloc_history *a_mem_alloc_history_ptr;
+typedef struct a_mem_alloc_history {
+  a_void_ptr	addr;
+			/* Address at which the memory was allocated. */
+  sizeof_t	size;
+			/* Number of bytes allocated. */
+} a_mem_alloc_history;
+
+
+EXTERN a_mem_alloc_history_ptr
+		mem_alloc_history /* = NULL*/;
+			/* Pointer to an array of memory allocation history
+			   entries. */
+
+typedef long	a_mem_alloc_history_number;
+
+EXTERN a_mem_alloc_history_number
+		num_of_mem_alloc_history_entries /* = 0*/;
+			/* Number of elements used in the memory allocation
+			   history array. */
+
+EXTERN a_mem_alloc_history_number
+		size_of_mem_alloc_history /* = 0 */;
+			/* Number of array elements in the memory allocation
+			   history array. */
+
+EXTERN a_boolean
+		may_be_building_new_pch;
+			/* TRUE if a new PCH may be created containing the
+			   information currently being constructed by the
+			   compilation.  This has an effect on how memory
+			   management is done.  The memory for regions that
+			   may need to be written out as part of the PCH
+			   cannot be freed until after the PCH is written. */
+
+#if DEBUG
+EXTERN unsigned long
+		*allocated_in_region /* = NULL */;
+			/* Parallel array to mem_region_table.  Keeps track
+			   of the allocation in each region. */
+EXTERN a_memory_region_number
+		size_of_allocated_in_region /* = 0 */;
+			/* Size of allocated_in_region (in entries, not 
+			   bytes). */
+#endif /* DEBUG */
 #endif /* ifndef MEM_MANAGE_H */
 
 /******************************************************************************

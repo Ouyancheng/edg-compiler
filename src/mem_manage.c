@@ -41,6 +41,10 @@ extern char *realloc(char *ptr, unsigned size);
 #include "il_walk.h"
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
+#if !STANDALONE_UTILITY_PROGRAM
+#include "pch.h"
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 #ifdef USING_PURIFY
 #include "purify.h"
 
@@ -58,6 +62,27 @@ static a_mem_block_header_ptr
 			/* List of memory blocks freed and available for
 			   reuse.  These are only partial blocks; full blocks
 			   are actually freed with free. */
+
+static a_boolean
+		okay_to_free_mem_blocks = TRUE;
+			/* TRUE if it is okay to free (using free())
+			   memory region blocks that are no longer needed.
+			   This is set FALSE if other memory (for example,
+			   mmap memory) is being used for memory region
+			   blocks. */
+
+static a_boolean
+		use_initialization_memory = TRUE;
+			/* TRUE if we are currently executing initialization
+			   code.  Specifically, this is code that is executed
+			   prior to determining whether to reload the
+			   compiler state from a precompiled header file. */
+
+static a_boolean
+		record_malloc_history;
+			/* TRUE if we need to record a list of malloc
+			   calls that are made for PCH processing. */
+
 
 /*
 Size of a_mem_block_header after adjustment so that the storage following
@@ -93,17 +118,7 @@ static unsigned long
 		num_alignment_bytes_allocated;
 			/* Number of bytes wasted in alignment cracks.
 			   Reset for each input file. */
-static unsigned long
-		*allocated_in_region = NULL;
-			/* Parallel array to mem_region_table.  Keeps track
-			   of the allocation in each region. */
-static a_memory_region_number
-		size_of_allocated_in_region = 0;
-			/* Size of allocated_in_region (in entries, not 
-			   bytes). */
 #endif /* DEBUG */
-
-
 
 
 #if DEBUG
@@ -123,6 +138,48 @@ and "freed" here mean via malloc/free, not by some mechanism on top of that.
   }  /* if */
 }  /* adjust_record_of_total_allocation */
 #endif /* DEBUG */
+
+#define MEM_ALLOC_HISTORY_INCREMENTAL_ALLOCATION 500
+			/* Initial and incremental allocation sizes for
+			   mem_alloc_history.  */
+
+
+/* Forward declaration. */
+static char *realloc_with_check(char     *old_ptr,
+                                sizeof_t old_size,
+                                sizeof_t new_size);
+
+static void add_mem_alloc_history_entry(a_void_ptr	addr,
+		                        sizeof_t	size)
+/*
+Add an entry to the memory allocation history array.
+*/
+{
+  a_mem_alloc_history_ptr	mahp;
+  db_enter(5, "add_mem_alloc_history_entry");
+  if (num_of_mem_alloc_history_entries == size_of_mem_alloc_history) {
+    /* There is no more space in the array, allocate a larger array. */
+    a_mem_alloc_history_number	old_size;
+    a_mem_alloc_history_number	new_size;
+    old_size = size_of_mem_alloc_history;
+    new_size = old_size + MEM_ALLOC_HISTORY_INCREMENTAL_ALLOCATION;
+    size_of_mem_alloc_history = new_size;
+    mem_alloc_history = (a_mem_alloc_history_ptr)realloc_with_check
+                          ((char *)mem_alloc_history,
+	                   (sizeof_t)(old_size * sizeof(a_mem_alloc_history)),
+		           (sizeof_t)(new_size * sizeof(a_mem_alloc_history)));
+  }  /* if */
+  mahp = &mem_alloc_history[num_of_mem_alloc_history_entries++];
+  mahp->addr = addr;
+  mahp->size = size;
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Added mem_alloc_history, addr: %p, size: %lu\n",
+            addr, size);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* add_mem_alloc_history_entry */
 
 
 static char *malloc_with_check(sizeof_t size)
@@ -148,6 +205,9 @@ allocation and generates a catastrophic error.
                      (unsigned long)total_mem_allocated);
   }  /* if */
 #endif /* DEBUG */
+  if (record_malloc_history) {
+    add_mem_alloc_history_entry((a_void_ptr)ptr, size);
+  }  /* if */
   db_exit();
   return (ptr);
 }  /* malloc_with_check */
@@ -167,6 +227,12 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
 {
   char *ptr;
 
+#if 0
+#else /* !0 */
+  /* History tracking of reallocated blocks is not yet implemented. */
+  check_assertion_str(!record_malloc_history,
+                      "realloc history not implemented");
+#endif /* 0 */
   /* Don't count on realloc allowing a first parameter of NULL to imply
      malloc-like behavior.  The SVID doesn't define realloc that way. */
   if (old_ptr == NULL) {
@@ -192,6 +258,74 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
   }  /* if */
   return (ptr);
 }  /* realloc_with_check */
+
+
+#if USE_MMAP_FOR_MEMORY_REGIONS
+static a_boolean
+		mmap_initialized;
+			/* TRUE when the file used for mmap has been
+			   opened. */
+
+static sizeof_t	mmap_size_allocated;
+			/* The number of bytes allocated to the mmap file. */
+
+static FILE*	f_mmap_file;
+			/* The file descriptor for the mmap file. */
+
+static int	page_size;
+			/* The size of a host page.  Memory mapped blocks must
+			   be requested in increments of this size. */
+
+
+static a_void_ptr alloc_new_mem_block(sizeof_t size)
+/*
+Allocate a block of memory to be used for memory region storage.  This
+version uses a memory mapped file to obtain the storage.  This is done
+so that the memory region storage may be obtained in a separate
+range of addresses.  This, in turn, simplifies the processing needed
+to ensure that the precompiled header processing routines can read
+the memory regions into the same addresses that were used when the
+PCH was created.
+*/
+{
+  a_void_ptr	addr;
+
+  if (!mmap_initialized) {
+    /* On the first call, open the file that will be mapped. */
+    f_mmap_file = open_temp_file(/*binary_file=*/TRUE);
+    check_assertion(f_mmap_file != NULL);
+    mmap_size_allocated = 0;
+    mmap_initialized = TRUE;
+  }  /* if */
+  addr = map_file_region(f_mmap_file, mmap_size_allocated, size);
+  if (addr == NULL) {
+    catastrophe(ec_unable_to_get_mapped_memory);
+  }  /* if */
+  mmap_size_allocated += size;
+  /* Record this allocation in the memory allocation history array. */
+  add_mem_alloc_history_entry(addr, size);
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Allocated %lu bytes of mapped memory at %p\n",
+            size, addr);
+  }  /* if */
+#endif /* DEBUG */
+  return addr;
+}  /* alloc_new_mem_block */
+
+
+static sizeof_t do_page_alignment(sizeof_t size)
+/*
+Return "size" adjusted as needed to be a multiple of the system page size.
+*/
+{
+  sizeof_t	size2;
+
+  size2 = (size / page_size) * page_size;
+  if (size2 < size) size2 += page_size;
+  return size2;
+}  /* do_page_alignment */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
  
 
 static a_mem_block_header_ptr alloc_mem_block(
@@ -255,7 +389,12 @@ Return a pointer to the block header.
      just so that we're not allocating space at the end that can hardly 
      ever be used). */
   do_host_alignment(alloc_size);
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  alloc_size = do_page_alignment(alloc_size);
+  alloc_addr = alloc_new_mem_block(alloc_size);
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   alloc_addr = malloc_with_check(alloc_size);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   /* Fill in the block header. */
   hdr = (a_mem_block_header_ptr)alloc_addr;
   /* malloc_size non-zero indicates that this block came directly from
@@ -300,7 +439,7 @@ Free the storage associated with the indicated memory block.
   a_mem_block_header_ptr test_hdr, prev_hdr;
 
   db_enter(5, "free_mem_block");
-  if (hdr->malloc_size > 0 &&
+  if (okay_to_free_mem_blocks && hdr->malloc_size > 0 &&
       hdr->malloc_size == (sizeof_t)(hdr->after_end_of_block - (char *)hdr)) {
     /* Blocks that are complete blocks as originally allocated by malloc
        can be freed by calling free. */
@@ -335,7 +474,7 @@ Free the storage associated with the indicated memory block.
         }  /* if */
         /* Is the aggregate block now a complete block?  If so, free it and
            leave the loop. */
-        if (hdr->malloc_size > 0 &&
+        if (okay_to_free_mem_blocks && hdr->malloc_size > 0 &&
             hdr->malloc_size ==
               (sizeof_t)(hdr->after_end_of_block - hdr->start_of_block)) {
           free_complete_block(hdr);
@@ -622,7 +761,6 @@ needed (e.g., it has been written out to the IL file).
   db_exit();
 }  /* free_memory_region */
 
-#if !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT
 
 void trim_memory_region(a_memory_region_number region_number)
 /*
@@ -633,7 +771,6 @@ any unused space.
   trim_mem_block(mem_region_table[region_number]);
 }  /* trim_memory_region */
 
-#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT */
 
 void done_with_memory_region(a_memory_region_number region_number)
 /*
@@ -656,7 +793,15 @@ done creating it.)  Save it if necessary, free the space if possible.
      then free its storage. */
   write_memory_region(region_number);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  free_memory_region(region_number);
+  if (!may_be_building_new_pch) {
+    /* Only free the memory region if we know that we won't need to save
+       it in a PCH file. */
+    free_memory_region(region_number);
+  } else {
+    /* We are saving the memory for use in creating the PCH.  We can still
+       trim the unused portion of the memory block though. */
+    trim_memory_region(region_number);
+  }  /* if */
 #else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Communication with the back end is via memory.  Trim the region to
      reclaim unused storage at the end of the last block.  Unused storage
@@ -729,7 +874,17 @@ of the front end.
   total_mem_used = 0;
   num_alignment_bytes_allocated = 0;
 #endif /* DEBUG */
-
+  /* If we are not allocating the memory regions in special memory
+     mapped area, then we need to record all malloc calls. */
+  record_malloc_history = !USE_MMAP_FOR_MEMORY_REGIONS;
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  mmap_initialized = FALSE;
+  mmap_size_allocated = 0;
+  f_mmap_file = NULL;
+  okay_to_free_mem_blocks = FALSE;
+  page_size = get_page_size();
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  may_be_building_new_pch = FALSE;
   /* Initialize the memory region for general front end storage. */
   init_memory_region(NULL_region_number, (sizeof_t)0);
   /* Initialize the memory region for file scope IL information. */

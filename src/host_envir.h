@@ -1046,6 +1046,28 @@ extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 /* Get the next file name from the current directory. */
 extern char *get_file_name_from_curr_dir(a_boolean first);
 
+/*
+USE_MMAP_FOR_MEMORY_REGIONS is TRUE if memory mapping available for use
+in allocating memory regions.  By default, it is assumed to be available
+on systems other than MS-DOS.
+*/
+#ifndef USE_MMAP_FOR_MEMORY_REGIONS
+#if __MSDOS__
+#define USE_MMAP_FOR_MEMORY_REGIONS FALSE
+#else /* !__MSDOS__ */
+#define USE_MMAP_FOR_MEMORY_REGIONS TRUE
+#endif /* __MSDOS__ */
+#endif /* ifndef USE_MMAP_FOR_MEMORY_REGIONS */
+
+#if USE_MMAP_FOR_MEMORY_REGIONS
+extern int get_page_size(void);
+
+extern
+a_void_ptr map_file_region(FILE		*file,
+                           sizeof_t	curr_size,
+		           sizeof_t	incremental_size);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+
 /* Set up signal handlers. */
 extern void set_signal_handlers(void);
 /* Custom version of memcmp. */

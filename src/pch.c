@@ -759,6 +759,84 @@ variable lists.
 }  /* read_saved_variables */
 
 
+static void write_mem_alloc_history(void)
+/*
+Write the memory allocation history information to the PCH output
+file.
+*/
+{
+  db_enter(4, "write_mem_alloc_history");
+  pch_write_value(size_of_mem_alloc_history);
+  pch_write_value(num_of_mem_alloc_history_entries);
+  fwrite(mem_alloc_history,
+         sizeof(a_mem_alloc_history) * num_of_mem_alloc_history_entries, 1,
+         f_pch_output);
+  db_exit();
+}  /* write_mem_alloc_history */
+
+
+static void write_a_memory_region(a_memory_region_number number)
+/*
+Write the blocks comprising a single memory region to the PCH output
+file.
+*/
+{
+  a_mem_block_header_ptr	mbhp = mem_region_table[number];
+#if DEBUG
+  if (debug_level >= 0) {
+    fprintf(f_debug, "Writing memory region %0d\n", number);
+  }  /* if */
+#endif /* DEBUG */
+  while (mbhp != NULL) {
+    sizeof_t	size;
+    size = mbhp->next_avail_in_block - mbhp->start_of_block;
+    pch_write_value(size);
+    fwrite(mbhp->start_of_block, size, 1, f_pch_output);
+#if DEBUG
+    if (debug_level >= 0) {
+      fprintf(f_debug, "Writing %lu bytes from %p\n", size,
+              mbhp->start_of_block);
+    }  /* if */
+#endif /* DEBUG */
+    mbhp = mbhp->next;
+  }  /* while */
+}  /* write_a_memory_region */
+
+
+static void write_memory_regions(void)
+/*
+Write the memory region information to the PCH output file.  This includes
+header information about the memory regions such as the memory_region_table.
+*/
+{
+  a_memory_region_number	n;
+  a_memory_region_number	mem_regions_used;
+  db_enter(4, "write_memory_regions");
+  mem_regions_used = highest_used_region_number + 1;
+  /* Write the memory region table and the region_scope_entry table from
+     the IL header.  Note that index_for_il_file is not written. */
+  pch_write_value(size_of_mem_region_table);
+  pch_write_value(highest_used_region_number);
+  fwrite(mem_region_table,
+         sizeof(a_mem_block_header_ptr) * mem_regions_used, 1,
+         f_pch_output);
+  fwrite(il_header.region_scope_entry,
+         sizeof(a_mem_block_header_ptr) * mem_regions_used, 1,
+         f_pch_output);
+#if DEBUG
+  /* Write the allocated_in_region information. */
+  pch_write_value(size_of_allocated_in_region);
+  fwrite(allocated_in_region,
+         sizeof(unsigned long) * mem_regions_used, 1,
+         f_pch_output);
+#endif /* DEBUG */
+  for (n = 0; n < mem_regions_used; ++n) {
+    write_a_memory_region(n);
+  }  /* for */
+  db_exit();
+}  /* write_memory_regions */
+
+
 void write_precompiled_header_file(void)
 /*
 Create a precompiled header file for the compilation up to the
@@ -777,8 +855,12 @@ current point.
   /* Write dependency checking information. */
   /* Include file names and timestamps. */
   write_include_file_timestamps();
+  /* Write the memory allocation history information. */
+  write_mem_alloc_history();
   /* Write the compilation state to be restored. */
   write_saved_variables();
+  /* Write the memory region information. */
+  write_memory_regions();
   (void)fclose(f_pch_output);
 }  /* write_precompiled_header_file */
 
@@ -1028,17 +1110,18 @@ matching event is returned.
 }  /* pch_is_applicable */
 
 
-static void find_applicable_pch(void)
+static a_boolean find_applicable_pch(void)
 /*
 Compare the prefix information for this file with the prefix
 information for the other precompiled headers in the current
-directory.
+directory.  Return TRUE if an applicable PCH was found.
 */
 {
   a_boolean		first;
   char			*file_name;
   a_source_position	best_result_so_far = null_source_position;
   a_boolean		is_applicable;
+  a_boolean		result = FALSE;
 
 #if 0
 #else
@@ -1061,6 +1144,7 @@ directory.
     /* See if this PCH file can be used. */
     last_matching_event = pch_is_applicable();
     is_applicable = last_matching_event != NULL;
+    result = TRUE;
 #if DEBUG
     if (debug_level >= 1) {
       fprintf(f_debug, "PCH file %s, applicable: %s",
@@ -1100,6 +1184,7 @@ directory.
 #else
   debug_level=0;
 #endif
+  return result;
 }  /* find_applicable_pch */
 
 
@@ -1166,6 +1251,8 @@ file, the prefix information will be saved in the file so that it may
 be used as part of the applicability check in subsequent compilations.
 */
 {
+  a_boolean	applicable_pch_found = FALSE;
+
   db_enter(2, "precompiled_header_processing");
   /* We have not encountered a condition that would prevent us from
      using a precompiled header. */
@@ -1173,7 +1260,13 @@ be used as part of the applicability check in subsequent compilations.
   if (automatic_pch_processing) {
     find_applicable_pch();
   }  /* if */
-  restore_precompiled_header_information();
+  if (use_precompiled_header ||
+      (automatic_pch_processing && applicable_pch_found)) {
+    restore_precompiled_header_information();
+  } else {
+    /* We can't use a PCH, see if we can create one. */
+    may_be_building_new_pch = TRUE;
+  }  /* if */
   db_exit();
 }  /* precompiled_header_processing */
 

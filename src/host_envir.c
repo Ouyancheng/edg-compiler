@@ -1829,6 +1829,68 @@ buffer.
 }  /* get_curr_dir_name */
 
 
+#if USE_MMAP_FOR_MEMORY_REGIONS
+#include <sys/mman.h>
+
+int get_page_size(void)
+/*
+Return the size of a host page.  When map_file_region is called,
+incremental_size must be a multiple of the page size.
+*/
+{
+  int	page_size;
+#if __BSD__
+  extern int getpagesize(void);
+  page_size = getpagesize();
+#else /* !__BSD__ */
+  page_size = sysconf(_SC_PAGESIZE);
+#endif /* __BSD__ */
+  check_assertion_str2(page_size > 0, "get_page_size:", "invalid page size");
+  return page_size;
+}  /* get_page_size */
+
+
+a_void_ptr map_file_region(FILE		*file,
+                           sizeof_t	curr_size,
+		           sizeof_t	incremental_size)
+/*
+Expand a memory mapped file.  This routine assumes that curr_size bytes
+have already been allocated and mapped, and that incremental_size bytes
+should be added.
+*/
+{
+  int		fd = file->_file;
+  caddr_t	addr = NULL;
+  sizeof_t	size;
+
+  size = curr_size + incremental_size;
+  /* The file must be large enough to contain the mapped area. */
+  if (fseek(file, size, SEEK_SET) == 0) {
+    /* Write a character at the last allocated position. */
+    putc(0, file);
+    /* Make sure the write to the file is actually done. */
+    fflush(file);
+    /* An extra byte is added to the size to stop CodeCenter from complaining
+       about the after_end_of_block comparison in mem_manage.c. */
+    addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
+                            PROT_WRITE | PROT_READ, MAP_PRIVATE,
+                            fd, curr_size);
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+              incremental_size, addr);
+    }  /* if */
+#endif /* DEBUG */
+    /* mmap returns (caddr_t)-1 if the operation fails. */
+    if (addr == (caddr_t)-1) perror("mmap error:");
+    if (addr == (caddr_t)-1) addr = NULL;
+  }  /* if */
+  return addr;
+}  /* map_file_region */
+
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
