@@ -1,5 +1,16 @@
 Version 2.32
 
+4/16/96 bool allowed as left operand of compound assignment operator
+
+As of the Monterey X3J16/WG21 meeting, motion 2h, compound assignment
+operators like "|=" allow the left operand to have type bool (previously,
+that was explicitly disallowed).  Now supported.
+
+  bool b1;
+  int main () {
+    b1 |= false;  // Okay
+  }
+
 4/16/96 reinterpret_cast between related classes should ignore relationship
 
 A reinterpret_cast operation on pointers or pointers to members to
@@ -1338,7 +1349,7 @@ many libraries:
     operator int *();
     int operator[](unsigned);  // No problem if this is a signed type
   };
-  void main() {
+  int main() {
     A a;
     a[0];  // Ambiguous according to standard, but okay with this option
   }
@@ -2805,7 +2816,7 @@ constructor that can copy the argument.
     A(A&);   // Note: no const
   };
   template <class T> void f(T) {}
-  void main()
+  int main()
   {
     const A a;
     f(a);
@@ -5431,7 +5442,7 @@ returning references to template types, e.g.,
     Array<Array<T> > data;
     Array<T> & operator[](int) /*const*/;
   };
-  void main() {
+  int main() {
     Matrix<int> m;
     m[0][0] = 0;  // No error now on second [0]
   }
@@ -7555,7 +7566,7 @@ A bug has been fixed that could cause the compiler to abort during
 processing of an invalid vacuous destructor call in which the identifier
 following the tilde was either undefined or was not a type name.
 
-  void main() {
+  int main() {
     int *p;
     p->~xxx(); 
   }
@@ -11522,7 +11533,7 @@ the class is complete.
   {
     return x;
   }
-  void main()
+  int main()
   {
     A<int> a;
   }
@@ -11680,7 +11691,7 @@ is implicitly declared in a cast -- here's a case (legal in C mode only)
 that used to be missed:
 
   void * vp;
-  void main() {
+  int main() {
     ((struct { int i; } *)vp)->i = 0;
   }
 
@@ -12222,7 +12233,7 @@ function.  For example:
     class N { void f(); };
   };
   template <class T> void A<T>::N::f() { };
-  void main() {
+  int main() {
      A<int> x;        // Spurious error no longer issued on A<int>::N::f
   }
 
@@ -14059,7 +14070,7 @@ For example,
   template <class T> void f(T) {}
   struct {} a;
   static union {} b;
-  void main()
+  int main()
   {
     f(a);
     f(b);
@@ -14100,7 +14111,7 @@ functions that are generated from function templates.  Formerly,
 cases such as the following were incorrectly accepted:
 
   template <class T> void* operator !(T) { return 0;}
-  void main()
+  int main()
   {
     int i;
     operator !(i);  // Error - first operand must be a class type
@@ -14395,7 +14406,7 @@ accepted and case 2 was rejected.  Now case 1 is rejected and case
   template <int i> struct A {
     struct B {};
   };
-  void main()
+  int main()
   {
     int  A;
     int  j;
@@ -14788,7 +14799,7 @@ allows the recursion to be detected.
   {
     f(&x);
   }
-  void main()
+  int main()
   {
     char    c;
     f(c);
@@ -15038,7 +15049,7 @@ instance, this program is accepted:
 
   typedef void T;
   T f(T) { }        // Declares "void f()"; warning in strict ANSI mode
-  void main()
+  int main()
   {
     f();            // Error no longer issued for "too few arguments"
   }
@@ -15203,7 +15214,7 @@ may eliminate certain spurious errors) in cases like this:
     void f() { T t; t = 1; }
   };
   class A { };
-  void main()
+  int main()
   {
     S<A> s;              // No error on instantiation of S<A>
     s.f()                // Error on instantiation of S<A>::f
@@ -15549,7 +15560,7 @@ position within the containing class.
 The following is now handled correctly:
 
   template<class T> void f(const T *p) {}
-  void main()
+  int main()
   {
     const volatile int i = 0;
     volatile int j;
@@ -16723,7 +16734,7 @@ Sometimes when nested classes were used, the mangled names were wrong
 A bug in the following was fixed:
 
   struct A {A(...){}};
-  void main() {A a(1);}
+  int main() {A a(1);}
 
 Formerly, this caused an internal error.
 
@@ -17080,7 +17091,7 @@ to detect an ambiguity, e.g.:
   };
   class B : public A { };
   B a, b;
-  void main()
+  int main()
   {
     a = b;             // Error in trying to create operator=(const B&)
   }
@@ -17113,7 +17124,7 @@ Compiling the following no longer causes a loop:
   };
   void f(volatile X, char *, int);
   void f(const volatile X&, double, int);
-  void main()
+  int main()
   {
     X x(4);
     f(x, "2", 2);  // loop here

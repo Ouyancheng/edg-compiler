@@ -8206,9 +8206,6 @@ See section 3.3.16 of the standard.
         } else {
           error_in_operand(ec_enum_type_not_allowed, operand_1);
         }  /* if */
-      } else if (is_bool_type(operand_1->type)) {
-        /* The first operand cannot be bool. */
-        error_in_operand(ec_bool_type_not_allowed, operand_1);
       }  /* if */
       if (check_modifiable_lvalue_operand(operand_1)) {
         modifying_lvalue(operand_1, /*value_used=*/TRUE);
