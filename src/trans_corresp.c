@@ -617,7 +617,7 @@ has not yet been examined for a matching entry in another translation unit.
   } else {
     /* Reuse the correspondence entry. */
     check_assertion_str((*tcp)->count == 1,
-                        "set_no_trans_unit_corresp: correspondence busy");
+                        "f_set_no_trans_unit_corresp: correspondence busy");
   }  /* if */
   change_canonical_entry(*tcp, entity);
   if (!in_secondary_trans_unit(entity)) {
