@@ -6339,7 +6339,7 @@ of the front end.
      with the difficult job of setting the referenced flag in a lot of
      different places for unassociated entities. set_source_corresp resets
      the flag to FALSE for associated entities, for which the flag is then
-     set to TRUE (for an actual reference) by mark_referenced. */
+     set to TRUE (for an actual reference) by reference_to_symbol. */
   def_source_corresp.referenced = TRUE;
   def_source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   def_source_corresp.is_local_to_function = FALSE;
