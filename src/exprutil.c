@@ -2075,6 +2075,7 @@ void base_class_cast_operand(an_operand       *operand,
                              a_base_class_ptr bcp,
                              a_boolean        *is_arrow_operator,
                              a_boolean        check_cast_access,
+                             a_boolean        is_implicit_cast,
                              a_boolean        implicit_in_naming)
 /*
 Cast operand (of class or pointer-to-class type) to its base class
@@ -2083,12 +2084,12 @@ used as a pointer ("->"); otherwise, it is being used as an object (".").
 *is_arrow_operator will be set to TRUE on return to indicate that the
 operation was normalized into "->" form.  Alternatively, if the caller
 passes is_arrow_operator == NULL, the operation is assumed to be in
-pointer form.  The cast is assumed to be implicit.  Do access control
-checking on the cast if check_cast_access is TRUE.  implicit_in_naming
-is TRUE for casts that are generated implicitly in referencing a member
-of a class (roughly, in getting from the name used in the source --
-the projection symbol -- to the member actually used in the IL).
-This routine is only used in C++ mode.
+pointer form.  Do access control checking on the cast if
+check_cast_access is TRUE.  The cast is implicit if is_implicit_cast
+is TRUE.  implicit_in_naming is TRUE for casts that are generated
+implicitly in referencing a member of a class (roughly, in getting
+from the name used in the source -- the projection symbol -- to the
+member actually used in the IL).  This routine is only used in C++ mode.
 */
 {
   a_boolean        did_not_fold;
@@ -2126,7 +2127,7 @@ This routine is only used in C++ mode.
         /* Build an expression node or nodes for the cast. */
         node = make_node_from_operand(operand);
         add_base_class_casts(bcp, type_pointed_to(operand->type),
-                             check_cast_access, /*is_implicit_cast=*/TRUE,
+                             check_cast_access, is_implicit_cast,
                              implicit_in_naming,
                              &node, &orig_operand.position);
         make_expression_operand(node, node->type, operand);

@@ -3312,6 +3312,7 @@ C++ mode.
         /* Cast the pointer to the base class of the member. */
         base_class_cast_operand(result, bcp, (a_boolean *)NULL,
                                 check_cast_access,
+                                /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/FALSE);
       }  /* if */
       /* If the member symbol is a projection symbol (i.e., it's inherited
@@ -3324,6 +3325,7 @@ C++ mode.
         bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
         base_class_cast_operand(result, bcp, (a_boolean *)NULL,
                                 /*check_cast_access=*/FALSE,
+                                /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/TRUE);
       }  /* if */
       /* Check for errors on the casts. */
@@ -4745,6 +4747,7 @@ gives the type of the routine being called.
          but cfront and Borland do it this way. */
       base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
                               /*check_cast_access=*/FALSE,
+                              /*is_implicit_cast=*/TRUE,
                               /*implicit_in_naming=*/FALSE);
     }  /* if */
   }  /* if */
@@ -5809,6 +5812,7 @@ where the class type is already correct and nothing should be done to it.
 #endif /* CHECKING */
     base_class_cast_operand(source_operand, bcp, (a_boolean *)NULL,
                             /*check_cast_access=*/TRUE,
+                            /*is_implicit_cast=*/TRUE,
                             /*implicit_in_naming=*/FALSE);
     /* Make an address (an lvalue) for the base class object. */
     conv_object_pointer_to_lvalue(source_operand);
@@ -6014,6 +6018,7 @@ be a constructor call.
       /* Cast the pointer to the proper base class. */
       base_class_cast_operand(operand, conversion->std.cast_base_class,
                               (a_boolean *)NULL, /*check_cast_access=*/TRUE,
+                              /*is_implicit_cast=*/TRUE,
                               /*implicit_in_naming=*/FALSE);
       /* Make an address (an lvalue) for the base class object. */
       conv_object_pointer_to_lvalue(operand);

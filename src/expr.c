@@ -1397,6 +1397,7 @@ symbol (possibly a projection symbol).
     base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                             /*check_cast_access=*/
                                !member_locator->access_control_error_reported,
+                            /*is_implicit_cast=*/TRUE,
                             /*implicit_in_naming=*/FALSE);
   }  /* if */
   /* If the member symbol is a projection symbol (i.e., it's inherited
@@ -1409,6 +1410,7 @@ symbol (possibly a projection symbol).
     bcp = member_sym->variant.projection.extra_info->fundamental_base_class;
     base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                             /*check_cast_access=*/FALSE,
+                            /*is_implicit_cast=*/TRUE,
                             /*implicit_in_naming=*/TRUE);
   }  /* if */
 }  /* cast_pointer_for_field_selection */
@@ -1508,6 +1510,7 @@ Syntax:
         base_class_cast_operand(bound_function_selector, bcp,
                                 (a_boolean *)NULL,
                                 /*check_cast_access=*/FALSE,
+                                /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/TRUE);
       }  /* if */
       /* We can use an indefinite function operand whether the operator()
@@ -2336,6 +2339,7 @@ bound with the function in *bound_function_selector.
       check_assertion(bcp != NULL);
       base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
                               /*check_cast_access=*/TRUE,
+                              /*is_implicit_cast=*/TRUE,
                               /*implicit_in_naming=*/FALSE);
     }  /* if */
     /* Make an eok_vacuous_destructor_call node and an operand for it.
@@ -2650,6 +2654,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         if (bcp != NULL) {
           base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
                                   /*check_cast_access=*/TRUE,
+                                  /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/FALSE);
         }  /* if */
         /* The result type is the member type pointed to by the second
@@ -3930,7 +3935,10 @@ Syntax:
                                     &baseward_cast, &bcp) &&
              baseward_cast) {
     /* This is a known cast from derived to base. */
-    cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
+    base_class_cast_operand(&operand, bcp, (a_boolean *)NULL,
+                            /*check_cast_access=*/TRUE,
+                            /*is_implicit_cast=*/FALSE,
+                            /*implicit_in_naming=*/FALSE);
     copy_operand(&operand, result);
   } else {
     /* For all other cases, the dynamic cast is done at runtime.  The operand
@@ -6884,6 +6892,7 @@ implicit conversion.
   /* Cast the pointer to a pointer to the new type. */
   base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
                           /*check_cast_access=*/TRUE,
+                          /*is_implicit_cast=*/TRUE,
                           /*implicit_in_naming=*/FALSE);
   /* Make an address (an lvalue) for the base class object. */
   conv_object_pointer_to_lvalue(operand);
