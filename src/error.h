@@ -269,11 +269,11 @@ extern a_boolean find_prototype_diagnostic(an_error_code      error_code,
 
 extern a_boolean set_severity_for_error_tag(char		*tag,
 				            an_error_severity	severity,
-					    a_boolean		from_cmd_line);
+					    a_boolean		make_default);
 extern
 a_boolean set_severity_for_error_number(int		  error_number,
 			                an_error_severity severity,
-				        a_boolean	  from_cmd_line);
+				        a_boolean	  make_default);
 /*lint -sem(command_line_error, r_no)*/
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 /*lint -sem(str_command_line_error, r_no)*/
