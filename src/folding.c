@@ -59,6 +59,12 @@ constant is an address that is not known until link time.)
     }  /* if */
   } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
     known_bool = FALSE;
+#if UPC_EXTENSIONS_ALLOWED
+  } else if (con->kind == (a_constant_repr_kind)ck_upc_mythread ||
+             con->kind == (a_constant_repr_kind)ck_upc_threads) {
+    /* The UPC pseudo-constants THREADS and MYTHREAD are not true constants. */
+    known_bool = FALSE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   return known_bool;
 }  /* constant_bool_value_known_at_compile_time */
@@ -2135,6 +2141,13 @@ the reason is that the constant is a template parameter constant).
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
+#if UPC_EXTENSIONS_ALLOWED  
+  } else if (constant->kind == (a_constant_repr_kind)ck_upc_mythread ||  
+             constant->kind == (a_constant_repr_kind)ck_upc_threads) {  
+    /* The UPC pseudo-constants are not true constants.  As a result, we do
+       not fold unary operations involving these constants. */
+    *did_not_fold = TRUE;  
+#endif /* UPC_EXTENSIONS_ALLOWED */ 
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;

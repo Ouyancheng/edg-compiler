@@ -1,5 +1,11 @@
 Version 3.2
 
+2/11/03  UPC mode: Folding of unary operations
+
+The front end no longer attempts to constant-fold unary operators applied on
+the UPC pseudo-constants THREADS and MYTHREAD.  The implicit conversion of
+these constants to a boolean constant is also inhibited.
+
 2/10/03  Microsoft compatibility: Ambiguous virtual function overriders
 
 In Microsoft bugs mode, no diagnostic is issued for classes defined in such
