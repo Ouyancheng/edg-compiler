@@ -1,5 +1,19 @@
 Version 2.43
 
+9/20/99  C++-generating back end, MSVC++ compatibility, function-typed
+         parameters
+
+MSVC++ 6.0 does not correctly parse a function-typed parameter if the
+parameter name is omitted, e.g.,
+
+  void foo(void  (void*));  // gets error
+  void foo(void f(void*));  // okay
+
+The C++-generating back end puts out no name for parameters on
+function declarations even if the source code included a name, so
+it ran into this problem.  It now generates a name for a function-typed
+parameter.
+
 9/17/99  Linkage in unnamed namespace scope
 
 Names declared in an unnamed namespace scope now follow the same rules to

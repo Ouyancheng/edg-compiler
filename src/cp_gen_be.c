@@ -2529,6 +2529,22 @@ suppress_def_args is TRUE if default arguments should be suppressed
                                              &param_var->source_corresp : NULL,
                                      iek_variable);
           param_var = param_var->next;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_mode && is_function_type(param->type)) {
+          /* MSVC++ 6.0 does not correctly parse a function-typed parameter
+             if the parameter name is omitted, e.g.,
+               void foo(void  (void*));  // gets error
+               void foo(void f(void*));  // okay
+             Put out a generated name in this case. */
+          form_type_first_part_simple(param->type,
+                                      /*under_lhs_declarator=*/FALSE,
+                                      /*need_trailing_space=*/TRUE,
+                                      &octl);
+          gen_temp_name((char *)param);
+          form_type_second_part_simple(param->type,
+                                       /*under_lhs_declarator=*/FALSE,
+                                       &octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* This is just a declaration, so put out the type and no name. */
           gen_general_declaration_using_type(param->type, NO_NAME, iek_none,
