@@ -1521,19 +1521,6 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
   return result;
 }  /* base_subobject_conflict */
 
-#if (defined(__sun) || defined(sun)) && (defined(sparc) || defined(__sparc))
-/*
-The GNU first field conflict bug only exists on some platforms.  
-In particular, it does not exist in GNU compilers built for the Sun SPARC
-architecture.
-*/
-#define GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED 0
-#else /* !((defined(__sun) ... )) */
-#define GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED 1
-#endif /* (defined(__sun) || defined(sun)) &&
-          (defined(sparc) || defined(__sparc)) */
-
-#if GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED
 
 static a_boolean gnu_conflict_found(a_type_ptr  subobject_type,
                                     a_type_ptr  eb_type)
@@ -1546,6 +1533,8 @@ a subobject of the first field (and initially, that first field itself) in
 which a conflict is looked for.
 
 See gnu_first_field_conflict for a description of this GNU C++ layout bug.
+See also gnu_first_base_conflict for a similar problem with leading empty
+bases.
 */
 {
   a_boolean  result = FALSE;
@@ -1572,15 +1561,25 @@ See gnu_first_field_conflict for a description of this GNU C++ layout bug.
       field_type = skip_typerefs(field_type);
     }  /* if */
     /* The "GNU first field conflict" only occurs with fields that start in
-       the first 16 bytes of their enclosing class (but not necessarily
-       within the first 16 bytes of the complete object they belong too). */
-    if (field->offset < 16 && is_immediate_class_type(field_type)) {
+       the first N bytes of their enclosing class, where N depends on the
+       platform (but not necessarily within the first N bytes of the complete
+       object they belong too). */
+#if (defined(__sun) || defined(sun)) && (defined(sparc) || defined(__sparc))
+/* N is 8 on SPARC Solaris. */
+#define offset_limit 8
+#else /* !((defined(__sun) ... )) */
+/* N is 16 on various other platforms. */
+#define offset_limit 16
+#endif /* (defined(__sun) || defined(sun)) &&
+          (defined(sparc) || defined(__sparc)) */
+    if (field->offset < offset_limit && is_immediate_class_type(field_type)) {
       if (identical_types(field_type, eb_type) ||
           gnu_conflict_found(field_type, eb_type)) {
         result = TRUE;
         break;
       }  /* if */
     }  /* if */
+#undef offset_limit
   }  /* for */
   if (!result) {
     a_base_class_ptr  bcp = base_classes_of(subobject_type);
@@ -1638,7 +1637,40 @@ offset is zero.
   return result;
 }  /* gnu_first_field_conflict */
 
-#endif /* GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED */
+
+static a_boolean gnu_first_base_conflict(a_type_ptr        class_type,
+                                         a_base_class_ptr  bcp,
+                                         a_targ_size_t     offset)
+/*
+This routine identifies a situation similar to the GNU first field conflict
+(see above), but this time the conflict is with a base class instead of a
+field.  We are attempting to place base class bcp at the given offset in the
+layout of the given class type.  If this is the offset of the first base and
+that first base happens to be empty, GNU compilers will not optimize the
+bcp base if it has a subobject of the same type as the first base.
+*/
+{
+  a_boolean  result = FALSE;
+
+  /* A potential for this type of conflict only exists if the first base
+     has already been allocated (so bcp should not be that first base).
+     and if we are attempting to allocate bcp at the same offset. */
+  if (bcp->direct_base_number != 1 && offset == 0) {
+    a_base_class_ptr  first_base = base_classes_of(class_type);
+    for (; first_base != NULL; first_base = first_base->next) {
+      if (first_base->direct && first_base->direct_base_number == 1) {
+        break;
+      }  /* if */
+    }  /* for */
+    if (first_base != NULL) {
+      check_assertion(first_base->offset_is_set && first_base->offset == 0);
+      result = gnu_conflict_found(skip_typerefs(bcp->type),
+                                  skip_typerefs(first_base->type));
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* gnu_first_base_conflict */
+
 #endif /* !IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
@@ -1777,13 +1809,10 @@ there's no overflow TRUE is returned.
           while (subobject_conflict(lob->class_type, field_type,
                                     save_byte_offset,
                                     /*consider_bases=*/TRUE,
-                                    /*consider_virtual_bases=*/TRUE)
-#if GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED
-                 || (emulate_gnu_abi_bugs &&
-                     gnu_first_field_conflict(lob->class_type, field,
-                                              save_byte_offset))
-#endif /* GNU_FIRST_FIELD_CONFLICT_EMULATION_SUPPORTED */
-                                                                ) {
+                                    /*consider_virtual_bases=*/TRUE) ||
+                 (emulate_gnu_abi_bugs &&
+                  gnu_first_field_conflict(lob->class_type, field,
+                                           save_byte_offset))) {
             /* The field can't go at this offset.  Advance by the field
                alignment. */
             if (!increment_field_offsets(&lob->byte_offset,
@@ -1861,7 +1890,9 @@ allocated.
   /* If placing the subobject at this location, skip forward until we find
      a location that works. */
   if (bcp != NULL) {
-    while (base_subobject_conflict(bcp, lob->byte_offset)) {
+    while (base_subobject_conflict(bcp, lob->byte_offset) ||
+           (emulate_gnu_abi_bugs &&
+            gnu_first_base_conflict(lob->class_type, bcp, lob->byte_offset))) {
       if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
                                    (a_targ_size_t)alignment, 
                                    (an_unnormalized_bit_offset)0)) {
