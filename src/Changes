@@ -1,5 +1,15 @@
 Version 2.32
 
+1/25/96   IL lowering: ill-formed cast in pointer to member comparison
+
+When the type of a pointer to data member is configured to be some
+integral type smaller than int, IL lowering adds casts to do integral
+promotions when operations on pointers to data members are turned into
+integral operations.  Unfortunately, in one case -- comparisons of
+pointers to data members -- the cast generated for the promotion
+had two operands.  The link to the second operand should have been
+set to null, and now it is.
+
 1/24/96   EH region number type and null region value passed to runtime
 
 The type of the EH region number field and the value of the null region
