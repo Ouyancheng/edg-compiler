@@ -386,8 +386,10 @@ Process the indicated scope.
 #endif /* ifdef FFE */
   if (ptr->kind == sck_function) {
     remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
+    walk_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
+  } else {
+    remap_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
   }  /* if */
-  walk_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
 }  /* walk_scope */
 
 
@@ -1183,7 +1185,7 @@ and the entry pointer is to an entry in the file scope, just return
           walk_ptr(ptr->virtual_function_table_var, a_variable_ptr,
                    iek_variable);
           remap_ptr(ptr->type_as_subobject, a_type_ptr, iek_type);
-#endif /*DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
         }
         break;
       case iek_constructor_init:
