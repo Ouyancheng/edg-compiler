@@ -605,8 +605,10 @@ the file scope, do not process it (but record an orphan in the latter case).
            walked automatically.  The entry_process_func can arrange
            to call walk_routine_scope_il if it wants to. */
 #ifdef CFE
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
+#endif /* !NEEDED_FLAG_WALK */
 #if NEEDED_FLAG_WALK
         /* If the routine has a definition, walk it. */
         if (ptr->assoc_scope != NULL_region_number) {
@@ -1518,6 +1520,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             unexpected_condition_str(
                            "walk_entry_and_subtree: bad anonymous union kind");
         } /* switch */
+#if !NEEDED_FLAG_WALK
         remap_ptr(ptr->virtual_function_info_base_class, a_base_class_ptr,
                   iek_base_class);
         walk_list(ptr->class_member_using_decls, a_class_member_using_decl_ptr,
@@ -1528,7 +1531,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_routine_list_entry);
         walk_list(ptr->friend_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
+#endif /* !NEEDED_FLAG_WALK */
         walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -1545,6 +1550,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         /* ptr->promoted_local_types not processed. */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
+#endif /* !NEEDED_FLAG_WALK */
       }
       break;
     case iek_constructor_init:
@@ -1576,6 +1582,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->asm_string, a_constant_ptr, iek_constant);
       }
       break;
+#if !NEEDED_FLAG_WALK
     case iek_template_arg:
       {
         a_template_arg_ptr ptr = (a_template_arg_ptr)entry_ptr;
@@ -1587,6 +1594,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         }  /* if */
       }
       break;
+#endif /* !NEEDED_FLAG_WALK */
     case iek_new_delete_supplement:
       {
         a_new_delete_supplement_ptr ptr =
@@ -1608,8 +1616,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if !ABI_CHANGES_FOR_RTTI
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->accessible_base_classes, an_accessible_base_class_ptr,
                   iek_accessible_base_class);
+#endif /* !NEEDED_FLAG_WALK */
 #endif /* !ABI_CHANGES_FOR_RTTI */
       }
       break;
@@ -1623,6 +1633,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       }
       break;
 #if !ABI_CHANGES_FOR_RTTI
+#if !NEEDED_FLAG_WALK
     case iek_accessible_base_class:
       {
         an_accessible_base_class_ptr ptr =
@@ -1633,6 +1644,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
       }
       break;
+#endif /* !NEEDED_FLAG_WALK */
 #endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case iek_eh_prologue_supplement:
