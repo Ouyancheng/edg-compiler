@@ -5082,7 +5082,8 @@ gives the source position of the member name reference.
          class_struct_union_type->variant.class_struct_union.is_nonreal_class||
          desired_class->variant.class_struct_union.is_nonreal_class) &&
         !same_entities(class_struct_union_type, desired_class) &&
-        find_base_class_of(class_struct_union_type, desired_class) == NULL) {
+        (is_template_param_type(class_struct_union_type) ||
+         find_base_class_of(class_struct_union_type, desired_class) == NULL)) {
       /* Don't do any checking on nonreal classes in prototype
          instantiations, unless it does happen that there is a relationship. */
       prep_generic_operand(operand_1, /*lvalue_expected=*/FALSE);
