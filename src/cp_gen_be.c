@@ -2692,10 +2692,11 @@ static void gen_function_declarator_with_scope(a_type_ptr   type,
                                                a_boolean    suppress_def_args)
 /*
 Output a function declarator for the indicated routine type.
-This is the top-level type of a function definition only if scope
-is non-NULL, in which case that is the function scope.
-suppress_def_args is TRUE if default arguments should be suppressed
-(needed for template specializations).
+This is the top-level type of a function definition only if scope is non-NULL,
+in which case that is the function scope.  top_level_decl is TRUE when we are
+emitting a declarator for an actual function declaration (as opposed, e.g.,
+to a parameter or variable with function type).  suppress_def_args is TRUE if
+default arguments should be suppressed (needed for template specializations).
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
@@ -2730,7 +2731,9 @@ suppress_def_args is TRUE if default arguments should be suppressed
     if (param == NULL) {
       if (!rtsp->has_ellipsis) {
         /* The first argument is NULL, so this is a "void" parameter list.
-           Write it as void in C, as empty in C++. */
+           Write it as void in C, as empty in C++ (unless this is not a
+           top-level declarator, in which case an explicit "(void)" may be
+           needed for correct parsing). */
         if (il_header.source_language == sl_C || !top_level_decl) {
           write_tok_str("void");
         }  /* if */
@@ -2781,7 +2784,8 @@ suppress_def_args is TRUE if default arguments should be suppressed
              if the parameter name is omitted, e.g.,
                void foo(void  (void*));  // gets error
                void foo(void f(void*));  // okay
-             Put out a generated name in this case. */
+             Put out a generated name in this case (unless a name was
+             recorded). */
           form_type_first_part_simple(param->type,
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
