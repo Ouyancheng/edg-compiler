@@ -5974,7 +5974,6 @@ redundant diagnostics in case ranges (GNU C mode only).
     top_sssep->curr_switch_clause = scp;
     if (label_directly_in_switch) {
       sssep->curr_switch_clause = scp;
-      sssep->after_break_in_switch = FALSE;
       end_stmt_sequence(sssep);
     }  /* if */
     /* Represent this case label by adding an entry to the
@@ -6126,6 +6125,8 @@ Scan a case label definition.  The syntax is:
   if (sssep == NULL) {
     /* We are not inside a switch statement. */
     error(ec_case_label_must_be_in_switch);
+  } else {
+    sssep->after_break_in_switch = FALSE;
   }  /* if */
   /* Ignore the initial "case". */
 #if CHECKING
