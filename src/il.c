@@ -7479,6 +7479,9 @@ pointer to it.
 #if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if PRAGMA_WEAK_ALLOWED
+    case pk_weak:
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:

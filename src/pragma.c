@@ -295,6 +295,9 @@ possible.
 #if IDENT_DIRECTIVE_AND_PRAGMA
     case pk_ident:
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if PRAGMA_WEAK_ALLOWED
+    case pk_weak:
+#endif /* PRAGMA_WEAK_ALLOWED */
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -1322,6 +1325,19 @@ Initialize the pragma description table.
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if PRAGMA_WEAK_ALLOWED
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_weak,
+		 (an_immediate_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*make_text_not_tokens=*/TRUE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
+                 es_error);
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,

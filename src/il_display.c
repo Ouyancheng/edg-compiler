@@ -694,6 +694,9 @@ Print the name of a pragma kind.
 #if IDENT_DIRECTIVE_AND_PRAGMA
     case pk_ident:                s = "pk_ident";               break;
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if PRAGMA_WEAK_ALLOWED
+    case pk_weak:                 s = "pk_weak";                break;
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
     /* For testing purposes. */
     case pk_test_next_statement:  s = "pk_test_next_statement"; break;

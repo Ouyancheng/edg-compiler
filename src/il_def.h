@@ -1557,6 +1557,10 @@ enum a_pragma_kind_tag {
   pk_ident,		/* Specifies a source identification string (like
 			   #ident); passed on to the back end. */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if PRAGMA_WEAK_ALLOWED
+  pk_weak,		/* Specifies "weak binding" for C_mode() name.  The
+			   name is passed on to the back end. */
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -1605,6 +1609,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if IDENT_DIRECTIVE_AND_PRAGMA
 /* pk_ident */			"ident",
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if PRAGMA_WEAK_ALLOWED
+/* pk_weak */			"weak",
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
