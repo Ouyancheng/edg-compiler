@@ -3090,13 +3090,14 @@ the same access, the function returns FALSE.
 }  /* max_access_of_overloaded_function */
 
 
-void f_check_protected_member_access(a_type_ptr        class_type,
-                                     a_source_position *err_pos)
+void f_check_protected_member_access(a_symbol_locator *locator,
+                                     a_type_ptr       class_type)
 /*
 This routine implements the access control check mandated by ARM 11.5, which
 requires that a protected member be accessed only through a pointer or
-object of a type to which we have member access.  class_type is the class
-of the pointer or object through which the member is being accessed.
+object of a type to which we have member access.  locator is a locator
+for the member symbol being referenced.  class_type is the class of the
+pointer or object through which the member is being accessed.
 class_type is NULL if we don't know the object type (which will cause an
 error).  class_type may also be an error type (which will cause no error).
 *err_pos is the source position for an error.  See the macro
@@ -3119,7 +3120,12 @@ function.
     err = TRUE;
   }  /* if */
   if (err) {
-    pos_error(ec_protected_access_problem, err_pos);
+#if 0
+    pos_sy_error(ec_protected_access_problem, &locator->source_position,
+                 locator->specific_symbol);
+#else
+    pos_error(ec_protected_access_problem, &locator->source_position);
+#endif
   }  /* if */
 }  /* f_check_protected_member_access */
 
