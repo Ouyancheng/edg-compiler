@@ -144,6 +144,24 @@ static unsigned long
 			/* Nesting depth of switch statements currently
 			   being processed. */
 
+
+/*
+Entry used in a stack to indicate the name contexts we are currently
+inside of.  This is used to avoid adding class qualifiers to names when
+they are not necessary.
+*/
+typedef struct a_name_context *a_name_context_ptr;
+typedef struct a_name_context {
+  a_name_context_ptr
+		next;	/* The name context outside of this one, or NULL
+			   if there are no more. */
+  a_scope_ptr	assoc_scope;
+			/* The scope that defines the name context. */
+} a_name_context;
+static a_name_context_ptr
+		curr_name_context;
+			/* Current name context stack. */
+
 /*
 Macro that returns TRUE if an IL entry has a name.  (Applies only to
 those containing source correspondence information.)
@@ -276,6 +294,31 @@ a constant that appears on the constant list of an enum type.
   }  /* if */
   return is_enum;
 }  /* is_enum_constant */
+
+
+static void push_name_context(a_name_context *context,
+                              a_scope_ptr    scope)
+/*
+Push the context entry "context" onto the name context stack, and fill
+in that entry indicate the given scope.  The name context stack is used
+to avoid class qualifiers on names when inside those classes.
+*/
+{
+  a_name_context_ptr parent_context = curr_name_context;
+
+  curr_name_context = context;
+  curr_name_context->next = parent_context;
+  curr_name_context->assoc_scope = scope;
+}  /* push_name_context */
+
+
+static void pop_name_context(void)
+/*
+Pop the top entry off the name context stack.
+*/
+{
+  curr_name_context = curr_name_context->next;
+}  /* pop_name_context */
 
 
 static void adv_to_signif_source_sequence_entry(void)
@@ -973,16 +1016,31 @@ Output the name of the entity whose source correspondence information
 is given by scp.  If the entity is unnamed, generate a name.
 */
 {
-  char *name = scp->name;
+  char       *name = scp->name;
+  a_type_ptr class_type = scp->class_of_which_a_member;
 
-#if 0
-  /* Qualified name, template names. */
-#endif /* 0 */
+  /* If the name is a member of a class in C++, output the class qualifier. */
+  if (il_header.source_language == sl_Cplusplus && class_type != NULL) {
+    a_boolean qualifier_needed = TRUE;
+    /* If the class type matches the top entry on the name context stack,
+       the qualifier is not necessary. */
+    if (curr_name_context != NULL) {
+      a_scope_ptr scope = curr_name_context->assoc_scope;
+      if (scope->kind == (a_scope_kind)sck_class_struct_union &&
+          scope->variant.assoc_type == class_type) {
+        qualifier_needed = FALSE;
+      }  /* if */
+    }  /* if */
+    if (qualifier_needed) {
+      gen_name(&class_type->source_corresp);
+      write_tok_str("::");
+    }  /* if */
+  }  /* if */
   if (name == NULL) {
     /* For entities without names, create a name. */
     gen_temp_name((char *)scp);
   } else {
-    write_tok_str(name);
+    m_write_tok_str(name);
   }  /* if */
 }  /* gen_name */
 
@@ -1139,9 +1197,6 @@ Output the indicated constant.
       break;
     case ck_float:
       /* Put parentheses around the constant in case it's negative. */
-#if 0
-      /* Could avoid the parentheses for non-negative constants. */
-#endif /* 0 */
       write_tok_ch('(');
       fkind = con_type->variant.float_kind;
       if (!il_header.pcc_compatibility_mode) {
@@ -1326,10 +1381,6 @@ omit the space.
       str = "static";
       break;
     case sc_auto:
-#if 0
-      /* "auto" could be suppressed in most cases.  The only tricky cases
-         are ones involving disambiguation. */
-#endif /* 0 */
       str = "auto";
       break;
     case sc_unspecified:
@@ -1655,6 +1706,34 @@ entry).
 }  /* gen_pointer_type_qualifiers */
 
 
+static a_boolean routine_type_requires_no_return_type(a_type_ptr type)
+/*
+type is a routine type.  Return TRUE if it is a type for which the return
+type should not be displayed (a constructor, destructor, or conversion
+function).
+*/
+{
+  a_boolean                     no_return_type = FALSE;
+  a_routine_type_supplement_ptr rtsp;
+  a_routine_ptr                 rout;
+
+  type = skip_typerefs(type);
+  rtsp = type->variant.routine.extra_info;
+  rout = rtsp->assoc_routine;
+  if (rout != NULL) {
+    a_special_function_kind kind = rout->special_kind;
+    if (kind == (a_special_function_kind)sfk_constructor ||
+        kind == (a_special_function_kind)sfk_destructor ||
+        kind == (a_special_function_kind)sfk_conversion) {
+      /* Do not put out the return type for a constructor, destructor, or
+         conversion function. */
+      no_return_type = TRUE;
+    }  /* if */
+  }  /* if */
+  return no_return_type;
+}  /* routine_type_requires_no_return_type */
+
+
 static void gen_type_first_part(a_type_ptr type,
                                 a_boolean  need_paren,
 				a_boolean  need_trailing_space)
@@ -1706,9 +1785,14 @@ is not empty, because it contains a name or a derived type).
        typedef, but they can get here if the typedef is not yet defined
        (see is_not_yet_defined_typedef).  Drop all qualifiers here, always,
        to get around that.  They don't mean anything anyway. */
-    gen_type_first_part(type->variant.routine.return_type,
-                        /*need_paren=*/TRUE,
-                        /*need_trailing_space=*/TRUE);
+    if (routine_type_requires_no_return_type(type)) {
+      /* Do not put out the return type for a constructor, destructor, or
+         conversion function. */
+    } else {
+      gen_type_first_part(type->variant.routine.return_type,
+                          /*need_paren=*/TRUE,
+                          /*need_trailing_space=*/TRUE);
+    }  /* if */
     if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -1721,9 +1805,6 @@ is not empty, because it contains a name or a derived type).
     if (need_paren) write_tok_ch('(');
   } else {
     /* No declarator part to process.  Handle the specifier type. */
-#if 0
-    /* Suppress this for constructors and destructors. */
-#endif /* 0 */
     gen_type_specifier(qual_type);
     if (need_trailing_space) write_space();
   }  /* if */
@@ -1927,8 +2008,13 @@ out first if anything is generated.
     /* Function type. */
     if (need_paren) write_tok_ch(')');
     gen_function_declarator(type, (a_scope_ptr)NULL);
-    gen_type_second_part(type->variant.routine.return_type,
-                         /*need_paren=*/TRUE);
+    if (routine_type_requires_no_return_type(type)) {
+      /* Do not put out the return type for a constructor, destructor, or
+         conversion function. */
+    } else {
+      gen_type_second_part(type->variant.routine.return_type,
+                           /*need_paren=*/TRUE);
+    }  /* if */
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (need_paren) write_tok_ch(')');
@@ -2094,6 +2180,8 @@ a type specifier (no trailing ";").  The current source sequence entry
 is the one associated with the definition of the class.
 */
 {
+  a_name_context context;
+
   type->definition_put_out = TRUE;
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
@@ -2106,6 +2194,8 @@ is the one associated with the definition of the class.
   gen_type_name(type);
   /* Put out the class definition. */
   write_tok_str(" { ");
+  push_name_context(&context,
+                    type->variant.class_struct_union.extra_info->assoc_scope);
   /* Go through the source sequence list and generate the members of the
      class. */
   for (;;) {
@@ -2154,6 +2244,7 @@ is the one associated with the definition of the class.
     }  /* switch */
   }  /* for */
 done:;
+  pop_name_context();
   write_tok_ch('}');
 }  /* gen_class_definition */
 
@@ -3098,6 +3189,7 @@ Generate code for the indicated statement.
   a_switch_clause_ptr         scp;
   a_source_sequence_entry_ptr stop_on_decl = NULL;
   a_statement_ptr             next_statement;
+  a_routine_ptr               curr_routine;
 
   if (statement == NULL) {
     /* Empty statement. */
@@ -3209,7 +3301,11 @@ Generate code for the indicated statement.
     case stmk_return:
       /* "return" statement: generate "return;" or "return expr;". */
       write_tok_str("return");
-      if (statement->expr != NULL) {
+      /* Suppress the return expression on constructors. */
+      curr_routine = curr_function_scope->variant.routine.ptr;
+      if (statement->expr != NULL &&
+          curr_routine->special_kind !=
+                                    (a_special_function_kind)sfk_constructor) {
         write_space();
         gen_expression(statement->expr);
       }  /* if */
@@ -3385,11 +3481,14 @@ function.
 }  /* gen_old_style_parameter_decls */
 
 
-static void gen_func_definition_type(a_routine_ptr rout,
-                                     a_scope_ptr   scope)
+static void gen_func_definition_type(a_routine_ptr  rout,
+                                     a_scope_ptr    scope,
+                                     a_name_context *context)
 /*
 Generate the routine name and type, including the parameter declarations,
 for the definition of the indicated routine.  scope is the associated scope.
+context is a name context entry (a local variable in the caller) to be
+pushed onto the name context stack at the appropriate point.
 */
 {
   a_type_ptr type = rout->type;
@@ -3401,9 +3500,17 @@ for the definition of the indicated routine.  scope is the associated scope.
                       /*need_trailing_space=*/TRUE);
   /* Write the name. */
   gen_routine_name(rout);
+  /* Push a name context for the function. */
+  push_name_context(context, scope);
   /* Write the second part of the declarator. */
   gen_function_declarator(type, scope);
-  gen_type_second_part(type->variant.routine.return_type, /*need_paren=*/TRUE);
+  if (routine_type_requires_no_return_type(type)) {
+    /* Do not put out the return type for a constructor, destructor, or
+       conversion function. */
+  } else {
+    gen_type_second_part(type->variant.routine.return_type,
+                         /*need_paren=*/TRUE);
+  }  /* if */
   /* For an old-style function, declare the parameters. */
   if (!rout->type->variant.routine.extra_info->prototyped) {
     gen_old_style_parameter_decls();
@@ -3421,6 +3528,7 @@ by gen_routine_decl.
 {
   a_scope_ptr            scope;
   a_memory_region_number scope_region_number;
+  a_name_context         context;
   /* Save state variables for functions for the case where a member function
      is nested inside another function. */
   a_scope_ptr            saved_curr_function_scope = curr_function_scope;
@@ -3449,9 +3557,12 @@ by gen_routine_decl.
   curr_source_sequence_entry = scope->source_sequence_list;
   adv_to_signif_source_sequence_entry();
    /* Generate the routine name and the parameter declarations. */
-  gen_func_definition_type(rout, scope);
+  gen_func_definition_type(rout, scope, &context);
   /* Generate the body statement. */
   gen_statement(scope->assoc_block);
+  /* Pop the name context for the function (pushed in
+     gen_func_definition_type). */
+  pop_name_context();
   curr_function_scope = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Now that we're done with the function, free its IL information. */
@@ -3670,6 +3781,7 @@ Initialize for the C++/C-generating back end.
   curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
+  curr_name_context = NULL;
 }  /* init_cp_gen_be */
 
 
