@@ -9729,7 +9729,7 @@ The routines lists in file and namespace scopes is normally constructed by
 appending newly created routine entries at the end of the appropriate list.
 The one exception occurs when a previously declared routine is defined: In
 that case we must move the original entry to the end of the list.  Since the
-routine list is singly-linked, traversing the list each time we encounter a
+routines list is singly-linked, traversing the list each time we encounter a
 definition can be prohibitively expensive with the following not-so-rare
 scenario.  Suppose the sequence of routine declarations in a translation unit
 is as follows:
