@@ -2913,7 +2913,17 @@ precedence confusion.
   an_expr_node_kind kind = node->kind;
   a_boolean         processed = FALSE;
 
-  if (kind == (an_expr_node_kind)enk_variable_address) {
+  if (node->implicit_reference_indirection) {
+    /* This node includes an indirection for a C++ reference type.
+       That is, there's an indirection that's explicit in the IL but is
+       implicit in the source.  That cancels out the indirection we
+       would be adding in the source relative to what's in the IL, so
+       just put out the expression. */
+    node->implicit_reference_indirection = FALSE;
+    gen_expr_with_parens(node);
+    node->implicit_reference_indirection = TRUE;
+    processed = TRUE;
+  } else if (kind == (an_expr_node_kind)enk_variable_address) {
     /* Address of variable: just write the variable name. */
     gen_variable_name(node->variant.variable);
     processed = TRUE;
@@ -3245,12 +3255,36 @@ Generate code for the indicated expression.  Put parentheses around it if
 there's some possibility of precedence confusion and need_parens is TRUE.
 */
 {
+  /* Note: don't extract things from expr here in the declarations, because
+     expr may be changed just below for the reference indirection case. */
   char             *opstr;
   an_expr_node_ptr operand_1, operand_2, args;
   a_boolean        operand_1_is_lvalue = FALSE;
   a_routine_ptr    rout;
+  a_boolean        need_reference_close_paren = FALSE;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
+  if (expr->implicit_reference_indirection) {
+    /* This node is or contains an extra indirection generated because
+       of a C++ reference type.  The indirection has to be removed in the
+       generated source code (because it will be put back in implicitly
+       by the language rules). */
+    if (is_operation_node(expr) &&
+        expr->variant.operation.kind == (an_expr_operator_kind)eok_indirect) {
+      /* This operation is an indirection, so we can eliminate the indirection
+         and come out even. */
+      expr = expr->variant.operation.operands;
+    } else {
+      /* Otherwise, just put a "&" in front of the node, which cancels the
+         implicit indirection. */
+      if (need_parens) {
+        write_tok_ch('(');
+        need_reference_close_paren = TRUE;
+        need_parens = FALSE;
+      }  /* if */
+      write_tok_ch('&');
+    }  /* if */
+  }  /* if */
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */
@@ -3260,8 +3294,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       switch (expr->variant.operation.kind) {
         /* One-operand operators. */
         case eok_indirect:
-          if (operand_1->kind == (an_expr_node_kind)enk_operation &&
-              operand_1->variant.operation.kind ==
+          if (operand_1->implicit_reference_indirection) {
+            /* An indirection over a node with an implicit reference
+               indirection.  The two can be cancelled out. */
+            operand_1->implicit_reference_indirection = FALSE;
+            gen_expression(operand_1);
+            operand_1->implicit_reference_indirection = TRUE;
+            goto done_with_operation;
+          } else if (operand_1->kind == (an_expr_node_kind)enk_operation &&
+                     operand_1->variant.operation.kind ==
                                             (an_expr_operator_kind)eok_field) {
             an_expr_node_ptr sel_operand_1 =
                                          operand_1->variant.operation.operands;
@@ -3663,6 +3704,9 @@ done_with_operation:
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */
+  /* If an extra set of parentheses was added because of the reference
+     indirection trick above. close the set now. */
+  if (need_reference_close_paren) write_tok_ch(')');
 }  /* gen_expr */
 
 
