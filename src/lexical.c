@@ -7594,10 +7594,6 @@ are handled in lexical_init.)
      precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(curr_source_line),
-      pch_saved_var_array_elem(after_end_of_curr_source_line),
-      pch_saved_var_array_elem(raw_listing_buffer),
-      pch_saved_var_array_elem(after_end_of_raw_listing_buffer),
       pch_saved_var_array_elem(curr_seq_number),
       pch_saved_var_array_elem(seq_number_last_read),
       pch_saved_var_array_elem(input_stack),
@@ -7620,9 +7616,6 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(num_reusable_cache_entries_allocated),
       pch_saved_var_array_elem(num_pending_pragmas_allocated),
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      pch_saved_var_array_elem(num_file_suffixes_allocated),
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
       pch_saved_var_array_elem(num_include_file_histories_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()

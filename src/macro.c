@@ -3754,11 +3754,6 @@ are handled in macro_init.)
      precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(macro_buffer),
-      pch_saved_var_array_elem(after_end_of_macro_buffer),
-      pch_saved_var_array_elem(aux_buffer_for_pcc_macros),
-      pch_saved_var_array_elem(after_end_of_aux_buffer_for_pcc_macros),
-      pch_saved_var_array_elem(avail_macro_args),
       pch_saved_var_array_elem(defined_macro_symbol),
       pch_saved_var_array_elem(line_macro_symbol),
       pch_saved_var_array_elem(file_macro_symbol),
@@ -3768,8 +3763,6 @@ are handled in macro_init.)
 #if DEBUG
       pch_saved_var_array_elem(num_macro_params_allocated),
       pch_saved_var_array_elem(num_macro_defs_allocated),
-      pch_saved_var_array_elem(num_macro_args_allocated),
-      pch_saved_var_array_elem(macro_arg_raw_text_space),
       pch_saved_var_array_elem(param_name_string_space),
       pch_saved_var_array_elem(macro_definition_space),
 #endif /* DEBUG */

@@ -3740,9 +3740,6 @@ One-time initialization for statements.c static variables.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_control_flow_descrs),
-      pch_saved_var_array_elem(struct_stmt_stack),
-      pch_saved_var_array_elem(struct_stmt_stack_container),
-      pch_saved_var_array_elem(size_struct_stmt_stack_container),
 #if DEBUG
       pch_saved_var_array_elem(num_control_flow_descrs_allocated),
 #endif /* if DEBUG */
