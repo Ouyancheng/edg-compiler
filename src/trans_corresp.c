@@ -2526,9 +2526,15 @@ entities.
 {
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
   a_symbol_ptr  sym, corresp_sym = NULL;
+  a_boolean     handled_later = FALSE;
 
-  if (has_name(type) &&
-      type_sym != NULL && may_have_correspondence(type_sym)) {
+  if (!has_name(type)) {
+  } else if (is_immediate_class_type(type) &&
+             type->variant.class_struct_union.originally_unnamed) {
+    /* This is presumably a class that acquired a name through a typedef
+       declaration.  It will be handled elsewhere. */
+    handled_later = TRUE;
+  } else if (type_sym != NULL && may_have_correspondence(type_sym)) {
     a_boolean  corresp_found = FALSE;
     a_boolean  first_tag_definition = type_sym->defined && 
                (type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
@@ -2664,7 +2670,7 @@ entities.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (checked_trans_unit_corresp_pointer_of(type) == NULL) {
+  if (!handled_later && checked_trans_unit_corresp_pointer_of(type) == NULL) {
     clear_type_correspondence(type, /*visited=*/TRUE);
   }  /* if */
 }  /* find_type_correspondence */
