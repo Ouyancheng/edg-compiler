@@ -21,9 +21,8 @@ namespace std {
 }  /* namespace std */
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-/* The following function should not be here according to the strict
-   language definition, but many compilers provide it, and users count
-   on it to do a simple placement new. */
+/* Placement new.  This was not in the ARM, but it is now standard in
+   [lib.new.delete.placement]. */
 void *operator new(size_t, void*);
 
 #endif
