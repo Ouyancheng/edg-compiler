@@ -2488,9 +2488,7 @@ Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
 If ignore_qualifiers is TRUE, qualifiers are ignored at all levels,
 which makes this routine something like a types_are_compatible that
-ignores type qualifiers.  This routine is used to deal with pointer
-conversions that add a type qualifier somewhere other than the top
-level, e.g., int ** --> const int **.
+ignores type qualifiers.
 
 If any qualifiers are added, the flag pointed to by p_qualifiers_added
 is set to TRUE.  Otherwise it is set to FALSE.  p_qualifiers_added
@@ -2559,8 +2557,8 @@ dest_type may have some additional type qualifiers at some level(s).
 This is used to determine whether a qualification conversion (as
 described in 4.4 [conv.qual] in the Working Paper) may be applied.
 This conversion is used for conversions such as T** to T const * const *.
-When ignore_qualifiers is FALSE and test_qualification_conversion is TRUE
-the standard test is done.
+Note that the types passed in to this routine are the types under the
+first level pointers, e.g., T* and T const * const in the example given.
 
 The conversion specified in the WP permits the conversion of
 
