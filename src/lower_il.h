@@ -273,7 +273,8 @@ EXTERN unsigned long
 extern void pop_context(void);
 
 extern void push_context(a_context   *context,
-                         a_scope_ptr scope);
+                         a_scope_ptr scope,
+                         a_boolean   dependent_statement);
 
 extern void set_insert_location(a_statement_ptr    stmt,
                                 an_insert_location *insert_location);

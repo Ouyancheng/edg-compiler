@@ -3196,8 +3196,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
       /* Put a dependent-statement context around the lowering of
          the initialization so that any required destructor calls for
          code within the initialization will be emitted within the "if". */
-      push_context(&context, curr_context->scope);
-      curr_context->dependent_statement = TRUE;
+      push_context(&context, curr_context->scope,
+                   /*dependent_statement=*/TRUE);
     }  /* if */
     lower_dynamic_init(dip, &ipd, first_time_test_var,
                        /*is_expr_temporary=*/FALSE,
@@ -4108,7 +4108,7 @@ Do lowering on the file-scope dynamic initializations list.
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
     scope = file_scope_init_insert_location(&insert_location);
-    push_context(&context, scope);
+    push_context(&context, scope, /*dependent_statement=*/FALSE);
     switch_il_region(file_scope_init_routine_il_region);
     processing_file_scope_init_routine = TRUE;
     for (; dip != NULL; dip = dip->next) {
@@ -4145,7 +4145,7 @@ Do lowering on the file-scope dynamic initializations list.
     /* There are some file-scope required destructor calls.  Generate a
        routine containing them. */
     scope = file_scope_term_insert_location(&insert_location);
-    push_context(&context, scope);
+    push_context(&context, scope, /*dependent_statement=*/FALSE);
     switch_il_region(file_scope_term_routine_il_region);
     gen_required_destructor_calls(file_scope_context, &insert_location);
     pop_context();

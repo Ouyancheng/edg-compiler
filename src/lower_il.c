@@ -236,10 +236,12 @@ available list.
 
 
 void push_context(a_context   *context,
-                  a_scope_ptr scope)
+                  a_scope_ptr scope,
+                  a_boolean   dependent_statement)
 /*
 Add the context entry "context" to the context stack.  The associated scope
-is "scope".
+is "scope".  If this context is for a dependent statement, dependent_statement
+is TRUE.
 */
 {
   a_context_ptr parent_context = curr_context;
@@ -250,14 +252,14 @@ is "scope".
   /* Set the fields. */
   context->parent = parent_context;
   context->scope = scope;
-  context->dependent_statement = FALSE;
+  context->dependent_statement = dependent_statement;
   context->required_destructor_calls = NULL;
   context->assoc_switch_clause = NULL;
   context->latest_label_statement_processed = NULL;
   context->latest_dynamic_init_processed = NULL;
   context->dynamic_init_preceding_clause = NULL;
   /* Keep track of the innermost function context/scope. */
-  if (scope->kind == (a_scope_kind)sck_function) {
+  if (!dependent_statement && scope->kind == (a_scope_kind)sck_function) {
     nearest_function_context = curr_context;
     nearest_function_scope = scope;
     nearest_this_param_variable = scope->variant.routine.this_param_variable;
@@ -281,7 +283,8 @@ Pop an entry off the context stack.
     nearest_function_scope = NULL;
     nearest_this_param_variable = NULL;
     for (cp = parent_context; cp != NULL; cp = cp->parent) {
-      if (cp->scope->kind == (a_scope_kind)sck_function) {
+      if (!cp->dependent_statement &&
+          cp->scope->kind == (a_scope_kind)sck_function) {
         nearest_function_context = cp;
         nearest_function_scope = cp->scope;
         nearest_this_param_variable = nearest_function_scope->
@@ -5688,10 +5691,9 @@ done on exit from that statement.
        anything contructed in the dependent statement (i.e., conditionally)
        be destroyed at the end of the dependent statement, so push a special
        dependent-statement context around the lowering of the statement. */
-    push_context(&context, curr_context->scope);
-    curr_context->dependent_statement = TRUE;
+    push_context(&context, curr_context->scope, /*dependent_statement=*/TRUE);
     lower_statement(statement);
-    if (curr_context->required_destructor_calls != NULL) {
+    if (any_required_destructor_calls(curr_context)) {
       /* Some destructor calls must be emitted.  Make the statement into a
          block if it is not already a block, then find the last statement
          within the block so we can insert after it. */
@@ -5847,7 +5849,9 @@ Do IL lowering of the indicated statement and everything under it.
            topmost block in a function (it has a NULL assoc_scope); the
            push_context has already been done in lower_scope for that case. */
         scope = statement->variant.block.extra_info->assoc_scope;
-        if (scope != NULL) push_context(&context, scope);
+        if (scope != NULL) {
+          push_context(&context, scope, /*dependent_statement=*/FALSE);
+        }  /* if */
         lower_statement_list(statement->variant.block.statements,
                              &last_statement);
         /* Generate any required destructor calls and pop the context. */
@@ -5864,7 +5868,7 @@ Do IL lowering of the indicated statement and everything under it.
           scope = body_statement->variant.block.extra_info->assoc_scope;
         }  /* if */
         if (scope != NULL) {
-          push_context(&context, scope);
+          push_context(&context, scope, /*dependent_statement=*/FALSE);
           lower_statement_list(body_statement->variant.block.statements,
                                &last_statement);
           lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
@@ -6094,7 +6098,7 @@ Do IL lowering of the indicated scope and everything under it.
 
   db_enter(2, "lower_scope");
   /* Add a context entry for the scope. */
-  push_context(&context, scope);
+  push_context(&context, scope, /*dependent_statement=*/FALSE);
   if (scope->kind == (a_scope_kind)sck_function) {
     /* The scope is for a function.  Rewrite the parameters if necessary. */
     routine = scope->variant.routine.ptr;
@@ -6329,7 +6333,8 @@ C++ to C, so that a C back end can handle it without change.
       scope = il_header.region_scope_entry[region_number];
       /* Put the file-scope context on the context stack so it's above
          the function context. */
-      push_context(&context, il_header.primary_scope);
+      push_context(&context, il_header.primary_scope,
+                   /*dependent_statement=*/FALSE);
     }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
     if (!lowering_file_scope) {
