@@ -6763,7 +6763,7 @@ concept does not apply, pos can be NULL.
   } else {
     ssep = alloc_source_sequence_entry();
   }  /* if */
-  /* First set the pointer in the IL entity to point  back to the source
+  /* First set the pointer in the IL entity to point back to the source
      sequence entry. */
   if (kind == iek_statement) {
     /* Statement. */
