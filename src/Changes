@@ -1,5 +1,48 @@
 Version 2.30
 
+10/9/95  Namespaces
+
+Namespaces are now supported.  This includes namespace definitions,
+namespace alias declarations, "using" declarations and directives, and
+new name lookup rules.  The changes on qualified name lookup in
+the presence of "using" directives, from the 7/95 standards meeting
+(Monterey), are also implemented.  Namespaces are enabled by default (see
+DEFAULT_NAMESPACES_ENABLED) except in the cfront modes.  The command-line
+options --namespaces and --no_namespaces can be used to enable or
+disable the features.
+
+We added two new IL entry kinds (a_namespace, a_using_directive),
+and we changed the class_of_which_a_member pointer in the source
+correspondence entry (see 6/6/95 entry) and renamed the
+an_access_adjustment entry to a_class_member_using_decl (see
+8/8/95 entry).
+
+The name mangling for members of namespaces uses the same form as
+for class members, and there are no other ABI implications, so this
+feature is upward compatible with older versions except for the
+introduction of the new keywords "namespace" and "using".
+
+Well, almost: the lookup rules for overloaded operator functions
+are now implemented according to the WP, and that means some programs
+that do not use namespaces can change meaning (the operator functions
+in the global scope overload with the operator functions declared
+extern inside a function, instead of being hidden by them).  The old
+operator function lookup rules are used when namespaces are turned off.
+
+Name lookup during template instantiations now does something that
+approximates the two-phase lookup rule of the WP.  See the external
+interface chapter in the internal documentation for details.
+
+We had to guess at some things not well specified by the WP, and in
+one case (scope of friend declarations) we decided that we think the WP
+is wrong and we implemented something different.  Again, see the
+internal documentation for details.
+
+The headers and runtime we provide have also been updated to use
+namespaces, or rather, to support two different versions under
+control of the preprocessing option __EDG_RUNTIME_USES_NAMESPACES,
+which is defined by the front end.
+
 10/9/95  Default name-linkage assigned to classes
 
 It used to be that a file-scope class was given internal name-linkage when
@@ -468,20 +511,6 @@ Microsoft mode allows a nonconstant aggregate initializer for an auto
 variable in C mode.  Now, when LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
 is TRUE (which is the default), a piece of IL lowering will be called
 in C mode to lower that construct to standard C.
-
-8/28/95  Namespaces
-
-Namespaces are now supported.  This includes namespace definitions,
-namespace alias declarations, "using" declarations and directives, and
-new name lookup rules.  Namespaces are enabled by default (see
-DEFAULT_NAMESPACES_ENABLED) except in the cfront modes.  The command-line
-options --namespaces and --no_namespaces can be used to enable or
-disable the features.
-
-The name mangling for members of namespaces uses the same form as
-for class members, and there are no other ABI implications, so this
-feature is upward compatible with older versions except for the
-introduction of the new keywords "namespace" and "using".
 
 8/27/95  New placeholder typeref for nested classes defined outside of parent
 
