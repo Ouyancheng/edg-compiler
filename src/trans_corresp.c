@@ -3894,12 +3894,14 @@ by tup and refers to an IL entry whose canonical entry is canonical_entry.
 {
   char			*entry;
   an_il_entry_kind	il_kind;
-  a_boolean		result;
+  a_boolean		result = FALSE;
 
-  entry = il_entry_for_symbol(candidate_sym, &il_kind);
-  entry = canonical_il_entry_of(entry);
-  result = entry == canonical_entry &&
-           symbol_is_from_trans_unit(candidate_sym, tup);
+  entry = il_entry_for_symbol_null_okay(candidate_sym, &il_kind);
+  if (entry != NULL) {
+    entry = canonical_il_entry_of(entry);
+    result = entry == canonical_entry &&
+             symbol_is_from_trans_unit(candidate_sym, tup);
+  }  /* if */
   return result;
 }  /* is_corresponding_sym_in_trans_unit */
 
