@@ -239,7 +239,7 @@ could not be recorded.
 #if USE_PREFIX_FOR_ARRAY_ALLOC_INFO
   an_alloc_prefix_ptr	app;
   /* Get a pointer to the prefix information and fill in the fields.
-     The number of elements is saved as the compliment of the actual
+     The number of elements is saved as the complement of the actual
      value.  This is done so that zeroing out the prefix (as might happen
      if the memory were overwritten) would not result in valid values. */
   app = (an_alloc_prefix_ptr)(((char *)array_ptr) - __array_new_prefix_size);
@@ -288,7 +288,7 @@ inline size_t get_array_size(void*	array_ptr,
   /* Get the size from the prefix.  Compute the size from the
      element count saved in the prefix and the element size passed
      by the caller.  Note that the number of elements is saved as the
-     compliment of the actual value.  If the two sizes do not agree,
+     complement of the actual value.  If the two sizes do not agree,
      either the memory was not allocated by array_new, or the prefix was
      corrupted. */
   app = (an_alloc_prefix_ptr)(((char *)array_ptr) - __array_new_prefix_size);
