@@ -368,6 +368,10 @@ typedef struct a_class_symbol_supplement {
 			/* Pointer to an sk_member_function symbol that
 			   identifies the destructor for this class; NULL if
 			   there is none. */
+  a_symbol_ptr  assignment_operator;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the assignment operator for this class;
+			   NULL if there is none. */
   unsigned int	any_nonpublic_members:1;
 			/* TRUE if the class contains any members declared
 			   private or protected. */
@@ -391,6 +395,13 @@ typedef struct a_class_symbol_supplement {
   unsigned int  has_copy_constructor_for_const_object:1;
 			/* TRUE if there is a copy constructor for the class
 			   and it can be used to copy a const object. */
+  unsigned int  assignment_by_bitwise_copy_allowed:1;
+			/* TRUE if assignment can be performed by a bitwise
+			   copy rather than by calling an assignment operator
+			   function (i.e., when the assignment operator is
+			   not user-defined and when the current class has no
+			   virtual base classes and no subobjects for which
+			   bitwise copy is not allowed). */
 } a_class_symbol_supplement;
 
 
