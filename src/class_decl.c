@@ -5993,6 +5993,18 @@ and it is legal for virtual member functions only.
       rout_sym->variant.routine.ptr->pure_virtual = TRUE;
       class_type->variant.class_struct_union.any_pure_virtual_functions = TRUE;
       class_type->variant.class_struct_union.abstract = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      {
+      /* Include the pure-specifier in the declarator range.  Note that
+         the routine entry is updated directly, since decl_member_function
+         has already been called at this point. */
+      a_decl_position_supplement_ptr  dpsp = rout_sym->variant.routine.ptr->
+                                                 source_corresp.decl_pos_info;
+      if (dpsp != NULL && dpsp->declarator_range.start.seq != 0) {
+        dpsp->declarator_range.end = pos_curr_token;
+      }  /* if */
+      }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
     /* Advance past the "0". */
     (void)get_token();
