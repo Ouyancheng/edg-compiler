@@ -1284,6 +1284,9 @@ error code.
       m =
    "nonstandard cast to array type treated as cast to pointer to element type";
       break;
+    case ec_virtual_new_or_delete_not_allowed:
+      m = "operator %s() may not be declared virtual";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
