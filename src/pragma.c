@@ -416,7 +416,8 @@ pbk_immediate pragmas are processed here.
             error_code = ec_pragma_must_precede_statement;
           }  /* if */
           if (pkdp->error_severity != es_none) {
-            pos_diagnostic(pkdp->error_severity, error_code, &ppp->id_position);
+            pos_diagnostic(pkdp->error_severity, error_code,
+                           &ppp->id_position);
           }  /* if */
         }  /* if */
         free_pending_pragma(ppp);
@@ -490,37 +491,11 @@ return FALSE.
   prev_ppp = NULL;
   while (ppp != NULL) {
     a_pending_pragma_ptr	next_ppp = ppp->next;
-    a_boolean			remove_from_curr_list = FALSE;
-    a_boolean			add_to_new_list = FALSE;
     a_pragma_kind_description_ptr
 				pkdp = ppp->descr_ptr;
     a_pragma_binding_kind	binding_kind = pkdp->binding_kind;
     if (binding_kind == pbk_next_construct) {
       /* All pbk_next_construct pragmas will be removed from the list. */
-      remove_from_curr_list = TRUE;
-      add_to_new_list = TRUE;
-#if 0
-      if ((is_decl && pkdp->may_bind_to_decl) ||
-          (!is_decl && pkdp->may_bind_to_stmt)) {
-        /* The pragma binding matches the kind of construct being processed. */
-        add_to_new_list = TRUE;
-      } else {
-        /* The pragma binding does not match the kind of construct being
-           processed.  Issue an error. */
-        issue_diagnostic = TRUE;
-        if (pkdp->may_bind_to_decl) {
-          error_code = ec_pragma_must_precede_declaration;
-        } else {
-          check_assertion(pkdp->may_bind_to_stmt);
-          error_code = ec_pragma_must_precede_statement;
-        }  /* if */
-      }  /* if */
-#endif
-    }  /* if */
-    /* An entry can't be on both lists. */
-    check_assertion(!(add_to_new_list == TRUE &&
-                      remove_from_curr_list == FALSE));
-    if (remove_from_curr_list) {
       if (prev_ppp != NULL) {
         /* Make the previous entry on the list point to the entry after this
            one. */
@@ -531,14 +506,6 @@ return FALSE.
         curr_token_pragmas = next_ppp;
       }  /* if */
       ppp->next = NULL;
-      /* If the entry is not being moved to the new list, free it. */
-      if (!add_to_new_list) free_pending_pragma(ppp);
-    } else {
-      /* If this entry will remain on the current list, save the pointer to
-         this element as the next "previous" pointer. */
-      prev_ppp = ppp;
-    }  /* if */
-    if (add_to_new_list) {
       /* Add the entry to the end of the list of pragmas for the current
          declaration or statement. */
       if (list_start == NULL) list_start = ppp;
@@ -548,14 +515,11 @@ return FALSE.
         list_end->next = ppp;
         list_end = ppp;
       }  /* if */
+    } else {
+      /* If this entry will remain on the current list, save the pointer to
+         this element as the next "previous" pointer. */
+      prev_ppp = ppp;
     }  /* if */
-#if 0
-    if (issue_diagnostic) {
-      if (pkdp->error_severity != es_none) {
-        pos_diagnostic(pkdp->error_severity, error_code, &ppp->id_position);
-      }  /* if */
-    }  /* if */
-#endif
     ppp = next_ppp;
   }  /* while */
   *curr_list_of_curr_construct_pragmas() = list_start;
@@ -575,6 +539,9 @@ specified entity_kind with which the pragma is associated; otherwise,
 entity_ptr is NULL.  at_file_scope is TRUE if the pragma IL entry should be
 allocated in the file-scope memory region and added to the file-scope
 pragmas list; it is FALSE when the current IL scope should be used.
+The at_file_scope flag passed by the caller is only used when no entity
+has been provided.  When an entity is supplied, the at_file_scope
+flag is set based on whether the entity is at file scope.
 
 This routine (1) allocates the IL pragma entry and initializes it, (2)
 binds it to the entity it's associated with, if any, and sets the
@@ -587,11 +554,9 @@ there is additional processing to be done.
   a_pragma_ptr            pp;
   a_memory_region_number  region_to_switch_back_to;
 
-#if CHECKING
-  if (entity_ptr != NULL && in_file_scope(entity_ptr) && !at_file_scope) {
-    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
-  }  /* if */
-#endif /* CHECKING */
+  /* If we are binding to an entity, set the at_file_scope flag based on
+     the memory region of the entity. */
+  if (entity_ptr != NULL) at_file_scope = in_file_scope(entity_ptr);
   if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
   pp = alloc_pragma(ppp->descr_ptr->kind);
   pp->decl_position = ppp->id_position;
@@ -785,23 +750,40 @@ the pragmas.
   list_start = ppp;
   for(; ppp != NULL; ppp = ppp->next) {
     a_next_construct_pragma_function_ptr ncpfp;
+    a_boolean				 error = FALSE;
     pkdp = ppp->descr_ptr;
     /* Make sure that the binding information in the pragma description
-       is consistent with the argument list.  If these do not match then
-       the is_decl flag used when select_curr_construct_pragmas
-       must have been invalid. */
-    check_assertion_str((pkdp->may_bind_to_decl && sym != NULL) || 
-                        (pkdp->may_bind_to_stmt && sp != NULL),
-                   "process_pragmas_bound...: binding/argument list mismatch")
-    ncpfp = pkdp->variant.next_construct_processing_function;
-    if (pkdp->automatically_include_in_il) {
-      /* Create an IL entry for pragmas that should automatically be
-         included in the IL. */
-      create_il_entry_for_pragma(ppp, sym, sp);
+       is consistent with the argument list.  Issue diagnostics for
+       any pragmas that cannot bind to the current construct. */
+    if ((pkdp->may_bind_to_decl && sym != NULL) ||
+        (pkdp->may_bind_to_stmt && sp != NULL)) {
+      /* Pragma kind matches arguments. */
+    } else {
+      /* The pragma binding does not match the kind of construct being
+         processed.  Issue a diagnostic. */
+      an_error_code	error_code;
+      error = TRUE;
+      if (pkdp->error_severity != es_none) {
+        if (pkdp->may_bind_to_decl) {
+          error_code = ec_pragma_must_precede_declaration;
+        } else {
+          check_assertion(pkdp->may_bind_to_stmt);
+          error_code = ec_pragma_must_precede_statement;
+        }  /* if */
+        pos_diagnostic(pkdp->error_severity, error_code, &ppp->id_position);
+      }  /* if */
     }  /* if */
-    if (ncpfp != NULL) {
-      /* Call the pragma processing function associated with this pragma. */
-      (ncpfp)(ppp, sym, (a_statement_ptr)NULL);
+    if (!error) {
+      ncpfp = pkdp->variant.next_construct_processing_function;
+      if (pkdp->automatically_include_in_il) {
+        /* Create an IL entry for pragmas that should automatically be
+           included in the IL. */
+        create_il_entry_for_pragma(ppp, sym, sp);
+      }  /* if */
+      if (ncpfp != NULL) {
+        /* Call the pragma processing function associated with this pragma. */
+        (ncpfp)(ppp, sym, (a_statement_ptr)NULL);
+      }  /* if */
     }  /* if */
   }  /* for */
   if (list_start != NULL) {
@@ -809,6 +791,57 @@ the pragmas.
   }  /* if */
   *curr_list_of_curr_construct_pragmas() = NULL;
 }  /* process_curr_construct_pragmas */
+
+
+void cannot_bind_to_curr_construct(void)
+/*
+While processing a construct the caller has determined that it is
+not possible to bind pragmas to the construct.  This routine
+issues diagnostics that indicate the pragma could not be bound and
+clears the curr_construct_pragma list.
+*/
+{
+  a_pending_pragma_ptr     	ppp;
+  a_pending_pragma_ptr		list_start;
+  a_pending_pragma_ptr		*list_ptr;
+  a_pragma_kind_description_ptr	pkdp;
+
+  list_ptr = curr_list_of_curr_construct_pragmas();
+  ppp = *list_ptr;
+  list_start = ppp;
+  for(; ppp != NULL; ppp = ppp->next) {
+    pkdp = ppp->descr_ptr;
+    if (pkdp->error_severity != es_none) {
+      pos_diagnostic(pkdp->error_severity, ec_pragma_may_not_be_used_here,
+                     &ppp->id_position);
+    }  /* if */
+  }  /* for */
+  if (list_start != NULL) {
+    free_pending_pragma_list(list_start);
+  }  /* if */
+  /* Clear the curr_construct_pragma list. */
+  *list_ptr = NULL;
+}  /* cannot_bind_to_curr_construct */
+
+
+void discard_curr_construct_pragmas(void)
+/*
+This routine is called when an error is encountered while processing
+a construct, and as a result of that error it is not possible to
+do the binding of any current construct pragmas.  The list of
+current construct pragmas is simply cleared.
+*/
+{
+  a_pending_pragma_ptr		*list_ptr;
+  a_pending_pragma_ptr		list_start;
+
+  list_ptr = curr_list_of_curr_construct_pragmas();
+  list_start = *list_ptr;
+  if (list_start != NULL) {
+    free_pending_pragma_list(list_start);
+  }  /* if */
+  *list_ptr = NULL;
+}  /* discard_curr_construct_pragmas */
 
 
 void process_pragmas_at_end_of_source(void)
