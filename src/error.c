@@ -860,6 +860,12 @@ error code.
     case ec_bad_base_class:
       m = "invalid base class";
       break;
+    case ec_no_access_to_name:
+      m = "name is inaccessible";
+      break;
+    case ec_ambiguous_name:
+      m = "name is ambiguous";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
