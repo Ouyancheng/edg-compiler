@@ -2205,7 +2205,7 @@ incremental_size must be a multiple of the page size.
 */
 {
   int	page_size;
-#if __BSD__ || __LINUX__
+#if __BSD__ || defined(__LINUX__)
   page_size = getpagesize();
 #else /* !__BSD__  || __LINUX__ */
   page_size = sysconf(_SC_PAGESIZE);
