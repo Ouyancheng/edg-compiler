@@ -16,6 +16,12 @@ itself a private nested class.  Now fixed.
     };
   };
 
+3/13/99  Internal error in case of ambiguous base class
+
+An internal error in path_to_fundamental_symbol_base_class has been
+eliminated.  It could come up in very rare cases involving ambiguous base
+classes.
+
 3/13/99  Constraint on local class friend function declaration
 
 The front end now enforces the requirement (11.4 [class.friend] paragraph
