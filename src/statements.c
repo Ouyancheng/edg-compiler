@@ -1709,6 +1709,7 @@ come out on the closing "}".
   a_statement_ptr block;
   a_scope_ptr     scope_ptr;
   a_boolean       any_statements = FALSE;
+  unsigned char   old_else_stop_token_value;
 
   db_enter (3, "compound_statement");
 
@@ -1729,6 +1730,11 @@ come out on the closing "}".
       check_for_unreachable_code();
     }  /* if */
     block = add_statement((a_statement_kind)stmk_block);
+    /* Clear the entry for "else" in the stop stokens set.  Without this,
+       an else encountered where a statement is expected could cause an
+       error recovery loop. */
+    old_else_stop_token_value = stop_token_array[(int)tok_else];
+    stop_token_array[(int)tok_else] = 0;
   }  /* if */
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_compound, block);
@@ -1794,6 +1800,9 @@ come out on the closing "}".
       scope_ptr->assoc_block = block;
     }  /* if */
     pop_scope();
+    /* Restore the entry for "else" in the stop tokens set (see comment
+       above). */
+    stop_token_array[(int)tok_else] = old_else_stop_token_value;
   }  /* if */
   /* Pop the statement stack. */
   pop_stmt_stack();
