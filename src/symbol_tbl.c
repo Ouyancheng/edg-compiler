@@ -41,7 +41,8 @@ unnamed class symbols.
 */
 static a_symbol_header_ptr
 		error_symbol_header,
-		unnamed_class_symbol_header;
+		unnamed_class_symbol_header,
+		unnamed_field_symbol_header;
 
 #if DEBUG
 /*
@@ -2562,6 +2563,25 @@ Return TRUE if sym represents an unnamed class type.
 {
   return (sym->header == unnamed_class_symbol_header);
 }  /* if */
+
+
+a_symbol_ptr unnamed_field_symbol(void)
+/*
+Return a pointer to "the" unnamed field symbol, which exists only for the
+sake of identifying a given field entry as representing an unnamed field.
+*/
+{
+  static a_symbol             sym;
+
+  if (unnamed_field_symbol_header == NULL) {
+    unnamed_field_symbol_header = alloc_symbol_header();
+    unnamed_field_symbol_header->identifier = "<unnamed>";
+    unnamed_field_symbol_header->identifier_length = 9;
+    clear_symbol(&sym, (a_symbol_kind)sk_field);
+    sym.header = unnamed_field_symbol_header;
+  }  /* if */
+  return &sym;
+}  /* unnamed_field_symbol */
 
 
 a_symbol_ptr full_enter_symbol(char          *identifier,
@@ -7891,6 +7911,7 @@ to avoid an 8-character external name clash with symbol_table.)
   avail_param_ids = NULL;
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
+  unnamed_field_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
   decl_seq_counter = 0;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
