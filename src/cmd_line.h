@@ -157,6 +157,7 @@ typedef enum /*an_option_kind*/ {
 #if VLA_ALLOWED
   optk_vla,
 #endif /* VLA_ALLOWED */
+  optk_enum_overloading,
   optk_last		/* Must be last. */
 } an_option_kind;
 

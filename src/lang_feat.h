@@ -279,6 +279,17 @@ The variable can also been controlled from the command line by --[no_]vla.
 #endif /* ifndef DEFAULT_VLA_ENABLED */
 
 /*
+Flag that is used as the default setting for global variable
+operator_overloading_on_enums_enabled.  This controls whether operator
+functions can overload builtin operators for arguments of enum type.
+The variable can also be controlled from the command line by
+--[no_]enum_overloading.
+*/
+#ifndef DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS
+#define DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS TRUE
+#endif /* ifndef DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

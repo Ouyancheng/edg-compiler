@@ -469,7 +469,7 @@ Initialize the option information table.
   add_option_description(optk_brief_diagnostics,
 			 "brief_diagnostics",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
+                         pchek_none);
   add_option_description(optk_brief_diagnostics,
 			 "no_brief_diagnostics",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
@@ -481,7 +481,7 @@ Initialize the option information table.
   add_option_description(optk_nonconst_ref_anachronism,
                          "no_nonconst_ref_anachronism",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_none);
+                         pchek_command_line);
   add_option_description(optk_no_preproc_only,
                          "no_preproc_only",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -622,7 +622,7 @@ Initialize the option information table.
   add_option_description(optk_wrap_diagnostics,
 			 "wrap_diagnostics",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
+                         pchek_none);
   add_option_description(optk_wrap_diagnostics,
 			 "no_wrap_diagnostics",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
@@ -635,7 +635,7 @@ Initialize the option information table.
   add_option_description(optk_implicit_extern_c_type_conversion,
 			 "no_implicit_extern_c_type_conversion",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_none);
+                         pchek_command_line);
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
   add_option_description(optk_long_preserving_rules,
                          "long_preserving_rules",
@@ -644,7 +644,7 @@ Initialize the option information table.
   add_option_description(optk_long_preserving_rules,
                          "no_long_preserving_rules",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_none);
+                         pchek_command_line);
   add_option_description(optk_extern_inline,
 			 "extern_inline",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -652,7 +652,7 @@ Initialize the option information table.
   add_option_description(optk_extern_inline,
 			 "no_extern_inline",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_none);
+                         pchek_command_line);
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   add_option_description(optk_multibyte_chars,
                          "multibyte_chars",
@@ -661,7 +661,7 @@ Initialize the option information table.
   add_option_description(optk_multibyte_chars,
                          "no_multibyte_chars",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_none);
+                         pchek_command_line);
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   add_option_description(optk_embedded_cplusplus,
                          "embedded_c++",
@@ -675,9 +675,16 @@ Initialize the option information table.
   add_option_description(optk_vla,
 			 "no_vla",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_none);
-
+                         pchek_command_line);
 #endif /* VLA_ALLOWED */
+  add_option_description(optk_enum_overloading,
+                         "enum_overloading",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_enum_overloading,
+                         "no_enum_overloading",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1034,6 +1041,8 @@ is enabled.
                               MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
   /* Exception specifications should be ignored in Microsoft bugs mode. */
   ignore_exception_specifications = microsoft_bugs;
+  /* Enum overloading is supported by Microsoft Visual C++ 5.0. */
+  operator_overloading_on_enums_enabled = microsoft_version >= 1100;
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1751,6 +1760,9 @@ enable_microsoft_mode:
         vla_enabled = opt_value;
         break;
 #endif /* VLA_ALLOWED */
+      case optk_enum_overloading:
+        operator_overloading_on_enums_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1846,6 +1858,9 @@ enable_microsoft_mode:
     if (option_kind_used[(int)optk_embedded_cplusplus]) {
       command_line_error(ec_cl_embedded_cplusplus_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_enum_overloading]) {
+      command_line_error(ec_cl_enum_overloading_option_only_in_cplusplus);
+    }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
       address_of_ellipsis_allowed = TRUE;
@@ -1870,6 +1885,7 @@ enable_microsoft_mode:
     remove_qualifiers_from_param_types = FALSE;
     impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
     extern_inline_allowed = FALSE;
+    operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
@@ -2060,6 +2076,11 @@ enable_microsoft_mode:
         /* If extern_inline_allowed was not explicitly set by a command line
            option, set it now. */
         extern_inline_allowed = TRUE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_enum_overloading])) {
+        /* If enum_overloading was not explicitly set by a command line
+           option, set it now. */
+        operator_overloading_on_enums_enabled = TRUE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
