@@ -1,5 +1,10 @@
 Version 2.29
 
+4/3/95   #pragma ident in local scope
+
+When #pragma ident and #ident appear inside a function, the constant entry
+created for the string is now allocated in the file-scope memory region.
+
 4/3/95   Option name changed: --alternate_tokens is now --alternative_tokens
 
 The name of the command line option, and variables in the front end,
