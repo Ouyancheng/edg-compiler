@@ -1464,6 +1464,35 @@ Add to the mangled name the encoding qualifier that indicates specialization.
 }  /* mangled_specialization_indication */
 
 
+static void add_local_name_suffix(unsigned long            id_number,
+                                  a_routine_ptr            routine,
+                                  a_mangling_control_block *mctl)
+/*
+Add a suffix to the current name for a function-local entity.  id_number
+is an id number for the entity (usually a scope number within the routine)
+and "routine" is the routine to which the entity is local.
+*/
+{
+  /* The mangling is "__Lnn", where "nn: is the id number, followed by the
+     mangled name of the function. */
+  add_str_to_mangled_name("__L", mctl);
+  add_number_to_mangled_name(id_number, mctl);
+  add_str_to_mangled_name("__", mctl);
+  if (routine->source_corresp.name != NULL) {
+    if (routine->source_corresp.name_has_been_mangled &&
+        !routine->source_corresp.
+                               mangled_name_cannot_be_included_in_other_name) {
+      /* Using the mangled name as written is important if the routine
+         is a static function that has been externalized. */
+      add_str_to_mangled_name(routine->source_corresp.name, mctl);
+    } else {
+      mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
+                            mctl);
+    }  /* if */
+  }  /* if */
+}  /* add_local_name_suffix */
+
+
 static void mangled_full_class_name(
                          a_type_ptr               type,
                          a_boolean                show_partial_spec_args,
@@ -1587,9 +1616,9 @@ should be put out.
     if (type->source_corresp.is_local_to_function &&
         !type->source_corresp.is_class_member) {
       /* This is a local name. */
-      a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      add_str_to_mangled_name("__L", mctl);
-      add_number_to_mangled_name((unsigned long)assoc_sym->decl_scope, mctl);
+      a_class_symbol_supplement_ptr ssp = symbol_supplement_for_class(type);
+      add_local_name_suffix(ssp->local_class_number, ssp->enclosing_routine,
+                            mctl);
     }  /* if */
   }  /* if */
 }  /* mangled_full_class_name */
@@ -3915,21 +3944,7 @@ mangled names.
                           "mangle_promoted_entity_name: scope not found");
     }
     add_str_to_mangled_name(scp->name, &mctl);
-    add_str_to_mangled_name("__L", &mctl);
-    add_number_to_mangled_name((unsigned long)scope_number, &mctl);
-    add_str_to_mangled_name("__", &mctl);
-    if (routine->source_corresp.name != NULL) {
-      if (routine->source_corresp.name_has_been_mangled &&
-          !routine->source_corresp.
-                               mangled_name_cannot_be_included_in_other_name) {
-        /* Using the mangled name as written is important if the routine
-           is a static function that has been externalized. */
-        add_str_to_mangled_name(routine->source_corresp.name, &mctl);
-      } else {
-        mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
-                              &mctl);
-      }  /* if */
-    }  /* if */
+    add_local_name_suffix(scope_number, routine, &mctl);
     (void)end_mangling(scp, final, &mctl);
   }  /* if */
 }  /* mangle_promoted_entity_name */
