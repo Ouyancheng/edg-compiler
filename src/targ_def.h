@@ -111,6 +111,24 @@ choose a default based on CFRONT_2_1_OBJECT_CODE_COMPATIBILITY.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 /*
+TRUE if the IA-64 ABI should be used.  This is a "modern" C++ object
+layout standard (unlike the cfront ABI), and is a good starting point
+even on architectures other than IA-64 (it's the default for a lot
+of 3.x versions of g++).  See www.codesourcery.com/cxx-abi/.
+*/
+#ifndef IA64_ABI
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define IA64_ABI FALSE
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#define IA64_ABI FALSE /*Temporary -- FIXME*/
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* ifndef IA64_ABI */
+
+#if CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI
+ #error -- Cfront and IA-64 ABIs are mutually exclusive.
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI */
+
+/*
 Certain C99 features require IL constructs not otherwise present.
 Because certain back ends may not support the new constructs, a mechanism
 is provided to disable the C99 features that require back end support.
