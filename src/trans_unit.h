@@ -132,14 +132,14 @@ in other translation units.
 */
 typedef struct a_trans_unit_corresp *a_trans_unit_corresp_ptr;
 typedef struct a_trans_unit_corresp {
-  an_il_entry_kind
-                kind;   /* Kind of entity. */
   char          *canonical;
                         /* The instance of the entity that is considered the
                            canonical one, which means the one with the most
                            information.  Points to a definition if one is
                            available, and to a specialization if one is
-                           available.  Always non-NULL. */
+                           available.  Always non-NULL.  When the entry is
+			   on the list of freed and available entries, this
+			   is used as the "next" pointer. */
   char          *primary;
                         /* The instance of the entity in the primary IL, if
                            there is one.  NULL otherwise. */
@@ -147,8 +147,9 @@ typedef struct a_trans_unit_corresp {
   unsigned int  count;
                         /* The number of entities pointing to this entry. */
 #endif /* CHECKING */
+  an_il_entry_kind
+                kind;   /* Kind of entity. */
 } a_trans_unit_corresp;
-
 
 extern void trans_unit_early_init(void);
 
@@ -210,6 +211,8 @@ extern void f_register_trans_unit_variable(a_void_ptr	var,
 					   sizeof_t	size);
 
 extern a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void);
+
+extern void free_trans_unit_corresp(a_trans_unit_corresp_ptr	tucp);
 
 /*
 Macro that returns whether a secondary translation unit has been seen.

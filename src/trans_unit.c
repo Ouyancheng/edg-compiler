@@ -63,6 +63,11 @@ static a_translation_unit_stack_entry_ptr
 			/* List of translation unit stack entries that have
 			   been freed and are available for reuse. */
 
+static a_trans_unit_corresp_ptr
+		avail_trans_unit_corresps;
+			/* List of translation unit correspondence entries
+			   that have been freed and are available for reuse. */
+
 static a_variable_registration_ptr
 		trans_unit_variables;
 			/* Pointer to a list of variable registrations for
@@ -114,10 +119,16 @@ and return a pointer to it.
 {
   a_trans_unit_corresp_ptr tucp;
 
-  tucp = alloc_fe_of_type(a_trans_unit_corresp);
+  if (avail_trans_unit_corresps != NULL) {
+    tucp = avail_trans_unit_corresps;
+    /* The canonical pointer is used as the next pointer. */
+    avail_trans_unit_corresps = (a_trans_unit_corresp_ptr)tucp->canonical;
+  } else {
+    tucp = alloc_fe_of_type(a_trans_unit_corresp);
 #if DEBUG
-  num_trans_unit_corresps_allocated++;
+    num_trans_unit_corresps_allocated++;
 #endif /* DEBUG */
+  }  /* if */
   tucp->kind = iek_none;
   tucp->canonical = NULL;
   tucp->primary = NULL;
@@ -126,6 +137,17 @@ and return a pointer to it.
 #endif /* CHECKING */
   return tucp;
 }  /* alloc_trans_unit_corresp */
+
+
+void free_trans_unit_corresp(a_trans_unit_corresp_ptr	tucp)
+/*
+Return a translation unit correspondence entry to the available list.
+*/
+{
+  /* The canonical pointer is used as the next pointer. */
+  tucp->canonical = (char *)avail_trans_unit_corresps;
+  avail_trans_unit_corresps = tucp;
+}  /* free_trans_unit_corresp */
 
 
 static
