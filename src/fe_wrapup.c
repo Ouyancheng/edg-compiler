@@ -277,8 +277,6 @@ processed here, code from any secondary translation units will have
 already been copied over.
 */
 {
-  a_scope_ptr il_scope = curr_translation_unit->primary_scope;
-
   if (is_primary_translation_unit) {
     if (total_errors == 0 && !trans_unit_test_mode) {
       /* Finish processing of any functions moved from secondary translation
@@ -309,7 +307,7 @@ already been copied over.
       /* If we're not supposed to pass object lifetime information to the back
          end, unlink all object lifetimes from the IL tree.  This has to
          be done after the file scope object lifetime has been popped. */
-      clean_up_all_object_lifetimes(il_scope);
+      clean_up_all_object_lifetimes(curr_translation_unit->primary_scope);
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */

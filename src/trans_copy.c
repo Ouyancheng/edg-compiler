@@ -1454,11 +1454,13 @@ the lists.
     if (!nsp->is_namespace_alias) {
       keep_on_list = prepare_for_trans_unit_copy(nsp->variant.assoc_scope,
                                                  any_removed_function_bodies);
+#if DO_IL_LOWERING
       if (keep_on_list && !has_name(nsp)) {
         /* Give an unnamed namespace a mangled name now, so that it uses
            the module id from the secondary translation unit. */
         give_unnamed_namespace_a_name(nsp);
       }  /* if */
+#endif /* DO_IL_LOWERING */
     } else {
       /* A namespace alias.  Keep it only if there's not already a copy in
          the primary IL. */
