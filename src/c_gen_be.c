@@ -4768,7 +4768,7 @@ characters should be put out separately (to initialize a substring, probably).
         repeat_count = elem_con->variant.init_repeat.count;
         init_con = elem_con->variant.init_repeat.constant;
         if (association_init) {
-          (void)fprintf(f_C_output, "{");
+          initializer_open_brace();
           repeated_for_association = TRUE;
         }  /* if */
       }  /* if */
@@ -4797,7 +4797,7 @@ characters should be put out separately (to initialize a substring, probably).
         }  /* if */
       }  /* while */
       if (repeated_for_association) {
-        (void)fprintf(f_C_output, "}");
+        initializer_close_brace();
       }  /* if */
 #else /* !defined(FFE) */
       dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
