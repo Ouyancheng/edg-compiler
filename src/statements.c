@@ -743,6 +743,30 @@ found:
 }  /* find_enclosing_struct_stmt */
 
 
+static void dependent_statement(void)
+/*
+In C++ the dependent statement of an if or switch statement implicitly
+defines a local scope.  Push a new scope on the scope stack and then
+call statement().  In C mode or when the dependent statement is a compound
+statement no new scope is required.
+*/
+{
+  a_boolean    pop_scope_needed;
+
+  db_enter(3, "dependent_statement");
+  if (C_dialect != C_dialect_cplusplus || curr_token == tok_lbrace) {
+    pop_scope_needed = FALSE;
+  } else {
+    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
+    pop_scope_needed = TRUE;
+  }  /* if */
+  statement();
+  if (pop_scope_needed) pop_scope();
+  db_exit();
+}  /* dependent_statement */
+
+
 static void if_statement(void)
 /*
 Scan an "if" statement (with or without else) and add it to the current
@@ -780,7 +804,7 @@ See also 3.6.4.1.
   remove_stop_token(tok_rparen);
   /* Scan the "then" statement. */
   add_stop_token(tok_else);
-  statement();
+  dependent_statement();
   remove_stop_token(tok_else);
   /* Scan "else" and another statement if they appear. */
   if (curr_token == tok_else) {
@@ -792,7 +816,7 @@ See also 3.6.4.1.
     term_stmt_clause(sssep);
     sssep->in_else_of_if = TRUE;
     start_stmt_clause(sssep);
-    statement();
+    dependent_statement();
   }  /* if */
   /* Pop the structured statement stack. */
   pop_stmt_stack();
@@ -862,7 +886,7 @@ See also 3.6.4.2.
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
-  statement();
+  dependent_statement();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -968,6 +992,35 @@ See also 3.6.5.2.
 }  /* do_statement */
 
 
+static void for_init_statement(void)
+/*
+Scan the initializing expression or, in C++, declaration of a for statement.
+*/
+{
+  a_statement_ptr  temp_stmt;
+  an_expr_node_ptr init_expr;
+  a_seq_number     temp_seq_number;
+
+  if (C_dialect == C_dialect_cplusplus && is_decl_start()) {
+    /* Scan a declaration (C++ only). */
+    local_declaration();
+  } else {
+    /* Scan an expression.  It may be omitted. */
+    if (curr_token != tok_semicolon) {
+      temp_seq_number = pos_curr_token.seq;
+      init_expr = scan_void_expression();
+      /* Add the expression if is is not void. */
+      if (init_expr != NULL) {
+        temp_stmt = add_statement((a_statement_kind)stmk_expr);
+        temp_stmt->seq_number = temp_seq_number;
+        temp_stmt->expr = init_expr;
+      }  /* if */
+    }  /* if */
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
+  }  /* if */
+}  /* for_init_statement */
+
+
 static void for_statement(void)
 /*
 Scan a "for" statement and add it to the current statement sequence.
@@ -978,12 +1031,15 @@ The syntax is:
                                 opt             opt             opt
 
 See also 3.6.5.3.
+
+In C++ the first expression is replaced by for-init-statement, which is
+either an expression statement or a declaration statement.
 */
 {
   a_statement_ptr  sp;
   a_statement_ptr  temp_stmt;
   a_constant       constant;
-  an_expr_node_ptr incr_expr, init_expr;
+  an_expr_node_ptr incr_expr;
   a_seq_number     start_seq_number, temp_seq_number;
 
   db_enter(3, "for_statement");
@@ -991,17 +1047,18 @@ See also 3.6.5.3.
   check_loop_unreachable_code();
   /* Overall, the "for" statement
 
-       for (expr1; expr2; expr3) statement
+       for (for-init-stmt; expr2; expr3) statement
 
      is translated as
 
-       expr1;
+       for-init-stmt;
        while (expr2) {
          statement
          expr3;
        }
 
-     If expr2 is omitted, "1" is used instead. */
+     In C for-init-stmt is an expression statement; in C++ it may also be
+     a declaration.  If expr2 is omitted, "1" is used instead. */
 
   /* Save the source sequence number of the "for" for use later. */
   start_seq_number = pos_curr_token.seq;
@@ -1016,20 +1073,10 @@ See also 3.6.5.3.
   add_stop_token(tok_rparen);
   add_stop_token(tok_semicolon);
 
-  /* Scan the initializing expression if it is present. */
-  if (curr_token != tok_semicolon) {
-    temp_seq_number = pos_curr_token.seq;
-    init_expr = scan_void_expression();
-    /* Add the expression if is is not void. */
-    if (init_expr != NULL) {
-      temp_stmt = add_statement((a_statement_kind)stmk_expr);
-      temp_stmt->seq_number = temp_seq_number;
-      temp_stmt->expr = init_expr;
-    }  /* if */
-  }  /* if */
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  /* Scan the initializing expression or declaration if it is present. */
+  for_init_statement();
 
-  /* Allocate the statement.  This is done late so that the initializing
+  /* Allocate the for statement.  This is done late so that the initializing
      expression can be evaluated outside the loop. */
   sp = add_statement((a_statement_kind)stmk_while);
   sp->seq_number = start_seq_number;
