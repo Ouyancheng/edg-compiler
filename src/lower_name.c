@@ -1706,20 +1706,44 @@ is a routine if is_routine is TRUE.
 */
 {
   a_type_ptr parent_class = scp->parent.class_type;
- 
-  /* Scope resolution operator "sr". */
-  add_str_to_mangled_name("sr", mctl);
-  /* First operand is the parent class type. */
-  mangled_encoding_for_type(parent_class, mctl);
-  /* Second operand is an unqualified name, more or less. */
-  if (is_routine) {
-    a_routine_ptr rout = (a_routine_ptr)scp;
-    mangled_function_name(rout,
-                          /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
-                          /*suppress_parent_encoding=*/!emulate_gnu_abi_bugs,
-                          /*base_name_offset=*/(sizeof_t *)NULL, mctl);
+  a_boolean  use_sr = emulate_gnu_abi_bugs ||
+                      is_template_dependent_type(parent_class);
+
+  if (use_sr) {
+    /* Scope resolution operator "sr". */
+    add_str_to_mangled_name("sr", mctl);
+    /* First operand is the parent class type. */
+    mangled_encoding_for_type(parent_class, mctl);
+    /* Second operand is an unqualified name, more or less. */
+    if (is_routine) {
+      a_routine_ptr rout = (a_routine_ptr)scp;
+      mangled_function_name(rout,
+                            /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
+                            /*suppress_parent_encoding=*/!emulate_gnu_abi_bugs,
+                            /*base_name_offset=*/(sizeof_t *)NULL, mctl);
+    } else {
+      mangled_name_with_length(unmangled_name_of(scp), mctl);
+    }  /* if */
   } else {
-    mangled_name_with_length(unmangled_name_of(scp), mctl);
+    /* Use a name as a literal instead of "sr", because the parent class
+       is not dependent. */
+    add_str_to_mangled_name("L_Z", mctl);
+    if (is_routine) {
+      a_routine_ptr rout = (a_routine_ptr)scp;
+      mangled_function_name(rout,
+                            /*suppress_param_encoding=*/FALSE,
+                            /*suppress_parent_encoding=*/FALSE,
+                            /*base_name_offset=*/(sizeof_t *)NULL, mctl);
+    } else {
+      /* Not a routine. */
+      /* Add a parent qualifier for a member if needed. */
+      a_boolean need_nested_name_close = FALSE;
+      mangled_ia64_parent_qualifier(scp, iek_none,
+                                    &need_nested_name_close, mctl);
+      mangled_name_with_length(scp->name, mctl);
+      close_ia64_nested_name(need_nested_name_close, mctl);
+    }  /* if */
+    add_to_mangled_name('E', mctl);
   }  /* if */
 }  /* mangled_member_reference */
 
