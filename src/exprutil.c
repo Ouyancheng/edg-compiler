@@ -208,24 +208,10 @@ Free the cross-reference entry pointed to by xep.
 }  /* free_xref_entry */
 
 
-void clear_xref_entries_list(an_xref_entry_ptr *old_xref_entries_list)
-/*
-Clear the list of cross-reference entries for the current expression.
-This is done at the start of an expression.  Save the old contents of
-the list in *old_xref_entries_list for restoration at the end of the
-expression.
-*/
-{
-  *old_xref_entries_list = curr_expr_xref_entries;
-  curr_expr_xref_entries = NULL;
-}  /* clear_xref_entries_list */
-
-
-void flush_xref_entries_list(an_xref_entry_ptr old_xref_entries_list)
+static void flush_xref_entries_list(void)
 /*
 If there are any entries on the list of cross-reference entries for the
-current expression, output them now.  Restore the current-list pointer
-to old_xref_entries_list.
+current expression, output them now.
 */
 {
   an_xref_entry_ptr xep;
@@ -243,8 +229,6 @@ to old_xref_entries_list.
     }  /* if */
     free_xref_entry(xep);
   }  /* while */
-  /* Restore the old xref entries list, if any. */
-  curr_expr_xref_entries = old_xref_entries_list;
 }  /* flush_xref_entries_list */
 
 
@@ -297,6 +281,40 @@ entries on the list xref_list.
     xep->kind = kind;
   }  /* for */
 }  /* change_xref_kinds */
+
+
+void push_expr_stack(an_expression_kind      expression_kind,
+                     an_expr_stack_entry_ptr new_entry)
+/*
+Push a new entry on the top of the expr_stack.  expression_kind indicates
+the kind of the expression.  new_entry is used as the new top-of-stack
+entry (the entries are local variables on the stack).  This is done
+at the start of a major expression.
+*/
+{
+  new_entry->prev = expr_stack;
+  new_entry->expression_kind = expression_kind;
+  new_entry->old_xref_entries_list = curr_expr_xref_entries;
+  curr_expr_xref_entries = NULL;
+  new_entry->is_default_arg_expression = FALSE;
+  new_entry->is_template_arg_expression = FALSE;
+  expr_stack = new_entry;
+}  /* push_expr_stack */
+
+
+void pop_expr_stack(void)
+/*
+Pop the top entry off the expr_stack.  This is done at the end of a
+major expression.
+*/
+{
+  /* Flush the cross-reference entries list for the current expression. */
+  flush_xref_entries_list();
+  /* Restore the old xref entries list, if any. */
+  curr_expr_xref_entries = expr_stack->old_xref_entries_list;
+  /* Pop the stack. */
+  expr_stack = expr_stack->prev;
+}  /* pop_expr_stack */
 
 
 void set_operand_kind(an_operand      *operand,
@@ -9253,7 +9271,7 @@ Initialize things related to expression scanning.
 */
 {
   /* Variables in exprutil.h: */
-  inside_default_arg_expression = FALSE;
+  expr_stack = NULL;
   
   /* Static variables in exprutil.c: */
   avail_xref_entries = NULL;

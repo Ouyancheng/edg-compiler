@@ -38,7 +38,7 @@ enum an_expression_kind_tag {
   ek_pp,		/* Preprocessing expression (see 3.8.1). */
   ek_integral_constant,	/* Integral constant expression (see 3.4). */
   ek_init_constant,	/* Constant expression allowed in initializers (see
-			   3.4). */
+			   3.4).  Limited use in C++. */
   /* Non-constant expression kinds: */
   ek_normal,		/* Normal expression, no restrictions. */
   ek_not_evaluated	/* Not-evaluated expression, as for example the
@@ -277,11 +277,33 @@ typedef int a_transformation_options_set;
 
 
 /*
-Variable that is TRUE while scanning a default argument expression,
-FALSE otherwise.
+Entry in a stack used during expression processing to record transitions
+into substantially disjunct pieces of the expression (e.g., inside a
+sizeof is quite different from a normal expression).  These entries are
+allocated in the stack.
 */
-EXTERN a_boolean
-		inside_default_arg_expression;
+typedef struct an_expr_stack_entry *an_expr_stack_entry_ptr;
+typedef struct an_expr_stack_entry {
+  an_expr_stack_entry_ptr
+		prev;	/* Previous entry on the stack */
+  an_expression_kind
+		expression_kind;
+			/* The kind of expression. */
+  an_xref_entry_ptr
+		old_xref_entries_list;
+			/* Saved copy of the cross-reference entries list
+			   at the time of the push of this entry. */
+  unsigned int	is_default_arg_expression;
+			/* TRUE if the expression is a C++ default argument
+			   expression in a parameter list. */
+  unsigned int	is_template_arg_expression;
+			/* TRUE if the expression is an argument of a
+			   template reference. */
+} an_expr_stack_entry;
+
+EXTERN an_expr_stack_entry_ptr
+		expr_stack;
+			/* Pointer to the top of the expression stack. */
 
 
 /* Copy an operand. */
@@ -353,16 +375,17 @@ constant expressions.  See ARM 7.1.6.
 	(is_const_qualified_type((var)->type) && is_integral_type((var)->type))
 
 
-extern void clear_xref_entries_list(an_xref_entry_ptr *old_xref_entries_list);
-
-extern void flush_xref_entries_list(an_xref_entry_ptr old_xref_entries_list);
-
 extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
                                     a_source_position       *source_position,
                                     an_expression_kind      expression_kind);
 
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
+
+extern void push_expr_stack(an_expression_kind      expression_kind,
+                            an_expr_stack_entry_ptr new_entry);
+
+extern void pop_expr_stack(void);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 

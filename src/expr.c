@@ -348,8 +348,17 @@ current expression (used to decide how a comma should be treated).
     case tok_shift_right:
       new_prec = PREC_SHIFT;
       break;
-    case tok_lt:
     case tok_gt:
+      /* ">" can be the end of a template argument list: A<int, 2> */
+      if (expr_stack->is_template_arg_expression) {
+#if 0
+        /* Highly simplified processing. */
+#endif
+        done = TRUE;
+      }  /* if */
+      /* Not the end of a template argument list, so fall into the normal
+         case. */
+    case tok_lt:
     case tok_le:
     case tok_ge:
       new_prec = PREC_RELATIONAL;
@@ -6084,7 +6093,7 @@ The symbol may be a member of an anonymous union.
   /* This sort of bad reference is only possible when we are inside a local
      class (the class itself or one of its member functions) or a
      default argument expression. */
-  if (inside_local_class || inside_default_arg_expression) {
+  if (inside_local_class || expr_stack->is_default_arg_expression) {
     if (sym_ptr->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->class_of_which_a_member != NULL) {
@@ -6127,7 +6136,7 @@ The symbol may be a member of an anonymous union.
             var->referenced_non_locally = TRUE;
           }  /* if */
           break;
-        } else if (inside_default_arg_expression &&
+        } else if (expr_stack->is_default_arg_expression &&
                    skind == (a_scope_kind)sck_func_prototype) {
           /* We've hit the function prototype scope, so the variable must
              be a local variable of some function that contains the
@@ -6306,8 +6315,7 @@ bound_function_selector to the associated "this" pointer.
                inside a default argument expression, we're not allowed to
                reference local variables of any containing function.
                Check for those. */
-            if ((inside_local_class || inside_default_arg_expression) &&
-                bad_nested_function_variable_ref(sym_ptr)) {
+            if (bad_nested_function_variable_ref(sym_ptr)) {
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
             } else {
@@ -6347,8 +6355,7 @@ normal_function:
                inside a default argument expression, we're not allowed to
                reference local variables of any containing function.
                Check for those. */
-            if ((inside_local_class || inside_default_arg_expression) &&
-                bad_nested_function_variable_ref(sym_ptr)) {
+            if (bad_nested_function_variable_ref(sym_ptr)) {
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
             } else {
@@ -6886,14 +6893,14 @@ Scan an integral selector expression for a switch statement, and return
 a pointer to the expression tree.
 */
 {
-  an_expr_node_ptr  expression;
-  an_operand        result;
-  a_boolean         processed = FALSE;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_expr_node_ptr    expression;
+  an_operand          result;
+  a_boolean           processed = FALSE;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_switch_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
 	    EOPT_NO_OPTIONS);
@@ -6916,10 +6923,7 @@ a pointer to the expression tree.
     (void)check_integral_operand(&result);
   }  /* if */
   expression = make_node_from_operand(&result);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -6943,13 +6947,13 @@ done.  The NULL return is provided as a hook for future expansion).
 This routine is not used for constant or not-evaluated expressions.
 */
 {
-  an_expr_node_ptr  expression;
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_expr_node_ptr    expression;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_void_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS);
@@ -6957,10 +6961,7 @@ This routine is not used for constant or not-evaluated expressions.
                              (an_expression_kind)ek_normal);
   simplify_void_operand(&result);
   expression = make_node_from_operand(&result);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -6986,20 +6987,17 @@ expression scan, an error node is assigned.  If ptp is NULL (as the result of
 a prior error) just do the scan.
 */
 {
-  an_operand        result;
-  an_expr_node_ptr  node;
-  a_boolean         save_inside_default_arg_expression;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_node_ptr    node;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_default_arg_expr");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  expr_stack_entry.is_default_arg_expression = TRUE;
   /* Scan the expression. */
-  save_inside_default_arg_expression = inside_default_arg_expression;
-  inside_default_arg_expression = TRUE;
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS | EOPT_DISALLOW_COMMA_OPERATOR);
-  inside_default_arg_expression = save_inside_default_arg_expression;
   if (ptp != NULL) {
     /* Convert to the required type. */
     prep_argument_operand(&result, ptp, ec_bad_default_arg_type,
@@ -7008,14 +7006,11 @@ a prior error) just do the scan.
     do_operand_transformations(&result, TOPT_NO_OPTIONS,
                                (an_expression_kind)ek_normal);
   }  /* if */
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
   node = make_node_from_operand(&result);
   if (ptp != NULL) {
     ptp->default_arg_expr = node;
   }  /* if */
+  pop_expr_stack();
 #if DEBUG
   if (debug_level >= 3) {
     db_expression(node);
@@ -7034,13 +7029,13 @@ type.  Return a pointer to the expression.  routine_type is the type of
 the current function.
 */
 {
-  an_expr_node_ptr  expression;
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_expr_node_ptr    expression;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_return_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS);
@@ -7053,10 +7048,7 @@ the current function.
                         (an_expression_kind)ek_normal, err_code);
   }  /* if */
   expression = make_node_from_operand(&result);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7074,22 +7066,19 @@ void scan_pp_expression(a_constant *constant)
 Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 */
 {
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_pp_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_pp,
             EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS,
                              (an_expression_kind)ek_pp);
   extract_constant_from_operand(&result, constant);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7106,22 +7095,19 @@ void scan_integral_constant_expression(a_constant *constant)
 Scan an integral constant expression.  See section 3.4 in the standard.
 */
 {
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_integral_constant_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_integral_constant,
             EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS,
                              (an_expression_kind)ek_integral_constant);
   extract_constant_from_operand(&result, constant);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7145,12 +7131,12 @@ and a pointer to the expression tree in *expression.  Used only in
 C++ mode.
 */
 {
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_new_array_dimension_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS);
@@ -7201,10 +7187,7 @@ C++ mode.
       internal_error("scan_new_array_dimension_expression: bad operand kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7227,12 +7210,13 @@ Scan a constant argument in a template reference.  Convert the constant to
 required_type; issue an error if it is incompatible with that type.
 */
 {
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
+  expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
             EOPT_DISALLOW_COMMA_OPERATOR);
@@ -7243,10 +7227,7 @@ required_type; issue an error if it is incompatible with that type.
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7267,12 +7248,12 @@ See section 3.4 in the ANSI C standard.  Used in C++ for scanning
 constant class members (an extension).
 */
 {
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_constant_initializer_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
             EOPT_DISALLOW_COMMA_OPERATOR);
@@ -7283,10 +7264,7 @@ constant class members (an extension).
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7312,12 +7290,12 @@ required_type may not be an array type.  This routine is not used when
 copy constructor elision is possible; see scan_class_initializer_expression.
 */
 {
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_initializer_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_DISALLOW_COMMA_OPERATOR);
@@ -7345,10 +7323,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
       internal_error("scan_initializer_expression: bad operand kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7419,14 +7394,14 @@ the conversion routine (which is likely to be a dynamic init entry instead
 of a statement).
 */
 {
-  a_type_ptr        class_type = skip_typerefs(required_type);
-  an_expr_node_ptr  expression;
-  an_operand        result;
-  an_xref_entry_ptr old_xref_entries_list;
+  a_type_ptr          class_type = skip_typerefs(required_type);
+  an_expr_node_ptr    expression;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_class_initializer_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_DISALLOW_COMMA_OPERATOR);
@@ -7434,10 +7409,7 @@ of a statement).
      what the proper conversion routine is. */
   prep_elision_initializer_operand(&result, class_type, conversion_routine,
                                    &expression, class_bitwise_copy);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -7457,13 +7429,13 @@ expression must be scalar, or must be of a class type that can be converted
 to such a type.
 */
 {
-  an_operand        result;
-  an_expr_node_ptr  expr;
-  an_xref_entry_ptr old_xref_entries_list;
+  an_operand          result;
+  an_expr_node_ptr    expr;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_boolean_controlling_expression");
 
-  clear_xref_entries_list(&old_xref_entries_list);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
 	    EOPT_NO_OPTIONS);
@@ -7472,10 +7444,7 @@ to such a type.
   process_boolean_controlling_expression(&result,
                                          (an_expression_kind)ek_normal);
   expr = make_node_from_operand(&result);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list(old_xref_entries_list);
+  pop_expr_stack();
 
 #if DEBUG
   if (debug_level >= 3) {
