@@ -722,7 +722,6 @@ then
           if [ $driver_debug -ne 0 ] ; then
             echo $command
           fi
-          $command
           (cd $TMPDIR; $command)
           status=$?
           if [ $status -ne 0 ] ; then
