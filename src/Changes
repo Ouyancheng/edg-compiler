@@ -1,5 +1,17 @@
 Version 2.38
 
+12/10/97  IL lowering of exception handling: destructor pointer in typeinfo
+
+When IL lowering builds typeinfo variables, it sometimes puts in
+a null pointer for a declared-but-not-defined destructor, to deal with
+cases where a typeinfo is generated for a throw-specification but
+the destructor is not actually used and therefore no definition is
+required.  This processing did not work right when the class
+has a user-written destructor that is declared but not defined in
+the compilation that generates the typeinfo variable.  As a
+consequence, the destructor for the class was not called to clean
+up objects of that type when an exception was thrown.
+
 12/8/97   Branching into a try-block in Microsoft bugs mode
 
 Branching into a try block is now permitted in Microsoft bugs mode.
@@ -16,7 +28,9 @@ When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, additional source position
 information is now maintained in the IL.  This includes range information
 on expressions (the start and end positions of each expression node) and
 declarations (the start and end positions of declaration-specifier
-tokens, of declarators, and of initializers).
+tokens, of declarators, and of initializers).  Note that this information
+can take a lot of extra space, so you shouldn't enable this feature
+unless you really need the extra positions.
 
 12/4/97   Comments in Microsoft asm statements
 
