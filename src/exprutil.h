@@ -246,8 +246,15 @@ one that describes no conversion to be done.
 */
 #define is_null_user_conv_descr(user_conversion)                      \
   ((user_conversion)->routine == NULL &&                              \
-   !(user_conversion)->class_identity_or_bitwise_copy &&              \
-   !(user_conversion)->ambiguous)
+   !(user_conversion)->class_identity_or_bitwise_copy)
+
+/*
+Macro that returns TRUE if a pointer to a user-defined conversion
+is usable (the pointer is non-NULL, and the conversion is not ambiguous).
+*/
+#define user_conv_usable(user_conversion)                             \
+  ((user_conversion) != NULL && !(user_conversion)->ambiguous)
+
 
 /*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
