@@ -6554,14 +6554,14 @@ if this routine has a body (dump nothing if it has no body).
       }  /* if */
 #endif /* GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C */
       write_tok_ch(';');
-#if __SUNPRO_C
+#if SUNPRO_C_IS_C_GEN_BE_TARGET
       /* The SunPro C compiler has a pragma that specifies that a routine
          should be called at program startup.  If this is an initialization
          routine, arrange for it to be called. */
       if (routine_is_init_routine(rout)) {
         dump_sunpro_init_pragma(rout, (char*)NULL);
       }  /* if */
-#endif /* __SUNPRO_C */
+#endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
     } else {
 #if ASM_FUNCTION_ALLOWED
       /* If appropriate, set a flag to assure special processing for asm
@@ -6696,14 +6696,14 @@ by IL lowering.
        previously-generated initializations. */
     copy_and_delete_file(&f_file_scope_inits);
     write_tok_ch('}');
-#if __SUNPRO_C
+#if SUNPRO_C_IS_C_GEN_BE_TARGET
     /* SunPro C has a special way of indicating that a routine should be
        called at program startup. */
     if (!file_scope_init_routine_called) {
         dump_sunpro_init_pragma((a_routine_ptr)NULL, name);
       file_scope_init_routine_called = TRUE;
     }  /* if */
-#endif /* __SUNPRO_C */
+#endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
 #if !GCC_IS_C_GEN_BE_TARGET && !USE_INIT_SECTION_IN_GENERATED_C
     if (!file_scope_init_routine_called) {
       /* No place (such as "main") was found to call the file-scope
