@@ -619,11 +619,13 @@ then
       fi
 #     Save the link command in a variable so it can be done again in the
 #     "munch" step below.
-#     Note:  -lC is missing from this command and is supplied later.
+#     Note:  -lC is missing from this command and is supplied later using
+#     the variable link_command_suffix.
       link_command="$cc_command $ccsdb $Loptions -L$LIBDIR -o $executable \
                        $ofiles $lfiles $loptions -lstd$EDG_LIB_SUFFIX \
 		       $EDG_C_TO_OBJ_LIBRARIES"
-      $link_command -lC$EDG_LIB_SUFFIX
+      link_command_suffix=" -lC$EDG_LIB_SUFFIX"
+      $link_command $link_command_suffix
       status=$?
       if [ $status = 0 -a $cmode -eq 0 ]
       then
@@ -653,7 +655,7 @@ then
             exit $status
           fi
 #         Do the link again.
-          $link_command $tmpfile.o -lC$EDG_LIB_SUFFIX
+          $link_command $tmpfile.o $link_command_suffix
           status=$?
           rm -f $tmpfile.c $tmpfile.o
         fi
