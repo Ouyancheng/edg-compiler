@@ -153,7 +153,12 @@ integers than the host.
 There is a host integer that is large enough to hold all target integers,
 so the integer representation is just some host integral type.
 */
-typedef long an_integer_value;
+typedef unsigned long an_integer_value;
+typedef long a_signed_integer_value;
+/* Minimum and maximum values that can be represented in an_integer_value. */
+#define MAX_INTEGER_VALUE MAX_LONG
+#define MIN_INTEGER_VALUE MIN_LONG
+#define MAX_UNSIGNED_INTEGER_VALUE MAX_ULONG
 /* The printf formatting specifier to be used to print the integer type. */
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
@@ -170,7 +175,7 @@ the target integers.
    Typically, this is a 16-bit value.  The bit size and minimum and
    maximum values indicate the range of values to be used, which may
    be smaller than the range actually available. */
-typedef short an_int_value_part;
+typedef unsigned short an_int_value_part;
 #define MAX_UINT_VALUE_PART 0xffff
 #define MAX_INT_VALUE_PART 0x7fff
 #define MIN_INT_VALUE_PART (-0x8000)
@@ -183,9 +188,11 @@ typedef short an_int_value_part;
    values in the range MIN_INT_VALUE_PART..MAX_INT_VALUE_PART can
    be done in a_host_large_integer without special coding to deal
    with overflows. */
-typedef unsigned long a_host_large_integer;
+typedef long a_host_large_integer;
+typedef unsigned long a_host_large_unsigned;
 #define MAX_HOST_LARGE_INTEGER LONG_MAX
 #define MIN_HOST_LARGE_INTEGER LONG_MIN
+#define MAX_HOST_LARGE_UNSIGNED LONG_UMAX
 #define BITS_IN_HOST_LARGE_INTEGER (sizeof(a_host_large_integer)*CHAR_BIT)
 /* The array is made up of elements of type an_int_value_part.
    Figure out how many. */
