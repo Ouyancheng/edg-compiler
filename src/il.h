@@ -686,6 +686,10 @@ extern void db_function_param_list(a_type_ptr  tp);
 
 extern void db_abbreviated_type(a_type *tp);
 
+/* Abbreviated version of db_abbreviated type. */
+#define db_abbr_type(tp)                                              \
+  db_abbreviated_type(tp), (void)fputc('\n', f_debug)
+
 extern void db_variable(a_variable_ptr var_ptr);
 
 extern void db_expression(an_expr_node_ptr node);
