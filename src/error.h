@@ -349,7 +349,8 @@ typedef enum /*an_error_code*/ {
   ec_bound_function_must_be_called,
   ec_duplicate_typedef,
   ec_function_redefinition,
-  ec_overloaded_function_incompatible_type
+  ec_overloaded_function_incompatible_type,
+  ec_no_matching_function
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -984,6 +984,9 @@ error code.
     case ec_overloaded_function_incompatible_type:
       m = "type does not match any instance of overloaded function \"%s\"";
       break;
+    case ec_no_matching_function:
+      m = "none of the overloaded functions matches this argument list";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
