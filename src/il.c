@@ -572,6 +572,9 @@ Dump the contents of the indicated type entry, for debug purposes.
     case tk_class:
       fputs("class", f_debug);
 class_struct_union:
+      fputs(" \"", f_debug);
+      db_name(&tp->source_corresp);
+      fputc('"', f_debug);
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && ctsp->assoc_scope == NULL) {
         fputs(" (undefined)", f_debug);
