@@ -1364,9 +1364,7 @@ Process the arguments on the command line that invoked the compiler.
         command_line_error(ec_cl_strict_ansi_incompatible_with_SVR4);
       } else {
         /* SVR4 C mode enabled by default.  Silently disable it. */
-#if 0
 	SVR4_C_mode = FALSE;
-#endif /* 0 */
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
