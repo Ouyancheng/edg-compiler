@@ -1,5 +1,12 @@
 Version 2.36
 
+5/2/97    Default diagnostic threshold when listing dependencies or includes
+
+When the --dependencies or --trace_includes command-line option is
+specified, the error threshold is changed to error (i.e., warnings
+are not put out by default).  As of now, however, this is not done
+when --no_preproc_only is also specified.
+
 5/1/97    Microsoft compatibility: suffixes like "i32" on integral constants
 
 The front end now supports suffixes like "i32" on integral constants

@@ -1189,7 +1189,6 @@ Process the arguments on the command line that invoked the compiler.
         generate_pp_output = FALSE;
         list_included_files = FALSE;
         list_makefile_dependencies = TRUE;
-        error_threshold = es_discretionary_error;
         break;
       case optk_list_include_files:
         /* Generate on stdout a list of the names of the #include files
@@ -1199,7 +1198,6 @@ Process the arguments on the command line that invoked the compiler.
         generate_pp_output = FALSE;
         list_included_files = TRUE;
         list_makefile_dependencies = FALSE;
-        error_threshold = es_discretionary_error;
         break;
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
       case optk_write_unlowered_il:
@@ -1741,13 +1739,13 @@ enable_microsoft_mode:
     }  /* switch */
   }  /* while */
 #if !USE_MMAP_FOR_MEMORY_REGIONS
-    if (!non_pch_option_used) {
-      /* If all of the command line options are PCH options, then the PCH
-         memory may not have been allocated yet. */
-      if (precompiled_header_processing_required) {
-        preallocate_pch_memory();
-      }  /* if */
+  if (!non_pch_option_used) {
+    /* If all of the command line options are PCH options, then the PCH
+       memory may not have been allocated yet. */
+    if (precompiled_header_processing_required) {
+      preallocate_pch_memory();
     }  /* if */
+  }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   /* Check for the use of ANSI C options when the dialect being compiled
      is not ANSI C. */
@@ -2189,6 +2187,12 @@ enable_microsoft_mode:
 #if DO_IL_LOWERING
     suppress_il_lowering = TRUE;
 #endif /* DO_IL_LOWERING */
+    if ((list_makefile_dependencies || list_included_files) &&
+        error_threshold == es_warning) {
+      /* When preprocessing only to list makefile dependencies or
+         included files, suppress warnings. */
+      error_threshold = es_discretionary_error;
+    }  /* if */
   }  /* if */
   /* If the -o option appeared, its file should have been taken for
      something. */
