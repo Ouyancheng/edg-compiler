@@ -263,7 +263,7 @@ this version of the runtime, then simply abort.
 */
 {
 #if EXCEPTION_HANDLING
-  throw bad_cast();
+  throw STD_NAMESPACE::bad_cast();
 #else /* !EXCEPTION_HANDLING */
   abort();
 #endif /* EXCEPTION_HANDLING */
@@ -277,7 +277,7 @@ this version of the runtime, then simply abort.
 */
 {
 #if EXCEPTION_HANDLING
-  throw bad_typeid();
+  throw STD_NAMESPACE::bad_typeid();
 #else /* !EXCEPTION_HANDLING */
   abort();
 #endif /* EXCEPTION_HANDLING */
@@ -321,7 +321,7 @@ exception.
 
 
 #if DEBUG
-EXTERN_C void __db_type_info(type_info& info)
+EXTERN_C void __db_type_info(STD_NAMESPACE::type_info& info)
 /*
 Display debugging information about type information.
 */
