@@ -6349,7 +6349,7 @@ symbol and not the fundamental symbol is returned.
   a_scope_number		scope_number;
   a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG);
   a_boolean			must_be_synth_ns_proj =
-                                  (options & IDL_MUST_BE_SYNTH_NAMESPACE_PROJ);
+                             (options & IDL_MUST_BE_SYNTH_NAMESPACE_PROJ) != 0;
   a_boolean			projection_allowed =
                                            (options & IDL_PROJ_SYMBOL_ALLOWED);
   a_scope_stack_entry_ptr	ssep;
@@ -6358,7 +6358,7 @@ symbol and not the fundamental symbol is returned.
 #define is_acceptable_symbol(sym, fund_sym)                             \
    ((!must_be_tag || is_tag_symbol(fund_sym)) &&			\
     (projection_allowed || sym->kind != (a_symbol_kind)sk_projection) && \
-    (!must_be_synth_ns_proj || sym->synthesized_namespace_projection))
+    (must_be_synth_ns_proj == sym->synthesized_namespace_projection))
 
   check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
                                     IDL_MUST_BE_SYNTH_NAMESPACE_PROJ |
