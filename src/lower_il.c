@@ -283,6 +283,7 @@ in the cleanup entry.
       cap->variant.object.is_expr_temporary = FALSE;
       goto common_fields;
     case cak_new_allocation:
+      cap->variant.object.delete_routine = NULL;
 common_fields:
       clear_init_pos_descr(&cap->variant.object.init_pos_descr);
       cap->variant.object.first_time_test_var = NULL;
@@ -5853,6 +5854,36 @@ lifetimes than normal variables.)
     }  /* if */
   }  /* for */
 }  /* remove_temp_cleanup_actions */
+
+
+void remove_cleanup_action(a_cleanup_action_ptr cap_to_remove)
+/*
+Remove the cleanup action cap_to_remove from the current context.
+*/
+{
+  a_cleanup_action_ptr cap, prev_cap;
+
+  /* Find the entry on the list. */
+  for (prev_cap = NULL, cap = curr_context->cleanup_actions;
+       cap != cap_to_remove;
+       cap = cap->next) {
+    check_assertion_str(cap != NULL, "remove_cleanup_action: entry not found");
+  }  /* for */
+  /* Remove this entry from the list. */
+  if (prev_cap == NULL) {
+    curr_context->cleanup_actions = cap->next;
+  } else {
+#if 0
+#else
+    /* For now, cannot handle this case. */
+    unexpected_condition_str(
+                           "remove_cleanup_action: not implemented: not last");
+#endif
+    prev_cap->next = cap->next;
+  }  /* if */
+  cap->next = NULL;
+  free_cleanup_action_list(cap);
+}  /* remove_cleanup_action */
 
 
 static void lower_switch_clause_list(a_switch_clause_ptr clause_list,

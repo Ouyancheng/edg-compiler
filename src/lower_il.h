@@ -179,6 +179,11 @@ typedef struct a_cleanup_action {
 			   been done.  This is needed for local static
 			   variables and for temporaries initialized under
 			   conditional operators. */
+      /* This field only applies when kind == cak_new_allocation: */
+      a_routine_ptr
+		delete_routine;
+			/* Delete routine to be used to undo the new 
+			   allocation. */
       /* Fields after this point apply only when kind == cak_destruction: */
       a_dynamic_init
 		dynamic_init;
@@ -529,6 +534,8 @@ extern void turn_branch_into_block(a_statement_ptr        statement,
 
 extern void gen_cleanup_actions(a_context_ptr          outer_context,
                                 an_insert_location_ptr insert_location);
+
+extern void remove_cleanup_action(a_cleanup_action_ptr cap_to_remove);
 
 extern void prelower_class_type(a_type_ptr class_type);
 
