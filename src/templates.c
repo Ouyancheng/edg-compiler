@@ -1989,7 +1989,6 @@ A pointer to the head of the list is returned in tcsp.
      same as the namespace in which the template was defined. */
   cssp->referencing_namespace =
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
-  cssp->template_info = tssp;
   (void)push_template_instantiation_scope(tssp->cache.decl_info,
 					  prototype_type,
 					  (a_routine_ptr)NULL, instance_sym,
@@ -6714,8 +6713,9 @@ partial_spec_nonreal_sym points to the symbol for the nonreal type
 initially used when processing the declaration of a partial specialization.
 */
 {
-  a_symbol_ptr	prototype_sym;
-  a_type_ptr	prototype_type;
+  a_symbol_ptr			prototype_sym;
+  a_type_ptr			prototype_type;
+  a_class_symbol_supplement_ptr	prototype_cssp;
 
  if (sym->kind == (a_symbol_kind)sk_class_template) {
     a_template_param_ptr	templ_param_list;
@@ -6773,10 +6773,10 @@ initially used when processing the declaration of a partial specialization.
   /* The prototype_instantiation field is set in the template supplement
      of what may be a partial specialization, not in the primary template. */
   tssp->variant.class_template.prototype_instantiation = prototype_sym;
-  prototype_sym->variant.class_struct_union.extra_info->
-                                             is_prototype_instantiation = TRUE;
-  prototype_sym->variant.class_struct_union.extra_info->
-                                                       is_nonreal_class = TRUE;
+  prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
+  prototype_cssp->is_prototype_instantiation = TRUE;
+  prototype_cssp->is_nonreal_class = TRUE;
+  prototype_cssp->template_info = tssp;
 }  /* create_prototype_type */
 
 

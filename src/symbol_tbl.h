@@ -3060,8 +3060,14 @@ supplement.
 #define next_instance_sym(sym)						\
   ((sym)->variant.class_struct_union.extra_info->next_in_instantiations_list)
 
+void form_optionally_qualified_symbol_name(
+		a_symbol_ptr				sym,
+		an_il_to_str_output_control_block_ptr	octl,
+		a_boolean				suppress_qualifier);
+
 extern void form_symbol_name(a_symbol_ptr                          sym,
                              an_il_to_str_output_control_block_ptr octl);
+
 
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */

@@ -180,10 +180,9 @@ is put out.
 }  /* form_template_args */
 
 
-static void form_unqualified_name(
-                              a_source_correspondence               *scp,
-                              an_il_entry_kind                      entry_kind,
-                              an_il_to_str_output_control_block_ptr octl)
+void form_unqualified_name(a_source_correspondence               *scp,
+                           an_il_entry_kind                      entry_kind,
+                           an_il_to_str_output_control_block_ptr octl)
 /*
 Output the (unqualified) name of the IL entity whose source correspondence
 entry is pointed to by scp.  The IL entry is of the indicated kind.

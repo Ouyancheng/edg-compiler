@@ -149,11 +149,15 @@ static a_vla_fixup_ptr
 			   reuse. */
 
 
-void form_symbol_name(a_symbol_ptr                          sym,
-                      an_il_to_str_output_control_block_ptr octl)
+void form_optionally_qualified_symbol_name(
+		a_symbol_ptr				sym,
+		an_il_to_str_output_control_block_ptr	octl,
+		a_boolean				suppress_qualifier)
 /*
 Output the (possibly qualified) name of the indicated symbol.  The output
-is done according to the output control block octl.
+is done according to the output control block octl.  If suppress_qualifier
+is TRUE, output only the final portion of the name, not any qualifier
+that might normally precede it.
 */
 {
   char                    *entry;
@@ -172,17 +176,33 @@ is done according to the output control block octl.
       (!sym->is_class_member ||
        sym->parent.class_type == scp->parent.class_type)) {
     /* Use the IL entry to generate the name. */
-    form_name(scp, kind, octl);
+    if (suppress_qualifier) {
+      form_unqualified_name(scp, kind, octl);
+    } else {
+      form_name(scp, kind, octl);
+    }  /* if */
   } else {
     /* No source correspondence entry, or else it has a different class
        parent; use the symbol name directly. */
-    if (il_header.source_language == sl_Cplusplus) {
+    if (il_header.source_language == sl_Cplusplus && !suppress_qualifier) {
       /* Put out the class or namespace qualifier on a member. */
       form_class_or_namespace_qualifier((a_boolean)sym->is_class_member,
                                         sym->parent, octl);
     }  /* if */
     octl->output_str(sym->header->identifier);
   }  /* if */
+}  /* form_optionally_qualified_symbol_name */
+
+
+void form_symbol_name(a_symbol_ptr                          sym,
+                      an_il_to_str_output_control_block_ptr octl)
+/*
+Output the (possibly qualified) name of the indicated symbol.  The output
+is done according to the output control block octl.
+*/
+{
+  form_optionally_qualified_symbol_name(sym, octl,
+                                        /*suppress_qualifier=*/FALSE);
 }  /* form_symbol_name */
 
 
