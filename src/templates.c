@@ -1116,10 +1116,10 @@ itself recursively to process classes nested within this class.
         a_boolean	flag_value = FALSE;
         { a_routine_ptr	templ_rout;
           /* The instantiation required flag is set for virtual functions
-             in g++ mode.  It is also set when generating class template instantiation
-             information in the source sequence lists.  This is necessary when using the C++
-             generating back end in this mode because inline virtual functions must have
-             definitions. */
+             in g++ mode.  It is also set when generating class template
+             instantiation information in the source sequence lists.  This
+             is necessary when using the C++ generating back end in this
+             mode because inline virtual functions must have definitions. */
           templ_rout = sym->variant.routine.ptr;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
           if (templ_rout->is_virtual && templ_rout->is_inline) {
