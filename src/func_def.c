@@ -994,7 +994,7 @@ associated with the function is returned.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
       if (func_info->is_asm_function && curr_token != tok_lbrace) {
-        /* If an asm function is not prototyped, all it's old-style params
+        /* If an asm function is not prototyped, all its old-style params
            have to be implicitly declared. */
         pos_error(ec_asm_func_must_be_prototyped, &pos_curr_token);
       }  /* if */
