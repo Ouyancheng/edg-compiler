@@ -1,5 +1,7 @@
 Version 2.06
 
+5/18/92  Empty macro argument now gives warning only in strict ANSI mode.
+
 5/18/92  Fixed bugs with copy constructors and virtual base classes.
 
 Two fixes in IL lowering: the implied arguments in copy constructor
