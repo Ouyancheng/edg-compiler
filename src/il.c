@@ -6560,7 +6560,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   an_il_entry_kind  kind = (an_il_entry_kind)ssep->entity.kind;
 
   fputs(il_entry_kind_names[(int)kind], f_debug);
-  if (kind == iek_src_seq_sublist) {
+  if (kind == (an_il_entry_kind)iek_src_seq_sublist) {
     fputs(" ==>\n", f_debug);
     ssep = assoc_sublist_of(ssep)->source_sequence_list;
     for (; ssep != NULL; ssep = ssep->next) {
@@ -6568,7 +6568,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       db_source_sequence_entry(ssep);
     }  /* for */
   } else {
-    if (kind == iek_statement) {
+    if (kind == (an_il_entry_kind)iek_statement) {
       char      *s;
       a_statement_ptr   sp = (a_statement_ptr)ssep->entity.ptr;
 
@@ -6609,10 +6609,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
       }  /* if */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-    } else if (kind == iek_comment) {
+    } else if (kind == (an_il_entry_kind)iek_comment) {
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-    } else if (kind == iek_switch_clause) {
-    } else if (kind == iek_src_seq_end_of_construct) {
+    } else if (kind == (an_il_entry_kind)iek_switch_clause) {
+      /* Nothing else to display. */
+    } else if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
       a_src_seq_end_of_construct_ptr  sseocp;
       sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu): ", sseocp->source_position.seq);
@@ -6647,7 +6648,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       if (ssep->entity.ptr == NULL) {
         fputs(" <null entity ptr>", f_debug);
       } else {
-        if (kind == iek_src_seq_secondary_decl) {
+        if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
           a_src_seq_secondary_decl_ptr  sssdp =
                                (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
           scp = &((a_variable_ptr)sssdp->entity.ptr)->source_corresp;
@@ -6657,7 +6658,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           pos = &scp->decl_position;
         }  /* if */
         sym = (a_symbol_ptr)scp->assoc_info;
-        if (kind == iek_variable &&
+        if (kind == (an_il_entry_kind)iek_variable &&
             ((a_variable_ptr)ssep->entity.ptr)->is_parameter) {
           fprintf(f_debug, " (function param");
           lparen_printed = TRUE;
@@ -6673,7 +6674,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           lparen_printed = TRUE;
         }  /* if */
         fprintf(f_debug, "%s: \"", (lparen_printed ? ")" : ""));
-        if (kind == iek_type) {
+        if (kind == (an_il_entry_kind)iek_type) {
           db_type_name((a_type_ptr)ssep->entity.ptr);
         } else {
           db_name(scp);
@@ -7383,7 +7384,7 @@ sequence list.
 
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-    if (kind == iek_type &&
+    if (kind == (a_byte_il_entry_kind)iek_type &&
         curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
       /* Local type. */
       check_assertion(in_file_scope(ptr));
