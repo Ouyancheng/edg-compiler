@@ -2776,6 +2776,11 @@ Display the indicated routine.
                        (unsigned long)ptr->instantiation_needed_bit_number);
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING
+  if (ptr->init_priority != 0) {
+    disp_unsigned_long("init_priority", (unsigned long)ptr->init_priority);
+  }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
   disp_ptr("local_routine_scope", (char *)ptr->local_routine_scope, iek_scope);

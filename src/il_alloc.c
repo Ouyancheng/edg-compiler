@@ -2077,6 +2077,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->instantiation_needed_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   rp->routine_fixup = NULL;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING
+  rp->init_priority               = 0;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
 #ifdef FIL
   rp->is_fortran_entry            = FALSE;
   rp->local_routine_scope         = NULL;
