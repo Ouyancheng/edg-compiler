@@ -1,5 +1,12 @@
 Version 3.2
 
+4/15/03  Declaration scope of function template prototype instantiations
+
+The symbol entry created for the prototype instantiation of a function
+template did not have its declaration scope set properly (it was set to
+NO_SCOPE_NUMBER).  It is now set to the scope number of the associated
+function template.
+
 4/15/03  C99: keywords may be handled improperly in _Pragma operators
 
 When scanning a pragma for which "processing_C_code" is FALSE, keywords
