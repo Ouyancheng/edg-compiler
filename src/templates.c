@@ -14881,15 +14881,18 @@ data member specified by tip.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* See if the exported template was defined in a translation unit other
      than the current one. */
-  if (tip->exported_template_file != NULL &&
-      tip->exported_template_file->translation_unit != curr_translation_unit) {
-    /* If the template was defined in an exported template file, make sure
-       that file is loaded as a translation unit. */
-    ensure_exported_template_file_is_loaded(tip);
-    /* Push the translation unit containing the template definition onto the
-       stack.  This will make it the current translation unit. */
-    push_translation_unit_stack(tip->exported_template_file->translation_unit);
-    trans_unit_stack_pushed = TRUE;
+  if (tip->exported_template_file != NULL) {
+    if (tip->exported_template_file->translation_unit !=
+                                                       curr_translation_unit) {
+      /* If the template was defined in an exported template file, make sure
+         that file is loaded as a translation unit. */
+      ensure_exported_template_file_is_loaded(tip);
+      /* Push the translation unit containing the template definition onto the
+         stack.  This will make it the current translation unit. */
+      push_translation_unit_stack(tip->
+                                     exported_template_file->translation_unit);
+      trans_unit_stack_pushed = TRUE;
+    }  /* if */
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
