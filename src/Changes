@@ -1,5 +1,38 @@
 Version 2.45
 
+8/2/00  Correct selection of overriding virtual functions
+
+In some relatively complex situations involving multiple base classes of a
+same type, the C++ front end could select the wrong virtual function as the
+final overrider.  For example:
+
+  extern "C" int printf(const char*, ...);
+  struct A { virtual void f() = 0; };
+  struct X: public A {
+    virtual void k() = 0;
+    void f() { k(); }
+  };
+  struct B: public X {
+    int b;
+    void k() { printf("b = %d\n", b); }
+    B(int ii = 0): b(ii) { }
+  };
+  struct C1: public B {
+    C1(int ii = 0): B(ii) {}
+  };
+  struct C2: public B {
+    C2(int ii = 0): B(ii) {}
+  };
+  struct D: public C1, public C2 {
+    D(): C1(1), C2(2) { }
+  } dd;
+  main() {
+    C2* cp = &dd;
+    cp->f();  // Should select the f() in C2's base A and print "b = 2";
+  }           // used to select C1's A::f instead printing "b = 1".
+
+This is now fixed.
+
 8/2/00  Microsoft compatibility: Names from the instantiation context not
         considered during instantiation lookups
 
