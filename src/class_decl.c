@@ -5329,6 +5329,10 @@ class/struct/union is actually defined.
         (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
       mark_declared(tag_sym, &locator.source_position,
                     /*save_as_decl_position=*/TRUE);
+      /* Allow for alternating between class and struct, but stay with the
+         one associated with the definition.  The difference only affects
+         default member access. */
+      class_type->kind = type_kind;
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
