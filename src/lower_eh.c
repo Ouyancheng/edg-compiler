@@ -804,7 +804,8 @@ have been called on it at some previous point.
         dtor_routine = dtor_sym->variant.routine.ptr;
         if (dtor_routine->assoc_scope == NULL_region_number &&
             (dtor_routine->storage_class == (a_storage_class)sc_static ||
-             dtor_routine->compiler_generated)) {
+             dtor_routine->compiler_generated ||
+             dtor_routine->pure_virtual)) {
           /* The destructor is static or compiler-generated and declared
              but not defined.  Use a null pointer. */
           dtor_routine = NULL;
