@@ -191,18 +191,16 @@ typedef int an_identifier_options_set;
 			/* Causes access errors detected while scanning the
 			   class qualifier to not be issued now but to be
 			   retained for possible use later. */
-#define GID_VACUOUS_DTOR_RECOGNIZED   (0x80 | GID_DTOR_RECOGNIZED)
+#define GID_VACUOUS_DTOR_RECOGNIZED   0x80
 			/* Enables recognition of destructor calls, as part
 			   of a qualified name, for non-class types and class
 			   types that have no destructors (e.g., A::~A or
-			   int::~int).  Also causes GID_DTOR_RECOGNIZED to
-			   be set. */
+			   int::~int). */
 #define GID_DTOR_MUST_BE_NONCLASS     (0x100 | GID_VACUOUS_DTOR_RECOGNIZED)
 			/* Enables recognition of destructor calls for
 			   non-class types and class types that have no
 			   destructors that are not part of a qualified name
-			   (e.g., ~A or ~int).  Also causes
-			   GID_VACUOUS_DTOR_RECOGNIZED to be set. */
+			   (e.g., ~A or ~int). */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
