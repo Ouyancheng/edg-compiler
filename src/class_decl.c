@@ -3148,8 +3148,7 @@ class, struct, or union.
   long                           bit_field_size = 0;
   a_field_ptr		         field;
   a_symbol_ptr		         member_sym = NULL;
-  a_class_symbol_supplement_ptr  cssp, member_cssp;
-
+  a_class_symbol_supplement_ptr  cssp;
 
   db_enter(3, "decl_nonstatic_data_member");
   if (class_type->kind == (a_type_kind)tk_union) {
@@ -3257,31 +3256,44 @@ class, struct, or union.
     class_type->variant.class_struct_union.any_const_member = TRUE;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
+    /* In C++ we also need to keep track of whether any members have
+       reference type. */
     cssp = symbol_supplement_for_class(class_type);
     if (is_reference_type(member_type)) {
       cssp->any_ref_member = TRUE;
     }  /* if */
-    if (is_aggregate_or_union_type(member_type)) {
-      /* If a nonstatic data member of a class is itself a class object (or
-         an array whose elements are class objects) and the subobject has a
-         constructor and/or destructor, the containing class itself is required
-         to have a constructor and/or destructor.  Do the check at this time,
-         and record the requirement, if any. */
-      if (cssp->constructor_required && cssp->destructor_required) {
-        /* Requirement is already established.  No need to confirm it. */
-      } else if (is_anonymous_union) {
-        /* Constructor and destructor are not allowed, but other checking
-           is required. */
-        check_anonymous_union_symbols(class_type, field,
-                                      /*assoc_var_object=*/NULL);
-      } else {
-        a_type_ptr  tp = skip_typerefs(member_type);
-        if (is_array_type(tp)) {
-          tp = skip_typerefs(underlying_array_element_type(tp));
-        }  /* if */
-        if (tp->kind == (a_type_kind)tk_class ||
-            tp->kind == (a_type_kind)tk_struct) {
-          member_cssp = symbol_supplement_for_class(tp);
+  }  /* if */
+  if (is_aggregate_or_union_type(member_type)) {
+    /* If the member's type is class, struct, or union -- or array of class,
+       struct, or union -- there is additional checking to be done. */
+    a_type_ptr  tp = skip_typerefs(member_type);
+    if (is_array_type(tp)) {
+      tp = skip_typerefs(underlying_array_element_type(tp));
+    }  /* if */
+    if (is_class_struct_union_type(tp)) {
+      /* If the member type has const-qualified fields, propagate the flag
+         to the parent type. */
+      if (tp->variant.class_struct_union.any_const_member) {
+        class_type->variant.class_struct_union.any_const_member = TRUE;
+      }  /* if */
+      if (C_dialect == C_dialect_cplusplus) {
+        a_class_symbol_supplement_ptr  member_cssp;
+
+        member_cssp = symbol_supplement_for_class(tp);
+        /* If the member type has any members of ref type, propagate the
+           flag to the parent type. */
+        if (member_cssp->any_ref_member) cssp->any_ref_member = TRUE;
+        if (is_anonymous_union) {
+          /* Constructor and destructor are not allowed, but other checking
+             is required. */
+          check_anonymous_union_symbols(class_type, field,
+                                        /*assoc_var_object=*/NULL);
+        } else {
+          /* If a nonstatic data member of a class is itself a class object
+             (or an array whose elements are class objects) and the subobject
+             has a constructor and/or destructor, the containing class itself
+             is required to have a constructor and/or destructor.  Do the
+             check at this time, and record the requirement, if any. */
           if (member_cssp->constructor != NULL) {
             cssp->constructor_required = TRUE;
           }  /* if */
