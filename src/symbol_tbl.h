@@ -545,6 +545,10 @@ typedef struct a_symbol {
 			/* TRUE if the access specifications on the functions
 			   are not all the same; applies to
 			   sk_member_function overloading only. */
+      unsigned int
+		any_virtual_functions:1;
+			/* TRUE if any of the overloaded function names
+			   represents a virtual function. */
     } overloaded_function;
   } variant;
 } a_symbol;
