@@ -1782,52 +1782,44 @@ Reserve space at the end of the class object for virtual base classes.
   
   db_enter(4, "set_virtual_base_class_offsets");
 
-  ctsp = lob->class_type->variant.class_struct_union.extra_info;
-  /* Record the size and alignment of the class before space is added for
-     virtual base classes. */
-  if (lob->bit_offset > 0) {
-    /* If the last data field was a bit field, bump the byte count by one
-       before setting the size-without-virtual-base-classes value. */
-    if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                 (a_targ_size_t)1,
-                                 (an_unnormalized_bit_offset)0)) {
+  if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
+    ctsp = lob->class_type->variant.class_struct_union.extra_info;
+    /* Record the size and alignment of the class before space is added for
+       virtual base classes. */
+    if (lob->bit_offset > 0) {
+      /* If the last data field was a bit field, bump the byte count by one
+         before setting the size-without-virtual-base-classes value. */
+      if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                                   (a_targ_size_t)1,
+                                   (an_unnormalized_bit_offset)0)) {
+        if (!lob->any_overflow) {
+          error(struct_too_large_error());
+          lob->any_overflow = TRUE;
+        }  /* if */
+      }  /* if */
+      lob->bit_offset = 0;
+    } else if (lob->byte_offset == 0) {
+      /* An empty class must occupy at lease one byte of memory. */
+      lob->byte_offset = 1;
+    }  /* if */
+    ctsp->size_without_virtual_base_classes = lob->byte_offset;
+    ctsp->alignment_without_virtual_base_classes = lob->alignment;
+    /* Note that the current size may not be consistent (according to the
+       rules for C structs) with the current alignment.  Modify
+       size-without-virtual-base-classes in such a case, but without changing
+       lob->byte_offset (i.e., without introducing unwanted padding in the
+       current class before the data sections for the virtual base classes
+       are put out.  This assures that size-without-virtual-base-classes will
+       correspond to the the actual size of an incomplete subobject. */
+    if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
+                      ctsp->alignment_without_virtual_base_classes)) {
       if (!lob->any_overflow) {
         error(struct_too_large_error());
         lob->any_overflow = TRUE;
       }  /* if */
     }  /* if */
-    lob->bit_offset = 0;
-  } else if (lob->byte_offset == 0) {
-#if CHECKING
-    /* The size should never be zero if there are any virtual base classes,
-       since at the very least a virtual base class pointer will have been
-       allocated. */
-    if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
-      internal_error("set_virtual_base_class_offsets: offset is zero");
-    }  /* if */
-#endif /* CHECKING */
-    /* An empty class must occupy at lease one byte of memory. */
-    lob->byte_offset = 1;
-  }  /* if */
-  ctsp->size_without_virtual_base_classes = lob->byte_offset;
-  ctsp->alignment_without_virtual_base_classes = lob->alignment;
-  /* Note that the current size may not be consistent (according to the rules
-     for C structs) with the current alignment.  Modify size-without-virtual-
-     base-classes in such a case, but without changing lob->byte_offset (i.e.,
-     without introducing unwanted padding in the current class before
-     the data sections for the virtual base classes are put out.  This
-     assures that size-without-virtual-base-classes will correspond to the
-     the actual size of an incomplete subobject. */
-  if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
-                    ctsp->alignment_without_virtual_base_classes)) {
-    if (!lob->any_overflow) {
-      error(struct_too_large_error());
-      lob->any_overflow = TRUE;
-    }  /* if */
-  }  /* if */
-  /* Now see if there are any virtual base class data sections that need to
-     be added to the layout for the current class. */
-  if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
+    /* Now see if there are any virtual base class data sections that need to
+       be added to the layout for the current class. */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* In cfront compatibility layout mode all virtual base classes that
        are not embedded in another class have space reserved for them.  The
@@ -2216,7 +2208,33 @@ for handling virtual bases and functions.
   class_type->alignment = lob.alignment;
   /* Avoid a zero-sized structure (as in "struct {int : 0;}" for C and in
      "class {}" for C++). */
-  if (class_type->size == 0) class_type->size = 1;
+  if (class_type->size == 0) {
+#if 0
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_field_ptr  fp;
+    if (microsoft_mode &&
+        (fp = class_type->variant.class_struct_union.field_list) != NULL &&
+        !is_error_type(fp->type)) {
+#if CHECKING
+      check_assertion_str2(fp->next == NULL && is_array_type(fp->type) &&
+                           is_incomplete_type(fp->type),
+                           "do_class_layout: unexpected field in zero-size",
+                           "struct (microsoft mode)");
+#endif /* CHECKING */
+      class_type->size = 4;
+      class_type->alignment = 4;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* if 0 */
+    class_type->size = 1;
+  }  /* if */
+  if (!C_mode() &&
+      !lob.class_type->variant.class_struct_union.any_virtual_base_classes) {
+    a_class_type_supplement_ptr	ctsp = lob.class_type->
+                                        variant.class_struct_union.extra_info;
+    ctsp->size_without_virtual_base_classes = class_type->size;
+    ctsp->alignment_without_virtual_base_classes = class_type->alignment;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     if (C_dialect == C_dialect_cplusplus) db_base_class_list(class_type);
