@@ -1911,7 +1911,7 @@ IA-64 ABI; see comments below.
                                          void_type(), arg_expr_list);
       /* Unfortunately, __cxa_vec_ctor actually returns void, so we can't
          use its return value.  Instead we have to return the value of the
-       entity_node. */
+         entity_node. */
       {
         an_expr_node_ptr entity_copy =
                                   make_reusable_copy(entity_node,
