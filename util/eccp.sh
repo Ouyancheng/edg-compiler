@@ -635,7 +635,8 @@ then
 #     "munch" step below.
 #     Note:  -lC is missing from this command and is supplied later.
       link_command="$cc_command $ccsdb $Loptions -L$LIBDIR -o $executable \
-                       $ofiles $lfiles $loptions -lstd$EDG_LIB_SUFFIX"
+                       $ofiles $lfiles $loptions -lstd$EDG_LIB_SUFFIX \
+		       $EDG_C_TO_OBJ_LIBRARIES"
       $link_command -lC$EDG_LIB_SUFFIX
       status=$?
       if [ $status = 0 -a $cmode -eq 0 ]
