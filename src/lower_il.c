@@ -5871,51 +5871,56 @@ it; otherwise, switch_context is NULL.
     curr_context->latest_label_statement_processed = NULL;
     lower_constant_list(clause->constant_list);
     lower_statement_list(clause->statements, &last_statement);
-    /* If the last statement is not a branch, there is an implicit "break"
-       at the end of the clause statements.  Any cleanup actions must be
-       emitted on the "break". */
-    if (last_statement == NULL) {
-      /* No statements in the clause, so the end is reachable. */
-      break_reachable = TRUE;
-    } else if (last_statement->kind == (a_statement_kind)stmk_goto ||
-               last_statement->kind == (a_statement_kind)stmk_return) {
-      /* The last statement is a goto or return, so the end is not
-         reachable. */
-      break_reachable = FALSE;
-    } else if (last_statement->kind == (a_statement_kind)stmk_block &&
-               !last_statement->variant.block.extra_info->
+    /* If there is something requiring cleanup anywhere in the switch
+       statement, the switch statement will have a context.  If not,
+       there's no need to check on whether cleanup is required. */
+    if (switch_context != NULL) {
+      /* If the last statement is not a branch, there is an implicit "break"
+         at the end of the clause statements.  Any cleanup actions must be
+         emitted on the "break". */
+      if (last_statement == NULL) {
+        /* No statements in the clause, so the end is reachable. */
+        break_reachable = TRUE;
+      } else if (last_statement->kind == (a_statement_kind)stmk_goto ||
+                 last_statement->kind == (a_statement_kind)stmk_return) {
+        /* The last statement is a goto or return, so the end is not
+           reachable. */
+        break_reachable = FALSE;
+      } else if (last_statement->kind == (a_statement_kind)stmk_block &&
+                 !last_statement->variant.block.extra_info->
                                                       end_of_block_reachable) {
-      /* The last statement is a block whose end is not reachable, so the
-         end is not reachable. */
-      break_reachable = FALSE;
-    } else {
-      /* Otherwise the end is assumed to be reachable. */
-      break_reachable = TRUE;
-    }  /* if */
-    if (break_reachable) {
-      /* There is an implicit "break" at the end of the clause. */
-      if (switch_context != NULL && any_cleanup_actions(switch_context)) {
-        /* The switch statement has a context.  Generate any cleanup actions
-           required at the end of the context.  Note that the implicit "break"
-           is only used at the top level within a switch; "break" statements
-           from deeper (e.g., inside nested blocks) will be rendered as
-           gotos. */
-        if (last_statement == NULL) {
-          /* The clause is empty, so add a block statement and insert inside
-             it. */
-          clause->statements = alloc_statement((a_statement_kind)stmk_block);
-          set_block_start_insert_location(clause->statements,
-                                          &insert_location);
-        } else {
-          /* Insert after the last statement. */
-          set_insert_location(last_statement, &insert_location);
-        }  /* if */
-        gen_cleanup_actions(switch_context, &insert_location);
+        /* The last statement is a block whose end is not reachable, so the
+           end is not reachable. */
+        break_reachable = FALSE;
+      } else {
+        /* Otherwise the end is assumed to be reachable. */
+        break_reachable = TRUE;
       }  /* if */
+      if (break_reachable) {
+        /* There is an implicit "break" at the end of the clause. */
+        if (any_cleanup_actions(switch_context)) {
+          /* Generate any cleanup actions required at the end of the
+             context.  Note that the implicit "break" is only used at the
+             top level within a switch; "break" statements from deeper
+             (e.g., inside nested blocks) will be rendered as gotos. */
+          if (last_statement == NULL) {
+            /* The clause is empty, so add a block statement and insert inside
+               it. */
+            clause->statements = alloc_statement((a_statement_kind)stmk_block);
+            set_block_start_insert_location(clause->statements,
+                                            &insert_location);
+          } else {
+            /* Insert after the last statement. */
+            set_insert_location(last_statement, &insert_location);
+          }  /* if */
+          gen_cleanup_actions(switch_context, &insert_location);
+        }  /* if */
+      }  /* if */
+      /* Get rid of the entries for cleanup actions on compiler-generated
+         expression temporaries generated in this clause (the cleanup code
+         has already been generated if needed). */
+      remove_temp_cleanup_actions();
     }  /* if */
-    /* Get rid of the entries for cleanup actions on compiler-generated
-       expression temporaries (the cleanup code has already been generated). */
-    remove_temp_cleanup_actions();
   }  /* for */
   curr_context->assoc_switch_clause = NULL;
   curr_context->latest_label_statement_processed = NULL;
