@@ -2283,14 +2283,18 @@ a locator for the new symbol.  Return a pointer to the new symbol.
 }  /* enter_overloaded_symbol */
 
 
-static a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
-                                           a_type_ptr        class_ptr,
-                                           a_derivation_step *path,
-                                           a_boolean         ambiguous)
+a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
+                                    a_type_ptr        class_ptr,
+                                    a_base_class_ptr  fundamental_bcp,
+                                    a_derivation_step *path,
+                                    a_boolean         ambiguous)
 /*
 Create a new projection symbol entry and return a pointer to it.  The symbol
 is a projection of progenitor_sym into the current scope.  The symbol is not
 added to the scope symbols list and is not linked into the symbol table.
+fundament_bcp is a pointer to the base class of class_ptr in which the
+fundamental symbol resides; if it is NULL, it must be computed, used *path
+if ambiguous is TRUE.
 */
 {
   register a_symbol_ptr        sym;
@@ -2321,51 +2325,56 @@ added to the scope symbols list and is not linked into the symbol table.
   } else {
     pdp->fundamental_symbol = progenitor_sym;
   }  /* if */
-  /* To set the fundamental_base_class pointer in the projection descriptor
-     for sym, we have to look through the base symbols for the current class.
-     The base class with which the fundamental symbol is associated is the
-     one we want. */
-  bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
-  if (!ambiguous) {
-    /* There is no ambiguity in the use of this name, so a simple type match
-       is enough to identify the base class of the fundamental symbol. */
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
-        pdp->fundamental_base_class = bcp;
-        break;
-      }  /* if */
-    }  /* for */
+  if (fundamental_bcp != NULL) {
+    /* The caller has supplied the fundamental base class. */
+    pdp->fundamental_base_class = fundamental_bcp;
   } else {
-    /* When there is an ambiguity, we must check the paths as well as the
-       type. */
-    a_base_class_ptr  ref_bcp = path->base_class;
-
-    if (ref_bcp->derived_class != class_ptr) {
-      ref_bcp = corresponding_base_class(ref_bcp, class_ptr,
-                                         (a_base_class_ptr)NULL);
-    }  /* if */
-    check_assertion(ref_bcp->direct || ref_bcp->is_virtual);
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
-        /* ref_bcp is the root of a path to the base class where the
-           inherited name was found.  Be sure ref_bcp is also on the path to
-           bcp before deciding the bcp is the base class of the fundamental
-           symbol.  Note since the inheritance is ambiguous there may be
-           several base classes that match the type in question, and there
-           may be more than one for which ref_bcp is on the path. */
-        if (!bcp->ambiguous || ref_bcp == bcp ||
-            is_on_any_derivation_of(bcp, ref_bcp)) {
+    /* To set the fundamental_base_class pointer in the projection descriptor
+       for sym, we have to look through the base symbols for the current class.
+       The base class with which the fundamental symbol is associated is the
+       one we want. */
+    bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
+    if (!ambiguous) {
+      /* There is no ambiguity in the use of this name, so a simple type match
+         is enough to identify the base class of the fundamental symbol. */
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
           pdp->fundamental_base_class = bcp;
           break;
         }  /* if */
+      }  /* for */
+    } else {
+      /* When there is an ambiguity, we must check the paths as well as the
+         type. */
+      a_base_class_ptr  ref_bcp = path->base_class;
+
+      if (ref_bcp->derived_class != class_ptr) {
+        ref_bcp = corresponding_base_class(ref_bcp, class_ptr,
+                                           (a_base_class_ptr)NULL);
       }  /* if */
-    }  /* for */
-  }  /* if */
+      check_assertion(ref_bcp->direct || ref_bcp->is_virtual);
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
+          /* ref_bcp is the root of a path to the base class where the
+             inherited name was found.  Be sure ref_bcp is also on the path to
+             bcp before deciding the bcp is the base class of the fundamental
+             symbol.  Note since the inheritance is ambiguous there may be
+             several base classes that match the type in question, and there
+             may be more than one for which ref_bcp is on the path. */
+          if (!bcp->ambiguous || ref_bcp == bcp ||
+              is_on_any_derivation_of(bcp, ref_bcp)) {
+            pdp->fundamental_base_class = bcp;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
 #if CHECKING
-  if (pdp->fundamental_base_class == NULL) {
-    internal_error("make_projection_symbol: no fundamental base class");
-  }  /* if */
+    if (pdp->fundamental_base_class == NULL) {
+      internal_error("make_projection_symbol: no fundamental base class");
+    }  /* if */
 #endif /* CHECKING */
+  }  /* if */
   db_exit();
   return sym;
 }  /* make_projection_symbol */
@@ -5088,7 +5097,8 @@ it is added to the end of the scope entry symbol list for the class.
     } else {
       /* Create a new symbol based on the symbol returned. */
       new_sym = make_projection_symbol(progenitor_sym, class_ptr,
-                                       path, ambiguous);
+                                       (a_base_class_ptr)NULL, path,
+                                       ambiguous);
       new_sym->variant.projection.access = access;
       free_derivation_step(path);
       /* Add the symbol to the symbol table. */

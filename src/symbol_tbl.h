@@ -1910,6 +1910,12 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
 
+extern a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
+                                           a_type_ptr        class_ptr,
+                                           a_base_class_ptr  fundamental_bcp,
+                                           a_derivation_step *path,
+                                           a_boolean         ambiguous);
+
 extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr       ct_symbol,
                                                a_source_position *pos);
 
