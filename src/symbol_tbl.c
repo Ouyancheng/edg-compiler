@@ -7180,8 +7180,18 @@ specific version of the template.
                                      source_sequence_entries_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if DEBUG
+  if (debug_level >= 3) {
+    db_scope_stack();
+  }  /* if */
+#endif /* DEBUG */
   if (!C_mode()) {
     /* Do management related to the object lifetime stack. */
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_template_instantiation) {
+      curr_object_lifetime =
+                       scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
+    }  /* if */
     if (kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block) {
@@ -7189,16 +7199,8 @@ specific version of the template.
          pushed. */
       push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
                            /*ctor_init=*/FALSE);
-    } else if (kind == (a_scope_kind)sck_template_instantiation) {
-      curr_object_lifetime =
-                       scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
     }  /* if */
   }  /* if */      
-#if DEBUG
-  if (debug_level >= 3) {
-    db_scope_stack();
-  }  /* if */
-#endif /* DEBUG */
   db_exit();
   return sp;
 }  /* push_scope */
@@ -7931,13 +7933,12 @@ End a name scope by popping an entry off the scope stack.
   if (!C_mode()) {
     /* Do management related to the object lifetime stack. */
     if (kind == (a_scope_kind)sck_file ||
-        kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block) {
-      /* This is the sort of scope for which a new object lifetime was
-         pushed during push_scope. */
-      do {
-        pop_object_lifetime();
-      } while (curr_object_lifetime != ssep->saved_curr_object_lifetime);
+      pop_object_lifetimes_until(ssep->saved_curr_object_lifetime);
+    } else if (kind == (a_scope_kind)sck_function) {
+      pop_object_lifetimes_until(scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                       il_scope->lifetime);
+      curr_object_lifetime = ssep->saved_curr_object_lifetime;
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       check_assertion(curr_object_lifetime ==
                          scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime);
