@@ -598,78 +598,6 @@ Install the keywords in the symbol table.
 }  /* keyword_init */
 
 
-static void target_init(void)
-/*
-Initialize target machine characteristics.
-*/
-{
-  /* The signedness of characters can be set on the command line. */
-  set_plain_char_int_kind(targ_has_signed_chars);
-  /* Set the element of int_kind_is_signed that corresponds to "plain"
-     char. */
-  int_kind_is_signed[(int)ik_char] = targ_has_signed_chars;
-#if CHECKING
-  /* Check that int_kind_is_signed is correctly initialized.  This
-     guards against someone changing the enumeration and forgetting to update
-     the initialization. */
-  if (int_kind_is_signed[(int)ik_last] != 111) {
-    internal_error(
-           "target_init: initialization of int_kind_is_signed is not correct");
-  }  /* if */
-#endif /* CHECKING */
-  /* String literals should not be shared in pcc mode (they're writable), but
-     should be ordinarily. */
-  string_literals_shared = (C_dialect != C_dialect_pcc);
-  /* Determine the integer kind for the largest integer types. */
-#if LONG_LONG_ALLOWED
-  targ_intmax_kind = (an_integer_kind)ik_long_long;
-  targ_uintmax_kind = (an_integer_kind)ik_unsigned_long_long;
-#else /* !LONG_LONG_ALLOWED */
-  targ_intmax_kind = (an_integer_kind)ik_long;
-  targ_uintmax_kind = (an_integer_kind)ik_unsigned_long;
-#endif /* LONG_LONG_ALLOWED */
-  /* Determine the maximum size of a class object. */
-  if (targ_max_class_object_size == 0) {
-    targ_max_class_object_size = targ_size_t_max;
-  }  /* if */
-  /* Determine the maximum base class offset. */
-  if (targ_max_base_class_offset == 0) {
-    targ_max_base_class_offset = targ_size_t_max;
-#if DO_IL_LOWERING
-  } else {
-    /* Compute the maximum base class offset value that will fit in the
-       delta field of a virtual function table. */
-    a_targ_size_t		size;
-    a_host_large_unsigned	temp;
-    a_targ_alignment		alignment;
-    a_host_large_unsigned	bits;
-
-    /* Get the size of whatever integer kind is associated with delta field
-       of the virtual function table. */
-    get_integer_size_and_alignment(TARG_DELTA_INT_KIND, &size, &alignment);
-    /* Now given the size, compute the maximum integer value it will
-       accommodate. */
-    bits = size * targ_char_bit;
-    if (int_kind_is_signed[TARG_DELTA_INT_KIND]) bits -= 1;
-    temp = ~((~(a_host_large_unsigned)0) << bits);
-    if (temp > (a_host_large_unsigned)targ_size_t_max) {
-      /* It shouldn't exceed the maximum that can fit in a_targ_size_t. */
-      temp = (a_host_large_unsigned)targ_size_t_max;
-    }  /* if */
-    if (temp >= targ_max_base_class_offset) {
-      /* Don't increase the maximum offset beyond what was specified. */
-    } else {
-      /* Set the maximum offset to the computed value. */
-      targ_max_base_class_offset = (a_targ_size_t)temp;
-    }  /* if */
-#endif /* DO_IL_LOWERING */
-  }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  init_microsoft_sized_int_types();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* target_init */
-
-
 static void open_pp_output_file(void)
 /*
 Open the preprocessing output file.
@@ -767,6 +695,7 @@ line processing is done.
   /* Do host-specific initialization.  Except for debug initialization, this
      must be done first in this routine. */
   host_envir_early_init();
+  target_early_init();
   cmd_line_early_init();
   mem_manage_early_init();
   error_early_init();
@@ -829,6 +758,7 @@ after the command-line processing has been done.
   pragma_one_time_init();
   preproc_one_time_init();
   statements_one_time_init();
+  symbol_ref_one_time_init();
   symbol_tbl_one_time_init();
   scope_stk_one_time_init();
   templates_one_time_init();

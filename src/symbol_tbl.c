@@ -136,11 +136,11 @@ static a_namespace_list_entry_ptr
 Array used to hold an identifier for external name or destructor name
 generation.
 */
-static char     *ident_buffer = NULL;
+static char     *ident_buffer;
 			/* Buffer itself.  Dynamic allocated; current size is
 			   given by size_ident_buffer.  Allocated in general
 			   storage.  Not per-file. */
-static sizeof_t size_ident_buffer = 0;
+static sizeof_t size_ident_buffer;
 			/* Current allocated size of ident_buffer. */
 #define IDENT_BUFFER_INCREMENTAL_ALLOCATION 300
 			/* Incremental allocation for ident_buffer.  Should
@@ -11396,6 +11396,9 @@ are handled in symbol_tbl_init.)
   cleared_locator.variant.conversion_result_type  = NULL;
 
   /* Static variables in symbol_tbl.c: */
+  ident_buffer = NULL;
+  size_ident_buffer = 0;
+  size_scope_stack = 0;
   /* Clear a symbol that can be used to make initialization more efficient. */
   cleared_symbol.header                            = NULL;
   cleared_symbol.next                              = NULL;
@@ -11585,7 +11588,6 @@ given translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
-  /* Global variable declared in symbol_ref.c. */
   decl_seq_counter = 0;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   last_ctor_or_dtor_sym = NULL;
@@ -11634,10 +11636,6 @@ of the front end.
   memzero((char *)opname_symbol_table, sizeof(opname_symbol_table));
   next_scope_number = FILE_SCOPE_NUMBER;
   file_scope_number = take_next_scope_number();
-
-  /* size_scope_stack is not per-file and should not be reset. */
-  /* ident_buffer and size_ident_buffer are not per-file and should not
-     be reset. */
   avail_param_ids = NULL;
   avail_dependent_type_fixups = NULL;
   avail_access_error_descrs = NULL;

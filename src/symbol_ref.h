@@ -27,22 +27,6 @@ symbol_ref.h - Declarations related to symbol reference processing.
 #include "templates.h"
 #endif /* ifndef TEMPLATES_H */
 
-EXTERN a_decl_sequence_number
-		decl_seq_counter;
-			/* Counter, initialized to 0 with each compilation
-			   unit, for maintaining the declaration sequence
-			   numbers for symbols. */
-
-/*
-Set the declaration sequence number of the symbol pointed to by sym.
-*/
-#define set_decl_sequence_number(sym) ((sym)->decl_seq = ++decl_seq_counter)
-
-/*
-The special value used to represent an unset declaration sequence number.
-*/
-#define NO_DECL_SEQUENCE_NUMBER ((a_decl_sequence_number)(0))
-
 /*
 A symbol-reference-set is a bit vector designed to describe the declarations
 and uses of symbols.  The bit positions are specified by the SRK_ values
@@ -189,6 +173,8 @@ extern a_boolean reference_to_trivial_default_constructor(
 extern void check_name_hiding_for_scope(a_scope_ptr  sp);
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+
+extern void symbol_ref_one_time_init(void);
 
 /* This macro is just a stub.  It can be replaced in implementations that
    need to track uses that require a complete class type.  (Note: the type

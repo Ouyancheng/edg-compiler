@@ -35,11 +35,7 @@ for the expected target machine but may be reset to permit reconfiguring
 the EDG front end to different targets with each invocation.
 */
 EXTERN a_boolean
-		targ_little_endian
-#if VAR_INITIALIZERS
-                                   = TARG_LITTLE_ENDIAN
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		targ_little_endian;
 			/* When TRUE the least significant part of a multi-byte
 			   target integer is at the lowest memory address. */
 
@@ -47,19 +43,11 @@ EXTERN a_boolean
 Char types:
 */
 EXTERN unsigned int
-		targ_char_bit
-#if VAR_INITIALIZERS
-                              = TARG_CHAR_BIT
-#endif /* VAR_INITIALIZERS */
-                                             ;
+		targ_char_bit;
 			/* Number of bits in a target char. */
 
 EXTERN unsigned int
-		targ_host_string_char_bit
-#if VAR_INITIALIZERS
-                                          = TARG_HOST_STRING_CHAR_BIT
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		targ_host_string_char_bit;
 			/* The number of data bits per character used when
 			   representing target characters as a string on the
 			   host; dependent on targ_char_bit and CHAR_BIT.
@@ -69,196 +57,112 @@ EXTERN unsigned int
 			   in a host char. */
 
 EXTERN a_boolean
-		targ_has_signed_chars
-#if VAR_INITIALIZERS
-                                      = TARG_HAS_SIGNED_CHARS
-#endif /* VAR_INITIALIZERS */
-                                                             ;
+		targ_has_signed_chars;
 			/* TRUE if the target has signed characters.  This
 			   is selectable on the command line. */
 
 EXTERN a_boolean
-		targ_char_constant_first_char_most_significant
-#if VAR_INITIALIZERS
-                              = TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_char_constant_first_char_most_significant;
 			/* TRUE when the first character in a target char
 			   constant is most significant -- e.g., 'ab' == 0x6162
 			   instead of 0x6261. */
 
 EXTERN an_integer_kind
-		targ_wchar_t_int_kind
-#if VAR_INITIALIZERS
-                                      = TARG_WCHAR_T_INT_KIND
-#endif /* VAR_INITIALIZERS */
-                                                             ;
+		targ_wchar_t_int_kind;
 			/* Integer kind associated with wchar_t.  Initialized
 			   to the default value but reconfigurable. */
 EXTERN a_targ_size_t
-		targ_sizeof_wchar_t
-#if VAR_INITIALIZERS
-                                    = TARG_SIZEOF_WCHAR_T
-#endif /* VAR_INITIALIZERS */
-                                                         ;
+		targ_sizeof_wchar_t;
 			/* Size of a wchar_t entity.  Initialized to the
 			   default value but reconfigurable. */
 
 EXTERN an_integer_kind
-		targ_bool_int_kind
-#if VAR_INITIALIZERS
-                                      = TARG_BOOL_INT_KIND
-#endif /* VAR_INITIALIZERS */
-                                                          ;
+		targ_bool_int_kind;
 			/* Integer kind associated with bool.  Initialized
 			   to the default value but reconfigurable. */
 /*
 Integer types:
 */
 EXTERN a_targ_size_t
-		targ_sizeof_short
-#if VAR_INITIALIZERS
-                                  = TARG_SIZEOF_SHORT
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+		targ_sizeof_short;
 			/* Size of a short int.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_short
-#if VAR_INITIALIZERS
-                                   = TARG_ALIGNOF_SHORT
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		targ_alignof_short;
 			/* Alignment of a short int.  Initialized to the
 			   default value but reconfigurable. */
 
 EXTERN a_targ_size_t
-		targ_sizeof_int
-#if VAR_INITIALIZERS
-                                = TARG_SIZEOF_INT
-#endif /* VAR_INITIALIZERS */
-                                                 ;
+		targ_sizeof_int;
 			/* Size of an int.  Initialized to the default value
 			   but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_int
-#if VAR_INITIALIZERS
-                                 = TARG_ALIGNOF_INT
-#endif /* VAR_INITIALIZERS */
-                                                   ;
+		targ_alignof_int;
 			/* Alignment of an int.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_size_t
-		targ_sizeof_long
-#if VAR_INITIALIZERS
-                                 = TARG_SIZEOF_LONG
-#endif /* VAR_INITIALIZERS */
-                                                   ;
+		targ_sizeof_long;
 			/* Size of a long int.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_long
-#if VAR_INITIALIZERS
-                                  = TARG_ALIGNOF_LONG
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+		targ_alignof_long;
 			/* Alignment of a long int.  Initialized to the
 			   default value but reconfigurable. */
 
 #if LONG_LONG_ALLOWED
 EXTERN a_targ_size_t
-		targ_sizeof_long_long
-#if VAR_INITIALIZERS
-                                      = TARG_SIZEOF_LONG_LONG
-#endif /* VAR_INITIALIZERS */
-                                                             ;
+		targ_sizeof_long_long;
 			/* Size of a long long int.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_long_long
-#if VAR_INITIALIZERS
-                                       = TARG_ALIGNOF_LONG_LONG
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+		targ_alignof_long_long;
 			/* Alignment of a long long int.  Initialized to the
 			   default value but reconfigurable. */
 #endif /* LONG_LONG_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN an_integer_kind
-		targ_int8_int_kind
-#if VAR_INITIALIZERS
-                                   = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+		targ_int8_int_kind;
 			/* Integer kind associated with __int8.  Initialized
 			   to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_unsigned_int8_int_kind
-#if VAR_INITIALIZERS
-                                            = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                        ;
+		targ_unsigned_int8_int_kind;
 			/* Integer kind associated with unsigned __int8.
 			   Initialized to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_int16_int_kind
-#if VAR_INITIALIZERS
-                                    = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                ;
+		targ_int16_int_kind;
 			/* Integer kind associated with __int16.  Initialized
 			   to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_unsigned_int16_int_kind
-#if VAR_INITIALIZERS
-                                             = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                         ;
+		targ_unsigned_int16_int_kind;
 			/* Integer kind associated with unsigned __int16.
 			   Initialized to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_int32_int_kind
-#if VAR_INITIALIZERS
-                                    = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                ;
+		targ_int32_int_kind;
 			/* Integer kind associated with __int32.  Initialized
 			   to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_unsigned_int32_int_kind
-#if VAR_INITIALIZERS
-                                             = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                         ;
+		targ_unsigned_int32_int_kind;
 			/* Integer kind associated with unsigned __int32.
 			   Initialized to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_int64_int_kind
-#if VAR_INITIALIZERS
-                                    = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                ;
+		targ_int64_int_kind;
 			/* Integer kind associated with __int64.  Initialized
 			   to ik_none and reset later. */
 
 EXTERN an_integer_kind
-		targ_unsigned_int64_int_kind
-#if VAR_INITIALIZERS
-                                             = ((an_integer_kind)ik_none)
-#endif /* VAR_INITIALIZERS */
-                                                                         ;
+		targ_unsigned_int64_int_kind;
 			/* Integer kind associated with unsigned __int64.
 			   Initialized to ik_none and reset later. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -274,38 +178,22 @@ EXTERN an_integer_kind
 			   integer type.  In C99, this is uintmax_t. */
 
 EXTERN a_targ_size_t
-		targ_max_class_object_size
-#if VAR_INITIALIZERS
-                                           = TARG_MAX_CLASS_OBJECT_SIZE
-#endif /* VAR_INITIALIZERS */
-								       ;
+		targ_max_class_object_size;
 			/* Maximum size of a class object.  Initialized to the
 			   default value but may be reset in target_init. */
 
 EXTERN a_targ_size_t
-		targ_max_base_class_offset
-#if VAR_INITIALIZERS
-                                           = TARG_MAX_BASE_CLASS_OFFSET
-#endif /* VAR_INITIALIZERS */
-								       ;
+		targ_max_base_class_offset;
 			/* Maximum offset of a base class.  Initialized to the
 			   default value but may be reset in target_init. */
 
 EXTERN a_boolean
-		targ_optimize_empty_base_class_layout
-#if VAR_INITIALIZERS
-                                       = TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
-#endif /* VAR_INITIALIZERS */
-								       ;
+		targ_optimize_empty_base_class_layout;
 			/* TRUE if the layout mechanism should attempt to
 			   allocate empty base classes at the same offset as
 			   other subobjects. */
 
-EXTERN int	targ_bit_field_container_size
-#if VAR_INITIALIZERS
-                                              = TARG_BIT_FIELD_CONTAINER_SIZE
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+EXTERN int	targ_bit_field_container_size;
 			/* Container size to be used for bit-fields.  If > 0,
 			   indicates the size in bytes of one of the integral
 			   types.  0 means "use the smallest integral type
@@ -314,11 +202,7 @@ EXTERN int	targ_bit_field_container_size
 			   to the default value but reconfigurable. */
 
 EXTERN a_boolean
-		targ_microsoft_bit_field_allocation
-#if VAR_INITIALIZERS
-                                       = TARG_MICROSOFT_BIT_FIELD_ALLOCATION
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		targ_microsoft_bit_field_allocation;
 			/* If this flag is TRUE, bit-field allocation follows
 			   the conventions of Microsoft C/C++.  The value of
 			   targ_bit_field_container_size must be -1 and there
@@ -330,21 +214,13 @@ EXTERN a_boolean
 			   a new container is allocated. */
 
 EXTERN a_boolean
-		targ_plain_int_bit_field_is_unsigned
-#if VAR_INITIALIZERS
-                                        = TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_plain_int_bit_field_is_unsigned;
 			/* TRUE when a "plain" int bit field is to be treated
 			   as unsigned.  Initialized to the default value but
 			   reconfigurable. */
 
 EXTERN a_boolean
-		targ_force_one_bit_bit_field_to_be_unsigned
-#if VAR_INITIALIZERS
-                                 = TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_force_one_bit_bit_field_to_be_unsigned;
 			/* TRUE when a "plain" int bit field of length 1 is
 			   to be treated as unsigned regardless of the
 			   setting of targ_plain_int_bit_field_is_unsigned
@@ -352,11 +228,7 @@ EXTERN a_boolean
 			   is not very useful). */
 
 EXTERN a_boolean
-		targ_enum_bit_fields_are_always_unsigned
-#if VAR_INITIALIZERS
-                                    = TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_enum_bit_fields_are_always_unsigned;
 			/* Signedness for enum bit fields (an extension in C):
 			   if TRUE, enum bit fields are always unsigned.  If
 			   FALSE, the rules are as described in target.h: it
@@ -365,11 +237,7 @@ EXTERN a_boolean
 			   by targ_plain_int_bit_field_is_unsigned.  This
 			   needs to be FALSE to allow fully-standard C++. */
 
-EXTERN int	targ_zero_width_bit_field_alignment
-#if VAR_INITIALIZERS
-                                         = TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+EXTERN int	targ_zero_width_bit_field_alignment;
 			/* Alignment adjustment to be made when a zero-width
 			   (unnamed) bit field is declared.  If > 0 it is the
 			   alignment to be used (typically the alignment of
@@ -380,41 +248,25 @@ EXTERN int	targ_zero_width_bit_field_alignment
 			   means "use the alignment of the base type given in
 			   the declaration". */
 
-EXTERN int	targ_zero_width_bit_field_affects_struct_alignment
-#if VAR_INITIALIZERS
-                         = TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+EXTERN int	targ_zero_width_bit_field_affects_struct_alignment;
 			/* TRUE when the alignment adjustment when a
 			   zero-width (unnamed) bit-field is declared
 			   affects the overall alignment of the struct as
 			   well as the alignment of the next field. */
 
-EXTERN int	targ_unnamed_bit_field_affects_struct_alignment
-#if VAR_INITIALIZERS
-                            = TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+EXTERN int	targ_unnamed_bit_field_affects_struct_alignment;
 			/* TRUE if the alignment adjustment when an unnamed
 			   bit-field is declared affects the overall alignment
 			   of the struct as well as the alignment of the next
 			   field. */
 
-EXTERN int	targ_user_control_of_struct_packing_affects_bit_fields
-#if VAR_INITIALIZERS
-                     = TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+EXTERN int	targ_user_control_of_struct_packing_affects_bit_fields;
 			/* TRUE if "#pragma pack(n)" and the command-line
 			   option "--pack_alignment=n" affect the alignment of
 			   bit field containers (when bit fields straddle
 			   container alignment boundaries). */
 
-EXTERN int	targ_pad_bit_fields_larger_than_base_type
-#if VAR_INITIALIZERS
-                                  = TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+EXTERN int	targ_pad_bit_fields_larger_than_base_type;
 			/* TRUE if bit fields longer than their base types are
 			   padded out to the full declared length.  FALSE
 			   means allocate only as many bits as are in the
@@ -427,62 +279,38 @@ Pointer types:
 */
 #if TARG_ALL_POINTERS_SAME_SIZE
 EXTERN a_targ_size_t
-		targ_sizeof_pointer
-#if VAR_INITIALIZERS
-                                    = TARG_SIZEOF_POINTER
-#endif /* VAR_INITIALIZERS */
-                                                         ;
+		targ_sizeof_pointer;
 			/* Size of a pointer.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_pointer
-#if VAR_INITIALIZERS
-                                     = TARG_ALIGNOF_POINTER
-#endif /* VAR_INITIALIZERS */
-                                                           ;
+		targ_alignof_pointer;
 			/* Alignment of a pointer.  Initialized to the default
 			   value but reconfigurable. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 #if NEAR_AND_FAR_ALLOWED
 EXTERN a_targ_size_t
-		targ_sizeof_far_pointer
-#if VAR_INITIALIZERS
-                                        = TARG_SIZEOF_FAR_POINTER
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
+		targ_sizeof_far_pointer;
 			/* Size of a far pointer.  Initialized to the default
 			   value but reconfigurable.  Used only when support
 			   for near and far is enabled (e.g., in 16-bit
 			   Microsoft mode). */
 
 EXTERN a_targ_alignment
-		targ_alignof_far_pointer
-#if VAR_INITIALIZERS
-                                         = TARG_ALIGNOF_FAR_POINTER
-#endif /* VAR_INITIALIZERS */
-                                                                   ;
+		targ_alignof_far_pointer;
 			/* Alignment of a far pointer.  Initialized to the
 			   default value but reconfigurable.  Used only when
 			   support for near and far is enabled (e.g., in
 			   16-bit Microsoft mode). */
 EXTERN a_targ_size_t
-		targ_sizeof_near_pointer
-#if VAR_INITIALIZERS
-                                         = TARG_SIZEOF_NEAR_POINTER
-#endif /* VAR_INITIALIZERS */
-                                                                   ;
+		targ_sizeof_near_pointer;
 			/* Size of a near pointer.  Initialized to the default
 			   value but reconfigurable.  Used only when support
 			   for near and far is enabled (e.g., in 16-bit
 			   Microsoft mode). */
 
 EXTERN a_targ_alignment
-		targ_alignof_near_pointer
-#if VAR_INITIALIZERS
-                                          = TARG_ALIGNOF_NEAR_POINTER
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		targ_alignof_near_pointer;
 			/* Alignment of a near pointer.  Initialized to the
 			   default value but reconfigurable.  Used only when
 			   support for near and far is enabled (e.g., in
@@ -490,39 +318,23 @@ EXTERN a_targ_alignment
 #endif /* NEAR_AND_FAR_ALLOWED */
 
 EXTERN a_targ_ptrdiff_t
-		targ_ptrdiff_t_max
-#if VAR_INITIALIZERS
-                                   = TARG_PTRDIFF_T_MAX
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		targ_ptrdiff_t_max;
 			/* Maximum ptrdiff_t value. Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_ptrdiff_t
-		targ_ptrdiff_t_min
-#if VAR_INITIALIZERS
-                                   = TARG_PTRDIFF_T_MIN
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		targ_ptrdiff_t_min;
 			/* Minimum ptrdiff_t value.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN an_integer_kind
-		targ_ptrdiff_t_int_kind
-#if VAR_INITIALIZERS
-                                        = TARG_PTRDIFF_T_INT_KIND
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
+		targ_ptrdiff_t_int_kind;
 			/* Representation for ptrdiff_t -- the integer kind
 			   large enough to hold a pointer value.  Initialized
 			   to the default value but reconfigurable. */
 
 EXTERN a_targ_size_t
-		targ_size_t_max
-#if VAR_INITIALIZERS
-                                = TARG_SIZE_T_MAX
-#endif /* VAR_INITIALIZERS */
-                                                 ;
+		targ_size_t_max;
 			/* The limit of the host representation of size_t
 			   constants; the range it defines can be equal to
 			   or smaller than the integer size implied by
@@ -530,11 +342,7 @@ EXTERN a_targ_size_t
 			   value but reconfigurable. */
 
 EXTERN an_integer_kind
-		targ_size_t_int_kind
-#if VAR_INITIALIZERS
-                                     = TARG_SIZE_T_INT_KIND
-#endif /* VAR_INITIALIZERS */
-                                                           ;
+		targ_size_t_int_kind;
 			/* Representation for size_t -- the integer kind
 			   large enough to hold a pointer value.  Initialized
 			   to the default value but reconfigurable. */
@@ -609,67 +417,39 @@ EXTERN a_targ_alignment
 Float types:
 */
 EXTERN a_targ_size_t
-		targ_sizeof_float
-#if VAR_INITIALIZERS
-                                  = TARG_SIZEOF_FLOAT
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+		targ_sizeof_float;
 			/* Size of a float.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_float
-#if VAR_INITIALIZERS
-                                   = TARG_ALIGNOF_FLOAT
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		targ_alignof_float;
 			/* Alignment of a float.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_size_t
-		targ_sizeof_double
-#if VAR_INITIALIZERS
-                                   = TARG_SIZEOF_DOUBLE
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		targ_sizeof_double;
 			/* Size of a double.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_double
-#if VAR_INITIALIZERS
-                                    = TARG_ALIGNOF_DOUBLE
-#endif /* VAR_INITIALIZERS */
-                                                         ;
+		targ_alignof_double;
 			/* Alignment of a double.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_size_t
-		targ_sizeof_long_double
-#if VAR_INITIALIZERS
-                                        = TARG_SIZEOF_LONG_DOUBLE
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
+		targ_sizeof_long_double;
 			/* Size of a long double.  Initialized to the default
 			   value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_long_double
-#if VAR_INITIALIZERS
-                                         = TARG_ALIGNOF_LONG_DOUBLE
-#endif /* VAR_INITIALIZERS */
-                                                                   ;
+		targ_alignof_long_double;
 			/* Alignment of a long double.  Initialized to the
 			   default value but reconfigurable. */
 
 #if GNU_EXTENSIONS_ALLOWED
 
 EXTERN a_type_mode_kind
-		targ_word_mode
-#if VAR_INITIALIZERS
-                               = (a_type_mode_kind)TARG_WORD_MODE
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
+		targ_word_mode;
 			/* Mode of a word, i.e., the natural integer
 			   size for the target.  Initialized to the
 			   default value but reconfigurable. */
@@ -677,11 +457,7 @@ EXTERN a_type_mode_kind
 #if TARG_ALL_POINTERS_SAME_SIZE
 
 EXTERN a_type_mode_kind
-		targ_pointer_mode
-#if VAR_INITIALIZERS
-                                  = (a_type_mode_kind)TARG_POINTER_MODE
-#endif /* VAR_INITIALIZERS */
-                                                                       ;
+		targ_pointer_mode;
 			/* Mode of a pointer.  Initialized to the
 			   default value but reconfigurable. */
 
@@ -692,61 +468,33 @@ EXTERN a_type_mode_kind
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 
 EXTERN a_targ_alignment
-		targ_short_field_alignment
-#if VAR_INITIALIZERS
-			= TARG_SHORT_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-			                            ;
+		targ_short_field_alignment;
 			/* Default alignment for fields of type short. */
 
 EXTERN a_targ_alignment
-		targ_int_field_alignment
-#if VAR_INITIALIZERS
-			= TARG_INT_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-			                          ;
+		targ_int_field_alignment;
 			/* Default alignment for fields of type int. */
 
 EXTERN a_targ_alignment
-		targ_long_field_alignment
-#if VAR_INITIALIZERS
-			= TARG_LONG_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-			                           ;
+		targ_long_field_alignment;
 			/* Default alignment for fields of type long. */
 
 #if LONG_LONG_ALLOWED
 EXTERN a_targ_alignment
-		targ_long_long_field_alignment
-#if VAR_INITIALIZERS
-			= TARG_LONG_LONG_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-			                           ;
+		targ_long_long_field_alignment;
 			/* Default alignment for fields of type long long. */
 #endif /* LONG_LONG_ALLOWED */
 
 EXTERN a_targ_alignment
-		targ_float_field_alignment
-#if VAR_INITIALIZERS
-			= TARG_FLOAT_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-			                            ;
+		targ_float_field_alignment;
 			/* Default alignment for fields of type float. */
 
 EXTERN a_targ_alignment
-		targ_double_field_alignment
-#if VAR_INITIALIZERS
-			= TARG_DOUBLE_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-			                             ;
+		targ_double_field_alignment;
 			/* Default alignment for fields of type double. */
 
 EXTERN a_targ_alignment
-		targ_long_double_field_alignment
-#if VAR_INITIALIZERS
-			= TARG_LONG_DOUBLE_FIELD_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-			                                  ;
+		targ_long_double_field_alignment;
 			/* Default alignment for fields of type long double. */
 
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
@@ -755,38 +503,22 @@ EXTERN a_targ_alignment
 C++ pointer-to-member type.
 */
 EXTERN a_targ_size_t
-		targ_sizeof_ptr_to_data_member
-#if VAR_INITIALIZERS
-                                              = TARG_SIZEOF_PTR_TO_DATA_MEMBER
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_sizeof_ptr_to_data_member;
 			/* Size of a pointer-to-data-member.  Initialized to
 			   the default value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_ptr_to_data_member
-#if VAR_INITIALIZERS
-                                             = TARG_ALIGNOF_PTR_TO_DATA_MEMBER
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_alignof_ptr_to_data_member;
 			/* Alignment of a pointer-to-data-member.  Initialized
 			   to the default value but reconfigurable. */
 
 EXTERN a_targ_size_t
-		targ_sizeof_ptr_to_member_function
-#if VAR_INITIALIZERS
-                                          = TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_sizeof_ptr_to_member_function;
 			/* Size of a ptr-to-member-function.  Initialized to
 			   the default value but reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_ptr_to_member_function
-#if VAR_INITIALIZERS
-                                         = TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_alignof_ptr_to_member_function;
 			/* Alignment of a pointer-to-member-function.
 			   Initialized to the default value but
 			   reconfigurable. */
@@ -796,21 +528,13 @@ EXTERN a_targ_alignment
 Virtual function info.
 */
 EXTERN a_targ_size_t
-		targ_sizeof_virtual_function_info
-#if VAR_INITIALIZERS
-                                           = TARG_SIZEOF_VIRTUAL_FUNCTION_INFO
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_sizeof_virtual_function_info;
 			/* Size of a virtual-function-info entity.
 			   Initialized to the default value but
 			   reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_virtual_function_info
-#if VAR_INITIALIZERS
-                                          = TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_alignof_virtual_function_info;
 			/* Alignment of a virtual-function-info entity.
 			   Initialized to the default value but
 			   reconfigurable. */
@@ -820,21 +544,13 @@ EXTERN a_targ_alignment
 Pointer to virtual base class.
 */
 EXTERN a_targ_size_t
-		targ_sizeof_ptr_to_virtual_base_class
-#if VAR_INITIALIZERS
-                                    = TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS
-#endif /* VAR_INITIALIZERS */
-                                                         ;
+		targ_sizeof_ptr_to_virtual_base_class;
 			/* Size of a "pointer-to-virtual-base-class" member.
 			   Initialized to the default value but
 			   reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_alignof_ptr_to_virtual_base_class
-#if VAR_INITIALIZERS
-                                     = TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS
-#endif /* VAR_INITIALIZERS */
-                                                           ;
+		targ_alignof_ptr_to_virtual_base_class;
 			/* Alignment of a "pointer-to-virtual-base-class"
 			   member.  Initialized to the default value but
 			   reconfigurable. */
@@ -844,11 +560,7 @@ EXTERN a_targ_alignment
 Miscellaneous
 */
 EXTERN a_boolean
-		targ_enum_types_can_be_smaller_than_int
-#if VAR_INITIALIZERS
-                                     = TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_enum_types_can_be_smaller_than_int;
 			/* When TRUE, enum types will be allocated in the
 			   smallest integral type in which they will fit; if
 			   FALSE, int will be used (e.g., for cfront
@@ -856,31 +568,19 @@ EXTERN a_boolean
 			   but reconfigurable. */
 
 EXTERN a_boolean
-		targ_right_shift_is_arithmetic
-#if VAR_INITIALIZERS
-                                              = TARG_RIGHT_SHIFT_IS_ARITHMETIC
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_right_shift_is_arithmetic;
 			/* When TRUE a right shift on a signed quantity does
 			   sign extension.  Initialized to the default value
 			   but reconfigurable. */
 
 EXTERN a_boolean
-		targ_too_large_shift_count_is_taken_modulo_size
-#if VAR_INITIALIZERS
-                             = TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_too_large_shift_count_is_taken_modulo_size;
 			/* When TRUE a shift with a too-large shift count is
 			   treated as if the shift count is reduced modulo
 			   the bit size of the object. */
 
 EXTERN a_targ_alignment
-		targ_minimum_struct_alignment
-#if VAR_INITIALIZERS
-                                              = TARG_MINIMUM_STRUCT_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_minimum_struct_alignment;
 			/* The minimum alignment required for objects of class,
 			   struct, and union type in the target environment.
 			   Initialized to the default value but
@@ -888,42 +588,26 @@ EXTERN a_targ_alignment
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
-		targ_minimum_pack_alignment
-#if VAR_INITIALIZERS
-                                            = TARG_MINIMUM_PACK_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-                                                                         ;
+		targ_minimum_pack_alignment;
 			/* The minimum value which a "pack alignment" value
 			   may have.  Initialized to the default value but
 			   reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_maximum_pack_alignment
-#if VAR_INITIALIZERS
-                                            = TARG_MAXIMUM_PACK_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-                                                                         ;
+		targ_maximum_pack_alignment;
 			/* The maximum value which a "pack alignment" value
 			   may have.  Initialized to the default value but
 			   reconfigurable. */
 
 EXTERN a_targ_alignment
-		targ_maximum_intrinsic_alignment
-#if VAR_INITIALIZERS
-                                            = TARG_MAXIMUM_INTRINSIC_ALIGNMENT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_maximum_intrinsic_alignment;
 			/* The maximum alignment value which the target can
 			   take advantage of.  Initialized to the default
 			   value but reconfigurable. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean
-		distinct_template_signatures
-#if VAR_INITIALIZERS
-                                      = DEFAULT_DISTINCT_TEMPLATE_SIGNATURES
-#endif /* VAR_INITIALIZERS */
-                                               ;
+		distinct_template_signatures;
 			/* If TRUE, template functions are given mangled names
 			   that are distinct from the names for nontemplate
 			   functions. */
@@ -931,57 +615,33 @@ EXTERN a_boolean
 #if DO_IL_LOWERING
 
 EXTERN a_boolean
-		force_variable_definition_via_zeroing
-#if VAR_INITIALIZERS
-                                       = FORCE_VARIABLE_DEFINITION_VIA_ZEROING
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		force_variable_definition_via_zeroing;
 			/* If TRUE, add zeroing to variable definitions
 			   to make them definitions in C. */
 
 EXTERN a_boolean
-		make_all_functions_unprototyped
-#if VAR_INITIALIZERS
-                                          = MAKE_ALL_FUNCTIONS_UNPROTOTYPED
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		make_all_functions_unprototyped;
 			/* If TRUE, all functions are rewritten to be
 			   unprototyped. */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 
 EXTERN unsigned int
-		targ_jmp_buf_num_elements
-#if VAR_INITIALIZERS
-                                          = TARG_JMP_BUF_NUM_ELEMENTS
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		targ_jmp_buf_num_elements;
 			/* Number of elements in a jmp_buf array.  Initialized
 			   to the default value but reconfigurable. */
 EXTERN a_boolean
-		targ_jmp_buf_elements_are_float
-#if VAR_INITIALIZERS
-                                              = TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		targ_jmp_buf_elements_are_float;
 			/* Choose between integer and float members of the
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
 EXTERN an_integer_kind
-		targ_jmp_buf_element_int_kind
-#if VAR_INITIALIZERS
-                                              = TARG_JMP_BUF_ELEMENT_INT_KIND
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		targ_jmp_buf_element_int_kind;
 			/* Integer kind indicating the kind of element in a
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
 EXTERN a_float_kind
-		targ_jmp_buf_element_float_kind
-#if VAR_INITIALIZERS
-                                              = TARG_JMP_BUF_ELEMENT_FLOAT_KIND
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		targ_jmp_buf_element_float_kind;
 			/* Float kind indicating the kind of element in a
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
@@ -990,96 +650,48 @@ EXTERN a_float_kind
 
 #if GENERATE_EH_TABLES
 EXTERN an_integer_kind
-		targ_var_handle_int_kind
-#if VAR_INITIALIZERS
-                                         = TARG_VAR_HANDLE_INT_KIND
-#endif /* VAR_INITIALIZERS */
-                                                                   ;
+		targ_var_handle_int_kind;
 			/* Integer kind to be used for a "handle" in
 			   exception handling tables. */
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
-EXTERN int	targ_flt_mant_dig
-#if VAR_INITIALIZERS
-                                  = TARG_FLT_MANT_DIG
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_flt_mant_dig;
 			/* The number of bits in the mantissa of a float. */
 
-EXTERN int	targ_flt_min_exp
-#if VAR_INITIALIZERS
-                                  = TARG_FLT_MIN_EXP
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_flt_min_exp;
 			/* The minimum exponent value of a float. */
 
-EXTERN int	targ_flt_max_exp
-#if VAR_INITIALIZERS
-                                  = TARG_FLT_MAX_EXP
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_flt_max_exp;
 			/* The maximum exponent value of a float. */
 
-EXTERN int	targ_dbl_mant_dig
-#if VAR_INITIALIZERS
-                                  = TARG_DBL_MANT_DIG
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_dbl_mant_dig;
 			/* The number of bits in the mantissa of a double. */
 
-EXTERN int	targ_dbl_min_exp
-#if VAR_INITIALIZERS
-                                  = TARG_DBL_MIN_EXP
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_dbl_min_exp;
 			/* The minimum exponent value of a double. */
 
-EXTERN int	targ_dbl_max_exp
-#if VAR_INITIALIZERS
-                                  = TARG_DBL_MAX_EXP
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_dbl_max_exp;
 			/* The maximum exponent value of a double. */
 
-EXTERN int	targ_ldbl_mant_dig
-#if VAR_INITIALIZERS
-                                  = TARG_LDBL_MANT_DIG
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_ldbl_mant_dig;
 			/* The number of bits in the mantissa of a long
                            double. */
 
-EXTERN int	targ_ldbl_min_exp
-#if VAR_INITIALIZERS
-                                  = TARG_LDBL_MIN_EXP
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_ldbl_min_exp;
 			/* The minimum exponent value of a long double. */
 
-EXTERN int	targ_ldbl_max_exp
-#if VAR_INITIALIZERS
-                                  = TARG_LDBL_MAX_EXP
-#endif /* VAR_INITIALIZERS */
-                                                     ;
+EXTERN int	targ_ldbl_max_exp;
 			/* The maximum exponent value of a long double. */
 
 EXTERN a_boolean
-		remove_qualifiers_from_param_types
-#if VAR_INITIALIZERS
-                                = DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		remove_qualifiers_from_param_types;
 			/* True when type qualifiers should be removed from
 			   function parameter types (e.g., a "const int"
 			   parameter is seen simply as "int"). */
 
 EXTERN a_boolean
-		c_and_cpp_function_types_are_distinct
-#if VAR_INITIALIZERS
-                              = DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		c_and_cpp_function_types_are_distinct;
 			/* If TRUE, function types are considered distinct if
 			   their only difference is that one has extern "C"
 			   routine linkage and the other has extern "C++"
@@ -1090,11 +702,7 @@ EXTERN a_boolean
 
 #if BACK_END_IS_CP_GEN_BE
 EXTERN a_boolean
-		old_specializations_for_generated_instances
-#if VAR_INITIALIZERS
-                         = DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		old_specializations_for_generated_instances;
 			/* If TRUE, specializations for generated template
 			   instances in generated code (C++-generating back
 			   end) should use the old syntax instead of the
@@ -1102,40 +710,23 @@ EXTERN a_boolean
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 EXTERN a_boolean
-		type_info_in_namespace_std
-#if VAR_INITIALIZERS
-                            = DEFAULT_TYPE_INFO_IN_NAMESPACE_STD
-#endif /* VAR_INITIALIZERS */
-                                                                ;
+		type_info_in_namespace_std;
 			/* If TRUE,  class type_info is defined as a member
 			   of namespace "std". */
 
 EXTERN a_boolean
-		pass_stdarg_references_to_generated_code
-#if VAR_INITIALIZERS
-                            = DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		pass_stdarg_references_to_generated_code;
 			/* If TRUE, references to the macros in <stdarg.h>
 			   are passed through to the output unchanged. */
 
 EXTERN a_boolean
-		va_list_in_std_namespace
-#if VAR_INITIALIZERS
-			    = DEFAULT_VA_LIST_IN_STD_NAMESPACE
-#endif /* VAR_INITIALIZERS */
+		va_list_in_std_namespace;
 			/* If TRUE, the va_list type created when passing
 			   stdarg references to generated code is placed in
 			   the std namespace. */
-                                                              ;
-
 
 EXTERN a_boolean
-		instantiate_extern_inline
-#if VAR_INITIALIZERS
-                            = INSTANTIATE_EXTERN_INLINE
-#endif /* VAR_INITIALIZERS */
-                                 ;
+		instantiate_extern_inline;
 			/* TRUE if the instantiation mechanism should be used
 			   to control the definition of extern inline
 			   functions. */
@@ -1143,20 +734,12 @@ EXTERN a_boolean
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
 EXTERN a_boolean
-		sun_is_generated_code_target
-#if VAR_INITIALIZERS
-                                               = SUN_IS_GENERATED_CODE_TARGET
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		sun_is_generated_code_target;
 			/* TRUE if code is being generated for a Sun
 			   compiler. */
 
 EXTERN a_boolean
-		gcc_is_generated_code_target
-#if VAR_INITIALIZERS
-                                               = GCC_IS_GENERATED_CODE_TARGET
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		gcc_is_generated_code_target;
 			/* TRUE if code is being generated for the GNU C or
 			   C++ compiler. */
 
@@ -1164,49 +747,29 @@ EXTERN a_boolean
     (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
 
 EXTERN unsigned long
-		gnu_target_version_number
-#if VAR_INITIALIZERS
-		                          = GNU_TARGET_VERSION_NUMBER
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
+		gnu_target_version_number;
 			/* The version number of the GNU compiler being
 			   targeted (e.g., 30401 for GNU C/C++ 3.4.1). */
 
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
 
 EXTERN a_boolean
-		gcc_builtin_varargs_in_generated_code
-#if VAR_INITIALIZERS
-                                      = GCC_BUILTIN_VARARGS_IN_GENERATED_CODE
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		gcc_builtin_varargs_in_generated_code;
 			/* TRUE if the generated code should use vararg
 			   primitives predefined by GNU compilers. */
 
 EXTERN a_boolean
-		msvc_is_generated_code_target
-#if VAR_INITIALIZERS
-                                              = MSVC_IS_GENERATED_CODE_TARGET
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		msvc_is_generated_code_target;
 			/* TRUE if code is being generated for the Microsoft
 			   MSVC++ compiler. */
 
 EXTERN int
-		msvc_target_version_number
-#if VAR_INITIALIZERS
-		                           = MSVC_TARGET_VERSION_NUMBER
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
+		msvc_target_version_number;
 			/* The version number (i.e., 1300 for 7.0) of the
 			   Microsoft MSVC compiler being targeted. */
 
 EXTERN int
-		microsoft_dialect_is_generated_code_target
-#if VAR_INITIALIZERS
-		                 = MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		microsoft_dialect_is_generated_code_target;
 			/* True if code is being generated for a compiler
 			   accepting Microsoft extensions. */
 
@@ -1215,11 +778,7 @@ EXTERN int
 #if BACK_END_IS_CP_GEN_BE
 
 EXTERN a_boolean
-		cp_gen_be_target_matches_source_dialect
-#if VAR_INITIALIZERS
-		                    = CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		cp_gen_be_target_matches_source_dialect;
 			/* Flag that indicates that the C++-generating back
 			   end should assume the target dialect is the same
 			   as the source dialect. */
@@ -1239,10 +798,13 @@ EXTERN a_boolean
 
 
 
+#ifndef DO_NOT_UNDEF_TARGET_MACROS
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
    To enforce this convention, they are undefined at this time.  (This is
-   not foolproof, but it should catch most such misuses).  */
+   not foolproof, but it should catch most such misuses).  The macro
+   DO_NOT_UNDEF_TARGET_MACROS is defined by target.c so that variables
+   declared in this file may be initialized there. */
 #undef TARG_LITTLE_ENDIAN
 #undef TARG_CHAR_BIT
 #undef TARG_HOST_STRING_CHAR_BIT
@@ -1326,6 +888,14 @@ EXTERN a_boolean
 #undef TARG_LDBL_MAX_EXP
 #undef MSVC_IS_GENERATED_CODE_TARGET
 #undef MSVC_TARGET_VERSION_NUMBER
+/* MAKE_TARG_NAMES_REFER_TO_VARIABLES cannot be set when this file is included
+   by target.c.  If it was previously defined, undefine it and set it to the
+   value required by target.c. */
+#ifdef MAKE_TARG_NAMES_REFER_TO_VARIABLES
+#undef  MAKE_TARG_NAMES_REFER_TO_VARIABLES
+#define MAKE_TARG_NAMES_REFER_TO_VARIABLES 0
+#endif /* ifdef MAKE_TARG_NAMES_REFER_TO_VARIABLES */
+#endif /* ifndef DO_NOT_UNDEF_TARGET_MACROS */
 
 #ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
 #define MAKE_TARG_NAMES_REFER_TO_VARIABLES 0
@@ -1450,6 +1020,10 @@ extern void check_target_configuration(void);
 #if BACK_END_IS_CP_GEN_BE
 extern void select_cp_gen_be_target_dialect(void);
 #endif /* BACK_END_IS_CP_GEN_BE */
+
+extern void target_init(void);
+
+extern void target_early_init(void);
 
 extern void target_one_time_init(void);
 

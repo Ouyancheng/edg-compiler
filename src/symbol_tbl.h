@@ -78,6 +78,22 @@ typedef int a_symbol_reference_kind;
 /* Unique sequence number identifying a declaration in a given scope. */
 typedef unsigned long a_decl_sequence_number;
   
+EXTERN a_decl_sequence_number
+		decl_seq_counter;
+			/* Counter, initialized to 0 with each compilation
+			   unit, for maintaining the declaration sequence
+			   numbers for symbols. */
+
+/*
+Set the declaration sequence number of the symbol pointed to by sym.
+*/
+#define set_decl_sequence_number(sym) ((sym)->decl_seq = ++decl_seq_counter)
+
+/*
+The special value used to represent an unset declaration sequence number.
+*/
+#define NO_DECL_SEQUENCE_NUMBER ((a_decl_sequence_number)(0))
+
 /*
 The definition of a_symbol_locator refers to declarations from il_def.h,
 but lexical.h requires a_symbol_locator to be defined.  So the former is
@@ -2893,7 +2909,7 @@ EXTERN an_active_using_directive_ptr
 			/* List of active using directive entries freed and
 			   available for reuse. */
 
-EXTERN sizeof_t	size_scope_stack /* = 0*/;
+EXTERN sizeof_t	size_scope_stack;
 			/* Allocated size of scope_stack in elements.
 			   Not per-file. */
 

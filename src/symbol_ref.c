@@ -35,7 +35,7 @@ static an_il_to_str_output_control_block
 			   il_to_str routines. */
 
 static a_boolean
-		output_control_block_has_been_set_up = FALSE;
+		output_control_block_has_been_set_up;
 			/* Flag that indicates whether initialization has
 			   already been done on the output control block. */
 
@@ -2183,6 +2183,15 @@ constructor), return TRUE.
   }  /* if */
   return (ctor_sym != NULL);
 }  /* reference_to_trivial_default_constructor */
+
+
+void symbol_ref_one_time_init(void)
+/*
+One-time initialization for symbol_ref.c static variables.
+*/
+{
+  output_control_block_has_been_set_up = FALSE;
+}  /* symbol_ref_one_time_init */
 
 
 /******************************************************************************
