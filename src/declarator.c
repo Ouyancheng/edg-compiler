@@ -2118,6 +2118,9 @@ nonstatic data member of a class.
       } else {
         (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
       }  /* if */
+    } else if (num_of_elements == 0) {
+      /* Most likely a declaration like "int a[];". */
+      (*new_type_ptr)->variant.array.variant.number_of_elements = 0;
     } else {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       a_constant_ptr  il_constant = alloc_shareable_constant(&constant);
