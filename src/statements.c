@@ -5237,7 +5237,8 @@ static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
                               a_constant_ptr                range_end,
                               a_source_position             *keyword_position,
                               a_source_position             *colon_position,
-                              a_source_position             *label_position)
+                              a_source_position             *label_position,
+                              a_boolean                     *already_diagnosed)
 /*
 Begin a clause of the switch statement associated with the structured
 statement stack entry pointed to by sssep, for the case value indicated
@@ -5246,7 +5247,9 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
 the first entry of a range).  label_position indicates the source position
 of the label.  keyword_position describes the position of the "case" or
 "default" keyword and colon_position locates the corresponding following
-colon.
+colon.  If *already_diagnosed is TRUE, diagnostics are inhibited; conversely,
+when a diagnostic is issued, it is set to TRUE.  This is useful to avoid
+redundant diagnostics in case ranges (GNU C mode only).
 */
 {
   a_switch_clause_ptr scp;
@@ -5295,7 +5298,11 @@ colon.
         if (constant_ptr == NULL) {
           if (scp->constant_list == NULL) {
             /* "default" appears more than once. */
-            pos_error(ec_default_label_appears_more_than_once, label_position);
+            if (!*already_diagnosed) {
+              pos_error(ec_default_label_appears_more_than_once,
+                        label_position);
+              *already_diagnosed = TRUE;
+            }  /* if */
             err = TRUE;
             break;
           }  /* if */
@@ -5314,8 +5321,11 @@ colon.
                 cp->kind != (a_constant_repr_kind)ck_template_param) {
               check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
               if (eq_constants(cp, constant_ptr)) {
-                pos_error(ec_case_label_appears_more_than_once,
-                          label_position);
+                if (!*already_diagnosed) {
+                  pos_error(ec_case_label_appears_more_than_once,
+                            label_position);
+                  *already_diagnosed = TRUE;
+                }  /* if */
                 err = TRUE;
                 break;
               }  /* if */
@@ -5705,6 +5715,7 @@ Scan a case label definition.  The syntax is:
   a_source_position             case_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_source_position             ellipsis_position;
+  a_boolean                     already_diagnosed = FALSE;
 
   db_enter(4, "case_label");
 
@@ -5746,12 +5757,14 @@ Scan a case label definition.  The syntax is:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       add_switch_clause(sssep, constant_ptr, range_end,
                         &case_position, &pos_curr_token,
-                        &constant_ptr->source_corresp.decl_position);
+                        &constant_ptr->source_corresp.decl_position,
+                        &already_diagnosed);
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
       add_switch_clause(sssep, constant_ptr, (a_constant_ptr)NULL,
                         (a_source_position_ptr)NULL,
                         (a_source_position_ptr)NULL,
-                        &constant_ptr->source_corresp.decl_position);
+                        &constant_ptr->source_corresp.decl_position,
+                        &already_diagnosed);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (range_end != NULL &&
           cmp_integer_constants(constant_ptr, range_end) < 0) {
@@ -5766,14 +5779,16 @@ Scan a case label definition.  The syntax is:
                             (a_constant_ptr)NULL,
                             (a_source_position_ptr)NULL,
                             (a_source_position_ptr)NULL,
-                            &ellipsis_position);
+                            &ellipsis_position,
+                            &already_diagnosed);
           incr_integer_value(&in_between.variant.integer_value);
         }  /* while */
         range_end->source_corresp.decl_position = null_source_position;
         add_switch_clause(sssep, range_end, (a_constant_ptr)NULL,
                           (a_source_position_ptr)NULL,
                           (a_source_position_ptr)NULL,
-                          &range_end->source_corresp.decl_position);
+                          &range_end->source_corresp.decl_position,
+                          &already_diagnosed);
       }  /* if */
     } else {
       /* Make code reachable if the switch is reachable for the error case. */
@@ -5824,17 +5839,18 @@ Scan a default case label definition.  The syntax is:
   sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
                                      /*find_loop=*/FALSE);
   if (sssep != NULL) {
+    a_boolean  already_diagnosed = FALSE;
     /* Found the proper enclosing switch statement. */
     sssep->switch_has_default_clause = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     add_switch_clause(sssep, (a_constant_ptr)NULL, (a_constant_ptr)NULL,
                       &label_position, &pos_curr_token,
-                      &label_position);
+                      &label_position, &already_diagnosed);
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
     add_switch_clause(sssep, (a_constant_ptr)NULL, (a_constant_ptr)NULL,
                       (a_source_position_ptr)NULL,
                       (a_source_position_ptr)NULL,
-                      &label_position);
+                      &label_position, &already_diagnosed);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  else {
     /* We are not inside a switch statement. */
