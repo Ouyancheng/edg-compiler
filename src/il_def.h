@@ -5971,7 +5971,8 @@ enum a_builtin_function_kind_tag {
   bfk_strcspn,                  /* "__builtin_strcspn" */
   bfk_strchr,                   /* "__builtin_strchr" */
   bfk_strrchr,                  /* "__builtin_strrchr" */
-  bfk_fsqrt,                    /* "__builtin_fsqrt" */
+  bfk_sqrt,                     /* "__builtin_sqrt" */
+  bfk_fsqrt = bfk_sqrt,         /* For compatibility with earlier versions. */
   bfk_sin,                      /* "__builtin_sin" */
   bfk_cos,                      /* "__builtin_cos" */
   bfk_sqrtf,                    /* "__builtin_sqrtf" */
@@ -6074,7 +6075,8 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_strcspn */                  "__builtin_strcspn",
   /* bfk_strchr */                   "__builtin_strchr",
   /* bfk_strrchr */                  "__builtin_strrchr",
-  /* bfk_fsqrt */                    "__builtin_fsqrt",
+  /* bfk_sqrt */                     "__builtin_sqrt",
+  /* bfk_fsqrt */                    "__builtin_sqrt",
   /* bfk_sin */                      "__builtin_sin",
   /* bfk_cos */                      "__builtin_cos",
   /* bfk_sqrtf */                    "__builtin_sqrtf",

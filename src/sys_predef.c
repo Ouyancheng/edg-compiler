@@ -400,7 +400,7 @@ Enter the standard predeclared functions for GCC.
 			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/FALSE);
-  enter_gnu_builtin_function((a_builtin_function_kind)bfk_fsqrt,
+  enter_gnu_builtin_function((a_builtin_function_kind)bfk_sqrt,
 			     double_type,
 			     double_type,
 			     (a_type_ptr)NULL,
