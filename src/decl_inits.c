@@ -2056,10 +2056,16 @@ scan_paren:
                occurs in the middle of constructing an object of this type --
                the information is used to register which destructors need to be
                called for a partially constructed object. */
+            a_type_ptr  tp;
+            if (new_cip->kind == (a_constructor_init_kind)cik_field) {
+              tp = init_type;
+            } else {
+              tp = class_type;
+            }  /* if */
             new_cip->initializer->destructor =
-                       select_destructor(init_type, init_type, &error_position,
-                                         /*honor_virtual=*/FALSE,
-                                         /*evaluated=*/TRUE);
+                         select_destructor(init_type, tp, &error_position,
+                                           /*honor_virtual=*/FALSE,
+                                           /*evaluated=*/TRUE);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2233,10 +2239,9 @@ scan_paren:
              occurs in the middle of constructing an object of this type --
              the information is used to register which destructors need to be
              called for a partially constructed object. */
-          rp = select_destructor(tp, object_class_type, &err_pos,
-                                 /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
-          check_assertion(rp != NULL);
-          dip->destructor = rp;
+          dip->destructor = select_destructor(tp, object_class_type, &err_pos,
+                                              /*honor_virtual=*/FALSE,
+                                              /*evaluated=*/TRUE);
         }  /* if */
       }  /* if */
       if (array_type != NULL &&
