@@ -4694,7 +4694,7 @@ care about.
 
 
 /* Static variables used to pass information back to the routine
-   is_or_contains_local_or_unnamed_type. */
+   is_or_contains_unnamed_or_local_type. */
 static a_boolean is_unnamed_type;
 static a_boolean is_local_type;
 static a_boolean ttt_is_unnamed_or_local_type(
