@@ -1,5 +1,13 @@
 Version 2.35
 
+1/31/97 Recognition of predeclared class type_info
+
+A new configuration flag, PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED, has been
+added (see host_envir.h) to indicate whether "#pragma define_typo_info"
+must precede a declaration of class type_info that is meant to match the
+predeclared name.  By default the flag is TRUE unless the C++-generating
+back end is being used.
+
 1/31/97 Psuedo destructor calls using type keywords now nonstandard
 
 The Working Paper no longer permits type keywords to be used in psuedo
@@ -37,7 +45,7 @@ needed to interface to a virtual function with a covariant return type.
   }
   int main() {}
 
-1/30/96 #pragma pack directives and templates
+1/30/97 #pragma pack directives and templates
 
 When USER_CONTROL_OF_STRUCT_PACKING is TRUE, the default "pack alignment"
 (given by a "#pragma pack" directive or specified on the command line) for
