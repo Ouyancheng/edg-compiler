@@ -1,3 +1,10 @@
+Version 2.31
+
+10/12/95 Linux automatically sets USE_SYSTEM_JMP_BUF_DEFINITION
+
+USE_SYSTEM_JMP_BUF_DEFINITION is set to TRUE by default when compiled
+with a front end compiled with __linux__ defined.
+-------------------------------------------------------------------------------
 Version 2.30, October 30, 1995
 
 9/1/95    Namespace changes
