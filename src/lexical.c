@@ -5512,8 +5512,16 @@ This routine may only be called in C++ mode.
          be a less than sign and do a normal (nonclass) lookup. This
          should not make any difference for file scope lookups because
          class template names cannot coexist with other names at
-         file scope. */
-      lookup_kind = next_tok != tok_lt ? IDL_MUST_BE_CLASS : IDL_NO_OPTIONS;
+         file scope.  A normal lookup must also be done when scanning
+         what might be a use of a "." in place of "::" as a qualifier.  We
+         don't know whether the "." is being used as a qualifier or as
+         a field selection operator so we need to do a normal lookup
+         and then decide based on the type of the thing we find. */
+      if (next_tok == tok_lt || qualifier_separator == tok_period) {
+        lookup_kind = IDL_NO_OPTIONS;
+      } else {
+        lookup_kind = IDL_MUST_BE_CLASS;
+      }  /* if */
       if (is_global_qualified_name) {
         /* There was a leading unary "::", so look up the name in the file
            scope. */
@@ -5544,7 +5552,7 @@ This routine may only be called in C++ mode.
         }  /* if */
       }  /* if */
       if (qualifier_separator == tok_period) {
-        if (class_symbol != NULL) {
+        if (class_symbol != NULL && is_type_symbol(class_symbol)) {
           /* In cfront mode we have a construct like "A." where A is a
              class name.  This is a use of a cfront anachronism where "."
              is used in a qualified name where "::" should be used.
