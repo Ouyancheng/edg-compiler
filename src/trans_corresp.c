@@ -5005,13 +5005,11 @@ correspondences with other translation units.)
 {
   a_namespace_ptr  result = nsp;
 
-  if (nsp != NULL) {
+  if (nsp != NULL && secondary_translation_unit_seen()) {
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    if (in_secondary_trans_unit(nsp)) {
-      determine_correspondence(&nsp->source_corresp, iek_namespace);
-    }  /* if */
+    determine_correspondence(&nsp->source_corresp, iek_namespace);
     result = (a_namespace_ptr)canonical_il_entry_of(nsp);
   }  /* if */
   return result;
@@ -5027,13 +5025,11 @@ entry.
 {
   a_field_ptr  result = field;
 
-  if (field != NULL) {
+  if (field != NULL && secondary_translation_unit_seen()) {
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    if (in_secondary_trans_unit(field)) {
-      determine_correspondence(&field->source_corresp, iek_field);
-    }  /* if */
+    determine_correspondence(&field->source_corresp, iek_field);
     result = (a_field_ptr)canonical_il_entry_of(field);
   }  /* if */
   return result;
@@ -5049,10 +5045,8 @@ entry.
 {
   a_routine_ptr  result = routine;
 
-  if (routine != NULL) {
-    if (in_secondary_trans_unit(routine)) {
-      determine_correspondence(&routine->source_corresp, iek_routine);
-    }  /* if */
+  if (routine != NULL && secondary_translation_unit_seen()) {
+    determine_correspondence(&routine->source_corresp, iek_routine);
     result = (a_routine_ptr)canonical_il_entry_of(routine);
   }  /* if */
   return result;
@@ -5068,10 +5062,8 @@ entry.
 {
   a_variable_ptr  result = var;
 
-  if (var != NULL) {
-    if (in_secondary_trans_unit(var)) {
-      determine_correspondence(&var->source_corresp, iek_variable);
-    }  /* if */
+  if (var != NULL && secondary_translation_unit_seen()) {
+    determine_correspondence(&var->source_corresp, iek_variable);
     result = (a_variable_ptr)canonical_il_entry_of(var);
   }  /* if */
   return result;
@@ -5087,7 +5079,7 @@ canonical entry.
 {
   a_type_ptr  result = type;
 
-  if (type != NULL &&
+  if (type != NULL && secondary_translation_unit_seen() &&
       /* Do not attempt to find a match for a type instantiated from a
          template template parameter. */
       !(is_immediate_class_type(type) &&
@@ -5095,9 +5087,7 @@ canonical entry.
         assoc_template_of(type) != NULL &&
         assoc_template_of(type)->kind ==
                            (a_template_kind)templk_template_template_param)) {
-    if (in_secondary_trans_unit(type)) {
-      determine_correspondence(&type->source_corresp, iek_type);
-    }  /* if */
+    determine_correspondence(&type->source_corresp, iek_type);
     result = (a_type_ptr)canonical_il_entry_of(type);
   }  /* if */
   return result;
@@ -5113,10 +5103,8 @@ canonical entry.
 {
   a_template_ptr  result = templ;
 
-  if (templ != NULL) {
-    if (in_secondary_trans_unit(templ)) {
-      determine_correspondence(&templ->source_corresp, iek_template);
-    }  /* if */
+  if (templ != NULL && secondary_translation_unit_seen()) {
+    determine_correspondence(&templ->source_corresp, iek_template);
     result = (a_template_ptr)canonical_il_entry_of(templ);
   }  /* if */
   return result;

@@ -1,5 +1,12 @@
 Version 3.2
 
+3/6/03   Spurious type incompatibility errors with multiple translation units
+
+I some relative rare situations, the front end would issue an error that
+a type in a secondary translation unit is incompatible with the same
+type in the primary translation unit.  The types were members of class
+type instantiations.  The problem has been fixed.
+
 3/6/03   Incorrect construction vtable setup, with multiple translation
          units
 
