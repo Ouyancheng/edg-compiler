@@ -1836,6 +1836,9 @@ Display the indicated variable.
   if (ptr->is_weak) { 
     disp_boolean("is_weak", TRUE);
   }  /* if */
+  if (ptr->unused) { 
+    disp_boolean("unused", TRUE);
+  }  /* if */
   if (ptr->is_not_common) {
     disp_boolean("is_not_common", TRUE);
   }  /* if */
@@ -2419,6 +2422,9 @@ Display the indicated routine.
   }  /* if */
   if (ptr->is_weak) {
     disp_boolean("is_weak", TRUE);
+  }  /* if */
+  if (ptr->unused) { 
+    disp_boolean("unused", TRUE);
   }  /* if */
   if (ptr->allocates_memory) {
     disp_boolean("allocates_memory", TRUE);

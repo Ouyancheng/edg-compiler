@@ -991,8 +991,7 @@ invalid attributes.
       case ak_unused:
         /* Mark the variable as referenced in order to suppress warnings
            about it if it is unused. */
-        mark_referenced((a_symbol_ptr)vp->source_corresp.assoc_info,
-                        &pos_curr_token);
+        vp->unused = TRUE;
         break;
       case ak_mode:
       case ak_noreturn:
@@ -1110,7 +1109,7 @@ messages about any invalid attributes.
         referenced = TRUE;
         break;
       case ak_unused:
-        referenced = TRUE;
+        rp->unused = TRUE;
         break;
       case ak_pure:
         rp->is_pure = TRUE;

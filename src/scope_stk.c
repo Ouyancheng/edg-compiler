@@ -3152,6 +3152,7 @@ NULL.
 #if GNU_EXTENSIONS_ALLOWED
                  !var_ptr->type->variables_are_implicitly_referenced &&
                  var_ptr->section == NULL &&
+                 !var_ptr->unused &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  !(is_class_struct_union_type(var_ptr->type) &&
                    (var_ptr->type->
@@ -3318,6 +3319,11 @@ NULL.
                    seq_is_in_include_file(sym->decl_position.seq)) {
           /* No diagnostic on inline non-member functions defined in a header
              file. */
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (rout_ptr->unused) {
+          /* Do not diagnose an unused function that carries the "unused"
+             attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
           /* "asm" functions don't generate any code unless referenced,
@@ -4206,6 +4212,12 @@ it is an external definition).
          This creates tables that can be accessed from any translation unit
          even though the individual entries may have had internal linkage. */
       is_needed = TRUE;
+    } else if (var->storage_class == (a_storage_class)sc_static &&
+               (var->unused || var->is_weak)) {
+      /* GNU C doesn't eliminate unreferenced static variables.  This front end
+         may do so, but some attributes are taken as an indication that the
+         entry should be kept. */
+      is_needed = TRUE;
     } else if (var->aliased_variable != NULL) {
       is_needed = variable_needed_even_if_unreferenced(var->aliased_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4429,6 +4441,12 @@ e.g., because it's externally defined.
     /* An initialization or finalization routine is always needed,
        even if not otherwise referenced, because it will be called
        at program startup. */
+    is_needed = TRUE;
+  } else if (rout->storage_class == (a_storage_class)sc_static &&
+             (rout->unused || rout->is_weak)) {
+    /* GNU C doesn't eliminate unreferenced static variables.  This front end
+       may do so, but some attributes are taken as an indication that the
+       entry should be kept. */
     is_needed = TRUE;
   } else if (rout->aliased_routine != NULL) {
     /* An alias is needed if the routine it aliases may be needed. */

@@ -1607,6 +1607,7 @@ to it.
   vp->asm_name_or_reg.name        = NULL;
   vp->alignment                   = 0;
   vp->is_weak                     = FALSE;
+  vp->unused                      = FALSE;
   vp->is_not_common               = FALSE;
   vp->asm_name_is_valid           = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1823,6 +1824,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_finalization_routine     = FALSE;
   rp->is_pure                     = FALSE;
   rp->is_weak                     = FALSE;
+  rp->unused                      = FALSE;
   rp->allocates_memory            = FALSE;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
   rp->is_naked                    = FALSE;

@@ -1017,10 +1017,12 @@ references.
       set_routine_definition_needed(rout);
 #if GNU_EXTENSIONS_ALLOWED
     } else if (rout->is_initialization_routine ||
-	       rout->is_finalization_routine) {
+               rout->is_finalization_routine ||
+               rout->unused) {
       /* The routine definition for an initialization or finalization
-	 function is always needed since the function will be called
-	 at program start up. */
+         function is always needed since the function will be called
+         at program start up.  Also, a routine marked as "unused" is
+         assumed to be needed (perhaps from a debugger). */
       set_routine_definition_needed(rout);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
