@@ -3862,43 +3862,28 @@ typedef long a_decl_specifiers_set;
 			/* "void" was scanned as the very first specifier. */
 
 
-static void report_bad_type_name(void)
+static void report_bad_type_name(a_decl_flag_set  input_flags)
 /*
 locator_for_curr_id describes a source name that was expected to name a valid
 type, but it does not.  Report different errors depending on whether the name
 can be found at all (in which case it presumably does not name a type).
+The parameter input_flags is the same value that was passed to decl_specifiers
+(from where this routine is called).
 */
 {
   if (!is_error_locator(locator_for_curr_id)) {
-    a_boolean  name_found = FALSE;
-    if (!locator_for_curr_id.is_qualified_name) {
-      name_found =
-               normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS) != NULL;
-    } else if (locator_for_curr_id.is_class_member &&
-               locator_for_curr_id.parent.class_type != NULL) {
-      name_found = class_qualified_id_lookup(
-                                        &locator_for_curr_id,
-                                        locator_for_curr_id.parent.class_type,
-                                        IDL_NO_OPTIONS) != NULL;
-    } else if (!locator_for_curr_id.is_class_member &&
-               locator_for_curr_id.parent.namespace_ptr != NULL) {
-      name_found = namespace_qualified_id_lookup(
-                                     &locator_for_curr_id,
-                                     locator_for_curr_id.parent.namespace_ptr,
-                                     IDL_NO_OPTIONS) != NULL;
-    }  /* if */
-    if (name_found) {
+    a_boolean                  error;
+    a_symbol_ptr               sym = NULL;
+    an_identifier_options_set  options;
+
+    options = (input_flags & DSI_IS_NEW_TYPE_NAME) ?
+                                        GID_IS_NEW_TYPE_NAME : GID_NO_OPTIONS;
+    check_assertion(is_generalized_identifier_start(options));
+    sym = coalesce_and_lookup_generalized_identifier(
+                                                 options, ilm_normal, &error);
+    if (sym != NULL && !error) {
       /* The name refers to something, but not a type. */
-      error(ec_exp_type_specifier);
-    } else {
-      if (!locator_for_curr_id.is_qualified_name) {
-        /* Issue a precise error for an undeclared unqualified name;
-           i.e., an identifier. */
-        str_error(ec_undefined_identifier,
-                  locator_for_curr_id.symbol_header->identifier);
-      } else {
-        error(ec_name_undeclared);
-      }  /* if */
+      sym_error(ec_sym_not_a_type_name, sym);
     }  /* if */
     reference_to_invalid_name(&locator_for_curr_id);
   }  /* if */
@@ -5221,7 +5206,7 @@ process_class_specifier:
           rescan_cached_tokens(&cache);
         }  /* if */
         if (bad_type_name_error) {
-          report_bad_type_name();
+          report_bad_type_name(input_flags);
           err = TRUE;
           basic_type = bt_typedef;
           *type_ptr = error_type();
