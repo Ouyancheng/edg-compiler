@@ -1,5 +1,16 @@
 Version 2.43
 
+11/22/99 Microsoft compatibility: allow member function redeclaration outside
+         class definition
+
+In Microsoft mode, the front end now allows member function redeclarations
+outside the class definition even when the redeclaration is not a definition.
+
+  struct S {
+    void f();
+  } s;
+  void S::f();  // Accepted in Microsoft mode.
+
 11/22/99 Keyword typename in friend class declaration
 
 The front end now diagnoses the use of the keyword typename to declare a

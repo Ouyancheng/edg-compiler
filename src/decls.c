@@ -1969,8 +1969,11 @@ specified id-linkage block.
 
   db_enter(3, "id_linkage");
   check_assertion(local_storage_class != (a_storage_class)sc_typedef);
+  /* Except in Microsoft mode, member functions cannot be redeclared (without
+     being defined) outside their parent class: */
   check_assertion(idlbp->locator->specific_symbol == NULL ||
-                  !idlbp->locator->specific_symbol->is_class_member);
+                  !idlbp->locator->specific_symbol->is_class_member ||
+                  microsoft_mode);
   is_function = idlbp->func_info != NULL;
   is_object = !is_function;
   if (is_error_locator(*idlbp->locator)) {
@@ -8880,6 +8883,47 @@ TRUE if an error was reported while the decl-specifiers were scanned.
   return declarator_omitted;
 }  /* check_for_missing_declarator */
 
+static void report_member_function_redeclaration(
+                                        a_symbol_locator       *locator,
+                                        a_type_ptr             type,
+                                        a_source_position_ptr  declarator_pos)
+/*
+A declaration of a class member function that is not also a definition
+can not appear outside the class.  Upon entering this routine we already know
+we encountered such a declaration: issue the appropriate diagnostic (except
+for some situations in Microsoft mode).
+*/
+{
+  a_symbol_ptr  sym = locator->specific_symbol;
+
+  if (is_member_function_symbol(locator->specific_symbol)) {
+    /* If this is a member function, but one with a type that doesn't
+       match a previously declared member, see if it matches an
+       instance of a member template.  If it does, assume that it is
+       an attempt to declare a specialization with the incorrect
+       old-style specialization syntax. */
+    a_boolean     is_member_redecl;
+    a_boolean     is_template_instance;
+
+    is_member_redecl = member_function_redecl_sym(
+                               sym, type, (a_template_param_ptr)NULL) != NULL;
+    is_template_instance = has_matching_template_instance(
+                                       sym, type, locator->template_arg_list);
+    if (!is_member_redecl && is_template_instance) {
+      pos_sy_error(ec_old_specialization_not_allowed,
+                   &locator->source_position, sym);
+      set_to_error_locator(*locator);
+    } else if (!microsoft_mode) {
+      pos_sy_error(ec_member_function_redecl_outside_class,
+                   declarator_pos, sym);
+      set_to_error_locator(*locator);
+    }  /* if */
+  } else {
+    pos_sy_error(ec_not_compatible_with_previous_decl, declarator_pos, sym);
+    set_to_error_locator(*locator);
+  }  /* if */
+}  /* report_member_function_redeclaration */
+
 
 /*
 Local macro for the routine "declaration".  Does any remove_stop_token
@@ -9676,34 +9720,8 @@ continue_with_declaration:
         if (is_function) {
           /* A qualified name that identifies a function is allowed only when
              the function body is present. */
-          if (is_member_function_symbol(locator.specific_symbol)) {
-            /* If this is a member function, but one with a type that doesn't
-               match a previously declared member, see if it matches an
-               instance of a member template.  If it does, assume that it is
-               an attempt to declare a specialization with the incorrect
-               old-style specialization syntax. */
-            a_symbol_ptr  tmp_sym = locator.specific_symbol;
-            a_boolean     is_member_redecl;
-            a_boolean     is_template_instance;
-
-            is_member_redecl = member_function_redecl_sym(
-                                          tmp_sym, local_type_ptr,
-                                          (a_template_param_ptr)NULL) != NULL;
-            is_template_instance = has_matching_template_instance(
-                                                    tmp_sym, local_type_ptr,
-                                                    locator.template_arg_list);
-            if (!is_member_redecl && is_template_instance) {
-              pos_sy_error(ec_old_specialization_not_allowed,
-                           &locator.source_position, tmp_sym);
-            } else {
-              pos_sy_error(ec_member_function_redecl_outside_class,
-                           &declarator_pos, locator.specific_symbol);
-            }  /* if */
-          } else {
-            pos_sy_error(ec_not_compatible_with_previous_decl,
-                         &declarator_pos, locator.specific_symbol);
-          }  /* if */
-          set_to_error_locator(locator);
+          report_member_function_redeclaration(&locator, local_type_ptr,
+                                               &declarator_pos);
         } else {
           /* Assume that qualified names that are not functions refer to static
              data members. */
