@@ -3476,6 +3476,22 @@ overridden function).
   entry_routine = alloc_routine();
   mark_as_not_visited(entry_routine);
   entry_routine->compiler_generated = TRUE;
+  /* Give the new routine the same linkage as the overriding routine. */
+  if (overriding_function->storage_class == (a_storage_class)sc_static
+#if LOWER_EXTERN_INLINE
+      || (overriding_function->is_inline &&
+          overriding_function->storage_class ==
+                                       (a_storage_class)sc_unspecified)
+#endif /* LOWER_EXTERN_INLINE */
+                                                                       ) {
+    entry_routine->storage_class = (a_storage_class)sc_static;
+    entry_routine->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_internal;
+  } else {
+    entry_routine->storage_class = (a_storage_class)sc_extern;
+    entry_routine->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_external;
+  }  /* if */  
   entry_routine->overriding_function_for_covariant_return_type =
                                                            overriding_function;
   entry_routine->overridden_function_for_covariant_return_type =
@@ -3520,7 +3536,6 @@ end_of_routine:
 }  /* make_covariant_return_type_entry_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-
 
 static void fill_virtual_function_table(
                                   a_constant_ptr            aggr_con,

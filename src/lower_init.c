@@ -540,6 +540,9 @@ routine later in order to ensure that the "defined" flag is set.
   rout_type = skip_typerefs(rout_ptr->type);
   rout_type->variant.routine.extra_info->assoc_routine = rout_ptr;
   rout_ptr->assoc_scope = curr_il_region_number;
+  if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
+    rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+  }  /* if */
   /* The "defined" flag is set in pop_generated_routine_context. */
   /* Make the top-level block statement. */
   scope->assoc_block = block_stmt =
