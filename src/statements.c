@@ -1086,7 +1086,7 @@ initializing declarations.
         }  /* if */
       }  /* for */
     } else {
-      /* This is not an end-of-block entry.  Determine it's parent. */      
+      /* This is not an end-of-block entry.  Determine its parent. */      
       if (end_of_control_flow_descr_list->kind ==
                                    (a_control_flow_descr_kind)cfdk_block) {
         /* Immediate successors of a block entry have that block as a

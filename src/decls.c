@@ -2774,7 +2774,7 @@ skip_overloading:;
           variable_ptr->source_corresp.referenced) {
         sym->referenced = TRUE;
       }  /* if */
-      /* Similarly, it should have it's "used" flag set.  This is only needed
+      /* Similarly, it should have its "used" flag set.  This is only needed
          for file-scope static variables, in cases like this:
            int f() { extern int i; return i; }
            static int i = 0;
