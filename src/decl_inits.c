@@ -863,12 +863,25 @@ ref field of a class object (or an array of same) remains uninitialized.
   } else {
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
+    a_boolean  nonconst_allowed;
+
     dip = NULL;
-    init_con =
-           scan_initializer_of_simple_object(/*nonconst_okay=*/!C_mode(),
-                                             static_lifetime,
-                                             /*force_object_lifetime=*/FALSE,
-                                             local_type, &dip);
+    if (!C_mode()) {
+      nonconst_allowed = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode) {
+      /* A Microsoft extension permits a nonconstant intializer in the
+         aggregate initialization of an automatic variable. */
+      nonconst_allowed = !static_lifetime;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      nonconst_allowed = FALSE;
+    }  /* if */
+    init_con = scan_initializer_of_simple_object(nonconst_allowed,
+                                                 static_lifetime,
+                                                 /*force_object_lifetime=*/
+                                                                      FALSE,
+                                                 local_type, &dip);
     if (init_con == NULL) {
       /* Returning NULL means a nonconstant expression was scanned, and so
          a dynamic init entry was allocated and returned.  Create a dynamic
