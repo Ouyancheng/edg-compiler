@@ -11830,6 +11830,7 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_attributes != NULL &&
       (is_member_template || is_member_template_rescan ||
+       is_template_context() ||
        class_type->source_corresp.is_local_to_function)) {
     /* Microsoft attributes cannot be specified on templates, nor on members
        of local class types.  When rescanning member templates, there is no
@@ -13376,7 +13377,12 @@ classes.
               /* This is a standalone attribute block.  Make sure all of the
                  specified attributes are standalone attributes.  This also
                  sets ms_attributes to NULL. */
-              verify_standalone_attributes(&ms_attributes);
+              if (!is_template_context()) {
+                verify_standalone_attributes(&ms_attributes);
+              } else {
+                dispose_of_unapplied_attributes(&ms_attributes,
+                                                ec_ms_attr_not_allowed);
+              }  /* if */
               cannot_bind_to_curr_construct();
               (void)get_token();
               goto next_declaration;
