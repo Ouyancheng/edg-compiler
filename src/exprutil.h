@@ -287,6 +287,11 @@ some of the transformations.
 #define TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION 0x20
 			/* Member functions should not be converted implicitly
 			   to pointer-to-member. */
+#define TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE 0x40
+			/* References to fields declared with
+			   __declspec(property(...)) (a Microsoft extension)
+			   should not be rewritten as calls of the appropriate
+			   "get" function. */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
 

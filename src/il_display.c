@@ -1897,6 +1897,7 @@ Display the name of an expression operator.
     case eok_value_fsubscript:  s = "eok_value_fsubscript";       break;
 #endif /* ifdef FFE */
     case eok_error:             s = "eok_error";                  break;
+    case eok_eok_property_field:s = "eok_property_field";         break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
   (void)printf(s);

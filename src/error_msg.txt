@@ -955,6 +955,8 @@ ec_cannot_define_dllimport_function;;"a function declared \"dllimport\" may not 
 ec_bad_declspec_property;;"incorrect property specification; correct form is __declspec(property(get=name1,put=name2))"
 ec_dupl_get_or_put;;"property has already been specified"
 ec_declspec_property_not_allowed;;"__declspec(property) is not allowed on this declaration"
+ec_no_get_property;;"member is declared with __declspec(property), but no \"get\" function was specified"
+ec_get_property_function_missing;;"the __declspec(property) \"get\" function %sq is missing"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
