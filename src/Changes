@@ -1,5 +1,18 @@
 Version 2.20
 
+9/9/93   Diagnostic on variable used before set
+
+A warning is now issued if an automatic variable local to a function is
+used before it is set.
+
+9/9/93   New flags in a_variable
+
+For variable entries representing function parameters two new flags are
+now maintained: param_value_has_been_changed is set if the parameter is
+assigned to or has its address taken, and param_used_more_than_once is set
+if there is more than one use of the parameter.  The flags may be useful
+for inlining.
+
 9/9/93   IL lowering: virtual function tables
 
 The definition of the virtual function table can now be put out for an
