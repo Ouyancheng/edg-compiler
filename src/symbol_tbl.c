@@ -2684,9 +2684,12 @@ the file scope is used.
         /* The entry is the first on the header list.  This case is handled
            above. */
       } else {
-        while (prev_sym_ptr->next != other_sym) {
+        while (prev_sym_ptr != NULL && prev_sym_ptr->next != other_sym) {
           prev_sym_ptr = prev_sym_ptr->next;
         }  /* while */
+        check_assertion_str2(prev_sym_ptr != NULL,
+                             "add_symbol_to_overload_list:",
+                             "symbol not in symbol header list");
         prev_sym_ptr->next = overload_sym;
       }  /* if */
       overload_sym->next = other_sym->next;
@@ -2712,9 +2715,13 @@ the file scope is used.
     if (prev_sym_ptr == other_sym) {
         /* The entry is the first on the list.  This case is handled above. */
     } else {
-       while (prev_sym_ptr->next_in_scope != other_sym) {
+       while (prev_sym_ptr != NULL &&
+              prev_sym_ptr->next_in_scope != other_sym) {
          prev_sym_ptr = prev_sym_ptr->next_in_scope;
        }  /* while */
+      check_assertion_str2(prev_sym_ptr != NULL,
+                           "add_symbol_to_overload_list:",
+                           "symbol not in scope stack list");
        prev_sym_ptr->next_in_scope = overload_sym;
     }  /* if */
     overload_sym->next_in_scope = other_sym->next_in_scope;
@@ -2755,7 +2762,8 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
-  use_namespace = !other_sym->is_class_member;
+  use_namespace = !other_sym->is_class_member &&
+                                      other_sym->parent.namespace_ptr != NULL;
   if (use_namespace) ns_ptr = other_sym->parent.namespace_ptr;
   /* Add the symbol to the overloaded function list. */
   *overload_sym = 
