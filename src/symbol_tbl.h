@@ -1695,6 +1695,7 @@ extern void db_symbol(a_symbol_ptr	sym,
                       char		*string,
                       int		indentation);
 
+extern void db_scope_stack(void);
 #endif /* DEBUG */
 
 extern void sym_tbl_init(void);

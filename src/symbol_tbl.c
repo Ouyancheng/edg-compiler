@@ -622,6 +622,57 @@ Put out a scope kind name (for debugging).
   }  /* switch */
   fputs(s, f_debug);
 }  /* db_scope_kind */
+
+
+void db_scope_stack(void)
+/*
+Dump the entire scope stack (for debugging).
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_boolean                done = FALSE;
+
+  do {
+    fprintf(f_debug, "%s%d ",
+            (ssep == &scope_stack[decl_scope_level]) ? "**" : "  ",
+            ssep->number);
+    db_scope_kind(ssep->kind);
+    fputs(": ", f_debug);
+    switch (ssep->kind) {
+      case sck_file:
+        done = TRUE;
+      case sck_function:
+      case sck_block:
+        if (ssep->il_scope != NULL) {
+          fprintf(f_debug, "%snull IL scope", ssep->il_scope ? "non" : "");
+        }  /* if */
+        break;
+      case sck_class_struct_union:
+      case sck_class_reactivation:
+        db_abbreviated_type(ssep->assoc_type);
+        break;
+      case sck_template_instantiation:
+        if (ssep->template_sym == NULL) {
+          fputs("<null template symbol>", f_debug);
+        } else {
+          char* s;
+          switch (ssep->template_sym->kind) {
+            case sk_class_template:    s = "<class-template>";    break;
+            case sk_function_template: s = "<function-template>"; break;
+            default:                   s = "<BAD SYMBOL KIND>";   break;
+          }  /* switch */
+          fprintf(f_debug, "template = %s %s", s,
+                  ssep->template_sym->header->identifier);
+        }  /* if */
+        break;
+      case sck_template_declaration:
+      case sck_func_prototype:
+      default:;
+    }  /* switch */
+    fputs("\n", f_debug);
+    --ssep;
+  } while (!done);
+}  /* db_scope_stack */
 #endif /* DEBUG */
 
 
