@@ -500,6 +500,7 @@ static void prescan_declaration(a_token_cache  *token_cache_ptr,
                                 a_boolean      abstract_declarator_allowed,
                                 a_boolean      real_declarator_allowed,
 				a_boolean      single_declaration_required,
+			        a_boolean      is_top_level,
                                 a_boolean      *may_be_decl);
 
 
@@ -524,6 +525,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
                           /*abstract_declarator_allowed=*/TRUE,
                           /*real_declarator_allowed=*/TRUE,
                           /*single_declaration_required=*/FALSE,
+                          /*is_top_level=*/FALSE,
                           may_be_decl);
       if (!*may_be_decl) goto done;
     }  /* if */
@@ -578,8 +580,9 @@ done:
 static void prescan_declarator(a_token_cache  *token_cache_ptr,
                                a_boolean      abstract_declarator_allowed,
                                a_boolean      real_declarator_allowed,
-                               a_boolean      *may_be_decl,
-			       a_boolean      paren_initializer_allowed)
+			       a_boolean      paren_initializer_allowed,
+			       a_boolean      is_top_level,
+                               a_boolean      *may_be_decl)
 /*
 Scan and cache the tokens that comprise a declarator.  This routine
 is used by the disambiguation routines.  If a construct that cannot be
@@ -623,7 +626,22 @@ part of a declarator is found, may_be_decl is set to FALSE.
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier();
     if (abstract_declarator_allowed) {
-      if (curr_token == tok_rparen ||
+      if (
+#if 0
+          cfront_compatibility_mode &&
+#endif
+          is_top_level &&
+          curr_token == tok_rparen) {
+        /* Cfront handles declarations like
+               int a(int());
+           as the declaration of an object with an initializer of int()
+           (which evaluates to zero), where it really should be a
+           function taking parameter of type "function () returning int".
+           If this is a top level declaration (e.g., not part of a
+           parameter list) don't consider typename() to be a declaration
+           in cfront mode. */
+        *may_be_decl = FALSE;
+      } else if (curr_token == tok_rparen ||
           is_decl_start(/*expr_context=*/FALSE,
                         /*real_declarator_allowed=*/TRUE) ||
                         curr_token == tok_ellipsis) {
@@ -633,8 +651,9 @@ part of a declarator is found, may_be_decl is set to FALSE.
     }  /* if */
     /* Get the nested declarator. */
     prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                       real_declarator_allowed, may_be_decl,
-                       /*paren_initializer_allowed=*/FALSE);
+                       real_declarator_allowed,
+                       /*paren_initializer_allowed=*/FALSE,
+                       /*is_top_level=*/FALSE, may_be_decl);
     if (!*may_be_decl) goto done;
     /* The nested declarator must be followed by a ")". */
     if (curr_token != tok_rparen) {
@@ -745,6 +764,7 @@ static void prescan_declaration(a_token_cache  *token_cache_ptr,
                                 a_boolean      abstract_declarator_allowed,
                                 a_boolean      real_declarator_allowed,
 				a_boolean      single_declaration_required,
+			        a_boolean      is_top_level,
                                 a_boolean      *may_be_decl)
 /*
 Scan a sequence of tokens and cache them for rescanning later.  The purpose
@@ -769,9 +789,10 @@ evidence to the contrary.
       /* Parenthesized initializers are only allowed in contexts that
          in which only real declarators are allowed. */
       prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                         real_declarator_allowed, may_be_decl,
+                         real_declarator_allowed,
                          /*paren_initializer_allowed=*/
-                         !abstract_declarator_allowed);
+                         !abstract_declarator_allowed,
+			 is_top_level, may_be_decl);
       if (!*may_be_decl) goto done;
       /* If we are not processing real declarators, don't look for
          additional declarators. */
@@ -867,6 +888,7 @@ types separated by commas (when single_declaration_required is FALSE).
     prescan_declaration(&token_cache, abstract_declarator_allowed,
                         real_declarator_allowed,
 		        single_type_required,
+                        /*is_top_level=*/TRUE,
                         &may_be_decl);
     if (!may_be_decl) goto done;
     /* We should now be at either a comma separating two declarators or at
