@@ -617,6 +617,28 @@ beginning of something like a qualified name.
   }
 
 
+static void copy_cached_token(a_cached_token_ptr	from_ctp,
+			      a_cached_token_ptr	to_ctp)
+/*
+Make a copy of a cached token, including any constant or pragmas pointed
+to by the token.
+*/
+{
+  a_token_extra_info_kind	extra_info_kind;
+
+  *to_ctp = *from_ctp;
+  extra_info_kind = from_ctp->extra_info_kind;
+  if (extra_info_kind == (a_token_extra_info_kind)teik_constant) {
+    to_ctp->variant.constant = alloc_cached_constant();
+    copy_constant(from_ctp->variant.constant, to_ctp->variant.constant);
+  } else if (extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+    to_ctp->variant.pragmas =
+                           make_copy_of_pragma_list(from_ctp->variant.pragmas);
+  }  /* if */
+  to_ctp->next = NULL;
+}  /* copy_cached_token */
+
+
 static
 void copy_tokens_from_cache(a_token_cache_ptr	       src_cache,
                             a_token_sequence_number    first_tsn,
@@ -676,8 +698,7 @@ is actually the first token to not be included in the cache.
     a_cached_token_ptr	copy_ctp;
     /* Make a copy of the token to be added. */
     alloc_cached_token(copy_ctp);
-    *copy_ctp = *ctp;
-    copy_ctp->next = NULL;
+    copy_cached_token(ctp, copy_ctp);
     add_cached_token_to_cache(copy_ctp, dest_cache);
   }  /* for */
   /* Terminate the new destination cache. */
