@@ -1,5 +1,18 @@
 Version 2.28
 
+1/30/95  Support for #pragma pack and --pack_alignment
+
+When USER_CONTROL_OF_STRUCT_PACKING is TRUE (see lang_feat.h), the maximum
+alignment of nonstatic data members in a class or struct (the "pack
+alignment") may be explicitly specified, either by the --pack_alignment
+command-line option or by #pragma pack.  Both take an argument that is a
+power-of-2 value within the range defined by TARG_MINIMUM_PACK_ALIGNMENT
+and TARG_MAXIMUM_PACK_ALIGNMENT (see targ_def.h).  The default pack
+alignment is in effect for all class/struct definitions unless it is
+overridden by a #pragma pack(n) directive.  The new setting remains in
+effect until it in turn is overridden by another #pragma pack(n) or until
+the default pack alignment is restored by #pragma pack().
+
 1/28/95  Template function matching abort
 
 Under certain conditions, an abort could occur in matches_template_type 
