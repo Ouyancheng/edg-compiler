@@ -5832,10 +5832,9 @@ as its first operand.
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes
            two operands (really the second and third) of arithmetic,
-           pointer, pointer-to-member, or class type (the void cases
+           pointer, or pointer-to-member (the class and void cases
            are handled outside of this routine). */
-        /* Having the "=CC" case first is important for Microsoft mode. */
-        operand_type_pattern = "=CC;AA;=PP;=MM";
+        operand_type_pattern = "AA;=PP;=MM";
         break;
       case onk_arrow_star:
         /* "->*" takes a pointer to class and a pointer to member to the
@@ -8014,8 +8013,9 @@ rewritten) for use in error messages.
 }  /* conversion_possible */
 
 
-static void prep_class_bitwise_copy_operand(an_operand *source_operand,
-                                            a_type_ptr dest_type)
+static void prep_class_bitwise_copy_operand(an_operand   *source_operand,
+                                            a_type_ptr   dest_type,
+                                            a_conv_descr *conversion)
 /*
 source_operand is to be copied bitwise to an entity of type dest_type.
 Both have class types.  Adjust source_operand if necessary, specifically
@@ -8024,7 +8024,8 @@ This is used for initialization.  See ARM 8.4.1 (aggregate initialization).
 This routine does not do the bitwise copy; it just prepares the operand
 for it.  Note also that this routine is called for the identity case
 where the class type is already correct and nothing should be done to it.
-On return, source_operand is an rvalue.
+*conversion describes the conversion; it particular, it indicates whether
+the result should be an rvalue or lvalue.
 */
 {
   a_type_ptr       source_type = source_operand->type;
@@ -8052,8 +8053,10 @@ On return, source_operand is an rvalue.
     }  /* if */
     adjust_class_object_type(source_operand, dest_type, bcp);
   }  /* if */
-  /* Make the source an rvalue. */
-  do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
+  if (!conversion->result_is_an_lvalue) {
+    /* Make the source an rvalue. */
+    do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
+  }  /* if */
 }  /* prep_class_bitwise_copy_operand */
 
 
@@ -8270,7 +8273,7 @@ in that case.
 #endif /* CHECKING */
   if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
-    prep_class_bitwise_copy_operand(operand, dest_type);
+    prep_class_bitwise_copy_operand(operand, dest_type, conversion);
     if (force_temp_for_class_bitwise_copy) {
       /* Make a copy of the class object in a temporary. */
       temp_init_by_bitwise_copy_from_operand(operand,
@@ -8734,7 +8737,7 @@ happen only in C++ mode.
     /* The dynamic initialization entry was already allocated above. */
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
-    prep_class_bitwise_copy_operand(source_operand, dest_type);
+    prep_class_bitwise_copy_operand(source_operand, dest_type, conversion);
     dip = alloc_dynamic_init_possibly_with_dtor(
                                           (a_dynamic_init_kind)dik_expression,
                                           fill_in_dtor,
@@ -9883,6 +9886,135 @@ if so.
   compatible = (arg_summary.match_level != aml_none);
   return compatible;
 }  /* nontype_template_arg_conversion_possible */
+
+
+a_boolean conditional_operator_conversion_possible(an_operand   *op1,
+                                                   an_operand   *op2,
+                                                   a_conv_descr *conv)
+/*
+Determine whether op1 can be converted to match op2 in the sense
+defined in the C++ standard, 5.16 [expr.cond] paragraph 3.  This is
+used in attempting to convert between the second and third operands
+of a "?" operator.  If the conversion is possible, set *conv to
+describe the conversion and return TRUE.  If the conversion is ambiguous,
+return TRUE.  One or the other of the operands must have a class type.
+This is used only in C++ mode.
+*/
+{
+  a_boolean        possible = FALSE, ambiguous = FALSE;
+  a_boolean        related_classes = FALSE;
+  a_base_class_ptr bcp = NULL;
+  a_type_ptr       op1_type = op1->type;
+  a_type_ptr       op2_type = op2->type;
+
+  check_assertion(!C_mode());
+  clear_conv_descr(conv);
+  if (is_an_lvalue(op2)) {
+    a_boolean ref_to_const, ref_to_const_volatile;
+    a_boolean binding_to_rvalue_allowed, dropping_qualifiers;
+    /* op2 is an lvalue.  Attempt to convert op1 to an lvalue of the type
+       of op2.  The standard defines this in terms of a notional
+       conversion to "reference to op2_type". */
+    a_type_ptr ref_op2_type = make_reference_type(op2_type);
+    if (direct_reference_binding_possible(op1,
+                                          (a_type_ptr)NULL,
+                                          ref_op2_type,
+                                          &ref_to_const,
+                                          &ref_to_const_volatile,
+                                          &binding_to_rvalue_allowed,
+                                          &dropping_qualifiers,
+                                          (a_symbol **)NULL)) {
+      possible = TRUE;
+      conv->class_identity_or_bitwise_copy = TRUE;
+      conv->result_is_an_lvalue = TRUE;
+    } else if (!curr_expr_kind_is_const() &&
+               is_class_struct_union_type(op1_type)) {
+      /* It might be possible to convert the source operand to an lvalue
+         via a conversion function, and then bind the reference directly to
+         the result. */
+      if (conversion_for_direct_reference_binding_possible(
+                                           op1,
+                                           ref_op2_type,
+                                           conv,
+                                           &ambiguous,
+                                           (a_candidate_function_ptr *)NULL) ||
+          ambiguous) {
+        possible = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!possible) {
+    if (is_class_struct_union_type(op1_type) &&
+        is_class_struct_union_type(op2_type)) {
+      /* Both operands have class type.  See if the class types are related. */
+      a_type_ptr base_op1_type = skip_typerefs(op1_type);
+      a_type_ptr base_op2_type = skip_typerefs(op2_type);
+      if (identical_types(base_op1_type, base_op2_type)) {
+        /* Same class type. */
+        possible = TRUE;
+        related_classes = TRUE;
+      } else if ((bcp = find_base_class_of(base_op1_type,
+                                           base_op2_type)) != NULL) {
+        /* op2_type is a base class of op1_type. */
+        possible = TRUE;
+        related_classes = TRUE;
+      } else if (find_base_class_of(base_op2_type,
+                                    base_op1_type) != NULL) {
+        /* op1_type is a base class of op2_type.  The conversion isn't
+           possible this way, but the fact that the classes are related
+           prevents searching for other matches below. */
+        related_classes = TRUE;
+      }  /* if */
+    }  /* if */
+    if (related_classes) {
+      /* The types are related classes. */
+      if (possible) {
+        /* Make sure that cv-qualifiers aren't dropped in the conversion. */
+        if (any_qualifier_missing(op2_type, op1_type)) possible = FALSE;
+        /* Check for an ambiguous base class. */
+        if (bcp != NULL && bcp->ambiguous) {
+          conv->unusable = TRUE;
+        }  /* if */
+        /* Set *conv to indicate the related-class conversion. */
+        conv->std.cast_base_class = bcp;
+        conv->std.nontrivial_conversion = (bcp != NULL);
+        conv->class_identity_or_bitwise_copy = TRUE;
+      }  /* if */
+    } else {
+      /* Not related classes.  See whether op1 can be converted to the
+         type of op2 as an rvalue. */
+      a_type_ptr op2_rvalue_type = rvalue_type(op2_type);
+      if (is_class_struct_union_type(op2_type)) {
+        if (conversion_to_class_possible(op1,
+                                         op2_rvalue_type,
+                                         /*try_bitwise_copy=*/TRUE,
+                                         /*is_copy_initialization=*/TRUE,
+                                         /*is_reference_binding=*/FALSE,
+                                         conv, (a_conv_descr *)NULL,
+                                         &ambiguous,
+                                         (a_candidate_function_ptr *)NULL) ||
+            ambiguous) {
+          possible = TRUE;
+        }  /* if */
+      } else {
+        check_assertion(is_class_struct_union_type(op1_type));
+        if (conversion_from_class_possible(op1,
+                                           op2_rvalue_type,
+                                           (a_builtin_type_kind_set)BTK_NONE,
+                                           /*need_lvalue_result=*/FALSE,
+                                           /*is_copy_initialization=*/TRUE,
+                                           /*is_reference_binding=*/FALSE,
+                                           conv,
+                                           &ambiguous,
+                                           (a_candidate_function_ptr *)NULL) ||
+            ambiguous) {
+          possible = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return possible;
+}  /* conditional_operator_conversion_possible */
 
 
 a_symbol_ptr select_overloaded_copy_constructor(

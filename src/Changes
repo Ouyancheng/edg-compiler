@@ -1,5 +1,11 @@
 Version 2.42
 
+8/5/99   Conversions for operands of "?" operator as required by standard
+
+The processing for the "?" operator in C++ mode now conforms more
+exactly to the C++ standard (5.16).  The differences from the previous
+processing are extremely minor.
+
 8/4/99   Friend template declarations in local classes
 
 A local class is not permitted to declare a friend template.  An error

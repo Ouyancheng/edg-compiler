@@ -8804,48 +8804,82 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                            saved_inside_conditional_expression;
   expr_stack->evaluated = saved_evaluated;
 
-  if (is_template_param_type(operand_1->type) ||
-      is_template_param_type(operand_2.type) ||
-      is_template_param_type(operand_3.type)) {
-    /* If any operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression under a
-       ck_template_param constant. */
-    check_assertion(curr_expr_kind_is_const() &&
-                    is_constant_operand(operand_1) &&
-                    is_constant_operand(&operand_2) &&
-                    is_constant_operand(&operand_3));
-    do_question_operation(operand_1, &operand_2, &operand_3,
-                          type_of_unknown_templ_param_constant, result);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type) ||
-              is_bad_type_for_template_arg_operand(operand_3.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    operand_will_not_be_used_because_of_error(&operand_3);
-    processed = TRUE;
-    err = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus) {
-    if (types_are_compatible(operand_2.type, operand_3.type)) {
-      /* In C++, if the types are the same the result has that type.
-         This is tested again later; the test here prevents a search for
-         conversions from class types to builtin types if the two operands
-         have the same class type, and is also used to help discover cases
-         where the result is an lvalue because the original operands have
-         the same type and are lvalues. */
-      types_are_the_same = TRUE;
-    } else {
-      /* Check for cases where the operands are classes. */
-      if (is_class_struct_union_type(operand_2.type) ||
-          is_class_struct_union_type(operand_3.type)) {
-        /* Look for C++ operator overloading cases.  The operator itself
-           cannot be overloaded, but this also checks for cases where
-           conversion functions can be used to convert the operands to
-           types suitable for the built-in meaning of the operator. */
+  /* Check the second and third operand types. */
+  if (!C_mode()) {
+    /* Checks specific to C++ mode: */
+    types_are_the_same = types_are_compatible(operand_2.type, operand_3.type);
+    if (is_template_param_type(operand_1->type) ||
+        is_template_param_type(operand_2.type) ||
+        is_template_param_type(operand_3.type)) {
+      /* If any operand has a template parameter type, we cannot
+         check the operand types.  Just produce an expression under a
+         ck_template_param constant. */
+      check_assertion(curr_expr_kind_is_const() &&
+                      is_constant_operand(operand_1) &&
+                      is_constant_operand(&operand_2) &&
+                      is_constant_operand(&operand_3));
+      do_question_operation(operand_1, &operand_2, &operand_3,
+                            type_of_unknown_templ_param_constant, result);
+      processed = TRUE;
+    } else if (curr_expr_kind_is(ek_template_arg) &&
+               (is_bad_type_for_template_arg_operand(operand_1->type) ||
+                is_bad_type_for_template_arg_operand(operand_2.type) ||
+                is_bad_type_for_template_arg_operand(operand_3.type))) {
+      /* Non-integral operations are not allowed in a template argument. */
+      diagnose_bad_template_arg_operation(&operator_position);
+      make_error_operand(result);
+      operand_will_not_be_used_because_of_error(operand_1);
+      operand_will_not_be_used_because_of_error(&operand_2);
+      operand_will_not_be_used_because_of_error(&operand_3);
+      err = TRUE;
+    } else if (is_void_type(operand_2.type) ||
+               is_void_type(operand_3.type)) {
+      /* If either operand has type void, we do not look for conversions
+         to or from class types. */
+    } else if (types_are_the_same) {
+      /* If the types are the same, we do not look for conversions to
+         or from class types. */
+    } else if (is_class_struct_union_type(operand_2.type) ||
+               is_class_struct_union_type(operand_3.type)) {
+      /* One or both of the operands has a class type, and they do not have
+         the same type.  (One could have a cv-qualified version of the type
+         of the other.)  Try converting each operand to the type of the
+         other.  See 5.16 paragraph 3 in the C++ standard. */
+      a_conv_descr conv_2_to_3, conv_3_to_2;
+      a_boolean    conv_2_to_3_possible, conv_3_to_2_possible;
+      conv_2_to_3_possible =
+                        conditional_operator_conversion_possible(&operand_2,
+                                                                 &operand_3,
+                                                                 &conv_2_to_3);
+      conv_3_to_2_possible =
+                        conditional_operator_conversion_possible(&operand_3,
+                                                                 &operand_2,
+                                                                 &conv_3_to_2);
+      if (conv_2_to_3_possible && conv_3_to_2_possible) {
+        /* Each operand can be converted to the other, so the operation
+           is ambiguous. */
+        pos_ty2_error(ec_ambiguous_question_operator, &operator_position,
+                      operand_2.type, operand_3.type);
+        err = TRUE;
+      } else if (conv_2_to_3_possible || conv_3_to_2_possible) {
+        if (conv_2_to_3_possible) {
+          /* Operand 2 can be converted to the type of operand 3.  Do so. */
+          user_convert_operand(&operand_2, operand_3.type, &conv_2_to_3,
+                               (a_conv_descr *)NULL,
+                               /*force_temp_for_class_bitwise_copy=*/FALSE);
+        } else {
+          /* Operand 3 can be converted to the type of operand 2.  Do so. */
+          user_convert_operand(&operand_3, operand_2.type, &conv_3_to_2,
+                               (a_conv_descr *)NULL,
+                               /*force_temp_for_class_bitwise_copy=*/FALSE);
+        }  /* if */
+        /* Determine if the types are the same after any conversions.*/
+        types_are_the_same = types_are_compatible(operand_2.type,
+                                                  operand_3.type);
+      } else {
+        /* The operands do not have the same type, at least one of them
+           has a class type, and there is no way to convert one to the
+           type of the other.  Look for conversions to built-in types. */
         check_for_operator_overloading((an_opname_kind)onk_question,
                                        /*unary_operator=*/FALSE,
                                        /*must_be_member_function=*/FALSE,
@@ -8865,12 +8899,13 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!processed) {
+  if (!processed && !err) {
     if (!C_mode() && types_are_the_same &&
-        is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) {
-      /* In C++, if the types are the same before any transformations
-         and the second and third operands are lvalues, they are left as
-         lvalues. */
+        ((is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) ||
+         (is_a_function_designator(&operand_2) &&
+          is_a_function_designator(&operand_3)))) {
+      /* In C++, if the second and third operands have the same type and
+         they are lvalues, the result is also an lvalue. */
       result_is_an_lvalue = TRUE;
     } else {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
@@ -8888,9 +8923,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
     }  /* if */
     result_type = operand_2.type;  /* Assume. */
-    /* Note that here types_are_the_same is TRUE if the mode is C++ and
-       the operand types are the same after any transformations. */
-    if (types_are_the_same) {
+    if (!C_mode() && types_are_the_same) {
       /* If the types are the same in C++ mode, no further checking of types
          is needed. */
       /* If either operand has an error type, make sure the result type is
