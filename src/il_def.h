@@ -3967,6 +3967,10 @@ typedef struct a_routine {
 			   For virtual functions in C++, this indicates that
 			   the routine was named in a call, although maybe
 			   an overriding routine might be called instead. */
+  a_bit_field	is_explicit_constructor:1;
+			/* TRUE if this routine is a constructor (i.e., its
+			   special_kind is sfk_constructor) and the "explicit"
+			   keyword appeared in its declaration.  C++ only. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
