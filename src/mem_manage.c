@@ -1077,7 +1077,8 @@ memory or with an IL file.
     check_assertion(scope != NULL);
     if (scope->kind == (a_scope_kind)sck_function) {
 #if MAINTAIN_NEEDED_FLAGS
-      if (!scope->variant.routine.ptr->source_corresp.needed) {
+      if (okay_to_eliminate_unneeded_il_entries &&
+          !scope->variant.routine.ptr->source_corresp.needed) {
         /* This is the memory region for a function scope that may not be
            needed.  As an optimization to keep the IL file from growing too
            large, don't write it out.  If we later discover that it's needed,
@@ -1112,6 +1113,39 @@ memory or with an IL file.
   }  /* if */
   db_exit();
 }  /* check_for_done_with_memory_region */
+
+
+void check_for_done_with_all_function_memory_regions(void)
+/*
+This routine is called to write out function memory regions that were not
+written out because they were not originally known to be needed.  This is an
+issue only if compilation takes place in a mode that permits the elimination
+of unneeded entities; this routine is necessary because it can be determined
+in the course of compilation that apparently unneeded entities should not be
+eliminated after all (e.g., because template declarations were encountered).
+*/
+{
+  db_enter(5, "check_for_done_with_all_function_memory_regions");
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  {
+  /* Loop through the memory regions.  Skip the front end and file scope
+     memory regions. */
+  a_memory_region_number  n = FILE_SCOPE_REGION_NUMBER + 1;
+  for (; n <= highest_used_region_number; ++n) {
+    if (mem_region_table[n] == NULL) {
+      /* This memory has already been freed. */
+    } else {
+#if CHECKING
+      a_scope_ptr  sp = il_header.region_scope_entry[n];
+      check_assertion(sp->kind == (a_scope_kind)sck_function);
+#endif /* CHECKING */
+      check_for_done_with_memory_region(n);
+    }  /* if */
+  }  /* for */
+  }
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+  db_exit()
+}  /* check_for_done_with_all_function_memory_regions */
 
 
 #if DEBUG
