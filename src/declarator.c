@@ -2096,7 +2096,7 @@ declaration.
             if (err) error(ec_array_size_too_large);
           } else if (microsoft_mode && top_level_field_decl &&
                      sign_of_integer_constant(&constant) == 0) {
-            /* In Microsoft C mode a field may be zero-size array type if
+            /* In Microsoft C mode a field may be a zero-sized array type if
                it is the last field of the struct.  Thus
                  struct S { int a,b,c[0]; }
                is allowed, and "c[0]" has the same semantics as "c[]".  Also
