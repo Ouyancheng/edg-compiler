@@ -52,7 +52,11 @@ static char		solaris_nm_command[] = "/bin/nm -pxR";
 static char		SGI_nm_command[] = "/bin/nm -Bopg";
 static char		CLIX_nm_command[] = "/bin/nm -pxre";
 static char		alternate_nm_command[] = "/bin/nm -pxr";
+#if __MSDOS__
+static char		nm_command_suffix[] = "";
+#else /* !__MSDOS__ */
 static char		nm_command_suffix[] = " 2>/dev/null";
+#endif /* __MSDOS__ */
 
 static char		*pl_predefined_names[] = {
 #ifdef sparc
