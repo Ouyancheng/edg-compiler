@@ -2,7 +2,7 @@ Version 3.4
 
 8/6/03   Detect recursive call of terminate()
 
-The runtime now detects an attempt for a user-written terminate routine to
+The runtime now detects an attempt by a user-written terminate routine to
 call itself recursively.  The runtime aborts execution if this occurs.  This
 change was made so that such cases are diagnosed quickly, rather than consuming
 a large amount of memory and CPU time.
