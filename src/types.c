@@ -37,10 +37,8 @@ predicates.
 /* Object types are non-function types that have sizes. */
 #define is_object(tp) (!is_function(tp) && (tp)->size != 0)
 
-/* Incomplete types are types that have no size and are neither functions
-   nor references. */
-#define is_incomplete(tp) \
-  ((tp)->size == 0 && !is_function(tp) && !is_reference_ptr(tp))
+/* Incomplete types are types that have no size and are not functions. */
+#define is_incomplete(tp) ((tp)->size == 0 && !is_function(tp))
 
 /* The void type is simply the void type. */
 #define is_void(tp) ((tp)->kind == (a_type_kind)tk_void)
@@ -1791,88 +1789,6 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
-static a_boolean impl_reference_conversion(a_type_ptr source_type,
-                                           a_type_ptr dest_type)
-/*
-Return TRUE if the type source_type can be converted to dest_type, a
-reference type.  See ARM 4.7.
-*/
-{
-  a_boolean  okay = FALSE;
-  a_type_ptr dest_type_pointed_to, source_type_pointed_to;
-  a_type_ptr unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
-
-  db_enter(4, "impl_reference_conversion");
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "impl_reference_conversion: source_type = ");
-    db_type(source_type);
-    fprintf(f_debug, ", dest_type = ");
-    db_type(dest_type);
-    fprintf(f_debug, "\n");
-  }  /* if */
-#endif /* DEBUG */
-#if CHECKING
-  if (!is_reference_type(dest_type)) {
-    internal_error("impl_reference_conversion: dest_type is not reference");
-  }  /* if */
-#endif /* CHECKING */
-  /* Get the type pointed to and drop type qualifiers and typedefs. */
-  dest_type_pointed_to = type_pointed_to(dest_type);
-  unqual_dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
-  if (is_reference_ptr(source_type)) {
-    /* Reference --> reference. */
-    /* Get the type pointed to and drop type qualifiers and typedefs. */
-    source_type_pointed_to = type_pointed_to(source_type);
-    unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
-    if (types_are_compatible(unqual_source_type_pointed_to,
-                             unqual_dest_type_pointed_to)) {
-      /* The types pointed to are compatible, ignoring the type qualifiers. */
-      okay = TRUE;
-    } else if (is_error(unqual_dest_type_pointed_to) ||
-               is_error(unqual_source_type_pointed_to)) {
-      /* Reference --> reference-to-error and reference-to-error -->
-         reference are always allowed. */
-      okay = TRUE;
-    } else {
-      /* The types pointed to are not compatible. */
-      if (is_class_or_struct(unqual_source_type_pointed_to) &&
-          is_class_or_struct(unqual_dest_type_pointed_to) &&
-          find_base_class_of(unqual_source_type_pointed_to,
-                             unqual_dest_type_pointed_to) != NULL) {
-        /* In C++, a reference to a class may be implicitly converted to a
-           reference to an accessible base class of that class provided the
-           conversion is unambiguous (ARM 4.7).  We leave the ambiguity
-           and accessibility check to be done when the cast is done.
-           That's not quite what the ARM says, but it's what cfront does,
-           and it makes sense. */
-        okay = TRUE;
-      }  /* if */
-    }  /* if */
-    if (okay) {
-      /* The types pointed to must be such that the type pointed to by the
-         left has all the qualifiers of the type pointed to by the right.
-         See ARM 8.4.3. */
-      if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
-        okay = FALSE;
-      }  /* if */
-    }  /* if */
-  } else if (is_error(source_type)) {
-    /* Error --> reference is always allowed. */
-    okay = TRUE;
-  }  /* if */
-
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "impl_reference_conversion: %s\n",
-                     okay ? "okay" : "not okay");
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-  return okay;
-}  /* impl_reference_conversion */
-
-
 a_boolean impl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_constant,
                                    a_constant    *source_constant,
@@ -1897,7 +1813,9 @@ specific message applies.  In strict ANSI mode, if a conversion flagged with
 See chapter 4 of the ARM (standard conversions).  Note that integral
 promotions, default argument promotions, the usual arithmetic conversions,
 array --> pointer to element, and function --> pointer to function are
-handled in normal expression processing rather than here.
+handled in normal expression processing rather than here.  Reference
+conversions have been turned into pointer conversions by the time they
+get here.
 
 See also 3.3.16.1 in the ANSI C standard (simple assignment).
 */
@@ -1980,10 +1898,6 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
                                    suppress_extensions,
                                    default_warning_code,
                                    warning_suggested);
-  } else if (is_reference_ptr(dest_type)) {
-    /* Destination type is reference.  See if the types are compatible.
-       This is a C++-only case. */
-    okay = impl_reference_conversion(source_type, dest_type);
   } else if (is_class_struct_union(dest_type)) {
     /* A complete class, struct, or union can be converted to a compatible
        class, struct, or union type. */
@@ -2027,7 +1941,8 @@ specific message applies.  In strict ANSI mode, if a conversion flagged with
 
 Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
 explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
-are allowed.
+are allowed.  Reference conversions have been turned into pointer conversions
+by the time they get here.
 */
 {
   a_boolean     okay = FALSE, impl_okay;
@@ -2059,10 +1974,8 @@ are allowed.
     /* There is an implicit conversion, and it's not questionable. */
     okay = TRUE;
   } else if (is_incomplete(dest_type)) {
-    /* Catch cases where an actual argument is being converted to an incomplete
-       enum or struct/union type because a function parameter has that type.
-       One is allowed to declare a parameter of that type, but the type must
-       be completed if the function is defined or called. */
+    /* This catches incomplete enums for completeness.  The caller probably
+       ruled out incomplete types anyway. */
     /* okay = FALSE; -- already set. */
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
              dest_of_ptr_cast_big_enough(source_type, dest_type)) {
