@@ -82,15 +82,10 @@ extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
 
 extern void reset_ss_list_instantiation_insert_point(void);
 
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
-    PROTOTYPE_INSTANTIATIONS_IN_IL
-
 extern a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
                                             char               *ptr,
                                             an_il_entry_kind   kind,
                                             a_type_ptr         declared_type);
-
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || PROTOTYPE_... */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 

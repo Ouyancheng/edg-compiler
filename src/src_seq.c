@@ -1065,8 +1065,6 @@ fixup_function_scope_source_sequence_list has been called.)
   db_exit();
 }  /* f_remove_from_src_seq_list */
 
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
-    PROTOTYPE_INSTANTIATIONS_IN_IL
 
 a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
                                             char               *ptr,
@@ -1089,8 +1087,6 @@ entry.  Set its declared type to the indicated type.
   sssdp->declared_type = declared_type;
   return sssdp;
 }  /* make_source_sequence_secondary_decl */
-
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || PROTOTYPE_... */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

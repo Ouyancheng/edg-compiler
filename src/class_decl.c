@@ -5070,7 +5070,6 @@ a friend declaration.  This is used for template instantiations.
   } /* if */
 }  /* update_friend_function_info */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static a_symbol_ptr decl_dependent_friend_function(
                                          a_symbol_locator       *locator,
@@ -5119,6 +5118,7 @@ The routine symbol is returned (but not linked into the symbol table).
       rp->defined = sym->defined = TRUE;
       rp->defined_in_friend_decl = TRUE;
       rp->is_inline = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       rp->declared_type = func_info->declared_type;
       ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
       ssep->entity.ptr  = (char *)rp;
@@ -5130,13 +5130,13 @@ The routine symbol is returned (but not linked into the symbol table).
       sssdp->friend_decl = TRUE;
       ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
       ssep->entity.ptr  = (char *)sssdp;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   return sym;
 }  /* decl_dependent_friend_function */
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static a_symbol_ptr decl_friend_function(a_symbol_locator       *locator,
                                          a_type_ptr             class_type,
@@ -5182,18 +5182,19 @@ of the function, and again overloading is a possibility.
          found, look it up now. */
       sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
     }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (is_template_dependent_context()) {
+      /* If the friend declaration is template dependent, create a dummy
+         routine and associated symbol.  Return that instead of calling
+         decl_routine. */
       if (is_template_dependent_type(function_type) ||
           template_arg_list_involves_template_param(
                                                 locator->template_arg_list) ||
-          is_proxy_member_symbol(sym)) {
+          (sym != NULL && is_proxy_member_symbol(sym))) {
         sym = decl_dependent_friend_function(locator,
                                              function_type, func_info);
         goto done;
       }  /* if */
     }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     if (!(microsoft_mode || any_cfront_mode()) ||
         (sym != NULL && sym->ambiguous)) {
       check_ambiguity_and_verify_access(locator);
@@ -5396,9 +5397,7 @@ of the function, and again overloading is a possibility.
                                 (a_boolean)func_info->is_definition,
                                 /*move_to_front=*/FALSE);
   }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 done:
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (func_info->is_definition) {
     /* Since this is a definition, record the current lint argsused and
        varargs-count state in the routine type. That will suppress any
