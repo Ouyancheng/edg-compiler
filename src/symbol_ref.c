@@ -295,7 +295,18 @@ this case and add it to the list for the current scope.
 #endif /* DEBUG */
         if (hnp == NULL) {
           /* No existing entry.  Allocate a new one. */
+          a_memory_region_number  region_to_switch_back_to;
+          a_boolean               force_alloc_in_filescope = FALSE;
+
+          if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+              in_file_scope(sp)) {
+            switch_to_file_scope_region(&region_to_switch_back_to);
+            force_alloc_in_filescope = TRUE;
+          }  /* if */
           hnp = alloc_hidden_name();
+          if (force_alloc_in_filescope) {
+            switch_back_to_original_region(region_to_switch_back_to);
+          }  /* if */
           hnp->entity.ptr = entity;
           hnp->entity.kind = (a_byte_il_entry_kind)kind;
           /* Add it to the start of the hiden_names list for the current
