@@ -163,6 +163,16 @@ static a_name_context_ptr
 			/* Current name context stack. */
 
 /*
+Return TRUE if the current name context is the indicated class.
+*/
+#define curr_name_context_is_class(class_type)                        \
+  (curr_name_context != NULL &&                                       \
+   curr_name_context->assoc_scope->kind ==                            \
+                              (a_scope_kind)sck_class_struct_union && \
+   curr_name_context->assoc_scope->variant.assoc_type == (class_type))
+
+
+/*
 Macro that returns TRUE if an IL entry has a name.  (Applies only to
 those containing source correspondence information.)
 */
@@ -1033,12 +1043,8 @@ is given by scp.  If the entity is unnamed, generate a name.
     a_boolean qualifier_needed = TRUE;
     /* If the class type matches the top entry on the name context stack,
        the qualifier is not necessary. */
-    if (curr_name_context != NULL) {
-      a_scope_ptr scope = curr_name_context->assoc_scope;
-      if (scope->kind == (a_scope_kind)sck_class_struct_union &&
-          scope->variant.assoc_type == class_type) {
-        qualifier_needed = FALSE;
-      }  /* if */
+    if (curr_name_context_is_class(class_type)) {
+      qualifier_needed = FALSE;
     }  /* if */
     if (qualifier_needed) {
       gen_type_name(class_type);
@@ -1908,6 +1914,11 @@ is non-NULL, in which case that is the function scope.
           /* This is just a declaration, so put out the type and no name. */
           gen_declaration_using_type(param->type, NO_NAME,
                                      (a_src_seq_secondary_decl_ptr)NULL);
+        }  /* if */
+        /* Put out a default argument expression if there is one. */
+        if (param->default_arg_expr != NULL) {
+          write_tok_str(" = ");
+          gen_expr_with_parens(param->default_arg_expr);
         }  /* if */
         param = param->next;
         if (param == NULL) break;
@@ -3832,9 +3843,10 @@ sequence entry.
 */
 {
   a_routine_ptr                rout;
-  a_type_ptr                   rout_type;
+  a_type_ptr                   rout_type, rout_class_type;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
+  a_boolean                    decl_within_class = FALSE;
   a_storage_class              storage_class;
   a_name_context               context;
   a_scope_ptr                  scope = NULL;
@@ -3870,11 +3882,16 @@ sequence entry.
   /* Output the storage class. */
   storage_class = rout->storage_class;
   /* Determine the proper storage class to display. */
-  if (rout->source_corresp.class_of_which_a_member != NULL) {
-    /* Member function.  "static" means something else here. */
-    if (!is_definition || storage_class == (a_storage_class)sc_static) {
-      storage_class = (a_storage_class)sc_unspecified;
+  rout_class_type = rout->source_corresp.class_of_which_a_member;
+  if (rout_class_type != NULL) {
+    /* Member function. */
+    if (curr_name_context_is_class(rout_class_type)) {
+      /* This declaration or definition is inside the class. */
+      decl_within_class = TRUE;
     }  /* if */
+    /* Suppress the storage class. "static" means something else within
+       the class, and we don't want to use "extern" ever. */
+    storage_class = (a_storage_class)sc_unspecified;
   } else if (!is_definition) {
     /* The function is not defined (here), so use "extern". */
     if (storage_class == (a_storage_class)sc_unspecified) {
@@ -3884,7 +3901,7 @@ sequence entry.
   gen_storage_class(storage_class);
   /* Generate other leading specifiers. */
   if (rout->is_inline) write_tok_str("inline ");
-  if (rout->is_virtual) write_tok_str("virtual ");
+  if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
   /* Generate a declaration for the routine name with the right type. */
   if (rout_type->kind == (a_type_kind)tk_typeref) {
     /* If the function type comes from a typedef, handle the declaration
@@ -3929,6 +3946,8 @@ sequence entry.
   }  /* if */
   if (!is_definition) {
     /* A declaration of the routine. */
+    /* For a pure virtual function, add "= 0". */
+    if (rout->pure_virtual) write_tok_str(" = 0");
     /* Finish the declaration. */
     write_tok_ch(';');
   } else {
