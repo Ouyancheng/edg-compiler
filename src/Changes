@@ -1,6 +1,14 @@
 Version 2.09
 
-9/8/92 Fixed bug in generating body for default assignment operator
+9/8/92  Error on dropping type qualifiers in initialization of reference
+
+The incompatibility error for dropping type qualifiers on a reference
+initialization, previously removed, has been reinstated with a specific
+error message.  A specific error message has also been added for the
+error of initializing a reference to non-const with something that
+does not have the right type, when anachronisms are not allowed.
+
+9/8/92  Fixed bug in generating body for default assignment operator
 
 When a base class had assignment operators for both const and nonconst
 objects, the compiler-generated assignment operator for a const object in
