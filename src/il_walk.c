@@ -59,6 +59,12 @@ static a_boolean
 		walking_file_scope;
 			/* TRUE if walking the file-scope IL, FALSE if
 			   walking the IL for a function scope. */
+#if MAINTAIN_NEEDED_FLAGS
+static a_boolean
+		walking_to_set_keep_in_il;
+			/* TRUE if walking the IL to set the keep_in_il
+			   flag. */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 static unsigned int
 		flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field
@@ -73,11 +79,15 @@ typedef char	*a_char_ptr;
 static void walk_string_entry(char             *entry_ptr,
                               an_il_entry_kind entry_kind,
                               sizeof_t         entry_length);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
 /* Build a routine to walk entries and their subtrees. */
 #define DO_SUBTREE_WALK TRUE
 #define NEEDED_FLAG_WALK FALSE
+#define WALK_ENTRY_ROUTINE_STATIC static
 #define WALK_ENTRY_ROUTINE_NAME walk_entry_and_subtree
 #include "walk_entry.h"
 
@@ -285,6 +295,9 @@ typedef struct an_il_walk_state {
   a_remap_function_ptr
 		walk_remap_func;
   a_boolean	walking_file_scope;
+#if MAINTAIN_NEEDED_FLAGS
+  a_boolean	walking_to_set_keep_in_il;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   int		flag_value_meaning_visited;
 } an_il_walk_state;
 
@@ -293,12 +306,19 @@ typedef struct an_il_walk_state {
 Save the current state of the global variables in the IL walk routines in
 the variable saved_state for later restoration.
 */
+#if MAINTAIN_NEEDED_FLAGS
+#define save_walking_to_set_keep_in_il(saved_state) \
+  (saved_state).walking_to_set_keep_in_il  = walking_to_set_keep_in_il
+#else /* !MAINTAIN_NEEDED_FLAGS */
+#define save_walking_to_set_keep_in_il(saved_state) /* Nothing */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #define save_il_walk_state(saved_state)                               \
 { (saved_state).entry_process_func         = entry_process_func;      \
   (saved_state).string_entry_process_func  = string_entry_process_func; \
   (saved_state).walk_termination_test_func = walk_termination_test_func; \
   (saved_state).walk_remap_func            = walk_remap_func;         \
   (saved_state).walking_file_scope         = walking_file_scope;      \
+  save_walking_to_set_keep_in_il(saved_state);                        \
   (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
 }  /* save_il_walk_state */
 
@@ -306,12 +326,19 @@ the variable saved_state for later restoration.
 Restore the current state of the global variables in the IL walk routines
 from the saved values in the variable saved_state.
 */
+#if MAINTAIN_NEEDED_FLAGS
+#define restore_walking_to_set_keep_in_il(saved_state) \
+  walking_to_set_keep_in_il  = (saved_state).walking_to_set_keep_in_il
+#else /* !MAINTAIN_NEEDED_FLAGS */
+#define restore_walking_to_set_keep_in_il(saved_state) /* Nothing */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #define restore_il_walk_state(saved_state)                            \
 { entry_process_func         = (saved_state).entry_process_func;      \
   string_entry_process_func  = (saved_state).string_entry_process_func; \
   walk_termination_test_func = (saved_state).walk_termination_test_func; \
   walk_remap_func            = (saved_state).walk_remap_func;         \
   walking_file_scope         = (saved_state).walking_file_scope;      \
+  restore_walking_to_set_keep_in_il(saved_state);                     \
   flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
 }  /* restore_il_walk_state */
 
@@ -349,6 +376,9 @@ That is what the remap function does.
   walk_termination_test_func = NULL;
   walk_remap_func = remap_function;
   walking_file_scope = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+  walking_to_set_keep_in_il = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #ifdef FFE
   array_bound_walk_index = 0;
 #endif /* ifdef FFE */
@@ -414,6 +444,9 @@ can be NULL to indicate that the corresponding function is unnecessary.
   walk_remap_func = remap_function;
   /* Walking a routine scope, not the file scope. */
   walking_file_scope = FALSE;
+#if MAINTAIN_NEEDED_FLAGS
+  walking_to_set_keep_in_il = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   scope = il_header.region_scope_entry[region_number];
   flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
 #ifdef FFE
@@ -435,11 +468,30 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #define DO_SUBTREE_WALK TRUE
 #undef NEEDED_FLAG_WALK
 #define NEEDED_FLAG_WALK TRUE
+#undef WALK_ENTRY_ROUTINE_STATIC
+#define WALK_ENTRY_ROUTINE_STATIC static
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_needed
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
+
+/*
+Given an IL entry at entry_ptr with kind entry_kind, return TRUE if the
+entry's subtree should not be walked at this time.  This is used when
+setting the "needed" or "keep_in_il" flags.  Entities that can be
+defined or redeclared later (e.g., classes) shouldn't have their subtrees
+walked until after there is no longer the possibility of the subtree changing.
+*/
+#define should_not_walk_subtree(entry_ptr, entry_kind) \
+ (((entry_kind) == iek_type && \
+   is_immediate_class_type((a_type_ptr)(entry_ptr)) && \
+   !end_of_file_scope_needed_flags_phase && \
+   !((a_type_ptr)(entry_ptr))->source_corresp.is_local_to_function && \
+   !((a_type_ptr)(entry_ptr))->declared_in_function_prototype) || \
+  ((entry_kind) == iek_variable && \
+   !end_of_file_scope_needed_flags_phase && \
+   !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function))
 
 
 static a_boolean prune_needed_flag_il_walk(char             *entry_ptr,
@@ -464,6 +516,9 @@ as needed.
     } else {
       /* The flag is not set, so set it and keep walking. */
       scp->needed = TRUE;
+      /* If this is an entry that might be redeclared or redefined later,
+         do not walk its subtree now. */
+      if (should_not_walk_subtree(entry_ptr, entry_kind)) prune = TRUE;
 #if 0
 #else /* 0 */
       /* For now, set the definition_needed flag on a class whenever the needed
@@ -531,6 +586,7 @@ references.
   walk_termination_test_func = prune_needed_flag_il_walk;
   walk_remap_func = NULL;
   /* walking_file_scope need not be set. */
+  walking_to_set_keep_in_il = FALSE;
 
   /* Walk the IL tree. */
   walk_tree_and_set_needed(entry_ptr, entry_kind);
@@ -538,6 +594,101 @@ references.
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
 }  /* mark_as_needed */
+
+
+static a_boolean prune_keep_in_il_walk(char             *entry_ptr,
+                                       an_il_entry_kind entry_kind)
+/*
+Termination-test routine for the IL walk used to set the "keep_in_il" flag in
+a tree of IL entries.  Returns TRUE to indicate that the IL walk should be
+pruned at the given entry, because the entry has already been marked
+to be kept.
+*/
+{
+  a_boolean prune = FALSE;
+
+  if (il_entry_prefix_of(entry_ptr).keep_in_il) {
+    /* The flag is set already, so prune the walk at this entry.  */
+    prune = TRUE;
+  } else {
+    /* The flag is not set, so set it and keep walking. */
+    il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
+    /* If this is an entry that might be redeclared or redefined later,
+       do not walk its subtree now. */
+    if (should_not_walk_subtree(entry_ptr, entry_kind)) prune = TRUE;
+  }  /* if */
+  return prune;
+}  /* prune_keep_in_il_walk */
+
+
+void mark_to_keep_in_il(char             *entry_ptr,
+                        an_il_entry_kind entry_kind)
+/*
+Set the "keep_in_il" flag in the indicated entity, and also on everything it
+references.
+*/
+{
+  an_il_walk_state saved_state;
+
+  /* Save the state of global variables for later restoration. */
+  save_il_walk_state(saved_state);
+  /* Set up for this walk. */
+  entry_process_func = NULL;
+  string_entry_process_func = NULL;
+  walk_termination_test_func = prune_keep_in_il_walk;
+  walk_remap_func = NULL;
+  /* walking_file_scope need not be set. */
+  walking_to_set_keep_in_il = TRUE;
+
+  /* Walk the IL tree. */
+  walk_tree_and_set_needed(entry_ptr, entry_kind);
+
+  /* Restore the state of global variables. */
+  restore_il_walk_state(saved_state);
+}  /* mark_to_keep_in_il */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope)
+/*
+Walk the indicated scope's source sequence list, and set the keep_in_il
+flags in the source sequence entries thereon.  A source sequence entry
+must be kept in the IL if and only if its associated entry must be
+kept.  This routine must be called late so that all the keep_in_il
+flags are set already.  This processing is important for secondary
+entries, which are not pointed to by the associated entry, and also
+for entries like classes that get a "shallow walk" until the end of
+the file scope because their subtree can change (e.g., on a definition
+or redeclaration).
+*/
+{
+  a_source_sequence_entry_ptr  ssep;
+  a_src_seq_secondary_decl_ptr sec_decl;
+  char                         *entry_ptr;
+
+  for (ssep = scope->source_sequence_list;
+       ssep != NULL;
+       ssep = ssep->next) {
+    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      /* This is a secondary declaration. */
+      sec_decl = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      entry_ptr = sec_decl->entity.ptr;
+    } else {
+      /* This is a primary declaration. */
+      sec_decl = NULL;
+      entry_ptr = ssep->entity.ptr;
+    }  /* if */
+    /* See if the associated IL entity is marked with keep_in_il. */
+    if (il_entry_prefix_of(entry_ptr).keep_in_il) {
+      /* Yes, so mark the source sequence entry (and the secondary
+         declaration entry too, if there is one). */
+      il_entry_prefix_of(ssep).keep_in_il = TRUE;
+      if (sec_decl != NULL) il_entry_prefix_of(sec_decl).keep_in_il = TRUE;
+    }  /* if */
+  }  /* for */
+}  /* set_keep_in_il_on_source_sequence_entries */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
@@ -744,6 +895,8 @@ running them through walk_remap_func.
 #define DO_SUBTREE_WALK FALSE
 #undef NEEDED_FLAG_WALK
 #define NEEDED_FLAG_WALK FALSE
+#undef WALK_ENTRY_ROUTINE_STATIC
+#define WALK_ENTRY_ROUTINE_STATIC /* extern */
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME remap_pointers_in_il_entry
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
@@ -752,6 +905,7 @@ running them through walk_remap_func.
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
 #undef DO_SUBTREE_WALK
+#undef WALK_ENTRY_ROUTINE_STATIC
 #undef WALK_ENTRY_ROUTINE_NAME
 
 
@@ -773,6 +927,9 @@ of the front end.
   string_entry_process_func = NULL;
   walk_termination_test_func = NULL;
   walking_file_scope = FALSE;
+#if MAINTAIN_NEEDED_FLAGS
+  walking_to_set_keep_in_il = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   flag_value_meaning_visited = 0;
 }  /* il_walk_init */
 
