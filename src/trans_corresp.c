@@ -1154,7 +1154,7 @@ its corresponding primary template supplement will be used instead.
 }  /* add_instantiation */
 
 
-static void clear_instantations_correspondence(a_template_ptr  templ,
+static void clear_instantation_correspondences(a_template_ptr  templ,
                                                a_boolean       visited)
 /*
 Mark all instantiations associated with the given template as having no
@@ -1201,7 +1201,7 @@ all_instantiations list of the associated template symbol supplement.
       }  /* if */
     }  /* for */
   }  /* if */
-}  /* clear_instantations_correspondence */
+}  /* clear_instantation_correspondences */
 
 
 static void clear_enum_type_correspondence(a_type_ptr  type,
@@ -1335,7 +1335,7 @@ visited; otherwise, they may yet be set to correspond to another entry.
     a_template_ptr  templ = scope->templates;
     for (; templ != NULL; templ = templ->next) {
       clear_trans_unit_corresp(iek_template, templ, visited);
-      clear_instantations_correspondence(templ, visited);
+      clear_instantation_correspondences(templ, visited);
     }  /* for */
   }
 
@@ -2446,7 +2446,7 @@ is in fact valid.
       /* The templates don't seem to match, so don't try to verify the
          instantiations.  However, make sure no false correspondences
          remain. */
-      clear_instantations_correspondence(templ, /*visited=*/TRUE);
+      clear_instantation_correspondences(templ, /*visited=*/TRUE);
     } else if (is_class_template_symbol(templ_sym)) {
       /* A class template. Verify the instantiations (if any). */
       a_type_ptr  proto = prototype_template_of(templ_sym)
@@ -3503,31 +3503,30 @@ be templ itself and therefore unusable).
        process the instantiations when encountering the a_template entry that
        is recorded in the template symbol supplement. */
   } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-    a_symbol_ptr  inst = tssp->variant.class_template.instantiations,
-                  proto_inst;
+    a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
     for (; inst != NULL; inst = next_instance_sym(inst)) {
       record_class_template_instantiation(inst);
     }  /* for */
     /* Also process the prototype instantiation. */
-    proto_inst = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
-                   ->variant.template_info
-                   ->variant.class_template.prototype_instantiation;
-    /* For instantiations from template template parameters proto_inst will
-       be NULL.  It will also be NULL for nonprototype templates (the
-       prototype instantiation is attached to the corresponding prototype
-       template). */
-    if (proto_inst != NULL && 
-        tssp->variant.class_template.prototype_instantiation != NULL) {
+    if (tssp->variant.class_template.prototype_instantiation != NULL) {
       a_type_ptr    class_type = tssp
                               ->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
-      if (corresp_templ->canonical_template != templ->canonical_template) {
-        set_trans_unit_corresp(iek_type, class_type,
-                               proto_inst->variant.class_struct_union.type);
+      a_symbol_ptr  corresp_proto;
+      corresp_proto = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
+                        ->variant.template_info
+                        ->variant.class_template.prototype_instantiation;
+      /* For instantiations from template template parameters corresp_proto
+         will be NULL.  It will also be NULL for nonprototype templates (the
+         prototype instantiation is attached to the corresponding prototype
+         template). */
+      if (corresp_proto != NULL &&
+          corresp_templ->canonical_template != templ->canonical_template) {
+        set_type_corresp(class_type,
+                         corresp_proto->variant.class_struct_union.type);
       } else {
-        set_no_trans_unit_corresp(iek_type, class_type);
+	clear_type_correspondence(class_type, /*visited=*/TRUE);
       }  /* if */
-      establish_trans_unit_correspondences_for_class(class_type);
     }  /* if */
   } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
@@ -3734,7 +3733,7 @@ entities.
       set_no_trans_unit_corresp(iek_template, templ);
       /* Mark all instantiations as visited and record them for later lookup.
          */
-      clear_instantations_correspondence(templ, /*visited=*/TRUE);
+      clear_instantation_correspondences(templ, /*visited=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* find_template_correspondence */
