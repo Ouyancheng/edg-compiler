@@ -1057,7 +1057,7 @@ its corresponding primary template supplement will be used instead.
     a_line_number  line;
     char           *file_name, *full_name;
     a_boolean      at_end_of_source;
-    fprintf(f_debug, "DBG> ! Adding ");
+    fprintf(f_debug, "! Adding ");
     db_symbol_name(inst);
     fprintf(f_debug, " (%s) to all_instantiations list for ",
             symbol_kind_names[(int)inst->kind]);
@@ -2831,34 +2831,38 @@ given type.
     /* This only happens in strange error situations. */
     check_assertion(total_errors != 0);
   } else {
-    if (canon != type && (!type_has_definition(canon) ||
-                          !in_secondary_trans_unit(type))) {
-      /* The canonical entry is about to change. */
-      new_canon = TRUE;
-      /* Prefer definitions as canonical entries, and definitions in primary
-         translation units in particular. */
-      change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
-      /* Work from the noncanonical entry to set the correspondences of
-         members. */
-      type = canon;
+    if (canon == type) {
+      /* This is presumably the first class body instantiation. */
+      clear_class_type_correspondence(type, /*visited=*/TRUE);
+    } else {
+      if (!type_has_definition(canon) || !in_secondary_trans_unit(type)) {
+        /* The canonical entry is about to change. */
+        new_canon = TRUE;
+        /* Prefer definitions as canonical entries, and definitions in primary
+           translation units in particular. */
+        change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
+        /* Work from the noncanonical entry to set the correspondences of
+           members. */
+        type = canon;
 #if 0 /* FIXME */
-      /* Sometimes type is unvisited at this point.  That used to be the case
-         with the previous correspondence structure too and seems to work fine.
-         */
+        /* Sometimes type is unvisited at this point.  That used to be the
+           case with the previous correspondence structure too and seems to
+           work fine. */
 #endif /* FIXME */
-    }  /* if */
-    establish_trans_unit_correspondences_for_class(type);
-    if (new_canon) {
-      /* Since the canonical entry has changed, extra actions may be needed. */
-      /* Force the verification of the previous canonical entry against the
-         new one. */
-      (void)verify_class_type_correspondence(type);
-      if (!in_secondary_trans_unit(type) &&
-          type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-        /* The master instance is found using the canonical entry.  We are
-           creating a new canonical entry, so we must make sure its master
-           instance pointer is set for the class members. */
-        set_master_instance_for_new_canonical_class(canon, type);
+      }  /* if */
+      establish_trans_unit_correspondences_for_class(type);
+      if (new_canon) {
+        /* Since the canonical entry has changed, extra actions may be needed.
+           Force the verification of the previous canonical entry against the
+           new one. */
+        (void)verify_class_type_correspondence(type);
+        if (!in_secondary_trans_unit(type) &&
+            type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+          /* The master instance is found using the canonical entry.  We are
+             creating a new canonical entry, so we must make sure its master
+             instance pointer is set for the class members. */
+          set_master_instance_for_new_canonical_class(canon, type);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2869,6 +2873,9 @@ void establish_function_instantiation_corresp(a_routine_ptr  routine)
 /*
 This routine is called when the definition of the given routine has been
 instantiated.  Such an event may cause routine to become the canonical entry.
+(This routine may also be called for nontemplate compiler-generated class
+members that are being defined because they're referenced from a template
+instantiation.)
 */
 {
   if (trans_unit_corresp_of(routine) != NULL) {
@@ -2981,7 +2988,7 @@ translation unit correspondence pointer if one is found.
       /* Mark this namespace as visited to avoid infinite recursion. */
 #if DEBUG
       if (db_flag_is_set("trans_corresp")) {
-        fprintf(f_debug, "DBG> Guard: ");
+        fprintf(f_debug, "Guard: ");
       }  /* if */
 #endif /* DEBUG */
       set_no_trans_unit_corresp(iek_namespace, nsp);
@@ -3241,7 +3248,7 @@ symbol supplement.
     /* Mark the type as visited to avoid infinite recursion. */
 #if DEBUG
     if (db_flag_is_set("trans_corresp")) {
-      fprintf(f_debug, "DBG> Guard: ");
+      fprintf(f_debug, "Guard: ");
     }  /* if */
 #endif /* DEBUG */
     set_no_trans_unit_corresp(iek_type, class_type);
