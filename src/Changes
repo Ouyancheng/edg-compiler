@@ -2,6 +2,9 @@ Version 2.35
 
 1/17/97 Internal error on specialization of invalid template
 
+An internal error could result on an attempt to specialize a class
+template containing certain extreme syntax errors.  This has been fixed.
+
   template <class T> class A {; 
   template <> class A<T*> {};
 
