@@ -1228,7 +1228,7 @@ __builtin_constant_p and __builtin_classify_type are processed here.
       {
         a_boolean  result_value = operand_is_string_literal(&arg);
         do_operand_transformations(&arg, TOPT_NO_OPTIONS);
-        if (result_value == FALSE) {
+        if (!result_value) {
           result_value = is_constant_operand(&arg) &&
                          arg.variant.constant.kind !=
                                              (a_constant_repr_kind)ck_address;
