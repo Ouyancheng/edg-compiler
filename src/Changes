@@ -1,5 +1,13 @@
 Version 3.1
 
+12/12/02 GNU C mode: Vacuous member declarations allowed
+
+The following code is now accepted in GNU C mode:
+
+  struct {
+    ;  // Previously only accepted in C++ modes.
+  };
+
 12/11/02 GNU C mode: Abort on function with transparent union parameter
 
 In GNU C mode, the front end sometimes aborted with an internal error if
