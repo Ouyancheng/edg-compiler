@@ -363,7 +363,8 @@ what was done in the stack entry.
   /* Run through the list of debug requests and see if this function
      appears. */
   request_ptr = debug_requests;
-  while (request_ptr != NULL) {
+  for (request_ptr = debug_requests;
+       request_ptr != NULL; request_ptr = request_ptr->next) {
     if (strcmp(function_name, request_ptr->name) == 0) {
       /* What to do to the debug level. */
       switch (request_ptr->action) {
@@ -376,14 +377,16 @@ what was done in the stack entry.
 	case da_decrease_level:
 	  debug_level -= request_ptr->level;
 	  break;
+        case da_set_flag:
+          /* Ignore flags that may have the same name as a function. */
+          continue;
         default:
           unexpected_condition();
       }  /* switch */
       /* Found a match, break out of while loop. */
       break;
     }  /* if */
-    request_ptr = request_ptr->next;
-  }  /* while */
+  }  /* for */
   stack_ptr->msg_was_printed = FALSE;
   if (request_ptr != NULL) {
     if (!request_ptr->do_not_print_message) {
