@@ -328,6 +328,12 @@ might not be able to if the template itself has not yet been defined.
                                   /*is_local_class=*/FALSE,
                                   /*is_prototype_instantiation=*/FALSE);
       update_instantiation_required_for_template_class_members(class_type);
+      /* If we are currently processing a can_instantiate pragma (as indicated
+         my the instantiation mode) record this in the class symbol supplement.
+         The instantiation required flags for the members of this class will
+         have been set differently that if it were a normal instantiation. */
+      cssp->instantiated_by_can_instantiate_pragma =
+				 instantiation_mode == tim_can_instantiate;
       pop_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
@@ -340,6 +346,32 @@ might not be able to if the template itself has not yet been defined.
   }  /* if */
   db_exit();
 }  /* f_instantiate_template_class */
+
+
+void update_template_class_to_fully_instantiated_status(a_type_ptr class_type)
+/*
+When a class is instantiated while processing a "can_instantiate" pragma
+the instantiation required flags for its members are set to FALSE where
+they might otherwise have been set to TRUE (for static data members,
+for example).  This routine is called when a template class that
+was instantiated by a can_instantiate pragma is used in a context that
+requires a normal full instantiation.  This routine sets the instantiation
+required flags for the members of the class.
+*/
+{
+  a_symbol_ptr                      instance_sym;
+  a_class_symbol_supplement_ptr     cssp;
+
+  check_assertion_str(is_class_struct_union_type(class_type),
+                      "utctfis: not a class");
+  class_type = skip_typerefs(class_type);
+  instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  cssp = instance_sym->variant.class_struct_union.extra_info;
+  check_assertion_str(cssp->instantiated_by_can_instantiate_pragma,
+		      "utcifis: not provisional instantiation");
+  cssp->instantiated_by_can_instantiate_pragma = FALSE;
+  update_instantiation_required_for_template_class_members(class_type);
+}  /* update_template_class_to_fully_instantiated_status */
 
 
 static void instantiate_class_template(a_symbol_ptr  template_sym,
