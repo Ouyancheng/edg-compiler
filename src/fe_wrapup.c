@@ -155,7 +155,7 @@ and before the back end (if any) is executed.
   }  /* if */
 
 #if DEBUG
-  if (debug_level > 0) {
+  if (debug_level > 0 || db_flag_is_set("space_used")) {
     /* Print total memory used. */
     show_space_used();
   }  /* if */
