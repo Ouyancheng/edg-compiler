@@ -563,6 +563,8 @@ is being kept, and all entries should be marked to be kept.
       char *entry_ptr;
       if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
         /* This is a secondary declaration. */
+        a_src_seq_secondary_decl_ptr sec_decl =
+                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
         entry_ptr = sec_decl->entity.ptr;
       } else {
         /* This is a primary declaration. */
