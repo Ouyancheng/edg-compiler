@@ -1,5 +1,18 @@
 Version 3.5
 
+7/29/04  ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS, "?" in gcc mode
+
+The front end failed to properly emulate gcc on examples like the
+following when ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS is
+TRUE:
+
+  void f(int a) {
+    (1 ? a : a) = 0;
+  }
+
+The "?" operation was rewritten as simply "a" and the front end
+then failed to consider that as an lvalue in gcc mode.  Now fixed.
+
 7/28/04  C++-generating back end: Microsoft calling conventions not emitted
 
 The C++-generating back end failed to emit calling convention specifiers on

@@ -4615,6 +4615,8 @@ for example, in something like "(short)i = 0").
   check_assertion(gnu_mode);
   if (is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
+      a_boolean do_recovery = FALSE;
+      a_boolean casts_removed = FALSE;
       an_expr_node_ptr expr = operand->variant.expression;
       if (is_operation_node(expr) &&
           (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
@@ -4623,42 +4625,47 @@ for example, in something like "(short)i = 0").
                                          (an_expr_operator_kind)eok_question ||
              expr->variant.operation.kind ==
                                          (an_expr_operator_kind)eok_comma)))) {
-        a_boolean converted;
-        a_boolean casts_removed = 
-             (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast);
+        casts_removed = 
+            (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+             !expr->variant.operation.compiler_generated);
         /* See whether we can find an underlying lvalue. */
-        conv_rvalue_expr_to_object_pointer(&expr, &converted,
+        conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
                                            /*see_if_possible=*/TRUE,
                                            /*gcc_lvalue=*/gcc_mode,
                                            ignore_casts,
                                            (a_type_ptr *)NULL);
-        if (converted) {
-          /* Yes, an lvalue can be recovered. */
-          a_type_ptr lvalue_type;
-          an_operand orig_operand;
-          orig_operand = *operand;
-          if (casts_removed) {
-            pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
-          }  /* if */
-          conv_rvalue_expr_to_object_pointer(&expr, &converted,
-                                             /*see_if_possible=*/FALSE,
-                                             /*gcc_lvalue=*/gcc_mode,
-                                             ignore_casts,
-                                             &lvalue_type);
-          make_expression_operand(expr, expr->type, operand);
-          if (is_function_type(lvalue_type)) {
-            operand->state = (an_operand_state)os_function_designator;
-          } else {
-            operand->state = (an_operand_state)os_lvalue;
-          }  /* if */
-          operand->type = lvalue_type;
-          restore_operand_details(operand, &orig_operand);
-        }  /* if */
       } else if (!C_mode() &&
                  is_class_struct_union_type(operand->type)) {
         /* A function call returning a class value can be treated as
            an lvalue. */
         revert_class_rvalue_to_lvalue_if_possible(operand);
+      } else if (gcc_mode && is_variable_node(expr)) {
+        /* In some unusual cases, like optimizing "(1 ? a : a)" to
+           simply "a", we may have to turn a variable back into an
+           lvalue for the variable. */
+        do_recovery = TRUE;
+      }  /* if */
+      if (do_recovery) {
+        /* Yes, an lvalue can be recovered. */
+        a_type_ptr lvalue_type;
+        an_operand orig_operand;
+        orig_operand = *operand;
+        if (casts_removed) {
+          pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
+        }  /* if */
+        conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
+                                           /*see_if_possible=*/FALSE,
+                                           /*gcc_lvalue=*/gcc_mode,
+                                           ignore_casts,
+                                           &lvalue_type);
+        make_expression_operand(expr, expr->type, operand);
+        if (is_function_type(lvalue_type)) {
+          operand->state = (an_operand_state)os_function_designator;
+        } else {
+          operand->state = (an_operand_state)os_lvalue;
+        }  /* if */
+        operand->type = lvalue_type;
+        restore_operand_details(operand, &orig_operand);
       }  /* if */
     }  /* if */
   }  /* if */
