@@ -189,6 +189,34 @@ be expected.
   ((sym)->header->inactive_symbols)
 
 
+static a_symbol_ptr corresp_extern_symbol_list(a_symbol_ptr  sym)
+/*
+The given symbol corresponds to a variable or routine declaration in
+namespace scope.  Return the list of external symbols that contains
+sym.
+*/
+{
+  a_symbol_locator     loc, ext_loc;
+  a_name_linkage_kind  name_linkage;
+  a_type_ptr           routine_type;
+
+  check_assertion(is_function_symbol(sym) ||
+                  sym->kind == (a_symbol_kind)sk_variable);
+  if (is_function_symbol(sym)) {
+    a_routine_ptr  routine = sym->variant.routine.ptr;
+    name_linkage = routine->source_corresp.name_linkage;
+    routine_type = routine->type;
+  } else {
+    a_variable_ptr  variable = sym->variant.variable.ptr;
+    name_linkage = variable->source_corresp.name_linkage;
+    routine_type = NULL;
+  }  /* if */
+  make_locator_for_symbol(sym, &loc);
+  (void)find_external_symbol(&loc, name_linkage, routine_type, &ext_loc);
+  return ext_loc.symbol_header->other_symbols;
+}  /* corresp_extern_symbol_list */
+
+
 #if DEBUG
 static void *trace_corresp_ptr = NULL;
 
@@ -967,8 +995,8 @@ need to be determined.
     case sk_function_template:
     case sk_member_function:
     case sk_namespace:
-    case sk_static_data_member:
     case sk_routine:
+    case sk_static_data_member:
     case sk_variable:
       {
         an_il_entry_kind             kind;
@@ -987,6 +1015,24 @@ need to be determined.
       break;
     case sk_extern_routine:
     case sk_extern_variable:
+      {
+        a_source_correspondence_ptr  scp;
+        if (is_function_type(sym->variant.extern_symbol_descr->type)) {
+          scp = &sym->variant.extern_symbol_descr
+                    ->variant.routine.ptr->source_corresp;
+        } else {
+          scp = &sym->variant.extern_symbol_descr
+                    ->variant.variable->source_corresp;
+        }  /* if */
+        if ((scp->name_linkage == (a_name_linkage_kind)nlk_external ||
+             scp->name_linkage ==
+                                (a_name_linkage_kind)nlk_cplusplus_external)) {
+          result = TRUE;
+        } else {
+          result = FALSE;
+        }  /* if */
+      }
+      break;
     case sk_keyword:
     case sk_label:
     case sk_macro:
@@ -4179,92 +4225,115 @@ entities.
 }  /* find_template_correspondence */
 
 
+static a_symbol_ptr find_corresponding_routine_on_list(
+                                                     a_symbol_ptr  routine_sym,
+                                                     a_symbol_ptr  syms)
+/*
+Look for a routine symbol corresponding to routine_sym (but in another
+translation unit) on the list of symbols headed by syms.
+*/
+{
+  a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(routine_sym);
+  a_routine_ptr           routine = routine_sym->variant.routine.ptr;
+  a_symbol_ptr            sym, corresp_sym = NULL;
+
+  for (sym = syms; sym != NULL; sym = sym->next) {
+    /* Don't consider symbols in the same file. */
+    if (sym->decl_scope != NO_SCOPE_NUMBER &&
+        trans_unit_for_symbol(sym) != trans_unit) {
+      /* The matching symbol may be part of an overload set. */
+      a_boolean  is_list = (sym->kind ==
+                                      (a_symbol_kind)sk_overloaded_function);
+      a_symbol_ptr  sub_sym = is_list ?
+                              sym->variant.overloaded_function.symbols : sym;
+      for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
+        if (!same_parents(sub_sym, routine_sym)) {
+          /* Don't consider symbols in noncorresponding scopes. */  
+        } else if (!may_have_correspondence(sub_sym)) {
+          a_source_correspondence_ptr  scp =
+                                   source_corresp_entry_for_symbol(sub_sym);
+          if (scp != NULL && !in_secondary_trans_unit(scp)) {
+            /* The entity corresponding to sym doesn't have linkage, but
+               since it appears in the primary translation unit it could
+               cause a conflict in generated C code when the routine is
+               copied over. */
+            scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
+          }  /* if */
+        } else if (corresp_sym != NULL &&
+                   (!routine_sym->defined || corresp_sym->defined)) {
+          /* We've found the correspondence already; only look for conflicts.
+             If routine is defined while corresp_sym does not correspond to
+             a definition, continue to look for a definition. */
+        } else {
+          /* Two different declarations in the same namespace or class, and
+             with the same name: they should probably match up. */
+          switch (sub_sym->kind) {
+            case sk_routine:
+            case sk_member_function:
+              {
+                a_routine_ptr  corresp_routine =
+                                                sub_sym->variant.routine.ptr;
+                a_type_ptr     sym_type = corresp_routine->type;
+                if (routine == corresp_routine) {
+                  /* Skip this symbol. */
+                } else if (param_types_are_compatible(routine->type,
+                                                      sym_type,
+                                                      TCF_REDECLARATION |
+                                                      TCF_SEEK_CORRESP) ||
+                           /* The function ::main doesn't overload. */
+                           (is_main_function(routine) &&
+                            is_main_function(corresp_routine))) {
+                  corresp_sym = sub_sym;
+                } else if (routine->source_corresp.name_linkage ==
+                                        (a_name_linkage_kind)nlk_external &&
+                           corresp_routine->source_corresp.name_linkage ==
+                                        (a_name_linkage_kind)nlk_external) {
+                  f_report_bad_trans_unit_corresp((char*)routine,
+                                                  &sub_sym->decl_position);
+                }  /* if */
+              }
+              break;
+            case sk_function_template:
+            case sk_class_or_struct_tag:
+            case sk_union_tag:
+            case sk_enum_tag:
+              /* No conflict. */
+              break;
+            case sk_type:
+              if (sym->variant.type.is_injected_class_name) break;
+              /* FALLTHROUGH */
+            default:
+              f_report_bad_trans_unit_corresp((char*)routine,
+                                              &sub_sym->decl_position);
+          }  /* switch */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  return corresp_sym;
+}  /* find_corresponding_routine_on_list */
+
+
 static void find_routine_correspondence(a_routine_ptr  routine)
 /*
 Look for the given routine in another translation unit and set the
 translation unit correspondence pointer if one is found.
 */
 {
-  a_symbol_ptr  routine_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
-  a_symbol_ptr  sym, corresp_sym = NULL;
+  a_symbol_ptr  routine_sym = (a_symbol_ptr)routine->source_corresp.assoc_info,
+                corresp_sym = NULL;
 
   check_assertion(routine_sym != NULL);
-  sym = corresp_symbol_list(routine_sym);
   if (may_have_correspondence(routine_sym)) {
-    a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(routine_sym);
-    for (; sym != NULL; sym = sym->next) {
-      /* Don't consider symbols in the same file. */
-      if (sym->decl_scope != NO_SCOPE_NUMBER &&
-          trans_unit_for_symbol(sym) != trans_unit) {
-        /* The matching symbol may be part of an overload set. */
-        a_boolean  is_list = (sym->kind ==
-                                        (a_symbol_kind)sk_overloaded_function);
-        a_symbol_ptr  sub_sym = is_list ?
-                                sym->variant.overloaded_function.symbols : sym;
-        for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
-          if (!same_parents(sub_sym, routine_sym)) {
-            /* Don't consider symbols in noncorresponding scopes. */  
-          } else if (!may_have_correspondence(sub_sym)) {
-            a_source_correspondence_ptr  scp =
-                                     source_corresp_entry_for_symbol(sub_sym);
-            if (scp != NULL && !in_secondary_trans_unit(scp)) {
-              /* The entity corresponding to sym doesn't have linkage, but
-                 since it appears in the primary translation unit it could
-                 cause a conflict in generated C code when the routine is
-                 copied over. */
-              scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
-            }  /* if */
-          } else if (corresp_sym != NULL &&
-                     (!routine_sym->defined || corresp_sym->defined)) {
-            /* We've found the correspondence already; only look for conflicts.
-               If routine is defined while corresp_sym does not correspond to
-               a definition, continue to look for a definition. */
-          } else {
-            /* Two different declarations in the same namespace or class, and
-               with the same name: they should probably match up. */
-            switch (sub_sym->kind) {
-              case sk_routine:
-              case sk_member_function:
-                {
-                  a_routine_ptr  corresp_routine =
-                                                  sub_sym->variant.routine.ptr;
-                  a_type_ptr     sym_type = corresp_routine->type;
-                  if (routine == corresp_routine) {
-                    /* Skip this symbol. */
-                  } else if (param_types_are_compatible(routine->type,
-                                                        sym_type,
-                                                        TCF_REDECLARATION |
-                                                        TCF_SEEK_CORRESP) ||
-                             /* The function ::main doesn't overload. */
-                             (is_main_function(routine) &&
-                              is_main_function(corresp_routine))) {
-                    corresp_sym = sub_sym;
-                  } else if (routine->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external &&
-                             corresp_routine->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external) {
-                    f_report_bad_trans_unit_corresp((char*)routine,
-                                                    &sub_sym->decl_position);
-                  }  /* if */
-                }
-                break;
-              case sk_function_template:
-              case sk_class_or_struct_tag:
-              case sk_union_tag:
-              case sk_enum_tag:
-                /* No conflict. */
-                break;
-              case sk_type:
-                if (sym->variant.type.is_injected_class_name) break;
-                /* FALLTHROUGH */
-              default:
-                f_report_bad_trans_unit_corresp((char*)routine,
-                                                &sub_sym->decl_position);
-            }  /* switch */
-          }  /* if */
-        }  /* for */
-      }  /* if */
-    }  /* for */
+    corresp_sym = find_corresponding_routine_on_list(
+                                routine_sym, corresp_symbol_list(routine_sym));
+    if (corresp_sym == NULL) {
+      /* No correspondence was found on the normal list.  Try to look for a
+         correspondence among the block extern declarations (some of which
+         may not have been declared elsewhere). */
+      corresp_sym = find_corresponding_routine_on_list(
+                         routine_sym, corresp_extern_symbol_list(routine_sym));
+    }  /* if */
   }  /* if */
   if (corresp_sym != NULL) {
     /* Record the correspondence. */
@@ -4277,6 +4346,66 @@ translation unit correspondence pointer if one is found.
 }  /* find_routine_correspondence */
 
 
+static a_symbol_ptr find_corresponding_variable_on_list(a_symbol_ptr  var_sym,
+                                                        a_symbol_ptr  syms)
+/*
+Look for a variable symbol corresponding to var_sym (but in another translation
+unit) on the list of symbols headed by syms.
+*/
+{
+  a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(var_sym);
+  a_variable_ptr          var = var_sym->variant.variable.ptr;
+  a_symbol_ptr            sym, corresp_var_sym = NULL;
+
+  for (sym = syms; sym != NULL; sym = sym->next) {
+    if (sym->decl_scope == NO_SCOPE_NUMBER ||
+        trans_unit_for_symbol(sym) == trans_unit ||
+        !same_parents(sym, var_sym)) {
+      /* Don't consider symbols in the same file or in noncorresponding
+         scopes. */
+    } else if (!may_have_correspondence(sym)) {
+      a_source_correspondence_ptr  scp =
+                                       source_corresp_entry_for_symbol(sym);
+      if (scp != NULL && !in_secondary_trans_unit(scp)) {
+        /* The entity corresponding to sym doesn't have linkage, but since
+           it appears in the primary translation unit it could cause a
+           conflict in generated C code when var is copied over. */
+        scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
+      }  /* if */
+    } else {
+      /* Two different declarations in the same namespace or class, and
+         with the same name: they should probably match up. */
+      switch (sym->kind) {
+        case sk_variable:
+          {
+            if (var != sym->variant.variable.ptr) {
+              if (corresp_var_sym == NULL ||
+                  (sym->defined && !corresp_var_sym->defined)) {
+                /* If var is defined (in addition to being declared), prefer
+                   a definition over a declaration.  This will allow us to
+                   consistently diagnose multiple definitions. */
+                corresp_var_sym = sym;
+              }  /* if */
+            }  /* if */
+          }
+          break;
+        case sk_class_or_struct_tag:
+        case sk_union_tag:
+        case sk_enum_tag:
+          break;
+        case sk_type:
+          if (sym->variant.type.is_injected_class_name ||
+              is_template_param_type_symbol(sym)) break;
+          /* FALLTHROUGH */
+        default:
+          f_report_bad_trans_unit_corresp((char*)var, &sym->decl_position);
+      }  /* switch */
+    }  /* if */
+  }  /* for */
+  return corresp_var_sym;
+}  /* find_corresponding_variable_on_list */
+
+
 static void find_variable_correspondence(a_variable_ptr  var)
 /*
 Look for the given variable in another translation unit and set the
@@ -4284,57 +4413,19 @@ translation unit correspondence pointer if one is found.
 */
 {
   a_symbol_ptr  var_sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-  a_symbol_ptr  sym, corresp_var_sym = NULL;
+  a_symbol_ptr  corresp_var_sym = NULL;
 
   if (has_name(var) &&
       var_sym != NULL && may_have_correspondence(var_sym)) {
-    a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(var_sym);
-    sym = corresp_symbol_list(var_sym);
-    for (; sym != NULL; sym = sym->next) {
-      if (sym->decl_scope == NO_SCOPE_NUMBER ||
-          trans_unit_for_symbol(sym) == trans_unit ||
-          !same_parents(sym, var_sym)) {
-        /* Don't consider symbols in the same file or in noncorresponding
-           scopes. */
-      } else if (!may_have_correspondence(sym)) {
-        a_source_correspondence_ptr  scp =
-                                         source_corresp_entry_for_symbol(sym);
-        if (scp != NULL && !in_secondary_trans_unit(scp)) {
-          /* The entity corresponding to sym doesn't have linkage, but since
-             it appears in the primary translation unit it could cause a
-             conflict in generated C code when var is copied over. */
-          scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
-        }  /* if */
-      } else {
-        /* Two different declarations in the same namespace or class, and
-           with the same name: they should probably match up. */
-        switch (sym->kind) {
-          case sk_variable:
-            {
-              if (var != sym->variant.variable.ptr) {
-                if (corresp_var_sym == NULL ||
-                    (sym->defined && !corresp_var_sym->defined)) {
-                  /* If var is defined (in addition to being declared), prefer
-                     a definition over a declaration.  This will allow us to
-                     consistently diagnose multiple definitions. */
-                  corresp_var_sym = sym;
-                }  /* if */
-              }  /* if */
-            }
-            break;
-          case sk_class_or_struct_tag:
-          case sk_union_tag:
-          case sk_enum_tag:
-            break;
-          case sk_type:
-            if (sym->variant.type.is_injected_class_name ||
-                is_template_param_type_symbol(sym)) break;
-            /* FALLTHROUGH */
-          default:
-            f_report_bad_trans_unit_corresp((char*)var, &sym->decl_position);
-        }  /* switch */
-      }  /* if */
-    }  /* for */
+    corresp_var_sym = find_corresponding_variable_on_list(
+                                        var_sym, corresp_symbol_list(var_sym));
+    if (corresp_var_sym == NULL) {
+      /* No correspondence was found on the normal list.  Try to look for a
+         correspondence among the block extern declarations (some of which
+         may not have been declared elsewhere). */
+      corresp_var_sym = find_corresponding_variable_on_list(
+                                 var_sym, corresp_extern_symbol_list(var_sym));
+    }  /* if */
   }  /* if */
   if (corresp_var_sym != NULL) {
     a_variable_ptr  corresp_var = corresp_var_sym->variant.variable.ptr;
