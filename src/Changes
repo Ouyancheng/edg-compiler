@@ -15,6 +15,16 @@ an anonymous union (except in Sun and Microsoft modes).
 The assoc_template field was not set for the routine entry that represents
 the prototype instantiation of a function template.  This has been fixed.
 
+1/10/01  Abort on invalid compound literal
+
+Certain invalid compound literals could result in an abort.  This has
+been fixed.
+
+  void f() {
+    (char []){1 , .* , 2} = 0;
+  }
+
+
 1/10/01  Use if __VA_ARGS__diagnosed in nonvariadic macros
 
 The front end used to accept the use (as a normal identifier) of __VA_ARGS__
