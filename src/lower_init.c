@@ -449,6 +449,57 @@ to the "if", and set *else_insert_location to allow insertion in the
 }  /* insert_if_statement */
 
 
+static a_boolean move_final_return_out_of_block(
+                                             a_statement_ptr block_stmt,
+                                             a_statement_ptr insert_after_stmt)
+/*
+If the last statement of the block block_stmt is a return, move it out of
+the block and after insert_after_stmt.  If the last statement of the block
+is also a block, look recursively inside that block to see whether
+its last statement is a return, etc.  Return TRUE if a return was
+moved out of the block.
+*/
+{
+  a_boolean       return_moved = FALSE;
+  a_statement_ptr stmt, prev_stmt, temp_block_stmt, temp2_block_stmt;
+
+  check_assertion(block_stmt != NULL &&
+                  block_stmt->kind == (a_statement_kind)stmk_block);
+  for (temp_block_stmt = block_stmt; ; temp_block_stmt = stmt) {
+    stmt = temp_block_stmt->variant.block.statements;
+    if (stmt != NULL) {
+      /* Find the last statement in the block. */
+      for (prev_stmt = NULL;
+           stmt->next != NULL;
+           prev_stmt = stmt, stmt = stmt->next) {}
+      /* If the last statement is itself a block, look inside it. */
+      if (stmt->kind != (a_statement_kind)stmk_block) break;
+    }  /* if */
+  }  /* for */
+  if (stmt->kind == (a_statement_kind)stmk_return) {
+    /* The last statement is a return.  Move it. */
+    if (prev_stmt == NULL) {
+      temp_block_stmt->variant.block.statements = NULL;
+    } else {
+      prev_stmt->next = NULL;
+    }  /* if */
+    stmt->next = insert_after_stmt->next;
+    insert_after_stmt->next = stmt;
+    return_moved = TRUE;
+    /* Mark the block from which the return was removed (and any
+       surrounding it, out to block_stmt) as reachable. */
+    for (temp2_block_stmt = block_stmt;
+         /* Termination test in loop. */;
+         temp2_block_stmt = last_statement_in_block(temp2_block_stmt)) {
+      temp2_block_stmt->variant.block.extra_info->
+                                                 end_of_block_reachable = TRUE;
+      if (temp2_block_stmt == temp_block_stmt) break;
+    }  /* for */
+  }  /* if */
+  return return_moved;
+}  /* move_final_return_out_of_block */
+
+
 static void enclose_routine_in_if(a_scope_ptr      scope,
                                   an_expr_node_ptr if_node,
                                   a_variable_ptr   return_var)
@@ -459,7 +510,7 @@ return_var is the variable to be returned if a "return" statement must be
 generated, or NULL if no value needs to be returned.
 */
 {
-  a_statement_ptr if_stmt, block_stmt, stmt, prev_stmt;
+  a_statement_ptr if_stmt, block_stmt;
 
   if_stmt = alloc_statement((a_statement_kind)stmk_if);
   if_stmt->expr = if_node;
@@ -467,43 +518,15 @@ generated, or NULL if no value needs to be returned.
                                  alloc_statement((a_statement_kind)stmk_block);
   /* Make the "if" the top-level statement in the routine, and put the
      original code under the "if". */
-  block_stmt->variant.block.statements = stmt =
+  check_assertion_str(scope->assoc_block->kind == (a_statement_kind)stmk_block,
+                      "enclose_routine_in_if: top stmt not block");
+  block_stmt->variant.block.statements =
                                   scope->assoc_block->variant.block.statements;
   block_stmt->variant.block.extra_info->end_of_block_reachable = FALSE;
   scope->assoc_block->variant.block.statements = if_stmt;
   /* See if there is a return statement at the end of the original list of
      statements.  If so, move it outside the "if". */
-  if (stmt != NULL) {
-    a_statement_ptr temp_block_stmt = block_stmt, temp2_block_stmt;
-    for (;;) {
-      /* Find the last statement in the block. */
-      for (prev_stmt = NULL;
-           stmt->next != NULL;
-           prev_stmt = stmt, stmt = stmt->next) {}
-      /* If the last statement is itself a block, look inside it. */
-      if (stmt->kind != (a_statement_kind)stmk_block) break;
-      temp_block_stmt = stmt;
-      stmt = stmt->variant.block.statements;
-    }  /* for */
-    if (stmt->kind == (a_statement_kind)stmk_return) {
-      /* The last statement is a return.  Move it. */
-      if (prev_stmt == NULL) {
-        temp_block_stmt->variant.block.statements = NULL;
-      } else {
-        prev_stmt->next = NULL;
-      }  /* if */
-      if_stmt->next = stmt;
-      /* Mark the block from which the return was removed (and any
-         surrounding it, out to block_stmt) as reachable. */
-      for (temp2_block_stmt = block_stmt;
-           /* Termination test in loop. */;
-           temp2_block_stmt = last_statement_in_block(temp2_block_stmt)) {
-        temp2_block_stmt->variant.block.extra_info->
-                                                 end_of_block_reachable = TRUE;
-        if (temp2_block_stmt == temp_block_stmt) break;
-      }  /* for */
-    }  /* if */
-  }  /* if */
+  (void)move_final_return_out_of_block(block_stmt, if_stmt);
   /* If there is no return statement at the end of the routine (because the
      end of the original routine was not reachable), add one (because the
      end of the new routine is reachable if the "if" is not taken). */
@@ -2833,15 +2856,15 @@ with the indicated bit number.
   /* Save the current state and push a new context for the generated
      routine. */
   push_generated_routine_context(scope, *il_region, grcontext);
+  /* Set the insert location to the start of the top-level block. */
+  set_block_start_insert_location(scope->assoc_block,
+                                  insert_location);
   /* Add the return statement at the end of the routine to the return memo
      list. */
   return_stmt = scope->assoc_block->variant.block.statements;
   check_assertion(return_stmt != NULL &&
                   return_stmt->kind == (a_statement_kind)stmk_return);
   add_to_return_memo_list(return_stmt);
-  /* Set the insert location to the start of the top-level block. */
-  set_block_start_insert_location(scope->assoc_block,
-                                  insert_location);
   return scope;
 }  /* make_file_scope_init_or_term_routine */
 
@@ -6342,9 +6365,9 @@ Insert constructor wrapper code around the user code in the indicated
 constructor scope, and also lower the user code.
 */
 {
-  a_statement_ptr    user_code_stmts =
-                                  scope->assoc_block->variant.block.statements;
-  a_statement_ptr    last_statement;
+  a_statement_ptr    user_code_stmts;
+  a_boolean          has_function_try_block = FALSE;
+  a_statement_ptr    last_statement, wrapper_code = NULL;
   an_insert_location insert_location;
   a_source_position  saved_error_position, saved_code_pos;
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
@@ -6366,7 +6389,17 @@ constructor scope, and also lower the user code.
   saved_error_position = error_position;
   code_pos_for_lowering = error_position = 
                                     ctor_routine->source_corresp.decl_position;
-  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  if (scope->assoc_block->kind == (a_statement_kind)stmk_try_block) {
+    /* This constructor has a function-try-block as the top statement. */
+    has_function_try_block = TRUE;
+    /* Add a compound statement as the top statement of the function. */
+    turn_statement_into_block(scope->assoc_block, &insert_location,
+                              &user_code_stmts);
+  } else {
+    /* Normal case -- no function-try-block */
+    user_code_stmts = scope->assoc_block->variant.block.statements;
+    set_block_start_insert_location(scope->assoc_block, &insert_location);
+  }  /* if */
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
 #if ASSIGNMENT_TO_THIS_ALLOWED
@@ -6479,13 +6512,32 @@ constructor scope, and also lower the user code.
       /* The "if" statement is inserted later. */
     }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-    /* Add the wrapper code at the start of the routine. */
+    if (has_function_try_block) {
+      /* When the constructor has a function-try-block, generate the wrapper
+         code now in a block off to the side, and insert it later while
+         lowering the try statement.  The code must be generated now so
+         it's in the right current object lifetime. */
+      wrapper_code = alloc_statement((a_statement_kind)stmk_block);
+      set_block_start_insert_location(wrapper_code, &insert_location);
+    }  /* if */
+    /* Generate member and base initialization code. */
     add_constructor_wrapper_code(scope, &insert_location);
+    if (has_function_try_block) {
+      /* If no code was generated, throw away the block for the wrapper
+         code. */
+      if (wrapper_code->variant.block.statements == NULL) {
+        wrapper_code = NULL;
+      }  /* if */
+    }  /* if */
   }
-
   /* Lower the user code in the constructor. */
-  lower_statement_list(user_code_stmts, &last_statement);
-
+  if (has_function_try_block) {
+    lower_try_block(user_code_stmts, /*is_function_try_block=*/TRUE,
+                    wrapper_code,
+                    (a_destructor_wrapper_info_block_ptr)NULL);
+  } else {
+    lower_statement_list(user_code_stmts, &last_statement);
+  }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
 #if ASSIGNMENT_TO_THIS_ALLOWED
   /* Again, if an assignment to "this" was done, the wrapper code is
@@ -6696,6 +6748,222 @@ is inserted at *insert_location.
 
 #endif /* GENERATE_EH_TABLES */
 
+static void gen_dtor_member_and_base_destructions(
+                     an_insert_location              *insert_location,
+                     an_insert_location              *prologue_insert_location,
+                     a_destructor_wrapper_info_block *dtor_info)
+/*
+The current function is a destructor.  Generate code to destroy bases
+and members, if necessary, and insert it at *insert_location.  If any
+code is needed preceding the user code in the destructor, insert it at
+*prologue_insert_location.  *dtor_info is used to pass information
+between this function and lower_destructor_code and
+insert_dtor_member_and_base_destructions.
+*/
+{
+  a_routine_ptr          dtor_routine =
+                                 innermost_function_scope->variant.routine.ptr;
+  a_variable_ptr         this_param_var, complete_obj_param_var;
+  an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
+  an_expr_node_ptr       compare_node;
+  a_type_ptr             class_type;
+  a_constructor_init_ptr ctor_init, ctor_init_list;
+  a_dynamic_init_ptr     first_epilogue_destruction;
+  an_insert_location     insert_location2;
+
+  /* The following pseudo-code shows both the processing in this routine
+     and the code added to the destructor routine.  Lines enclosed in [...]
+     are tests and loops done in the processing in this routine; other
+     lines are the code added to the destructor routine.  Note that
+     there is other wrapper code added by lower_destructor_code.
+
+     [For each data member on the ctor-initializer list:]
+       Call the destructor.  The complete-object implicit argument is 0x2.
+     [endfor]
+     [For each direct nonvirtual base class on the ctor-initializer list:]
+       Call the destructor.  The complete-object implicit argument is 0.
+           If the destructor needs an array of destruction vtbl pointers,
+           store the address of the proper subarray of the array pointed
+           to by the destruction_vtbls temp into the transfer pointer in
+           the subobject, as a way of passing that information to the
+           subobject destructor.
+     [endfor]
+     [If there are any items left on the ctor-initializer list (which
+         must be for virtual base classes):]
+       If the added parameter != 0 (indicating a complete object is
+           being destroyed and virtual base classes must be destroyed):
+         [For each virtual base class on the ctor-initializer list:]
+           Call the destructor.  The complete-object implicit argument is 0.
+               If the destructor needs an array of destruction vtbl
+               pointers, store the address of an array specific to this
+               base class in the transfer pointer of the subobject, as
+               a way of passing that information to the subobject
+               destructor.
+         [endfor]
+       endif
+     [endif]
+  */
+  /* Get a pointer to the "this" parameter variable. */
+  this_param_var = innermost_function_scope->variant.routine.parameters;
+  complete_obj_param_var = this_param_var->next;
+  class_type = dtor_routine->source_corresp.parent.class_type;
+  /* The constructor_inits list contains a list of destructions.  Each
+     destruction is a default call supplied by the front end.  Every
+     base class and member that requires a destructor appears, in the
+     order (1) data members, (2) normal base classes, (3) virtual base
+     classes.  The order within each section is source declaration order. */
+  ctor_init = ctor_init_list =
+                   innermost_function_scope->variant.routine.constructor_inits;
+  innermost_function_scope->variant.routine.constructor_inits = NULL;
+  if (exceptions_enabled) {
+#if DO_FULL_PORTABLE_EH_LOWERING
+    a_handle_number complete_obj_param_handle;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+    /* Assign cleanup region numbers to the destructions.  This is done
+       early so that we will know the right value to set __eh_curr_region
+       to when beginning each destruction. */
+    /* See whether there are any virtual base classes. */
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* The added parameter indicating a complete object will be used
+         as a conditional flag for the destructions of the virtual base
+         classes (we don't destroy the virtual base classes unless we
+         are working on a complete object). */
+#if DO_FULL_PORTABLE_EH_LOWERING
+      an_init_pos_descr ipd;
+      /* Assign the object address table slot for the conditional
+         variable. */
+      complete_obj_param_handle = object_addr_table_index();
+      /* Put the address of the variable into the object address table. */
+      set_var_init_pos_descr(complete_obj_param_var, &ipd);
+      init_object_addr_table_entry(&ipd, complete_obj_param_handle,
+                                   prologue_insert_location);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+      /* Process the ctor-inits for virtual base classes. */
+      for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+        if (ctor_init->kind ==
+                             (a_constructor_init_kind)cik_virtual_base_class) {
+          /* Add complete_obj_param_var as a conditional flag. */
+          a_destructible_entity_descr_ptr dedp = 
+                             ctor_init->initializer->destructible_entity_descr;
+          check_assertion(dedp != NULL);
+          dedp->conditional_flag_var = complete_obj_param_var;
+#if DO_FULL_PORTABLE_EH_LOWERING
+          if (exceptions_enabled) {
+            dedp->conditional_flag_handle = complete_obj_param_handle;
+          }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+        }  /* if */
+      }  /* for */
+      ctor_init = ctor_init_list;
+    }  /* if */
+    /* Find the first destruction in the epilogue. */
+    first_epilogue_destruction = ctor_init->initializer;
+    /* Watch out for the case of an array initialization; the top-level
+       dynamic initialization is not on the destructions list. */
+    if (first_epilogue_destruction->lifetime == NULL) {
+      for (first_epilogue_destruction =
+                              innermost_function_scope->lifetime->destructions;
+           !first_epilogue_destruction->is_constructor_init;
+           first_epilogue_destruction =
+                       first_epilogue_destruction->next_in_destruction_list) {}
+    }  /* if */
+    /* Pass the pointer back to the caller. */
+    dtor_info->first_epilogue_destruction = first_epilogue_destruction;
+    /* Do cleanup initialization for the destructions on the ctor-initializer
+       list of the destructor. */
+    initialize_dtor_init_for_cleanup(first_epilogue_destruction);
+  }  /* if */
+  /* Generate a destructor call for each data member that appears on the
+     ctor_init list. */
+  for (; ctor_init != NULL &&
+                         ctor_init->kind == (a_constructor_init_kind)cik_field;
+       ctor_init = ctor_init->next) {
+    lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/TRUE,
+                    (a_variable_ptr)NULL, insert_location);
+  }  /* for */
+  /* Generate a destructor call for each non-virtual direct base class
+     that appears on the ctor_init list. */
+  for (; ctor_init != NULL &&
+             ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
+       ctor_init = ctor_init->next) {
+    lower_dtor_init(ctor_init, this_param_var,
+                    /*have_complete_object=*/FALSE,
+                    dtor_info->destruction_vtbls_var,
+                    insert_location);
+  }  /* for */
+  /* If any items remain on the ctor_init list, they must be for virtual
+     base classes. */
+  if (ctor_init != NULL) {
+    check_assertion_str2(ctor_init->kind ==
+                               (a_constructor_init_kind)cik_virtual_base_class,
+                         "gen_dtor_member_and_base_destructions:",
+                         "bad ctor_init item kind");
+    /* Put out code that tests whether or not the virtual base classes need
+       to be destroyed.  This is done by testing whether or not the
+       added parameter indicates we have a whole object. */
+    /* Note that we can do a "!= 0" test instead of a bit test because the
+       0x1 bit (for "free storage") would only be on for a whole object. */
+    /* Make an expression node pointing to the zero constant. */
+    zero_constant_node = node_for_integer_constant(0L,
+                                                   (an_integer_kind)ik_int);
+    /* Make an expression node for the parameter. */
+    complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
+    /* Make a node comparing the parameter against zero. */
+    complete_obj_param_node->next = zero_constant_node;
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                      integer_type((an_integer_kind)ik_int),
+                                      complete_obj_param_node);
+    /* Make an "if" statement with a block statement under it:
+         if (param != 0) {}
+                          ^--- additional statements will be inserted.
+    */
+    insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
+                        insert_location, (a_statement_ptr *)NULL,
+                        &insert_location2, (an_insert_location *)NULL);
+    /* Destroy any virtual base classes on the ctor_init list. */
+    for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+      lower_dtor_init(ctor_init, this_param_var,
+                      /*have_complete_object=*/FALSE,
+                      dtor_info->destruction_vtbls_var,
+                      &insert_location2);
+    }  /* for */
+    /* Note that the "if" created above effectively ends here. */
+  }  /* if */
+  if (exceptions_enabled) {
+#if GENERATE_EH_TABLES
+    /* Make the region table entries for the epilogue destructions.
+       This is done late because we want to put out the entries in
+       reversed order, and we need to wait until they all have position
+       information recorded. */
+    make_dtor_init_region_table_entries(first_epilogue_destruction,
+                                        prologue_insert_location);
+#endif /* GENERATE_EH_TABLES */
+  } /* if */
+}  /* gen_dtor_member_and_base_destructions */
+
+
+void set_cleanup_state_before_destructor_user_code(
+                     an_insert_location              *insert_location,
+                     a_destructor_wrapper_info_block *dtor_info)
+/*
+Insert code at *insert_location to establish the appropriate cleanup state
+at the beginning of the user-written code in a destructor.  This cleanup
+state calls for destruction of members and bases of the class.  *dtor_info
+provides information developed by gen_dtor_member_and_base_destructions.
+In particular dtor_info->first_epilogue_destruction indicates the
+first member/base destruction to be done.
+*/
+{
+  if (exceptions_enabled) {
+    curr_context->curr_cleanup_state =
+        curr_context->latest_initialization =
+            dtor_info->first_epilogue_destruction;
+    insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                          insert_location,
+                                          /*unreachable=*/FALSE);
+  } /* if */
+}  /* set_cleanup_state_before_destructor_user_code */
+
 
 a_label_ptr insert_temp_label(an_insert_location *insert_location)
 /*
@@ -6726,6 +6994,156 @@ statement for the label and insert it at *insert_location.
 }  /* insert_temp_label */
 
 
+static void add_epilogue_label(an_insert_location *insert_location,
+                               a_statement_ptr    insert_block,
+                               a_boolean          *label_added)
+/*
+If the current routine has multiple returns, add an epilogue label
+at *insert_location, change the returns to gotos to the label, and
+return *label_added TRUE.  insert_block indicates the block in which
+*insert_location appears.  On return, there will always be a return
+statement at the insert point (either one that was already present as
+the statement to insert after/before, or one that was added) and
+*insert_location will be set to insert before the return.
+*/
+{
+  a_statement_ptr   top_level_return, stmt, prev_stmt;
+  a_return_memo_ptr rmp, rmp_next;
+  a_label_ptr       epilogue_label;
+  a_boolean         added_return = FALSE;
+
+  *label_added = FALSE;
+  if (insert_location->kind == ilk_after_statement &&
+      insert_location->variant.stmt->next != NULL &&
+      insert_location->variant.stmt->next->kind ==
+                                               (a_statement_kind)stmk_return) {
+    /* Inserting before a return.  This is probably the second call of
+       add_epilogue_label (the first set the insert location to before
+       the return). */
+    top_level_return = insert_location->variant.stmt->next;
+  } else {
+    if (insert_location->kind == ilk_after_statement &&
+        insert_location->variant.stmt->kind == (a_statement_kind)stmk_block) {
+      /* We are adding after a block.  See whether the last statement of the
+         block is a return.  If so, move it out of the block. */
+      a_statement_ptr block_stmt = insert_location->variant.stmt;
+      if (move_final_return_out_of_block(block_stmt, block_stmt)) {
+        /* A return was moved out of the block.  Set the insert location
+           to the return.  This allows further optimization below. */
+        set_insert_location(block_stmt->next, insert_location);
+      }  /* if */
+    }  /* if */
+    if (insert_location->kind == ilk_after_statement &&
+        insert_location->variant.stmt->kind == (a_statement_kind)stmk_return) {
+      /* We're inserting after a top-level return.  We can insert in
+         front of it and avoid adding another return. */
+      top_level_return = insert_location->variant.stmt;
+      /* Find the previous statement, which is needed for the insert
+         location. */
+      for (prev_stmt = NULL, stmt = insert_block->variant.block.statements;
+           stmt != top_level_return;
+           prev_stmt = stmt, stmt = stmt->next) {
+        check_assertion_str(stmt != NULL,
+                    "add_epilogue_label: insert_location not in insert_block");
+      }  /* for */
+      /* Make an insert location preceding the return. */
+      if (prev_stmt == NULL) {
+        set_block_start_insert_location(insert_block, insert_location);
+      } else {
+        set_insert_location(prev_stmt, insert_location);
+      }  /* if */
+    } else {
+      /* We're not adding after/before a return, so add a return at the end. */
+      an_insert_location saved_insert_location;
+      top_level_return = alloc_statement((a_statement_kind)stmk_return);
+      saved_insert_location = *insert_location;
+      insert_statement(top_level_return, insert_location);
+      *insert_location = saved_insert_location;
+      /* Add the return to the return memo list. */
+      add_to_return_memo_list(top_level_return);
+      added_return = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Now there is a top-level return statement and insert_location is set to
+     insert in front of it.  The return statement is pointed to by
+     top_level_return and by the first entry of the return memo list,
+     and prev_stmt points to the statement preceding the return. */
+  /* The return should match the first entry on the return memo list. */
+  check_assertion(return_memo_list != NULL &&
+                  top_level_return == return_memo_list->stmt);
+  /* Leave just the entry for this return on the memo list.  The rest are
+     processed and freed. */
+  rmp = return_memo_list->next;
+  return_memo_list->next = NULL;
+  if (rmp != NULL) {
+    /* There are returns to rewrite.  Add an epilogue label and change
+       the returns to gotos to that label. */
+    epilogue_label = insert_temp_label(insert_location);
+    if (added_return) epilogue_label->reachable_by_fall_through = FALSE;
+    *label_added = TRUE;
+    /* Change the other returns to gotos. */
+    for (; rmp != NULL; rmp = rmp_next) {
+      stmt = rmp->stmt;
+      rmp_next = rmp->next;
+      set_statement_kind(stmt, (a_statement_kind)stmk_goto);
+      stmt->variant.label.ptr = epilogue_label;
+      rmp->next = NULL;
+      free_return_memo_list(rmp);
+    }  /* for */
+  }  /* if */
+}  /* add_epilogue_label */
+
+
+void insert_dtor_member_and_base_destructions(
+                              a_statement_ptr                 destruction_code,
+                              an_insert_location              *insert_location,
+                              a_statement_ptr                 insert_block,
+                              a_destructor_wrapper_info_block *dtor_info)
+/*
+Code to destroy members and bases in a destructor was generated earlier by
+gen_dtor_member_and_base_destructions.  destruction_code points to
+the generated code, which is not currently attached to the IL tree,
+or is NULL if there is no such code.  Insert the generated code at
+*insert_location (which is either at the top level of the destructor,
+or inside a function-try-block).  This insertion is after the
+user-written code in the destructor or function-try-block.
+insert_block indicates the block in which *insert_location appears.
+On return, *insert_location is set to allow further insertion in
+the epilogue, preceding a return statement (one that was present or
+one that was added).  *dtor_info is used to pass information from
+gen_dtor_member_and_base_destructions.
+*/
+{
+  a_boolean label_added;
+
+  /* If there are multiple returns in the destructor, add an epilogue
+     label and change the returns to gotos to the label.  Even when
+     there is no destruction code, this is done to ensure that there
+     is a return statement; for the function-try-block, we need that
+     so we can eliminate it and fall through to the end of the try block
+     to do the stack pop, which was suppressed on returns in the
+     user code. */
+  add_epilogue_label(insert_location, insert_block, &label_added);
+  if (destruction_code != NULL) {
+    if (label_added) {
+      if (exceptions_enabled &&
+          innermost_function_scope->lifetime != NULL) {
+        /* Set the cleanup state to the first destruction in the epilogue, if
+           there is one. */
+        curr_context->curr_cleanup_state =
+            curr_context->latest_initialization =
+                dtor_info->first_epilogue_destruction;
+        insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                              insert_location,
+                                              /*unreachable=*/FALSE);
+      }  /* if */
+    }  /* if */
+    /* Insert the code to destroy members and bases. */
+    insert_statement(destruction_code, insert_location);
+  }  /* if */
+}  /* insert_dtor_member_and_base_destructions */
+
+
 void lower_destructor_code(a_scope_ptr scope)
 /*
 Insert destructor wrapper code around the user code in the indicated
@@ -6737,23 +7155,19 @@ destructor scope, and also lower the user code.
   a_type_ptr             class_type, int_type;
   a_class_type_supplement_ptr
                          ctsp;
-  a_constructor_init_ptr ctor_init, ctor_init_list;
   an_insert_location     insert_location, insert_location2;
-  an_insert_location     prologue_insert_location;
-  a_statement_ptr        user_code_stmts, epilogue_block;
-  a_statement_ptr        top_level_stmt, prev_stmt;
+  a_statement_ptr        user_code_stmts, epilogue_block = NULL;
+  a_boolean              has_function_try_block = FALSE;
+  a_constructor_init_ptr ctor_init;
   an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
-  an_expr_node_ptr       compare_node;
   an_expr_node_ptr       vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_routine_ptr          dtor_routine = scope->variant.routine.ptr;
   a_routine_ptr          delete_routine;
-  a_return_memo_ptr      rmp, rmp_next;
-  a_label_ptr            epilogue_label;
   a_source_position      saved_error_position, saved_code_pos;
-  a_dynamic_init_ptr     first_epilogue_destruction = NULL;
-  a_variable_ptr         destruction_vtbls_var = NULL;
-  a_boolean              added_return = FALSE;
+  an_insert_location     prologue_insert_location;
+  a_destructor_wrapper_info_block
+                         dtor_info;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -6794,31 +7208,8 @@ destructor scope, and also lower the user code.
      ... user destructor code goes here ...
          -- returns in the user code are turned into gotos to the following
             code:
-     [For each data member on the ctor-initializer list:]
-       Call the destructor.  The complete-object implicit argument is 0x2.
-     [endfor]
-     [For each direct nonvirtual base class on the ctor-initializer list:]
-       Call the destructor.  The complete-object implicit argument is 0.
-           If the destructor needs an array of destruction vtbl pointers,
-           store the address of the proper subarray of the array pointed
-           to by the destruction_vtbls temp into the transfer pointer in
-           the subobject, as a way of passing that information to the
-           subobject destructor.
-     [endfor]
-     [If there are any items left on the ctor-initializer list (which
-         must be for virtual base classes):]
-       If the added parameter != 0 (indicating a complete object is
-           being destroyed and virtual base classes must be destroyed):
-         [For each virtual base class on the ctor-initializer list:]
-           Call the destructor.  The complete-object implicit argument is 0.
-               If the destructor needs an array of destruction vtbl
-               pointers, store the address of an array specific to this
-               base class in the transfer pointer of the subobject, as
-               a way of passing that information to the subobject
-               destructor.
-         [endfor]
-       endif
-     [endif]
+     Member and base destruction code (see
+         gen_dtor_member_and_base_destructions).
      If (added parameter & 0x1) != 0:
        delete((void)*this)
      endif
@@ -6837,22 +7228,33 @@ destructor scope, and also lower the user code.
      "this" parameter uses it.  For some cases involving generated virtual
      destructors, this is necessary. */
   class_type->source_corresp.referenced = TRUE;
+  ctor_init = scope->variant.routine.constructor_inits;
   ctsp = class_type->variant.class_struct_union.extra_info;
-  /* Remember where the user code (if any) is. */
-  user_code_stmts = scope->assoc_block->variant.block.statements;
-  /* Generate prologue code at the start of the routine. */
-  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  if (scope->assoc_block->kind == (a_statement_kind)stmk_try_block) {
+    /* This constructor has a function-try-block as the top statement. */
+    has_function_try_block = TRUE;
+    /* Add a compound statement as the top statement of the function. */
+    turn_statement_into_block(scope->assoc_block, &insert_location,
+                              &user_code_stmts);
+  } else {
+    /* Normal case -- no function-try-block */
+    user_code_stmts = scope->assoc_block->variant.block.statements;
+    set_block_start_insert_location(scope->assoc_block, &insert_location);
+  }  /* if */
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
+  dtor_info.first_epilogue_destruction = NULL;
+  dtor_info.destruction_vtbls_var = NULL;
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   if (ctsp->construction_vtbls != NULL) {
     an_insert_location else_insert_location;
+    an_expr_node_ptr   compare_node;
     /* This class is one that has overridden virtual functions in virtual
        base classes, and needs special versions of the virtual function
        tables when used to destruct a subobject. */
     /* Create a temporary that will point to an array of virtual function
        table addresses. */
-    destruction_vtbls_var = make_construction_vtbl_temporary();
+    dtor_info.destruction_vtbls_var = make_construction_vtbl_temporary();
     /* Put out code that tests the added parameter to determine whether
        we are destroying a complete object. */
     /* Note that we can do a "!= 0" test instead of a bit test because the
@@ -6879,7 +7281,8 @@ destructor scope, and also lower the user code.
        of virtual function table pointers to be used when destroying a
        complete object. */
     insert_default_construction_vtbls_assignment(ctsp->construction_vtbls,
-                                                 destruction_vtbls_var,
+                                                 dtor_info.
+                                                         destruction_vtbls_var,
                                                  &insert_location2);
     /* Inserting under else_insert_location, in the "else" of the "if"
        (a subobject is being destroyed): */
@@ -6887,7 +7290,8 @@ destructor scope, and also lower the user code.
        destruction_vtbls temporary.  The caller destructor uses the
        transfer pointer to pass information down to the subclass
        destructor. */
-    receive_construction_vtbls_in_subobject_constructor(destruction_vtbls_var,
+    receive_construction_vtbls_in_subobject_constructor(dtor_info.
+                                                         destruction_vtbls_var,
                                                         class_type,
                                                         this_param_var,
                                                         &else_insert_location);
@@ -6949,7 +7353,7 @@ destructor scope, and also lower the user code.
         /* The virtual function table to use is specified by an element of the
            array of destruction virtual function table pointers. */
         vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
-                                        destruction_vtbls_var,
+                                        dtor_info.destruction_vtbls_var,
                                         /*var_is_array=*/FALSE,
                                         bcp->index_in_construction_vtbl_array);
         vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
@@ -6981,225 +7385,39 @@ destructor scope, and also lower the user code.
      proper exception cleanup actions can be put on the cleanup list before
      the user code is lowered.  Later, the epilogue block will be inserted
      into the destructor at the right place. */
-  /* The constructor_inits list contains a list of destructions.  Each
-     destruction is a default call supplied by the front end.  Every
-     base class and member that requires a destructor appears, in the
-     order (1) data members, (2) normal base classes, (3) virtual base
-     classes.  The order within each section is source declaration order. */
-  ctor_init = ctor_init_list = scope->variant.routine.constructor_inits;
-  scope->variant.routine.constructor_inits = NULL;
-  if (ctor_init == NULL) {
-    /* No constructor_init entries, so no epilogue block is needed. */
-    epilogue_block = NULL;
-  } else {
+  if (ctor_init != NULL) {
     /* Save the prologue insert location as the place to insert exception
        handling initialization code. */
     prologue_insert_location = insert_location;
     epilogue_block = alloc_statement((a_statement_kind)stmk_block);
     set_block_start_insert_location(epilogue_block, &insert_location);
-    if (exceptions_enabled) {
-#if DO_FULL_PORTABLE_EH_LOWERING
-      a_handle_number complete_obj_param_handle;
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-      /* Assign cleanup region numbers to the destructions.  This is done
-         early so that we will know the right value to set __eh_curr_region
-         to when beginning each destruction. */
-      /* See whether there are any virtual base classes. */
-      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-        /* The added parameter indicating a complete object will be used
-           as a conditional flag for the destructions of the virtual base
-           classes (we don't destroy the virtual base classes unless we
-           are working on a complete object). */
-#if DO_FULL_PORTABLE_EH_LOWERING
-        an_init_pos_descr ipd;
-        /* Assign the object address table slot for the conditional
-           variable. */
-        complete_obj_param_handle = object_addr_table_index();
-        /* Put the address of the variable into the object address table. */
-        set_var_init_pos_descr(complete_obj_param_var, &ipd);
-        init_object_addr_table_entry(&ipd, complete_obj_param_handle,
-                                     &prologue_insert_location);
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-        /* Process the ctor-inits for virtual base classes. */
-        for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-          if (ctor_init->kind ==
-                             (a_constructor_init_kind)cik_virtual_base_class) {
-            /* Add complete_obj_param_var as a conditional flag. */
-            a_destructible_entity_descr_ptr dedp = 
-                             ctor_init->initializer->destructible_entity_descr;
-            check_assertion(dedp != NULL);
-            dedp->conditional_flag_var = complete_obj_param_var;
-#if DO_FULL_PORTABLE_EH_LOWERING
-            if (exceptions_enabled) {
-              dedp->conditional_flag_handle = complete_obj_param_handle;
-            }  /* if */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-          }  /* if */
-        }  /* for */
-        ctor_init = ctor_init_list;
-      }  /* if */
-      /* Find the first destruction in the epilogue. */
-      first_epilogue_destruction = ctor_init->initializer;
-      /* Watch out for the case of an array initialization; the top-level
-         dynamic initialization is not on the destructions list. */
-      if (first_epilogue_destruction->lifetime == NULL) {
-        for (first_epilogue_destruction = scope->lifetime->destructions;
-             !first_epilogue_destruction->is_constructor_init;
-             first_epilogue_destruction =
-                       first_epilogue_destruction->next_in_destruction_list) {}
-      }  /* if */
-      initialize_dtor_init_for_cleanup(first_epilogue_destruction);
-    }  /* if */
-    /* Generate a destructor call for each data member that appears on the
-       ctor_init list. */
-    for (; ctor_init != NULL &&
-                         ctor_init->kind == (a_constructor_init_kind)cik_field;
-         ctor_init = ctor_init->next) {
-      lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/TRUE,
-                      (a_variable_ptr)NULL, &insert_location);
-    }  /* for */
-    /* Generate a destructor call for each non-virtual direct base class
-       that appears on the ctor_init list. */
-    for (; ctor_init != NULL &&
-             ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
-         ctor_init = ctor_init->next) {
-      lower_dtor_init(ctor_init, this_param_var,
-                      /*have_complete_object=*/FALSE,
-                      destruction_vtbls_var,
-                      &insert_location);
-    }  /* for */
-    /* If any items remain on the ctor_init list, they must be for virtual
-       base classes. */
-    if (ctor_init != NULL) {
-#if CHECKING
-      if (ctor_init->kind != (a_constructor_init_kind)cik_virtual_base_class) {
-        internal_error("lower_destructor_code: bad ctor_init item kind");
-      }  /* if */
-#endif /* CHECKING */
-      /* Put out code that tests whether or not the virtual base classes need
-         to be destroyed.  This is done by testing whether or not the
-         added parameter indicates we have a whole object. */
-      /* Note that we can do a "!= 0" test instead of a bit test because the
-         0x1 bit (for "free storage") would only be on for a whole object. */
-      /* Make an expression node pointing to the zero constant. */
-      zero_constant_node = node_for_integer_constant(0L,
-                                                     (an_integer_kind)ik_int);
-      /* Make an expression node for the parameter. */
-      complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
-      /* Make a node comparing the parameter against zero. */
-      complete_obj_param_node->next = zero_constant_node;
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
-                                        int_type, complete_obj_param_node);
-      /* Make an "if" statement with a block statement under it:
-           if (param != 0) {}
-                            ^--- additional statements will be inserted.
-      */
-      insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
-                          &insert_location, (a_statement_ptr *)NULL,
-                          &insert_location2, (an_insert_location *)NULL);
-      /* Destroy any virtual base classes on the ctor_init list. */
-      for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-        lower_dtor_init(ctor_init, this_param_var,
-                        /*have_complete_object=*/FALSE,
-                        destruction_vtbls_var,
-                        &insert_location2);
-      }  /* for */
-      /* Note that the "if" created above effectively ends here. */
-    }  /* if */
-    if (exceptions_enabled) {
-#if GENERATE_EH_TABLES
-      /* Make the region table entries for the epilogue destructions.
-         This is done late because we want to put out the entries in
-         reversed order, and we need to wait until they all have position
-         information recorded. */
-      make_dtor_init_region_table_entries(first_epilogue_destruction,
-                                          &prologue_insert_location);
-#endif /* GENERATE_EH_TABLES */
-      /* Set the cleanup state at the end of the prologue (i.e., just before
-         going into user code) to the first cleanup for the wrapper.
-         Note that this is not set when exceptions are not enabled. */
-      curr_context->curr_cleanup_state =
-          curr_context->latest_initialization =
-              first_epilogue_destruction;
-      insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
-                                            &prologue_insert_location,
-                                            /*unreachable=*/FALSE);
-    } /* if */
+    /* Create code to destroy members and bases. */
+    gen_dtor_member_and_base_destructions(&insert_location,
+                                          &prologue_insert_location,
+                                          &dtor_info);
   }  /* if */
   /* Now lower the user code. */
-  lower_statement_list(user_code_stmts, &top_level_stmt);
-  /* Now figure out where to attach the epilogue code. */
-  /* All returns in the destructor have been put on the return_memo_list.
-     See if the first of them (i.e., the last encountered in the routine)
-     is a top-level return. */
-  for (prev_stmt = NULL,
-           top_level_stmt = scope->assoc_block->variant.block.statements;
-       top_level_stmt != NULL;
-       prev_stmt = top_level_stmt,
-           top_level_stmt = top_level_stmt->next) {
-    if (return_memo_list != NULL && top_level_stmt == return_memo_list->stmt) {
-      /* This is a top-level return statement. */
-      break;
-    }  /* if */
-  }  /* for */
-  /* We will be inserting code before the return or at the end of the top-level
-     statement list.   If there are no statements preceding the return, insert
-     at the start of the block (which is the same thing). */
-  if (prev_stmt == NULL) {
-    set_block_start_insert_location(scope->assoc_block, &insert_location);
+  if (has_function_try_block) {
+    /* The top statement of the destructor is a function-try-block.
+       The code to destroy members and bases is inserted inside the
+       try block. */
+    lower_try_block(user_code_stmts, /*is_function_try_block=*/TRUE,
+                    epilogue_block, &dtor_info);
+    set_insert_location(user_code_stmts, &insert_location);
   } else {
-    set_insert_location(prev_stmt, &insert_location);
-  }  /* if */
-  if (top_level_stmt == NULL) {
-    /* There was no top-level return, so add one at the end of the top-level
-       statement list. */
-    an_insert_location saved_insert_location;
-    top_level_stmt = alloc_statement((a_statement_kind)stmk_return);
-    saved_insert_location = insert_location;
-    insert_statement(top_level_stmt, &insert_location);
-    insert_location = saved_insert_location;
-    /* Add the return to the return memo list. */
-    add_to_return_memo_list(top_level_stmt);
-    added_return = TRUE;
-  }  /* if */
-  /* Now there is a top-level return statement and insert_location is set to
-     insert in front of it.  The return statement is pointed to by
-     top_level_stmt and by the first entry of the return memo list,
-     and prev_stmt points to the statement preceding the return. */
-  /* Leave just the entry for this return on the memo list.  The rest are
-     processed and freed. */
-  rmp = return_memo_list->next;
-  return_memo_list->next = NULL;
-  if (rmp == NULL) {
-    /* There are no other returns. */
-  } else {
-    /* There are other returns.  Add an epilogue label and change the other
-       returns to gotos to that label. */
-    epilogue_label = insert_temp_label(&insert_location);
-    if (added_return) epilogue_label->reachable_by_fall_through = FALSE;
-    if (exceptions_enabled &&
-        innermost_function_scope->lifetime != NULL) {
-      /* Set the cleanup state to the first destruction in the epilogue, if
-         there is one. */
-      curr_context->curr_cleanup_state =
-          curr_context->latest_initialization = first_epilogue_destruction;
-      insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
-                                            &insert_location,
-                                            /*unreachable=*/FALSE);
+    /* Normal case (not function-try-block). */
+    a_statement_ptr last_stmt;
+    if (ctor_init != NULL) {
+      set_cleanup_state_before_destructor_user_code(&prologue_insert_location,
+                                                    &dtor_info);
     }  /* if */
-    /* Change the other returns to gotos. */
-    for (; rmp != NULL; rmp = rmp_next) {
-      a_statement_ptr stmt = rmp->stmt;
-      rmp_next = rmp->next;
-      set_statement_kind(stmt, (a_statement_kind)stmk_goto);
-      stmt->variant.label.ptr = epilogue_label;
-      rmp->next = NULL;
-      free_return_memo_list(rmp);
-    }  /* for */
-  }  /* if */
-  /* Add the epilogue block created earlier, if there is one. */
-  if (epilogue_block != NULL) {
-    insert_statement(epilogue_block, &insert_location);
+    lower_statement_list(user_code_stmts, &last_stmt);
+    set_insert_location(last_stmt, &insert_location);
+    /* Insert the code to destroy members and bases, generated earlier. */
+    insert_dtor_member_and_base_destructions(epilogue_block,
+                                             &insert_location,
+                                             scope->assoc_block,
+                                             &dtor_info);
   }  /* if */
   /* Add code to free the storage if the "free" bit (0x1) is on in the
      added parameter:
@@ -7213,7 +7431,13 @@ destructor scope, and also lower the user code.
     an_expr_node_ptr this_param_node;
     an_expr_node_ptr and_node, two_constant_node, if_node;
     a_param_type_ptr param1;
+    a_boolean        label_added;
 
+    /* If there are any returns in the catch clauses of the
+       function-try-block, add an epilogue label and change the returns
+       to gotos.  In the simplest case, changes the insert location from
+       after the return at the end of the routine to before it. */
+    add_epilogue_label(&insert_location, scope->assoc_block, &label_added);
     /* Make "param & 0x1". */
     complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
     two_constant_node = node_for_integer_constant(1L, (an_integer_kind)ik_int);
@@ -7746,6 +7970,7 @@ cast to the proper base class.
                        &overriding_function->source_corresp.decl_position);
   lower_expr(expr, /*is_lvalue=*/FALSE);
   /* Put the expression into the return statement in the body. */
+  check_assertion(scope->assoc_block->kind == (a_statement_kind)stmk_block);
   return_stmt = scope->assoc_block->variant.block.statements;
   check_assertion(return_stmt != NULL &&
                   return_stmt->kind == (a_statement_kind)stmk_return);

@@ -125,7 +125,17 @@ extern void add_constructor_wrapper_code(a_scope_ptr        scope,
 
 extern void lower_constructor_code(a_scope_ptr scope);
 
+extern void set_cleanup_state_before_destructor_user_code(
+                     an_insert_location              *insert_location,
+                     a_destructor_wrapper_info_block *dtor_info);
+
 extern a_label_ptr insert_temp_label(an_insert_location *insert_location);
+
+extern void insert_dtor_member_and_base_destructions(
+                              a_statement_ptr                 destruction_code,
+                              an_insert_location              *insert_location,
+                              a_statement_ptr                 insert_block,
+                              a_destructor_wrapper_info_block *dtor_info);
 
 extern void lower_destructor_code(a_scope_ptr scope);
 

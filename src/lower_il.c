@@ -320,6 +320,7 @@ block); it may not be a statement in a position that requires a single
 statement rather than a sequence (e.g., the dependent statement of an "if").
 */
 {
+  check_assertion_str(stmt != NULL, "set_insert_location: NULL stmt");
   clear_insert_location(insert_location, ilk_after_statement);
   insert_location->variant.stmt = stmt;
 }  /* set_insert_location */
@@ -331,7 +332,11 @@ void set_block_start_insert_location(a_statement_ptr    stmt,
 Set *insert_location to indicate an insert location at the start of
 the block stmt.
 */
-{ 
+{
+  check_assertion_str(stmt != NULL,
+                      "set_block_start_insert_location: NULL stmt");
+  check_assertion_str(stmt->kind == (a_statement_kind)stmk_block,
+                      "set_block_start_insert_location: stmt not block");
   clear_insert_location(insert_location, ilk_block_start);
   insert_location->variant.stmt = stmt;
 }  /* set_block_start_insert_location */
@@ -345,6 +350,8 @@ Set *insert_location to indicate an insert location at the start of
 the indicated switch clause.
 */
 { 
+  check_assertion_str(scp != NULL,
+                      "set_switch_clause_start_insert_location: NULL clause");
   clear_insert_location(insert_location, ilk_switch_clause_start);
   insert_location->variant.switch_clause = scp;
 }  /* set_switch_clause_start_insert_location */
@@ -593,6 +600,7 @@ scope, or the lifetime from the parent context, will be used.
      Also save the old value for restoration by pop_context. */
   context->saved_curr_object_lifetime = curr_object_lifetime;
   if (new_lifetime) curr_object_lifetime = lifetime;
+  context->is_function_try_block = FALSE;
   /* The latest_initialization list starts at NULL for a new object lifetime,
      or is inherited from the parent if there is no new object lifetime. */
   context->latest_initialization = NULL;
@@ -8290,7 +8298,7 @@ to the statement; otherwise, it is NULL.
          tlep = tlep->next) {
       tlep->in_use = FALSE;
     }  /* for */
-  }
+  }  /* if */
 }  /* lower_full_expr */
 
 
@@ -8984,6 +8992,8 @@ the last statement.
      label for a destructor follows. */
   if (curr_context->scope != innermost_function_scope ||
       block_statement->next != NULL ||
+      innermost_function_scope->assoc_block->kind !=
+                                                (a_statement_kind)stmk_block ||
       last_statement_in_block(innermost_function_scope->assoc_block) !=
                                                              block_statement) {
     set_curr_cleanup_state_to_latest_initialization();
@@ -9230,6 +9240,7 @@ code.
   a_boolean              any_cleanup_needed = FALSE, skip_temporaries = FALSE;
   a_dynamic_init_ptr     dip = curr_context->latest_initialization;
   an_object_lifetime_ptr lifetime = curr_object_lifetime;
+  a_boolean              prev_is_catch = FALSE, curr_is_catch;
 
   /* Do nothing at all if there are no lifetimes involved. */
   if (outer_lifetime != NULL) {
@@ -9243,6 +9254,7 @@ code.
        of the lifetime, and there may be cleanup actions associated with the
        lifetime itself. */
     for (;;) {
+      curr_is_catch = FALSE;
       /* Generate destructions in this context. */
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
         check_assertion_str(dip->destructible_entity_descr != NULL,
@@ -9290,11 +9302,23 @@ code.
         /* In some cases, the context itself requires cleanup. */
         if (lifetime->kind == (an_object_lifetime_kind)olk_try_block) {
           /* Exit from a "try" block. */
-          any_cleanup_needed = TRUE;
-          if (check_only) goto done;
-          cleanup_on_exit_from_try_block(context_for_lifetime(lifetime),
+          if (innermost_function_scope->variant.routine.ptr->special_kind ==
+                                     (a_special_function_kind)sfk_destructor &&
+              context_for_lifetime(lifetime)->is_function_try_block &&
+              !prev_is_catch) {
+            /* In the function-body of a function-try-block of a destructor,
+               a return does not leave the destructor directly.  It goes
+               to the member and base destruction code in the epilogue, which
+               is still inside the try block.  So do not pop the try block
+               here.  Note that an exit from a catch clause of a
+               function-try-block of a destructor does pop the try block. */
+          } else {
+            any_cleanup_needed = TRUE;
+            if (check_only) goto done;
+            cleanup_on_exit_from_try_block(context_for_lifetime(lifetime),
                                     (a_try_supplement_ptr)lifetime->entity.ptr,
-                                         insert_location);
+                                           insert_location);
+          }  /* if */
         } else if ((an_il_entry_kind)lifetime->entity.kind == iek_scope &&
                    (scope = (a_scope_ptr)lifetime->entity.ptr,
                     (scope->kind == (a_scope_kind)sck_block &&
@@ -9304,6 +9328,7 @@ code.
           if (check_only) goto done;
           cleanup_on_exit_from_catch(scope->variant.assoc_handler,
                                      insert_location);
+          curr_is_catch = TRUE;
         }  /* if */
       }
       /* Stop when the outer lifetime has been processed. */
@@ -9320,6 +9345,7 @@ code.
         skip_temporaries = TRUE;
       }  /* if */
       lifetime = lifetime->parent_lifetime;
+      prev_is_catch = curr_is_catch;
     }  /* for */
   }  /* if */
 done:
@@ -9750,8 +9776,8 @@ Lower an stmk_return statement.
     expr_stmt = insert_expr_statement(return_expr, &insert_location);
     set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
   } else if (any_cleanup_on_return ||
-            (exceptions_enabled &&
-             innermost_function_scope->lifetime != NULL)) {
+             (exceptions_enabled &&
+              innermost_function_scope->lifetime != NULL)) {
     /* Some code will have to be inserted on return, either for
        cleanup or to pop the exception handling stack entry.  It has
        to be inserted after the evaluation of the return expression,
@@ -10272,7 +10298,9 @@ Do IL lowering of the indicated statement and everything under it.
         lower_stmk_init(statement);
         break;
       case stmk_try_block:
-        lower_try_block(statement);
+        lower_try_block(statement, /*is_function_try_block=*/FALSE,
+                        (a_statement_ptr)NULL,
+                        (a_destructor_wrapper_info_block_ptr)NULL);
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case stmk_microsoft_try:
@@ -11690,6 +11718,25 @@ when a base class return type is needed.  Definitions will be put out later.
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
+static void lower_function_body(a_statement_ptr statement)
+/*
+Lower the body of a function.  The function is not a constructor or destructor.
+statement is the statement pointed to by assoc_block in the function scope.
+*/
+{
+  if (statement->kind == (a_statement_kind)stmk_try_block) {
+    /* A function try block.  Insert a block statement around the try
+       block so that the function will have an stmk_block statement
+       as the body.  That makes the function try block into a "normal"
+       try block. */
+    an_insert_location insert_location;
+    a_statement_ptr    orig_statement;
+    turn_statement_into_block(statement, &insert_location, &orig_statement);
+  }  /* if */
+  lower_statement(statement);
+}  /* lower_function_body */
+
+
 static void lower_scope(a_scope_ptr scope)
 /*
 Do IL lowering of the indicated scope and everything under it.
@@ -11868,7 +11915,7 @@ Do IL lowering of the indicated scope and everything under it.
       /* Normal case.  Lower the statements.  Note that this call (at the
          function level) lowers all the statements in the function, even those
          inside block scopes. */
-      lower_statement(scope->assoc_block);
+      lower_function_body(scope->assoc_block);
     }  /* if */
     /* Add prologue code for exceptions. */
     if (exceptions_enabled) add_eh_function_prologue(scope);

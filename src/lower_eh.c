@@ -3481,15 +3481,25 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
-void lower_try_block(a_statement_ptr statement)
+void lower_try_block(a_statement_ptr                 statement,
+                     a_boolean                       is_function_try_block,
+                     a_statement_ptr                 wrapper_code,
+                     a_destructor_wrapper_info_block *dtor_info)
 /*
-Do IL lowering for an stmk_try_block statement.
+Do IL lowering for an stmk_try_block statement.  If is_function_try_block
+is TRUE, this is a function-try-block of a constructor or destructor,
+and wrapper_code (if non-NULL) points to wrapper code (to construct or
+destroy members and bases) that has been generated and should be inserted
+in the dependent statement of the "try".  For the destructor case,
+dtor_info points to a block that provides additional information to
+be passed down.
 */
 {
   a_try_supplement_ptr
                      tsp = statement->variant.try_block;
   a_statement_ptr    stmt_to_try = tsp->statement;
-  a_statement_ptr    orig_stmt, orig_stmt_to_try;
+  a_statement_ptr    orig_stmt, orig_stmt_to_try, dependent_stmt;
+  an_insert_location wrapper_insert_location;
   a_handler_ptr      handlers = tsp->handlers, handler;
   an_insert_location insert_location;
   a_context          try_context;
@@ -3517,10 +3527,12 @@ Do IL lowering for an stmk_try_block statement.
   orig_stmt = statement;
   turn_statement_into_block(stmt_to_try, &insert_location, &orig_stmt_to_try);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  dependent_stmt = orig_stmt_to_try;
   /* Push a context around the try and catch.  This is needed to ensure that
      the "try" stack frame is popped on a goto out of the try or catch. */
   lifetime = tsp->lifetime;
   push_context(&try_context, (a_scope_ptr)NULL, lifetime);
+  try_context.is_function_try_block = is_function_try_block;
 #if DO_FULL_PORTABLE_EH_LOWERING
   curr_context->try_frame = try_frame;
   if (keep_object_lifetime_info_in_lowered_il) {
@@ -3542,10 +3554,60 @@ Do IL lowering for an stmk_try_block statement.
   set_statement_kind(orig_stmt, (a_statement_kind)stmk_if);
   orig_stmt->expr = compare_node;
   /* The dependent statement is the statement under the "try". */
-  orig_stmt->variant.if_stmt.then_statement = orig_stmt_to_try;
+  orig_stmt->variant.if_stmt.then_statement = dependent_stmt;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  if (is_function_try_block) {
+    /* This is a function-try-block in a constructor or destructor. */
+    turn_statement_into_block(dependent_stmt, &wrapper_insert_location,
+                              &orig_stmt_to_try);
+    if (dtor_info == NULL) {
+      check_assertion(innermost_function_scope->variant.routine.ptr->
+                     special_kind == (a_special_function_kind)sfk_constructor);
+      /* Function try block in a constructor.  Insert constructor wrapper
+         code before the dependent statement. */
+      if (wrapper_code != NULL) {
+        insert_statement(wrapper_code, &wrapper_insert_location);
+      }  /* if */
+    } else {
+      check_assertion(innermost_function_scope->variant.routine.ptr->
+                      special_kind == (a_special_function_kind)sfk_destructor);
+      /* Function try block in a destructor.  Set the cleanup state
+         appropriately for entry to the dependent statement. */
+      if (wrapper_code != NULL) {
+        set_cleanup_state_before_destructor_user_code(&wrapper_insert_location,
+                                                      dtor_info);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Lower the dependent statement of the try. */
   lower_statement(orig_stmt_to_try);
+  if (is_function_try_block && dtor_info != NULL) {
+    /* Function try block in a destructor.  Insert destructor wrapper code
+       after the dependent statement. */
+    a_statement_ptr    insert_stmt, return_stmt;
+    an_insert_location epilogue_insert_location;
+    set_insert_location(orig_stmt_to_try, &epilogue_insert_location);
+    insert_dtor_member_and_base_destructions(wrapper_code,
+                                             &epilogue_insert_location,
+                                             dependent_stmt,
+                                             dtor_info);
+    /* Eliminate the return at the end of the try block and fall through
+       to beyond the try block. */
+    check_assertion(epilogue_insert_location.kind == ilk_after_statement);
+    insert_stmt = epilogue_insert_location.variant.stmt;
+    return_stmt = insert_stmt->next;
+    check_assertion(return_stmt != NULL &&
+                    return_stmt->kind == (a_statement_kind)stmk_return);
+    insert_stmt->next = NULL;
+    /* Take the return off the return memo list. */
+    check_assertion(return_memo_list != NULL &&
+                    return_stmt == return_memo_list->stmt);
+    { a_return_memo_ptr rmp = return_memo_list;
+      return_memo_list = rmp->next;
+      rmp->next = NULL;
+      free_return_memo_list(rmp);
+    }
+  }  /* if */
 #if DO_FULL_PORTABLE_EH_LOWERING
 #if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
   /* Add a label inside the dependent statement to defeat optimization.
@@ -3556,9 +3618,9 @@ Do IL lowering for an stmk_try_block statement.
     label_stmt->variant.label.ptr = label;
     label->variant.exec_stmt = label_stmt;
     /* Add the label statement at the start of the try compound statement. */
-    check_assertion(orig_stmt_to_try->kind == (a_statement_kind)stmk_block);
-    label_stmt->next = orig_stmt_to_try->variant.block.statements;
-    orig_stmt_to_try->variant.block.statements = label_stmt;
+    check_assertion(dependent_stmt->kind == (a_statement_kind)stmk_block);
+    label_stmt->next = dependent_stmt->variant.block.statements;
+    dependent_stmt->variant.block.statements = label_stmt;
     mark_stmk_inits_as_following_exec_statement(label_stmt->next);
   }
 #endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
@@ -3671,7 +3733,7 @@ Do IL lowering for an stmk_try_block statement.
   /* Generate code to pop the "try" frame off the stack after the rewritten
      "if" statement. */
   set_insert_location(orig_stmt, &insert_location);
-  gen_cleanup_actions(lifetime, &insert_location);
+  cleanup_on_exit_from_try_block(&try_context, tsp, &insert_location);
   /* Pop the context pushed around the try block. */
   pop_context();
 }  /* lower_try_block */

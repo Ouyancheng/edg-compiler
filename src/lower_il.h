@@ -393,6 +393,10 @@ typedef struct a_context {
 			/* TRUE if this context entry defines a new object
 			   lifetime (i.e., it has a lifetime and the lifetime
 			   is not inherited from the parent context). */
+  a_byte_boolean
+		is_function_try_block;
+			/* TRUE if this context is associated with a
+			   function-try-block. */
   an_object_lifetime_ptr
 		successor_lifetime_at_statement;
 			/* If the object lifetime has a successor that begins
@@ -542,6 +546,24 @@ typedef struct a_construction_vtbl {
 
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
+/*
+Data structure used to pass information between lower_destructor_code,
+gen_dtor_member_and_base_destructions, and
+insert_dtor_member_and_base_destructions.
+*/
+typedef struct a_destructor_wrapper_info_block
+		*a_destructor_wrapper_info_block_ptr;
+typedef struct a_destructor_wrapper_info_block {
+  a_dynamic_init_ptr
+		first_epilogue_destruction;
+			/* First destruction to be done in the epilogue.
+			   Set by gen_dtor_member_and_base_destructions. */
+  a_variable_ptr
+		destruction_vtbls_var;
+			/* Pointer to a variable that is an array of virtual
+			   function table addresses to be used during
+			   destruction, if needed.  NULL otherwise. */
+} a_destructor_wrapper_info_block;
 
 extern a_boolean il_lowering_needed(void);
 
