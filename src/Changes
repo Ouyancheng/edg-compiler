@@ -108,7 +108,8 @@ The attribute facility was added by Microsoft in Visual C++ 7.0.  Such
 attributes are scanned and and an IL representation of the attribute is
 created.  This information is used by the C++-generating back end to emit
 the attributes in the generated code.  Other than certain error checks,
-attributes have no semantic impact in the front end.  Processing of
+attributes have no semantic impact in the front end (for example, no
+code injection is performed for the COM attributes).  Processing of
 attributes depends on several configuration parameters.  If
 RECOGNIZE_MICROSOFT_ATTRIBUTES is FALSE, attributes will still be parsed,
 but any use of an attribute will result in an unrecognized attribute
@@ -116,6 +117,8 @@ warning.  This is the default except when using the C++-generating back
 end.  SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING controls whether any error
 checking of attributes is performed when attributes are recognized.  When
 TRUE (the default value), no checking of attribute arguments is performed.
+When SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING is FALSE, the front end
+recognizes all of the attributes included in the Microsoft 7.1 documentation.
 
 7/29/03  C++-generating back end: avoid putting out both inline and Microsoft
          __forceinline
