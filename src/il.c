@@ -618,6 +618,36 @@ Dump information on a class member using-decl entry, for debug purposes.
 }  /* db_class_member_using_decl */
 
 
+void db_function_param_list(a_type_ptr  tp)
+/*
+If tp is a routine type, dump the function parameters, for debug purposes.
+*/
+{
+  a_param_type_ptr              ptp;
+  a_boolean	                comma_required = FALSE;
+
+  if (tp->kind == (a_type_kind)tk_routine) {
+    fputs("(", f_debug);
+    for (ptp = tp->variant.routine.extra_info->param_type_list;
+         ptp != NULL;
+         ptp = ptp->next) {
+      if (comma_required) fputs(", ", f_debug);
+      if (has_name(ptp->type)) {
+        db_type_name(ptp->type);
+      } else {
+        db_abbreviated_type(ptp->type);
+      }  /* if */
+      comma_required = TRUE;
+    }  /* for */
+    if (tp->variant.routine.extra_info->has_ellipsis) {
+      if (comma_required) fputs(", ", f_debug);
+      fputs("...", f_debug);
+    }  /* if */
+    fputs(")", f_debug);
+  }  /* if */
+}  /* db_function_param_list */
+
+
 void db_type(a_type *tp)
 /*
 Dump the contents of the indicated type entry, for debug purposes.

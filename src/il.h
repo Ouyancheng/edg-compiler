@@ -659,6 +659,8 @@ extern void db_constant(a_constant *cp);
 
 extern void db_type(a_type *tp);
 
+extern void db_function_param_list(a_type_ptr  tp);
+
 extern void db_abbreviated_type(a_type *tp);
 
 extern void db_variable(a_variable_ptr var_ptr);
