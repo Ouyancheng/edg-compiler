@@ -140,8 +140,7 @@ The dik_zero form of initialization in a dynamic initialization entry can
 now be used on entities other than entire variables.  This is necessitated
 by the change to allow "()" as the initializer for arrays in ctor-initializers
 (see 2/16/96 entry).  dik_zero is now also used for scalar entities
-in that context, and also for functional-notation casts like "T()" where
-T is a scalar type.  IL lowering turns dik_zero initialization of scalars
+in that context.  IL lowering turns dik_zero initialization of scalars
 into assignment of zero, and for aggregates it generates a call to a new
 runtime routine __memzero.
 
