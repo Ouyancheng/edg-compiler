@@ -1,5 +1,20 @@
 Version 2.46
 
+3/1/01   C99 __generic builtin operator, complex-typed expressions
+
+The C99 builtin operator __generic, provided to allow implementation of
+the <tgmath.h> type-generic math header, has been enhanced to deal
+with complex expressions of mixed types.  The C99 standard fails
+to specify the behavior in this case, which is probably an oversight
+because it's needed for the "pow" function.
+
+  double _Complex cpow(double _Complex, double _Complex);
+  int main () {
+    float _Complex fc = 0;
+    double rd = 0;
+    double _Complex dc = __generic(fc, rd,,,,,cpow,,)(fc, rd);  // Works now
+  }
+
 3/1/01   Abort on ill-formed C99 _Pragma operator
 
 An abort would occur on certain ill-formed C99 _Pragma operators.  This

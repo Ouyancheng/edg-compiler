@@ -4293,7 +4293,7 @@ static a_type_ptr scan_type_generic_expression_and_return_type(void)
 Scan an expression (beginning at the current token) that is an argument to a
 type-generic function.  Do not evaluate the expression; just determine its
 floating or complex type, converting an integral type to double, and return
-the type.
+the type, stripped of typerefs.
 */
 {
   an_operand  operand;
@@ -4342,26 +4342,30 @@ accordingly.  Set *err to TRUE if there is an error.
     a_type_ptr new_type = scan_type_generic_expression_and_return_type();
     if (is_error_type(new_type)) *err = TRUE;
     if (!*err && new_type != *arg_type) {
-      /* Reconcile the two types.  If either is complex, an error will be
-         issued later, since no 2-parameter type-generic function accepts
-         complex arguments.  Otherwise, if either is long double, use long
-         double.  Otherwise, one must be double and the other float, so use
-         double. */
+      /* Reconcile the two types.  If either is long double, use long
+         double.  Otherwise, if either is double, use double.  Otherwise,
+         use float.  The standard doesn't cover complex cases (it forgot about
+         "pow"), but do the sensible thing with those as well. */
+      a_float_kind fkind;
+      check_assertion(is_floating_type(new_type) &&
+                      is_floating_type(*arg_type));
+      /* *arg_type and new_type already have typerefs stripped. */
+      if ((*arg_type)->variant.float_kind == (a_float_kind)fk_long_double ||
+          new_type   ->variant.float_kind == (a_float_kind)fk_long_double) {
+        fkind = (a_float_kind)fk_long_double;
+      } else if ((*arg_type)->variant.float_kind == (a_float_kind)fk_double ||
+                 new_type   ->variant.float_kind == (a_float_kind)fk_double) {
+        fkind = (a_float_kind)fk_double;
+      } else {
+        fkind = (a_float_kind)fk_float;
+      }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
-      if (is_complex_type(*arg_type)) {
-        /* Error will be reported later. */
-      } else if (is_complex_type(new_type)) {
-        /* Error will be reported later. */
-        *arg_type = new_type;
+      if (is_complex_type(*arg_type) || is_complex_type(new_type)) {
+        *arg_type = complex_type(fkind);
       } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      if ((*arg_type)->variant.float_kind == (a_float_kind)fk_long_double) {
-        /* Okay. */
-      } else if (new_type->variant.float_kind ==
-                                             (a_float_kind)fk_long_double) {
-        *arg_type = new_type;
-      } else {
-        *arg_type = float_type((a_float_kind)fk_double);
+      {
+        *arg_type = float_type(fkind);
       }  /* if */
     }  /* if */
   }  /* if */
