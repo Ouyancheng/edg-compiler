@@ -974,11 +974,13 @@ attributes.  */
         /* GCC allows "noreturn" and "const" to apply to variables
            with pointer-to-function type.  GCC does not accept "pure"
            in this context, even though it is conceptually similar. */
-        {
-          an_attribute_ptr next;
+        if (!is_pointer_type(type) ||
+            !is_function_type(type_pointed_to(type))) {
+          pos_ty_warning(ec_attr_requires_func_type, &ap->position, type);
+        } else {
           /* Temporarily remove "ap" from the attributes list so that
              we can use copy_type_and_apply_attributes. */
-          next = ap->next;
+          an_attribute_ptr next = ap->next;
           ap->next = (an_attribute_ptr)NULL;
           type = copy_type_and_apply_attributes(ap, type, 
                                                 /*is_typedef=*/FALSE);
@@ -1411,6 +1413,151 @@ messages about any invalid attributes.
 }  /* apply_attributes_to_routine */
 
 
+static void apply_one_attribute_to_type(an_attribute_ptr  ap,
+                                        a_type_ptr        tp,
+                                        a_boolean         is_typedef)
+/*
+Apply the attribute ap to the type tp.  If this attribute is applied through
+a typedef, is_typedef is TRUE.
+*/
+{
+  a_type_ptr  mode_type;
+
+  switch (ap->kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+    case ak_aligned:
+      /* Set the alignment here.  When the actual class layout, or
+         choice of integral type, is performed the value indicated
+         here will be honored. */
+      tp->alignment = ap->variant.alignment;
+      tp->alignment_set_explicitly = TRUE;
+      break;
+    case ak_packed:
+      if (is_typedef) {
+        pos_warning(ec_packed_attribute_ignored_in_typedef, &ap->position);
+      } else if (is_enum_type(tp)) {
+        /* A packed enumerated type can be smaller than an "int". */
+        tp->variant.integer.packed = TRUE;
+      } else if (is_immediate_class_type(tp)) {
+        /* A packed class is one where all of the members are aligned on
+           a 1-byte boundary.   In addition, bit fields may straddle
+           container boundaries. */
+        tp->variant.class_struct_union.is_packed = TRUE;
+        tp->variant.class_struct_union.max_member_alignment = 1;
+      } else {
+        pos_ty_error(ec_attribute_does_not_apply_to_type, 
+                     &ap->position, tp);
+      }  /* if */
+      break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    case ak_mode:
+      mode_type = get_type_with_mode(tp, ap->variant.mode, &ap->position);
+      if (tp->kind != (a_type_kind)tk_integer &&
+          tp->kind != (a_type_kind)tk_float) {
+        /* If tp had neither integer nor floating type, it is 
+           an error to use the mode attribute.  An error will have
+           been issued by get_type_with_mode. */
+      } else {
+        if (tp->kind == (a_type_kind)tk_integer) {
+          tp->variant.integer.int_kind = mode_type->variant.integer.int_kind;
+        } else if (tp->kind == (a_type_kind)tk_float) {
+          tp->variant.float_kind = mode_type->variant.float_kind;
+        }  /* if */
+        tp->size = mode_type->size;
+        if (!tp->alignment_set_explicitly) {
+          tp->alignment = mode_type->alignment;
+        }  /* if */
+      }  /* if */
+      break;
+    case ak_unused:
+      tp->variables_are_implicitly_referenced = TRUE;
+      break;
+    case ak_noreturn:
+    case ak_const:
+      /* GCC allows "noreturn" and "const" to apply to
+         pointer-to-function types.  GCC does not accept "pure" in
+         this context, even though it is conceptually similar. */
+      /* Recall that tp is not a typeref here. */
+      if (!is_pointer_type(tp) || !is_function_type(type_pointed_to(tp))) {
+        pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+      } else {
+        a_type_ptr rout_type = tp->variant.pointer.type;
+        rout_type = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
+                                                   rout_type,
+                                                   is_typedef);
+        tp->variant.pointer.type = rout_type;
+        rout_type = skip_typerefs(rout_type);
+        if (ap->kind == (an_attribute_kind)ak_noreturn) {
+          rout_type->variant.routine.extra_info->does_not_return = TRUE;
+        } else {
+          rout_type->variant.routine.extra_info->is_const = TRUE;
+        }  /* if */
+      }  /* if */
+      break;
+    case ak_transparent_union:
+      if (tp->kind != (a_type_kind)tk_union) {
+        pos_ty_error(ec_transparent_type_is_not_union,
+                     &ap->position, tp);
+      } else if (is_typedef && is_incomplete_type(tp)) {
+        pos_warning(ec_transparent_attribute_ignored, &ap->position);
+      } else if (!is_typedef) {
+        /* We cannot do any checking in the non-typedef case because
+           the type has not yet been laid out.  When do_class_layout
+           processes the type, it will call check_transparent_union 
+           to make sure that the attribute is legal. */
+        tp->variant.class_struct_union.is_transparent = TRUE;
+      } else if (check_transparent_union(tp, &ap->position)) {
+        /* In the typedef case, the type has already been laid out
+           so we can do the check now. */
+        tp->variant.class_struct_union.is_transparent = TRUE;
+      }  /* if */
+      break;
+#if GNU_X86_ATTRIBUTES_ALLOWED
+    case ak_cdecl:
+      { a_routine_type_supplement_ptr rtsp;
+        if (is_pointer_type(tp)) {
+          /* This attribute can be applied to both function types and
+             pointer-to-function types. */
+          tp = type_pointed_to(tp);
+        }  /* if */
+        if (!is_function_type(tp)) {
+          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+        } else {
+          ensure_routine_type_is_modifiable(&tp);
+          rtsp = skip_typerefs(tp)->variant.routine.extra_info;
+          if (rtsp->calling_convention == (a_calling_convention)cc_default) {
+            /* The GNU C compiler appears to ignore the cdecl attribute if
+               another calling convention is already specified. */
+            rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ak_stdcall:
+      { a_routine_type_supplement_ptr rtsp;
+        if (is_pointer_type(tp)) {
+          /* This attribute can be applied to both function types and
+             pointer-to-function types. */
+          tp = type_pointed_to(tp);
+        }  /* if */
+        if (!is_function_type(tp)) {
+          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+        } else {
+          ensure_routine_type_is_modifiable(&tp);
+          rtsp = skip_typerefs(tp)->variant.routine.extra_info;
+          rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+        }  /* if */
+      }
+      break;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+    default:
+      /* An invalid attribute. */
+      pos_ty_error(ec_attribute_does_not_apply_to_type,
+                   &ap->position, tp);
+  }  /* switch */
+}  /* apply_one_attribute_to_type */
+
+
 void apply_attributes_to_type(an_attribute_ptr attributes,
                               a_type_ptr       tp,
                               a_boolean        is_typedef)
@@ -1423,142 +1570,10 @@ must make a copy if tp may already be shared.
 */
 {
   an_attribute_ptr  ap;
-  a_type_ptr        mode_type;
 
   check_assertion(tp->kind != (a_type_kind)tk_typeref);
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    switch (ap->kind) {
-#if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
-        /* Set the alignment here.  When the actual class layout, or
-           choice of integral type, is performed the value indicated
-           here will be honored. */
-        tp->alignment = ap->variant.alignment;
-        tp->alignment_set_explicitly = TRUE;
-        break;
-      case ak_packed:
-        if (is_typedef) {
-          pos_warning(ec_packed_attribute_ignored_in_typedef, &ap->position);
-        } else if (is_enum_type(tp)) {
-          /* A packed enumerated type can be smaller than an "int". */
-          tp->variant.integer.packed = TRUE;
-        } else if (is_immediate_class_type(tp)) {
-          /* A packed class is one where all of the members are aligned on
-             a 1-byte boundary.   In addition, bit fields may straddle
-             container boundaries. */
-          tp->variant.class_struct_union.is_packed = TRUE;
-          tp->variant.class_struct_union.max_member_alignment = 1;
-        } else {
-          pos_ty_error(ec_attribute_does_not_apply_to_type, 
-                       &ap->position, tp);
-        }  /* if */
-        break;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case ak_mode:
-        mode_type = get_type_with_mode(tp, ap->variant.mode, &ap->position);
-        if (tp->kind != (a_type_kind)tk_integer &&
-            tp->kind != (a_type_kind)tk_float) {
-          /* If tp had neither integer nor floating type, it is 
-             an error to use the mode attribute.  An error will have
-             been issued by get_type_with_mode. */
-        } else {
-          if (tp->kind == (a_type_kind)tk_integer) {
-            tp->variant.integer.int_kind = mode_type->variant.integer.int_kind;
-          } else if (tp->kind == (a_type_kind)tk_float) {
-            tp->variant.float_kind = mode_type->variant.float_kind;
-          }  /* if */
-          tp->size = mode_type->size;
-          if (!tp->alignment_set_explicitly) {
-            tp->alignment = mode_type->alignment;
-          }  /* if */
-        }  /* if */
-        break;
-      case ak_unused:
-        tp->variables_are_implicitly_referenced = TRUE;
-        break;
-      case ak_noreturn:
-      case ak_const:
-        /* GCC allows "noreturn" and "const" to apply to
-           pointer-to-function types.  GCC does not accept "pure" in
-           this context, even though it is conceptually similar. */
-        /* Recall that tp is not a typeref here. */
-        if (!is_pointer_type(tp) || !is_function_type(type_pointed_to(tp))) {
-          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
-        } else {
-          a_type_ptr rout_type = tp->variant.pointer.type;
-          rout_type = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
-                                                     rout_type,
-                                                     is_typedef);
-          tp->variant.pointer.type = rout_type;
-          rout_type = skip_typerefs(rout_type);
-          if (ap->kind == (an_attribute_kind)ak_noreturn) {
-            rout_type->variant.routine.extra_info->does_not_return = TRUE;
-          } else {
-            rout_type->variant.routine.extra_info->is_const = TRUE;
-          }  /* if */
-        }  /* if */
-        break;
-      case ak_transparent_union:
-        if (tp->kind != (a_type_kind)tk_union) {
-          pos_ty_error(ec_transparent_type_is_not_union,
-                       &ap->position, tp);
-        } else if (is_typedef && is_incomplete_type(tp)) {
-          pos_warning(ec_transparent_attribute_ignored, &ap->position);
-        } else if (!is_typedef) {
-          /* We cannot do any checking in the non-typedef case because
-             the type has not yet been laid out.  When do_class_layout
-             processes the type, it will call check_transparent_union 
-             to make sure that the attribute is legal. */
-          tp->variant.class_struct_union.is_transparent = TRUE;
-        } else if (check_transparent_union(tp, &ap->position)) {
-          /* In the typedef case, the type has already been laid out
-             so we can do the check now. */
-          tp->variant.class_struct_union.is_transparent = TRUE;
-        }  /* if */
-        break;
-#if GNU_X86_ATTRIBUTES_ALLOWED
-      case ak_cdecl:
-        { a_routine_type_supplement_ptr rtsp;
-          if (is_pointer_type(tp)) {
-            /* This attribute can be applied to both function types and
-               pointer-to-function types. */
-            tp = type_pointed_to(tp);
-          }  /* if */
-          if (!is_function_type(tp)) {
-            pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
-          } else {
-            ensure_routine_type_is_modifiable(&tp);
-            rtsp = skip_typerefs(tp)->variant.routine.extra_info;
-            if (rtsp->calling_convention == (a_calling_convention)cc_default) {
-              /* The GNU C compiler appears to ignore the cdecl attribute if
-                 another calling convention is already specified. */
-              rtsp->calling_convention = (a_calling_convention)cc_cdecl;
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ak_stdcall:
-        { a_routine_type_supplement_ptr rtsp;
-          if (is_pointer_type(tp)) {
-            /* This attribute can be applied to both function types and
-               pointer-to-function types. */
-            tp = type_pointed_to(tp);
-          }  /* if */
-          if (!is_function_type(tp)) {
-            pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
-          } else {
-            ensure_routine_type_is_modifiable(&tp);
-            rtsp = skip_typerefs(tp)->variant.routine.extra_info;
-            rtsp->calling_convention = (a_calling_convention)cc_stdcall;
-          }  /* if */
-        }
-        break;
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-      default:
-        /* An invalid attribute. */
-        pos_ty_error(ec_attribute_does_not_apply_to_type,
-                     &ap->position, tp);
-    }  /* switch */
+    apply_one_attribute_to_type(ap, tp, is_typedef);
   }  /* for */
 }  /* apply_attributes_to_type */
 
@@ -1569,11 +1584,13 @@ static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
 /*
 Make a copy of tp and apply the attributes to the copy.  Return the
 newly created type.  If is_typedef is TRUE, tp is a new typedef.
+The given type should not be a class or enum type.
 */
 {
   a_type_qualifier_set qualifiers;
   a_type_ptr           copy;
 
+  check_assertion(!is_class_struct_union_type(tp) || is_enum_type(tp));
   /* Remember the type qualifiers so that we can create an identically
      qualified copy. */
   qualifiers = get_type_qualifiers(tp);
@@ -1586,22 +1603,6 @@ newly created type.  If is_typedef is TRUE, tp is a new typedef.
   copy_type(tp, copy);
   copy->source_corresp.has_associated_pragma = FALSE;
   copy->copy_with_additional_attributes = TRUE;
-  /* We must make a deep copy of class types. */
-  if (is_immediate_class_type(copy)) {
-    if (is_incomplete_type(tp)) {
-      /* Add the incomplete type to the list of types that will need
-         fixups when tp is defined. */
-      add_to_dependent_type_fixup_list(
-                        tp, (a_dependent_type_fixup_kind)dtfk_copy_definition,
-                        (char *)copy, (a_byte_il_entry_kind)iek_type,
-                        &error_position);
-    } else {
-      copy_class_struct_or_union_definition(copy, tp);
-    }  /* if */
-  }  /* if */
-  if (is_immediate_class_type(copy) || is_immediate_enum_type(copy)) {
-    add_to_types_list(copy, NO_SCOPE_DEPTH);
-  }  /* if */
   /* Apply the attributes to the copy. */
   apply_attributes_to_type(attributes, copy, is_typedef);
   /* Create an appropriately qualified version of the copy. */
@@ -1611,75 +1612,54 @@ newly created type.  If is_typedef is TRUE, tp is a new typedef.
 }  /* copy_type_and_apply_attributes */
 
 
-a_type_ptr apply_attributes_to_typedef(an_attribute_ptr attributes,
-                                       a_type_ptr       tp)
+void apply_attributes_to_typedef(an_attribute_ptr  attributes,
+                                 a_type_ptr        tp,
+                                 a_boolean         linkage_name)
 /* 
 Apply the attributes to the indicated type, which is a new typedef.
+For certain underlying types (e.g., routine types) it is safe to make
+a copy of that type and the attributes can be applied to that copy.
+For unnamed class and enum types that acquire a name through the typedef,
+linkage_name is TRUE and the attributes can be applied directly to the
+underlying type.  For typedefs of named classes and enums, some attributes
+are silently dropped and the others apply to the typedef itself.
 */
 {
-  a_type_ptr copy, underlying_type = skip_typerefs(tp);
-  a_type_ptr union_type;
+  a_type_ptr        dst, underlying_type = skip_typerefs(tp);
+  an_attribute_ptr  ap;
 
-  if ((attributes->kind == (an_attribute_kind)ak_transparent_union &&
-       attributes->next == NULL) ||
-      (is_immediate_class_type(underlying_type) &&
-       underlying_type->variant.class_struct_union.originally_unnamed) ||
-      (is_immediate_enum_type(underlying_type) &&
-       underlying_type->variant.class_struct_union.originally_unnamed)) {
-    /* The transparent_union attribute always applies to the underlying type.
-       Hence, if it is the only attribute, we can apply it directly to that
-       underlying type.  Similarly, if this type is acquiring the typedef
-       name for linkage purposes (class and enum types only), the attributes
-       can directly be applied to the unnamed underlying type. */
-    apply_attributes_to_type(attributes, underlying_type, /*is_typedef=*/TRUE);
-    copy = underlying_type;
-  } else {
-    copy = copy_type_and_apply_attributes(attributes, tp, /*is_typedef=*/TRUE);
-    /* The transparent union attribute applies to the original type as
-       well as the typedef. */
-    if (is_union_type(copy)) {
-      union_type = skip_typerefs(copy);
-      if (union_type->variant.class_struct_union.is_transparent) {
-        check_assertion(is_union_type(tp));
-        skip_typerefs(tp)->variant.class_struct_union.is_transparent = TRUE;
-      }  /* if */
+  check_assertion(tp->kind == (a_type_kind)tk_typeref &&
+                  typeref_is_typedef(tp));
+  /* Determine which type the attributes should be applied to. */
+  if (attributes == NULL) {
+    /* Nothing will need to be done. */
+  } else if (is_immediate_class_type(underlying_type)) {
+    if (linkage_name &&
+        underlying_type->variant.class_struct_union.originally_unnamed) {
+      dst = underlying_type;
+    } else {
+      dst = tp;
     }  /* if */
+  } else if (is_immediate_enum_type(underlying_type)) {
+    if (linkage_name &&
+        underlying_type->variant.integer.originally_unnamed) {
+      dst = underlying_type;
+    } else {
+      dst = tp;
+    }  /* if */
+  } else {
+    /* We can make a copy of the type and apply the attributes to that copy. */
+    a_type_qualifier_set  qualifiers = get_type_qualifiers(tp);
+    dst = alloc_type(underlying_type->kind);
+    copy_type(underlying_type, dst);
+    dst->source_corresp.has_associated_pragma = FALSE;
+    dst->copy_with_additional_attributes = TRUE;
+    tp->variant.typeref.type = make_qualified_type(dst, qualifiers);
   }  /* if */
-  return copy;
-}  /* apply_attributes_to_typedef */
-
-
-void copy_class_struct_or_union_definition(a_type_ptr to,
-                                           a_type_ptr from)
-/*
-"to" is a copy of "from".  Copy the definition of "from" to "to".
-Both "from" and "to" are class, struct, or union types.
-*/
-{
-  a_field_ptr  *fp;
-  a_field_ptr  f;
-
-  check_assertion(is_immediate_class_type(to));
-  check_assertion(is_immediate_class_type(from));
-  /* Copy the size and alignment. */
-  to->size = from->size;
-  to->alignment = from->alignment;
-  /* Copy the fields of a complete type. */
-  to->variant.class_struct_union.field_list = 
-    from->variant.class_struct_union.field_list;
-  for (fp = &to->variant.class_struct_union.field_list;
-       *fp != NULL;
-       fp = &(*fp)->next) {
-    /* Create a new field. */
-    f = alloc_field();
-    /* Copy the data from the old field. */
-    *f = **fp;
-    /* There are no #pragmas associated with the new field. */
-    f->source_corresp.has_associated_pragma = FALSE;
-    /* Chain the copy onto the list, in place of the original. */
-    *fp = f;
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    apply_one_attribute_to_type(ap, dst, /*is_typedef=*/TRUE);
   }  /* for */
-}  /* copy_class_struct_or_union_definition */
+}  /* apply_attributes_to_typedef */
 
 
 void check_for_invalid_param_attributes(a_symbol_ptr     sym,

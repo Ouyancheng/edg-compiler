@@ -9865,15 +9865,6 @@ can be completed for the dependent types, too.
               }  /* if */
             }  /* if */
             break;
-#if GNU_EXTENSIONS_ALLOWED
-	  case dtfk_copy_definition:
-            check_assertion(dtfp->entity.kind ==
-                                    (a_byte_il_entry_kind)iek_type);
-            tp = (a_type_ptr)dtfp->entity.ptr;
-	    copy_class_struct_or_union_definition
-	                         (tp, sym->variant.class_struct_union.type);
-	    break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
           case dtfk_routine_calling_method:
             check_assertion(dtfp->entity.kind ==
                                     (a_byte_il_entry_kind)iek_type);

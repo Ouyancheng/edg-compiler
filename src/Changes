@@ -1,5 +1,19 @@
 Version 3.1
 
+8/20/02   GNU compatibility: Typedef attributes
+
+The front end used to systematically apply typedef declaration attributes
+to a copy of the underlying type.  This caused problems with class types
+(and, potentially, with enumeration types).  To avoid such problems, the
+front end now no longer attempts to copy class types and enumeration types.
+Instead, the attributes are applied to the typedef type entry itself (or in
+some cases to the underlying type).
+
+  typedef struct S { int i; } ST __attribute__((unused));
+  void f(ST *p) {
+    p->i = 1;  // Used to trigger an error.  Now fixed.
+  }
+
 8/19/02   Preinclude can be used in conjunction with precompiled headers
 
 The use of preinclude files was previously not supported when using

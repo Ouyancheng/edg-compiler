@@ -236,11 +236,9 @@ extern void apply_attributes_to_type(an_attribute_ptr attributes,
                                      a_type_ptr       tp,
                                      a_boolean        is_typedef);
 
-extern a_type_ptr apply_attributes_to_typedef(an_attribute_ptr  attributes,
-                                              a_type_ptr        tp);
-
-extern void copy_class_struct_or_union_definition(a_type_ptr to,
-                                                  a_type_ptr from);
+extern void apply_attributes_to_typedef(an_attribute_ptr  attributes,
+                                        a_type_ptr        tp,
+                                        a_boolean         linkage_name);
 
 extern void check_for_invalid_param_attributes(a_symbol_ptr     sym,
                                                an_attribute_ptr attributes);

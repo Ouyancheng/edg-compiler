@@ -4667,7 +4667,16 @@ implement <stdarg.h>, a standard feature.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  alignof_type = skip_typerefs(alignof_type);
+#if GNU_EXTENSIONS_ALLOWED
+  if (alignof_type->alignment_set_explicitly) {
+    /* This could be a typedef type whose alignment was modified through
+       an attribute. */
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    alignof_type = skip_typerefs(alignof_type);
+  }  /* if */
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(alignof_type);
   /* The result of __ALIGNOF__ is an integer indicating the alignment of

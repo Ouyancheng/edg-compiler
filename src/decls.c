@@ -7023,6 +7023,9 @@ return a pointer to it in *symbol_ptr.
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
   a_namespace_ptr          nsp;
   a_symbol_ptr		   loc_sym;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                linkage_name = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_typedef");
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
@@ -7229,6 +7232,9 @@ return a pointer to it in *symbol_ptr.
                                is_immediate_enum_type(tp)))) {
           /* Note that in non-cfront mode this is done only for types that
              actually do have linkage. */
+#if GNU_EXTENSIONS_ALLOWED
+          linkage_name = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
           tp->source_corresp.name = locator->symbol_header->identifier;
           if (!is_class_or_enum && !any_cfront_mode()) {
             tp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
@@ -7246,13 +7252,6 @@ return a pointer to it in *symbol_ptr.
       }  /* if */
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL) {
-    /* If there are attributes, make a copy of the underlying type,
-       and apply the attributes to the copy. */
-    type_ptr = apply_attributes_to_typedef(attributes, type_ptr);
-  }  /* if */ 
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Create a new type entry and add it to the types list for the current
      scope. */
   tp = alloc_type((a_type_kind)tk_typeref);
@@ -7312,6 +7311,12 @@ return a pointer to it in *symbol_ptr.
       tp->variant.typeref.has_variably_modified_type = TRUE;
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes != NULL && !is_error_type(type_ptr)) {
+    /* Applying attributes could change the underlying type. */
+    apply_attributes_to_typedef(attributes, tp, linkage_name);
+  }  /* if */ 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 return_point:
   /* Do processing required for any pragmas that are bound to the current
      declaration. */

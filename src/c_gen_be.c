@@ -2305,8 +2305,8 @@ Print a typedef declaration.
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
-      /* Emit any attributes associated with the type. */
-      write_type_attributes(type->variant.typeref.type);
+      /* Emit any attributes associated with the typedef. */
+      write_type_attributes(type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     }  /* if */
