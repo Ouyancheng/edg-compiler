@@ -2434,7 +2434,7 @@ static void do_default_arg_promotions_on_node(an_expr_node_ptr expr)
 /*
 expr is an argument to a call.  If necessary, add a cast to it to
 do any default argument promotions needed to pass it as an argument to
-an unprototyped function (or to an ellipis position on a prototyped
+an unprototyped function (or to an ellipsis position on a prototyped
 function).
 */
 {

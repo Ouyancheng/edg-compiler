@@ -4157,7 +4157,7 @@ static a_boolean include_in_context_output
 Return TRUE if this scope stack entry has context information that should
 be processed, otherwise return FALSE.  When TRUE is returned *context_sym
 is set to point to a symbol that provides the context information and
-*context_error_code is set to the approriate error code.
+*context_error_code is set to the appropriate error code.
 */
 {
   a_boolean	result = FALSE;

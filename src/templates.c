@@ -90,7 +90,7 @@ able to if the template itself has not yet been defined.
       } else if (tssp->variant.class.pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
         /* This class instantiation occurs within the context of other
            instantiations of the same class template.  When the number of
-           such instantantiations-in-progress exceeds a configuration
+           such instantiations-in-progress exceeds a configuration
            constant value, we assume this to be runaway recursion -- for
            for instance (to give a rather unlikely example):
               template <class T, int I> class X {
@@ -523,7 +523,7 @@ no need to actually instantiate X<int> in the example above.
     class_type = alloc_type(tssp->variant.class.type_kind);
     sym->variant.class_struct_union.type = class_type;
     /* If this is a "real instantiation" leave the type incomplete; it will
-       become compilete when it is instantiated.  However, if it is based on
+       become complete when it is instantiated.  However, if it is based on
        template parameters and is therefore a "nonreal" instantiation, give it
        a size and alignment to permit it to pass through subsequent processing
        without causing spurious errors. */
@@ -1143,7 +1143,7 @@ templ_sym).
   sym->variant.routine.instance_ptr = fiep;
   /* Normally, function instantiation entries are not marked for actual
      instantiation (that is, for generation of the function body) until there
-     is an invocation of the function.  This is partly under user constrol,
+     is an invocation of the function.  This is partly under user control,
      however: if instantiation_mode is tim_all, mark it immediately. */
   if (instantiation_mode == tim_all) {
     update_instantiation_required_flag(fiep, /*value=*/TRUE);
@@ -1364,7 +1364,7 @@ void record_predeclared_template_function(a_symbol_ptr  templ_sym,
       /* Normally, function instantiation entries are not marked for actual
          instantiation (that is, for generation of the function body) until
          there is an invocation of the function.  This is partly under user
-         constrol, however: if instantiation_mode is tim_all, mark it
+         control, however: if instantiation_mode is tim_all, mark it
          immediately. */
       if (instantiation_mode == tim_all) {
         update_instantiation_required_flag(fiep, /*value=*/TRUE);
@@ -1467,7 +1467,7 @@ and create a function instantiation entry to bind the two symbols together.
   rout_sym->variant.routine.instance_ptr = fiep;
   /* Normally, function instantiation entries are not marked for actual
      instantiation (that is, for generation of the function body) until there
-     is an invocation of the function.  This is partly under user constrol,
+     is an invocation of the function.  This is partly under user control,
      however: if instantiation_mode is tim_all, mark it immediately. */
   if (instantiation_mode == tim_all) {
     update_instantiation_required_flag(fiep, /*value=*/TRUE);
