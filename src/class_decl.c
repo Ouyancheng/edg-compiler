@@ -3907,7 +3907,7 @@ table.
     /* A static data member is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
     var->is_anonymous_parent_object = TRUE;
-    check_anonymous_union_symbols(sym);
+    check_anonymous_union_symbols(sym, (a_type_ptr)NULL);
   }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
@@ -4081,7 +4081,8 @@ such member functions are present.
 }  /* is_valid_union_field */
 
 
-void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym)
+void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
+                                   a_type_ptr    class_type)
 /*
 assoc_object_sym is a symbol for an unnamed field or variable that is the
 object associated with an anonymous union.  The type of the field or
@@ -4106,7 +4107,7 @@ new ones are allocated in scope specified by decl_scope_level.
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
-  a_type_ptr                     assoc_object_type, tp, class_type = NULL;
+  a_type_ptr                     assoc_object_type, tp;
   a_boolean                      reuse_symbol = TRUE;
 
   db_enter(4, "check_anonymous_union_symbols");
@@ -4149,10 +4150,6 @@ new ones are allocated in scope specified by decl_scope_level.
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
     }  /* if */
   }  /* if */
-  if (scope_stack[decl_scope_level].kind ==
-                               (a_scope_kind)sck_class_struct_union) {
-    class_type = scope_stack[decl_scope_level].assoc_type;
-  }  /* if */
   /* The symbols list for the anonymous union will be eliminated.  Its
      field symbols are promoted to the scope of the containing class. */
   cssp = symbol_supplement_for_class(assoc_object_type);
@@ -4177,20 +4174,24 @@ new ones are allocated in scope specified by decl_scope_level.
         if (reuse_symbol) {
           /* Unlink the symbol from the inactive list and link it back into
              the symbol table in the current scope. */
-          sym->class_of_which_a_member = class_type;
-          /* The members of an anonymous union within a class take on the
-             access specifier of the anonymous union itself; the members
-             of a variable anonymous union should be (i.e., should remain)
-             public. */
-          sym->variant.field.ptr->source_corresp.access = assoc_object_access;
           remove_anonymous_union_member_from_inactive_symbols_list(sym);
           reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-          sym->variant.field.anonymous_parent_object = assoc_object_sym;
         } else {
-#if 0
-NYI
-#endif /* if 0 */
+          a_field_ptr      fp = sym->variant.field.ptr;
+          a_symbol_locator loc;
+          make_locator_for_symbol(sym, &loc);
+          loc.source_position = assoc_object_sym->decl_position;
+          sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
+                                   /*suppress_error=*/FALSE);
+          sym->variant.field.ptr = fp;
         }  /* if */
+        sym->class_of_which_a_member = class_type;
+        /* The members of an anonymous union within a class take on the
+           access specifier of the anonymous union itself; the members
+           of a variable anonymous union should be (i.e., should remain)
+           public. */
+        sym->variant.field.ptr->source_corresp.access = assoc_object_access;
+        sym->variant.field.anonymous_parent_object = assoc_object_sym;
         break;
       case sk_member_function:
       case sk_overloaded_function:
@@ -4487,7 +4488,7 @@ class, struct, or union.
   }  /* if */
   if (is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
-    check_anonymous_union_symbols(member_sym);
+    check_anonymous_union_symbols(member_sym, class_type);
   }  /* if */
   if (is_aggregate_or_union_type(*member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
