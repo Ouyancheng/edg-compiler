@@ -4008,7 +4008,7 @@ class) and the access specification *access.
 */
 {
   a_symbol_ptr     sym, tag_sym;
-  a_scope_number   scope_number;
+  a_scope_ptr      scope;
 
   db_enter(4, "symbol_projected_from_base_class");
 #if DEBUG
@@ -4019,50 +4019,55 @@ class) and the access specification *access.
   }  /* if */
 #endif /* DEBUG */
   /* First look in the scope of the base class itself. */
-  /* We need search only the inactive symbols list, since a class cannot be
-     declared as a base class unless it has been fully defined (at which point
-     each of its member symbols is moved off the active list and onto the
-     inactive list).  class_qualified_id_lookup is not called for two
-     reasons:  to avoid unnecessary overhead and to prevent extra projection
-     symbols from being created. */
-  scope_number = base_class->type->
-                    variant.class_struct_union.extra_info->assoc_scope->number;
-  sym = inactive_symbol_list_from_locator(*locator);
-  tag_sym = NULL;
-  for (; sym != NULL; sym = sym->next) {
-    if (sym->decl_scope == scope_number) {
-      if (is_tag_symbol(fundamental_symbol_of(sym))) {
-        if (must_be_tag) {
-          /* Tag symbol is required and that's what we have. */
-          break;
-        } else {
-          /* Tag and nontag symbols can coexist in the same scope, and the
-             latter are preferred, so keep looking -- but remember the tag
-             symbol in case no other is found. */
-          tag_sym = sym;
-        }  /* if */
-      } else {
-        if (must_be_tag) {
-          /* A tag symbol is required but this isn't one.  Keep looking. */
-        } else {
-          /* Found a match. */
-#if CHECKING
-          if (name_space_for_symbol_kind[(int)sym->kind] != nsk_other) {
-            internal_error(
-               "symbol_projected_from_base_class: unexpected name space kind");
+  scope = base_class->type->variant.class_struct_union.extra_info->assoc_scope;
+  if (scope == NULL) {
+    /* This is probably an nonreal class enountered during a prototype
+       instantiation.  Ignore it. */
+    sym = NULL;
+  } else {
+    /* We need search only the inactive symbols list, since a class cannot be
+       declared as a base class unless it has been fully defined (at which
+       point each of its member symbols is moved off the active list and onto
+       the inactive list).  class_qualified_id_lookup is not called for two
+       reasons:  to avoid unnecessary overhead and to prevent extra projection
+       symbols from being created. */
+    sym = inactive_symbol_list_from_locator(*locator);
+    tag_sym = NULL;
+    for (; sym != NULL; sym = sym->next) {
+      if (sym->decl_scope == scope->number) {
+        if (is_tag_symbol(fundamental_symbol_of(sym))) {
+          if (must_be_tag) {
+            /* Tag symbol is required and that's what we have. */
+            break;
+          } else {
+            /* Tag and nontag symbols can coexist in the same scope, and the
+               latter are preferred, so keep looking -- but remember the tag
+               symbol in case no other is found. */
+            tag_sym = sym;
           }  /* if */
+        } else {
+          if (must_be_tag) {
+            /* A tag symbol is required but this isn't one.  Keep looking. */
+          } else {
+            /* Found a match. */
+#if CHECKING
+            if (name_space_for_symbol_kind[(int)sym->kind] != nsk_other) {
+              internal_error(
+               "symbol_projected_from_base_class: unexpected name space kind");
+            }  /* if */
 #endif /* CHECKING */
-          break;
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
+    }  /* for */
+    if (sym == NULL) {
+      sym = tag_sym;
+    } else if (is_destructor_symbol(sym)) {
+      /* A destructor cannot be inherited (ARM 12.4) so don't make a projection
+         symbol for it. */
+      sym = NULL;
     }  /* if */
-  }  /* for */
-  if (sym == NULL) {
-    sym = tag_sym;
-  } else if (is_destructor_symbol(sym)) {
-    /* A destructor cannot be inherited (ARM 12.4) so don't make a projection
-       symbol for it. */
-    sym = NULL;
   }  /* if */
   if (sym != NULL) {
     /* Found in the base class itself. */
