@@ -462,8 +462,8 @@ Microsoft compilers do little checking on the types of property fields).
           if (!(gpp_mode && parameter_type) &&
               is_abstract_class_type(temp_type)) {
             /* An array type cannot have its element type be an abstract class
-               type.  An exception in some modes are parameter type (since they
-               are always transformed into pointer types). */
+               type.  An exception in some modes are parameter types (since
+               they are always transformed into pointer types). */
             report_abstract_class_error(ec_array_of_abstract_class,
                                         temp_type, &error_position);
           }  /* if */
