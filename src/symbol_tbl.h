@@ -1573,9 +1573,23 @@ typedef struct a_symbol {
     a_constant_ptr
 		constant;
 			/* The value of the constant. */
-    /* When kind == sk_type or sk_enum_tag: */
+    /* When kind == sk_type: */
     a_type_ptr	type;
 			/* The type. */
+    /* When kind == sk_enum_tag: */
+    struct {
+      a_type_ptr
+		type;
+			/* The type that represents the enumeration. */
+      a_dependent_type_fixup_ptr
+		dependent_type_fixup_list;
+			/* If the enum type is not yet defined (possible as
+			   an extension in both C and C++ modes), a pointer
+			   to a list of entries identifying arrays that are
+			   dependent on it and require fixup when it is
+			   completed.  Once the emum is defined, the pointer
+			   is cleared. */
+    } enumeration;
     /* When kind == sk_class_or_struct_tag or sk_union_tag: */
     struct {
       a_type_ptr
@@ -2424,13 +2438,13 @@ extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);
 
 extern void add_to_dependent_type_fixup_list(
-                                      a_type_ptr                   class_type,
+                                      a_type_ptr                   type_ptr,
                                       a_dependent_type_fixup_kind  fixup_kind,
-                                      char                         *ptr,
+                                      char                         *entity_ptr,
                                       a_byte_il_entry_kind         entity_kind,
                                       a_source_position            *pos);
 
-extern void check_dependent_type_fixup_list(a_type_ptr  class_type);
+extern void check_dependent_type_fixup_list(a_symbol_ptr  sym);
 
 extern a_namespace_ptr parent_namespace_for_symbol(a_symbol_ptr sym);
 
@@ -2561,10 +2575,11 @@ extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */
 #define type_symbol_type(sym)                                         \
-  (((sym)->kind == (a_symbol_kind)sk_type ||                          \
-    (sym)->kind == (a_symbol_kind)sk_enum_tag) ?                      \
-                               (sym)->variant.type :                  \
-                               (sym)->variant.class_struct_union.type)
+  ((sym)->kind == (a_symbol_kind)sk_type ?                            \
+    (sym)->variant.type :                                             \
+    (((sym)->kind == (a_symbol_kind)sk_enum_tag) ?                    \
+      (sym)->variant.enumeration.type :                               \
+      (sym)->variant.class_struct_union.type))
 
 /*
 Extract the routine type from the routine associated with an sk_routine
