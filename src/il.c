@@ -3339,8 +3339,9 @@ macros need to be there.
 void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
                                   a_source_position  *err_pos)
 /*
-Set the flag in the indicated parameter type entry to indicate whether
-or not the parameter should be passed using a copy constructor.
+Set the flag in the indicated parameter type entry to indicate whether or
+not the parameter should be passed using a copy constructor.  Also issue a
+diagnostic if the parameter type is an abstract class.
 */
 {
   a_type_ptr param_type;
@@ -3362,8 +3363,17 @@ or not the parameter should be passed using a copy constructor.
                                         construction_by_bitwise_copy_allowed) {
         /* Yes. */
         ptp->passed_via_copy_constructor = TRUE;
+        /* If the parameter type is an abstract class, issue an error.  Note
+           that construction_by_bitwise_copy_allowed will never be TRUE
+           for abstract classes.  Also note that this logic assumes that
+           passed_via_copy_constructor will never be set elsewhere. */
         if (param_type->variant.class_struct_union.abstract) {
-          if (err_pos->seq != 0) {
+          if (err_pos->seq == 0) {
+            /* A null error position indicates a parameter type for which
+               there is no corresponding source position -- e.g., a type
+               is being copied for some reason.  Issue no diagnostic in
+               such cases. */
+          } else {
             pos_error(ec_abstract_class_object_not_allowed, err_pos);
           }  /* if */
         }  /* if */
@@ -6055,7 +6065,6 @@ Only used in C++.
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
 /*
-
 Set the calling-method flag in the indicated routine type; that flag is
 used when the function result is returned to a temporary provided by the
 caller.  Also issue a diagnostic if the return type is an abstract class.
@@ -6064,7 +6073,6 @@ return type can be incomplete at the original declaration of the function
 and must be completed by the point of call.  Note: one cannot assume that
 a routine with a body has its flag set correctly; e.g., this may not be
 the case if the return type was incomplete at the point of definition.
-
 */
 {
   a_routine_type_supplement_ptr rtsp;
@@ -6095,7 +6103,7 @@ the case if the return type was incomplete at the point of definition.
           rtsp->value_returned_by_cctor = TRUE;
           /* If the return type is an abstract class, issue an error.  Note
              that construction_by_bitwise_copy_allowed will never be TRUE
-             for abstract classes.  Also note that this logic assumes the
+             for abstract classes.  Also note that this logic assumes that
              value_returned_by_cctor will never be set elsewhere. */
           if (return_type->variant.class_struct_union.abstract) {
             if (err_pos->seq == 0) {
