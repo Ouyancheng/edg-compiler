@@ -287,13 +287,6 @@ static void gen_expr(an_expr_node_ptr expr,
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
 
 
-/*
-Return TRUE if the given type has a definition.
-*/
-#define type_is_defined(type)                                         \
-  ((type)->size != 0 || (type)->kind == (a_type_kind)tk_typeref)
-
-
 static a_boolean is_enum_constant(a_constant_ptr con)
 /*
 Return TRUE if the indicated constant is an enum constant, i.e., it is
@@ -625,7 +618,7 @@ and *is_definition TRUE if the declaration is a definition.
       /* A primary declaration for a type. */
       *type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
       is_type_decl = TRUE;
-      *is_definition = type_is_defined(*type);
+      *is_definition = TRUE;
     } else if (curr_src_seq_entry_is_secondary_decl(sec_decl) &&
                ss_entry_kind(*sec_decl) == iek_type) {
       /* This is a secondary declaration for a type. */
@@ -2211,33 +2204,6 @@ qualifier.
 }  /* gen_type_qualifier */
 
 
-static a_boolean is_not_yet_defined_typedef(a_type_ptr type)
-/*
-Return TRUE if the indicated type is a typedef for which the type has
-not yet been put out.  For such a typedef, the underlying type is used.
-This comes up for cases like
-
-  struct A { int i; };
-  extern struct A f();
-  typedef struct A TA;
-  TA f() {}
-
-When the initial declaration of f is put out, the typedef in the return type
-must be suppressed.
-*/
-{
-  a_boolean not_def_typedef = FALSE;
-
-  if (type->kind == (a_type_kind)tk_typeref &&
-      type->source_corresp.name != NULL &&
-      !is_immediate_type_qualifier(type)) {
-    /* This is a typedef.  See if it has been defined. */
-    if (!type->definition_put_out) not_def_typedef = TRUE;
-  }  /* if */  
-  return not_def_typedef;
-}  /* is_not_yet_defined_typedef */
-
-
 static char *tag_kind(a_type_kind kind)
 /*
 Return a string that describes the tag kind for the indicated type, i.e.,
@@ -2361,10 +2327,9 @@ Output a type specifier.
         gen_type_qualifier(type);
         write_space();
         gen_type_specifier(type->variant.typeref.type);
-      } else if (type->source_corresp.name == NULL ||
-                 is_not_yet_defined_typedef(type)) {
-        /* This is an internally generated typeref, or a typedef that has
-           not been defined yet, so just output the underlying type. */
+      } else if (!has_name(type)) {
+        /* This is an internally generated typeref, so just output the
+           underlying type. */
         gen_type_specifier(type->variant.typeref.type);
       } else {
         /* A typedef; output its name. */
@@ -2388,13 +2353,9 @@ entry).  If add_const is TRUE, add an extra "const".
 */
 {
   for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-    if (is_not_yet_defined_typedef(type)) {
-      /* Skip a step for a not-yet-defined typedef. */
-    } else {
-      /* Put out a type qualifier. */
-      gen_type_qualifier(qual_type);
-      write_space();
-    }  /* if */
+    /* Put out a type qualifier. */
+    gen_type_qualifier(qual_type);
+    write_space();
   }  /* for */
   if (add_const) write_tok_str("const ");
 }  /* gen_pointer_type_qualifiers */
@@ -2418,11 +2379,9 @@ top of the type.
   a_type_kind kind;
   a_type_ptr  qual_type;
 
-  /* Remove type qualifiers but not typedefs.  Do remove typedefs that are
-     forward references. */
+  /* Remove type qualifiers but not typedefs. */
   qual_type = type;
-  while (is_immediate_type_qualifier(type) ||
-         is_not_yet_defined_typedef(type)) type = type->variant.typeref.type;
+  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
@@ -2452,9 +2411,9 @@ top of the type.
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
-       typedef, but they can get here if the typedef is not yet defined
-       (see is_not_yet_defined_typedef).  Drop all qualifiers here, always,
-       to get around that.  They don't mean anything anyway. */
+       typedef. */
+    check_assertion_str(qual_type == type,
+                        "gen_type_first_part: qualifier on function type");
     gen_type_first_part(type->variant.routine.return_type,
                         /*under_lhs_declarator=*/FALSE,
                         /*need_trailing_space=*/TRUE,
@@ -2682,10 +2641,8 @@ directly under a type that uses a left-side declarator, e.g., a pointer type.
 {
   a_type_kind kind;
 
-  /* Remove type qualifiers but not typedefs.  Do remove typedefs that are
-     forward references. */
-  while (is_immediate_type_qualifier(type) ||
-         is_not_yet_defined_typedef(type)) type = type->variant.typeref.type;
+  /* Remove type qualifiers but not typedefs. */
+  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
@@ -2799,7 +2756,6 @@ is the one associated with the definition of the enum.
   check_assertion_str(type->kind == (a_type_kind)tk_enum &&
                       type->variant.integer.enum_type,
                       "gen_enum_definition: not an enum type");
-  type->definition_put_out = TRUE;
   type->declaration_put_out = TRUE;
   /* Advance past the source sequence entry for the enum itself. */
   check_for_and_take_source_seq_entry(
@@ -3044,7 +3000,6 @@ is the one associated with the definition of the class.
   a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
 
-  type->definition_put_out = TRUE;
   type->declaration_put_out = TRUE;
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
@@ -3178,9 +3133,16 @@ of the typedef.  If it is a secondary declaration (C++ only), sec_decl
 is non-NULL and points to the secondary declaration entry.
 */
 {
-  a_type_ptr under_type, this_param_type;
+  a_type_ptr typedef_type, under_type, this_param_type;
 
-  type->definition_put_out = TRUE;
+  if (sec_decl != NULL) {
+    /* Use the type from the secondary declaration entry instead of the one
+       from the IL entry, since it might differ in small ways (e.g., using
+       different typedefs, default arguments). */
+    typedef_type = sec_decl->entity_type;
+  } else {
+    typedef_type = type;
+  }  /* if */
   /* Advance past the source sequence entry for the typedef itself. */
   /* This does not use check_for_and_take_source_seq_entry on purpose,
      because in C++ there can be more than one definition of the typedef
@@ -3188,7 +3150,7 @@ is non-NULL and points to the secondary declaration entry.
   adv_curr_source_sequence_entry();
   /* The caller has called set_decl_position already. */
   write_tok_str("typedef ");
-  under_type = type->variant.typeref.type;
+  under_type = typedef_type->variant.typeref.type;
   if (is_function_type(under_type) &&
       (this_param_type = implicit_this_param_type_of(under_type)) != NULL) {
     /* A cfront member function typedef, e.g.,
@@ -3293,7 +3255,7 @@ a member type, nonmember type, or friend.
     type = ss_entry_ptr(sec_decl, a_type_ptr);
   } else {
     type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
-    is_definition = type_is_defined(type);
+    is_definition = TRUE;
   }  /* if */
   kind = type->kind;
   if (!is_autonomous_decl(type, sec_decl)) {
@@ -5399,13 +5361,19 @@ sequence entry.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
   a_storage_class              storage_class;
+  a_type_ptr                   var_type;
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     var = ss_entry_ptr(sec_decl, a_variable_ptr);
+    /* Use the type from the secondary declaration entry instead of the one
+       from the IL entry, since it might differ in small ways (e.g., using
+       different typedefs, default arguments). */
+    var_type = sec_decl->entity_type;
   } else {
     var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     is_definition = TRUE;
+    var_type = var->type;
   }  /* if */
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
@@ -5468,7 +5436,7 @@ sequence entry.
   }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
-  gen_declaration_using_type(var->type,
+  gen_declaration_using_type(var_type,
                              has_name(var) ? &var->source_corresp : NULL,
                              iek_variable,
                              sec_decl);
@@ -5631,11 +5599,17 @@ declaration or definition.
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     rout = ss_entry_ptr(sec_decl, a_routine_ptr);
+    /* Use the type from the secondary declaration entry instead of the one
+       from the IL entry, since it might differ in small ways (e.g., using
+       different typedefs, default arguments). */
+    rout_type = sec_decl->entity_type;
   } else {
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
-    is_definition = (rout->assoc_scope != NULL_region_number);
+    is_definition = TRUE;
+    check_assertion_str(rout->assoc_scope != NULL_region_number,
+                        "gen_routine_decl: missing definition");
+    rout_type = rout->type;
   }  /* if */
-  rout_type = rout->type;
   unqual_rout_type = skip_typerefs(rout_type);
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
