@@ -2963,31 +2963,6 @@ otherwise, return NULL.
 }  /* var_constant_value */
 
 
-static a_boolean const_is_addr_of_const_variable(a_constant_ptr constant,
-                                                 a_constant_ptr *var_value)
-/*
-If constant is the address of a constant-valued variable, set *var_value to
-the value of the variable and return TRUE.  Otherwise, set *var_value to
-NULL and return FALSE.
-*/
-{
-  *var_value = NULL;
-  /* See if the constant is an address constant. */
-  if (constant->kind == (a_constant_repr_kind)ck_address) {
-    /* See if the address is the exact address of a variable. */
-    if (constant->variant.address.kind == (an_address_base_kind)abk_variable &&
-        constant->variant.address.offset == 0 &&
-        !constant->implicit_cast) {
-      /* There is an underlying variable.  See if it has a constant value known
-         at compile time. */
-      a_variable_ptr variable = constant->variant.address.variant.variable;
-      *var_value = var_constant_value(variable);
-    }  /* if */
-  }  /* if */
-  return (*var_value != NULL);
-}  /* const_is_addr_of_const_variable */
-
-
 void make_ptr_to_member_constant_operand(
                                     a_symbol_ptr      member_sym,
                                     a_symbol_ptr      member_proj_sym,
@@ -3932,8 +3907,12 @@ replaced by its value, return *constant_case TRUE.
   if (C_dialect == C_dialect_cplusplus) {
     /* Look for constant-valued variables in C++. */
     if (is_constant_node(node)) {
-      (void)const_is_addr_of_const_variable(node->variant.constant,
-                                            &var_value);
+      a_constant_ptr con = node->variant.constant;
+      if (con_is_exact_addr_of_variable(con)) {
+        /* There is an underlying variable.  See if it has a constant value
+           known at compile time. */
+        var_value = var_constant_value(con->variant.address.variant.variable);
+      }  /* if */
     } else if (is_variable_address_node(node)) {
       /* The lvalue address is given by an enk_variable_address node.  See
          if the variable is constant-valued. */
@@ -4058,18 +4037,27 @@ not an lvalue, it is left alone.
       change_xref_kinds(operand->xref_entries_list, srk_reference);
       if (is_constant_operand(operand)) {
         /* The lvalue address is specified by a constant. */
-        /* See if the constant is the address of a constant-valued variable. */
-        a_constant_ptr var_value;
-        if (const_is_addr_of_const_variable(&operand->variant.constant,
-                                            &var_value)) {
-          /* Replace a constant-valued variable by its value. */
-          make_constant_operand(var_value, operand);
-          constant_case = TRUE;
+        a_constant_ptr con = &operand->variant.constant;
+        if (con_is_exact_addr_of_variable(con)) {
+          /* The constant is the address of a variable. */
+          /* See if the variable is constant-valued. */
+          a_variable_ptr variable = con->variant.address.variant.variable;
+          a_constant_ptr var_value = var_constant_value(variable);
+          if (var_value != NULL) {
+            /* Replace a constant-valued variable by its value. */
+            make_constant_operand(var_value, operand);
+            constant_case = TRUE;
+          } else {
+            /* Not constant-valued; the rvalue is the value of the variable. */
+            node = var_rvalue_expr(variable);
+            qualifiers_dropped = TRUE;
+            make_expression_operand(node, node->type, operand);
+          }  /* if */
         } else {
-          /* Normal case; add an indirection. */
-          build_unary_result_operand(operand,
-                                     (an_expr_operator_kind)eok_indirect,
-                                     operand->type, operand);
+          /* Not the address of a variable; add an indirection. */
+          node = alloc_node_for_constant(&operand->variant.constant);
+          node = add_indirection_to_node(node);
+          make_expression_operand(node, node->type, operand);
         }  /* if */
       } else {
 #if CHECKING
@@ -6815,9 +6803,7 @@ underlying type.
     case ok_constant:
       /* Constant.  See if it is the address of a variable. */
       con = &selector->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_address &&
-          con->variant.address.kind == (an_address_base_kind)abk_variable &&
-          !con->implicit_cast && con->variant.address.offset == 0) {
+      if (con_is_exact_addr_of_variable(con)) {
         underlying_type = con->variant.address.variant.variable->type;
       }  /* if */
       break;
@@ -9239,62 +9225,56 @@ and is accessible (ARM 12.6.1).  Issue an error at *err_pos if not.
 }  /* check_access_to_elided_copy_constructor */
 
 
-static void determine_ctor_for_class_init(
+static void determine_dynamic_init_for_class_init(
                                         an_operand         *source_operand,
                                         a_type_ptr         dest_type,
                                         a_user_conv_descr  *user_conversion,
-                                        a_routine_ptr      *conversion_routine,
-                                        an_expr_node_ptr   *arg_expr_list,
-                                        a_boolean          *class_bitwise_copy)
+                                        a_dynamic_init_ptr *p_dip)
 /*
 An entity of type dest_type (a class type) is being initialized from
 source_operand.  The constructor or conversion function required to do the
-copy and/or conversion is given by *user_conversion.  What's supposed
-to happen is that the conversion routine is called for the operand, and
-then the result is copied to the destination using a copy constructor.
-However, if the conversion routine is a constructor (copy or not), the
-initialization can be done by calling the constructor to build its result
-directly in the destination.  If that can be done, and the constructor is
-a non-copy constructor, we have in effect optimized out a call of a copy
-constructor (i.e., we have elided it).  The language requires that we
-still check to see that the copy constructor we would have used exists
-and is accessible.  On return from this routine, *conversion_routine is
-set to a constructor (copy or not) so the caller can use that routine to
-construct the result.  If the original routine is a conversion
-function, the operand is converted using that function and then a copy
-constructor is returned that will copy the converted operand to the
-destination.  If no appropriate copy constructor exists in that case,
-*conversion_routine is returned NULL.  Alternatively, if a bitwise
-copy is possible *class_bitwise_copy will be returned TRUE.  dest_type
-is allowed to be a class having no constructors at all.  When
-*conversion_routine is returned non-NULL, an argument list for the
-call of that routine is returned in *arg_expr_list.  This routine
-is used in both C and C++ mode, although *class_bitwise_copy will
-always be TRUE in C mode.
+copy and/or conversion is given by *user_conversion.  Create a dynamic
+initialization entry to do the initialization (and any required
+destruction) and return a pointer to it in *dip.  dest_type is allowed
+to be a class having no constructors at all.
+
+This routine does copy constructor elision, i.e., it checks for cases
+where a constructor or other routine can be called to generate its
+result directly in the entity to be initialized.  If that can be
+done, we have in effect optimized out a call of a copy constructor
+(i.e., we have elided it).  The language requires that we still check
+to see that the copy constructor we would have used exists and is
+accessible.
+
+This routine is used in both C and C++ mode, although the fancier cases
+happen only in C++ mode.
 */
 {
-  a_boolean    dummy_arg;
-  a_type_ptr   class_type = skip_typerefs(dest_type);
+  a_dynamic_init_ptr dip;
+  a_routine_ptr      conversion_routine;
+  an_expr_node_ptr   arg_expr_list;
+  a_boolean          dummy_arg, class_bitwise_copy;
+  a_type_ptr         class_type = skip_typerefs(dest_type);
 
-  *conversion_routine = user_conversion->routine;
-  *class_bitwise_copy = user_conversion->class_identity_or_bitwise_copy;
-  if (*class_bitwise_copy) {
-    /* The operation is a class bitwise copy, so leave it that way. */
-    *conversion_routine = NULL;
-  } else if (*conversion_routine == NULL) {
+  conversion_routine = user_conversion->routine;
+  class_bitwise_copy = user_conversion->class_identity_or_bitwise_copy;
+  if (class_bitwise_copy) {
+    /* The operation is a class bitwise copy.  Do nothing now; the real
+       work gets done below. */
+  } else if (conversion_routine == NULL) {
     /* There was a previous error. */
 #if CHECKING
     if (!is_error_operand(source_operand)) {
       internal_error(
-                "determine_ctor_for_class_init: not bitwise copy, no routine");
+        "determine_dynamic_init_for_class_init: not bitwise copy, no routine");
     }  /* if */
 #endif /* CHECKING */
   } else {
-    if ((*conversion_routine)->special_kind ==
+    /* There is a conversion routine. */
+    if (conversion_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
-      /* The routine is a constructor (copy or not).  *conversion_routine
-         is therefore already appropriate for return to the caller. */
-      if (is_copy_constructor(*conversion_routine, class_type,
+      /* The routine is a constructor (copy or not). */
+      if (is_copy_constructor(conversion_routine, class_type,
                               &dummy_arg, &dummy_arg)) {
         /* The conversion routine is a copy constructor, so no copy constructor
            elision is being done. */
@@ -9306,9 +9286,10 @@ always be TRUE in C mode.
       }  /* if */
     } else {
 #if CHECKING
-      if ((*conversion_routine)->special_kind !=
+      if (conversion_routine->special_kind !=
                                      (a_special_function_kind)sfk_conversion) {
-        internal_error("determine_ctor_for_class_init: bad special kind");
+        internal_error(
+                    "determine_dynamic_init_for_class_init: bad special kind");
       }  /* if */
 #endif /* CHECKING */
       /* The routine is a conversion function.  Do the conversion and then
@@ -9317,56 +9298,54 @@ always be TRUE in C mode.
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            user_conversion);
       /* See if an appropriate copy constructor exists. */
-      *conversion_routine = select_copy_constructor(
+      conversion_routine = select_copy_constructor(
                               class_type,
                               is_const_qualified_type(source_operand->type),
                               is_volatile_qualified_type(source_operand->type),
                               &source_operand->position, class_type,
-			      class_bitwise_copy,
+                              &class_bitwise_copy,
                               curr_expr_is_evaluated());
     }  /* if */
   }  /* if */
-  if (*conversion_routine != NULL) {
-    /* Prepare for the call of the constructor. */
-    set_up_for_constructor_call(source_operand, *conversion_routine,
-                                arg_expr_list);
-  } else if (*class_bitwise_copy) {
-    /* A bitwise copy should be done. */
+  /* Allocate the dynamic initialization entry. */
+  dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none,
+                                class_type, curr_expr_is_evaluated());
+  if (class_bitwise_copy) {
+    /* The operation is a class bitwise copy, so use a dik_expression. */
     prep_class_bitwise_copy_operand(source_operand, dest_type);
-    *arg_expr_list = make_node_from_operand(source_operand);
+    set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = make_node_from_operand(source_operand);
+  } else if (conversion_routine != NULL) {
+    /* conversion_routine is a constructor (copy or other). */
+    /* Use a dik_constructor entry to call the constructor. */
+    set_up_for_constructor_call(source_operand, conversion_routine,
+                                &arg_expr_list);
+    set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
+    dip->variant.constructor.ptr = conversion_routine;
+    dip->variant.constructor.args = arg_expr_list;
   } else {
-    *arg_expr_list = NULL;
+    /* Some error. */
   }  /* if */
-}  /* determine_ctor_for_class_init */
+  *p_dip = dip;
+}  /* determine_dynamic_init_for_class_init */
 
 
-void prep_elision_initializer_operand(an_operand       *source_operand,
-                                      a_type_ptr       dest_type,
-                                      a_routine_ptr    *conversion_routine,
-                                      an_expr_node_ptr *arg_expr_list,
-                                      a_boolean        *class_bitwise_copy)
+void prep_elision_initializer_operand(an_operand         *source_operand,
+                                      a_type_ptr         dest_type,
+                                      a_dynamic_init_ptr *dip)
 /*
-Prepare an initializer value for an initialization of a class where we
-know the identity of the object being initialized (as opposed to, for
-example, an argument initialization, where the object being initialized
-is somewhat of an abstraction).  Issue an error if the source operand
-cannot be converted to the destination class type.  Return a pointer to
-the conversion routine to call in *conversion_routine, or NULL if there
-is an error, or NULL and *class_bitwise_copy TRUE if a bitwise copy should
-be done.  Return an argument list for the call or the expression to
-be copied bitwise in *arg_expr_list.  Basically, this routine determines
-that a type conversion can be done (and how), but leaves it to the caller
-to create the code that calls the conversion routine (which is likely to
-be a dynamic init entry instead of a statement).  This routine is used
-used in both C and C++ mode, but it exists to do copy constructor
-elision in C++ mode.
+An entity of (class) type dest_type is being initialized from source_operand.
+Convert it if necessary (issuing an error if the conversion cannot be done),
+and build a dynamic initialization entry to describe the initialization.
+The dynamic initialization entry will also indicate a destructor if
+appropriate.  Return a pointer to that entry in *dip (or NULL for an
+error).  This routine is used in both C and C++ mode, but it exists to
+do copy constructor elision in C++ mode.
 */
 {
   a_user_conv_descr user_conversion;
 
-  *conversion_routine = NULL;
-  *arg_expr_list = NULL;
-  *class_bitwise_copy = FALSE;
+  *dip = NULL;
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type,
@@ -9376,10 +9355,8 @@ elision in C++ mode.
                           &user_conversion)) {
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
-    determine_ctor_for_class_init(source_operand, dest_type,
-                                  &user_conversion,
-                                  conversion_routine, arg_expr_list,
-                                  class_bitwise_copy);
+    determine_dynamic_init_for_class_init(source_operand, dest_type,
+                                          &user_conversion, dip);
   }  /* if */
 }  /* prep_elision_initializer_operand */
 
@@ -9447,7 +9424,7 @@ part of it, if any.  Only used in C++.
         /* The conversion is done by a conversion function. */
         a_type_ptr routine_type = skip_typerefs(conversion_routine->type);
         if (routine_type->variant.routine.extra_info->
-                                   caller_provides_place_to_put_return_value) {
+                                                     value_returned_by_cctor) {
           /* The caller provides a place for the return value, so the result
              is already in a temp. */
           have_temp = TRUE;
@@ -9805,92 +9782,47 @@ conversion part (if any) of any required conversion.
 }  /* prep_argument_operand */
 
 
-void prep_return_operand(an_operand    *source_operand,
-                         a_type_ptr    required_type,
-                         an_error_code err_code)
+void prep_return_operand(an_operand         *source_operand,
+                         a_type_ptr         required_type,
+                         an_error_code      err_code,
+                         an_expr_node_ptr   *expression,
+                         a_dynamic_init_ptr *dip)
 /*
 Check that *source_operand is acceptable as an expression on a return
 statement.  If not, issue the error err_code.  If so, convert it to the
-right type.  required_type is the function return type, or an error type
-if some error has been discovered.  This routine is a special case because
-of the handling required when a copy constructor must be used to return
-the value from a function.
+required_type, and set *expression and *dip to the expression and
+dynamic initialization entry pointers that should go into the
+stmk_return statement.
 */
 {
   a_routine_ptr     curr_routine = current_routine_entry();
   a_type_ptr        routine_type;
-  a_variable_ptr    result_value_pointer_var;
-  a_boolean         class_bitwise_copy;
-  a_routine_ptr     conversion_routine;
-  an_expr_node_ptr  rout_node, result_value_pointer_node, arg_expr_list;
-  an_expr_node_ptr  node;
   an_operand        orig_operand;
   a_user_conv_descr user_conversion;
 
   orig_operand = *source_operand;
-  if (is_error_operand(source_operand) || m_is_error_type(required_type)) {
-    /* Get rid of the error cases. */
-  } else {
-    routine_type = skip_typerefs(curr_routine->type);
-    if (routine_type->variant.routine.extra_info->
-                                   caller_provides_place_to_put_return_value) {
-      /* The return value must be placed in space allocated by the caller. */
-#if CHECKING
-      if (!is_class_struct_union_type(required_type)) {
-        internal_error("prep_return_operand: required type not class");
-      }  /* if */
-#endif /* CHECKING */
-      result_value_pointer_var = 
-                     scope_stack[depth_innermost_function_scope].il_scope->
-                                 variant.routine.return_value_pointer_variable;
-      /* See if the conversion is possible. */
-      if (conversion_possible(source_operand, required_type,
-                              /*is_initialization=*/TRUE,
-                              err_code, &source_operand->position,
-                              &user_conversion)) {
-        /* Yes.  Determine the constructor to call and the argument list
-           to use. */
-        determine_ctor_for_class_init(source_operand, required_type,
-                                      &user_conversion,
-                                      &conversion_routine, &arg_expr_list,
-                                      &class_bitwise_copy);
-        /* Make a node for the address of the result value. */
-        result_value_pointer_node = var_rvalue_expr(result_value_pointer_var);
-        if (class_bitwise_copy) {
-          /* A bitwise copy can be done on the class. */
-          node = make_node_from_operand(source_operand);
-          result_value_pointer_node->next = node;
-          /* Use an assignment that returns an lvalue, since the lvalue
-             address is what we want to return. */
-          node = make_operator_node((an_expr_operator_kind)eok_sassign,
-                                    result_value_pointer_node->type,
-                                    result_value_pointer_node);
-          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
-          make_expression_operand(node, node->type, source_operand);
-        } else if (conversion_routine == NULL) {
-          /* No appropriate copy constructor (error already issued). */
-          conv_to_error_operand(source_operand);
-        } else {
-          /* The value is returned by calling a constructor. */
-          /* Make a call of the constructor.  The value returned by a
-             constructor is the "this" parameter, which is the result value
-             pointer, which is just what we want. */
-          /* Make a node for the address of the function. */
-          rout_node = function_addr_expr(conversion_routine);
-          rout_node->next = result_value_pointer_node;
-          result_value_pointer_node->next = arg_expr_list;
-          make_function_call(rout_node, conversion_routine->type,
-                             /*is_virtual=*/FALSE,
-                             &orig_operand.position, source_operand);
-        }  /* if */
-      }  /* if */
-    } else {
-      /* Normal return mechanism. */
-      prep_initializer_operand(source_operand, required_type,
-                               (a_user_conv_descr_ptr)NULL,
-                               /*initializing_return_value=*/TRUE,
-                               err_code);
+  *expression = NULL;
+  *dip = NULL;
+  routine_type = skip_typerefs(curr_routine->type);
+  if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
+    /* The return value is returned via a copy constructor, so a dynamic
+       init entry is used to indicate the return. */
+    /* See if the conversion is possible. */
+    if (conversion_possible(source_operand, required_type,
+                            /*is_initialization=*/TRUE,
+                            err_code, &source_operand->position,
+                            &user_conversion)) {
+      /* Yes.  Build the dynamic init entry. */
+      determine_dynamic_init_for_class_init(source_operand, required_type,
+                                            &user_conversion, dip);
     }  /* if */
+  } else {
+    /* Normal return; an expression is returned. */
+    prep_initializer_operand(source_operand, required_type,
+                             (a_user_conv_descr_ptr)NULL,
+                             /*initializing_return_value=*/TRUE,
+                             err_code);
+    *expression = make_node_from_operand(source_operand);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
