@@ -3716,56 +3716,6 @@ base class bcp.  This path has a single step to the virtual base class.
 }  /* cast_virtual_derivation_path_of */
 
 
-a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
-                                     a_scope_depth  decl_level)
-/*
-Return TRUE unless there is any reason why type_ptr should not be added to
-the types-list for the scope associated with the indicated scope depth.
-Note: the type may already be on the list; this routine is also called when
-it's to be moved to another position in the list.
-*/
-{
-  a_boolean                may_be_added = TRUE;
-  a_scope_stack_entry_ptr  ssep;
-
-  if (is_immediate_class_type(type_ptr) || is_immediate_enum_type(type_ptr)) {
-    ssep = &scope_stack[decl_level];
-    if (C_mode()) {
-      if (type_ptr->declared_in_function_prototype &&
-          ssep->kind != (a_scope_kind)sck_func_prototype) {
-        /* If the tag was declared in a prototype scope and is now being
-           resolved within the function, as in
-             int f(struct f p) {struct f{int a;};  ... }
-           we may assume the type entry has already been entered on the types
-           list. */
-        may_be_added = FALSE;
-      }  /* if */
-    } else if (ssep->kind == (a_scope_kind)sck_template_declaration) {
-      /* Must be an error case -- e.g., a class definition within a template
-         parameter declaration.  Don't try to enter the class in the IL. */
-      may_be_added = FALSE;
-    } else if (type_ptr->source_corresp.is_class_member) {
-      if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
-          ssep->assoc_type != type_ptr->source_corresp.parent.class_type) {
-        /* May be an out-of-class definition of a C++ nested class.  It's
-           already on the list. */
-        may_be_added = FALSE;
-      }  /* if */
-    } else if (ssep->in_prototype_instantiation) {
-      /* Except for member types, the type entries created for a class
-         template are not added to the types list. */
-      may_be_added = FALSE;
-    } else if (is_template_class_type(type_ptr) &&
-               ((a_symbol_ptr)type_ptr->source_corresp.assoc_info)->is_error) {
-      /* This type was created despite an error in its specialization.  Don't
-         add it to the types list. */
-      may_be_added = FALSE;
-    }  /* if */
-  }  /* if */
-  return may_be_added;
-}  /* may_be_added_to_types_list */
-
-
 static a_scope_ptr get_scope_for_list(
                                  a_scope_depth               scope_level,
                                  a_source_correspondence     *scp,
@@ -3821,6 +3771,73 @@ with the class or namespace of which the entry is a member.
   }  /* if */
   return sp;
 }  /* get_scope_for_list */
+
+
+a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
+                                     a_scope_depth  decl_level)
+/*
+Return TRUE unless there is any reason why type_ptr should not be added to
+the types-list for the scope associated with the indicated scope depth.
+Note: the type may already be on the list; this routine is also called when
+it's to be moved to another position in the list.
+*/
+{
+  a_boolean                may_be_added = TRUE;
+  a_scope_stack_entry_ptr  ssep = NULL;
+
+  if (is_immediate_class_type(type_ptr) || is_immediate_enum_type(type_ptr)) {
+    if (decl_level != NO_SCOPE_DEPTH) ssep = &scope_stack[decl_level];
+    if (C_mode()) {
+      check_assertion(ssep != NULL);
+      if (type_ptr->declared_in_function_prototype &&
+          ssep->kind != (a_scope_kind)sck_func_prototype) {
+        /* If the tag was declared in a prototype scope and is now being
+           resolved within the function, as in
+             int f(struct f p) {struct f{int a;};  ... }
+           we may assume the type entry has already been entered on the types
+           list. */
+        may_be_added = FALSE;
+      }  /* if */
+    } else if (is_template_class_type(type_ptr) &&
+               ((a_symbol_ptr)type_ptr->source_corresp.assoc_info)->is_error) {
+      /* This type was created despite an error in its specialization.  Don't
+         add it to the types list. */
+      may_be_added = FALSE;
+    } else if (ssep != NULL) {
+      if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+        /* Must be an error case -- e.g., a class definition within a
+           template parameter declaration.  Don't try to enter the class
+           in the IL. */
+        may_be_added = FALSE;
+      } else if (type_ptr->source_corresp.is_class_member) {
+        if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
+            ssep->assoc_type != type_ptr->source_corresp.parent.class_type) {
+          /* May be an out-of-class definition of a C++ nested class.  It's
+             already on the list. */
+          may_be_added = FALSE;
+        }  /* if */
+      } else if (ssep->in_prototype_instantiation) {
+        /* Except for member types, the type entries created for a class
+           template are not added to the types list. */
+        may_be_added = FALSE;
+      }  /* if */
+    } else if (type_ptr->source_corresp.is_class_member) {
+      /* Check for a nested class that is being defined after the definition
+         of its parent class has been completed.   In such cases leave the
+         type entry at the current place in the types list. */
+      a_scope_ptr                 sp;
+      a_scope_pointers_block_ptr  pointers_block;
+
+      check_assertion(is_immediate_class_type(type_ptr));
+      sp = get_scope_for_list(NO_SCOPE_DEPTH, &type_ptr->source_corresp,
+                              &pointers_block);
+      if (sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+        may_be_added = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return may_be_added;
+}  /* may_be_added_to_types_list */
 
 
 static void add_placeholder_for_namespace_type(a_type_ptr  type_ptr)
