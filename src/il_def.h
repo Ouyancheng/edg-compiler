@@ -2106,6 +2106,12 @@ typedef struct a_param_type {
 			   flag may be set even though default_arg_expr
                            remains NULL; this a temporary state and applies to
 			   front-end processing only. */
+  a_bit_field	has_unevaluated_template_default:1;
+			/* Default arguments of template functions and
+			   member functions of class templates are evaluated
+			   (and semantically checked) only if the default
+		           value is needed.  This flag is TRUE if the default
+			   value is present, but has not yet been evaluated. */
   a_bit_field	type_involves_deduced_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter involves a template parameter in a
