@@ -588,14 +588,14 @@ on a prior declaration.
       /* There are three flags associated with copy constructors. */
       if (!cssp->has_copy_constructor_for_const_object ||
           cssp->construction_by_bitwise_copy_allowed) {
-        a_boolean  const_okay, volatile_okay;
-        if (is_copy_constructor(rp, class_type, &const_okay,
-                                &volatile_okay)) {
+        a_type_qualifier_set  qualifiers;
+        if (is_copy_constructor(rp, class_type, &qualifiers)) {
           /* This is a copy constructor.  Note that the presence of a user-
              defined copy constructor means that construction by bitwise
              copying is not done. */
           cssp->has_copy_constructor = TRUE;
-          cssp->has_copy_constructor_for_const_object = const_okay;
+          cssp->has_copy_constructor_for_const_object =
+                                            ((qualifiers & TQ_CONST) != 0);
           cssp->construction_by_bitwise_copy_allowed = FALSE;
         }  /* if */
       }  /* if */
@@ -971,11 +971,10 @@ from the same class as the one with which vbcp is associated.
 
 
 static a_routine_ptr select_assignment_operator(
-                                    a_type_ptr        class_type,
-                                    a_boolean         const_object_required,
-                                    a_boolean         volatile_object_required,
-                                    a_source_position *err_pos,
-                                    a_boolean         *pass_by_value)
+                                    a_type_ptr            class_type,
+                                    a_type_qualifier_set  required_qualifiers,
+                                    a_source_position     *err_pos,
+                                    a_boolean             *pass_by_value)
 /*
 Return a pointer to the routine entry for the current class's default
 assignment operator.
@@ -1000,24 +999,21 @@ assignment operator.
   /* Find an assignment operator whose argument is ref-class (pass by
      reference) or class (pass_by_value). */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    a_boolean  sym_matches_exactly;
-    a_boolean  is_ref_arg;
-    a_boolean  const_object_okay = FALSE, volatile_object_okay = FALSE;
+    a_boolean             sym_matches_exactly;
+    a_boolean             is_ref_arg;
+    a_type_qualifier_set  qualifiers = TQ_NONE;
 
-    if (is_assignment_operator_for_copy(sym, &is_ref_arg, &const_object_okay,
-                                        &volatile_object_okay)) {
+    if (is_assignment_operator_for_copy(sym, &is_ref_arg, &qualifiers)) {
       /* Found an assignment operator that can copy the current class. */
       if (!is_ref_arg) {
         /* Not a reference type, so qualifiers are ignored. */
         sym_matches_exactly = TRUE;
       } else {
         /* Reference type. */
-        if ((const_object_required && !const_object_okay) ||
-            (volatile_object_required && !volatile_object_okay)) {
+        if ((required_qualifiers & qualifiers) != required_qualifiers) {
           /* No match -- keep looking. */
           continue;
-        } else if (const_object_okay == const_object_required &&
-                   volatile_object_okay == volatile_object_required) {
+        } else if (required_qualifiers == qualifiers) {
           /* It's an exact match. */
           sym_matches_exactly = TRUE;
         } else {
@@ -1040,7 +1036,7 @@ assignment operator.
   opass_routine = NULL;
   if (opass_sym == NULL) {
     /* No applicable assignment operator function. */
-    if (const_object_required && !volatile_object_required) {
+    if (required_qualifiers == TQ_CONST) {
       /* The common case:  missing const assignment operator function. */
       pos_ty_error(ec_missing_const_assignment_operator, err_pos, class_type);
     } else {
@@ -1125,7 +1121,8 @@ operator routine or do bitwise assignment.
   a_field_ptr                    fp;
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
-  a_boolean                      pass_by_value, const_source_var;
+  a_boolean                      pass_by_value;
+  a_type_qualifier_set           qualifiers;
   a_param_type_ptr               ptp;
   a_boolean                      bitwise_assign;
 
@@ -1163,8 +1160,11 @@ operator routine or do bitwise assignment.
        operation on each direct base class (direct assignment or calling
        the base class's assignment function), and then do the appropriate
        copy of each member. */
-    const_source_var =
-         is_const_qualified_type(type_pointed_to(source_var->type));
+    if (is_const_qualified_type(type_pointed_to(source_var->type))) {
+      qualifiers = TQ_CONST;
+    } else {
+      qualifiers = TQ_NONE;
+    }  /* if */
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         /* We are only interested in direct base classes. */
@@ -1191,8 +1191,7 @@ operator routine or do bitwise assignment.
         } else {
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
-          rp = select_assignment_operator(bcp->type, const_source_var,
-                                          /*volatile_object_required=*/FALSE,
+          rp = select_assignment_operator(bcp->type, qualifiers,
                                           &bcp->decl_position, &pass_by_value);
           if (rp == NULL) {
             /* Error has already been issued in the subroutine. */
@@ -1246,8 +1245,7 @@ operator routine or do bitwise assignment.
             /* A bitwise copy may not be done.  Find the default assignment
                operator and put out a call to it. */
             bitwise_assign = FALSE;
-            rp = select_assignment_operator(tp, const_source_var,
-                                            /*volatile_object_required=*/FALSE,
+            rp = select_assignment_operator(tp, qualifiers,
                                             &fp->source_corresp.decl_position,
                                             &pass_by_value);
             if (rp == NULL) {
