@@ -4746,30 +4746,46 @@ prototype instantiation is considered as a potential match.
 
 
 static a_boolean tentatively_matching_template_param_lists(
-					a_template_param_ptr	list1,
-					a_template_param_ptr	list2)
+			a_template_param_ptr	list1,
+			a_template_param_ptr	list2,
+			a_boolean		involves_template_param)
 /*
-Compare the two template parameter lists to see if they have the same number
-of parameters, and that the parameters are of matching kinds.  The types of
-nontype parameters, and the parameter lists of template template parameters
-are not checked at this point.
+Compare the two template parameter lists to see if they match.  When
+involves_template_param is FALSE, the parameter lists can be compared
+fully.  When involves_template_param is TRUE, one of the parameter lists
+includes a a type that depends on a prior template parameter, and the full
+comparison cannot be done until the template argument values are known.  In
+that case we compare the two template parameter lists to see if they have
+the same number of parameters, and that the parameters are of matching kinds.
+The types of nontype parameters, and the parameter lists of template template
+parameters are not checked at this point.
 */
 {
   a_template_param_ptr	tpp1;
   a_template_param_ptr	tpp2;
   a_boolean		result = TRUE;
 
-  for (tpp1 = list1, tpp2 = list2; tpp2 != NULL && tpp1 != NULL;
-       tpp1 = tpp1->next, tpp2 = tpp2->next) {
-    a_symbol_ptr	sym1 = tpp1->param_symbol;
-    a_symbol_ptr	sym2 = tpp2->param_symbol;
-    if (sym1->kind != sym2->kind) {
-      result = FALSE;
-      break;
-    }  /* if */
-  }  /* for */
-  /* Make sure we are at the end of both lists. */
-  if (tpp1 != NULL || tpp2 != NULL) result = FALSE;
+  if (!involves_template_param) {
+    /* Not a dependent template -- do the full comparison. */
+    result = equiv_template_param_lists(list1, list2, 
+                                       /*issue_errors=*/FALSE,
+ 				       ETP_NO_OPTIONS,
+                                       (a_source_position*)NULL);
+  } else {
+    /* A dependent template -- just compare the number and kind of
+       parameters. */
+    for (tpp1 = list1, tpp2 = list2; tpp2 != NULL && tpp1 != NULL;
+         tpp1 = tpp1->next, tpp2 = tpp2->next) {
+      a_symbol_ptr	sym1 = tpp1->param_symbol;
+      a_symbol_ptr	sym2 = tpp2->param_symbol;
+      if (sym1->kind != sym2->kind) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+    /* Make sure we are at the end of both lists. */
+    if (tpp1 != NULL || tpp2 != NULL) result = FALSE;
+  }  /* if */
   return result;
 }  /* tentatively_matching_template_param_lists */
 
@@ -4850,7 +4866,9 @@ another template parameter.
                                              specified_tap->variant.templ.ptr);
           if (tentatively_matching_template_param_lists(
                            arg_template->cache.decl_info->parameters,
-                           tpp->variant.templ->cache.decl_info->parameters)) {
+                           tpp->variant.templ->cache.decl_info->parameters,
+                           tpp->variant.templ->
+                             variant.class_template.involves_template_param)) {
             tap->variant.templ = specified_tap->variant.templ;
           } else {
             arg_kind_mismatch = TRUE;
@@ -4985,8 +5003,9 @@ match is found.
     if (templ_tssp->variant.class_template.template_template_param) {
       param_list_for_templ = templ_tssp->cache.decl_info->parameters;
       param_list = tssp->cache.decl_info->parameters;
-      if (tentatively_matching_template_param_lists(param_list_for_templ,
-                                                    param_list)) {
+      if (tentatively_matching_template_param_lists(
+                 param_list_for_templ, param_list,
+                 templ_tssp->variant.class_template.involves_template_param)) {
         /* The actual template is tentatively compatible with the template
            template parameter.  See if it is compatible with any previously
            deduced value.  In cases where the template template parameter
