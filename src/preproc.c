@@ -1225,8 +1225,9 @@ Scan and process a #pragma directive.
            arguments on call. */
         arg_pragma = (an_arg_pragma_kind)apk_scanf;
         processed = TRUE;
-      } else if (curr_id_is("instantiate") ||
-		 curr_id_is("do_not_instantiate")) {
+      } else if (C_dialect == C_dialect_cplusplus &&
+		 (curr_id_is("instantiate") ||
+		  curr_id_is("do_not_instantiate"))) {
         /* Instantiate, or suppress instantiation of, a template class,
 	    function, or static data member. */
         instantiation_pragma();
