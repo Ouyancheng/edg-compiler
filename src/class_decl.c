@@ -8460,12 +8460,12 @@ respectively.
               &prev_field->source_corresp.decl_position);
     prev_field->type = error_type();
     class_state->last_field_is_incomplete_array = FALSE;
-  } else if (microsoft_mode || gcc_mode || (c99_mode && !strict_ansi_mode)) {
-    /* In Microsoft and GNU C modes a class or struct may include a member
-       whose type contains a final field that is an unknown-size array, but
-       only if the member with such a type is the last field.  If the previous
-       field was of such a type, no error was issued, in case it was the last
-       field; issue the error now. */
+  } else if (microsoft_mode || (c99_mode && !strict_ansi_mode)) {
+    /* In Microsoft and nonstrict C99 modes a class or struct may include a
+       member whose type contains a final field that is an unknown-size array,
+       but only if the member with such a type is the last field.  If the
+       previous field was of such a type, no error was issued, in case it was
+       the last field; issue the error now. */
     if (!is_union_type(class_type) &&
         class_type->variant.class_struct_union.
                               contains_flexible_array_member) {
@@ -8520,12 +8520,12 @@ respectively.
         } else {
           /* The field has an incomplete array type, and it's a member of a
              struct or class.  This can sometimes be okay -- in Microsoft
-             mode (both C and C++), GNU C mode, and, as long as it's not the
-             first named field, in C99 mode.  As an extension, this is
-             supported in other C modes (except in strict C89 mode). */
+             mode (both C and C++) and, as long as it's not the first named
+             field, in C99 mode.  As an extension, the C99 behavior is
+             supported in other C modes (except in GNU C and strict C89
+             mode). */
           if ((!class_state->is_first_field &&
                class_state->any_named_fields) ||
-              gcc_mode ||
               microsoft_mode) {
             /* A further restriction is that the incomplete array has to be
                the last field in the struct or class.  This can't always be
@@ -8581,11 +8581,11 @@ respectively.
          use in C99 mode. */
       class_type->variant.class_struct_union.
                                   contains_flexible_array_member = TRUE;
-    } else if (microsoft_mode || gcc_mode || (c99_mode && !strict_ansi_mode)) {
-      /* In Microsoft and GNU C modes the error is issued only if the struct
-         containing a flexible array member is not the last member.  Just
-         set the flag for now and do the check later.  (This is also supported
-         as an extension in default C99 mode.) */
+    } else if (microsoft_mode || (c99_mode && !strict_ansi_mode)) {
+      /* In Microsoft and nonstrict C99 modes the error is issued only if the
+         struct containing a flexible array member is not the last member.
+         Just set the flag for now and do the check later.  (This is an
+         extension in default C99 mode.) */
       class_type->variant.class_struct_union.
                                   contains_flexible_array_member = TRUE;
     } else {
@@ -11793,12 +11793,14 @@ bits of information that were acquired while parsing.
        diagnostic.  Otherwise, mark class_type as containing an incomplete
        array member, since there are constraints on how it can be used.
        (E.g., it can't be the element type of an array, and in Microsoft C++
-       mode it can't be used as a base class.) */
+       mode it can't be used as a base class.)  In GNU C mode, a diagnostic
+       is issued too (though a zero-length array is accepted in the same
+       context and with the same functionality). */
     check_assertion((C_mode() || microsoft_mode) &&
                     !is_union_type(class_state->class_type));
     class_type->variant.class_struct_union.
                                     contains_flexible_array_member = TRUE;
-    if (strict_ansi_mode && !c99_mode) {
+    if (gcc_mode || (strict_ansi_mode && !c99_mode)) {
       a_field_ptr  fp = class_state->end_of_field_list;
       pos_diagnostic(strict_ansi_error_severity,
                      ec_incomplete_type_not_allowed,
