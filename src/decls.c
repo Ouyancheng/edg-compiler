@@ -9614,6 +9614,22 @@ a compilation.  The syntax is
 }  /* translation_unit */
 
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+void scan_implicitly_included_template_definition_file(void)
+/*
+Scan an implicitly included template definition file.  It is just like
+scanning a translation-unit, except there's no diagnostic on the empty file.
+*/
+{
+  (void)get_token();
+  while (curr_token != tok_end_of_source) {
+    declaration(/*function_definition_allowed=*/TRUE,
+                /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
+                (a_param_id_ptr)NULL);
+  }  /* if */
+}  /* scan_implicitly_included_template_definition_file */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

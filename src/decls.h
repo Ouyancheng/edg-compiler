@@ -126,6 +126,10 @@ extern void local_declaration(void);
 
 extern void translation_unit(void);
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+extern void scan_implicitly_included_template_definition_file(void);
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
 extern a_boolean reconcile_external_symbol_types(
                             a_symbol_ptr          ext_sym,
                             a_source_position_ptr position,
