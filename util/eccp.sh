@@ -1563,11 +1563,17 @@ fi
 # dummy file to be used as the primary file.
 #
 if [ $compile_as_secondary -ne 0 ] ; then
-  dummy_primary_file_name=$TMPDIR/dp$$
-  echo "extern int dummy_primary_filexxx;" >$dummy_primary_file_name
-  if [ $? -ne 0 ] ; then
-    echo $driver_name: could not create dummy primary file $dummy_primary_file_name.
-    exit 1
+  remove_dummy_primary=0
+  if [ "$EDG_DUMMY_PRIMARY_FILE" = "" ] ; then
+    dummy_primary_file_name=$TMPDIR/dp$$
+    echo "extern int dummy_primary_filexxx;" >$dummy_primary_file_name
+    if [ $? -ne 0 ] ; then
+      echo $driver_name: could not create dummy primary file $dummy_primary_file_name.
+      exit 1
+    fi
+    remove_dummy_primary=1
+  else
+    dummy_primary_file_name=$EDG_DUMMY_PRIMARY_FILE
   fi
 fi
 #
@@ -1718,7 +1724,7 @@ do
   #
   # Remove the dummy primary file, if any.
   #
-  if [ $compile_as_secondary -ne 0 ] ; then
+  if [ $compile_as_secondary -ne 0 -a $remove_dummy_primary -ne 0 ] ; then
     rm -f $dummy_primary_file_name
   fi
   #
