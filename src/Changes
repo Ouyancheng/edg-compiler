@@ -1,5 +1,24 @@
 Version 3.4
 
+8/8/03   GNU IA-64 ABI: Additional base class conflicts
+
+If a direct nonvirtual base contains an field of empty class type E at a small
+(less than 8 or 16 bytes, depending on the platform) but nonzero offset,
+GNU C++ will not place that base at the same offset as an empty base of type E
+or a type derived from E.  The front end already emulated this behavior for
+bases allocated at offset zero, but it now also does so for other offsets.
+For example:
+
+  struct E {};
+  struct P: E { virtual f(); };
+  struct F {
+    int i;
+    E e;  // e at a small but nonzero offset
+  };
+  struct D: P, E, F {};  // Base F should normally be allocated at the same
+                         // offset as base E, but GNU compilers see a spurious
+                         // conflict between base E and field e of base F.
+
 8/8/03   GNU IA-64 ABI: Layout of empty virtual bases
 
 The IA-64 ABI specifies that an empty virtual base should be allocated

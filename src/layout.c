@@ -1732,7 +1732,7 @@ a subobject of the first field (and initially, that first field itself) in
 which a conflict is looked for.
 
 See gnu_first_field_conflict for a description of this GNU C++ layout bug.
-See also gnu_first_base_conflict for a similar problem with leading empty
+See also gnu_base_conflict for a similar problem with preceding empty
 bases.  Yet another similar issue occurs for nearly empty virtual bases
 that should normally be allocated at offset zero; in that case, in_field is
 TRUE indicating that conflicts must involve a field subobject (not just a
@@ -1855,42 +1855,35 @@ offset is zero.
 }  /* gnu_first_field_conflict */
 
 
-static a_boolean gnu_first_base_conflict(a_type_ptr        class_type,
-                                         a_base_class_ptr  bcp,
-                                         a_targ_size_t     offset)
+static a_boolean gnu_base_conflict(a_type_ptr        class_type,
+                                   a_base_class_ptr  bcp,
+                                   a_targ_size_t     offset)
 /*
 This routine identifies a situation similar to the GNU first field conflict
 (see above), but this time the conflict is with a base class instead of a
 field.  We are attempting to place base class bcp at the given offset in the
-layout of the given class type.  If this is the offset of the first base and
-that first base happens to be empty, GNU compilers will not optimize the
-bcp base if it has a subobject of the same type as the first base.
+layout of the given class type.  If this is the offset of a previously
+allocated nonvirtual empty base, GNU compilers will not optimize the bcp
+base if it has a subobject of the same type as the previous base.
 */
 {
   a_boolean  result = FALSE;
 
-  /* A potential for this type of conflict only exists if the first base
-     has already been allocated (so bcp should not be that first base).
-     and if we are attempting to allocate bcp at the same offset. */
-  if (bcp->direct_base_number != 1 && offset == 0) {
-    a_base_class_ptr  first_base = base_classes_of(class_type);
-    for (; first_base != NULL; first_base = first_base->next) {
-      if (first_base->direct && first_base->direct_base_number == 1) {
-        if (first_base->is_virtual || !first_base->offset_is_set) {
-          /* The first base should be a nonvirtual base that has been
-             allocated already. */
-          first_base = NULL;
-        }  /* if */
-        break;
+  /* A potential for this type of conflict only exists if a previous base has
+     already been allocated (so bcp should not be the first direct base). */
+  if (bcp->direct_base_number != 1) {
+    a_base_class_ptr  ebcp = base_classes_of(class_type);
+    for (; ebcp != NULL; ebcp = ebcp->next) {
+      a_base_class_ptr  sub_ebcp;
+      if (!ebcp->direct || ebcp->is_virtual || !ebcp->offset_is_set ||
+          ebcp->offset != offset) {
+        continue;
       }  /* if */
-    }  /* for */
-    if (first_base != NULL) {
-      a_base_class_ptr  sub_ebcp = base_classes_of(first_base->type);
-      check_assertion(first_base->offset == 0);
+      sub_ebcp = base_classes_of(ebcp->type);
       /* Only examine conflicts with bottom-most base classes. */
       if (sub_ebcp == NULL &&
           gnu_conflict_found(skip_typerefs(bcp->type),
-                             skip_typerefs(first_base->type),
+                             skip_typerefs(ebcp->type),
                              /*in_field=*/FALSE)) {
         result = TRUE;
       } else {
@@ -1904,10 +1897,10 @@ bcp base if it has a subobject of the same type as the first base.
           }  /* if */
         }  /* for */
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
   return result;
-}  /* gnu_first_base_conflict */
+}  /* gnu_base_conflict */
 
 
 static a_boolean gnu_leading_empty_base_conflict(a_type_ptr        class_type,
@@ -2330,7 +2323,7 @@ allocated.
   if (bcp != NULL) {
     while (base_subobject_conflict(bcp, lob->byte_offset) ||
            (emulate_gnu_abi_bugs &&
-            gnu_first_base_conflict(lob->class_type, bcp, lob->byte_offset))) {
+            gnu_base_conflict(lob->class_type, bcp, lob->byte_offset))) {
       if (emulate_gnu_abi_bugs && bcp != NULL && !bcp->is_virtual) {
         /* Some GNU compilers do not update the alignment of the derived
            class if a base class could not be allocated at the first
