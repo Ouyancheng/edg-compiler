@@ -7593,6 +7593,14 @@ NULL.
                                (a_scope_kind)sck_template_instantiation) {
           /* Type was declared in a prototype instantiation.  It should not
              be added to a types list. */
+        } else if (type_ptr->source_corresp.class_of_which_a_member != NULL &&
+                   (scope_stack[depth_scope_stack].kind !=
+                      (a_scope_kind)sck_class_struct_union ||
+                    scope_stack[depth_scope_stack].assoc_type !=
+                      type_ptr->source_corresp.class_of_which_a_member)) {
+          /* This must be the symbol for an anonymous union member type that
+             has been promoted out of the scope of the anonymous union.
+             The type is already on a list. */
         } else {
           /* Add it now to the current scope's type list.  It was not added
              previously because no actual definition appeared.   Don't
