@@ -3855,10 +3855,12 @@ on for use in generating cross-reference output describing this declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
+    /* In Microsoft mode no error is issued if operator new or delete is
+       declared in a namespace scope. */
     severity = microsoft_mode ? es_warning : es_error;
     if (report_bad_scope_for_new_or_delete(locator, severity)) {
       /* Set the is_error flag in the locator. */
-      if (!microsoft_mode) set_to_named_error_locator(*locator);
+      if (severity == es_error) set_to_named_error_locator(*locator);
       invalid_scope_for_new_or_delete = TRUE;
     }  /* if */
   }  /* if */
