@@ -2328,7 +2328,7 @@ ordinary functions, except that they have a storage class of sc_asm and the
 function body (pointed to from the associated scope entry) is represented
 by an stmk_asm statement; the latter points to a NULL-terminated string
 containing the text that appeared in the source.  Comments are removed
-unless INCLUDE_ASM_FUNCTION_COMMENTS is TRUE.
+unless INCLUDE_COMMENTS_IN_ASM_FUNC_BODY is TRUE.
 
 Furthermore, when ASM_FUNCTION_ALLOWED is TRUE, "__asm" is accepted as a
 synonym for "asm".

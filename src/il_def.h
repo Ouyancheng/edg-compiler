@@ -5473,7 +5473,7 @@ typedef struct a_statement {
 			   copy from the source program, with all whitespace,
 			   no translation of unprintable characters, etc.,
 			   except that it does not include comments unless
-			   INCLUDE_ASM_FUNCTION_COMMENTS is TRUE. */
+			   INCLUDE_COMMENTS_IN_ASM_FUNCTION_BODY is TRUE. */
 #endif /* ASM_FUNCTION_ALLOWED */
     /* When kind == stmk_try_block: */
     a_try_supplement_ptr
