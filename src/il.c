@@ -7571,7 +7571,7 @@ an_expr_node_ptr copy_default_arg_expr_list(
 /*
 Make an expression list containing copies of the default argument
 expressions for the parameter indicated by ptp, which is a parameter
-of rout, and all parameters following that. If ptp is non-NULL, it
+of rout, and all parameters following that.  If ptp is non-NULL, it
 must point to a parameter with a default argument expression.
 inside_conditional_expression is TRUE if the default argument
 expression copies will be inside a conditional part of an expression.
