@@ -52,7 +52,8 @@ typedef enum /*a_struct_stmt_kind*/ {
   ssk_switch,		/* switch statement. */
   ssk_while,		/* while (...) {} statement. */
   ssk_do,		/* do {} while (...); statement. */
-  ssk_for		/* for (...; ...; ...) {} statement. */
+  ssk_for,		/* for (...; ...; ...) {} statement. */
+  ssk_try_block		/* try compound-stmt handler-seq statement. */
 } a_struct_stmt_kind;
 
 typedef struct a_struct_stmt_stack_entry *a_struct_stmt_stack_entry_ptr;
