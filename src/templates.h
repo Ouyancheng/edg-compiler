@@ -338,6 +338,12 @@ extern a_template_arg_ptr create_prototype_arg_list(
 extern void function_prototype_instantiation(
 			a_symbol_ptr		template_sym);
 
+#if ONE_INSTANTIATION_PER_OBJECT
+extern void set_routine_instantiation_needed_bit_number(a_routine_ptr routine);
+extern void set_variable_instantiation_needed_bit_number(
+                                                      a_variable_ptr variable);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+
 extern void template_directive_or_declaration(
 			a_token_kind			*final_token,
 			a_template_decl_options_set	options);

@@ -3286,6 +3286,39 @@ error_exit:
   db_exit();
 }  /* find_function_template_member */
 
+#if ONE_INSTANTIATION_PER_OBJECT
+
+void set_routine_instantiation_needed_bit_number(a_routine_ptr routine)
+/*
+If the indicated routine has a definition, set its
+instantiation_needed_bit_number if necessary.  This is used
+in one-instantiation-per-object mode.
+*/
+{
+  /* Note that this information is relevant only in the primary
+     translation unit IL, and therefore it is not maintained in
+     secondary translation units. */
+  /* When extern inline functions are "instantiated", they also get
+     a needed bit number. */
+  if (one_instantiation_per_object &&
+      is_primary_translation_unit &&
+      routine->storage_class == (a_storage_class)sc_unspecified &&
+      !is_member_of_unnamed_namespace(&routine->source_corresp) &&
+      ((routine->is_template_function &&
+        !routine->is_specialized) ||
+       (instantiate_extern_inline &&
+        routine->is_inline))) {
+    check_assertion(!in_secondary_trans_unit(routine));
+    /* Get a "needed bit number" for the routine if it doesn't have one
+       already. */
+    if (routine->instantiation_needed_bit_number == 0) {
+      routine->instantiation_needed_bit_number =
+                                      assign_instantiation_needed_bit_number();
+    }  /* if */
+  }  /* if */
+}  /* set_routine_instantiation_needed_bit_number */
+
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 static void instantiate_template_function(a_template_instance_ptr  tip)
 /*
@@ -3373,15 +3406,6 @@ Instantiate the body of the template function associated with tip.
     rout_ptr->storage_class = (a_storage_class)sc_unspecified;
     rout_ptr->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
-#if ONE_INSTANTIATION_PER_OBJECT
-    if (one_instantiation_per_object &&
-        !rout_ptr->is_inline &&
-        !is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) {
-      /* Get a "needed bit number" for the routine. */
-      rout_ptr->instantiation_needed_bit_number =
-                                      assign_instantiation_needed_bit_number();
-    }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
@@ -3488,6 +3512,36 @@ done:;
   db_exit();
 }  /* instantiate_template_function */
 
+#if ONE_INSTANTIATION_PER_OBJECT
+
+void set_variable_instantiation_needed_bit_number(a_variable_ptr variable)
+/*
+If indicated variable has a definition, set its
+instantiation_needed_bit_number if necessary.  This is used
+in one-instantiation-per-object mode.
+*/
+{
+  /* Note that this information is relevant only in the primary
+     translation unit IL, and therefore it is not maintained in
+     secondary translation units. */
+  if (one_instantiation_per_object &&
+      is_primary_translation_unit &&
+      variable->storage_class == (a_storage_class)sc_unspecified &&
+      !is_member_of_unnamed_namespace(&variable->source_corresp) &&
+      variable->is_template_static_data_member &&
+      !variable->is_specialized) {
+    check_assertion(!in_secondary_trans_unit(variable));
+    /* Get a "needed bit number" for the variable if it doesn't have one
+       already. */
+    if (variable->instantiation_needed_bit_number == 0) {
+      /* Get a "needed bit number" for the variable. */
+      variable->instantiation_needed_bit_number =
+                                      assign_instantiation_needed_bit_number();
+    }  /* if */
+  }  /* if */
+}  /* set_variable_instantiation_needed_bit_number */
+
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 static void define_template_static_data_member(a_template_instance_ptr  tip)
 /*
@@ -3545,12 +3599,7 @@ and the class instantiation will detect the runaway case.
   if (var_ptr->storage_class == (a_storage_class)sc_extern) {
     var_ptr->storage_class = (a_storage_class)sc_unspecified;
 #if ONE_INSTANTIATION_PER_OBJECT
-    if (one_instantiation_per_object &&
-        !is_member_of_unnamed_namespace(&var_ptr->source_corresp)) {
-      /* Get a "needed bit number" for the routine. */
-      var_ptr->instantiation_needed_bit_number =
-                                      assign_instantiation_needed_bit_number();
-    }  /* if */
+    set_variable_instantiation_needed_bit_number(var_ptr);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if CHECKING
     check_assertion_str2(var_ptr->source_corresp.name_linkage ==
@@ -17922,8 +17971,7 @@ brace) is returned in *final_token.  options is a bit set of option flags.
 void add_to_inline_function_list(a_routine_ptr	rout_ptr)
 /*
 rout_ptr points to an inline function that is about to be defined.
-Add the routine to a list of inline functions and, if one instantiation
-per object mode is used, assign a needed bit number to this routine.
+Add the routine to an "instantiation list" of inline functions.
 */
 {
   a_routine_list_entry_ptr	rlep;
@@ -17935,16 +17983,6 @@ per object mode is used, assign a needed bit number to this routine.
     rlep->routine = rout_ptr;
     rlep->next = inline_function_list;
     inline_function_list = rlep;
-#if ONE_INSTANTIATION_PER_OBJECT
-    if (one_instantiation_per_object) {
-      /* Get a "needed bit number" for the routine if it doesn't have one
-         already. */
-      if (rout_ptr->instantiation_needed_bit_number == 0) {
-        rout_ptr->instantiation_needed_bit_number =
-                                      assign_instantiation_needed_bit_number();
-      }  /* if */
-    }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
 }  /* add_to_inline_function_list */
 

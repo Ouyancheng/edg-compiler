@@ -4446,6 +4446,9 @@ thrown away by the caller.
      When this routine is called after copying for functions from
      secondary translation units, is_primary_translation_unit is TRUE. */
   if (is_primary_translation_unit) {
+#if ONE_INSTANTIATION_PER_OBJECT
+    set_routine_instantiation_needed_bit_number(routine);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if DO_IL_LOWERING
     if (!will_discard_function_body &&
         !scope_stack[depth_scope_stack].in_prototype_instantiation) {

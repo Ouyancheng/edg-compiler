@@ -1250,9 +1250,17 @@ Overwrite the variable primary_var (in the primary IL) with var (in
 the secondary translation unit IL).
 */
 {
+#if ONE_INSTANTIATION_PER_OBJECT
+  unsigned long saved_instantiation_needed_bit_number =
+                                  primary_var->instantiation_needed_bit_number;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   do_saves_for_overwrite(primary_var, a_variable_ptr);
   *primary_var = *var;
   do_restores_for_overwrite(primary_var, var);
+#if ONE_INSTANTIATION_PER_OBJECT
+  primary_var->instantiation_needed_bit_number =
+                                         saved_instantiation_needed_bit_number;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* overwrite_primary_variable */
 
 
@@ -1267,6 +1275,10 @@ the secondary translation unit IL).
   a_boolean saved_inline_instance_required =
                                         primary_rout->inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
+#if ONE_INSTANTIATION_PER_OBJECT
+  unsigned long saved_instantiation_needed_bit_number =
+                                 primary_rout->instantiation_needed_bit_number;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* suppress_inline_body is only valid on routines with bodies.  Save the
      destination value only if the destination routine already has a
      body. */
@@ -1282,6 +1294,10 @@ the secondary translation unit IL).
 #endif /* MAINTAIN_NEEDED_FLAGS */
   *primary_rout = *rout;
   do_restores_for_overwrite(primary_rout, rout);
+#if ONE_INSTANTIATION_PER_OBJECT
+  primary_rout->instantiation_needed_bit_number =
+                                         saved_instantiation_needed_bit_number;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Note that inline_instance_required etc. were previously updated in
      the primary routine, so we just save the value determined. */
 #if INSTANTIATE_EXTERN_INLINE
@@ -1868,6 +1884,20 @@ two-pass sweep.
       wrap_up_moved_function(routine);
     }  /* if */
   }  /* for */
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (one_instantiation_per_object &&
+      scope->kind == (a_scope_kind)sck_class_struct_union &&
+      /* Do this only on the second pass. */
+      !do_inlines) {
+    /* Assign one-instantiation-per-object needed bit numbers to
+       static data members. */
+    a_variable_ptr var;
+    for (var = scope->variables; var != NULL; var = var->next) {
+      a_variable_ptr corresp_var = (a_variable_ptr)canonical_il_entry_of(var);
+      set_variable_instantiation_needed_bit_number(corresp_var);
+    }  /* for */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* finish_moved_function_processing */
 
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
