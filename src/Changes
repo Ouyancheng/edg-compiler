@@ -1,5 +1,12 @@
 Version 2.23
 
+5/20/94  IL CHANGE: depth_in_scope_stack added to a_scope
+
+The new depth_in_scope_stack field in a_scope, used during front end
+processing, is an indication that a given scope is still actively present
+in the scope stack.  Once the scope is popped from the stack the field
+reverts to its default value NO_SCOPE_DEPTH.
+
 5/20/94  walk_declarative_entities_in_scope
 
 This new routine, included when NEED_DECLARATIVE_WALK is defined,
@@ -93,6 +100,20 @@ A new flag, reachable_by_fall_through, has been added to the a_label
 entry.  It indicates whether a label can be reached by flowing into it
 from the code immediately preceding.
 
+5/17/94  IL CHANGE: rout_src_seq_entry_for_default_arg_decl
+
+A new field, rout_src_seq_entry_for_default_arg_decl, has been added to
+a_param_type (when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE).  If the
+parameter has a default argument, the field is set to point to the source
+sequence entry for the routine declaration in which the default argument
+was declared.  For instance:
+
+  void f(int, int = 0);
+  void f(int i, int j) { /* ... */ }
+
+The pointer in the param type entry for the second parameter will point
+to the source-sequence entry associated with the first declaration of f.
+
 5/17/94  Declaring a function as a template after it has been called
 
 In examples such as the following, in which a function template is declared
@@ -122,6 +143,44 @@ of code are in
 
 In the error.c case, the output was already close to right, but the
 code has been changed to use the same techniques as in the other files.
+
+5/11/94 IL CHANGE: compiler_generated added to a_constructor_init
+
+The flag compiler_generated has been added to a_constructor_init to
+distinguish constructor calls that are inserted by the compiler from those
+that are explicitly invoked by the source code.
+
+5/4/94  IL CHANGE: is_partially_initialized added to a_variable
+
+The new is_partially_initialized flag in a_variable has been added to
+identify variables and static data members (of array or class aggregate
+type) that have been initialized but only partially -- that is, the
+init_kind field is something other than initk_none but one or more array
+elements or fields remains uninitialized (or partially uninitialized).
+
+5/3/94  IL CHANGE: a_pragma
+
+a_pragma has been added to the IL.  Such entries appear on a linked list
+pointed to by the new pragmas field in a_scope.  When a pragma is bound to
+a particular statement or declarative entity, it will point to it, and (in
+lieu of a back-pointer) the new has_associated_pragma flag in a_statement
+and a_source_correspondence will be set. The precise location of the
+pragma in the source is represented when GENERATE_SOURCE_SEQUENCE_LISTS is
+TRUE -- a pragma bound to a particular declaration, for example, has its
+own source-sequence entry immediately preceding the source-sequence entry
+representing the declaration.
+
+Pragma support has been designed to be easily extensible.  A set of pragma
+kinds (see a_pragma_kind) is provided, and variant fields may be added to
+a_pragma to support new pragma kinds.  The pragma kind may specified so
+that automatic processing is done in the front end, or the pragma may be
+passed through to the back end in textual form.  The pragma may be bound
+to a particular declaration or statement or be of general effect within a
+given scope.  Front-end processing, if any, may be immediate or delayed.
+The front end may be configured either to reject unrecognized pragmas or
+to pass them though in the IL; see INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL.
+Detailed guidance on extending pragma support is given in the Pragmas
+chapter of the internal documentation.
 
 5/2/94  Inheritance of assignment operators
 
@@ -865,7 +924,14 @@ that redeclare a member name, as in the following:
     enum { e1, e2 } g;     // Spurious error no longer issued on g
   }
 
-3/24/94  IL change: 2 fields pointing to source sequence entries eliminated
+3/25/94  IL CHANGE: fields removed from a_block, a_statement
+
+Fields final_source_sequence_entry and last_declaration, very recently
+added to a_block and a_statement, respectively, have been removed.  The
+former is no longer needed now that end-of-construct markers have been
+added to the source sequence lists.
+
+3/24/94  IL CHANGE: 2 fields pointing to source sequence entries eliminated 
 
 Two fields, recently added, have been eliminated: last_declaration, a
 variant field of a_statement, and final_source_sequence_entry, in a_block.
@@ -873,7 +939,7 @@ variant field of a_statement, and final_source_sequence_entry, in a_block.
 implementations in which GENERATE_SOURCE_SEQUENCE_LISTS is configured to
 TRUE.)
 
-3/23/94  IL change: nested function prototype scopes
+3/23/94  IL CHANGE: nested function prototype scopes
 
 When a function prototype scope has nested within it another function
 prototype scope for which an IL scope entry is needed, e.g.,
@@ -936,7 +1002,7 @@ functions that make use of local types.  Types in nested prototype scopes
 are also being promoted to file scope (formerly, only the types in
 top-level prototype scopes were being promoted).
 
-3/21/94 IL change: a reworking of source sequence lists
+3/21/94 IL CHANGE: a reworking of source sequence lists
 
 A number of changes have been made to the way source-sequence lists are
 generated.  Most important is the elimination of "proxies" and the use
