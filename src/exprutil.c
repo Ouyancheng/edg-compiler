@@ -4170,9 +4170,13 @@ in *result.
       /* Bound function.  bound_function_selector indicates the object. */
       implicit_this_argument = make_node_from_operand(bound_function_selector);
       /* Cast if necessary to handle any const etc. adjustment. */
+      /* There might be a cast to a base class here if the function has
+         been projected into a derived class with a using declaration.
+         No access checking is done on the cast, because the using
+         declaration adjusts access. */
       cast_node(&implicit_this_argument,
                 implicit_this_param_type_of(function_type),
-                /*check_cast_access=*/TRUE,
+                /*check_cast_access=*/FALSE,  /* sic */
                 /*is_implicit_cast=*/TRUE,
                 &bound_function_selector->position);
       /* Pass a "this" pointer as the first argument. */
