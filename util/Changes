@@ -1,3 +1,12 @@
+Version 2.29
+
+3/3/95   eccp use of --gen_c_file_name option 
+
+When compiling multiple source files, eccp would keep appending additional
+--gen_c_file_name options to the string passed to the front end.  This
+worked, as the front end would use the last name passed (which was the
+right one).  Only the correct name is passed now.
+
 Version 2.28, March 2, 1995
 
 1/13/95  Allow multi-character symbol types in HP/UX nm output
