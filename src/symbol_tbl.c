@@ -7042,6 +7042,8 @@ specific version of the template.
   ssep->return_value_optimization_possible = FALSE;
   ssep->in_prototype_instantiation = FALSE;
   ssep->defer_access_checks      = FALSE;
+  ssep->is_try_block             = FALSE;
+  ssep->within_try_block         = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -7373,7 +7375,12 @@ specific version of the template.
                                    olk_global_static : olk_block));
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
-  }  /* if */      
+  }  /* if */
+  /* Propagate the flag indicating that this scope is inside the compound
+     statement of a try block. */
+  if (kind == (a_scope_kind)sck_block && (ssep-1)->within_try_block) {
+    ssep->within_try_block = TRUE;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     db_scope_stack();

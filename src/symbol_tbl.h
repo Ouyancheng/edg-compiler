@@ -1670,6 +1670,14 @@ typedef struct a_scope_stack_entry {
 			   continue on past the nested instantiation scope so
 			   that names from the outer instantiation scope can
 			   be visible. */
+  unsigned int	is_try_block:1;
+			/* TRUE if the scope is that of the compound statement
+			   of a try block (sck_block only).  Note: not set
+			   for the scope pushed for a catch clause. */
+  unsigned int	within_try_block:1;
+			/* TRUE if is_try_block is TRUE or if this scope is
+			   an sck_block scope nested within a scope for which
+			   is_try_block is set. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
