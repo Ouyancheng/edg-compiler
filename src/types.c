@@ -3020,22 +3020,17 @@ See conversion_possible.
         if (source_enum_type != dest_enum_type) {
           /* Conversion of one enum type to another, or conversion of an
              arithmetic non-enum type to an enum. */
-          /* Allowing conversion of arithmetic types to an enum is an
-             anachronism.  Only allow this if anachronisms are being
-             allowed.  Cfront also allows floats to be assigned to enums.
-             But this is not really part of the anachronism and is not
-             supported in any mode.  In C, it's valid but we issue
-             a warning anyway. */
           if (C_dialect != C_dialect_cplusplus) {
-            /* Mixed integral types allowed in C with a warning. */
+            /* Mixed integral/enum types allowed in C with a warning. */
             std_conv->warning_suggested = ec_mixed_enum_type;
-          } else if (allow_anachronisms &&
-                     ((int)anachronism_error_severity == (int)es_warning) &&
-                     source_is_integral) {
-            /* Anachronism warning in C++ mode with anachronisms allowed. */
-            std_conv->warning_suggested = ec_mixed_enum_type_anachronism;
+          } else if (cfront_2_1_mode && source_is_integral) {
+            /* Integral --> enum allowed in cfront 2.1 mode, with a
+               warning.  cfront 2.1 also allows floats to be converted to
+               enums, but it doesn't seem necessary to duplicate that
+               behavior. */
+            std_conv->warning_suggested = ec_mixed_enum_type;
           } else {
-            /* C++ mode and anachronisms not allowed. */
+            /* Other C++ modes: no mixing allowed. */
             okay = FALSE;
           }  /* if */
         }  /* if */
