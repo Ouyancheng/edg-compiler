@@ -127,6 +127,15 @@ EXTERN a_boolean
 			   source line information and suppress wrapping
 			   of the error message text. */
 
+EXTERN a_boolean
+                do_not_wrap_diagnostics
+#if VAR_INITIALIZERS
+                                        = FALSE;
+#endif /* VAR_INITIALIZERS */
+                                                             ;
+                        /* TRUE if diagnostic output should suppress
+			   wrapping of the error message text. */
+
 /*
 Error routines.
 */

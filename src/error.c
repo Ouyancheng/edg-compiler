@@ -2161,7 +2161,8 @@ additional messages in a multiple message diagnostic.
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* There is a message to be formatted and written. */
       /* Put out the error message text to stderr. */
-      write_message(stderr, &line_len, /*wrap=*/!brief_diagnostics);
+      write_message(stderr, &line_len, /*wrap=*/!brief_diagnostics && 
+                                                !do_not_wrap_diagnostics);
 
 #if !STANDALONE_UTILITY_PROGRAM
       /* The message is always output to stderr so that the user can see it.

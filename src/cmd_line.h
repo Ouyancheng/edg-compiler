@@ -141,6 +141,7 @@ typedef enum /*an_option_kind*/ {
   optk_distinct_template_signatures,
 #endif /* NEED_NAME_MANGLING */
   optk_old_specializations,
+  optk_wrap_diagnostics,
   optk_last		/* Must be last. */
 } an_option_kind;
 

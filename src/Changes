@@ -1,5 +1,10 @@
 Version 2.32
 
+5/22/96 Wrap diagnostics option
+
+The options --wrap_diagnostics and --no_wrap_diagnostics enable
+and disable a mode in which the error text is not wrapped.
+
 5/14/96 referenced flag on template class in instantiation pragma
 
 An instantiation pragma for a class (which really asks for instantiation

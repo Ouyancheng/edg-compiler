@@ -602,6 +602,14 @@ Initialize the option information table.
                          "no_old_specializations", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_wrap_diagnostics,
+			 "wrap_diagnostics",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_wrap_diagnostics,
+			 "no_wrap_diagnostics",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1495,6 +1503,11 @@ common_cfront_mode_settings:
 	   omits the source information and suppresses wrapping of
 	   the error message text. */
 	brief_diagnostics = opt_value;
+        break;
+      case optk_wrap_diagnostics:
+        /* Diagnostics should or should not be emitted in a form that
+	   suppresses wrapping of the error message text. */
+	do_not_wrap_diagnostics = !opt_value;
         break;
       case optk_nonconst_ref_anachronism:
         /* A reference to nonconst is allowed to bind to a class rvalue. */
