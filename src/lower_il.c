@@ -510,14 +510,17 @@ scope, or the lifetime from the parent context, will be used.
      Also save the old value for restoration by pop_context. */
   context->saved_curr_object_lifetime = curr_object_lifetime;
   if (new_lifetime) curr_object_lifetime = lifetime;
-  /* Save curr_cleanup_state for later restoration. */
-  context->saved_curr_cleanup_state = curr_cleanup_state;
-  /* curr_cleanup_state is not cleared on purpose.  It spans lifetimes. */
   /* The latest_initialization list starts at NULL for a new object lifetime,
      or is inherited from the parent if there is no new object lifetime. */
   context->latest_initialization = NULL;
   if (!new_lifetime && parent_context != NULL) {
     context->latest_initialization = parent_context->latest_initialization;
+  }  /* if */
+  /* The curr_cleanup_state field is inherited from the parent -- it spans
+     lifetimes. */
+  context->curr_cleanup_state = NULL;
+  if (parent_context != NULL) {
+    context->curr_cleanup_state = parent_context->curr_cleanup_state;
   }  /* if */
   context->successor_lifetime_at_statement = NULL;
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -535,16 +538,15 @@ Pop an entry off the context stack.
 
   if (context->new_lifetime) {
     /* This context has its own object lifetime, so curr_object_lifetime
-       and curr_cleanup_state are restored to what they were at push_context
-       time. */
+       is restored to what it was at push_context time. */
     curr_object_lifetime = context->saved_curr_object_lifetime;
-    curr_cleanup_state = context->saved_curr_cleanup_state;
   } else {
     /* This context does not have its own object lifetime, so the
-       latest_initialization pointer is propagated up to the parent (it's
-       lifetime-related). */
+       latest_initialization and curr_cleanup_state pointers are propagated
+       up to the parent (they're lifetime-related). */
     if (parent_context != NULL) {
       parent_context->latest_initialization = context->latest_initialization;
+      parent_context->curr_cleanup_state = context->curr_cleanup_state;
     }  /* if */
   }  /* if */
   /* Pop to the surrounding context. */
@@ -6911,12 +6913,14 @@ to the statement; otherwise, it is NULL.
   an_insert_location     insert_location, insert_location2;
   an_expr_node_ptr       expr_to_lower = expr;
   an_object_lifetime_ptr lifetime = NULL;
+  a_dynamic_init_ptr     saved_curr_cleanup_state;
 
   /* An enk_object_lifetime node can only appear at the top of a full
      expression.  Process it if present.  Such a node defines
      an object lifetime for the evaluation of the full expression. */
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     expr_to_lower = expr->variant.object_lifetime.expr;
+    saved_curr_cleanup_state = curr_context->curr_cleanup_state;
     lifetime = expr->variant.object_lifetime.ptr;
     push_context(&context, (a_scope_ptr)NULL, lifetime);
     /* Begin the object lifetime.  Any code generated is saved off to the
@@ -6959,11 +6963,11 @@ to the statement; otherwise, it is NULL.
       set_after_expr_insert_location(expr_to_lower, &insert_location);
       gen_cleanup_actions(lifetime, &insert_location);
     }  /* if */
-    if (curr_cleanup_state != curr_context->saved_curr_cleanup_state) {
+    if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
       /* In some cases (e.g., the dynamic init for freeing of storage
          allocated by a new if an exception occurs), the cleanup state
          has not been restored completely to what it was, so do that now. */
-      curr_cleanup_state = curr_context->saved_curr_cleanup_state;
+      curr_context->curr_cleanup_state = saved_curr_cleanup_state;
       if (exceptions_enabled) {
         set_after_expr_insert_location(expr_to_lower, &insert_location);
         insert_code_to_indicate_cleanup_state(&insert_location);
@@ -7349,7 +7353,7 @@ lifetime begins at the start of a switch clause.
 
   curr_object_lifetime = curr_context->lifetime = lifetime;
   curr_context->latest_initialization = NULL;
-  /* curr_cleanup_state is not changed on purpose. */
+  /* curr_context->curr_cleanup_state is not changed on purpose. */
   if (!switch_clause) {
     /* Set up the context field to watch for the appearance of the
        statement that begins the next label lifetime.  The switch clause
@@ -7513,7 +7517,7 @@ are enabled.
        destroying them, otherwise at the first region for a nontemp. */
     dip = need_regions_for_temps ? first_temp : first_nontemp;
     curr_context->latest_initialization = dip;
-    curr_cleanup_state = dip;
+    curr_context->curr_cleanup_state = dip;
     /* set_curr_cleanup_state is not called on purpose, because no code
        need be generated to record the cleanup state. */
   }  /* if */
@@ -7554,7 +7558,7 @@ Called only in long lifetime temporaries mode.
   if (need_to_destroy_temps) {
     /* Go through the list of destructions, find the ones for temporaries,
        and generate destruction code. */
-    for (dip = curr_cleanup_state;
+    for (dip = curr_context->curr_cleanup_state;
          dip != NULL;
          dip = dip->next_in_destruction_list) {
       if (dip->has_temporary_lifetime &&
@@ -7709,7 +7713,7 @@ it; otherwise, switch_lifetime is NULL.
     clause_statements = clause->statements;
     /* If the previous clause, or the body statement, ended with a return
        or goto, the current cleanup state may be wrong, so restore it. */
-    curr_cleanup_state = curr_context->latest_initialization;
+    curr_context->curr_cleanup_state = curr_context->latest_initialization;
     /* See if this clause is associated with the next object lifetime
        in sequence. */
     if (lifetime != NULL &&
@@ -7860,7 +7864,7 @@ code.
 */
 {
   a_boolean              any_cleanup_needed = FALSE, skip_temporaries = FALSE;
-  a_dynamic_init_ptr     dip = curr_cleanup_state;
+  a_dynamic_init_ptr     dip = curr_context->curr_cleanup_state;
   an_object_lifetime_ptr lifetime = curr_object_lifetime;
 
   /* Do nothing at all if there are no lifetimes involved. */
@@ -8050,7 +8054,7 @@ Push a context and start an object lifetime, if necessary, for the
 indicated block statement.  If a context is pushed, context (a local
 variable in the caller) is used as the stack entry and *context_pushed
 is returned TRUE.  *new_lifetime is returned TRUE if a new object lifetime
-is begun.  The value of curr_cleanup_state is saved in
+is begun.  The value of curr_context->curr_cleanup_state is saved in
 *saved_curr_cleanup_state so it can be restored at the end of the block.
 */
 {
@@ -8060,7 +8064,7 @@ is begun.  The value of curr_cleanup_state is saved in
 
   *context_pushed = FALSE;
   *new_lifetime = FALSE;
-  *saved_curr_cleanup_state = curr_cleanup_state;
+  *saved_curr_cleanup_state = curr_context->curr_cleanup_state;
   if (scope != NULL || lifetime != NULL) {
     push_context(context, scope, lifetime);
     *context_pushed = TRUE;
@@ -8136,8 +8140,8 @@ actions required at the end of the block.  last_statement points to the
 last statement within the block, or is NULL if there are no statements
 in the block or to ask this routine to find the last statement itself.
 Any cleanup code inserted is placed after the last statement.
-*saved_curr_cleanup_state contains the value that curr_cleanup_state
-had at the start of the block.
+*saved_curr_cleanup_state contains the value that
+curr_context->curr_cleanup_state had at the start of the block.
 */
 {
   a_block_ptr            block = block_statement->variant.block.extra_info;
@@ -8176,7 +8180,7 @@ had at the start of the block.
       gen_cleanup_actions(lifetime, &insert_location);
     }  /* if */
   }  /* if */
-  if (saved_curr_cleanup_state != curr_cleanup_state &&
+  if (saved_curr_cleanup_state != curr_context->curr_cleanup_state &&
       !block->end_of_block_reachable &&
       scope != innermost_function_scope) {
     /* Adjust the cleanup state at the end of a block that ends with a
@@ -8187,7 +8191,7 @@ had at the start of the block.
        multiple initializations, and that block has neither a lifetime nor
        a scope associated with it; the cleanup state on exit needs
        to be the state after the initializations). */
-    curr_cleanup_state = saved_curr_cleanup_state;
+    curr_context->curr_cleanup_state = saved_curr_cleanup_state;
     /* If necessary, emit code to indicate the cleanup state at the end
        of the block. */
     reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
@@ -8543,7 +8547,8 @@ handled).
            if (!value_expr) goto break_label;
       */
       { a_statement_ptr    goto_stmt, if_stmt;
-        a_dynamic_init_ptr saved_curr_cleanup_state = curr_cleanup_state;
+        a_dynamic_init_ptr saved_curr_cleanup_state =
+                                              curr_context->curr_cleanup_state;
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
         goto_stmt->variant.label.ptr = break_label;
         /* The common lifetime for the goto and label is the lifetime of the
@@ -8562,8 +8567,8 @@ handled).
         /* If the condition variable requires destruction, put destruction
            code in preceding the goto. */
         gen_goto_cleanup_actions(goto_stmt);
-        if (curr_cleanup_state != saved_curr_cleanup_state) {
-          curr_cleanup_state = saved_curr_cleanup_state;
+        if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
+          curr_context->curr_cleanup_state = saved_curr_cleanup_state;
           reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
         }  /* if */
       }
@@ -8698,7 +8703,7 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
-        curr_cleanup_state = curr_context->latest_initialization;
+        curr_context->curr_cleanup_state = curr_context->latest_initialization;
         if (exceptions_enabled &&
             innermost_function_scope->lifetime != NULL) {
           /* Exceptions are enabled and the current function has
@@ -10762,7 +10767,6 @@ void function_lower_init(void)
 Do initialization at the beginning of lowering a function.
 */
 {
-  curr_cleanup_state = NULL;
   /* Clear the list of return statements found in the routine.  This list
      is built so that epilogue code can be added at each return. */
   return_memo_list = NULL;

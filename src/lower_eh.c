@@ -3935,19 +3935,19 @@ the throw, whereas the rest of the throw expression evaluation is
 void insert_code_to_indicate_cleanup_state(an_insert_location *insert_location)
 /*
 Insert code to indicate the cleanup state (based on the current value of
-curr_cleanup_state).  The code is inserted at *insert_location, and
-*insert_location is updated.  This routine is called only when exceptions
+curr_context->curr_cleanup_state).  The code is inserted at *insert_location,
+and *insert_location is updated.  This routine is called only when exceptions
 are enabled.
 */
 {
-  an_expr_node_ptr node;
+  an_expr_node_ptr   node;
+  a_dynamic_init_ptr cleanup_state = curr_context->curr_cleanup_state;
 
   check_assertion_str(exceptions_enabled,
      "insert_code_to_indicate_cleanup_state: called with exceptions disabled");
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* In the portable scheme, assign the region number to __eh_curr_region. */
-  node = node_for_integer_constant((long)cleanup_region_number(
-                                                           curr_cleanup_state),
+  node = node_for_integer_constant((long)cleanup_region_number(cleanup_state),
                                    TARG_REGION_NUMBER_INT_KIND);
   assign_to_eh_curr_region(node, insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
@@ -3958,11 +3958,11 @@ are enabled.
 #if GENERATE_EH_TABLES
   /* With partial lowering, the region number is put into the node. */
   node->variant.lowered_eh.variant.cleanup_region_number =
-                                     cleanup_region_number(curr_cleanup_state);
+                                          cleanup_region_number(cleanup_state);
 #else /* GENERATE_EH_TABLES */
   /* With no lowering, a pointer to the dynamic initialization entry is put
      into the node. */
-  node->variant.lowered_eh.variant.cleanup_ptr = curr_cleanup_state;
+  node->variant.lowered_eh.variant.cleanup_ptr = cleanup_state;
 #endif /* GENERATE_EH_TABLES */
   (void)insert_expr_statement(node, insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */

@@ -1804,8 +1804,6 @@ typedef struct a_generated_routine_context {
 		processing_file_scope_init_routine;
   a_return_memo_ptr
 		return_memo_list;
-  a_dynamic_init_ptr
-		curr_cleanup_state;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   a_local_static_variable_init_ptr
 		promoted_local_static_variable_inits;
@@ -1840,8 +1838,6 @@ grcontext is a local variable used to save state for later restoration.
   processing_file_scope_init_routine = FALSE;
   grcontext->return_memo_list = return_memo_list;
   /* return_memo_list is cleared by function_lower_init. */
-  grcontext->curr_cleanup_state = curr_cleanup_state;
-  /* curr_cleanup_state is cleared by function_lower_init. */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   grcontext->promoted_local_static_variable_inits = 
                                           promoted_local_static_variable_inits;
@@ -1898,7 +1894,6 @@ Pop function corresponding to push_generated_routine_context.
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
-  curr_cleanup_state = grcontext->curr_cleanup_state;
   free_return_memo_list(return_memo_list);
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =
@@ -2342,7 +2337,8 @@ and not for constructor_init entries in destructors.
   /* Set the cleanup state to what it should be after the destruction,
      because as soon as we start the destruction it's the destructor's
      job to deal with partial destruction. */
-  curr_cleanup_state = dedp->cleanup_state_to_set_when_starting_destruction;
+  curr_context->curr_cleanup_state =
+                          dedp->cleanup_state_to_set_when_starting_destruction;
   if (exceptions_enabled) {
     insert_code_to_indicate_cleanup_state(insert_location);
   }  /* if */
@@ -2894,7 +2890,8 @@ Any code needed is inserted at *insert_location.
   /* Put a copy of the initialization position description into the
      destruction entity description for use at destruction time. */
   copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
-  dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
+  dedp->cleanup_state_to_set_when_starting_destruction =
+                                                   context->curr_cleanup_state;
 #if GENERATE_EH_TABLES
   if (exceptions_enabled) {
     /* Make a region table entry for the entity (and for its conditional
@@ -2905,7 +2902,7 @@ Any code needed is inserted at *insert_location.
   }  /* if */
 #endif /* GENERATE_EH_TABLES */
   /* Set the current cleanup state. */
-  curr_cleanup_state = dip;
+  context->curr_cleanup_state = dip;
   if (exceptions_enabled) {
     insert_code_to_indicate_cleanup_state(insert_location);
   }  /* if */
@@ -3318,7 +3315,7 @@ enabled.
   a_dynamic_init_ptr dip = local_static_lifetime->destructions;
 
   check_assertion(dip != NULL && dip->next == NULL);
-  curr_cleanup_state = dip->destructible_entity_descr->
+  curr_context->curr_cleanup_state = dip->destructible_entity_descr->
                                 cleanup_state_to_set_when_starting_destruction;
   insert_code_to_indicate_cleanup_state(insert_location);
 }  /* remove_local_static_guard_var_cleanup */
@@ -4037,8 +4034,9 @@ and *insert_location is updated.
        because as soon as we start the destruction it's the destructor's
        job to deal with partial destruction.  Note that this is not done
        when exceptions are not enabled, because dedp is NULL in that case,
-       and curr_cleanup_state need not be maintained. */
-    curr_cleanup_state = dedp->cleanup_state_to_set_when_starting_destruction;
+       and curr_context->curr_cleanup_state need not be maintained. */
+    curr_context->curr_cleanup_state =
+                          dedp->cleanup_state_to_set_when_starting_destruction;
     insert_code_to_indicate_cleanup_state(insert_location);
   }  /* if */
   add_destructor_call(dip->destructor, ipdp, have_complete_object,
@@ -6159,7 +6157,7 @@ destructor scope, and also lower the user code.
       /* Set the cleanup state at the end of the prologue (i.e., just before
          going into user code) to the first cleanup for the wrapper.
          Note that this is not set when exceptions are not enabled. */
-      curr_cleanup_state = first_prologue_destruction;
+      curr_context->curr_cleanup_state = first_prologue_destruction;
       insert_code_to_indicate_cleanup_state(&prologue_insert_location);
     } /* if */
   }  /* if */
