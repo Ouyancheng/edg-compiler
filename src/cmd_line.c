@@ -1030,7 +1030,7 @@ is enabled.
   guiding_decls_allowed = FALSE;
   old_specializations_allowed = TRUE;
   c_and_cpp_function_types_are_distinct = FALSE;
-  extern_inline_allowed = FALSE;
+  extern_inline_allowed = TRUE;
   targ_enum_types_can_be_smaller_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
   allow_copy_assignment_op_with_base_class_param = FALSE;

@@ -1,5 +1,15 @@
 Version 2.37
 
+6/23/97   Microsoft compatibility: extern inline allowed
+
+By default "extern inline" is now enabled in Microsoft compatibility mode.
+This eliminates a spurious error on the following:
+
+  template <void (*fp)()> class C { /* ... */ };
+  inline void f() { /* ... */ }
+  C<f> c;                  // Error (non-external template argument) is no
+                           //   longer issued
+
 6/20/97   Abort or internal error using non-memory mapped PCH files
 
 The routines that read memory regions from a PCH file when not using
