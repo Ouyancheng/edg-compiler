@@ -106,7 +106,8 @@ extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
 extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
-extern a_type_ptr type_of_complete_object(an_expr_node_ptr node);
+extern a_type_ptr con_complete_object_type(a_constant_ptr constant);
+extern a_type_ptr node_complete_object_type(an_expr_node_ptr node);
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/FALSE))
 #define il_identical_types(t1, t2) \
@@ -175,8 +176,14 @@ Return TRUE if a routine type is the type of a nonstatic member function.
 The type must be known to be a routine type (not, for example, an error type).
 */
 #define routine_type_is_nonstatic_member_function(routine_type)       \
- (skip_typerefs(routine_type)->variant.routine.extra_info->           \
-                                       implicit_this_param_type != NULL)
+ (routine_type->variant.routine.extra_info->implicit_this_param_type != NULL)
+
+/*
+Extract the class type from a nonstatic member function type.
+*/
+#define class_type_from_nonstatic_member_function_type(routine_type)  \
+  (f_skip_typerefs(type_pointed_to(                                   \
+    (routine_type)->variant.routine.extra_info->implicit_this_param_type)))
 
 #endif /* ifndef TYPES_H */
 
