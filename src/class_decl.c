@@ -6814,7 +6814,8 @@ skip_tag_scan:
         tag_sym = NULL;
         set_to_error_locator(locator);
         err = TRUE;
-      } else if (is_class_definition || curr_token == tok_semicolon) {
+      } else if (is_class_definition ||
+                 (curr_token == tok_semicolon && !is_friend_decl)) {
         /* We have a specific declaration of a template class. */
         cssp->is_specific_template_def = TRUE;
       }  /* if */
