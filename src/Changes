@@ -1,5 +1,12 @@
 Version 2.08
 
+7/30/92  Change overload resolution algorithm
+
+The overload resolution algorithm was changed to match the ARM algorithm
+exactly (well, as exactly as one can match an incomplete specification).
+This fixes some minor problems, notably one case that comes up in the
+NIH libraries.
+
 7/29/92  Optionally allow dollar signs in identifiers
 
 Allow dollar signs in identifiers if the -$ option is specified on
