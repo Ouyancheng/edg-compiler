@@ -726,8 +726,8 @@ return the length of the name.
 }  /* mangled_template_arguments */
 
 
-sizeof_t mangled_basic_class_name(a_type_ptr type,
-                                  char       *store_at)
+static sizeof_t mangled_basic_class_name(a_type_ptr type,
+                                         char       *store_at)
 /*
 Determine the mangled form of the basic name of the class "type".  This is
 not the version that contains a leading count of the number of characters
@@ -897,6 +897,36 @@ used for named types (classes, enums, and typedefs) and for unnamed classes.
 {
   return r_mangled_type_name(type, (unsigned long)1, store_at);
 }  /* mangled_type_name */
+
+
+sizeof_t mangled_class_name(a_type_ptr type,
+                            char       *store_at)
+/*
+Determine the mangled form of the name of the class "type".  This is
+the same as the basic class name if the class is not nested, and a
+nested name encoding if the class is nested.  This is used for things
+like the names of base class pointers.  Place the mangled name at
+*store_at if store_at != NULL, and (always) return the length of the name.
+*/
+{
+  sizeof_t mangled_name_length;
+
+  if (type->source_corresp.class_of_which_a_member != NULL &&
+      type->source_corresp.name != NULL &&
+      !type->source_corresp.name_has_been_mangled
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+      /* If this a cfront 2.1 nested type, leave it in the unnested form. */
+      && !type->use_cfront_transitional_nested_type_name_mangling
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+                                       ) {
+    /* Use a nested type name. */
+    mangled_name_length = mangled_type_name(type, store_at);
+  } else {
+    /* Use the basic class name. */
+    mangled_name_length = mangled_basic_class_name(type, store_at);
+  }  /* if */
+  return mangled_name_length;
+}  /* mangled_class_name */
 
 
 static sizeof_t mangled_encoding_for_type(a_type_ptr type,
@@ -1734,6 +1764,9 @@ data members) in scope and all its sub-scopes.
      now. */
   for (type = scope->types; type != NULL; type = type->next) {
     if (is_immediate_class_type(type)) {
+      /* Make sure the type-as-subobject for a class gets the class name
+         before it is changed, if it is a nested class name. */
+      prelower_class_type(type);
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
       if (class_scope != NULL) do_scope_other_name_mangling(class_scope);
     }  /* if */
@@ -1855,7 +1888,7 @@ the length of the name.
   }  /* if */
   /* Put out the name on the first derivation step. */
   class_type = dsp->base_class->type;
-  name_length = mangled_basic_class_name(class_type, store_at);
+  name_length = mangled_type_name(class_type, store_at);
   mangled_name_length += name_length;
   if (store_at != NULL) store_at += name_length;
   return mangled_name_length;

@@ -31,8 +31,8 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
 extern char *get_mangled_static_data_member_name(a_variable_ptr variable);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-extern sizeof_t mangled_basic_class_name(a_type_ptr type,
-                                         char       *store_at);
+extern sizeof_t mangled_class_name(a_type_ptr type,
+                                   char       *store_at);
 
 extern sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
                                   a_base_class_ptr bcp,
