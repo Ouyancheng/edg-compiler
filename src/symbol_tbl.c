@@ -4647,6 +4647,55 @@ class of its derived class.
 }  /* symbol_projected_from_base_class */
 
 
+static a_derivation_step_ptr path_to_fundamental_symbol_base_class
+                                              (a_symbol_ptr      sym,
+                                               a_base_class_ptr  disambiguator)
+/*
+sym is a projection symbol.  Disambiguator is a base class of the current
+most derived class that is intermediate between the base class we are looking
+for and the derived class.  What we're looking for is the base class in the
+derived class that corresponds to the base class associated with sym's
+fundamental symbol.  Return the preferred derivation of that base class.
+*/
+{
+  a_type_ptr             tp;
+  a_base_class_ptr       bcp;
+  a_derivation_step_ptr  path = NULL;
+
+  /* Note that corresponding_base_class is not called, since it is hard to
+     compute a disambiguator that is a immediately derived from the base
+     class we're looking for. */
+  tp = sym->variant.projection.extra_info->fundamental_base_class->type;
+  bcp = base_classes_of(disambiguator->derived_class);
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->type == tp) {
+      /* A base class with the right type. */
+      if (!bcp->ambiguous || is_on_any_derivation_of(bcp, disambiguator)) {
+        /* Either unambiguous or disambiguated. */
+        path = preferred_derivation_of(bcp)->path;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (path == NULL) {
+    /* We shouldn't fail to find a corresponding base class. */
+    internal_error("path_to_fundamental_symbol_base_class: not found");
+  } else if (bcp->ambiguous) {
+    /* Check to be sure the disambiguation was correct -- look at the rest of
+       the base classes to see if any would also qualify. */
+    for (bcp = bcp->next; bcp != NULL; bcp = bcp->next) {
+      if (bcp->type == tp && is_on_any_derivation_of(bcp, disambiguator)) {
+        internal_error(
+                    "path_to_fundamental_symbol_base_class: ambiguous deriv");
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* CHECKING */
+  return path;
+}  /* path_to_fundamental_symbol_base_class */
+
+
 static a_boolean projections_are_equivalent(a_symbol_ptr           sym1,
                                             a_derivation_step_ptr  path1,
                                             a_symbol_ptr           sym2,
@@ -4661,7 +4710,6 @@ only the same members of the same class but with equivalent derivations).
   a_boolean              equiv = FALSE;
   a_symbol_ptr           fundamental_sym1;
   a_type_ptr             rout_type;
-  a_base_class_ptr       temp_bcp;
   a_derivation_step_ptr  tail1, tail2;
 
   db_enter(4, "projections_are_equivalent");
@@ -4734,18 +4782,12 @@ check_rout_type:
          way to the corresponding fundamental symbol instead of a path to the
          projection. */
       if (sym1->kind == (a_symbol_kind)sk_projection) {
-        temp_bcp = sym1->variant.projection.extra_info->fundamental_base_class;
-        temp_bcp = corresponding_base_class(temp_bcp,
-                                            path1->base_class->derived_class,
-                                            path1->base_class);
-        path1 = preferred_derivation_of(temp_bcp)->path;
+        /* Find the path to the base class to which sym1 belongs. */
+        path1 = path_to_fundamental_symbol_base_class(sym1, path1->base_class);
       }  /* if */
       if (sym2->kind == (a_symbol_kind)sk_projection) {
-        temp_bcp = sym2->variant.projection.extra_info->fundamental_base_class;
-        temp_bcp = corresponding_base_class(temp_bcp,
-                                            path2->base_class->derived_class,
-                                            path2->base_class);
-        path2 = preferred_derivation_of(temp_bcp)->path;
+        /* Find the path to the base class to which sym1 belongs. */
+        path2 = path_to_fundamental_symbol_base_class(sym2, path2->base_class);
       }  /* if */
       /* Find the end of each path. */
       for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
