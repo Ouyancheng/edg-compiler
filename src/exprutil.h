@@ -41,18 +41,10 @@ enum an_expression_kind_tag {
 			   3.4).  Limited use in C++. */
   /* Non-constant expression kinds: */
   ek_normal,		/* Normal expression, no restrictions. */
-  ek_not_evaluated	/* Not-evaluated expression, as for example the
-			   operand of sizeof. */
+  ek_sizeof		/* The operand of sizeof. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expression_kind;
-
-/*
-Macro that returns TRUE if an expression kind is for some variety of
-constant expression.  Note that the "<=" is possible because the constant
-kinds are at the beginning of the list.
-*/
-#define is_const_expr_kind(kind) ((int)(kind) <= (int)ek_init_constant)
 
 
 /*
@@ -65,10 +57,6 @@ typedef struct an_xref_entry {
   a_symbol_reference_kind
 		kind;	/* Kind of reference (modification, address taken,
 			   etc.). */
-  an_expression_kind
-		expression_kind;
-			/* Kind of expression.  Not-evaluated expressions
-			   require special handling. */
   a_symbol_ptr	symbol;	/* Pointer to the referenced symbol. */
   a_source_position
 		position;
@@ -378,6 +366,10 @@ typedef struct an_expr_stack_entry {
 			/* Saved copy of the cross-reference entries list
 			   at the time of the push of this entry. */
   a_byte_boolean
+		evaluated;
+			/* Expression is evaluated, e.g., FALSE if it's the
+			   operand of a sizeof. */
+  a_byte_boolean
 		is_default_arg_expression;
 			/* TRUE if the expression is a C++ default argument
 			   expression in a parameter list. */
@@ -393,6 +385,30 @@ typedef struct an_expr_stack_entry {
 EXTERN an_expr_stack_entry_ptr
 		expr_stack;
 			/* Pointer to the top of the expression stack. */
+
+/*
+Macro that returns the current expression kind.
+*/
+#define curr_expr_kind() (expr_stack->expression_kind)
+
+/*
+Macro that tests the current expression kind.
+*/
+#define curr_expr_kind_is(kind)                                       \
+  (curr_expr_kind() == (an_expression_kind)(kind))
+
+/*
+Macro that returns TRUE if the current expression kind is some variety of
+constant expression.  Note that the "<=" is possible because the constant
+kinds are at the beginning of the list.
+*/
+#define curr_expr_kind_is_const()                                     \
+  ((int)(curr_expr_kind()) <= (int)ek_init_constant)
+
+/*
+Macro that returns TRUE if the current expression is evaluated.
+*/
+#define curr_expr_is_evaluated() (expr_stack->evaluated)
 
 
 /* Copy an operand. */
@@ -464,9 +480,8 @@ constant expressions.  See ARM 7.1.6.
 	(is_const_qualified_type((var)->type) && is_integral_type((var)->type))
 
 
-extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
-                                    a_source_position       *source_position,
-                                    an_expression_kind      expression_kind);
+extern an_xref_entry_ptr xref_entry(a_symbol_ptr      sym_ptr,
+                                    a_source_position *source_position);
 
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
@@ -513,14 +528,13 @@ extern a_symbol_ptr select_overloaded_function(
 
 
 extern void overloaded_function_catch_up(
-                                 a_symbol_ptr       function_symbol,
-                                 a_symbol_ptr       overloaded_function_symbol,
-                                 a_boolean          is_qualified_name,
-                                 a_source_position  *call_position,
-                                 a_boolean          elided_reference,
-                                 an_operand         *operand,
-                                 a_boolean          *access_error_reported,
-                                 an_expression_kind expression_kind);
+                                  a_symbol_ptr      function_symbol,
+                                  a_symbol_ptr      overloaded_function_symbol,
+                                  a_boolean         is_qualified_name,
+                                  a_source_position *call_position,
+                                  a_boolean         elided_reference,
+                                  an_operand        *operand,
+                                  a_boolean         *access_error_reported);
 
 extern void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
@@ -528,40 +542,36 @@ extern void adjust_overloaded_function_call_arguments(
                              an_operand               *bound_function_selector,
                              an_arg_operand_ptr       arg_operand_list,
                              an_arg_match_summary_ptr arg_match_list,
-                             an_expression_kind       expression_kind,
                              an_expr_node_ptr         *arg_expr_list);
 
 extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
-                           a_symbol_ptr             overloaded_function_symbol,
-                           a_boolean                have_selector,
-                           an_operand               *bound_function_selector,
-                           an_arg_operand_ptr       arg_operand_list,
-                           a_boolean                is_qualified_name,
-                           an_expression_kind       expression_kind,
-                           an_error_code            err_none_applies,
-                           an_error_code            err_ambiguous,
-                           a_source_position        *call_position,
-                           an_operand               *function_operand,
-                           an_expr_node_ptr         *arg_expr_list);
+                                 a_symbol_ptr       overloaded_function_symbol,
+                                 a_boolean          have_selector,
+                                 an_operand         *bound_function_selector,
+                                 an_arg_operand_ptr arg_operand_list,
+                                 a_boolean          is_qualified_name,
+                                 an_error_code      err_none_applies,
+                                 an_error_code      err_ambiguous,
+                                 a_source_position  *call_position,
+                                 an_operand         *function_operand,
+                                 an_expr_node_ptr   *arg_expr_list);
 
 extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
                                  a_builtin_type_kind_set builtin_types_allowed,
-                                 an_expression_kind      expression_kind,
                                  a_boolean               *processed);
 
 extern void check_for_operator_overloading(
-                                    an_opname_kind     kind,
-                                    a_boolean          unary_operator,
-                                    a_boolean          must_be_member_function,
-                                    a_boolean          try_conversions,
-                                    a_boolean          has_predef_meaning,
-                                    an_operand         *operand_1,
-                                    an_operand         *operand_2,
-                                    an_expression_kind expression_kind,
-                                    a_source_position  *operator_position,
-                                    an_operand         *result,
-                                    a_boolean          *processed);
+                                     an_opname_kind    kind,
+                                     a_boolean         unary_operator,
+                                     a_boolean         must_be_member_function,
+                                     a_boolean         try_conversions,
+                                     a_boolean         has_predef_meaning,
+                                     an_operand        *operand_1,
+                                     an_operand        *operand_2,
+                                     a_source_position *operator_position,
+                                     an_operand        *result,
+                                     a_boolean         *processed);
 
 extern void bind_member_function_operand_to_selector(
                                       an_operand *function_operand,
@@ -571,21 +581,17 @@ extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
 extern void using_lvalue(an_operand *operand);
 
-extern void modifying_lvalue(an_operand         *operand,
-                             an_expression_kind expression_kind);
+extern void modifying_lvalue(an_operand *operand);
 
 extern a_boolean is_bit_field_operand(an_operand *operand);
 
-extern void take_address_of_lvalue(an_operand         *operand,
-                                   an_expression_kind expression_kind);
+extern void take_address_of_lvalue(an_operand *operand);
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
-extern void conv_operand_to_object_pointer(an_operand         *operand,
-                                           an_expression_kind expression_kind);
+extern void conv_operand_to_object_pointer(an_operand *operand);
 
-extern void conv_lvalue_to_rvalue(an_operand         *operand,
-                                  an_expression_kind expresion_kind);
+extern void conv_lvalue_to_rvalue(an_operand *operand);
 
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 					           an_operand *operand_2);
@@ -606,23 +612,17 @@ extern a_boolean check_ptr_to_member_operands_for_compatibility(
                                           a_source_position *operator_position,
                                           a_type_ptr        *operation_type);
 
-extern void change_binary_operand_types(a_type_ptr         type,
-				        an_operand         *operand_1,
-				        an_operand         *operand_2,
-                                        an_expression_kind expression_kind);
+extern void change_binary_operand_types(a_type_ptr type,
+				        an_operand *operand_1,
+				        an_operand *operand_2);
 
-extern void conv_function_designator_to_ptr_to_function(
-                                           an_operand         *operand,
-                                           an_expression_kind expression_kind);
+extern void conv_function_designator_to_ptr_to_function(an_operand *operand);
 
-extern void do_operand_transformations(
-                                an_operand                   *operand,
-                                a_transformation_options_set options,
-                                an_expression_kind           expression_kind);
+extern void do_operand_transformations(an_operand                   *operand,
+                                       a_transformation_options_set options);
 
-extern a_type_ptr get_logical_result_type(an_expression_kind expression_kind,
-				          an_operand         *operand_1,
-				          an_operand         *operand_2);
+extern a_type_ptr get_logical_result_type(an_operand *operand_1,
+				          an_operand *operand_2);
 
 extern a_boolean op_is_zero_constant(an_operand *operand);
 
@@ -654,11 +654,9 @@ extern a_boolean check_arithmetic_operand(an_operand *operand);
 extern void make_integer_constant_operand(an_operand *operand,
 				          long       value);
 
-extern void promote_operand(an_operand         *operand,
-                            an_expression_kind expression_kind);
+extern void promote_operand(an_operand *operand);
 
-extern void arg_default_promote_operand(an_operand         *argument_operand,
-                                        an_expression_kind expression_kind);
+extern void arg_default_promote_operand(an_operand *argument_operand);
 
 extern void make_constant_operand(a_constant *constant,
 			          an_operand *operand);
@@ -718,21 +716,17 @@ extern void extract_constant_from_operand(an_operand     *operand,
 
 extern void discard_operand(an_operand *operand);
 
-extern void cast_operand(a_type_ptr         new_type,
-		         an_operand         *operand,
-                         an_expression_kind expression_kind,
-		         a_boolean          is_implicit_cast);
+extern void cast_operand(a_type_ptr new_type,
+		         an_operand *operand,
+		         a_boolean  is_implicit_cast);
 
-extern void conv_selector_to_object_pointer(
-                                     an_operand         *operand,
-                                     a_boolean          *is_arrow_operator,
-                                     an_expression_kind expression_kind);
+extern void conv_selector_to_object_pointer(an_operand *operand,
+                                            a_boolean  *is_arrow_operator);
 
-extern void base_class_cast_operand(an_operand         *operand_1,
-                                    a_base_class_ptr   bcp,
-                                    a_boolean          *is_arrow_operator,
-                                    a_boolean          check_cast_access,
-                                    an_expression_kind expression_kind);
+extern void base_class_cast_operand(an_operand       *operand_1,
+                                    a_base_class_ptr bcp,
+                                    a_boolean        *is_arrow_operator,
+                                    a_boolean        check_cast_access);
 
 extern void make_error_operand(an_operand *operand);
 
@@ -760,9 +754,7 @@ extern void build_binary_result_operand(an_operand            *operand_1,
 
 extern a_boolean check_integral_operand(an_operand *operand);
 
-extern void conv_array_operand_to_pointer_operand(
-                                           an_operand *operand,
-                                           an_expression_kind expression_kind);
+extern void conv_array_operand_to_pointer_operand(an_operand *operand);
 
 extern void error_and_make_error_operand(an_error_code error_code,
 				         an_operand    *operand);
@@ -772,8 +764,7 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        an_operand            *operand_2,
 			        a_type_ptr            type_for_result,
 			        an_operand            *result,
-			        a_source_position     *operator_position,
-                                an_expression_kind    expression_kind);
+			        a_source_position     *operator_position);
 
 extern a_boolean check_boolean_controlling_expr(an_operand *operand,
                                                 a_boolean  ptr_to_member_okay);
@@ -799,16 +790,15 @@ extern void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
                                           an_operand       *result);
 
 extern a_boolean user_defined_conversion_possible(
-                                  an_operand         *source_operand,
-                                  a_type_ptr         dest_type,
-                                  a_boolean          is_initialization,
-                                  a_user_conv_descr  *user_conversion,
-                                  a_boolean          *failed);
+                                  an_operand        *source_operand,
+                                  a_type_ptr        dest_type,
+                                  a_boolean         is_initialization,
+                                  a_user_conv_descr *user_conversion,
+                                  a_boolean         *failed);
 
 extern void user_convert_operand(an_operand         *operand,
                                  a_type_ptr         dest_type,
-                                 a_user_conv_descr  *user_conversion,
-                                 an_expression_kind expression_kind);
+                                 a_user_conv_descr  *user_conversion);
 
 extern void prep_elision_initializer_operand(
                                       an_operand       *source_operand,
@@ -822,25 +812,21 @@ extern void prep_initializer_operand(
                                   a_type_ptr         dest_type,
                                   a_user_conv_descr  *user_conversion,
                                   a_boolean          initializing_return_value,
-                                  an_expression_kind expression_kind,
                                   an_error_code      incompatible_err);
 
 extern void prep_argument_operand(an_operand         *source_operand,
                                   a_param_type_ptr   formal_param,
                                   a_user_conv_descr  *user_conversion,
-                                  an_error_code      err_code,
-                                  an_expression_kind expression_kind);
+                                  an_error_code      err_code);
 
-extern void prep_return_operand(an_operand         *source_operand,
-                                a_type_ptr         required_type,
-                                an_expression_kind expression_kind,
-                                an_error_code      err_code);
+extern void prep_return_operand(an_operand    *source_operand,
+                                a_type_ptr    required_type,
+                                an_error_code err_code);
 
-extern void prep_assignment_operand(an_operand         *source_operand,
-                                    a_type_ptr         dest_type,
-                                    an_expression_kind expression_kind,
-                                    an_error_code      incompatible_err,
-                                    a_source_position  *err_pos);
+extern void prep_assignment_operand(an_operand        *source_operand,
+                                    a_type_ptr        dest_type,
+                                    an_error_code     incompatible_err,
+                                    a_source_position *err_pos);
 
 extern void expr_init(void);
 

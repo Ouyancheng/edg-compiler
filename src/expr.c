@@ -115,13 +115,12 @@ typedef int a_local_expr_options_set;
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
-                           an_expression_kind       expression_kind,
                            a_local_expr_options_set local_options);
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
-#define scan_expr(result, prec_level, expression_kind, local_options) \
+#define scan_expr(result, prec_level, local_options)                  \
   scan_expr_full((result), (an_operand *)NULL, (prec_level),          \
-                 (expression_kind), (local_options))
+                 (local_options))
 
 
 /*
@@ -466,10 +465,8 @@ Return TRUE if the given operand has a class type or is an error operand.
 }  /* is_class_or_error_operand */
 
 
-static void scan_subscript_operator
-                           (an_operand               *operand_1,
-	                    an_operand               *result,
-	                    an_expression_kind       expression_kind)
+static void scan_subscript_operator(an_operand *operand_1,
+                                    an_operand *result)
 /*
 Scan array subscripting.  See section 3.3.2.1 of the standard.
 
@@ -487,11 +484,11 @@ Syntax:
 
   copy_source_position(pos_curr_token, operator_position);
 
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Subscripting not allowed in preprocessing expression. */
     pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
-  } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Subscripting not allowed in integral constant expression. */
     pos_error(ec_expr_not_integral, &operator_position);
     err = TRUE;
@@ -502,7 +499,7 @@ Syntax:
   add_matching_stop_token(tok_rbracket);
 
   /* Scan the second operand. */
-  scan_expr(&operand_2, PREC_LOWEST, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
 
   if (err) {
     /* Subscripting is not allowed in this kind of expression. */
@@ -517,13 +514,13 @@ Syntax:
                                      /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
                                      operand_1, &operand_2,
-                                     expression_kind, &operator_position,
+                                     &operator_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
-      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+      do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
+      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* One of the operands must have type "pointer to object type" and the 
          other must be an integral expression.  See section 3.3.2.1 of the
          standard.  If the first operand is integral, switch them. */
@@ -562,7 +559,7 @@ Syntax:
          indicated, and 3.3.2.1 does not say to do them). */
       do_binary_operation((an_expr_operator_kind)eok_padd_subsc,
                           operand_1, &operand_2, operand_1->type, result,
-                          &operator_position, expression_kind);
+                          &operator_position);
       /* This is an lvalue; the expression or constant giving the address
          has type pointer-to-X, but the operand has type X. */
       result->type = result_type;
@@ -880,7 +877,6 @@ format string (they are updated on return).
 
 
 static void scan_call_arguments(a_type_ptr         function_type,
-                                an_expression_kind expression_kind,
                                 a_boolean          already_after_left_paren,
                                 an_expr_node_ptr   *p_argument_list,
                                 a_boolean          overloaded_function_case,
@@ -889,14 +885,14 @@ static void scan_call_arguments(a_type_ptr         function_type,
 Scan the arguments of a function call and return a list of argument
 expressions in *p_argument_list.  The type of the function being called is
 given by function_type; function_type is NULL if the type is not known.
-The current expression kind is given by expression_kind.  The current token
-at the time of call is the opening "(" of the argument list, unless
-already_after_left_paren is TRUE, in which case it is the token following the
-left parenthesis (but the add_stop_token call has not been done).
-On return, the current token is the token following the closing ")".
-If overloaded_function_case is TRUE, this call is scanning the arguments
-for a call of an overloaded function, so build an argument operand list
-and return a pointer to it in *arg_operand_list.
+The current token at the time of call is the opening "(" of the
+argument list, unless already_after_left_paren is TRUE, in which case
+it is the token following the left parenthesis (but the add_stop_token
+call has not been done).  On return, the current token is the token
+following the closing ")".  If overloaded_function_case is TRUE, this
+call is scanning the arguments for a call of an overloaded function, so
+build an argument operand list and return a pointer to it in
+*arg_operand_list.
 */
 {
   a_param_type_ptr    curr_param_type;
@@ -970,8 +966,7 @@ and return a pointer to it in *arg_operand_list.
     do {
       /* Scan an argument expression.  Note that it is not converted to an
          rvalue yet. */
-      scan_expr(&argument_operand, PREC_LOWEST, expression_kind,
-                EOPT_DISALLOW_COMMA_OPERATOR);
+      scan_expr(&argument_operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
       arg_ctr++;
       /* Check for too many arguments and determine whether or not the
          default argument promotions apply to this argument. */
@@ -1033,7 +1028,7 @@ and return a pointer to it in *arg_operand_list.
         if (do_default_promotion) {
 	  /* Either an ellipsis was encountered or this is an old-style
              argument list; do the default argument promotion. */
-          arg_default_promote_operand(&argument_operand, expression_kind);
+          arg_default_promote_operand(&argument_operand);
 	  /* If this is an old-style call and we have the list of types as
 	     defined by the function body, check the promoted type of the
              actual against the formal. */
@@ -1079,7 +1074,7 @@ and return a pointer to it in *arg_operand_list.
              when appropriate. */
           prep_argument_operand(&argument_operand, curr_param_type,
                                 (a_user_conv_descr_ptr)NULL,
-                                ec_incompatible_param, expression_kind);
+                                ec_incompatible_param);
         }  /* if */
         /* Link the new argument into the list of arguments. */
         curr_node = make_node_from_operand(&argument_operand);
@@ -1210,8 +1205,7 @@ unexpected expressions more gracefully.
 
 static an_expr_node_ptr scan_parenthesized_initializer_expression(
                                             a_type_ptr         dest_type,
-                                            an_error_code      err_code,
-                                            an_expression_kind expression_kind)
+                                            an_error_code      err_code)
 /*
 Scan a single expression in parentheses as an initializer value, and convert
 it to dest_type if necessary.  The current token is the token after the
@@ -1226,12 +1220,10 @@ error err_code.
   add_matching_stop_token(tok_rparen);
   /* Since the syntax has an expression-list even in the single-expression
      case, a top-level comma is not allowed. */
-  scan_expr(&result, PREC_LOWEST, expression_kind,
-            EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
   prep_initializer_operand(&result, dest_type, (a_user_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           expression_kind, err_code);
+                           /*initializing_return_value=*/FALSE, err_code);
    /* Check for the required closing parenthesis. */
   check_closing_paren_after_expr_list();
   remove_matching_stop_token(tok_rparen);
@@ -1271,7 +1263,6 @@ is being called for a derived class object).
   a_type_ptr          routine_type;
   a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
-  an_expression_kind  expression_kind = (an_expression_kind)ek_normal;
   an_expr_stack_entry expr_stack_entry;
   an_arg_match_summary_ptr
                       arg_match_list;
@@ -1279,7 +1270,7 @@ is being called for a derived class object).
   db_enter(4, "scan_ctor_arguments");
   *conversion_routine = NULL;
   start_position = pos_curr_token;
-  push_expr_stack(expression_kind, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   if (constructor_sym == NULL) {
     /* There was a previous error. */
     routine_type = NULL;
@@ -1299,9 +1290,9 @@ is being called for a derived class object).
   }  /* if */
 
   /* Scan the arguments. */
-  scan_call_arguments(routine_type, expression_kind,
-                      /*already_after_left_paren=*/TRUE, arg_expr_list,
-                      overloaded_function_case, &arg_operand_list);
+  scan_call_arguments(routine_type, /*already_after_left_paren=*/TRUE,
+                      arg_expr_list, overloaded_function_case,
+                      &arg_operand_list);
   if (overloaded_function_case) {
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
@@ -1325,7 +1316,6 @@ is being called for a derived class object).
                                               (an_operand *)NULL,
                                               arg_operand_list,
                                               arg_match_list,
-                                              expression_kind,
                                               arg_expr_list);
   }  /* if */
   if (constructor_sym != NULL) {
@@ -1344,7 +1334,6 @@ static void cast_pointer_for_field_selection(
                                    a_type_ptr         *class_struct_union_type,
                                    a_boolean          *is_arrow_operator,
                                    a_symbol_locator   *member_locator,
-                                   an_expression_kind expression_kind,
                                    an_error_code      err_code,
                                    a_source_position  *err_pos)
 /*
@@ -1356,10 +1345,9 @@ operand; *class_struct_union_type is its type (which is updated if casts
 are added); *is_arrow_operator is TRUE for "->", FALSE for "." (it will
 be set to TRUE on return if the operation is normalized into "->" form);
 member_locator is a locator for the member symbol (possibly a projection
-symbol).  expression_kind is the current expression kind.  It is possible
-that the member symbol is not related to the left operand class; in that
-case, issue the error err_code at position *err_pos (the member symbol
-position).
+symbol).  It is possible that the member symbol is not related to the
+left operand class; in that case, issue the error err_code at position
+*err_pos (the member symbol position).
 */
 {
   a_symbol_ptr     member_sym = member_locator->specific_symbol;
@@ -1384,8 +1372,7 @@ position).
       /* Cast the left operand to the proper type. */
       base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                               /*check_cast_access=*/
-                                !member_locator->access_control_error_reported,
-                              expression_kind);
+                               !member_locator->access_control_error_reported);
       *class_struct_union_type = bcp->type;
     } else {
       /* The classes are not related.  Error. */
@@ -1402,7 +1389,7 @@ position).
   if (member_sym->kind == (a_symbol_kind)sk_projection) {
     bcp = member_sym->variant.projection.extra_info->fundamental_base_class;
     base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                            /*check_cast_access=*/FALSE, expression_kind);
+                            /*check_cast_access=*/FALSE);
     *class_struct_union_type = bcp->type;
   }  /* if */
 }  /* cast_pointer_for_field_selection */
@@ -1454,7 +1441,6 @@ rvalue.
 
 
 static void make_this_pointer_operand(a_symbol_locator   *member_locator,
-                                      an_expression_kind expression_kind,
                                       an_operand         *result)
 /*
 Make an operand for the "this" pointer of a C++ nonstatic member function.
@@ -1465,15 +1451,15 @@ which the "this" pointer is being built.  Check that the member symbol is
 a member of the class "this" points to (the member symbol may be a
 projection symbol); if it isn't, issue an error and return an error
 operand.  If it is, adjust the "this" pointer so it points to the class of
-which the member symbol is a direct member.  expression_kind indicates the
-current expression kind.  This routine is called only in C++ mode.
+which the member symbol is a direct member.  This routine is called only
+in C++ mode.
 */
 {
   a_variable_ptr this_var;
   a_type_ptr     class_struct_union_type;
   a_boolean      is_arrow_operator = TRUE;
 
-  if (is_const_expr_kind(expression_kind)) {
+  if (curr_expr_kind_is_const()) {
     /* Nonstatic members are not allowed in constant expressions. */
     error_and_make_error_operand(ec_expr_not_constant, result);
   } else if (!variable_this_exists(&this_var)) {
@@ -1490,7 +1476,6 @@ current expression kind.  This routine is called only in C++ mode.
     cast_pointer_for_field_selection(result, &class_struct_union_type,
                                      &is_arrow_operator,
                                      member_locator,
-                                     expression_kind,
                                      ec_member_ref_requires_object,
                                      &member_locator->source_position);
   }  /* if */
@@ -1519,15 +1504,13 @@ a pointer to its routine entry.  Otherwise, return NULL.
 }  /* routine_from_function_operand */
 
 
-static void scan_function_call(an_operand         *operand,
-                               an_operand         *bound_function_selector,
-			       an_operand         *result,
-			       an_expression_kind expression_kind)
+static void scan_function_call(an_operand *operand,
+                               an_operand *bound_function_selector,
+			       an_operand *result)
 /*
 Scan a function call.  The function to be called is given by *operand
 (modified by *bound_function_selector if the function is bound).
-expression_kind indicates the kind of the current expression.  On
-return, *result is set to an operand for the entire call.
+On return, *result is set to an operand for the entire call.
 See section 3.3.2.2 of the standard.
 
 Syntax:
@@ -1552,7 +1535,7 @@ Syntax:
   db_enter(4, "scan_function_call");
 
   call_position = operand->position;
-  if (is_const_expr_kind(expression_kind)) {
+  if (curr_expr_kind_is_const()) {
     /* Routine calls not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
   } else if (is_expression_operand(operand) &&
@@ -1580,7 +1563,7 @@ Syntax:
          the selector object, and the function call operator routine
          becomes the operand. */
       copy_operand(operand, bound_function_selector);
-      conv_operand_to_object_pointer(bound_function_selector, expression_kind);
+      conv_operand_to_object_pointer(bound_function_selector);
       make_indefinite_function_operand(member_function_symbol,
                                        /*is_qualified_name=*/FALSE, operand);
       bind_member_function_operand_to_selector(operand,
@@ -1588,8 +1571,7 @@ Syntax:
     }  /* if */
     do_operand_transformations(operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
-                               expression_kind);
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
     /* Function designator must be an expression or an undefined symbol. */
     if (is_undefined_symbol_operand(operand)) {
       /* If the function designator was an undefined symbol, implicitly
@@ -1609,7 +1591,7 @@ Syntax:
                                        &func_sym->decl_position,
                                        operand->xref_entries_list,
                                        operand);
-      conv_function_designator_to_ptr_to_function(operand, expression_kind);
+      conv_function_designator_to_ptr_to_function(operand);
       routine = func_sym->variant.routine.ptr;
       routine_type = routine_symbol_type(func_sym);
     } else if (is_indefinite_function_operand(operand)) {
@@ -1623,7 +1605,7 @@ Syntax:
          case
            int (*fp)();  fp();
          I.e., a call using a pointer to function, with no explicit "*". */
-      conv_lvalue_to_rvalue(operand, expression_kind);
+      conv_lvalue_to_rvalue(operand);
       /* Expression must be of type "pointer to function" or "pointer to
          member function (bound)". */
       if (operand->bound_function &&
@@ -1639,16 +1621,14 @@ Syntax:
         routine = routine_from_function_operand(operand);
       }  /* if */
     }  /* if */
-    if (expression_kind != (an_expression_kind)ek_not_evaluated) {
-      /* Change the kind in the cross-reference entries to reference. */
-      /* This changes the address-taken entry for the function back to
-         a simple reference. */
-      change_xref_kinds(operand->xref_entries_list, srk_reference);
-    }  /* if */
+    /* Change the kind in the cross-reference entries to reference. */
+    /* This changes the address-taken entry for the function back to
+       a simple reference. */
+    change_xref_kinds(operand->xref_entries_list, srk_reference);
   }  /* if */
 
   /* Scan the arguments of the call. */
-  scan_call_arguments(routine_type, expression_kind,
+  scan_call_arguments(routine_type,
                       already_after_left_paren, &argument_list,
                       overloaded_function_case, &arg_operand_list);
 
@@ -1661,7 +1641,6 @@ Syntax:
                                             bound_function_selector,
                                             arg_operand_list,
                                          (a_boolean)operand->is_qualified_name,
-                                            expression_kind,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
                                             /* NOT &operand->position; it
@@ -1769,7 +1748,6 @@ static void do_field_selection_operation(
                                an_operand         *operand_1,
                                a_type_ptr         class_struct_union_type,
                                a_boolean          is_arrow_operator,
-                               an_expression_kind expression_kind,
                                a_symbol_ptr       field_sym,
                                a_source_position  *member_position,
                                an_xref_entry_ptr  xep,
@@ -1780,11 +1758,11 @@ operand (the class/struct/union) is given by operand_1.  The type
 of the class/struct/union (before C++ downward casts, if any) is given
 by class_struct_union_type; it provides the type qualifiers that should
 be attached to the result expression.  The operator is "->" if
-*is_arrow_operator is TRUE, "." otherwise.  expression_kind indicates
-the kind of expression.  field_sym points to the symbol for the
-right-side field.  *member_position gives its position.  xep points
-to an associated cross-reference entry, or is NULL if cross-reference
-information is not being maintained.  The result is placed in *result.
+*is_arrow_operator is TRUE, "." otherwise.  field_sym points to the symbol
+for the right-side field.  *member_position gives its position.  xep
+points to an associated cross-reference entry, or is NULL if
+cross-reference information is not being maintained.  The result is placed
+in *result.
 */
 {
   a_field_ptr           field;
@@ -1838,8 +1816,8 @@ information is not being maintained.  The result is placed in *result.
                           (an_expr_operator_kind)eok_field;
     }  /* if */
     did_not_fold = TRUE;
-    if (is_const_expr_kind(expression_kind) &&
-        is_constant_operand(operand_1)) {
+    if (is_constant_operand(operand_1) &&
+        curr_expr_is_evaluated() && curr_expr_kind_is_const()) {
       /* Fold a field selection relative to a constant address into another
          constant address.  Note that the "rvalue . field" case can't come
          here, since a struct/union rvalue cannot be a constant.  This
@@ -1853,7 +1831,7 @@ information is not being maintained.  The result is placed in *result.
                            &did_not_fold);
     }  /* if */
     if (did_not_fold) {
-      if (is_const_expr_kind(expression_kind)) {
+      if (curr_expr_kind_is_const()) {
         /* The operation must fold to a constant in a constant expression. */
         /* The only case where it won't is if the field is a bit field,
            so use that for a clearer error message. */
@@ -1909,8 +1887,7 @@ projection symbol for the member and to know if a qualified name was used).
 xep points to an associated cross-reference entry, or is NULL if
 cross-reference information is not being maintained.  The operand is
 constructed in *result, and the bound function selector object (usually,
-a copy of operand_1) is placed in *bound_function_selector.  expression_kind
-indicates the kind of the current expression.
+a copy of operand_1) is placed in *bound_function_selector.
 */
 {
   if (routine_sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -1977,8 +1954,7 @@ i.e, is a nonstatic member function.  This routine is used only in C++ mode.
 static void scan_field_selection_operator
                                  (an_operand         *operand_1,
                                   an_operand         *result,
-                                  an_operand         *bound_function_selector,
-                                  an_expression_kind expression_kind)
+                                  an_operand         *bound_function_selector)
 /*
 Scan the "." and "->" operators.  The left operand must be (a pointer to) a
 class, struct, or union.  The right operand must be a member of the class,
@@ -2008,11 +1984,11 @@ bound with the function in *bound_function_selector.
   /* Remember if this was an arrow or a dot selector. */
   is_arrow_operator = (curr_token == tok_arrow);
 
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
     pos_error(ec_bad_pp_operator, &pos_curr_token);
     err = TRUE;
-  } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Field selection not allowed in integral constant expression. */
     pos_error(ec_bad_integral_operator, &pos_curr_token);
     err = TRUE;
@@ -2031,7 +2007,7 @@ bound with the function in *bound_function_selector.
                                        /*try_conversions=*/FALSE,
                                        /*has_predef_meaning=*/TRUE,
                                        operand_1, (an_operand *)NULL,
-                                       expression_kind, &operand_1->position,
+                                       &operand_1->position,
                                        result, &processed);
         if (!processed) break;
         copy_operand(result, operand_1);
@@ -2041,9 +2017,8 @@ bound with the function in *bound_function_selector.
        if we have one. */
     do_operand_transformations(operand_1,
                                is_arrow_operator ?
-                                     TOPT_NO_OPTIONS :
-                                     TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                               expression_kind);
+                                    TOPT_NO_OPTIONS :
+                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
     /* The left operand must be (a pointer to) a struct or union. */
     if (is_error_operand(operand_1)) {
       err = TRUE;
@@ -2210,7 +2185,7 @@ bound with the function in *bound_function_selector.
                use "->" instead.  Note that the test above has ensured that
                operand_1 here is an lvalue. */
             warning(ec_old_fashioned_field_selection);
-            take_address_of_lvalue(operand_1, expression_kind);
+            take_address_of_lvalue(operand_1);
             is_arrow_operator = TRUE;
           }  /* if */
           /* Cast the pointer to a pointer to the proper struct or union. */
@@ -2218,8 +2193,7 @@ bound with the function in *bound_function_selector.
           class_struct_union_type =skip_typerefs(orig_class_struct_union_type);
           operand_1_is_complete_class = TRUE;
           cast_operand(make_pointer_type(class_struct_union_type),
-                       operand_1, expression_kind,
-                       /*is_implicit_cast=*/FALSE);
+                       operand_1, /*is_implicit_cast=*/FALSE);
           /* Mark the struct or union type as referenced, since a field
              therein has been referenced. */
           orig_class_struct_union_type->source_corresp.referenced = TRUE;
@@ -2278,7 +2252,7 @@ bound with the function in *bound_function_selector.
     if (!is_arrow_operator && is_an_lvalue(operand_1)) {
       /* "." operator.  Convert the lvalue to an rvalue pointer, then
          use "->" instead. */
-      take_address_of_lvalue(operand_1, expression_kind);
+      take_address_of_lvalue(operand_1);
       is_arrow_operator = TRUE;
     }  /* if */
     if (operand_1_is_complete_class && class_struct_union_type != dtor_type) {
@@ -2292,8 +2266,7 @@ bound with the function in *bound_function_selector.
                         find_base_class_of(class_struct_union_type, dtor_type);
       check_assertion(bcp != NULL);
       base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
-                              /*check_cast_access=*/TRUE,
-                              expression_kind);
+                              /*check_cast_access=*/TRUE);
     }  /* if */
     /* Make an eok_vacuous_destructor_call node and an operand for it.
        This is a pretty weird representation for this case, but it's a pretty
@@ -2312,7 +2285,7 @@ bound with the function in *bound_function_selector.
     if (member_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       xep = NULL;
     } else {
-      xep = xref_entry(member_sym, &pos_curr_token, expression_kind);
+      xep = xref_entry(member_sym, &pos_curr_token);
     }  /* if */
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
@@ -2334,11 +2307,10 @@ bound with the function in *bound_function_selector.
           cast_pointer_for_field_selection(operand_1, &class_struct_union_type,
                                            &is_arrow_operator,
                                            &locator_for_curr_id,
-                                           expression_kind, 
                                            ec_no_error,
                                            &qualified_member_position);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
-                                       is_arrow_operator, expression_kind,
+                                       is_arrow_operator,
                                        member_sym, &member_position, xep,
                                        result);
           break;
@@ -2359,13 +2331,12 @@ nonstatic_member_function:
             /* Such a reference is not allowed in an initializer constant
                expression.  In truth, though, it's almost impossible to get
                such a thing in C++. */
-            if (expression_kind == (an_expression_kind)ek_init_constant) {
+            if (curr_expr_kind_is(ek_init_constant)) {
               error_and_make_error_operand(ec_expr_not_constant, result);
             } else {
               /* The function will require a "this" pointer, so get a pointer
                  (rather than an rvalue) for the first operand. */
-              conv_selector_to_object_pointer(operand_1, &is_arrow_operator,
-                                              expression_kind);
+              conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
               /* Cast the selector to the type of the member symbol.  The
                  error test in this call cannot actually generate an error
                  because the error in the qualified name case was checked
@@ -2374,7 +2345,6 @@ nonstatic_member_function:
                                                &class_struct_union_type,
                                                &is_arrow_operator,
                                                &locator_for_curr_id,
-                                               expression_kind, 
                                                ec_no_error,
                                                &qualified_member_position);
               /* Make an operand for the function with the selector bound
@@ -2450,11 +2420,9 @@ nonstatic_member_function:
 }  /* scan_field_selection_operator */
 
 
-static void scan_ptr_to_member_operator
-                                 (an_operand         *operand_1,
-                                  an_operand         *result,
-                                  an_operand         *bound_function_selector,
-                                  an_expression_kind expression_kind)
+static void scan_ptr_to_member_operator(an_operand *operand_1,
+                                        an_operand *result,
+                                        an_operand *bound_function_selector)
 /*
 Scan the ".*" and "->*" operators (C++ only).  The left operand must be
 (a pointer to) a class.  The right operand must be a pointer-to-member
@@ -2481,11 +2449,11 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
     pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
-  } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Field selection not allowed in integral constant expression. */
     pos_error(ec_bad_integral_operator, &operator_position);
     err = TRUE;
@@ -2493,7 +2461,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_PTR_TO_MEMBER, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_PTR_TO_MEMBER, EOPT_NO_OPTIONS);
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -2509,7 +2477,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
                                      /*try_conversions=*/FALSE,
                                      /*has_predef_meaning=*/FALSE,
                                      operand_1, &operand_2,
-                                     expression_kind, &operator_position,
+                                     &operator_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -2518,9 +2486,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
          lvalue if we have one. */
       do_operand_transformations(operand_1,
                                  is_arrow_operator ?
-                                     TOPT_NO_OPTIONS :
-                                     TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
+                                    TOPT_NO_OPTIONS :
+                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       /* Check the first operand type.  It must be (a pointer to) a class. */
       if (is_error_operand(operand_1)) {
         err = TRUE;
@@ -2553,7 +2520,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         }  /* if */
       }  /* if */
       /* The type of the second operand must be pointer to member. */
-      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       qual_operand_2_type = operand_2.type;
       operand_2_type = skip_typerefs(qual_operand_2_type);
       if (!is_ptr_to_member_type(operand_2_type)) {
@@ -2586,13 +2553,12 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
       } else {
         /* The operands are compatible. */
         /* Get an operand for the address of the object. */
-        conv_selector_to_object_pointer(operand_1, &is_arrow_operator,
-                                        expression_kind);
+        conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
         /* Cast the left operand to a base class if necessary.  This does the
            ambiguity and accessibility checking. */
         if (bcp != NULL) {
           base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
-                                  /*check_cast_access=*/TRUE, expression_kind);
+                                  /*check_cast_access=*/TRUE);
         }  /* if */
         /* The result type is the member type pointed to by the second
            operand. */
@@ -2644,9 +2610,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
 }  /* scan_ptr_to_member_operator */
 
 
-static void scan_postfix_incr_decr(an_operand         *operand,
-				   an_operand         *result,
-                                   an_expression_kind expression_kind)
+static void scan_postfix_incr_decr(an_operand *operand,
+				   an_operand *result)
 /*
 Scan the postfix increment ("++") and decrement ("--") operators.  See section
 3.3.2.4 of the standard.
@@ -2660,7 +2625,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 
   db_enter(4, "scan_postfix_incr_decr");
 
-  if (is_const_expr_kind(expression_kind)) {
+  if (curr_expr_kind_is_const()) {
     /* Postfix ++/-- not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &pos_curr_token);
     make_error_operand(result);
@@ -2680,7 +2645,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                      /*try_conversions=*/!allow_anachronisms,
                                      /*has_predef_meaning=*/allow_anachronisms,
                                      operand, &zero_operand,
-                                     expression_kind, &operand->position,
+                                     &operand->position,
                                      result, &processed);
       if (!processed && allow_anachronisms) {
         /* Try the anachronism that allows a one-argument function to
@@ -2691,7 +2656,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        /*try_conversions=*/FALSE,
                                        /*has_predef_meaning=*/TRUE,
                                        operand, (an_operand *)NULL,
-                                       expression_kind, &operand->position,
+                                       &operand->position,
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
@@ -2711,7 +2676,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                          /*try_conversions=*/TRUE,
                                          /*has_predef_meaning=*/FALSE,
                                          operand, &zero_operand,
-                                         expression_kind, &operand->position,
+                                         &operand->position,
                                          result, &processed);
         }  /* if */
       }  /* if */
@@ -2719,8 +2684,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(operand,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       /* The lvalue must be for a scalar, and if it is a pointer, it must
          be a pointer to an object. */
       if (!check_scalar_operand(operand)) {
@@ -2741,7 +2705,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         /* Operand is okay. */
-        modifying_lvalue(operand, expression_kind);
+        modifying_lvalue(operand);
         result_type = operand->type;
         if (curr_token == tok_plus_plus) {
           switch (skip_typerefs(result_type)->kind) {
@@ -2795,8 +2759,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 }  /* scan_postfix_incr_decr */
 
 
-static void scan_prefix_incr_decr(an_operand         *result,
-				  an_expression_kind expression_kind)
+static void scan_prefix_incr_decr(an_operand *result)
 /*
 Scan the prefix increment ("++") and decrement ("--") operators.  See section
 3.3.3.1 of the standard.
@@ -2816,7 +2779,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
   is_increment = (curr_token == tok_plus_plus);
   copy_source_position(pos_curr_token, start_position);
 
-  if (is_const_expr_kind(expression_kind)) {
+  if (curr_expr_kind_is_const()) {
     /* Prefix ++ and -- are not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
@@ -2824,7 +2787,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 
   /* Scan the operand. */
   (void)get_token();
-  scan_expr(&operand, PREC_PREFIX, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
   if (err) {
     /* Operator not allowed in this kind of expression. */
@@ -2839,14 +2802,13 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                      /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
                                      &operand, (an_operand *)NULL,
-                                     expression_kind, &start_position,
+                                     &start_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(&operand,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       /* The lvalue must be for a scalar, and if it is a pointer, it must
          be a pointer to an object. */
       if (!check_scalar_operand(&operand)) {
@@ -2867,7 +2829,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         /* Operand is okay. */
-        modifying_lvalue(&operand, expression_kind);
+        modifying_lvalue(&operand);
         result_type = operand.type;
         if (is_increment) {
           switch (skip_typerefs(result_type)->kind) {
@@ -2919,8 +2881,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 }  /* scan_prefix_incr_decr */
 
 
-static void scan_ampersand_operator(an_operand         *result,
-                                    an_expression_kind expression_kind)
+static void scan_ampersand_operator(an_operand *result)
 /*
 Scan the "&" (address of) operator.  The operand of the "&" operator must be
 either a function designator or an lvalue that is not a bit field or a register
@@ -2939,11 +2900,11 @@ operation is a pointer-to-member (see ARM 5.3).
   /* Save the source position of the operator. */
   copy_source_position(pos_curr_token, start_position);
 
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Address constants not allowed in preprocessing expressions. */
     pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
-  } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address constants not allowed in integral constant expressions. */
     pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
@@ -2951,11 +2912,8 @@ operation is a pointer-to-member (see ARM 5.3).
 
   /* Advance past the "&". */
   (void)get_token();
-  /* Scan the operand.  Do not convert a type of "routine returning type" to
-     "pointer to routine returning type".  Likewise do not convert arrays
-     to pointers to their first elements. */
-  scan_expr(&operand, PREC_PREFIX, expression_kind,
-            EOPT_OPERAND_OF_ADDRESS_OF);
+  /* Scan the operand. */
+  scan_expr(&operand, PREC_PREFIX, EOPT_OPERAND_OF_ADDRESS_OF);
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -2970,7 +2928,7 @@ operation is a pointer-to-member (see ARM 5.3).
                                      /*try_conversions=*/FALSE,
                                      /*has_predef_meaning=*/TRUE,
                                      &operand, (an_operand *)NULL,
-                                     expression_kind, &start_position,
+                                     &start_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -2981,20 +2939,19 @@ operation is a pointer-to-member (see ARM 5.3).
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                  TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
-                                 TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
-                                 expression_kind);
+                                 TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
       if (is_an_lvalue(&operand)) {
         if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
           /* In pcc mode "&array" is the same as "array" implicitly converted
              to a pointer.  It has type "pointer-to-array-element" rather than
              "pointer to array" as in ANSI. */
           pos_warning(ec_pcc_address_of_array, &start_position);
-          conv_array_operand_to_pointer_operand(&operand, expression_kind);
+          conv_array_operand_to_pointer_operand(&operand);
         } else {
           /* Check for taking the address of a register variable, and set the
              address_taken flag if the operand is a variable.  Convert the
              lvalue operand to an rvalue operand for the pointer. */
-          take_address_of_lvalue(&operand, expression_kind);
+          take_address_of_lvalue(&operand);
         }  /* if */
         /* Note that the copy preserves xref_entries_list. */
         copy_operand(&operand, result);
@@ -3002,17 +2959,14 @@ operation is a pointer-to-member (see ARM 5.3).
         /* "&" of a function designator.  Change it to a pointer to the
            function.  This includes overloaded functions, but not overloaded
            member functions specified by qualified name (see below). */
-        conv_function_designator_to_ptr_to_function(&operand, expression_kind);
+        conv_function_designator_to_ptr_to_function(&operand);
         /* Note that the copy preserves xref_entries_list. */
         copy_operand(&operand, result);
       } else if (is_sym_for_ptr_to_member_operand(&operand)) {
         /* The operand is a qualified name for a nonstatic class member, so
            the "&" operator returns a pointer-to-member. */
-        if (expression_kind != (an_expression_kind)ek_not_evaluated) {
-          /* Change the kind in the cross-reference entries to
-             address-taken. */
-          change_xref_kinds(operand.xref_entries_list, srk_address_taken);
-        }  /* if */
+        /* Change the kind in the cross-reference entries to address-taken. */
+        change_xref_kinds(operand.xref_entries_list, srk_address_taken);
         member_proj_sym = operand.variant.symbol;
         member_sym = fundamental_symbol_of(member_proj_sym);
         /* Protected members of a base class can only be accessed through an
@@ -3062,7 +3016,7 @@ operation is a pointer-to-member (see ARM 5.3).
           make_indefinite_function_operand(member_proj_sym,
                                            /*is_qualified_name=*/TRUE,
                                            result);
-          conv_function_designator_to_ptr_to_function(result, expression_kind);
+          conv_function_designator_to_ptr_to_function(result);
         }  /* if */
       } else {
         /* "&" applied to something that is not an lvalue or a function
@@ -3083,8 +3037,7 @@ operation is a pointer-to-member (see ARM 5.3).
 }  /* scan_ampersand_operator */
 
 
-static void scan_indirection_operator(an_operand         *result,
-                                      an_expression_kind expression_kind)
+static void scan_indirection_operator(an_operand *result)
 /*
 Scan the "*" (indirection) operator.  The operand must have type pointer.
 See section 3.3.3.2 of the standard.
@@ -3099,11 +3052,11 @@ See section 3.3.3.2 of the standard.
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
 
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Address indirection not allowed in preprocessing expressions. */
     pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
-  } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address indirection not allowed in integral constant expressions. */
     pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
@@ -3111,7 +3064,7 @@ See section 3.3.3.2 of the standard.
 
   /* Scan the operand. */
   (void)get_token();
-  scan_expr(&operand, PREC_PREFIX, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -3126,12 +3079,12 @@ See section 3.3.3.2 of the standard.
                                      /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
                                      &operand, (an_operand *)NULL,
-                                     expression_kind, &start_position,
+                                     &start_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      do_operand_transformations(&operand, TOPT_NO_OPTIONS, expression_kind);
+      do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       if (check_pointer_operand(&operand, ec_bad_indirection_operand)) {
         operand.type = type_pointed_to(operand.type);
         /* Instantiate the underlying type if it is a template class. */
@@ -3166,8 +3119,7 @@ See section 3.3.3.2 of the standard.
 }  /* scan_indirection_operator */
 
 
-static void scan_arith_prefix_operator(an_operand         *result,
-                                       an_expression_kind expression_kind)
+static void scan_arith_prefix_operator(an_operand *result)
 /*
 Scan the "+", "-", "~", and "!" prefix operators.  The operand of the "!"
 operator must have scalar type.  The operand of "-" and "+" must have
@@ -3192,7 +3144,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 
   /* Scan the operand. */
   (void)get_token();
-  scan_expr(&operand, PREC_PREFIX, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
       is_class_or_error_operand(&operand)) {
@@ -3203,12 +3155,12 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    &operand, (an_operand *)NULL,
-                                   expression_kind, &start_position,
+                                   &start_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    do_operand_transformations(&operand, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
     /* Check the type of the operand. */
     do_promotion = TRUE;
     switch (save_token) {
@@ -3249,7 +3201,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 
     if (do_promotion) {
       /* Do integral promotions if required. */
-      promote_operand(&operand, expression_kind);
+      promote_operand(&operand);
       result_type = operand.type;
     }  /* if */
 
@@ -3262,18 +3214,17 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       } else {
         /* Other operators (not unary "+"). */
         did_not_fold = TRUE;
-        if (expression_kind != (an_expression_kind)ek_not_evaluated &&
-            is_constant_operand(&operand)) {
+        if (curr_expr_is_evaluated() && is_constant_operand(&operand)) {
           /* Fold the operation if the operand is constant.  In a nonconstant
              context, reduce any error to a warning and leave the operation
              to be done at runtime. */
           unary_operation(op, &operand.variant.constant,
                           result_type, &result_constant,
-                          is_const_expr_kind(expression_kind),
+                          curr_expr_kind_is_const(),
                           &did_not_fold, &start_position);
         }  /* if */
         if (did_not_fold) {
-          if (is_const_expr_kind(expression_kind)) {
+          if (curr_expr_kind_is_const()) {
             /* A constant operation could not be folded in a constant
                expression. */
             pos_error(ec_expr_not_constant, &start_position);
@@ -3298,9 +3249,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 }  /* scan_arith_prefix_operator */
 
 
-/*ARGSUSED*/ /* <-- because "expression_kind" is unused if CHECKING==0. */
-static void scan_sizeof_operator(an_operand         *result,
-                                 an_expression_kind expression_kind)
+static void scan_sizeof_operator(an_operand *result)
 /*
 Scan the sizeof operator.  The operand of the sizeof operator cannot be an
 expression with function or incomplete type.  The operand cannot be the
@@ -3321,15 +3270,18 @@ Syntax:
   a_type_ptr            sizeof_type;
   a_local_expr_options_set
                         local_options;
+  an_expr_stack_entry   expr_stack_entry;
 
   db_enter(4, "scan_sizeof_operator");
 
 #if CHECKING
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Sizeof not possible for preprocessing expressions. */
     internal_error("scan_sizeof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry);
+  expr_stack_entry.evaluated = FALSE;
   /* Save the position of the sizeof keyword. */
   copy_source_position(pos_curr_token, start_position);
 
@@ -3375,16 +3327,14 @@ Syntax:
        and not a type.  Scan the operand. */
     local_options = EOPT_NO_OPTIONS;
     if (trapped_left_paren) local_options |= EOPT_TRAPPED_LEFT_PAREN;
-    scan_expr(&operand, PREC_PREFIX, (an_expression_kind)ek_not_evaluated,
-              local_options);
+    scan_expr(&operand, PREC_PREFIX, local_options);
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
        Likewise do not convert arrays to pointers, or lvalues to rvalues. */
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION,
-                               (an_expression_kind)ek_not_evaluated);
+                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
     if (trapped_left_paren) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -3430,6 +3380,8 @@ Syntax:
   copy_source_position(start_position, error_position);
   copy_source_position(start_position, result->position);
 
+  pop_expr_stack();
+
   db_exit();
 }  /* scan_sizeof_operator */
 
@@ -3449,13 +3401,16 @@ be inappropriate, because the feature is probably used to implement
 <stdarg.h>, a standard feature.
 */
 {
-  a_source_position start_position;
-  an_operand        operand;
-  a_constant        constant;
-  a_type_ptr        alignof_type;
+  a_source_position   start_position;
+  an_operand          operand;
+  a_constant          constant;
+  a_type_ptr          alignof_type;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(4, "scan_alignof_operator");
 
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry);
+  expr_stack_entry.evaluated = FALSE;
   /* Save the position of the __ALIGNOF__ keyword. */
   copy_source_position(pos_curr_token, start_position);
   (void)get_token();
@@ -3468,15 +3423,13 @@ be inappropriate, because the feature is probably used to implement
     type_name(&alignof_type);
   } else {
     /* Scan an expression. */
-    scan_expr(&operand, PREC_LOWEST, (an_expression_kind)ek_not_evaluated,
-              EOPT_NO_OPTIONS);
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     /* Do not convert lvalues to rvalues, arrays to pointers, or
        or functions to pointers. */
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION,
-                               (an_expression_kind)ek_not_evaluated);
+                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
     alignof_type = operand.type;
   }  /* if */
   alignof_type = skip_typerefs(alignof_type);
@@ -3500,6 +3453,8 @@ be inappropriate, because the feature is probably used to implement
   copy_source_position(start_position, error_position);
   copy_source_position(start_position, result->position);
 
+  pop_expr_stack();
+
   db_exit();
 }  /* scan_alignof_operator */
 
@@ -3518,12 +3473,14 @@ A warning about the use of this nonstandard feature would be inappropriate,
 because the feature is used to implement offsetof, a standard feature.
 */
 {
-  a_source_position start_position;
-  a_constant        constant;
-  a_boolean         err;
+  a_source_position   start_position;
+  a_constant          constant;
+  a_boolean           err;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(4, "scan_intaddr_operator");
 
+  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
   /* Save the position of the __INTADDR__ keyword. */
   copy_source_position(pos_curr_token, start_position);
   /* Check for and pass over the left parenthesis. */
@@ -3531,10 +3488,8 @@ because the feature is used to implement offsetof, a standard feature.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
   /* Scan the address expression. */
-  scan_expr(result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
-            EOPT_NO_OPTIONS);
-  do_operand_transformations(result, TOPT_NO_OPTIONS,
-                             (an_expression_kind)ek_init_constant);
+  scan_expr(result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  do_operand_transformations(result, TOPT_NO_OPTIONS);
   err = is_error_operand(result);
   if (!err) {
     /* Make a constant from the operand. */
@@ -3558,8 +3513,7 @@ because the feature is used to implement offsetof, a standard feature.
   } else {
     /* Cast the constant to type size_t. */
     cast_operand(integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND),
-                 result, (an_expression_kind)ek_init_constant,
-                 /*is_implicit_cast=*/TRUE);
+                 result, /*is_implicit_cast=*/TRUE);
   }  /* if */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -3568,6 +3522,8 @@ because the feature is used to implement offsetof, a standard feature.
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
   copy_source_position(start_position, result->position);
+
+  pop_expr_stack();
 
   db_exit();
 }  /* scan_intaddr_operator */
@@ -3602,8 +3558,7 @@ a pointer to the dynamic init entry for the entire array.
 }  /* add_array_nonconstant_aggregate_init */
 
 
-static void scan_new_operator(an_operand         *result,
-                              an_expression_kind expression_kind)
+static void scan_new_operator(an_operand *result)
 /*
 Scan the C++ new operator.  See 5.3.3 in the ARM.
 
@@ -3650,7 +3605,7 @@ specification allow a variable-sized array as the top type.
   /* Save the position of the start. */
   copy_source_position(pos_curr_token, start_position);
 #if CHECKING
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* New not possible for preprocessing expressions. */
     internal_error("scan_new_operator: in preprocessing expr");
   }  /* if */
@@ -3695,7 +3650,7 @@ specification allow a variable-sized array as the top type.
         /* Scan the expression list as an argument list for which we do not yet
            know the function.  The argument values are returned in a list
            headed by arg_operand_list. */
-        scan_call_arguments((a_type_ptr)NULL, expression_kind,
+        scan_call_arguments((a_type_ptr)NULL,
                             /*already_after_left_paren=*/TRUE,
                             &dummy, /*overloaded_function_case=*/TRUE,
                             &arg_operand_list);
@@ -3888,10 +3843,9 @@ specification allow a variable-sized array as the top type.
       if (curr_token != tok_rparen) {
         /* The new-initializer is not empty.  Scan it. */
         init_val_node = scan_parenthesized_initializer_expression(
-                                                       err ? error_type() :
-                                                             new_type,
-                                                       ec_bad_initializer_type,
-                                                       expression_kind);
+                                                      err ? error_type() :
+                                                            new_type,
+                                                      ec_bad_initializer_type);
         needs_initialization = TRUE;
       } else {
         /* The initializer is empty, i.e., "()". */
@@ -3972,8 +3926,7 @@ specification allow a variable-sized array as the top type.
                                  &placement_position,
                                  /*elided_reference=*/(new_routine==NULL),
                                  (an_operand *)NULL,
-                                 &access_error_reported,
-                                 expression_kind);
+                                 &access_error_reported);
     /* Adjust the argument types, issue any warnings, and free
        arg_operand_list and arg_match_list. */
     adjust_overloaded_function_call_arguments(function_symbol,
@@ -3981,7 +3934,6 @@ specification allow a variable-sized array as the top type.
                                               (an_operand *)NULL,
                                               arg_operand_list,
                                               arg_match_list,
-                                              expression_kind,
                                               &arg_expr_list);
     /* Avoid freeing the lists twice. */
     arg_operand_list = NULL;
@@ -4006,8 +3958,7 @@ specification allow a variable-sized array as the top type.
 }  /* scan_new_operator */
 
 
-static void scan_delete_operator(an_operand         *result,
-                                 an_expression_kind expression_kind)
+static void scan_delete_operator(an_operand *result)
 /*
 Scan the C++ delete operator.  See 5.3.4 in the ARM.
 
@@ -4043,7 +3994,7 @@ As an anachronism, allow an expression inside the [ ].
   /* Save the position of the start. */
   copy_source_position(pos_curr_token, start_position);
 #if CHECKING
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Delete not possible for preprocessing expressions. */
     internal_error("scan_delete_operator: in preprocessing expr");
   }  /* if */
@@ -4078,8 +4029,8 @@ As an anachronism, allow an expression inside the [ ].
     remove_matching_stop_token(tok_rbracket);
   }  /* if */
   /* Scan the pointer expression. */
-  scan_expr(&operand, PREC_PREFIX, expression_kind, EOPT_NO_OPTIONS);
-  do_operand_transformations(&operand, TOPT_NO_OPTIONS, expression_kind);
+  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+  do_operand_transformations(&operand, TOPT_NO_OPTIONS);
   /* The operand of a delete must be a pointer. */
   if (!check_pointer_operand(&operand, ec_expr_not_pointer)) {
     make_error_operand(result);
@@ -4247,23 +4198,22 @@ only done in pcc mode.
 
 static a_boolean cast_type_pre_check(
                                    a_type_ptr               *p_type_cast_to,
-                                   an_expression_kind       expression_kind,
                                    a_boolean                *cast_to_reference,
                                    a_boolean                *int_to_ptr_case,
                                    a_boolean                *cast_to_func_ptr,
                                    a_local_expr_options_set local_options)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
-That is, do a check that the type is legal as the destination type of
-a cast without regard to the source type.  Return TRUE if there is an
-error.  *p_type_cast_to is the destination type of the cast; expression_kind
-is the kind of the current expression.  On return, *cast_to_reference is
-TRUE if the cast is to a reference type (*p_type_cast_to will be adjusted
-to the corresponding pointer type in that case), *int_to_ptr_case is TRUE
-if the destination type is a pointer type in a context that requires
-that the source type be an integral type, and *cast_to_func_ptr is TRUE
-if the cast is to a pointer-to-function type in C++.  This routine is called
-for both C-style casts and C++ functional-notation type conversions.
+That is, do a check that the type is legal as the destination type of a
+cast without regard to the source type.  Return TRUE if there is an error.
+*p_type_cast_to is the destination type of the cast.  On return,
+*cast_to_reference is TRUE if the cast is to a reference type
+(*p_type_cast_to will be adjusted to the corresponding pointer type in
+that case), *int_to_ptr_case is TRUE if the destination type is a pointer
+type in a context that requires that the source type be an integral type,
+and *cast_to_func_ptr is TRUE if the cast is to a pointer-to-function type
+in C++.  This routine is called for both C-style casts and C++
+functional-notation type conversions.
 */
 {
   a_boolean  err = FALSE;
@@ -4286,7 +4236,7 @@ for both C-style casts and C++ functional-notation type conversions.
        incomplete, they look like integral types. */
     error(ec_incomplete_type_not_allowed);
     err = TRUE;
-  } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Only casts to integral types are permitted in integral constant
        expressions.  When the cast is the immediate operand of another
        cast, allow integer --> pointer as an extension. */
@@ -4302,7 +4252,7 @@ for both C-style casts and C++ functional-notation type conversions.
         err = TRUE;
       }  /* if */
     }  /* if */
-  } else if (expression_kind == (an_expression_kind)ek_init_constant) {
+  } else if (curr_expr_kind_is(ek_init_constant)) {
     /* Only casts to arithmetic or pointer types are allowed in initializer
        constants. */
     if (!is_scalar_type(type_cast_to)) {
@@ -4373,7 +4323,6 @@ static void do_cast(a_type_ptr         type_cast_to,
                     a_boolean          cast_to_reference,
                     a_boolean          int_to_ptr_case,
                     a_boolean          cast_to_func_ptr,
-                    an_expression_kind expression_kind,
                     a_source_position  *start_position)
 /*
 Do a cast operation.  The operand *operand is to be cast to the type
@@ -4385,10 +4334,9 @@ already been determined that the cast is invalid (this routine does
 additional checking).  cast_to_reference is TRUE if the cast is to a
 reference type.  int_to_ptr_case is TRUE if cast_type_pre_check
 determined that the source type must be integral (that must be checked
-here).  expression_kind indicates the current expression kind.
-start_position is the source position of the start of the cast.  This
-routine is called for both C-style casts and C++ functional-notation type
-conversions.
+here).  start_position is the source position of the start of the cast.
+This routine is called for both C-style casts and C++ functional-notation
+type conversions.
 */
 {
   a_type_ptr        source_type;
@@ -4409,9 +4357,9 @@ conversions.
       /* The expression must be an lvalue (that term in C++ includes function
          designators). */
       if (is_an_lvalue(operand)) {
-        take_address_of_lvalue(operand, expression_kind);
+        take_address_of_lvalue(operand);
       } else if (is_a_function_designator(operand)) {
-        conv_function_designator_to_ptr_to_function(operand, expression_kind);
+        conv_function_designator_to_ptr_to_function(operand);
       } else {
         if (!is_error_operand(operand)) {
           error_in_operand(ec_expr_not_an_lvalue, operand);
@@ -4422,7 +4370,7 @@ conversions.
        or in C, and not when casting to void or a template parameter (unknown)
        type. */
     if (C_dialect == C_dialect_cplusplus &&
-        !is_const_expr_kind(expression_kind) &&
+        !curr_expr_kind_is_const() &&
         !is_void_type(type_cast_to) &&
         !is_template_param_type(type_cast_to) &&
         user_defined_conversion_possible(operand, type_cast_to,
@@ -4431,8 +4379,7 @@ conversions.
                                          &failed)) {
       /* A user-defined conversion can be done. */
       if (!cast_to_reference) user_conversion.result_is_an_lvalue = FALSE;
-      user_convert_operand(operand, type_cast_to, &user_conversion,
-                           expression_kind);
+      user_convert_operand(operand, type_cast_to, &user_conversion);
     } else if (failed) {
       /* A user-defined conversion was our only hope, and it failed.
          The error has already been issued. */
@@ -4445,8 +4392,7 @@ conversions.
            they affect the type of the operand.  Don't do lvalue --> rvalue
            yet because of the pcc lvalue cast case. */
         do_operand_transformations(operand,
-                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                   expression_kind);
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       }  /* if */
       /* Get the source type after the transformations. */
       source_type = operand->type;
@@ -4460,7 +4406,7 @@ conversions.
         /* Casting to a template parameter (unknown) type.  Assume okay,
            but produce an error operand. */
         err = TRUE;
-      } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+      } else if (curr_expr_kind_is(ek_integral_constant)) {
         /* Integral constant expression: only arithmetic --> integral
            is standard.  cast_type_pre_check has already checked that the
            target type is integral (except that when this cast is the
@@ -4488,7 +4434,7 @@ conversions.
             err = TRUE;
           }  /* if */
         }  /* if */
-      } else if (expression_kind == (an_expression_kind)ek_init_constant) {
+      } else if (curr_expr_kind_is(ek_init_constant)) {
         /* Initializer constant expression: arithmetic --> arithmetic
            and scalar --> pointer are allowed, pointer --> integral as
            an extension.  The code above has already checked that the
@@ -4532,7 +4478,7 @@ conversions.
               is_function_type(type_pointed_to(operand->type))) {
             pos_diagnostic(anachronism_error_severity,
                            ec_bound_function_cast_anachronism, start_position);
-            conv_lvalue_to_rvalue(operand, expression_kind);
+            conv_lvalue_to_rvalue(operand);
             if (operand->virtual_function) {
               /* The function is a virtual function, so use an
                  eok_virtual_function_ptr operation to compute the address at
@@ -4554,8 +4500,7 @@ conversions.
               operand->bound_function = FALSE;
             }  /* if */
             /* Cast the node to the result type of the cast. */
-            cast_operand(type_cast_to, operand, expression_kind,
-                         /*is_implicit_cast=*/FALSE);
+            cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
           } else {
             /* Any other use of a bound function.  Error. */
             error_in_operand(ec_bound_function_must_be_called, operand);
@@ -4563,7 +4508,7 @@ conversions.
           }  /* if */
         } else if (is_void_type(type_cast_to)) {
           /* Anything --> void, allowed. */
-          conv_lvalue_to_rvalue(operand, expression_kind);
+          conv_lvalue_to_rvalue(operand);
           /* For casts to void, we build an expression node that is a cast
              to void.  This special cast to void is only used for the
              case handled here, i.e., for an explicit cast to void.
@@ -4619,11 +4564,10 @@ conversions.
                needed). */
             if (!cast_to_reference) {
               /* Normal cast.  All standard C cases. */
-              conv_lvalue_to_rvalue(operand, expression_kind);
+              conv_lvalue_to_rvalue(operand);
             }  /* if */
             /* Do the actual cast. */
-            cast_operand(type_cast_to, operand, expression_kind,
-                         /*is_implicit_cast=*/FALSE);
+            cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
             if (cast_to_reference) {
               /* The result of a cast to reference is an lvalue. */
               conv_object_pointer_to_lvalue(operand);
@@ -4647,7 +4591,6 @@ conversions.
 static void scan_cast_or_expr(
                              an_operand               *result,
                              an_operand               *bound_function_selector,
-                             an_expression_kind       expression_kind,
                              a_local_expr_options_set local_options)
 /*
 Scan something after an opening left paren.  This may be a cast operation or
@@ -4687,7 +4630,7 @@ or
      allowed in preprocessing expressions (although the check is superfluous
      since identifiers are never recognized as type names, and therefore
      is_decl_not_expr would never return TRUE). */
-  if (expression_kind != (an_expression_kind)ek_pp &&
+  if (!curr_expr_kind_is(ek_pp) &&
       is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
                        /*real_declarator_allowed=*/FALSE)) {
     /* This is a cast operation. */
@@ -4695,9 +4638,8 @@ or
     type_name(&type_cast_to);
     /* Check the type to see if it is valid.  This is done early to get a
        better error position. */
-    err = cast_type_pre_check(&type_cast_to, expression_kind,
-                              &cast_to_reference, &int_to_ptr_case,
-                              &cast_to_func_ptr,
+    err = cast_type_pre_check(&type_cast_to, &cast_to_reference,
+                              &int_to_ptr_case, &cast_to_func_ptr,
                               local_options);
 
     /* The next token should be the closing rparen. */
@@ -4712,18 +4654,17 @@ or
       cast_options |= EOPT_ALLOW_BOUND_FUNCTION;
     }  /* if */
     scan_expr_full(result, &local_bound_function_selector, PREC_CAST,
-                   expression_kind, cast_options);
+                   cast_options);
     /* Check compatibility of the types and do the cast. */
     do_cast(type_cast_to, result, &local_bound_function_selector, err,
             cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
-            expression_kind, &start_position);
+            &start_position);
   } else {
     /* This is an expression in parentheses.  The parentheses do not
        affect the fact that the enclosed expression is an immediate operand
        of the surrounding context, so most of the option flags are
        passed down. */
-    scan_expr_full(result, bound_function_selector,
-                   PREC_LOWEST, expression_kind,
+    scan_expr_full(result, bound_function_selector, PREC_LOWEST,
                    (local_options &
                     (EOPT_OPERAND_OF_CAST | EOPT_OPERAND_OF_ADDRESS_OF)) |
                    EOPT_ALLOW_BOUND_FUNCTION);
@@ -4788,13 +4729,11 @@ has exactly one argument, return TRUE; otherwise, return FALSE.
 static void scan_functional_notation_type_conversion(
                                       a_type_ptr               type_cast_to,
                                       an_operand               *result,
-                                      an_expression_kind       expression_kind,
                                       a_local_expr_options_set local_options)
 /*
 Scan a C++ functional-notation type conversion, e.g., "int(1.5)" or "A(1,2)".
 The type keyword or identifier is the current token, and the associated
 type is passed in as type_cast_to.  The result is returned in *result.
-expression_kind indicates the kind of the current expression.
 */
 {
   a_source_position             start_position, lparen_pos;
@@ -4817,9 +4756,9 @@ expression_kind indicates the kind of the current expression.
   /* Check the type to see if it is valid.  This is done early to get a
      better error position.  Note that this even does a worthwhile check
      for the class case (abstract class). */
-  err = cast_type_pre_check(&type_cast_to, expression_kind,
-                            &cast_to_reference, &int_to_ptr_case,
-                            &cast_to_func_ptr, local_options);
+  err = cast_type_pre_check(&type_cast_to, &cast_to_reference,
+                            &int_to_ptr_case, &cast_to_func_ptr,
+                            local_options);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
@@ -4882,12 +4821,12 @@ expression_kind indicates the kind of the current expression.
         cast_options |= EOPT_ALLOW_BOUND_FUNCTION;
       }  /* if */
       scan_expr_full(result, &local_bound_function_selector, PREC_LOWEST,
-                     expression_kind, cast_options);
+                     cast_options);
     }  /* if */
     /* Check compatibility of the types and do the cast. */
     do_cast(type_cast_to, result, &local_bound_function_selector, err,
             cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
-            expression_kind, &start_position);
+            &start_position);
     /* Check for the closing parenthesis. */
     check_closing_paren_after_expr_list();
     remove_matching_stop_token(tok_rparen);
@@ -4899,9 +4838,8 @@ expression_kind indicates the kind of the current expression.
 }  /* scan_functional_notation_type_conversion */
 
 
-static void scan_mult_operator(an_operand         *operand_1,
-                               an_operand         *result,
-			       an_expression_kind expression_kind)
+static void scan_mult_operator(an_operand *operand_1,
+                               an_operand *result)
 /*
 Scan the "*", "/", and "%" operators.  The operands of the "*" and "/"
 operators must be of arithmetic type.  The operands of the "%" operator must
@@ -4924,7 +4862,7 @@ be of integral type.  See section 3.3.5 of the standard.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_MULT_DIV, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_class_or_error_operand(operand_1) ||
@@ -4936,14 +4874,14 @@ be of integral type.  See section 3.3.5 of the standard.
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
-                                   expression_kind, &operator_position,
+                                   &operator_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
     /* The first operand must be of arithmetic type (the remainder operator
        requires integral type). */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     if (save_token == tok_remainder) {
       (void)check_integral_operand(operand_1);
     } else {
@@ -4951,7 +4889,7 @@ be of integral type.  See section 3.3.5 of the standard.
     }  /* if */
     /* The second operand must be of arithmetic type (the remainder operator
        requires integral type). */
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     if (save_token == tok_remainder) {
       (void)check_integral_operand(&operand_2);
     } else {
@@ -4959,10 +4897,9 @@ be of integral type.  See section 3.3.5 of the standard.
     }  /* if */
 
     result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-    change_binary_operand_types(result_type, operand_1, &operand_2,
-                                expression_kind);
+    change_binary_operand_types(result_type, operand_1, &operand_2);
     if ((save_token == tok_divide || save_token == tok_remainder) &&
-        expression_kind != (an_expression_kind)ek_not_evaluated &&
+        curr_expr_is_evaluated() &&
         !is_constant_operand(operand_1) && op_is_zero_constant(&operand_2)) {
       /* Warn on a division or mod by zero.  This is handled in folding.c
          for the constant case, but here if only the second operand is
@@ -4973,8 +4910,7 @@ be of integral type.  See section 3.3.5 of the standard.
     }  /* if */
     op = which_binary_operator(save_token, result_type);
     do_binary_operation(op, operand_1, &operand_2,
-                        result_type, result, &operator_position,
-                        expression_kind);
+                        result_type, result, &operator_position);
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -4985,9 +4921,8 @@ be of integral type.  See section 3.3.5 of the standard.
 }  /* scan_mult_operator */
 
 
-static void scan_add_operator(an_operand         *operand_1,
-                              an_operand         *result,
-			      an_expression_kind expression_kind)
+static void scan_add_operator(an_operand *operand_1,
+                              an_operand *result)
 /*
 Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 */
@@ -5013,7 +4948,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_PLUS_MINUS, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_class_or_error_operand(operand_1) ||
@@ -5025,20 +4960,20 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
-                                   expression_kind, &operator_position,
+                                   &operator_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
     /* The first operand must be arithmetic or a pointer. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
     if (is_arithmetic_type(operand_1->type)) {
       /* Okay. */
     } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
       operand_1_is_pointer = TRUE;
     }  /* if */
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     /* Check whether the operand types are valid. */
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
       err = TRUE;
@@ -5132,8 +5067,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
          "pointer + integer" and "pointer - integer".  This is as
          the standard wants it. */
       if (both_operands_are_arithmetic) {
-        change_binary_operand_types(result_type, operand_1, &operand_2,
-                                    expression_kind);
+        change_binary_operand_types(result_type, operand_1, &operand_2);
       }  /* if */
       /* Determine the expression operator for this case. */
       if (pointer_difference) {
@@ -5143,8 +5077,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         op = which_binary_operator(save_token, operation_type);
       }  /* if */
       do_binary_operation(op, operand_1, &operand_2,
-                          result_type, result, &operator_position,
-                          expression_kind);
+                          result_type, result, &operator_position);
       /* For pointer addition or subtraction (but not difference), preserve
          the cross-reference entries for the pointer operand.  This is in
          case the result is turned back into an lvalue, as in "*(arr + 1) = x".
@@ -5164,9 +5097,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 }  /* scan_add_operator */
 
 
-static void scan_shift_operator(an_operand         *operand_1,
-                                an_operand         *result,
-			        an_expression_kind expression_kind)
+static void scan_shift_operator(an_operand *operand_1,
+                                an_operand *result)
 /*
 Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
 */
@@ -5187,7 +5119,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_SHIFT, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_class_or_error_operand(operand_1) ||
@@ -5199,15 +5131,15 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
-                                   expression_kind, &operator_position,
+                                   &operator_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
     /* Both operands must be integral. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     (void)check_integral_operand(operand_1);
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_integral_operand(&operand_2);
 
     if (C_dialect == C_dialect_pcc) {
@@ -5217,18 +5149,16 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
          the result is that of the left operand."  This has the effect
          that a "long" shift count will force the shift to be done as long. */
       result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-      change_binary_operand_types(result_type, operand_1, &operand_2,
-                                  expression_kind);
+      change_binary_operand_types(result_type, operand_1, &operand_2);
       cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
-                   expression_kind, /*is_implicit_cast=*/TRUE);    
+                   /*is_implicit_cast=*/TRUE);    
     } else {
       /* ANSI rules just call for the integral promotions; the type of
          the result is the type of the left operand. */
-      promote_operand(operand_1, expression_kind);
-      promote_operand(&operand_2, expression_kind);
+      promote_operand(operand_1);
+      promote_operand(&operand_2);
     }  /* if */
-    if (expression_kind != (an_expression_kind)ek_not_evaluated &&
-        is_constant_operand(&operand_2) &&
+    if (curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
         !is_constant_operand(operand_1) && !is_error_operand(operand_1)) {
       /* Check the shift count.  This is checked in folding.c for the
          fully constant case, but here if only the second operand is
@@ -5240,7 +5170,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
     result_type = operand_1->type;
     op = which_binary_operator(save_token, result_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &error_position, expression_kind);
+                        &error_position);
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -5251,9 +5181,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
 }  /* scan_shift_operator */
 
 
-static void scan_rel_operator(an_operand         *operand_1,
-                              an_operand         *result,
-			      an_expression_kind expression_kind)
+static void scan_rel_operator(an_operand *operand_1,
+                              an_operand *result)
 /*
 Scan the "<", ">", "<=", and "=>" operators.  See section 3.3.8 of the
 standard.
@@ -5276,7 +5205,7 @@ standard.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_RELATIONAL, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_class_or_error_operand(operand_1) ||
@@ -5288,20 +5217,20 @@ standard.
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
-                                   expression_kind, &operator_position,
+                                   &operator_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
     /* The first operand must be arithmetic or a pointer. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
     if (is_arithmetic_type(operand_1->type)) {
       /* Okay. */
     } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
       operand_1_is_pointer = TRUE;
     }  /* if */
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     /* Check the operand types for compatibility. */
     operation_type = operand_1->type;  /* Assume. */
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
@@ -5328,7 +5257,7 @@ standard.
            pointer cases above).  We already know that operand_1 is
            arithmetic. */
         (void)check_arithmetic_operand(&operand_2);
-        if (expression_kind != (an_expression_kind)ek_not_evaluated &&
+        if (curr_expr_is_evaluated() &&
             (!is_constant_operand(operand_1) ||
              !is_constant_operand(&operand_2))) {
           /* Check for pointless comparisons of unsigned integers against 0,
@@ -5357,13 +5286,11 @@ standard.
       }  /* if */
     }  /* if */
 
-    result_type = get_logical_result_type(expression_kind, operand_1,
-                                          &operand_2);
-    change_binary_operand_types(operation_type, operand_1, &operand_2,
-                                expression_kind);
+    result_type = get_logical_result_type(operand_1, &operand_2);
+    change_binary_operand_types(operation_type, operand_1, &operand_2);
     op = which_binary_operator(save_token, operation_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position, expression_kind);
+                        &operator_position);
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -5374,9 +5301,8 @@ standard.
 }  /* scan_rel_operator */
 
 
-static void scan_eq_operator(an_operand         *operand_1,
-                             an_operand         *result,
-			     an_expression_kind expression_kind)
+static void scan_eq_operator(an_operand *operand_1,
+                             an_operand *result)
 /*
 Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 */
@@ -5398,7 +5324,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_EQ_NE, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_class_or_error_operand(operand_1) ||
@@ -5410,13 +5336,13 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
-                                   expression_kind, &operator_position,
+                                   &operator_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
     /* The first operand must be arithmetic or a pointer. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = operand_1_is_ptr_to_member = FALSE;
     if (is_arithmetic_type(operand_1->type)) {
       /* Okay. */
@@ -5425,7 +5351,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
       operand_1_is_pointer = TRUE;
     }  /* if */
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     /* Check the operand types for compatibility. */
     operation_type = operand_1->type;  /* Assume. */
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
@@ -5461,13 +5387,11 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
       }  /* if */
     }  /* if */
 
-    result_type = get_logical_result_type(expression_kind, operand_1,
-                                          &operand_2);
-    change_binary_operand_types(operation_type, operand_1, &operand_2,
-                                expression_kind);
+    result_type = get_logical_result_type(operand_1, &operand_2);
+    change_binary_operand_types(operation_type, operand_1, &operand_2);
     op = which_binary_operator(save_token, operation_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position, expression_kind);
+                        &operator_position);
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -5478,9 +5402,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 }  /* scan_eq_operator */
 
 
-static void scan_bit_operator(an_operand         *operand_1,
-                              an_operand         *result,
-			      an_expression_kind expression_kind)
+static void scan_bit_operator(an_operand *operand_1,
+                              an_operand *result)
 /*
 Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 3.3.12 of the standard.
@@ -5510,7 +5433,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, prec_level, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_class_or_error_operand(operand_1) ||
@@ -5522,22 +5445,21 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
-                                   expression_kind, &operator_position,
+                                   &operator_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
     /* Both operands must be integral. */
-    do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     (void)check_integral_operand(operand_1);
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_integral_operand(&operand_2);
     result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-    change_binary_operand_types(result_type, operand_1, &operand_2,
-                                expression_kind);
+    change_binary_operand_types(result_type, operand_1, &operand_2);
     op = which_binary_operator(save_token, result_type);
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position, expression_kind);
+                        &operator_position);
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -5548,9 +5470,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 }  /* scan_bit_operator */
 
 
-static void scan_logical_operator(an_operand         *operand_1,
-                                  an_operand         *result,
-			          an_expression_kind expression_kind)
+static void scan_logical_operator(an_operand *operand_1,
+                                  an_operand *result)
 /*
 Scan the "&&" and "||" operators.  See sections 3.3.13 and 3.3.14 of the
 standard.
@@ -5559,7 +5480,6 @@ standard.
   an_expr_operator_kind op;
   an_operand            operand_2;
   a_source_position     operator_position;
-  an_expression_kind    expr2_kind;
   a_boolean             operand_1_is_false = FALSE;
   long                  local_result;
   a_boolean             known_result       = FALSE;
@@ -5569,6 +5489,8 @@ standard.
   a_boolean             might_be_overloaded = FALSE;
   int                   prec_level;
   a_boolean             operand_1_transformations_done = FALSE;
+  a_boolean             saved_evaluated = expr_stack->evaluated;
+  a_boolean             expr2_evaluated;
 
   db_enter(4, "scan_logical_operator");
 
@@ -5594,9 +5516,8 @@ standard.
   }  /* if */
 
   /* Determine whether or not the second operand should be evaluated. */
-  expr2_kind = expression_kind;
-  if (expression_kind != (an_expression_kind)ek_not_evaluated &&
-      !might_be_overloaded) {
+  expr2_evaluated = saved_evaluated;
+  if (curr_expr_is_evaluated() && !might_be_overloaded) {
     /* The operator is not overloaded, so it will have the built-in
        meaning.  Examine the first operand to see if it is a constant.
        If so, we can determine whether or not the second operand should be
@@ -5609,7 +5530,7 @@ standard.
          operand is not a constant. */
     } else {
       /* See if the first operand is a constant. */
-      do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+      do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
       operand_1_transformations_done = TRUE;
       /* Note that pointer to member constants are tested by
          op_is_false_constant; that's why the is_scalar_type test is needed. */
@@ -5619,12 +5540,12 @@ standard.
           /* 0 && something -- this always evaluates to a zero value. */
           local_result = 0;
           known_result = TRUE;
-          expr2_kind = (an_expression_kind)ek_not_evaluated;
+          expr2_evaluated = FALSE;
         } else if (save_token == tok_or_or && !operand_1_is_false) {
           /* non-zero || something -- this always evaluates to a value of 1. */
           local_result = 1;
           known_result = TRUE;
-          expr2_kind = (an_expression_kind)ek_not_evaluated;
+          expr2_evaluated = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5632,7 +5553,10 @@ standard.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, prec_level, expr2_kind, EOPT_NO_OPTIONS);
+  expr_stack->evaluated = expr2_evaluated;
+  scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
+  /* Restore the evaluated flag as it was on entry. */
+  expr_stack->evaluated = saved_evaluated;
 
   /* Note that we do not test might_be_overloaded here, because we want
      to go to the subroutine to look for conversions from class types
@@ -5647,27 +5571,26 @@ standard.
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
-                                   expression_kind, &operator_position,
+                                   &operator_position,
                                    result, &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
     /* Both operands must be scalar. */
     if (!operand_1_transformations_done) {
-      do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+      do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     }  /* if */
     (void)check_boolean_controlling_expr(operand_1,
                                          /*ptr_to_member_okay=*/FALSE);
-    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_boolean_controlling_expr(&operand_2,
                                          /*ptr_to_member_okay=*/FALSE);
     if (!known_result) {
       /* Normal case: the result is not known. */
-      result_type = get_logical_result_type(expression_kind, operand_1,
-                                            &operand_2);
+      result_type = get_logical_result_type(operand_1, &operand_2);
       op = which_binary_operator(save_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                          &operator_position, expression_kind);
+                          &operator_position);
     } else {
       /* The expression evaluates to a constant. */
       make_integer_constant_operand(result, local_result);
@@ -5730,14 +5653,11 @@ in the result type.
 }  /* keep_enum_in_result_type */
 
 
-static void process_boolean_controlling_expression(
-                                            an_operand         *result,
-                                            an_expression_kind expression_kind)
+static void process_boolean_controlling_expression(an_operand *result)
 /*
 *result is the controlling expression of an if/while/do-while/for statement,
 or of a "?" operator.  Check that it has the right type.  Convert it from a
-class type if necessary.  expression_kind indicates the kind of the current
-expression.
+class type if necessary.
 */
 {
   a_boolean processed = FALSE;
@@ -5752,13 +5672,12 @@ expression.
                                                             BTK_FLOATING |
                                                             BTK_POINTER |
                                                             BTK_PTR_TO_MEMBER),
-                                                 expression_kind,
                                                  &processed);
   }  /* if */
   if (!processed) {
     /* Do lvalue --> rvalue and other transformations for the non-overloaded
        case. */
-    do_operand_transformations(result, TOPT_NO_OPTIONS, expression_kind);
+    do_operand_transformations(result, TOPT_NO_OPTIONS);
   }  /* if */
   /* Remember whether or not the expression has pointer type.  This is
      needed later, and the check here standardizes the operation to
@@ -5780,7 +5699,7 @@ expression.
         /* A test of a constant address is always pretty suspicious. */
         pos_warning(ec_boolean_controlling_expr_is_constant,
                     &result->position);
-      } else if (!is_const_expr_kind(expression_kind)) {
+      } else if (!curr_expr_kind_is_const()) {
         pos_remark(ec_boolean_controlling_expr_is_constant, &result->position);
       }  /* if */
     }  /* if */
@@ -5788,37 +5707,33 @@ expression.
 }  /* process_boolean_controlling_expression */
 
 
-static void reference_cast(an_operand         *operand,
-                           a_base_class_ptr   bcp,
-                           an_expression_kind expression_kind)
+static void reference_cast(an_operand       *operand,
+                           a_base_class_ptr bcp)
 /*
 Convert operand (an lvalue that came from a reference) to the type
-of the base class indicated by bcp.  It remains an lvalue.  expression_kind
-is the current expression kind.
+of the base class indicated by bcp.  It remains an lvalue.
 */
 {
   a_boolean is_arrow_operator = TRUE;
 
   /* Convert to a pointer to the object. */
-  take_address_of_lvalue(operand, expression_kind);
+  take_address_of_lvalue(operand);
   /* Cast the pointer to a pointer to the new type. */
   base_class_cast_operand(operand, bcp, &is_arrow_operator,
-                          /*is_implicit_cast=*/TRUE, expression_kind);
+                          /*is_implicit_cast=*/TRUE);
   /* Make an address (an lvalue) for the base class object. */
   conv_object_pointer_to_lvalue(operand);
 }  /* reference_cast */
 
 
-static a_boolean check_reference_conversions(
-                                            an_operand         *operand_1,
-                                            an_operand         *operand_2,
-                                            an_expression_kind expression_kind)
+static a_boolean check_reference_conversions(an_operand *operand_1,
+                                             an_operand *operand_2)
 /*
 operand_1 and operand_2 are the second and third operands of a "?" operator,
 and they are class lvalues that came from references.  Check to see if the
 reference conversions of ARM 4.7 can be used to bring bring them to a
 common type.  If so, apply the conversion and return TRUE; otherwise,
-return FALSE.  expression_kind is the current expression kind.
+return FALSE.
 */
 {
   a_boolean        ref_conversions_apply = FALSE;
@@ -5829,19 +5744,18 @@ return FALSE.  expression_kind is the current expression kind.
   if ((bcp = find_base_class_of(type_1, type_2)) != NULL) {
     /* type_2 is a base class of type_1, so cast operand_1 to type_2. */
     ref_conversions_apply = TRUE;
-    reference_cast(operand_1, bcp, expression_kind);
+    reference_cast(operand_1, bcp);
   } else if ((bcp = find_base_class_of(type_2, type_1)) != NULL) {
     /* type_1 is a base class of type_2, so cast operand_2 to type_1. */
     ref_conversions_apply = TRUE;
-    reference_cast(operand_2, bcp, expression_kind);
+    reference_cast(operand_2, bcp);
   }  /* if */
   return ref_conversions_apply;
 }  /* check_reference_conversions */
 
 
-static void scan_conditional_operator(an_operand         *operand_1,
-                                      an_operand         *result,
-                                      an_expression_kind expression_kind)
+static void scan_conditional_operator(an_operand *operand_1,
+                                      an_operand *result)
 /*
 Scan the "?" operator.  See section 3.3.15 of the standard.
 */
@@ -5854,20 +5768,21 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             result_is_an_lvalue = FALSE;
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type, ptr_result_type, operation_type;
-  an_expression_kind    expr2_kind, expr3_kind;
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
   a_type_ptr            type_pointed_to_2, type_pointed_to_3;
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
   a_type_ptr            operation_type_underlying_class;
   a_boolean             operand_2_is_ptr_to_member, operand_3_is_ptr_to_member;
+  a_boolean             saved_evaluated = expr_stack->evaluated;
+  a_boolean             expr2_evaluated, expr3_evaluated;
 
   db_enter(4, "scan_conditional_operator");
 
   /* Check the first operand's type. */
-  process_boolean_controlling_expression(operand_1, expression_kind);
+  process_boolean_controlling_expression(operand_1);
 
-  expr2_kind = expr3_kind = expression_kind;
-  if (expression_kind != (an_expression_kind)ek_not_evaluated) {
+  expr2_evaluated = expr3_evaluated = saved_evaluated;
+  if (curr_expr_is_evaluated()) {
     /* If the first operand is a constant and if the constant is zero, evaluate
        the third operand only.  If the first operand is constant and is not a
        constant zero, evaluate the second operand only. */
@@ -5877,11 +5792,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       if (operand_1_is_false) {
 	/* The first operand is a constant zero, so do not evaluate the second
 	   operand. */
-        expr2_kind = (an_expression_kind)ek_not_evaluated;
+        expr2_evaluated = FALSE;
       } else {
 	/* The first operand is a constant non-zero, so do not evaluate the
            third operand. */
-        expr3_kind = (an_expression_kind)ek_not_evaluated;
+        expr3_evaluated = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5891,10 +5806,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
      evaluating expressions. */
   (void)get_token();
   expr_stack->nested_construct_depth++;
-  scan_expr(&operand_2, PREC_LOWEST, expr2_kind, EOPT_NO_OPTIONS);
+  expr_stack->evaluated = expr2_evaluated;
+  scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
   do_operand_transformations(&operand_2,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                             expression_kind);
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+  expr_stack->evaluated = saved_evaluated;
   expr_stack->nested_construct_depth--;
 
   /* Save the position of the (expected) colon. */
@@ -5909,15 +5825,16 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   /* Scan the third operand.  Evaluate the expression if the first operand
      is non-constant or a zero constant, and if we are currently evaluating
      expressions. */
+  expr_stack->evaluated = expr3_evaluated;
   /* In C++, the 3rd operand is an assignment-expression (this was changed
      after the ARM) to allow things like "a ? i=1 : j=2". */
   scan_expr(&operand_3, (C_dialect != C_dialect_cplusplus ||
                          cfront_compatibility_mode) ? PREC_QUEST_MARK :
                                                       PREC_ASSIGNMENT,
-                         expr3_kind, EOPT_NO_OPTIONS);
+                         EOPT_NO_OPTIONS);
   do_operand_transformations(&operand_3,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                             expression_kind);
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+  expr_stack->evaluated = saved_evaluated;
 
   /* Check the operands for compatibility.  Both must be arithmetic,
      both compatible struct/union types, both void, or both pointers. */
@@ -5936,8 +5853,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       result_type = make_pointer_type(result_type);
     } else {
       /* If one is an rvalue, make them both rvalues. */
-      conv_lvalue_to_rvalue(&operand_2, expr2_kind);
-      conv_lvalue_to_rvalue(&operand_3, expr3_kind);
+      expr_stack->evaluated = expr2_evaluated;
+      conv_lvalue_to_rvalue(&operand_2);
+      expr_stack->evaluated = expr3_evaluated;
+      conv_lvalue_to_rvalue(&operand_3);
+      expr_stack->evaluated = saved_evaluated;
     }  /* if */
   } else {
     /* Deal with cases where the operands are classes. */
@@ -5951,8 +5871,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
             is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3) &&
             operand_2.came_from_reference &&
             operand_3.came_from_reference &&
-            check_reference_conversions(&operand_2, &operand_3,
-                                        expression_kind)) {
+            check_reference_conversions(&operand_2, &operand_3)) {
           /* The reference conversions do apply.  The subroutine has done
              them already. */
         } else {
@@ -5966,7 +5885,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                          /*try_conversions=*/TRUE,
                                          /*has_predef_meaning=*/TRUE,
                                          &operand_2, &operand_3,
-                                         expression_kind, &operator_position,
+                                         &operator_position,
                                          result, &processed);
           /* processed TRUE means an error has been detected. */
           if (processed) err = TRUE;
@@ -5975,8 +5894,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
     if (!processed) {
       result_type = operand_2.type;  /* Assume. */
-      conv_lvalue_to_rvalue(&operand_2, expr2_kind);
-      conv_lvalue_to_rvalue(&operand_3, expr3_kind);
+      expr_stack->evaluated = expr2_evaluated;
+      conv_lvalue_to_rvalue(&operand_2);
+      expr_stack->evaluated = expr3_evaluated;
+      conv_lvalue_to_rvalue(&operand_3);
+      expr_stack->evaluated = saved_evaluated;
       operand_2_is_pointer = is_pointer_type(operand_2.type);
       operand_3_is_pointer = is_pointer_type(operand_3.type);
       if (C_dialect == C_dialect_cplusplus) {
@@ -6121,8 +6043,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
       /* Cast operands 2 and 3 to the result type if necessary. */
       if (!err) {
-        change_binary_operand_types(result_type, &operand_2, &operand_3,
-                                    expression_kind);
+        change_binary_operand_types(result_type, &operand_2, &operand_3);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6224,9 +6145,8 @@ assignment.  This routine is called only in C++ mode.
 }  /* change_assignment_result_to_lvalue */
 
 
-static void scan_simple_assignment_operator(an_operand         *operand_1,
-                                            an_operand         *result,
-                                            an_expression_kind expression_kind)
+static void scan_simple_assignment_operator(an_operand *operand_1,
+                                            an_operand *result)
 /*
 Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 */
@@ -6242,7 +6162,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (is_const_expr_kind(expression_kind)) {
+  if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
@@ -6251,7 +6171,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
   /* Scan the second operand. */
   (void)get_token();
 
-  scan_expr(&operand_2, PREC_ASSIGNMENT, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -6272,14 +6192,13 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
                                      /*try_conversions=*/FALSE,
                                      has_predef_meaning,
                                      operand_1, &operand_2,
-                                     expression_kind, &operator_position,
+                                     &operator_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases, including all C cases. */
       do_operand_transformations(operand_1,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
 #if ASSIGNMENT_TO_THIS_ALLOWED
       if (C_dialect == C_dialect_cplusplus &&
           is_an_rvalue(operand_1) &&  /* For speed. */
@@ -6289,7 +6208,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
       } else {
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
         if (check_modifiable_lvalue_operand(operand_1)) {
-          modifying_lvalue(operand_1, expression_kind);
+          modifying_lvalue(operand_1);
         }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
       }  /* if */
@@ -6302,9 +6221,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
          a conversion might apply and might require an lvalue. */
       do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION |
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
-      prep_assignment_operand(&operand_2, result_type, expression_kind,
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+      prep_assignment_operand(&operand_2, result_type,
                               ec_incompatible_operands, &operator_position);
       build_binary_result_operand(operand_1, &operand_2,
                                   which_binary_operator(tok_assign,
@@ -6325,10 +6243,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 }  /* scan_simple_assignment_operator */
 
 
-static void scan_compound_assignment_operator(
-                                            an_operand         *operand_1,
-                                            an_operand         *result,
-                                            an_expression_kind expression_kind)
+static void scan_compound_assignment_operator(an_operand *operand_1,
+                                              an_operand *result)
 /*
 Scan the compound assignment operators (*= /= %= += -= <<= >>= &= ^= |=).
 See section 3.3.16 of the standard.
@@ -6349,7 +6265,7 @@ See section 3.3.16 of the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (is_const_expr_kind(expression_kind)) {
+  if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
@@ -6357,7 +6273,7 @@ See section 3.3.16 of the standard.
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_ASSIGNMENT, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -6373,18 +6289,17 @@ See section 3.3.16 of the standard.
                                      /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
                                      operand_1, &operand_2,
-                                     expression_kind, &operator_position,
+                                     &operator_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(operand_1,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       if (check_modifiable_lvalue_operand(operand_1)) {
-        modifying_lvalue(operand_1, expression_kind);
+        modifying_lvalue(operand_1);
       }  /* if */
-      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
+      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* Check the operand types. */
       switch (save_token) {
         case tok_times_assign:
@@ -6436,8 +6351,7 @@ See section 3.3.16 of the standard.
           /* Normal case. */
           operation_type = determine_arithmetic_conversions(operand_1,
                                                             &operand_2);
-          cast_operand(operation_type, &operand_2, expression_kind,
-                       /*is_implicit_cast=*/TRUE);
+          cast_operand(operation_type, &operand_2, /*is_implicit_cast=*/TRUE);
         }  /* if */
         build_binary_result_operand(operand_1, &operand_2,
                                     which_binary_operator(save_token,
@@ -6459,9 +6373,8 @@ See section 3.3.16 of the standard.
 }  /* scan_compound_assignment_operator */
 
 
-static void scan_comma_operator(an_operand         *operand_1,
-                                an_operand         *result,
-			        an_expression_kind expression_kind)
+static void scan_comma_operator(an_operand *operand_1,
+                                an_operand *result)
 /*
 Scan the "," operator.  Note that this routine is not called if the
 comma operator if not allowed (local_options flag
@@ -6479,7 +6392,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (is_const_expr_kind(expression_kind)) {
+  if (curr_expr_kind_is_const()) {
     /* Comma operator not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &pos_curr_token);
     err = TRUE;
@@ -6487,7 +6400,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 
   /* Scan the second operand. */
   (void)get_token();
-  scan_expr(&operand_2, PREC_COMMA, expression_kind, EOPT_NO_OPTIONS);
+  scan_expr(&operand_2, PREC_COMMA, EOPT_NO_OPTIONS);
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -6503,15 +6416,14 @@ EOPT_DISALLOW_COMMA_OPERATOR).
                                      /*try_conversions=*/FALSE,
                                      /*has_predef_meaning=*/TRUE,
                                      operand_1, &operand_2,
-                                     expression_kind, &operator_position,
+                                     &operator_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+      do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
       do_operand_transformations(&operand_2,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       /* Simplify the void expression. */
       simplify_void_operand(operand_1);
       /* The result type is the type of the second operand. */
@@ -6522,7 +6434,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
         result_is_an_lvalue = is_an_lvalue(&operand_2);
         if (result_is_an_lvalue) result_type = make_pointer_type(result_type);
       } else {
-        conv_lvalue_to_rvalue(&operand_2, expression_kind);
+        conv_lvalue_to_rvalue(&operand_2);
       }  /* if */
       /* Make a comma operator expression. */
       build_binary_result_operand(operand_1, &operand_2,
@@ -6547,18 +6459,17 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 
 
 static void make_anonymous_union_field_operand(
-                                           a_symbol_ptr       sym_ptr,
-                                           an_expression_kind expression_kind,
-                                           a_source_position  *source_position,
-                                           an_xref_entry_ptr  xep,
-                                           an_operand         *result)
+                                            a_symbol_ptr      sym_ptr,
+                                            a_source_position *source_position,
+                                            an_xref_entry_ptr xep,
+                                            an_operand        *result)
 /*
 Make an operand for a field that is a member of a top-level anonymous union.
 (That is, an anonymous union that is not inside a struct or union.)
-sym_ptr is the field; expression_kind is the current expression kind;
-source_position indicates the field identifier source position; and xep
-points to a cross-reference entry or is NULL if there isn't one.  The
-operand is built in *operand.  It's an lvalue for the field.
+sym_ptr is the field; source_position indicates the field identifier
+source position; and xep points to a cross-reference entry or is NULL if
+there isn't one.  The operand is built in *operand.  It's an lvalue for
+the field.
 */
 {
   a_variable_ptr union_var = sym_ptr->variant.field.anonymous_union_variable;
@@ -6568,7 +6479,7 @@ operand is built in *operand.  It's an lvalue for the field.
   make_lvalue_variable_operand(union_var, &operand_1, (an_xref_entry_ptr)NULL);
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
-                               /*is_arrow_operator=*/FALSE, expression_kind,
+                               /*is_arrow_operator=*/FALSE,
                                sym_ptr, source_position, xep, result);
   result->position = *source_position;
 }  /* make_anonymous_union_field_operand */
@@ -6659,8 +6570,7 @@ The symbol may be a member of an anonymous union.
 }  /* bad_nested_function_variable_ref */
 
 
-static void scan_identifier(an_expression_kind       expression_kind,
-			    an_operand               *result,
+static void scan_identifier(an_operand               *result,
                             an_operand               *bound_function_selector,
                             a_local_expr_options_set local_options)
 /*
@@ -6683,7 +6593,7 @@ bound_function_selector to the associated "this" pointer.
   db_enter(4, "scan_identifier");
 
 #if CHECKING
-  if (expression_kind == (an_expression_kind)ek_pp) {
+  if (curr_expr_kind_is(ek_pp)) {
     /* Should never see an identifier in a preprocessing directive. */
     internal_error ("scan_identifier: in preprocessing expr");
   }  /* if */
@@ -6706,7 +6616,7 @@ bound_function_selector to the associated "this" pointer.
   }  /* if */
   if (sym_ptr == NULL) {
     /* The symbol is not defined. */
-    if (is_const_expr_kind(expression_kind)) {
+    if (curr_expr_kind_is_const()) {
       /* In a constant expression, an undefined identifier is still
          flagged as "undefined" -- it makes the error message clearer. */
       str_error(ec_undefined_identifier,
@@ -6723,8 +6633,7 @@ bound_function_selector to the associated "this" pointer.
       clear_operand((an_operand_kind)ok_undefined_symbol, result);
       result->type = unknown_type();
       result->variant.symbol = sym_ptr;
-      result->xref_entries_list = xref_entry(sym_ptr, &pos_curr_token,
-                                             expression_kind);
+      result->xref_entries_list = xref_entry(sym_ptr, &pos_curr_token);
     }  /* if */
   } else {
     /* The symbol is defined. */
@@ -6734,7 +6643,7 @@ bound_function_selector to the associated "this" pointer.
     if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
       xep = NULL;
     } else {
-      xep = xref_entry(sym_ptr, &pos_curr_token, expression_kind);
+      xep = xref_entry(sym_ptr, &pos_curr_token);
     }  /* if */
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
@@ -6766,7 +6675,7 @@ bound_function_selector to the associated "this" pointer.
         case sk_variable:
         case sk_static_data_member:
           var_ptr = sym_ptr->variant.variable.ptr;
-          if (is_const_expr_kind(expression_kind)) {
+          if (curr_expr_kind_is_const()) {
             /* A variable is allowed only in initializer expressions,
                and only if it is static and its address is being taken
                (i.e., it's not the variable's value that is wanted).
@@ -6780,7 +6689,7 @@ bound_function_selector to the associated "this" pointer.
             /* Note that in C++ initializer expressions are used only for
                non-type template arguments and for the argument of
                __INTADDR__. */
-            if (expression_kind == (an_expression_kind)ek_init_constant &&
+            if (curr_expr_kind_is(ek_init_constant) &&
                 has_static_storage_duration(var_ptr->storage_class) &&
                 /* Disallow C++ reference variables in constant
                    expressions, because of the extra indirection. */
@@ -6825,7 +6734,7 @@ bound_function_selector to the associated "this" pointer.
           break;
         case sk_routine:
 normal_function:
-          if (expression_kind == (an_expression_kind)ek_integral_constant) {
+          if (curr_expr_kind_is(ek_integral_constant)) {
             /* Function identifiers are not allowed in integral constant
                expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
@@ -6857,7 +6766,6 @@ normal_function:
                                            result);
             } else {
               make_anonymous_union_field_operand(sym_ptr,
-                                                 expression_kind,
                                                  &locator_for_curr_id.
                                                                source_position,
                                                  xep, result);
@@ -6873,7 +6781,7 @@ normal_function:
                                                  result);
             } else {
               /* Make an operand for the "this" pointer. */
-              make_this_pointer_operand(&locator_for_curr_id, expression_kind,
+              make_this_pointer_operand(&locator_for_curr_id,
                                         &this_pointer_operand);
               if (is_error_operand(&this_pointer_operand)) {
                 /* There was some problem in constructing the "this"
@@ -6887,7 +6795,6 @@ normal_function:
                 do_field_selection_operation(&this_pointer_operand,
                                              qual_class_type,
                                              /*is_arrow_operator=*/TRUE,
-                                             expression_kind,
                                              sym_ptr,
                                              &locator_for_curr_id.
                                                                source_position,
@@ -6915,7 +6822,7 @@ normal_function:
                selector expression. */
 nonstatic_member_function:
             /* Make an operand for the "this" pointer. */
-            make_this_pointer_operand(&locator_for_curr_id, expression_kind,
+            make_this_pointer_operand(&locator_for_curr_id,
                                       &this_pointer_operand);
             if (is_error_operand(&this_pointer_operand)) {
               /* There was some problem in constructing the "this" operand. */
@@ -6978,7 +6885,6 @@ nonstatic_member_function:
             /* In C++, a functional-notation type conversion. */
             scan_functional_notation_type_conversion(type_symbol_type(sym_ptr),
                                                      result,
-                                                     expression_kind,
                                                      local_options);
             goto after_advance_past_id;
           } else {
@@ -7120,20 +7026,16 @@ These cases are handled here by coalescing two tokens.
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
-                           an_expression_kind       expression_kind,
                            a_local_expr_options_set local_options)
 /*
 Scan an expression and return it in *result.  If the expression is for
 a bound function in C++, also set *bound_function_selector to indicate the
 object.  prec_level indicates the precedence level that controls this
 scan; scan_expr_full stops on an operator with lower precedence than
-prec_level.  expression_kind indicates the kind of expression to scan;
-its values include three kinds of constant expressions (preprocessing,
-integral constant, and initializer), not-evaluated expressions (as for
-the operand of sizeof), and normal expressions.  local_options indicates
-some temporary options that apply only for the top-level expression scanned
-by this routine (disallow comma operator, suppress conversion of arrays
-and/or functions to pointers, etc. -- see expr.h).
+prec_level.  local_options indicates some temporary options that apply
+only for the top-level expression scanned by this routine (disallow comma
+operator, suppress conversion of arrays and/or functions to pointers, etc. --
+see expr.h).
 */
 {
   a_source_position start_position;
@@ -7170,8 +7072,8 @@ and/or functions to pointers, etc. -- see expr.h).
       /* Fall through to next case ("::" is the start of a qualified name). */
     case tok_identifier:
     case tok_operator:               /* Start of "operator+" and the like. */
-      scan_identifier(expression_kind, &local_result,
-                      &local_bound_function_selector, local_options);
+      scan_identifier(&local_result, &local_bound_function_selector,
+                      local_options);
       break;
     case tok_this:
       /* In C++, "this" in a nonstatic member function is a non-lvalue that
@@ -7199,8 +7101,8 @@ and/or functions to pointers, etc. -- see expr.h).
       /* Floating constants are not allowed in preprocessing expressions.
          In integral constant expressions, they are allowed only as the 
          immediate operand of a cast. */
-      if ((expression_kind == (an_expression_kind)ek_pp) ||
-	  (expression_kind == (an_expression_kind)ek_integral_constant &&
+      if (curr_expr_kind_is(ek_pp) ||
+	  (curr_expr_kind_is(ek_integral_constant) &&
            !(local_options & EOPT_OPERAND_OF_CAST))) {
 	error_and_make_error_operand(ec_expr_not_integral, &local_result);
       }  /* if */
@@ -7208,8 +7110,8 @@ and/or functions to pointers, etc. -- see expr.h).
       break;
     case tok_string_literal:
       make_string_constant_operand(&const_for_curr_token, &local_result);
-      if ((expression_kind == (an_expression_kind)ek_pp) ||
-	  (expression_kind == (an_expression_kind)ek_integral_constant)) {
+      if (curr_expr_kind_is(ek_pp) ||
+	  curr_expr_kind_is(ek_integral_constant)) {
 	error_and_make_error_operand(ec_expr_not_integral, &local_result);
       }  /* if */
       (void)get_token();
@@ -7222,27 +7124,27 @@ and/or functions to pointers, etc. -- see expr.h).
 
     case tok_plus_plus:
     case tok_minus_minus:
-      scan_prefix_incr_decr(&local_result, expression_kind);
+      scan_prefix_incr_decr(&local_result);
       break;
 
     case tok_ampersand:
-      scan_ampersand_operator(&local_result, expression_kind);
+      scan_ampersand_operator(&local_result);
       break;
 
     case tok_star:
-      scan_indirection_operator(&local_result, expression_kind);
+      scan_indirection_operator(&local_result);
       break;
 
     case tok_plus:
     case tok_minus:
     case tok_compl:
     case tok_not:
-      scan_arith_prefix_operator(&local_result, expression_kind);
+      scan_arith_prefix_operator(&local_result);
       break;
 
     case tok_sizeof:
       /* Sizeof operation. */
-      scan_sizeof_operator(&local_result, expression_kind);
+      scan_sizeof_operator(&local_result);
       break;
 
     case tok_alignof:
@@ -7257,12 +7159,12 @@ and/or functions to pointers, etc. -- see expr.h).
     case tok_new:
 scan_new:
       /* C++ "new" operator. */
-      scan_new_operator(&local_result, expression_kind);
+      scan_new_operator(&local_result);
       break;
     case tok_delete:
 scan_delete:
       /* C++ "delete" operator. */
-      scan_delete_operator(&local_result, expression_kind);
+      scan_delete_operator(&local_result);
       break;
     case tok_lparen:
       /* This could be a cast operation or just an expression in
@@ -7270,7 +7172,7 @@ scan_delete:
       /* Come here if a left parenthesis was trapped by the caller. */
 handle_trapped_left_paren:
       scan_cast_or_expr(&local_result, &local_bound_function_selector,
-                        expression_kind, local_options);
+                        local_options);
       break;
 
     case tok_char:
@@ -7288,7 +7190,6 @@ handle_trapped_left_paren:
       if (next_token() == tok_lparen) {
         scan_functional_notation_type_conversion(type_keyword(),
                                                  &local_result,
-                                                 expression_kind,
                                                  local_options);
       } else {
         /* No parenthesis following the type, so issue an error. */
@@ -7369,69 +7270,66 @@ bad_start_of_primary:
       case tok_plus_plus:
       case tok_minus_minus:
 	/* Postfix increment and decrement. */
-        scan_postfix_incr_decr(&operand, &local_result, expression_kind);
+        scan_postfix_incr_decr(&operand, &local_result);
 	break;
       case tok_lbracket:
 	/* Subscript. */
-        scan_subscript_operator(&operand, &local_result, expression_kind);
+        scan_subscript_operator(&operand, &local_result);
 	break;
       case tok_lparen:
 	/* Routine call. */
         scan_function_call(&operand, &local_bound_function_selector,
-                           &local_result, expression_kind);
+                           &local_result);
 	break;
       case tok_period:
       case tok_arrow:
 	/* Field selectors. */
 	scan_field_selection_operator(&operand, &local_result,
-                                      &local_bound_function_selector,
-				      expression_kind);
+                                      &local_bound_function_selector);
 	break;
       case tok_period_star:
       case tok_arrow_star:
 	/* C++ pointer-to-member operators (.* and ->*). */
 	scan_ptr_to_member_operator(&operand, &local_result,
-                                    &local_bound_function_selector,
-				    expression_kind);
+                                    &local_bound_function_selector);
         break;
       case tok_star:
       case tok_divide:
       case tok_remainder:
-	scan_mult_operator(&operand, &local_result, expression_kind);
+	scan_mult_operator(&operand, &local_result);
 	break;
       case tok_plus:
       case tok_minus:
-	scan_add_operator(&operand, &local_result, expression_kind);
+	scan_add_operator(&operand, &local_result);
 	break;
       case tok_shift_left:
       case tok_shift_right:
-	scan_shift_operator(&operand, &local_result, expression_kind);
+	scan_shift_operator(&operand, &local_result);
 	break;
       case tok_lt:
       case tok_gt:
       case tok_le:
       case tok_ge:
-	scan_rel_operator(&operand, &local_result, expression_kind);
+	scan_rel_operator(&operand, &local_result);
 	break;
       case tok_eq:
       case tok_ne:
-	scan_eq_operator(&operand, &local_result, expression_kind);
+	scan_eq_operator(&operand, &local_result);
 	break;
       case tok_ampersand:
       case tok_excl_or:
       case tok_or:
-	scan_bit_operator(&operand, &local_result, expression_kind);
+	scan_bit_operator(&operand, &local_result);
 	break;
       case tok_and_and:
       case tok_or_or:
-	scan_logical_operator(&operand, &local_result, expression_kind);
+	scan_logical_operator(&operand, &local_result);
 	break;
       case tok_quest_mark:
-	scan_conditional_operator(&operand, &local_result, expression_kind);
+	scan_conditional_operator(&operand, &local_result);
 	break;
       case tok_assign:
-        scan_simple_assignment_operator(&operand, &local_result,
-				        expression_kind);
+        scan_simple_assignment_operator(&operand, &local_result);
 	break;
       case tok_times_assign:
       case tok_divide_assign:
@@ -7443,11 +7341,10 @@ bad_start_of_primary:
       case tok_and_assign:
       case tok_excl_or_assign:
       case tok_or_assign:
-        scan_compound_assignment_operator(&operand, &local_result,
-				          expression_kind);
+        scan_compound_assignment_operator(&operand, &local_result);
 	break;
       case tok_comma:
-	scan_comma_operator(&operand, &local_result, expression_kind);
+	scan_comma_operator(&operand, &local_result);
 	break;
 #if CHECKING
       default:
@@ -7511,8 +7408,7 @@ a pointer to the expression tree.
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-	    EOPT_NO_OPTIONS);
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Make sure it's an integer.  Convert from a class type to an integer if
      necessary. */
   if (C_dialect == C_dialect_cplusplus &&
@@ -7520,13 +7416,11 @@ a pointer to the expression tree.
     try_to_convert_class_operand_to_builtin_type(&result,
                                                  (a_builtin_type_kind_set)
                                                                   BTK_INTEGRAL,
-                                                 (an_expression_kind)ek_normal,
                                                  &processed);
   }  /* if */
   if (!processed) {
     /* Non-class (i.e., normal) case. */
-    do_operand_transformations(&result, TOPT_NO_OPTIONS,
-                               (an_expression_kind)ek_normal);
+    do_operand_transformations(&result, TOPT_NO_OPTIONS);
     (void)check_integral_operand(&result);
   }  /* if */
   expression = make_node_from_operand(&result);
@@ -7562,10 +7456,8 @@ This routine is not used for constant or not-evaluated expressions.
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-            EOPT_NO_OPTIONS);
-  do_operand_transformations(&result, TOPT_NO_OPTIONS,
-                             (an_expression_kind)ek_normal);
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  do_operand_transformations(&result, TOPT_NO_OPTIONS);
   simplify_void_operand(&result);
   expression = make_node_from_operand(&result);
   pop_expr_stack();
@@ -7603,16 +7495,14 @@ a prior error) just do the scan.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   expr_stack_entry.is_default_arg_expression = TRUE;
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
+  scan_expr(&result, PREC_LOWEST,
             EOPT_NO_OPTIONS | EOPT_DISALLOW_COMMA_OPERATOR);
   if (ptp != NULL) {
     /* Convert to the required type. */
     prep_argument_operand(&result, ptp, (a_user_conv_descr_ptr)NULL,
-                          ec_bad_default_arg_type,
-                          (an_expression_kind)ek_normal);
+                          ec_bad_default_arg_type);
   } else {
-    do_operand_transformations(&result, TOPT_NO_OPTIONS,
-                               (an_expression_kind)ek_normal);
+    do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   node = make_node_from_operand(&result);
   if (ptp != NULL) ptp->default_arg_expr = node;
@@ -7643,15 +7533,13 @@ the current function.
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-            EOPT_NO_OPTIONS);
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* The required type can be void if we are in cfront mode.  If it is
      void just take the expression as we found it -- don't try to
      convert it to void. */
   if (!is_void_type(required_type)) {
     /* Convert to the required type. */
-    prep_return_operand(&result, required_type,
-                        (an_expression_kind)ek_normal, err_code);
+    prep_return_operand(&result, required_type, err_code);
   }  /* if */
   expression = make_node_from_operand(&result);
   pop_expr_stack();
@@ -7679,10 +7567,8 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 
   push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry);
   /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_pp,
-            EOPT_DISALLOW_COMMA_OPERATOR);
-  do_operand_transformations(&result, TOPT_NO_OPTIONS,
-                             (an_expression_kind)ek_pp);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
   pop_expr_stack();
 
@@ -7708,10 +7594,8 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
 
   push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry);
   /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_integral_constant,
-            EOPT_DISALLOW_COMMA_OPERATOR);
-  do_operand_transformations(&result, TOPT_NO_OPTIONS,
-                             (an_expression_kind)ek_integral_constant);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
   if (constant->kind == (a_constant_repr_kind)ck_template_param) {
     /* Use an error constant for a template parameter constant within
@@ -7750,10 +7634,8 @@ C++ mode.
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-            EOPT_NO_OPTIONS);
-  do_operand_transformations(&result, TOPT_NO_OPTIONS,
-                             (an_expression_kind)ek_normal);
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  do_operand_transformations(&result, TOPT_NO_OPTIONS);
   /* Check that expression is integral. */
 #if 0
   /* Should conversions be allowed here? */
@@ -7883,8 +7765,7 @@ Return the constant in *constant.
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
-            EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Check that its type is correct. */
   determine_arg_match_level(&result, (a_type_ptr)NULL, param_type,
                             /*try_user_conversions=*/FALSE, &arg_summary);
@@ -7912,7 +7793,6 @@ Return the constant in *constant.
        conversions). */
     prep_initializer_operand(&result, param_type, (a_user_conv_descr_ptr)NULL,
                              /*initializing_return_value=*/FALSE,
-                             (an_expression_kind)ek_init_constant,
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
     extract_constant_from_operand(&result, constant);
@@ -7959,12 +7839,10 @@ constant class members (an extension).
 
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
   /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
-            EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_user_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
-                           (an_expression_kind)ek_init_constant,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -8001,12 +7879,10 @@ copy constructor elision is possible; see scan_class_initializer_expression.
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-            EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_user_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
-                           (an_expression_kind)ek_normal,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
@@ -8064,8 +7940,7 @@ err_pos as the error position.
   operand.position = *err_pos;
   /* Do the conversion. */
   prep_argument_operand(&operand, param, (a_user_conv_descr_ptr)NULL,
-                        ec_incompatible_param,
-                        (an_expression_kind)ek_normal);
+                        ec_incompatible_param);
   /* Make an expression again. */
   expr = make_node_from_operand(&operand);
   pop_expr_stack();
@@ -8113,8 +7988,7 @@ of a statement).
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-            EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and if so,
      what the proper conversion routine is. */
   prep_elision_initializer_operand(&result, class_type, conversion_routine,
@@ -8147,12 +8021,10 @@ class type that can be converted to such a type.
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-	    EOPT_NO_OPTIONS);
+  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
   /* Check its type and normalize it. */
-  process_boolean_controlling_expression(&result,
-                                         (an_expression_kind)ek_normal);
+  process_boolean_controlling_expression(&result);
   expr = make_node_from_operand(&result);
   pop_expr_stack();
 
