@@ -149,6 +149,33 @@ static unsigned long
 #endif /* DEBUG */
 
 /*
+Data struct used to do a fixup pass on based-type lists containing entries
+that should not escape to the back end.
+*/
+typedef struct a_based_type_fixup *a_based_type_fixup_ptr;
+typedef struct a_based_type_fixup {
+  a_based_type_fixup_ptr
+		next;
+			/* Next in the linked list of fixup entries; NULL if
+			   this is the last on the list. */
+  a_type_ptr	base_type;
+			/* The type whose based-type list should be scanned
+			   during the based-type-list fixup. */
+} a_based_type_fixup;
+
+static a_based_type_fixup_ptr
+		based_type_fixup_list;
+			/* Head of a linked list of entries identifying
+			   types whose based-type lists include entries that
+			   must not be passed to the back end because they
+			   refer to type entries that are for front-end use
+			   only. */
+#if DEBUG
+static unsigned long
+		num_based_type_fixups_allocated;
+#endif /* DEBUG */
+
+/*
 Flag that is set to TRUE when there one or more implicit children of the
 lifetime object that is associated with the file scope.  (Its implicit
 children are entries that point to it as a parent but which it does not
@@ -4504,6 +4531,83 @@ Make or find a type entry for a void type, and return a pointer to it.
 }  /* void_type */
 
 
+void do_based_type_fixup(void)
+/*
+Go though the based-type fixup list.  For each type specified, go through
+the associated based-type list and remove any entries marked as front-end
+only.
+*/
+{
+  a_based_type_fixup_ptr        btfp = based_type_fixup_list;
+  a_type_ptr                    tp;
+  a_based_type_list_member_ptr  btlmp, prev_btlmp, next_btlmp;
+
+  for (; btfp != NULL; btfp = btfp->next) {
+    tp = btfp->base_type;
+    prev_btlmp = NULL;
+    for (btlmp = tp->based_types; btlmp != NULL; btlmp = next_btlmp) {
+      next_btlmp = btlmp->next;
+      if (btlmp->front_end_only) {
+        if (prev_btlmp == NULL) {
+          tp->based_types = btlmp->next;
+        } else {
+          prev_btlmp->next = btlmp->next;
+        }  /* if */
+        /* Leave prev_btlmp set as is. */
+      } else {
+        prev_btlmp = btlmp;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  based_type_fixup_list = NULL;
+}  /* do_based_type_fixup */
+
+
+static void add_to_based_type_fixup_list(a_type_ptr  base_type)
+/*
+Look for an entry on the based-type fixup list that points to base_type.
+If none is found, create one and add it to the list.
+*/
+{
+  a_based_type_fixup_ptr  btfp, prev_btfp;
+
+  if (is_or_contains_template_param(base_type)) {
+    /* Don't bother adding a fixup entry for base types that shouldn't escape
+       the front end anyway.  In other words, if T is a template param type,
+       we don't need a fixup entry for T A<T>::* but we do need one for
+       int A<T>::* (in which examples the base-types are T and int,
+       respectively). */
+  } else {
+    prev_btfp = NULL;
+    for (btfp = based_type_fixup_list; btfp != NULL; btfp = btfp->next) {
+      if (btfp->base_type == base_type) {
+        /* The specified base type is already represented on the fixup list.
+           Unless it's already there, move the entry to the head of the
+           list (as an optimization for subsequent traversals of the list. */
+        if (prev_btfp != NULL) {
+          /* Remove the entry and readd it at the front. */
+          prev_btfp->next = btfp->next;
+          btfp->next = based_type_fixup_list;
+          based_type_fixup_list = btfp;
+        }  /* if */
+        goto done;
+      }  /* if */
+      prev_btfp = btfp;
+    }  /* if */
+    /* Falling through means a match was not found. */
+    btfp = (a_based_type_fixup_ptr)alloc_fe(sizeof(a_based_type_fixup));
+#if DEBUG
+    num_based_type_fixups_allocated++;
+#endif /* DEBUG */
+    btfp->base_type = base_type;
+    /* Add the entry to the start of the list. */
+    btfp->next = based_type_fixup_list;
+    based_type_fixup_list = btfp;
+  }  /* if */
+done:;
+}  /* add_to_based_type_fixup_list */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- Because expl_mem_attr_implicit is only used in Microsoft
                      mode. */
@@ -4587,23 +4691,36 @@ is already an entry of the indicated kind on the list.
 */
 {
   a_based_type_list_member_ptr btlmp;
+  a_boolean                    fixup_required = FALSE;
 
   btlmp = alloc_based_type_list_member(kind);
   btlmp->based_type = based_type;
   /* Add the entry to the front of the existing based_types list. */
   btlmp->next = base_type->based_types;
   base_type->based_types = btlmp;
-#if MAINTAIN_NEEDED_FLAGS
-  /* If the "needed" or "keep_in_il" flag has already been set on this
-     type, clear it and set it again to ensure that the entry on the based
-     types list is visited if required. */
-  if (base_type->source_corresp.needed) {
-    base_type->source_corresp.needed = FALSE;
-    mark_as_needed((char *)base_type, iek_type);
+  if (btlmp->kind == (a_based_type_kind)btk_ptr_to_member) {
+    a_type_ptr tp = based_type->variant.ptr_to_member.class_of_which_a_member;
+    if (!is_class_struct_union_type(tp) ||
+        symbol_supplement_for_class(tp)->is_nonreal_class) {
+      btlmp->front_end_only = TRUE;
+      add_to_based_type_fixup_list(base_type);
+    }  /* if */
   }  /* if */
-  if (il_entry_prefix_of(base_type).keep_in_il) {
-    il_entry_prefix_of(base_type).keep_in_il = FALSE;
-    mark_to_keep_in_il((char *)base_type, iek_type);
+#if MAINTAIN_NEEDED_FLAGS
+  /* Don't set keep-in-il or needed flags on the based type if it is a
+     front-end-only type. */
+  if (!btlmp->front_end_only) {
+    /* If the "needed" or "keep_in_il" flag has already been set on this
+       type, clear it and set it again to ensure that the entry on the based
+       types list is visited if required. */
+    if (base_type->source_corresp.needed) {
+      base_type->source_corresp.needed = FALSE;
+      mark_as_needed((char *)base_type, iek_type);
+    }  /* if */
+    if (il_entry_prefix_of(base_type).keep_in_il) {
+      il_entry_prefix_of(base_type).keep_in_il = FALSE;
+      mark_to_keep_in_il((char *)base_type, iek_type);
+    }  /* if */
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* add_based_type_list_member */
@@ -11020,6 +11137,7 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   last_macro = NULL;
 #endif /* RECORD_MACROS_IN_IL */
+  based_type_fixup_list = NULL;
 
 #if DEBUG
   num_shareable_constants                = 0;
@@ -11028,6 +11146,7 @@ of the front end.
   num_searches_for_shareable_constants   = 0;
   num_compares_for_shareable_constants   = 0;
   num_get_based_type_calls               = 0;
+  num_based_type_fixups_allocated        = 0;
 #endif /* DEBUG */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   last_scope_orphaned_list_header = NULL;
