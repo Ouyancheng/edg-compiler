@@ -3998,7 +3998,8 @@ and return NULL.  This routine is called only in C++ mode.
       /* If the function found is a block extern or a member function, suppress
          argument-dependent lookup.  The member function part of that is
          in the standard.  The block extern part is not, but was strongly
-         supported as a change at the Nov. 98 standards committee meeting. */
+         supported as a change at the Nov. 98 standards committee meeting.
+         Using-declarations are treated similarly. */
       if (overloaded_function_symbol->is_class_member) {
         do_arg_dep_lookup = FALSE;
       } else if (!strict_ansi_mode &&
@@ -4035,7 +4036,7 @@ and return NULL.  This routine is called only in C++ mode.
       }  /* if */
       if (is_block_extern_symbol(overloaded_function_symbol)) {
         /* A block extern declaration can be dependent (e.g., it
-           could have dependent parameter types or dependent default
+           can have dependent parameter types or dependent default
            argument expressions), so we can't do overload resolution. */
         defer_overload_resolution = TRUE;
       }  /* if */
@@ -7800,6 +7801,7 @@ such cases (where operator overloading might apply, but we can't tell).
   a_boolean                undecidable_because_of_error;
   a_boolean                arg_operand_list_not_used;
   a_boolean                dependent_call = FALSE;
+  a_boolean                defer_overload_resolution = FALSE;
 
   db_enter(4, "check_for_operator_overloading");
   *processed = FALSE;
@@ -7867,7 +7869,7 @@ such cases (where operator overloading might apply, but we can't tell).
         candidate_functions = NULL;
         if (is_template_dependent_context()) {
           /* In a prototype instantiation.  If the operands are dependent,
-             the caller should have spotted that and generated a generic
+             the code above should have spotted that and generated a generic
              expression operator. */
           check_assertion_str(!is_template_dependent_type(operand_1->type) &&
                               (unary_operator ||
@@ -7972,10 +7974,10 @@ such cases (where operator overloading might apply, but we can't tell).
           }  /* if */
           if (!strict_ansi_mode && normal_sym != NULL &&
               is_local_symbol(normal_sym)) {
-            /* If the symbol found is a block extern, skip the
-               argument-dependent processing.  This is not in the standard,
-               but at the Nov. 98 standards committee meeting there was
-               strong sentiment for altering the rule to do it this way. */
+            /* If the symbol found is a block extern or using-declaration,
+               skip the argument-dependent processing.  This is not in the
+               standard, but at the Nov. 98 standards committee meeting there
+               was strong sentiment for altering the rule to do it this way. */
           } else {
             /* Build a list of the argument types, to be used to do
                argument-dependent lookup below. */
@@ -7990,7 +7992,16 @@ such cases (where operator overloading might apply, but we can't tell).
                                                   &type_list);
           for (slep = symbol_list; slep != NULL; slep = slep->next) {
             nonmember_functions_symbol = slep->symbol;
-            try_overloaded_function_match(
+            if (is_template_dependent_context() &&
+                is_block_extern_symbol(nonmember_functions_symbol)) {
+              /* A block extern declaration in a prototype instantiation
+                 can be dependent (e.g., it can have dependent parameter
+                 types or dependent default argument expressions), so we
+                 can't do overload resolution. */
+              defer_overload_resolution = TRUE;
+              break;
+            } else {
+              try_overloaded_function_match(
                                          nonmember_functions_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
@@ -8007,6 +8018,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          dependent_call,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
+            }  /* if */
           }  /* for */
           free_list_of_symbol_list_entries(symbol_list);
         }  /* if */
@@ -8032,7 +8044,15 @@ select_best_function:
         function_symbol = NULL;
         arg_expr_list = NULL;
         arg_operand_list_not_used = FALSE;
-        if (undecidable_because_of_error) {
+        if (defer_overload_resolution) {
+          /* We're in a prototype instantiation, and some candidate function
+             was a block extern, so we can't really do overload resolution.
+             Create a generic expression. */
+          make_generic_operation_operand(kind, unary_operator,
+                                         operand_1, operand_2,
+                                         result, operator_position);
+          *processed = TRUE;
+        } else if (undecidable_because_of_error) {
           /* There was a previous error. */
           *processed = TRUE;
           arg_operand_list_not_used = TRUE;
