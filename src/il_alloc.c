@@ -1405,6 +1405,7 @@ pointer to it.
   vdp->type = NULL;
   vdp->dimension_expr = NULL;
   vdp->in_prototype_scope = FALSE;
+  vdp->position = null_source_position;
   db_exit();
   return vdp;
 }  /* alloc_vla_dimension */

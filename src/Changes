@@ -1,5 +1,15 @@
 Version 2.46
 
+3/22/01  Error checking on non-positive VLA size after inlining
+
+An error is now issued for a non-positive constant variable-length
+array size that is visible only after inlining.
+
+  inline int neg() { return -1; }
+  int main() {
+    int b[neg()];  // Now gets an error when inlining is done
+  }
+
 3/18/01  Improved error message on labeled declaration in C99 mode
 
 The error message has been improved on a labeled declaration in

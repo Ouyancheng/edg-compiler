@@ -4573,6 +4573,9 @@ typedef struct a_vla_dimension {
 		in_prototype_scope;
 			/* TRUE if the dimension expression is used in a
 			   prototype scope, i.e., in a parameter type. */
+  a_source_position
+		position;
+			/* Source position of the VLA expression. */
 } a_vla_dimension;
 
 #endif /* ifdef CIL */

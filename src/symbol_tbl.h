@@ -2466,12 +2466,16 @@ typedef struct a_vla_fixup {
 			/* If array_type is NULL, a pointer to the parameter
 			   symbol associated with the param variable fixup.
 			   NULL if array_type is non-NULL. */
+  a_source_position
+		position;
+			/* Source position of the VLA expression. */
 } a_vla_fixup;
 
 
 extern void add_vla_fixup_entry(a_type_ptr        array_type,
                                 an_expr_node_ptr  expr_node,
-                                a_symbol_ptr      param_sym);
+                                a_symbol_ptr      param_sym,
+                                a_source_position *position);
 
 extern void free_vla_fixup_list(a_vla_fixup_ptr vfp);
 

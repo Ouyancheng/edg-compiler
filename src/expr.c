@@ -12159,7 +12159,7 @@ overloaded_function:
                members, and link it into the list of vla fixups for the
                current function prototype scope. */
             add_vla_fixup_entry((a_type_ptr)NULL, result->variant.expression,
-                                sym_ptr);
+                                sym_ptr, &result->position);
           } else {
             /* Use of a parameter in a sizeof expression, something like
                  void f(a, int b[sizeof(a)]);

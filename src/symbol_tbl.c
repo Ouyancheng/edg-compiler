@@ -8928,7 +8928,8 @@ created if a projected symbol cannot be found in any of the real bases.
 
 void add_vla_fixup_entry(a_type_ptr        array_type,
                          an_expr_node_ptr  expr_node,
-                         a_symbol_ptr      param_sym)
+                         a_symbol_ptr      param_sym,
+                         a_source_position *position)
 /*
 Allocate and initialize a VLA fixup entry.  expr_node is an expression node
 and will never be NULL.  Either array_type or param_sym will be non-NULL (but
@@ -8977,6 +8978,7 @@ fixup entry to the end of the vla_fixup_list of the current scope stack entry.
   vfp->array_type = array_type;
   vfp->expr = expr_node;
   vfp->param_sym = param_sym;
+  vfp->position = *position;
   if (ssep->vla_fixup_list == NULL) {
     ssep->vla_fixup_list = vfp;
   } else {

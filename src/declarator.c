@@ -1988,7 +1988,7 @@ may be NULL if it is not needed.
   a_boolean               err = FALSE;
   a_boolean               has_vla_asterisk = FALSE;
   a_boolean               template_dependent_bound = FALSE;
-  a_source_position       start_pos;
+  a_source_position       start_pos, size_pos;
   an_expr_node_ptr        dim_expr = NULL;
   a_boolean               static_seen = FALSE;
 
@@ -2044,6 +2044,7 @@ may be NULL if it is not needed.
       (void)get_token();
     }  /* if */
   }  /* if */
+  size_pos = pos_curr_token;
   if (curr_token == tok_rbracket && !static_seen) {
     /* Empty brackets, indicating an incomplete array type. */
     num_of_elements = 0;
@@ -2130,13 +2131,15 @@ may be NULL if it is not needed.
              stmk_set_vla_size statement is delayed until it is determined
              that the parameter is part of a function definition, not a
              declaration.  */
-          add_vla_fixup_entry(*new_type_ptr, dim_expr, (a_symbol_ptr)NULL);
+          add_vla_fixup_entry(*new_type_ptr, dim_expr, (a_symbol_ptr)NULL,
+                              &size_pos);
         } else {
           /* Create a VLA dimension entry to record the expression. */
           a_vla_dimension_ptr  vdp;
 
           vdp = make_vla_dimension(*new_type_ptr, dim_expr,
-                                   /*in_prototype_scope=*/FALSE);
+                                   /*in_prototype_scope=*/FALSE,
+                                   &size_pos);
           if (in_expression_context()) {
             /* Don't put out an stmk_set_vla_size statement if this is an
                expression context (e.g., a sizeof or cast). */

@@ -3955,6 +3955,7 @@ Display the indicated vla_dimension entry.
   if (ptr->in_prototype_scope) {
     disp_boolean("in_prototype_scope", TRUE);
   }  /* if */
+  disp_source_position("position", &ptr->position);
 }  /* disp_vla_dimension */
 
 

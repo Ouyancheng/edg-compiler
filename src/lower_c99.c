@@ -1232,6 +1232,27 @@ one not contained inside another expression.
 }  /* lower_c99_full_expr */
 
 
+static void lower_c99_vla_dimension(a_vla_dimension_ptr vdp)
+/*
+Lower the expression in a VLA dimension entry.
+*/
+{
+  lower_c99_full_expr(vdp->dimension_expr);
+#if MINIMAL_INLINING
+  /* Catch constant nonpositive sizes introduced by inlining. */
+  { an_expr_node_ptr expr = vdp->dimension_expr;
+    if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_integer &&
+	  sign_of_integer_constant(con) <= 0) {
+	pos_error(ec_array_size_must_be_positive, &vdp->position);
+      }  /* if */
+    }  /* if */
+  }
+#endif /* MINIMAL_INLINING */
+}  /* lower_c99_vla_dimension */
+
+
 static void lower_c99_stmk_init(a_statement_ptr statement)
 /*
 Do C99 lowering on the indicated stmk_init statement.
@@ -1546,7 +1567,7 @@ Do C99 lowering for all entities in and under the given scope.
         /* Temporarily indicate that we're not inside a function. */
         a_scope_ptr saved_innermost_function_scope = innermost_function_scope;
         innermost_function_scope = NULL;
-        lower_c99_full_expr(vla_dim->dimension_expr);
+        lower_c99_vla_dimension(vla_dim);
         innermost_function_scope = saved_innermost_function_scope;
       }  /* if */
     }  /* for */
@@ -1604,7 +1625,7 @@ Do C99 lowering for all entities in and under the given scope.
        vla_dim = vla_dim->next) {
     /* Entries from prototype scopes are handled above. */
     if (!vla_dim->in_prototype_scope) {
-      lower_c99_full_expr(vla_dim->dimension_expr);
+      lower_c99_vla_dimension(vla_dim);
     }  /* if */
   }  /* for */
   /* Visit all initializers for local static variables. */
