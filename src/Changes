@@ -1,5 +1,16 @@
 Version 2.42
 
+6/14/99  Classes always contain a copy assignment operator
+
+Formerly, not all classes were considered to have copy assignment
+operators.  An implicitly declaration of a copy assignment operator
+was only created for classes that could not be copied with a bitwise
+copy, or for classes with other (non-copy) assignment operators.  The
+standard specifies that all classes have copy assignment operators, so
+the front end now creates an implicit declaration for the copy
+assignment operator if no user-declared copy assignment operator
+exists.
+
 6/11/99  Abort on double block-scope declaration of an intrinsic function
 
 The front end aborted compilation upon encountering two declarations of an
