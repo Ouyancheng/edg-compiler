@@ -498,7 +498,7 @@ this is something other than a declaration; otherwise return FALSE.
         /* It looks like an abstract declarator, so the whole thing is a
            declarator. */
       }  /* if */
-    } else if (may_be_constructor &&
+    } else if (may_be_constructor && !is_ptr_to_member_declarator_start() &&
                (curr_token == tok_rparen ||
                 !is_decl_start() ||
                 (curr_token == tok_identifier && !curr_id_is_type_name()) ||
