@@ -489,12 +489,24 @@ processing cannot be done reliably on template bodies.
 #endif /* !MAINTAIN_NEEDED_FLAGS && ... */
 
 /*
+Flag that is TRUE if the processing required to generate one instantiation
+per object file should be included.
+*/
+#ifndef ONE_INSTANTIATION_PER_OBJECT
+#define ONE_INSTANTIATION_PER_OBJECT TRUE
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+
+/*
 Flag that is TRUE if a separate "needed" flag should be maintained for
 each instantiation, so that multiple output files can be produced,
 each containing only the things needed for one instantiation.
 */
 #ifndef MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
+#define MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS TRUE
+#else /* !ONE_INSTANTIATION_PER_OBJECT */
 #define MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS FALSE
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #endif /* ifndef MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 #if !MAINTAIN_NEEDED_FLAGS && MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
