@@ -1347,18 +1347,22 @@ the template.
   a_boolean               is_redeclaration;
   a_boolean               is_template_specific_decl = FALSE;
   a_decl_pos_block        local_decl_pos_block;
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   an_extended_decl_info_block
                           extended_decl_info;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
   *defines_something = FALSE;
   decl_start_pos = pos_curr_token;
-  clear_extended_decl_info_block(extended_decl_info);
   clear_decl_pos_block(&local_decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   local_decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  clear_extended_decl_info_block(extended_decl_info);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
   ssep = &scope_stack[depth_scope_stack];

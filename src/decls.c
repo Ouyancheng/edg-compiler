@@ -3866,8 +3866,10 @@ on for use in generating cross-reference output describing this declaration.
     if (microsoft_mode) severity = es_warning;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (report_bad_scope_for_new_or_delete(locator, severity)) {
-      /* Set the is_error flag in the locator. */
-      if (severity == es_error) set_to_named_error_locator(*locator);
+      if (severity == es_error) {  /*lint !e774*/
+        /* Set the is_error flag in the locator. */
+        set_to_named_error_locator(*locator);
+      }  /* if */
       invalid_scope_for_new_or_delete = TRUE;
     }  /* if */
   }  /* if */
@@ -4866,8 +4868,10 @@ is not a template declaration scope.
         if (microsoft_mode) severity = es_warning;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (report_bad_scope_for_new_or_delete(locator, severity)) {
-          /* Set the is_error flag in the locator. */
-          if (severity == es_error) set_to_named_error_locator(*locator);
+          if (severity == es_error) {  /*lint !e774*/
+            /* Set the is_error flag in the locator. */
+            set_to_named_error_locator(*locator);
+          }  /* if */
           invalid_scope_for_new_or_delete = TRUE;
         }  /* if */
       }  /* if */
@@ -5437,7 +5441,7 @@ return a pointer to it in *symbol_ptr.
           record_symbol_declaration(ref_kind, sym, &locator->source_position,
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (!(ref_kind & SRK_DEFINITION)) {
+          if (!(ref_kind & SRK_DEFINITION)) {  /*lint !e774*/
             (void)update_src_seq_secondary_decl((char *)sym->variant.type,
                                                 type_ptr, SSSD_NO_FLAGS,
                                                 decl_pos_block);
