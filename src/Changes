@@ -1,5 +1,22 @@
 Version 3.2
 
+4/16/03  IA-64 ABI: Virtual bases can overlap with empty nonvirtual bases
+
+Our original implementation of the IA-64 ABI could allocate virtual base
+subobjects in the tail padding of trailing nonvirtual base subobjects.
+A Changes entry of 3/11/03 explains that this was incorrect, but the fix
+went to far by preventing virtual base subobjects from overlapping with
+direct nonvirtual empty bases classes.  For example:
+
+  struct A {};
+  struct B: A { virtual ~B() {} };
+  struct C { int c; };
+  struct D: B, A, virtual C {
+    // Direct base A subobject should overlap with virtual base C subobject.
+  };
+
+This is an ABI CHANGE.
+
 4/15/03  Declaration scope of function template prototype instantiations
 
 The symbol entry created for the prototype instantiation of a function
