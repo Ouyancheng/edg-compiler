@@ -1,5 +1,12 @@
 Version 2.36
 
+6/9/97    Missing diagnostic on default argument in template instance friend
+          declaration
+
+A friend declaration that refers to an instance of a template may not
+specify a default argument because the instance does not participate
+in overload resolution (only the template does).  This has been fixed.
+
 6/9/97    EH cleanup for partially-constructed aggregates -- no conditional
           flag
 

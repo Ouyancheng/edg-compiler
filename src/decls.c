@@ -2597,6 +2597,26 @@ one without a default argument, and report the error.
 }  /* check_default_args */
 
 
+static void check_for_any_default_args(a_type_ptr type)
+/*
+Check whether the routine type pointer specified by type contains any
+default arguments.  Issue an error if any are found.
+*/
+{
+  a_param_type_ptr  ptp;
+
+  /* Look for a param type entry with a default argument. */
+  ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) {
+    if (ptp->has_default_arg) {
+      pos_diagnostic(es_discretionary_error, ec_default_arg_expr_not_allowed,
+                     &error_position);
+      break;
+    }  /* if */
+  }  /* for */
+}  /* check_for_any_default_args */
+
+
 static void check_default_arg_compatibility(a_type_ptr  orig_type,
                                             a_type_ptr  new_type)
 /*
@@ -4001,6 +4021,12 @@ on for use in generating cross-reference output describing this declaration.
            include the inline specifier. */
         pos_diagnostic(strict_ansi_discretionary_severity,
                        ec_inline_not_allowed, &locator->source_position);
+      }  /* if */
+      if (!locator->is_template_id) {
+        /* If the declarator was not specified using an explicit template
+           argument list, check for the presence of default arguments, which
+           are not permitted in template instance declarations. */
+        check_for_any_default_args(type_ptr);
       }  /* if */
       /* Do compatibility checking on the throw specification. */
       check_exception_specification(type_ptr, routine_ptr,
