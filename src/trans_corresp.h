@@ -76,11 +76,16 @@ extern a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp);
 
 /*
 Return TRUE if we need to compare the canonical entries in order to determine
-if two pointers refer to the same entity.
+if two pointers refer to the same entity.  This test is never needed in
+standalone utility programs.
 */
+#if !STANDALONE_UTILITY_PROGRAM
 #define canonical_test_needed(ptr1, ptr2)				\
   (secondary_translation_unit_seen() &&					\
     (ptr1) != NULL && (ptr2) != NULL)
+#else /* STANDALONE_UTILITY_PROGRAM */
+#define canonical_test_needed(ptr1, ptr2) (FALSE)
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #define same_namespaces(ptr1, ptr2)                               \
   ((ptr1) == (ptr2) ||                                                    \
