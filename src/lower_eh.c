@@ -4285,12 +4285,12 @@ statement if necessary.
     /* The function contains destructible objects, or it contains try
        blocks, so it needs a prologue and epilogue. */
     need_function_epilogue = TRUE;
+#if GENERATE_EH_TABLES
   } else if (processing_file_scope_init_routine &&
              (region_table_var != NULL || array_table_var != NULL)) {
     /* If a generated file-scope initialization routine contains
        partial-aggregate cleanup entries, we need the prologue and epilogue. */
     need_function_epilogue = TRUE;
-#if GENERATE_EH_TABLES
   } else {
     /* No function epilogue needed. */
     check_assertion_str(region_table_var == NULL && array_table_var == NULL,

@@ -1,5 +1,10 @@
 Version 3.2
 
+1/29/03  Compilation problem with GENERATE_EH_TABLES set to FALSE
+
+lower_eh.c did not compile correctly when GENERATE_EH_TABLES is
+set to FALSE.  Now fixed.
+
 1/27/03  Partial ordering and template template parameters
 
 Use of certain function templates that use template template parameters
