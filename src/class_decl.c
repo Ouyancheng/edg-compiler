@@ -6187,7 +6187,7 @@ Scan the body of a class definition, including the base classes list.
               remove_stop_token(tok_lbrace);
               /* Abstract class objects are prohibited (ARM 10.3). */
               if (member_storage_class != (a_storage_class)sc_typedef &&
-                  is_illegal_abstract_class_type(local_type)) {
+                  is_abstract_class_type(local_type)) {
                 pos_error(ec_abstract_class_object_not_allowed,
                           &locator.source_position);
               }  /* if */

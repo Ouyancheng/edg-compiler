@@ -3853,7 +3853,7 @@ specification allow a variable-sized array as the top type.
       pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     err = TRUE;
-  } else if (is_illegal_abstract_class_type(new_type)) {
+  } else if (is_abstract_class_type(new_type)) {
     /* The type is an abstract class type or a type that contains one,
        so an object of the type cannot be allocated. */
     pos_error(ec_abstract_class_object_not_allowed, &type_position);
