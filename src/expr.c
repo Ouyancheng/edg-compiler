@@ -1642,6 +1642,14 @@ Syntax:
         issue_warning_from_arg_match_summary(&this_match_summary,
                                              &bound_function_selector->
                                                                      position);
+        if (is_const_qualified_type(type_pointed_to(this_param_type))) {
+          /* The function is a const function, so indicate that the selector's
+             address is taken only in a way that does not allow
+             modification. */
+          change_some_ref_kinds(bound_function_selector->ref_entries_list,
+                                SRK_ADDRESS_TAKEN,
+                                SRK_ADDRESS_TAKEN | SRK_CONST_ADDRESS_TAKEN);
+        }  /* if */
       } else {
         /* Some mismatch (more qualifiers on selector than on "this" parameter
            type). */

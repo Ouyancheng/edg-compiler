@@ -3475,6 +3475,17 @@ overloaded operator cases.
       /* Note that no cast is done here.  It was done when the "." or "->"
          operator was processed (that still may leave a difference here
          involving type qualifiers, but it's not meaningful). */
+      { a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
+        this_param_type = type_pointed_to(this_param_type);
+        if (is_const_qualified_type(this_param_type)) {
+          /* The function is a const function, so indicate that the selector's
+             address is taken only in a way that does not allow
+             modification. */
+          change_some_ref_kinds(bound_function_selector->ref_entries_list,
+                                SRK_ADDRESS_TAKEN,
+                                SRK_ADDRESS_TAKEN | SRK_CONST_ADDRESS_TAKEN);
+        }  /* if */
+      }
     }  /* if */
     if (arg_match != NULL && arg_match->is_match_for_this_param) {
       /* Move past the match entry for the selector.  Note that this entry
@@ -6746,6 +6757,14 @@ initializer has previously been found to be acceptable, and
          can be done directly. */
       /* Convert the lvalue to an rvalue pointer to the object. */
       take_address_of_lvalue(source_operand);
+      if (ref_to_const) {
+        /* For a reference to const, tone down the reference kinds to
+           indicate the address is taken in a way that can't modify the
+           entity. */
+        change_some_ref_kinds(source_operand->ref_entries_list,
+                              SRK_ADDRESS_TAKEN,
+                              SRK_ADDRESS_TAKEN | SRK_CONST_ADDRESS_TAKEN);
+      }  /* if */
       if (is_constant_operand(source_operand) &&
           /* "false" means zero, i.e., a null pointer. */
           is_false_constant(&source_operand->variant.constant)) {

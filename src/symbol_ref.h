@@ -102,6 +102,10 @@ address of a const and taking the address of a nonconst object).
 #define SRK_INITIALIZATION 0x800
 			/* Or'ed with SRK_DEFINITION to indicate an explicit
 			   or implicit variable initialization. */
+#define SRK_CONST_ADDRESS_TAKEN 0x1000
+			/* Or'ed with SRK_ADDRESS_TAKEN to indicate an
+			   address taken in a way that can't modify the object
+			   without casting away constness. */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
 			/* All types of references.  Used to mask off those
