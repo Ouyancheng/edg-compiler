@@ -131,6 +131,21 @@ enum an_access_specifier_tag {
 typedef a_byte an_access_specifier;
 #endif /* ifdef CIL */
 
+enum a_name_linkage_kind_tag {
+  /* Kind of name linkage (e.g., external name visibility). */
+  nlk_none,		/* No linkage, as for a local variable. */
+#ifdef CIL
+  nlk_internal,		/* Internal linkage, as for a file-scope static. */
+  nlk_cplusplus_external,
+			/* C++ external linkage, as for an extern in C++.
+			   Implies name mangling if that technique is used. */
+#endif /* ifdef CIL */
+  nlk_external		/* External linkage, as for an external routine. */
+};
+#define NUM_BITS_FOR_NAME_LINKAGE 2
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_name_linkage_kind;
+
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
      instance back to a corresponding source construct instance. */
@@ -155,7 +170,7 @@ typedef struct a_source_correspondence {
                         /* The access control specified at the point of
                            declaration.  Restricted access may be indicated
                            for class members only; all other entities are
-                           "public" by default. */
+                           "public" by default.  In C mode, always "public". */
 #endif /* ifdef CIL */
   unsigned int  referenced:1;
                         /* TRUE if the item is referenced in the
@@ -172,30 +187,10 @@ typedef struct a_source_correspondence {
                            Reversed on each walk: the first time through,
                            0 -> 1 when encountered, the next, 1 -> 0 when
                            encountered, etc. */
-#define BIT_FIELD_SCOPE_DEPTH_SIZE (CHAR_BIT-2) /* Rest of byte. */
-  unsigned int  scope_depth:BIT_FIELD_SCOPE_DEPTH_SIZE;
-                        /* Scope nesting depth of this entity.  Ordinarily,
-                           this is the same as the scope depth used with
-                           the scope_stack.  However, there are several
-                           special values (see below).  In particular,
-                           because this field is defined as an unsigned field
-                           rather than a_scope_depth (to save space), the
-                           negative value NO_SCOPE_DEPTH cannot be used;
-                           IL_NO_SCOPE is used instead.  See fe_init.c for
-                           a consistency check on the size of this field. */
-#ifndef DEPTH_OF_FILE_SCOPE
-/* symbol_tbl.h also defines this.  Make sure only one definition is done. */
-#define DEPTH_OF_FILE_SCOPE 0
-#else /* defined(DEPTH_OF_FILE_SCOPE) */
-#if DEPTH_OF_FILE_SCOPE != 0
-error -- DEPTH_OF_FILE_SCOPE is not defined correctly.
-#endif /* DEPTH_OF_FILE_SCOPE != 0 */
-#endif /* ifndef DEPTH_OF_FILE_SCOPE */
-#define MAX_IL_SCOPE_DEPTH ((1 << BIT_FIELD_SCOPE_DEPTH_SIZE) - 1 - 2)
-#define IL_NO_SCOPE (MAX_IL_SCOPE_DEPTH+2)
-                        /* Used for cases where no scope applies. */
-#define IL_EXTERNAL_SCOPE (MAX_IL_SCOPE_DEPTH+1)
-                        /* Used for external names. */
+  unsigned int /* a_name_linkage_kind */
+		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* Kind of linkage for the name, e.g., is it
+			   externally visible. */
 } a_source_correspondence;
 
 /*
@@ -647,6 +642,8 @@ typedef a_byte an_access_adjustment_kind;
 
 typedef struct an_access_adjustment *an_access_adjustment_ptr;
 typedef struct an_access_adjustment {
+  /* Representation of a C++ access declaration, which adjusts the access
+     to a class member. */
   an_access_adjustment_ptr
                 next;   /* Next in a linked list of access adjustments. */
   an_access_specifier
@@ -706,8 +703,8 @@ typedef struct a_derivation_step {
 
 
 typedef struct a_base_class {
-  /* An entry describing a base class from which the current class is
-     directly or indirectly derived. */
+  /* An entry describing a base class from which a class is directly or
+     indirectly derived. */
   a_base_class_ptr
                 next;
 			/* Next in linked list of base class entries. */
@@ -755,7 +752,8 @@ typedef struct a_base_class {
 
 typedef struct a_class_list_entry *a_class_list_entry_ptr;
 typedef struct a_class_list_entry {
-  /* An entry used to represent a member of an arbitrary set of classes. */
+  /* An entry used to represent a member of an arbitrary set of classes.
+     (For example, a list of classes that have befriended a class.) */
   a_class_list_entry_ptr
                 next;
 			/* Next in a linked list of class list entries. */

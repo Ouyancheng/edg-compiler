@@ -28,15 +28,8 @@ typedef struct a_macro_def     *a_macro_def_ptr;
 /* Type of a scope nesting depth.  This is the depth within the scope_stack. */
 typedef int	a_scope_depth;
 
-#define NO_SCOPE_DEPTH          (-1)
-#ifndef DEPTH_OF_FILE_SCOPE
-/* il_def.h also defines this.  Make sure only one definition is done. */
+#define NO_SCOPE_DEPTH (-1)
 #define DEPTH_OF_FILE_SCOPE 0
-#else /* defined(DEPTH_OF_FILE_SCOPE) */
-#if DEPTH_OF_FILE_SCOPE != 0
-error -- DEPTH_OF_FILE_SCOPE is not defined correctly.
-#endif /* DEPTH_OF_FILE_SCOPE != 0 */
-#endif /* ifndef DEPTH_OF_FILE_SCOPE */
 
 /*
 Options for normal_id_lookup, scope_qualified_id_lookup, etc.,

@@ -1076,7 +1076,7 @@ Set the given source correspondence struct to default values.
      set to TRUE (for an actual reference) by mark_referenced. */
   sc->referenced           = TRUE;
   sc->il_walk_flag         = INITIAL_IL_WALK_FLAG_SETTING;
-  sc->scope_depth          = IL_NO_SCOPE;
+  sc->name_linkage         = (a_name_linkage_kind)nlk_none;
 }  /* set_default_source_corresp */
 
 

@@ -443,19 +443,18 @@ The name may be placed in an internal static buffer and must be used before
 the next call of this routine.
 */
 {
-  char *new_name;
-  int  scope_depth;
+  char                *new_name;
+  a_name_linkage_kind name_linkage;
 
   if (source_corresp->name == NULL) {
     /* For entities without names, create a name. */
     new_name = strcpy(name_buffer, temp_name((char *)source_corresp));
-  } else if ((scope_depth = source_corresp->scope_depth)
-                         == DEPTH_OF_FILE_SCOPE ||
-             scope_depth == IL_NO_SCOPE ||
-             scope_depth == IL_EXTERNAL_SCOPE) {
-    /* File-scope name, no prefix is needed. */
+  } else if ((name_linkage = source_corresp->name_linkage) ==
+                             (a_name_linkage_kind)nlk_internal ||
+             name_linkage == (a_name_linkage_kind)nlk_external) {
+    /* Externally or internally-linked name, no prefix is needed. */
 #ifdef FFE
-    if (scope_depth == IL_EXTERNAL_SCOPE &&
+    if (name_linkage == (a_name_linkage_kind)nlk_external) {
         il_header.source_language == sl_Fortran) {
       /* Fortran external name. */
       char      *old_name, ch;
@@ -517,8 +516,7 @@ conflict with identical names in separately-compiled modules.
 {
   char *new_name;
 
-  if (source_corresp->name != NULL &&
-      source_corresp->scope_depth == DEPTH_OF_FILE_SCOPE) {
+  if (source_corresp->name_linkage == (a_name_linkage_kind)nlk_internal) {
     /* Name is at file scope, but is not external.  Add a prefix so
        that it will not conflict with external names.  See dump_variable. */
     (void)sprintf(name_buffer, "_S%s_%s", module_name,
@@ -2752,7 +2750,8 @@ Return TRUE if the indicated node is the address of a statement function.
     called_rout = NULL;
   }  /* if */
   return (called_rout != NULL &&
-          called_rout->source_corresp.scope_depth != DEPTH_OF_FILE_SCOPE);
+          called_rout->source_corresp.name_linkage ==
+                                                (a_name_linkage_kind)nlk_none);
 }  /* is_stmt_func_ref */
 
 #endif /* ifdef FFE */
@@ -4214,9 +4213,7 @@ for the indicated variable should be written.
       current routine are placed in f_rout_static_inits; and initializations
       of automatic entities in the current routine are placed in
       f_rout_dynamic_inits. */
-  if (variable->source_corresp.scope_depth == DEPTH_OF_FILE_SCOPE    ||
-      variable->source_corresp.scope_depth == IL_NO_SCOPE            ||
-      variable->source_corresp.scope_depth == IL_EXTERNAL_SCOPE     ) {
+  if (variable->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none) {
     /* File scope variable -- put in f_file_scope_inits. */
     if (f_file_scope_inits == NULL) {
       f_file_scope_inits = open_temp_file(/*binary_file=*/FALSE);
@@ -5032,8 +5029,7 @@ Dump out one constant declaration as a #define.
 {
   startline(constant->source_corresp.decl_position.seq);
   start_comment();
-  (void)fprintf(f_C_output, "#define %s ",
-			    get_name(&constant->source_corresp));
+  (void)fprintf(f_C_output, "#define %s ", constant->source_corresp.name);
   dump_constant_value(constant);
   end_comment();
 }  /* dump_constant */
