@@ -919,6 +919,14 @@ on a prior declaration.
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
       }  /* if */
+    } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+      /* A case like this:
+           class A { template <class T> void f(int); };
+           void A::f(int) { }
+      */
+      pos_sy_error(ec_old_specialization_not_allowed,
+                   &locator->source_position, sym);
+      sym = NULL;
     } else if (sym->variant.routine.ptr->compiler_generated) {
       /* Attempting to give a definition for a function that was implicitly
          declared. */
