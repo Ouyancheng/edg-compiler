@@ -406,7 +406,7 @@ Check that the recorded translation unit correspondence for the given template
 is in fact valid.
 */
 {
-  a_boolean  match = TRUE;
+  a_boolean  match = verify_name_correspondence(templ);
   /* FIXME */
   return match;
 }  /* verify_template_correspondence */
@@ -1325,7 +1325,7 @@ Look for the given type in another translation unit and set the translation
 unit correspondence pointer if one is found.
 */
 {
-  a_boolean     error = FALSE;
+  a_boolean     conflict = FALSE;
   a_symbol_ptr  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
   a_symbol_ptr  sym;
 
@@ -1353,12 +1353,12 @@ unit correspondence pointer if one is found.
         }  /* if */
       } else {
         /* An error if the conflicting entity has external linkage. */
-        error = TRUE;
+        conflict = TRUE;
         break;
       }  /* if */
     }  /* if */
   }  /* for */
-  if (error) {
+  if (conflict) {
     pos_sy_error(ec_not_compatible_with_previous_decl,
                  &templ_sym->decl_position, sym);
   }  /* if */
@@ -1390,13 +1390,15 @@ translation unit correspondence pointer if one is found.
           switch (sub_sym->kind) {
             case sk_routine:
             case sk_member_function:
-              if (identical_types(routine_symbol_type(sub_sym),
-                                  routine->type) &&
-                  may_have_correspondence(sub_sym)) {
-                /* Record the correspondence. */
-                record_trans_unit_corresp(routine,
-                                          sub_sym->variant.routine.ptr);
-              }  /* if */
+              {
+                a_type_ptr  sym_type = routine_symbol_type(sub_sym);
+                if (identical_types(sym_type, routine->type) &&
+                    may_have_correspondence(sub_sym)) {
+                  /* Record the correspondence. */
+                  record_trans_unit_corresp(routine,
+                                            sub_sym->variant.routine.ptr);
+                }  /* if */
+              }
               break;
             case sk_function_template:
             case sk_class_or_struct_tag:
@@ -1406,6 +1408,7 @@ translation unit correspondence pointer if one is found.
               break;
             case sk_type:
               if (sym->variant.type.is_injected_class_name) break;
+              /* FALLTHROUGH */
             default:
               if (may_have_correspondence(sub_sym)) {
                 pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -1449,6 +1452,7 @@ translation unit correspondence pointer if one is found.
           break;
         case sk_type:
           if (sym->variant.type.is_injected_class_name) break;
+          /* FALLTHROUGH */
         default:
           if (may_have_correspondence(sym)) {
             pos_sy_error(ec_not_compatible_with_previous_decl,
