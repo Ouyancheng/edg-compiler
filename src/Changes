@@ -9,9 +9,8 @@ is now supported.
 
 7/14/04  Embedded C: Incorrect conversion of certain floating-point values
 
-When converting compile-time values from floating-point to fixed-point,
-floating-point values with no non-zero mantissa bits were improperly
-converted.  Now fixed.
+Floating-point values with no non-zero mantissa bits were not converted to
+fixed-point correctly.  Now fixed.
 
 7/14/04  Internal error with hidden names prototype instantiations in IL
 
