@@ -367,8 +367,7 @@ extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list);
 
-extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr,
-                                       a_boolean        clone_temps);
+extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp);
 
@@ -391,13 +390,9 @@ extern an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 
-extern a_variable_ptr create_expr_temporary(a_type_ptr       temp_type,
-                                            a_boolean        force_temp_init,
-                                            a_boolean        evaluated,
-                                            an_expr_node_ptr *temp_init_node);
-
-extern void attach_expr_under_temp_init(an_expr_node_ptr *node,
-                                        an_expr_node_ptr temp_init_node);
+extern an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
+                                              a_boolean  result_is_addr,
+                                              a_boolean  evaluated);
 
 extern an_expr_node_ptr func_call_expr(
                                 an_expr_node_ptr  function_node,
