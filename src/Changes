@@ -1,5 +1,14 @@
 Version 2.43
 
+9/8/99   Access check on friend function nominations
+
+If a friend function declaration nominates a member function, that member
+function is now checked for accessibility from the scope of the nominating
+class.
+
+  class A { void f(); };
+  class B { friend void A::f(); }; // Error: A::f not accessible from B
+
 9/8/99   Initialization of const members in union aggregates
 
 In C++ mode, the front end now diagnoses (with a discretionary error) union

@@ -4807,8 +4807,8 @@ of the function, and again overloading is a possibility.
       /* If this is a template-id for which the symbol has not yet been
          found, look it up now. */
       sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
-      check_ambiguity_and_verify_access(locator);
     }  /* if */
+    check_ambiguity_and_verify_access(locator);
     srk_flags = SRK_DECLARATION | SRK_FRIEND;
     if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
