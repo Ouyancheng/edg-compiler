@@ -27,7 +27,7 @@ added that is used when building the front end as C++ code.  The C++
 standard specifies that two versions of bsearch and qsort must be
 supplied so that either a C or C++ linkage pointer may be passed as an
 argument.  If the front end is being built using an implementation
-that only supplies the C linkage version, this flag may be set cause
+that only supplies the C linkage version, this flag may be set to cause
 the functions that are passed to bsearch and qsort to be declared as
 extern "C".
 
