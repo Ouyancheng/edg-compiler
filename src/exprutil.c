@@ -2167,8 +2167,9 @@ cast if check_cast_access is TRUE.  If is_implicit_cast is TRUE, this
 is an implicit cast rather than an explicit one.  This routine generates
 the special IL operators used for base-->derived and derived-->base class
 pointer casts, when they are appropriate.  It also issues errors for
-invalid casts of that kind (e.g., ambiguous).  If is_reinterpret_cast
-is TRUE, those related class casts are not checked for.
+invalid casts of that kind (e.g., ambiguous).  If reinterpret_semantics
+is TRUE, those related class casts are not checked for.  is_reinterpret_cast
+indicates that the cast comes from a reinterpret_cast construct in the source.
 */
 {
   a_type_ptr       old_type = (*p_node)->type, new_type_pointed_to;
