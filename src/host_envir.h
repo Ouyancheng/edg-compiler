@@ -725,6 +725,50 @@ extern void delete_file(char *file_name);
 */
 #define NEED_TEMP_FILES BACK_END_IS_C_GEN_BE
 #if NEED_TEMP_FILES
+/*
+Header files needed to use the system routines to get the elapsed clock
+time and CPU time.  The ANSI routines are used when possible; otherwise
+the UNIX routines are assumed to be available.
+
+Note: If you are not using an ANSI C library make sure that
+CLOCK_FREQUENCY is defined properly below.
+*/
+#if __ANSIC__
+#include <time.h>
+#else /* !__ANSIC__ */
+#include <sys/types.h>
+#include <sys/times.h>
+#ifdef sun
+#include <sys/param.h>
+#define CLOCK_FREQUENCY HZ
+#else /* !defined(sun) */
+#define CLOCK_FREQUENCEY 60
+#endif /* defined(sun) */
+#endif /* __ANSIC__ */
+
+/*
+Structure used to determine the execution time of the compiler.
+*/
+typedef struct a_timer *a_timer_ptr;
+typedef struct a_timer {
+  clock_t	cpu_time;
+			/* The amount of cpu time used from the start of
+			   compilation in milliseconds.  Note that this
+			   value always contains milliseconds regardless of
+			   the units normally used by the host. */
+  time_t	real_time;
+			/* The current system time in whatever units
+			   are used by the host.  This is assumed to be
+			   seconds if __ANSIC__ is not TRUE. */
+} a_timer;
+
+EXTERN void get_timer(a_timer *timer);
+
+EXTERN void calc_time_difference(a_timer_ptr	start_time,
+			         a_timer_ptr	end_time,
+			         double		*cpu_time,
+			         double		*real_time);
+
 /* Open a temporary file. */
 extern FILE *open_temp_file(a_boolean binary_file);
 /* Close a temporary file. */

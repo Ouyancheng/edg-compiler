@@ -1444,6 +1444,87 @@ char *memset(register char *ptr,
 #endif /* __VMS__ */
 
 
+static clock_t get_cpu_time(void)
+/*
+Returns the amount of CPU time used by this process (and any child processes)
+since the start of the compilation.  The value is converted to milliseconds.
+*/
+{
+#if __ANSIC__
+  /* This version of the routine uses the ANSI/ISO C compliant version of the
+     clock function. */
+  clock_t	cpu_time;
+  double	temp;
+
+  cpu_time = clock();
+  /* clock() returns a value in units of CLOCKS_PER_SEC.  Convert this value
+     to milliseconds. */
+  temp = cpu_time;
+  temp = (cpu_time * 1000) / CLOCKS_PER_SEC;
+  cpu_time = temp;
+  return cpu_time;
+#else /* !__ANSIC__ */
+  /* This version uses the UNIX routines to get the CPU time. */
+  clock_t	cpu_time;
+  double	temp;
+  struct tms	buffer;
+
+  if (times(&buffer) == 0) {
+    cpu_time = buffer.tms_utime + buffer.tms_stime +
+               buffer.tms_cutime + buffer.tms_cstime;
+    /* times() returns a value in unspecified units.  CLOCK_FREQUENCY should
+       be defined by host_envir.h to the appropriate value.  Convert this
+       value to milliseconds. */
+    temp = cpu_time;
+    temp = (cpu_time * 1000) / CLOCK_FREQUENCY;
+  }  /* if */
+  cpu_time = temp;
+  return cpu_time;
+#endif /* __ANSIC__ */
+}  /* get_cpu_time */
+
+
+static time_t get_time(void)
+/*
+Return the current wall clock time.
+*/
+{
+  return (time(NULL));
+}  /* get_time */
+
+
+void get_timer(a_timer	*timer)
+/*
+Gets the current CPU time and wall clock time and returns the result
+to the caller.
+*/
+{
+  timer->cpu_time = get_cpu_time();
+  timer->real_time = get_time();
+}  /* get_timer */
+
+void calc_time_difference(a_timer_ptr	start_time,
+			  a_timer_ptr	end_time,
+			  double	*cpu_time,
+			  double	*real_time)
+/*
+Given a starting and ending timer, return the elapsed time and CPU
+time in seconds.
+*/
+{
+#if __ANSIC__
+  /* If available, use the ANSI routine to compute the difference between
+     the two real times. */
+  *real_time = difftime(end_time->real_time, start_time->real_time);
+#else /* !__ANSIC__ */
+  /* The real times are assumed to be stored in seconds. */
+  *real_time = end_time->real_time - start_time->real_time;
+#endif /* __ANSIC__ */
+  *cpu_time = ((double)(end_time->cpu_time) -
+              ((double)start_time->cpu_time)) / 1000;
+}  /* calc_time_difference */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

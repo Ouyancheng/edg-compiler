@@ -136,7 +136,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "ABCEHKMNOPTabnsuvwxrmpjV$I:D:U:e:L:X:S:o:i:d:t:"
+#define COMMAND_LIST "ABCEHKMNOPTabnsuvwxrmpjV$#I:D:U:e:L:X:S:o:i:d:t:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -282,6 +282,10 @@ Process the arguments on the command line that invoked the compiler.
         /* Toggle the value (use the non-default value) of the flag that
            determines whether dollar signs are accepted in identifiers. */
         allow_dollar_in_id_chars = !DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS; 
+        break;
+      case '#':
+        /* Generate compilation timing information. */
+        display_compilation_time = TRUE;
         break;
       case 'v':
         /* Print out compiler version. */

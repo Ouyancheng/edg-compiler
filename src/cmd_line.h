@@ -216,6 +216,14 @@ EXTERN a_boolean
                            in identifiers.  The default is supplied by
                            a configuration parameter. */
 
+EXTERN a_boolean
+                display_compilation_time
+#if VAR_INITIALIZERS
+			          = FALSE
+#endif /* VAR_INITIALIZERS */
+                                                                         ;
+                        /* TRUE if compilation timing statistics should be
+			   displayed. */
 
 typedef enum /*a_template_instantiation_mode*/ {
   /* Defines the methods of handling template instantiation.  Used to
