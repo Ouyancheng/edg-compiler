@@ -4871,7 +4871,8 @@ Returns TRUE if there is an error in the specifiers.
                 a_type_ptr  tp = NULL;
                 a_boolean   is_typedef = FALSE;
 
-                if (tag_sym != NULL && is_class_symbol(tag_sym)) {
+                if (tag_sym != NULL &&
+                    is_class_or_class_proxy_symbol(tag_sym)) {
                   tp = type_symbol_type(tag_sym);
                   if (tp->kind == (a_type_kind)tk_typeref) {
                     is_typedef = TRUE;
@@ -4900,6 +4901,8 @@ Returns TRUE if there is an error in the specifiers.
                     case tk_class:   class_key_string = "class";   break;
                     case tk_struct:  class_key_string = "struct";  break;
                     case tk_union:   class_key_string = "union";   break;
+                    case tk_template_param:
+                                     class_key_string = "class";   break;
 #if CHECKING
                     default: internal_error("decl_specifiers: bad type kind");
 #endif /* CHECKING */

@@ -1,5 +1,18 @@
 Version 2.46
 
+6/1/01   "friend T;" accepted when T is a template parameter
+
+A nonstandard friend declaration of the form "friend T", where T
+is a template parameter, is now accepted.  This form of friend declaration
+was previously accepted only when T was a class name.  A diagnostic is
+issued in strict mode.
+
+  class X;
+  template <class T> struct A {
+    friend X;  // previously accepted
+    friend T;  // now accepted
+  };
+
 5/31/01  Operations like 1.0/0.0 get no diagnostic when IEEE floating-point
          is supported
 
