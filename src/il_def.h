@@ -3695,19 +3695,6 @@ typedef struct a_label {
 			   contains this label.  Note that blocks fabricated
 			   by the front end are not "real" and are therefore
 			   not pointed to as parents. */
-  an_object_lifetime_ptr
-		lifetime_following_label;
-			/* If non-NULL, indicates an object lifetime that runs
-			   from after the label to the end of the scope.
-			   Non-NULL only if objects requiring destruction are
-			   created following this label and before the next
-			   label or the end of scope.  Used in processing
-			   gotos back to labels within a scope: entities
-			   constructed after the label must be destroyed,
-			   so they're put in a subscope object lifetime.
-			   A backwards goto leaves one or more object
-			   lifetimes associated with labels, and therefore
-			   any objects with those lifetimes are destroyed. */
 #endif /* ifdef CIL */
 } a_label;
 
@@ -5215,8 +5202,16 @@ typedef struct a_macro {
 
 enum an_object_lifetime_kind_tag {
   olk_global_static,	/* Lifetime of file-scope global variables. */
-  olk_local,		/* Lifetime of automatic variables tied to a scope
-			   or subscope. */
+  olk_block,		/* Lifetime of block-scope automatic entities (plus,
+			   when long_lifetime_temps is TRUE, certain
+			   expression temporaries). */
+  olk_block_after_label,/* Continuation of olk_block, when the block is
+			   interrupted by a label.  For example:
+			     {
+			       <olk_block>
+			     L:
+			       <olk_block_after_label>
+			     }      */
   olk_function_static,	/* Lifetime of function-local static variables. */
   olk_expr_temporary,	/* Lifetime of expression temporaries. */
   olk_constructor_init	/* Lifetime of a constructor initialization. */
@@ -5241,20 +5236,10 @@ typedef struct an_object_lifetime {
 	iek_expr_node	Full expression; points to enk_object_lifetime node
 			  which is the top node of expression.  Used for
 			  temporaries that last to end of full expression.
-	iek_label	Label; points to label.  The object lifetime
-			  region is from after the label to the end of the
-			  scope containing the label.  Used to deal with
-			  gotos backwards in a block to before initialization
-			  of some entities (such gotos exit the object lifetime
-			  associated with the label).
 	iek_block	Block; points to a_block entry.  Used in cfront
 			  mode for dependent statements (they have no
 			  associated scope, but there is an associated object
-			  lifetime), and, when temporaries have the old-style
-			  "to end of scope" lifetime, to enclose sequences
-			  of statements from which temporaries should not
-			  escape (e.g., switch clauses, statements preceding
-			  a label).
+			  lifetime).
 	iek_try_supplement
 			Try block; points to exception try block supplement.
 	iek_new_delete_supplement
@@ -5267,13 +5252,18 @@ typedef struct an_object_lifetime {
 			  in constructor-call dynamic initializations that
 			  initialize variables.
   */
-  a_tagged_pointer
-		entity;	/* Entity with which this object lifetime is
-			   associated.  See list of possible kinds above. */
   an_object_lifetime_kind
 		kind;
 			/* The kind of lifetime this object lifetime entry
 			   represents. */
+  a_tagged_pointer
+		entity;	/* Entity with which this object lifetime is
+			   associated.  See list of possible kinds above.
+			   When kind == olk_block_after_label, the entity kind
+			   is iek_none and the entity pointer is NULL; only
+			   the olk_block lifetime with which it is associated
+			   (see parent lifetime, below) is actually bound to
+			   the associated scope or block statement. */
   a_dynamic_init_ptr
 		destructions;
 			/* A linked list of dynamic init entries (using
@@ -5284,21 +5274,28 @@ typedef struct an_object_lifetime {
 			   -- the first on the list is the last created. */
   an_object_lifetime_ptr
 		parent_lifetime;
-			/* The object lifetime that is the nearest enclosing
-			   lifetime around this one, or NULL if kind is
-			   olk_global_static or olk_function_static. */
+			/* When kind is olk_block_after_label, the predecessor
+			   in a chain of lifetimes (terminating with olk_block)
+			   that describes the entire block scope.  NULL when
+			   kind is olk_global_static or olk_function_static.
+			   Otherwise, the object lifetime that is the nearest
+			   enclosing lifetime around this one. */
   a_dynamic_init_ptr
 		parent_destruction_sublist;
 			/* Pointer to an entry in the parent lifetime's
 			   destructions list; it corresponds to where this
-			   object lifetime appears.  NULL if this lifetime
-			   is not on the child list of another lifetime. */
+			   object lifetime appears.  NULL if kind is
+			   olk_block_after_label or when this lifetime is not
+			   on the child list of another lifetime. */
   an_object_lifetime_ptr
 		child_lifetime;
 			/* If this object lifetime has object lifetimes under
 			   it, this is the first on a list linked by the
 			   "next" field.  NULL otherwise, including when kind
-			   is olk_global_static or olk_function_static. */
+			   is olk_global_static or olk_function_static.  Note:
+			   an olk_block_after_label lifetime is pointed to as
+			   child by its predecessor within the chain
+			   representing a given block. */
   an_object_lifetime_ptr
 		next;
 			/* The next object lifetime on a list of sibling

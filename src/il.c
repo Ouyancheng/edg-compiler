@@ -5677,7 +5677,6 @@ to it.
 #endif /* CHECKING */
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
-  lp->lifetime_following_label = NULL;
 #ifdef FIL
   lp->kind = (a_label_kind)lk_executable;
   lp->used_in_assign = FALSE;
@@ -7201,7 +7200,7 @@ lifetime (the top of the object lifetime stack) is used.
       /* A non-static entity, probably a variable, that is associated with
          a scope lifetime.  If the current object lifetime is not that of
          a scope, find the innermost object lifetime that is. */
-      olp = innermost_local_object_lifetime(curr_object_lifetime);
+      olp = innermost_block_object_lifetime(curr_object_lifetime);
     } else {
       /* The default case is to use whatever is on top of the object lifetime
          stack. */
@@ -7245,12 +7244,13 @@ about it).
   char *str;
 
   switch (olp->kind) {
-    case olk_global_static:     str = "global_static";    break;
-    case olk_local:             str = "local";            break;
-    case olk_function_static:   str = "function_static";  break;
-    case olk_expr_temporary:    str = "expr_temporary";   break;
-    case olk_constructor_init:  str = "constructor_init"; break;
-    default:                    str = "???";              break;
+    case olk_global_static:     str = "global_static";     break;
+    case olk_block:             str = "block";             break;
+    case olk_block_after_label: str = "block_after_label"; break;
+    case olk_function_static:   str = "function_static";   break;
+    case olk_expr_temporary:    str = "expr_temporary";    break;
+    case olk_constructor_init:  str = "constructor_init";  break;
+    default:                    str = "???";               break;
   }  /* switch */
   fprintf(f_debug, "%s [", str);
   if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
@@ -7259,10 +7259,6 @@ about it).
     fputs("<unbound>", f_debug);
   } else {
     fputs(il_entry_kind_names[(int)olp->entity.kind], f_debug);
-    if (olp->entity.kind == (a_byte_il_entry_kind)iek_label) {
-      fputc(' ', f_debug);
-      db_name(&((a_label_ptr)olp->entity.ptr)->source_corresp);
-    }  /* if */
   }  /* if */
   fputc(']', f_debug);
 }  /* db_object_lifetime_name */
@@ -7482,9 +7478,6 @@ help determine which address to return.
       lifetime_addr = &((an_expr_node_ptr)entity_ptr)->
                                               variant.object_lifetime.ptr;
       break;      
-    case iek_label:
-      lifetime_addr = &((a_label_ptr)entity_ptr)->lifetime_following_label;
-      break;
     case iek_block:
       lifetime_addr = &((a_block_ptr)entity_ptr)->lifetime;
       break;
@@ -7513,7 +7506,8 @@ void bind_object_lifetime(an_object_lifetime_ptr  olp,
 /*
 Set the object lifetime entry pointed to by olp to point to the IL entry
 represented by entity_kind and entity_ptr, and set the IL entry to point
-back to it.
+back to it.  This function should not be called for olk_block_after_label
+lifetimes, since those are never bound.
 */
 {
   an_object_lifetime_ptr   *lifetime_addr;
@@ -7521,7 +7515,11 @@ back to it.
 #if CHECKING
   char *str = "bind_object_lifetime:";
 
-  check_assertion(olp->entity.ptr == NULL && entity_ptr != NULL);
+  check_assertion_str2(
+                 olp->kind != (an_object_lifetime_kind)olk_block_after_label,
+                 str, "cannot bind block-after-label lifetime");
+  check_assertion_str2(entity_ptr != NULL, str, "NULL entity");
+  check_assertion_str2(olp->entity.ptr == NULL, str, "lifetime already bound");
   /* Be sure the object lifetime kind is consistent with the kind of
      entity with which the object lifetime is being bound. */
   switch (olp->kind) {
@@ -7539,21 +7537,20 @@ back to it.
                            str,
                            "bad entity or scope kind for olk_global_static");
       break;
-    case olk_local:
+    case olk_block:
       switch (entity_kind) {
         case iek_scope:
           check_assertion_str2((((a_scope_ptr)entity_ptr)->kind ==
                                            (a_scope_kind)sck_function) ||
                                (((a_scope_ptr)entity_ptr)->kind ==
                                          (a_scope_kind)sck_block),
-                               str, "bad scope kind for olk_local");
-        case iek_label:
+                               str, "bad scope kind for olk_block");
         case iek_block:
         case iek_try_supplement:
           /* Okay. */
           break;
         default:
-          unexpected_condition_str2(str, "bad entity kind for olk_local");
+          unexpected_condition_str2(str, "bad entity kind for olk_block");
       }  /* switch */
       break;
     case olk_expr_temporary:
@@ -7704,7 +7701,6 @@ with it.  Entries associated with scopes must also have no child entries.
         }  /* switch */
         break;
       case iek_expr_node:
-      case iek_label:
       case iek_block:
       case iek_dynamic_init:
       case iek_none:
@@ -7812,7 +7808,7 @@ return it to the appropriate available list.
   curr_object_lifetime = olp->parent_lifetime;
   /* Do additional processing connected with whether the entry remains in
      the IL or should be removed. */
-  if (olp->kind == (an_object_lifetime_kind)olk_local &&
+  if (olp->kind == (an_object_lifetime_kind)olk_block &&
       olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
       ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
     /* This is an object lifetime for a function scope; its parent pointer
@@ -7913,20 +7909,22 @@ the object lifetime entry pointed to by stop_at.
 }  /* pop_object_lifetimes_until */
 
 
-an_object_lifetime_ptr innermost_local_object_lifetime(
+an_object_lifetime_ptr innermost_block_object_lifetime(
                                                an_object_lifetime_ptr  olp)
 /*
 Starting with the object lifetime entry pointed to by olp, advance though
-its parents and return the first entry that has a kind of olk_local.
+its parents and return the first entry that has a kind of olk_block or
+olk_block_after_label.
 */
 {
-  while (olp->kind != (an_object_lifetime_kind)olk_local) {
+  while (olp->kind != (an_object_lifetime_kind)olk_block &&
+         olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
     olp = olp->parent_lifetime;
     check_assertion_str(olp != NULL,
-                        "innermost_local_object_lifetime: not found");
+                        "innermost_block_object_lifetime: not found");
   }  /* while */
   return olp;
-}  /* innermost_local_object_lifetime */
+}  /* innermost_block_object_lifetime */
 
 
 a_scope_ptr alloc_scope(a_scope_kind   kind,

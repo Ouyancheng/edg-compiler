@@ -1560,8 +1560,6 @@ do_exec_stmt:
 #endif /* ifdef FFE */
 #ifdef CFE
   disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
-  disp_ptr("lifetime_following_label", (char *)ptr->lifetime_following_label,
-           iek_object_lifetime);
 #endif /* ifdef CFE */
 }  /* disp_label */
 
@@ -2277,7 +2275,10 @@ Display the indicated object lifetime.
     case olk_global_static:
       (void)printf("olk_global_static\n");
       break;
-    case olk_local:
+    case olk_block:
+      (void)printf("olk_local\n");
+      break;
+    case olk_block_after_label:
       (void)printf("olk_local\n");
       break;
     case olk_function_static:
