@@ -5936,11 +5936,24 @@ mechanism.  This routine scans and builds the asm string.
   } else {
     /* Not an asm block.  Just take tokens up to the end of the line or up
        to an opening brace. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position	end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     while (curr_token != tok_end_of_source) {
       if (curr_token == tok_newline || curr_token == tok_rbrace) {
         save_token = curr_token == tok_rbrace;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (curr_token == tok_newline) {
+          /* Restore the ending position to that of the token before the
+             newline. */
+          end_pos_curr_token = end_pos;
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         break;
       }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Copy characters from the source line to the buffer, from
          last_stop_char through the end of the current token. */
       copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
