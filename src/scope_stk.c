@@ -4378,9 +4378,7 @@ been completed.
                  variable_needed_even_if_unreferenced(vp));
 #if DO_IL_LOWERING
     if (any_exported_templates() &&
-        vp->storage_class == (a_storage_class)sc_static &&
-        !vp->source_corresp.is_local_to_function &&
-        !vp->promoted_local_static) {
+        vp->storage_class == (a_storage_class)sc_static) {
       /* In translation units with exported templates, all statics have
          to be considered potentially referenced from a template. */
       vp->source_corresp.static_used_by_instantiation = TRUE;
@@ -4403,8 +4401,7 @@ been completed.
     a_boolean saved_defined = rp->defined;
 #if DO_IL_LOWERING
     if (any_exported_templates() &&
-        rp->storage_class == (a_storage_class)sc_static &&
-        !rp->source_corresp.is_local_to_function) {
+        rp->storage_class == (a_storage_class)sc_static) {
       /* In translation units with exported templates, all statics have
          to be considered potentially referenced from a template. */
       rp->source_corresp.static_used_by_instantiation = TRUE;
