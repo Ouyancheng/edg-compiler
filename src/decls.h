@@ -198,9 +198,10 @@ typedef int a_decl_flag_set;
 			   appeared in the declaration, so that if it turns
 			   out to be a member function, it is a static member
 			   function. */
-#define DI_IS_PARAMETER 0x8
-			/* If this bit is set it is a formal parameter that is
-			   being scanned. */
+#define DI_QUALIFIED_NAME_DISALLOWED 0x8
+			/* If this bit is set it a qualified name is not
+			   in the declarator (e.g., for a formal parameter or
+			   a typedef declaration). */
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
 #define DSI_NO_INPUT_FLAGS 0x0
