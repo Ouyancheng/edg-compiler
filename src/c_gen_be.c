@@ -1343,6 +1343,12 @@ is non-NULL, in which case that is the function scope.
             if (param_var->storage_class == (a_storage_class)sc_register) {
               dump_variable_storage_class(param_var);
             }  /* if */
+            /* Make sure param_value_has_been_changed gets set whenever
+               address_taken is set. */
+            check_assertion_str2(!param_var->address_taken ||
+                                 param_var->param_value_has_been_changed,
+                                 "dump_function_decl...:",
+                     "param addr taken, param_value_has_been_changed not set");
             /* Since we're generating C, even unnamed parameters in C++ get
                names. */
             dump_general_declaration_using_type(param_var->type,
