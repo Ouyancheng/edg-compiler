@@ -154,6 +154,9 @@ Flags to be set when using the KAI inliner.
 #define ONE_INSTANTIATION_PER_OBJECT 0
 #define MAINTAIN_NEEDED_FLAGS 0
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
+#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
+#define LOWER_VARIABLE_LENGTH_ARRAYS 0
+#endif /* ifndef LOWER_VARIABLE_LENGTH_ARRAYS */
 #ifdef SOLARIS
 #define _POSIX_C_SOURCE 3
 #define _XOPEN_VERSION 0
@@ -319,6 +322,9 @@ Flags to be set when using the KAI inliner.
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
 #endif /* ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS */
 #define DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE 0
+#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
+#define LOWER_VARIABLE_LENGTH_ARRAYS 0
+#endif /* ifndef LOWER_VARIABLE_LENGTH_ARRAYS */
 
 #ifndef OPTIMIZED_VERSION
 #define EXPENSIVE_CHECKING 1
@@ -526,12 +532,6 @@ Flags to be set when using the KAI inliner.
 #endif /* ifdef __linux__ */
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
-
-/* Enable lowering of VLA constructs in all non-SELF_COMP non-CP_GEN_BE
-   versions. */
-#if !defined(CP_GEN_BE_VERSION) && !defined(SELF_COMP_VERSION)
-#define LOWER_VARIABLE_LENGTH_ARRAYS 1
-#endif /* !defined(CP_GEN_BE_VERSION) && !defined(SELF_COMP_VERSION) */
 
 /*
 Enable recognition of Microsoft attributes for internal versions.

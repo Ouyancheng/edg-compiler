@@ -3325,13 +3325,25 @@ of times.
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
 
 /*
-This switch controls whether variable-length arrays (a C99 feature also
+This flag controls whether variable-length arrays (a C99 feature also
 available in other modes) are lowered to standard C.  The lowering relies
-on facilities in the run-time support library.
+on facilities in the run-time support library.  This flag is used to set
+the global variable lower_variable_length_arrays.
 */
 #ifndef LOWER_VARIABLE_LENGTH_ARRAYS
+#if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
+#define LOWER_VARIABLE_LENGTH_ARRAYS TRUE
+#else /* !(VLA_ALLOWED && BACK_END_IS_C_GEN_BE) */
 #define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
+#endif /* VLA_ALLOWED && BACK_END_IS_C_GEN_BE */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
+ #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOC_STATEMENTS_IN_IL
+ #error -- Lowering of VLAs requires VLA_DEALLOC_STATEMENTS_IN_IL to be TRUE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOC_STATEMENTS_IN_IL */
 
 /*
 This switch controls whether or not "guard" code is placed around
