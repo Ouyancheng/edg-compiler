@@ -6817,7 +6817,7 @@ declaration following this one is such a continuation.
         innermost_function_scope == NULL) {
       write_tok_str("extern \"C\" ");
       /* For a definition, use the form
-           extern "C" { int i; };
+           extern "C" { int i; }
          because simply
            extern "C" int i;
          is no longer a definition. */
@@ -7202,6 +7202,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
   a_scope_ptr                   common_scope, orig_scope = NULL;
+  a_boolean                     need_extern_C_closing_brace = FALSE;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -7380,6 +7381,17 @@ TRUE if the declaration following this one is such a continuation.
            an extern "C" { ... } wrapped around the function. */
         !decl_within_function) {
       write_tok_str("extern \"C\" ");
+      /* For a definition, use the form
+           extern "C" { inline void foo() {} }
+         because simply
+           extern "C" inline void foo() {}
+         is not allowed by some compilers (the combination of a linkage
+         specification and "inline" is not accepted). */
+      if (is_definition) {
+        write_tok_str("{ ");
+        /* Force matching "}" to be output later */
+        need_extern_C_closing_brace = TRUE;
+      }  /* if */
     } else {
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
@@ -7463,6 +7475,10 @@ TRUE if the declaration following this one is such a continuation.
   /* Pop the name context for a class/namespace member. */
   if (context_pop_needed) {
     pop_name_context_if_member(&rout->source_corresp);
+  }  /* if */
+  if (need_extern_C_closing_brace) {
+    write_tok_ch('}');
+    write_space();
   }  /* if */
   if (orig_scope != NULL) {
     /* Restore the original namespace state if it was changed for a

@@ -1,5 +1,20 @@
 Version 2.42
 
+5/14/99  C++-generating back end: avoid extern "C" inline
+
+The C++-generating back end now avoids putting out
+
+  extern "C" inline
+
+on the definition of a function, by using a brace-enclosed linkage
+specification, e.g.,
+
+  extern "C" { inline void foo() {} }
+
+This avoids problems with some compilers (including compilers based
+on versions of our front end before 2.42) that give an error on the
+combination of a linkage specification and "inline".
+
 5/14/99  Improvement on FORCE_VARIABLE_DEFINITION_VIA_ZEROING
 
 The configuration option FORCE_VARIABLE_DEFINITION_VIA_ZEROING (see
