@@ -1,6 +1,13 @@
 Version 2.33
 
-9/12/96 IL CHANGE for Microsoft object-code compatibility
+9/12/96 Microsoft compatibility: support for __int8 and __int16 keywords
+
+In Microsoft-compatibility mode __int8 is recognized as a keyword, with
+semantics equivalent to char, as long as there are 8 bits in a char; and
+__int16 is also recognized as long as there is a 16-bit integer to which
+it can be mapped.
+
+9/11/96 IL CHANGE for Microsoft object-code compatibility
 
 When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, new field orig_type_kind is
 maintained in a_class_type_supplement.  It records the tag kind with which

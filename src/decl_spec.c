@@ -2087,7 +2087,9 @@ typedef enum {
   , size_long_long
 #endif /* LONG_LONG_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  , size_int32,
+  , size_int8,
+  size_int16,
+  size_int32,
   size_int64
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_type_size;
@@ -2147,7 +2149,11 @@ decl_specifiers.
             if (plain_char_int_kind != ikind && sign != sign_none) break;
             /* Fall into signed char case. */
           case ik_signed_char:
-            if (size != size_none) break;
+            if (size != size_none
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                && size != size_int8
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                    ) break;
             basic_type = bt_char;
             break;
           case ik_short:
@@ -2212,7 +2218,11 @@ decl_specifiers.
       }  /* if */
       break;
     case bt_char:
-      if (size != size_none) {
+      if (size != size_none
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && size != size_int8
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                              ) {
         bad_combination = TRUE;
       } else {
         switch (sign) {
@@ -2295,6 +2305,15 @@ decl_specifiers.
           break;
 #endif /* LONG_LONG_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+        case size_int16:
+          if (sign != sign_unsigned) {
+            /* __int16, signed __int16. */
+            ikind = targ_int16_int_kind;
+          } else {
+            /* unsigned __int16. */
+            ikind = targ_unsigned_int16_int_kind;
+          }  /* if */
+          break;
         case size_int32:
           if (sign != sign_unsigned) {
             /* __int32, signed __int32. */
@@ -3160,11 +3179,13 @@ Returns TRUE if there is an error in the specifiers.
         }  /* if */
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_int8:
+      case tok_int16:
       case tok_int32:
       case tok_int64:
-        /* The Microsoft keywords __int32 and __int64 represent a basic type
-           and a size in combination.  In other words, an explicit size
-           may not be specified in conjunction with either. */
+        /* The Microsoft keywords __int8, __int16, __int32, and __int64
+           represent a basic type and a size in combination.  In other words,
+           an explicit size may not be specified in conjunction with either. */
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
@@ -3173,9 +3194,20 @@ Returns TRUE if there is an error in the specifiers.
           bad_combination_of_type_specifiers = TRUE;
           error(ec_bad_combination_of_type_specifiers);
         } else {
-          /* Set both basic type and size. */
-          basic_type = bt_int;
-          size = curr_token == tok_int32 ? size_int32 : size_int64;
+          if (curr_token == tok_int8) {
+            /* __int8 is treated as a plain char. */
+            basic_type = bt_char;
+            size = size_int8;
+          } else {
+            /* Set both basic type and size. */
+            basic_type = bt_int;
+            switch (curr_token) {
+              case tok_int16:  size = size_int16; break;
+              case tok_int32:  size = size_int32; break;
+              case tok_int64:  size = size_int64; break;
+              default:;
+            }  /* switch */
+          }  /* if */
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

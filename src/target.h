@@ -191,11 +191,47 @@ EXTERN a_targ_alignment
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN an_integer_kind
+		targ_int8_int_kind
+#if VAR_INITIALIZERS
+                                   = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                               ;
+			/* Integer kind associated with __int8.  Initialized
+			   to ik_none and reset later. */
+
+EXTERN an_integer_kind
+		targ_unsigned_int8_int_kind
+#if VAR_INITIALIZERS
+                                            = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                                        ;
+			/* Integer kind associated with unsigned __int8.
+			   Initialized to ik_none and reset later. */
+
+EXTERN an_integer_kind
+		targ_int16_int_kind
+#if VAR_INITIALIZERS
+                                    = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                                ;
+			/* Integer kind associated with __int16.  Initialized
+			   to ik_none and reset later. */
+
+EXTERN an_integer_kind
+		targ_unsigned_int16_int_kind
+#if VAR_INITIALIZERS
+                                             = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                                         ;
+			/* Integer kind associated with unsigned __int16.
+			   Initialized to ik_none and reset later. */
+
+EXTERN an_integer_kind
 		targ_int32_int_kind
 #if VAR_INITIALIZERS
                                     = ((an_integer_kind)ik_none)
 #endif /* VAR_INITIALIZERS */
-                                                            ;
+                                                                ;
 			/* Integer kind associated with __int32.  Initialized
 			   to ik_none and reset later. */
 
@@ -204,7 +240,7 @@ EXTERN an_integer_kind
 #if VAR_INITIALIZERS
                                              = ((an_integer_kind)ik_none)
 #endif /* VAR_INITIALIZERS */
-                                                                     ;
+                                                                         ;
 			/* Integer kind associated with unsigned __int32.
 			   Initialized to ik_none and reset later. */
 
@@ -213,7 +249,7 @@ EXTERN an_integer_kind
 #if VAR_INITIALIZERS
                                     = ((an_integer_kind)ik_none)
 #endif /* VAR_INITIALIZERS */
-                                                            ;
+                                                                ;
 			/* Integer kind associated with __int64.  Initialized
 			   to ik_none and reset later. */
 
@@ -222,7 +258,7 @@ EXTERN an_integer_kind
 #if VAR_INITIALIZERS
                                              = ((an_integer_kind)ik_none)
 #endif /* VAR_INITIALIZERS */
-                                                                     ;
+                                                                         ;
 			/* Integer kind associated with unsigned __int64.
 			   Initialized to ik_none and reset later. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -107,7 +107,8 @@ Microsoft extensions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_is_microsoft_type_specifier()                              \
   || (microsoft_mode &&                                               \
-      (curr_token == tok_int32 || curr_token == tok_int64))
+      (curr_token == tok_int8  || curr_token == tok_int16 ||          \
+       curr_token == tok_int32 || curr_token == tok_int64))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_microsoft_type_specifier()  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -151,6 +151,8 @@ typedef enum /*a_token_kind*/ {
   tok_finally,
   tok_leave,
   tok_except,
+  tok_int8,
+  tok_int16,
   tok_int32,
   tok_int64,
   tok_based,
@@ -228,7 +230,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__cdecl", "__declspec", "__fastcall", "__inline", "__stdcall",
    "__unaligned", "__try", "__finally", "__leave", "__except",
-   "__int32", "__int64", "__based", "__near", "__far",
+   "__int8", "__int16", "__int32", "__int64", "__based", "__near", "__far",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
@@ -525,6 +527,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_finally */
    (an_opname_kind)onk_none,          /* tok_leave */
    (an_opname_kind)onk_none,          /* tok_except */
+   (an_opname_kind)onk_none,          /* tok_int8 */
+   (an_opname_kind)onk_none,          /* tok_int16 */
    (an_opname_kind)onk_none,          /* tok_int32 */
    (an_opname_kind)onk_none,          /* tok_int64 */
    (an_opname_kind)onk_none,          /* tok_based */

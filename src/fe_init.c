@@ -254,6 +254,14 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_finally, "__finally");
     enter_keyword((a_token_kind)tok_leave, "__leave");
     enter_keyword((a_token_kind)tok_except, "__except");
+    if (targ_int8_int_kind != (an_integer_kind)ik_none) {
+      /* There is a 8 bit target integer kind to which __int8 can map. */
+      enter_keyword((a_token_kind)tok_int8, "__int8");
+    }  /* if */
+    if (targ_int16_int_kind != (an_integer_kind)ik_none) {
+      /* There is a 16 bit target integer kind to which __int16 can map. */
+      enter_keyword((a_token_kind)tok_int16, "__int16");
+    }  /* if */
     if (targ_int32_int_kind != (an_integer_kind)ik_none) {
       /* There is a 32 bit target integer kind to which __int32 can map. */
       enter_keyword((a_token_kind)tok_int32, "__int32");
@@ -454,12 +462,24 @@ Initialize target machine characteristics.
 #endif /* DO_IL_LOWERING */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Map __int32 and __int64 to the appropriate integer kinds.  In other
-     words, find the first integer kinds, signed and unsigned, that hold
-     exactly 32 and 64 bits, respectively.  Leave the variables set to
-     ik_none if a match can't be found.  Note -- only if a corresponding
-     integer kind is found will the keywords for tok_int32 and tok_int64
-     be entered into the symbol table. */
+  /* Map __int8, __int16, __int32, and __int64 to the appropriate integer
+     kinds.  Leave the variables set to ik_none if a match can't be found;
+     only if a corresponding integer kind is found will the corresponding
+     keyword be entered into the symbol table. */
+  /* Map __int8 to plain char if and only if 8-bit chars are being used. */
+  if (targ_char_bit == 8) {
+    targ_int8_int_kind = plain_char_int_kind;
+    targ_unsigned_int8_int_kind = (an_integer_kind)ik_unsigned_char;
+  }  /* if */
+  /* For the other cases, find the first integer kinds, signed and unsigned,
+     that hold exactly 16, 32 and 64 bits, respectively. */  
+  targ_int16_int_kind = int_kind_for_bit_size(16, /*signed=*/TRUE);
+  if (targ_int16_int_kind != (an_integer_kind)ik_none) {
+    targ_unsigned_int16_int_kind = int_kind_for_bit_size(16, /*signed=*/FALSE);
+    check_assertion_str(targ_unsigned_int16_int_kind !=
+                                              (an_integer_kind)ik_none,
+                       "target_init: can't set int kind for unsigned __int16");
+  }  /* if */
   targ_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/TRUE);
   if (targ_int32_int_kind != (an_integer_kind)ik_none) {
     targ_unsigned_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/FALSE);
