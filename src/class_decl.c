@@ -8960,7 +8960,9 @@ or implicit) controlling the declaration.
       clear_locator(&locator, &decl_pos);
       locator.symbol_header = locator_for_curr_id.symbol_header;
       (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
-      if (locator.specific_symbol != NULL) {
+      if (locator.specific_symbol != NULL &&
+          (locator.specific_symbol->kind != (a_symbol_kind)sk_type ||
+           !locator.specific_symbol->variant.type.is_injected_class_name)) {
         /* Except to introduce function names into an overload set, a
            using declaration cannot usually coexist with another declaration
            with the same name. */
