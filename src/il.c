@@ -141,10 +141,10 @@ static unsigned long
 static unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 static unsigned long
 		asm_function_body_space_allocated;
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Number of times the based_types lists of types are searched for related types.
@@ -6046,6 +6046,7 @@ to it.
   set_default_source_corresp(ap->source_corresp);
   ap->next = NULL;
   ap->asm_string = NULL;
+  ap->is_asm_block = FALSE;
   db_exit();
   return ap;
 }  /* alloc_asm_entry */
@@ -6072,7 +6073,7 @@ Add the given routine to the asm entries list for the current scope.
   asm_entry_ptr->next = NULL;
 }  /* add_to_asm_entries_list */
 
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 char *alloc_asm_function_body(sizeof_t  len)
 /*
@@ -6085,7 +6086,7 @@ Allocate space for an asm function body and return a pointer to it.
   return (char *)alloc_cil(len);
 }  /* alloc_asm_function_body */
 
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_label_ptr alloc_label(void)
 /*
@@ -10260,10 +10261,10 @@ Display and return the amount of space used for various IL tables.
 #endif /* ORPHAN_PROCESSING_NEEDED */
   db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
                 an_il_entry_prefix);
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   db_space_used_other("asm function bodies",
                       asm_function_body_space_allocated, "");
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_space_used_total();
 
@@ -10493,9 +10494,9 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(asm_function_body_space_allocated),
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -10617,9 +10618,9 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   asm_function_body_space_allocated      = 0;
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   last_scope_orphaned_list_header = NULL;
