@@ -8223,7 +8223,7 @@ the target type to be used).
         source_is_constant = is_constant_operand(&arg_operand->operand);
         source_constant = &arg_operand->operand.variant.constant;
         if (is_an_lvalue(&arg_operand->operand) &&
-            !any_cfront_mode()) {
+            !(any_cfront_mode() || gpp_mode)) {
           /* Treat a constant-valued integral variable as its value.  This
              is useful when the value is a null pointer constant. */
           a_constant_ptr con_var_value =
