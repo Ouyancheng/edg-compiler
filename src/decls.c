@@ -3573,6 +3573,7 @@ to NULL.
   a_boolean         suppress_ext_sym_lookup = FALSE;
   a_boolean         is_main_function = FALSE;
   a_boolean         is_function_def = FALSE;
+  a_boolean         changed_to_inline = FALSE;
 
   db_enter(3, "decl_var_or_routine");
   *old_type = NULL;
@@ -3998,6 +3999,7 @@ skip_overloading:;
           routine_ptr->compiler_generated = FALSE;
         }  /* if */
       }  /* if */
+      changed_to_inline = (func_info->is_inline && !routine_ptr->is_inline);
     }  /* if */
     if (func_info->is_inline) routine_ptr->is_inline = TRUE;
     source_corresp_ptr = &routine_ptr->source_corresp;
@@ -4020,6 +4022,12 @@ skip_overloading:;
     reference_to_symbol(srk_reference,
                         (a_symbol_ptr)source_corresp_ptr->assoc_info,
                         &locator->source_position, /*update_il_entry=*/FALSE);
+  }  /* if */
+  if (changed_to_inline) {
+    if (routine_ptr->called) {
+      pos_sy_error(ec_called_function_redeclared_inline,
+                   &locator->source_position, sym);
+    }  /* if */
   }  /* if */
   if (is_variable_def || is_function_def) {
     mark_defined(sym, &locator->source_position);
@@ -4158,6 +4166,7 @@ class template.
   a_template_symbol_supplement_ptr  tssp;
   a_routine_ptr                     rout_ptr;
   a_memory_region_number            region_to_switch_back_to;
+  a_boolean                         changed_to_inline = FALSE;
 
   db_enter(3, "decl_function_template");
   if (func_info->is_inline) {
@@ -4296,7 +4305,12 @@ class template.
     /* Bind the throw specification to the routine entry's type. */
     add_throw_specification(func_info, rout_ptr);
   } else {
-    if (func_info->is_inline) rout_ptr->is_inline = TRUE;
+    if (func_info->is_inline) {
+      if (!rout_ptr->is_inline) {
+        rout_ptr->is_inline = TRUE;
+        changed_to_inline = TRUE;
+      }  /* if */
+    }  /* if */
     /* Be sure the current throw specification is consistent with the one
        on the previous declaration. */
     check_throw_specification(func_info, rout_ptr);
@@ -4322,6 +4336,26 @@ class template.
         record_predeclared_template_function(sym, rout_sym);
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (changed_to_inline) {
+    a_template_instance_ptr  tip = tssp->variant.function.instantiations;
+    for (; tip != NULL; tip = tip->next) {
+      a_routine_ptr  rp = tip->instance_sym->variant.routine.ptr;
+      if (tip->specific_def) {
+#if 0
+        /* Must the inline setting of a specific definition of a function
+           template be consistent with that of the template? */
+#endif /* if 0 */
+      } else {
+        /* Issue a diagnostic is the function has already been called. */
+        check_assertion(!rp->is_inline)
+        if (rp->called) {
+          pos_sy_error(ec_called_function_redeclared_inline,
+                       &locator->source_position, tip->instance_sym);
+        }  /* if */
+        rp->is_inline = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Return the function template symbol. */
   *symbol_ptr = sym;
@@ -4605,7 +4639,7 @@ on a prior declaration.
         sym->variant.routine.ptr->called) {
       /* Unless it was originally declared "inline" a member function that
          has been called may not have the "inline" attribute here. */
-      pos_sy_error(ec_called_member_function_redeclared_inline,
+      pos_sy_error(ec_called_function_redeclared_inline,
                    &locator->source_position, sym);
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
