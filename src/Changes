@@ -1,5 +1,11 @@
 Version 2.46
 
+12/19/01 Improper setting of is_local_to_function flag
+
+Under certain very unusual circumstances the is_local_to_function flag
+could be set incorrectly for a class template specialization.  This
+could result in incorrect mangled names.  Now fixed.
+
 12/18/01 Abort in corresponding_base_class with deep ambiguous inheritance
 
 In some situations involving an ambiguous base class that is itself derived

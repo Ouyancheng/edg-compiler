@@ -1470,13 +1470,24 @@ the scope being pushed.
         kind == (a_scope_kind)sck_class_reactivation) {
       /* Keep track of the number of classes and class reactivations. */
       num_classes_on_scope_stack++;
-      /* If we're entering a class and we're already inside a function,
-         the class is a local class. */
-      /* Note that this is done before depth_innermost_function_scope is
-         cleared below. */
-      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-        inside_local_class = ssep->inside_local_class = TRUE;
-      }  /* if */
+      if (kind == (a_scope_kind)sck_class_reactivation) {
+        depth_innermost_function_scope =
+              ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
+        innermost_function_scope = NULL;
+        /* If the class being reactivated is a local class, set the
+           inside_local_class flag. */
+        inside_local_class = ssep->inside_local_class =
+                               assoc_type->source_corresp.is_local_to_function;
+      } else {
+        /* A class scope. */
+        /* If we're entering a class and we're already inside a function,
+           the class is a local class. */
+        /* Note that this is done before depth_innermost_function_scope is
+           cleared below. */
+        if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          inside_local_class = ssep->inside_local_class = TRUE;
+        }  /* if */
+      }  /*  if */
     }  /* if */
     if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Save the depth of the innermost instantiation scope. */
