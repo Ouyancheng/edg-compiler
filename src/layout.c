@@ -1554,7 +1554,8 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
         base_subobject_conflict(bcp->primary_base_class, offset)) {
       /* The primary base is always at offset zero. */
       result = TRUE;
-    } else if (!(emulate_gnu_abi_bugs && offset != 0 && bcp->is_virtual)) {
+    } else if (!(emulate_gnu_abi_bugs && offset != 0 && bcp->is_virtual &&
+                 !is_empty_class_type(bcp->type))) {
       for (base_bcp = base_classes_of(base_type); 
            base_bcp != NULL; 
            base_bcp = base_bcp->next) {
@@ -1759,20 +1760,34 @@ static a_boolean gnu_leading_empty_base_conflict(a_type_ptr        class_type,
 /*
 ebcp is an empty base class of class_type that we want to allocate at
 offset zero.  If a direct base allocated at offset zero already contains a
-subobject of type ebcp->type in its first few bytes, a GNU compiler will
-mistakenly assume that the empty base cannot be allocated at that offset.
-This function returns TRUE in that case.
+subobject of type ebcp->type (or one of its base types) in its first few
+bytes, a GNU compiler will mistakenly assume that the empty base cannot be
+allocated at that offset.  This function returns TRUE in that case.
 */
 {
   a_boolean         result = FALSE;
   a_base_class_ptr  bcp = base_classes_of(class_type);
 
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->offset_is_set && bcp->direct && bcp->offset == 0 &&
-        gnu_conflict_found(skip_typerefs(bcp->type),
-                           skip_typerefs(ebcp->type), /*in_field=*/TRUE)) {
-      result = TRUE;
-      break;
+    if (bcp->offset_is_set && bcp->direct && bcp->offset == 0) {
+      a_base_class_ptr  sub_ebcp = base_classes_of(ebcp->type);
+      /* Only examine conflicts with bottom-most base classes. */
+      if (sub_ebcp == NULL &&
+          gnu_conflict_found(skip_typerefs(bcp->type),
+                             skip_typerefs(ebcp->type), /*in_field=*/TRUE)) {
+        result = TRUE;
+        break;
+      } else {
+        for (; sub_ebcp != NULL; sub_ebcp = sub_ebcp->next) {
+          if (base_classes_of(sub_ebcp->type) == NULL &&
+              gnu_conflict_found(skip_typerefs(bcp->type),
+                                 skip_typerefs(sub_ebcp->type),
+                                 /*in_field=*/TRUE)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* for */
   return result;
