@@ -1,5 +1,22 @@
 Version 2.40
 
+10/21/98  Recursive instantiation causes compiler loop when using a
+          definition list file
+
+Version 2.37 added a "definition list" file that is used to improve
+the performance of the automatic instantiation mechanism.  When using
+a definition list file, the front end failed to detect an instantiation
+loop in function instantiations that are in the process of being
+adopted by the current translation unit.  This would result in an
+infinite loop and eventual compiler abort.  This has been fixed.
+
+  template <class T> void f(T t) {
+    f((T*)0);
+  }
+  int main() {
+    f(37);
+  }
+
 10/20/98  Microsoft compatibility: default Microsoft version changed
 
 The default Microsoft version number is now "1200".  This corresponds

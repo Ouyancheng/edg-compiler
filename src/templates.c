@@ -11712,6 +11712,31 @@ previously computed value is returned.
   ((tip)->can_be_instantiated ? (tip)->can_be_instantiated	\
                               : f_entity_can_be_instantiated(tip))
 
+
+static void instantiate_entity(a_template_instance_ptr tip)
+/*
+Call the appropriate routine to instantiate the function or static
+data member specified by tip.
+*/
+{
+  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    /* Static data member definition. */
+    define_template_static_data_member(tip);
+  } else {
+    /* Function instantiation.  The number of simultaneous function
+       instantiations is limited to limit the amount of memory used by
+       memory regions for functions that are in the process of being
+       defined.  This is done because, while a function is being instantiated,
+       it generally consumes HOST_ALLOCATION_INCREMENT bytes of storage. */
+    if (num_total_pending_instantiations < MAX_TOTAL_PENDING_INSTANTIATIONS) {
+      num_total_pending_instantiations++;
+      instantiate_template_function(tip);
+      num_total_pending_instantiations--;
+    }  /* if */
+  }  /* if */
+}  /* instantiate_entity */
+
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 static an_instance_lookup_entry_ptr alloc_instance_lookup_entry(void)
 /*
@@ -12121,32 +12146,43 @@ otherwise they are removed.
                        "wrapup_auto_instantiation_information:",
                        "template info file not closed");
 }  /* wrapup_auto_instantiation_information */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
-static void instantiate_entity(a_template_instance_ptr tip)
+static void do_automatic_instantiation_of_entity(a_template_instance_ptr tip)
 /*
-Call the appropriate routine to instantiate the function or static
-data member specified by tip.
+Do the automatic instantiation of the function or static data member
+specified by tip.
 */
 {
-  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-    /* Static data member definition. */
-    define_template_static_data_member(tip);
-  } else {
-    /* Function instantiation.  The number of simultaneous function
-       instantiations is limited to limit the amount of memory used by
-       memory regions for functions that are in the process of being
-       defined.  This is done because, while a function is being instantiated,
-       it generally consumes HOST_ALLOCATION_INCREMENT bytes of storage. */
-    if (num_total_pending_instantiations < MAX_TOTAL_PENDING_INSTANTIATIONS) {
-      num_total_pending_instantiations++;
-      instantiate_template_function(tip);
-      num_total_pending_instantiations--;
-    }  /* if */
+  a_template_instantiation_mode	saved_instantiation_mode;
+  /* Set the instantiation mode to tim_none.  This is done to ensure that
+     only the instantiations explicitly requested in the list file are
+     performed.  We don't want a mode like "used" or "all" to cause
+     other instantiations to happen as a consequence of the requested
+     instantiations that are performed. */
+  saved_instantiation_mode = instantiation_mode;
+  instantiation_mode = tim_none;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Automatic instantiation processing for:\n");
+    db_symbol(tip->instance_sym, "", 0);
   }  /* if */
-}  /* instantiate_entity */
+#endif /* DEBUG */
+  /* Do the instantiation. */
+  instantiate_entity(tip);
+  if (tip->add_to_request_file) {
+    /* This flag is set once we know we have instantiated something that
+       is to be added to the request file.  This triggers the generation
+       of a list of added entities at the end of the compilation. */
+    any_instantiated_entities_added_to_request_file = TRUE;
+  }  /* if */
+  /* Restore the original instantiation mode.  This is needed because it
+     is used later on in the front end wrapup process when assigning
+     linkage class members. */
+  instantiation_mode = saved_instantiation_mode;
+}  /* do_automatic_instantiation_of_entity */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 void update_instantiation_required_flag(a_template_instance_ptr tip,
                                         a_boolean               value,
@@ -12270,6 +12306,12 @@ defer_inline is TRUE.
        instantiations list to look for entities that must be instantiated.
        Do the check for this entity now. */
     check_if_entity_should_be_automatically_instantiated(tip);
+    /* See if the entity should be instantiated as a result of an
+       assignment by the automatic instantiation mechanism. */
+    if (entity_can_be_instantiated(tip) &&
+        tip->automatically_instantiated && !tip->already_instantiated) {
+      do_automatic_instantiation_of_entity(tip);
+    }  /* if */
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   db_exit();
@@ -12558,41 +12600,6 @@ and "do not instantiate" flags are set here.
   }  /* if */
   db_exit();
 }  /* update_auto_instantiation_flags */
-
-
-static void do_automatic_instantiation_of_entity(a_template_instance_ptr tip)
-/*
-Do the automatic instantiation of the function or static data member
-specified by tip.
-*/
-{
-  a_template_instantiation_mode	saved_instantiation_mode;
-  /* Set the instantiation mode to tim_none.  This is done to ensure that
-     only the instantiations explicitly requested in the list file are
-     performed.  We don't want a mode like "used" or "all" to cause
-     other instantiations to happen as a consequence of the requested
-     instantiations that are performed. */
-  saved_instantiation_mode = instantiation_mode;
-  instantiation_mode = tim_none;
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "Automatic instantiation processing for:\n");
-    db_symbol(tip->instance_sym, "", 0);
-  }  /* if */
-#endif /* DEBUG */
-  /* Do the instantiation. */
-  instantiate_entity(tip);
-  if (tip->add_to_request_file) {
-    /* This flag is set once we know we have instantiated something that
-       is to be added to the request file.  This triggers the generation
-       of a list of added entities at the end of the compilation. */
-    any_instantiated_entities_added_to_request_file = TRUE;
-  }  /* if */
-  /* Restore the original instantiation mode.  This is needed because it
-     is used later on in the front end wrapup process when assigning
-     linkage class members. */
-  instantiation_mode = saved_instantiation_mode;
-}  /* do_automatic_instantiation_of_entity */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
