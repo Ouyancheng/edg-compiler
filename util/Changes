@@ -1,5 +1,9 @@
 Version 2.31
 
+12/22/95 Use of malloc.h in edg_prelink.c and edg_munch.c
+
+These files no longer include malloc.h when __ANSIC__ is defined.
+
 10/12/95 edg_munch option to ignore initial input lines
 
 edg_munch now support a command line option that causes it to ignore

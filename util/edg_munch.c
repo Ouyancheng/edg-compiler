@@ -27,13 +27,17 @@ This program looks for entries where "a" is "T" and "nnnn..." is "__sti__*" or
 
 */
 
+#include "basics.h"
 #include <stdio.h>
 #include <ctype.h>
-#include <malloc.h>
-#include "basics.h"
 #include "host_envir.h"
 #include "targ_def.h"
 #include "edg_munch.h"
+#if __ANSIC__
+#include <stdlib.h>
+#else /* !__ANSIC__ */
+#include <malloc.h>
+#endif /* __ANSI__ */
 
 /*
 The getopt.h include file will provide either the declarations needed
