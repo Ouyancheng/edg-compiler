@@ -1,12 +1,24 @@
 Version 2.43
 
-8/28/99  Microsoft C mode: (void)0 accepted as null pointer constant
+8/26/99  Microsoft C mode: Implicit pointer conversion can drop cv-qualifiers
+
+In Microsoft C mode, an implicit pointer conversion is now allowed
+to drop "const" and/or "volatile".  A warning is issued.
+
+  int main () {
+    const char *a = "abc";
+    char *b = a;  /* Drops "const" in conversion. */
+    return 0;
+  }
+
+8/26/99  Microsoft C mode: (void)0 accepted as null pointer constant
 
 In Microsoft bugs C mode, the expression (void)0 is now accepted as
 a null pointer constant in an initialization.
 
   int main() {
     char *p = (void)0;
+    return 0;
   }
 
 8/26/99  End position missing on asm statements
