@@ -7657,9 +7657,9 @@ points to the associated routine if the kind is sck_function.
 #if DEBUG
   num_scopes_allocated++;
 #endif /* DEBUG */
-  sp->next                = NULL;
-  sp->number              = number;
-  sp->kind                = kind;
+  sp->next   = NULL;
+  sp->number = number;
+  sp->kind   = kind;
   switch (kind) {
     case sck_file:
       /* No variant fields. */
@@ -7672,12 +7672,12 @@ points to the associated routine if the kind is sck_function.
       sp->variant.assoc_type = NULL;
       break;
     case sck_function:
-      sp->variant.routine.ptr                 = assoc_routine;
-      sp->variant.routine.parameters          = NULL;
-      sp->variant.routine.constructor_inits   = NULL;
+      sp->variant.routine.ptr                           = assoc_routine;
+      sp->variant.routine.parameters                    = NULL;
+      sp->variant.routine.constructor_inits             = NULL;
       sp->variant.routine.lifetime_of_constructor_inits = NULL;
-      sp->variant.routine.this_param_variable = NULL;
-      sp->variant.routine.return_value_variable = NULL;
+      sp->variant.routine.this_param_variable           = NULL;
+      sp->variant.routine.return_value_variable         = NULL;
 #ifdef FIL
       sp->variant.routine.function_result_var = NULL;
 #endif /* ifdef FIL */
@@ -7687,32 +7687,33 @@ points to the associated routine if the kind is sck_function.
       internal_error("alloc_scope: bad scope kind");
 #endif /* CHECKING */
   }  /* switch */
-  sp->assoc_block          = NULL;
-  sp->lifetime             = NULL;
-  sp->constants            = NULL;
-  sp->types                = NULL;
-  sp->variables            = NULL;
-  sp->nonstatic_variables  = NULL;
-  sp->labels               = NULL;
-  sp->routines             = NULL;
-  sp->asm_entries          = NULL;
-  sp->scopes               = NULL;
-  sp->dynamic_inits        = NULL;
-  sp->pragmas              = NULL;
-  sp->depth_in_scope_stack = NO_SCOPE_DEPTH;
+  sp->assoc_block                 = NULL;
+  sp->lifetime                    = NULL;
+  sp->constants                   = NULL;
+  sp->types                       = NULL;
+  sp->variables                   = NULL;
+  sp->nonstatic_variables         = NULL;
+  sp->labels                      = NULL;
+  sp->routines                    = NULL;
+  sp->asm_entries                 = NULL;
+  sp->scopes                      = NULL;
+  sp->dynamic_inits               = NULL;
+  sp->local_static_variable_inits = NULL;
+  sp->pragmas                     = NULL;
+  sp->depth_in_scope_stack        = NO_SCOPE_DEPTH;
 #ifdef FIL
-  sp->entries              = NULL;
-  sp->namelist_groups      = NULL;
+  sp->entries                     = NULL;
+  sp->namelist_groups             = NULL;
 #endif /* ifdef FIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  sp->source_sequence_list = NULL;
-  sp->src_seq_sublist_list = NULL;
+  sp->source_sequence_list        = NULL;
+  sp->src_seq_sublist_list        = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
-  sp->hidden_names         = NULL;
+  sp->hidden_names                = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if RECORD_TEMPLATES_IN_IL
-  sp->templates            = NULL;
+  sp->templates                   = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
 
   db_exit();

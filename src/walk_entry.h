@@ -951,6 +951,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_list(ptr->local_static_variable_inits,
+                  a_local_static_variable_init_ptr,
+                  iek_local_static_variable_init);
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
 #if RECORD_TEMPLATES_IN_IL
@@ -1175,6 +1178,30 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if CHECKING
           default:
             internal_error("walk_entry_and_subtree: bad dynamic init kind");
+#endif /* CHECKING */
+        }  /* switch */
+      }
+      break;
+    case iek_local_static_variable_init:
+      {
+        a_local_static_variable_init_ptr ptr =
+                                  (a_local_static_variable_init_ptr)entry_ptr;
+
+        remap_next_ptr(ptr->next, a_local_static_variable_init_ptr,
+                       iek_local_static_variable_init);
+        remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
+        switch (ptr->init_kind) {
+          case initk_static:
+            walk_ptr(ptr->initializer.constant, a_constant_ptr, iek_constant);
+            break;
+          case initk_dynamic:
+            walk_ptr(ptr->initializer.dynamic, a_dynamic_init_ptr,
+                     iek_dynamic_init);
+            break;
+#if CHECKING
+          default:
+            internal_error(
+                   "walk_entry_and_subtree: bad local static var init kind");
 #endif /* CHECKING */
         }  /* switch */
       }

@@ -280,6 +280,8 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* ifdef FIL */
 #ifdef CIL
   iek_dynamic_init,	/* a_dynamic_init */
+  iek_local_static_variable_init,
+			/* a_local_static_variable_init */
   iek_access_adjustment,/* an_access_adjustment */
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
@@ -389,6 +391,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* ifdef FIL */
 #ifdef CIL
 /* iek_dynamic_init */			"dynamic-init",
+/* iek_local_static_variable_init */	"local-static-variable-init",
 /* iek_access_adjustment */		"access-adjustment",
 /* iek_overriding_virtual_function */ 	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
@@ -2804,12 +2807,62 @@ enum an_init_kind_tag {
   initk_none,		/* No initialization. */
   initk_static,		/* Static initialization to a constant. */
   initk_dynamic,	/* Dynamic initialization (code is required). */
-  initk_zero		/* Initialization to zero (static or dynamic).
+  initk_zero,		/* Initialization to zero (static or dynamic).
 			   Also serves to distinguish a tentative definition
 			   from a real definition. */
+  initk_function_local	/* Either dynamic or aggregate-constant initialization
+			   of a local static variable.  The variable itself
+			   does not point at the initializer; rather the
+			   initialization is represented by a local static
+			   variable init entry. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_kind;
+
+#ifdef CIL
+
+typedef struct a_local_static_variable_init *a_local_static_variable_init_ptr;
+typedef struct a_local_static_variable_init {
+  /* Description of the initialization of a local static variable.  The
+     variable itself cannot point at its initializer, since the latter will
+     be in the function scope memory region, and so this construct is used
+     to represent the initialization.  These entries are always allocated in
+     the function scope memory region and appear on a list pointed to by a
+     function or block scope. */
+  a_local_static_variable_init_ptr
+		next;
+			/* Pointer to the next in a linked list of entries
+			   identifying local static variable initializations
+			   in the current (function or block) scope. */
+  a_variable_ptr
+		variable;
+			/* Pointer to an initialized local static variable
+			   whose init_kind is initk_function_local. */
+  an_init_kind	init_kind;
+			/* Kind of initialization, if any. */
+  union {
+    /* initk_none, initk_zero, and initk_function_local will never occur. */
+    /* When init_kind == initk_static: */
+    a_constant_ptr
+                constant;
+			/* Constant initial value for static initialization.
+			   Will always be a ck_aggregate constant that does
+			   not contain ck_dynamic_init constants.  The
+			   constant is unshared. */
+    /* When init_kind == initk_dynamic: */
+    a_dynamic_init_ptr
+		dynamic;
+			/* Pointer to an entry describing the dynamic
+			   initialization required.  In the unusual case in
+			   which no dynamic initialization is required
+			   (variable receives default initialization or can
+			   be statically initialized) but a destructor must
+			   be called when the variable's lifetime terminates,
+			   a dynamic init entry will also be supplied. */
+  } initializer;
+} a_local_static_variable_init;
+
+#endif /* ifdef CIL */
 
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
@@ -2948,6 +3001,10 @@ typedef struct a_variable {
   union {
     /* When init_kind == initk_none or init_kind == initk_zero, no variant
        fields. */
+    /* When init_kind == initk_function_local, there are also no variant
+       fields; the pointer to the initializer will be in an associated
+       local-static-variable-init entry on a linked list for the current
+       function or block scope. */
     /* When init_kind == initk_static: */
     a_constant_ptr
                 constant;
@@ -5262,6 +5319,12 @@ typedef struct a_scope {
 			   block scope.  Always NULL at file scope.  Variables
 			   on this list will be allocated in the function
 			   scope's memory region. */
+  a_local_static_variable_init_ptr
+		local_static_variable_inits;
+			/* List of local static variable initializations in
+			   function or block scope; always NULL at file scope.
+			   Only dynamic and aggregate-constant initializations
+			   are represented. */
 #endif /* ifdef CIL */
   a_label_ptr   labels; /* List of local labels of this scope, NULL
                            if none.  Only used at the function scope level
