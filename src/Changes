@@ -13,7 +13,7 @@ declared using a local type -- e.g.,
   }
 
 The warning also is issued for noninline friend functions declared within
-local class.
+a local class.
 
 8/16/93 Instantiating return type of template function
 
