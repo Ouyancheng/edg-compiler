@@ -21,7 +21,7 @@ Miscellaneous declarations for all runtime routines.
 
 #ifndef DEBUG
 /* Include debugging code. */
-#define DEBUG 1
+#define DEBUG 0
 #endif /* ifndef DEBUG */
 #if DEBUG
 EXTERN int	__debug_level /* = 0 */;
