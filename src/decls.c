@@ -2584,11 +2584,12 @@ not be TRUE.
   if (rout_type != type_ptr) {
     /* We only try to reconcile routine types that have already been
        determined to be compatible. */
-    check_assertion(
-       routine_types_are_compatible(type_ptr, rout_type,
-                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING));
+    check_assertion_str(routine_types_are_compatible(type_ptr, rout_type,
+                                      TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING),
+                        "reconcile_routine_types: types are not compatible");
     /* We cannot be required to preserve the types from both sources. */
-    check_assertion(!preserve_rout_type || !preserve_type_ptr);
+    check_assertion_str(!preserve_rout_type || !preserve_type_ptr,
+                        "reconcile_routine_types: can't preserve both types");
     if (C_dialect == C_dialect_cplusplus) {
       /* If there are default arguments associated with the parameters, check
          them at this time.  They will be merged in composite_type. */
@@ -2621,7 +2622,9 @@ not be TRUE.
         /* This must be the defining declaration of the function, so record
            the type as it appears in the current declaration -- i.e., before
            it is merged with comp_type if comp_type is different. */
-        check_assertion(routine_ptr->declared_type == NULL);
+        check_assertion_str2(routine_ptr->declared_type == NULL,
+                             "reconcile_routine_types: declared type already",
+                             "set in definition");
         if (comp_type == type_ptr) {
           /* type_ptr will not be modified. */
           routine_ptr->declared_type = type_ptr;
@@ -3710,7 +3713,17 @@ on for use in generating cross-reference output describing this declaration.
          declarations at local scope are handled separately. */
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
-      old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number);
+      if (routine_ptr->assoc_scope != NULL_region_number) {
+        old_decl_has_body = TRUE;
+      } else if (sym->defined) {
+        /* In C++ the defined flag may have been set without the body having
+           been scanned and bound to the routine yet (e.g., inline friend
+           function). */
+        check_assertion_str(scope_stack[decl_scope_level].kind ==
+                                        (a_scope_kind)sck_class_struct_union,
+                            "decl_routine: defined flag is set wrong");
+        old_decl_has_body = TRUE;
+      }  /* if */
       if (is_function_def) {
         /* The current declaration is a definition. */
         if (!old_decl_has_body) {
