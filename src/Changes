@@ -1,5 +1,15 @@
 Version 2.34
 
+10/11/96 Subscript checking on multi-dimensional arrays
+
+Subscript checking was not done on subscripts after the first in
+multi-dimensional arrays.  Such checking is now done.
+
+  int main () {
+    int a[2][3][4];
+    a[1][1][4] = 1;  // Gets warning now
+  }
+
 10/11/96 Warning on substitution of "double" for "long double" in generated C
 
 When the C-generating back end is used, in the mode that generates K&R C,
