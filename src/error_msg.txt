@@ -715,6 +715,8 @@ ec_template_friend_definition_not_allowed;;"a template cannot be defined in a fr
 ec_asm_not_allowed;;"\"asm\" is not allowed"
 ec_bad_asm_function_def;;"\"asm\" must be used with a function definition"
 ec_nonstd_asm_function;;"\"asm\" function is nonstandard"
+ec_nonstd_ellipsis_only_param;;"ellipsis with no explicit parameters is nonstandard"
+ec_nonstd_address_of_ellipsis;;"\"&...\" is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
