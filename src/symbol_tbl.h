@@ -902,11 +902,6 @@ typedef struct a_template_symbol_supplement {
 			   not all of the template parameters were used
 			   in function parameter types or were used only
 			   in function parameters that have default values. */
-      unsigned int
-		token_cache_has_been_terminated:1;
-			/* TRUE if decl_token_cache has been terminated.
-			   This is done the first time that the cache is
-			   reused to generate a type for a function. */
 #if CHECKING
       unsigned int
 		dummy:2;
