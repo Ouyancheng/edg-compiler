@@ -244,6 +244,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_fastcall, "__fastcall");
     enter_keyword((a_token_kind)tok_fastcall, "_fastcall");
     enter_keyword((a_token_kind)tok_microsoft_inline, "__inline");
+    enter_keyword((a_token_kind)tok_microsoft_inline, "_inline");
     enter_keyword((a_token_kind)tok_stdcall, "__stdcall");
     enter_keyword((a_token_kind)tok_stdcall, "_stdcall");
     enter_keyword((a_token_kind)tok_unaligned, "__unaligned");

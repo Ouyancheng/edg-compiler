@@ -42,8 +42,8 @@ the same name, one will be marked as "superseded" (as in SVR4 C mode).
 
 4/28/95  Alternate versions of Microsoft keywords
 
-_cdecl, _fastcall, and _stdcall are treated as synonyms for __cdecl,
-__fastcall, and __stdcall.
+_cdecl, _fastcall, _inline, and _stdcall are treated as synonyms for
+__cdecl, __fastcall, __inline, and __stdcall.
 
 4/27/95  Default arguments allowed for type template parameters
 
