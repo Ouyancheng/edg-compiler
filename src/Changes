@@ -1,5 +1,20 @@
 Version 2.40
 
+11/18/98  Source-sequence representation of functions defined within class
+          definitions
+
+When either NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+source-sequence representation of member and friend functions defined
+within a non-local class is as though the definition had actually appeared
+immediately after the end of the class definition.  (This used to be done
+only when the first of the two configuration flags was TRUE.  See Changes
+entry for 9/23/97.)  For implementations in which only the second of the
+two configuration flags is set, this change fixes an internal error in the
+C++-generating back end along with some problems in the generated C++
+output when a class template instantiation is triggered by scanning the
+body of an inline-defined member function.
+
 11/16/98  Spurious error on friend destructor declaration in class template
 
 A spurious error was issued if a class template declared a destructor

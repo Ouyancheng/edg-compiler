@@ -1256,7 +1256,7 @@ nested class.
             rp->storage_class = (a_storage_class)sc_unspecified;
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
           if (rfp->func_info.is_movable_member_or_friend_def &&
               !source_sequence_entries_disallowed) {
             /* Within the class definition a secondary-decl source sequence
@@ -1294,7 +1294,7 @@ nested class.
                C++-generating back end. */
             class_type->autonomous_primary_tag_decl = TRUE;
           }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           /* Let get_token know about the cache. */
           rescan_cached_tokens(&rfp->function_body_token_cache);
@@ -1320,7 +1320,7 @@ nested class.
             curr_scope_class_type = rfp->class_type;
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
           if (rfp->func_info.is_movable_member_or_friend_def &&
               !source_sequence_entries_disallowed) {
             if (curr_scope_class_type != NULL) {
@@ -1331,7 +1331,7 @@ nested class.
             scope_stack[scope_depth].
                            ss_list_instantiation_insert_point = insert_point;
           }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       }  /* if */
@@ -4718,13 +4718,13 @@ of the function, and again overloading is a possibility.
           clear_qualifier_from_locator(locator);
           set_to_named_error_locator(*locator);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         } else {
           /* The primary source sequence entry will be deferred until the
              class definition has been completed; a secondary-decl entry
              will be put out here. */
           func_info->is_movable_member_or_friend_def = TRUE;
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       } else if (sym != NULL &&
@@ -5747,7 +5747,7 @@ declared member functions.
       /* For default arg processing later on, save the type that's used as
          the declared type. */
       func_info->declared_type = rtn->declared_type;
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       /* Unless this is a member of a local class, this inline member
          function definition will be represented in the source-sequence
          list as a non-defining declaration, and the source-sequence entry
@@ -5759,7 +5759,7 @@ declared member functions.
       if (!class_type->source_corresp.is_local_to_function) {
         func_info->is_movable_member_or_friend_def = TRUE;
       }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
     if (!func_info->is_definition ||
         func_info->is_movable_member_or_friend_def) {
