@@ -6612,11 +6612,13 @@ is the one associated with the template.
 {
   a_src_seq_secondary_decl_ptr sec_decl;
   a_template_ptr               tp;
-  a_boolean                    from_proto = FALSE;
+  a_boolean                    from_proto = FALSE, is_definition;
 
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+    is_definition = FALSE;
     tp = ss_entry_ptr(sec_decl, a_template_ptr);
   } else {
+    is_definition = TRUE;
     tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -6634,8 +6636,8 @@ is the one associated with the template.
     write_code_string(tp->text);
     /* Advance past the source sequence entry for the template. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (tp->kind == templk_class &&
-        tp->prototype_instantiation.type != NULL) {
+    if (is_definition && tp->kind == templk_class &&
+                         tp->prototype_instantiation.type != NULL) {
       /* Source sequence entries were recorded for a class template prototype
          instantiation, but we won't use those to regenerate the template
          (because nonclass prototype instantiations are not recorded). */
