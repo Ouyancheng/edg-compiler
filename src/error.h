@@ -544,7 +544,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_extra_arg_for_postfix_operator,
   ec_function_type_required,
   ec_operator_name_not_allowed,
-  ec_specific_def_must_be_global
+  ec_specific_def_must_be_global,
+  ec_pm_address_without_ampersand
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
