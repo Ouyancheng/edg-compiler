@@ -7528,8 +7528,9 @@ not include the function scope memory region, if any.
       put_routine_into_comdat_group(routine);
 #if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
     } else if (routine->is_template_function &&
-               !routine->is_specialized) {
-      /* A non-inline template goes into a COMDAT group also. */
+               !routine->is_specialized &&
+               routine->storage_class == (a_storage_class)sc_unspecified) {
+      /* A defined non-inline template goes into a COMDAT group also. */
       put_routine_into_comdat_group(routine);
 #endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
 #endif /* IA64_ABI */
