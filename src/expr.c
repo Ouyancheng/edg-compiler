@@ -1743,7 +1743,7 @@ done so far on this operand, as a way to catch loops.
      deliberate: doing so could cause infinite loops. */
   if (is_class_struct_union_type(operand->type)) {
     an_operand                  result;
-    a_boolean                   processed;
+    a_boolean                   processed = FALSE;
     a_type_ptr                  class_type = skip_typerefs(operand->type);
     an_operator_arrow_block_ptr aobp;
 
@@ -1757,18 +1757,21 @@ done so far on this operand, as a way to catch loops.
         goto end_of_routine;
       }  /* if */
     }  /* for */
-    /* Check for an overloaded operator->. */
-    /* The operator is treated as a unary operator (i.e., the field
-       following the "->" is not significant at this point). */
-    check_for_operator_overloading((an_opname_kind)onk_arrow,
-                                   /*unary_operator=*/TRUE,  /* sic */
-                                   /*must_be_member_function=*/TRUE,
-                                   /*try_conversions=*/FALSE,
-                                   /*has_predef_meaning=*/TRUE,
-                                   operand, (an_operand *)NULL,
-                                   &operand->position,
-                                   tsn,
-                                   &result, &processed);
+    /* Don't process template-dependent classes in prototype instantiations. */
+    if (!class_type->variant.class_struct_union.is_nonreal_class) {
+      /* Check for an overloaded operator->. */
+      /* The operator is treated as a unary operator (i.e., the field
+         following the "->" is not significant at this point). */
+      check_for_operator_overloading((an_opname_kind)onk_arrow,
+                                     /*unary_operator=*/TRUE,  /* sic */
+                                     /*must_be_member_function=*/TRUE,
+                                     /*try_conversions=*/FALSE,
+                                     /*has_predef_meaning=*/TRUE,
+                                     operand, (an_operand *)NULL,
+                                     &operand->position,
+                                     tsn,
+                                     &result, &processed);
+    }  /* if */
     if (processed) {
       /* An operator-> function was found and applied. */
       copy_operand(&result, operand);
