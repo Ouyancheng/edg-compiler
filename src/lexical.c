@@ -686,7 +686,7 @@ is actually the first token to not be included in the cache.
     /* Stop when we find the specified token, or if we reach an end of
        source token marking the end of the cache. */
     if (ctp->token_sequence_number == last_tsn ||
-        ctp->token == tok_end_of_source) break;
+        (a_token_kind)ctp->token == tok_end_of_source) break;
     if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
       /* The token sequence looks something like:
 		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
@@ -825,6 +825,8 @@ be copies to the new cache.
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   if (coalesce_ids) {
     a_cached_token_ptr	ctp = src_cache->first_token;
+    /* Find the last token in the cache to make sure that we don't scan past
+       it while coalescing identifiers. */
     for (; ctp != NULL; ctp = ctp->next) {
       if (ctp->token_sequence_number > last_tsn_in_cache) {
         last_tsn_in_cache = ctp->token_sequence_number;
