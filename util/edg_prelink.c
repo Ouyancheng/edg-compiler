@@ -395,7 +395,23 @@ a %s, insertion_string must not be NULL.
   fprintf(stderr, pl_error_text(error_code), insertion_string);
   fprintf(stderr, "\n");
   exit (RC_ERROR);
-}
+}  /* pl_error */
+
+
+static void pl_warning(a_pl_error_code	error_code,
+                       char		*insertion_string)
+/*
+Prints an warning message.  A string may be inserted into the message
+by passing a pointer to the string to be inserted in
+inseration_string.  This will only be used if the error text contains
+a corresponding %s.  If the message contains such a %s,
+insertion_string must not be NULL.
+*/
+{
+  fprintf(stderr, pl_error_text(pl_ec_error), message_prefix);
+  fprintf(stderr, pl_error_text(error_code), insertion_string);
+  fprintf(stderr, "\n");
+}  /* pl_warning */
 
 static a_void_ptr pl_malloc_with_check(sizeof_t size)
 /*
@@ -626,7 +642,7 @@ Return a pointer to a temporary buffer containing a decoded name.
                       &error, &buffer_overflow, &required_buffer_size);
     result = decode_buffer;
     if (error) {
-      pl_error(pl_ec_error_occurred_during_name_decoding, encoded_name);
+      pl_warning(pl_ec_error_occurred_during_name_decoding, encoded_name);
     }  /* if */
   }  /* if */
   return result;
