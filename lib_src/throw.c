@@ -1144,6 +1144,19 @@ the completion of a catch clause.
 #endif /* DEBUG */
 }  /* __free_thrown_object */
 
+
+EXTERN_C void __eh_exit_processing(void)
+/*
+Exit has been called.  Do any processing required to ensure that an
+exception thrown by a static destructor or routine registered with
+at_exit cannot throw beyond the exit call.
+*/
+{
+  /* Clear the EH stack entry.  This will prevent a throw from finding
+     a try block that was entered before exit was called. */
+  __curr_eh_stack_entry = NULL;
+}  /* __eh_exit_processing */
+
 #endif /* EXCEPTION_HANDLING */
 
 /******************************************************************************

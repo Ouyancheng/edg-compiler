@@ -15,6 +15,7 @@ Declarations for exception handling.
 
 #include <stdlib.h>
 #include "config.h"
+#include "runtime.h"
 
 #if EXCEPTION_HANDLING
 
@@ -407,6 +408,8 @@ EXTERN a_void_function_ptr
 			/* Pointer to the unexpected routine to be used. */
 
 EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep);
+
+EXTERN_C void __eh_exit_processing(void);
 
 #endif /* EXCEPTION_HANDLING */
 
