@@ -1478,17 +1478,17 @@ is TRUE, this is for the heading of a function being declared with a body.
     }  /* if */
 #endif /* CHECKING */
     dump_param_list(routine, scope, /*names_only=*/TRUE);
-#if sun & sparc
-  if (extra_info->has_ellipsis) {
-    /* This takes advantage of a special feature of the Sun C compiler
-       to handle variable argument lists.  The name "__builtin_va_alist"
-       is recognized by the compiler along with some other reserved identifiers
-       found in the stdarg.h include file. */
-    /* Suppress the comma if the ellipsis is the only argument. */
-    if (extra_info->param_type_list != NULL) fputs(", ", f_C_output);
-    fputs("__builtin_va_alist", f_C_output);
-  }  /* if */
-#endif /* sun & sparc */
+#if sun && sparc
+    if (extra_info->has_ellipsis) {
+      /* This takes advantage of a special feature of the Sun C compiler
+         to handle variable argument lists.  The name "__builtin_va_alist"
+         is recognized by the Sun compiler along with some other reserved
+         identifiers found in the stdarg.h include file. */
+      /* Suppress the comma if the ellipsis is the only argument. */
+      if (extra_info->param_type_list != NULL) fputs(", ", f_C_output);
+      fputs("__builtin_va_alist", f_C_output);
+    }  /* if */
+#endif /* sun && sparc */
   } else {
     /* Not for a function with a body. */
 #ifdef CFE
