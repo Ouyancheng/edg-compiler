@@ -229,7 +229,6 @@ need to be determined.
     case sk_namespace:
     case sk_static_data_member:
     case sk_type:
-    case sk_union_tag:
       result = TRUE;
       break;
     case sk_extern_routine:
@@ -241,6 +240,9 @@ need to be determined.
     case sk_namespace_projection:
     case sk_undefined:
       result = FALSE;
+      break;
+    case sk_union_tag:
+      result = has_name(sym->variant.class_struct_union.type);
       break;
     case sk_routine:
       storage_class = sym->variant.routine.ptr->storage_class;
@@ -716,19 +718,31 @@ is in fact valid.
 */
 {
   a_boolean   match;
-  a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+  a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
 
-  if (type->kind != corresp_type->kind || !verify_name_correspondence(type)) {
-    match = FALSE;
-    process_bad_trans_unit_corresp(type);
-  } else if (is_immediate_class_type(type)) {
-    /* corresp_type is also a class type since the type kinds are identical. */
-    match = verify_class_type_correspondence(type);
-  } else if (is_immediate_enum_type(type) &&
-             is_immediate_enum_type(corresp_type)) {
-    match = verify_enum_type_correspondence(type);
+  if (type_sym == NULL) {
+    /* This must be a placeholder type. */
+    check_assertion(
+               type->kind == (a_type_kind)tk_typeref &&
+               (type->variant.typeref.is_placeholder_for_class_instantiation ||
+                type->variant.typeref.is_placeholder_for_namespace_type ||
+                type->variant.typeref.is_placeholder_for_nested_class_def));
+    clear_trans_unit_corresp(type);
   } else {
-    match = identical_types(type, corresp_type);
+    a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+    if (type->kind != corresp_type->kind || !verify_name_correspondence(type)) {
+      match = FALSE;
+      process_bad_trans_unit_corresp(type);
+    } else if (is_immediate_class_type(type)) {
+      /* corresp_type is also a class type since the type kinds are
+         identical. */
+      match = verify_class_type_correspondence(type);
+    } else if (is_immediate_enum_type(type) &&
+               is_immediate_enum_type(corresp_type)) {
+      match = verify_enum_type_correspondence(type);
+    } else {
+      match = identical_types(type, corresp_type);
+    }  /* if */
   }  /* if */
   return match;
 }  /* verify_type_correspondence */
@@ -1507,7 +1521,8 @@ translation unit correspondence pointer if one is found.
         case sk_enum_tag:
           break;
         case sk_type:
-          if (sym->variant.type.is_injected_class_name) break;
+          if (sym->variant.type.is_injected_class_name ||
+              is_template_param_type_symbol(sym)) break;
           /* FALLTHROUGH */
         default:
           pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -1570,7 +1585,9 @@ scope.  The process is repeated in nested class and namespace scopes.
   {
     a_variable_ptr  var;
     for (var = scope->variables; var != NULL; var = var->next) {
-      find_variable_correspondence(var);
+      if (has_name(var)) {
+        find_variable_correspondence(var);
+      }  /* if */
     }  /* for */
   }
 
