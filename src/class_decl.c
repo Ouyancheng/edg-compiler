@@ -6594,16 +6594,17 @@ Scan the body of a class definition, including the base classes list.
               /* The type specified must be complete. */
               check_for_uninstantiated_template_class(local_type);
               if (is_incomplete_type(local_type)) {
-                /* As a C extension (but not C++), allow an incomplete array
-                   as the last member of a struct.  It can't be the first
+                /* As a C extension (but not C++), allow an array of unknown
+                   size as the last member of a struct.  It can't be the first
                    member, though. */
-                if (C_dialect != C_dialect_cplusplus &&
-                    class_type->kind == (a_type_kind)tk_struct &&
+                if (C_mode() && class_type->kind == (a_type_kind)tk_struct &&
                     is_array_type(local_type) && !is_first_field &&
+                    !is_incomplete_type(
+                           underlying_array_element_type(local_type)) &&
                     (curr_token == tok_rbrace ||
                      (curr_token == tok_semicolon &&
                       next_token() == tok_rbrace))) {
-                    /* Okay. */
+                  /* Okay -- unless we're in ANSI mode. */
                   if (strict_ansi_mode) {
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);
