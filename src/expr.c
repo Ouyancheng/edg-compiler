@@ -4736,7 +4736,7 @@ static void do_cast(a_type_ptr         type_cast_to,
                     a_source_position  *start_position)
 /*
 Do a cast operation.  The operand *operand is to be cast to the type
-type_cast_to.  If is is a bound function (only in C++),
+type_cast_to.  If it is a bound function (only in C++),
 *bound_function_selector gives the associated object (cast_to_func_ptr
 will be TRUE in that case, indicating a cast of a bound function pointer
 to a normal function pointer, an anachronism).  err is TRUE if it has
