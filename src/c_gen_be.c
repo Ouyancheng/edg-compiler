@@ -1449,7 +1449,7 @@ Print the storage class of the indicated variable followed by a space.
       write_space();
     }  /* if */
 #if NAMED_REGISTERS_ALLOWED
-  } else if (variable->named_register_storage_class) {
+  } else if (variable->has_named_register_storage_class) {
     write_tok_str("register ");
     write_tok_str(
            named_register_storage_classes[variable->asm_name_or_reg.id].name);
@@ -6167,7 +6167,7 @@ parameters.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       if (storage_class == variable->storage_class
 #if NAMED_REGISTERS_ALLOWED
-          || variable->named_register_storage_class
+          || variable->has_named_register_storage_class
 #endif /* NAMED_REGISTERS_ALLOWED */
                                                    ) {
         /* Issue the storage class as recorded in the variable. */
@@ -6271,7 +6271,7 @@ parameters.
       if (variable->asm_name_is_valid) {
         form_asm_name(variable->asm_name_or_reg.name, &octl);
 #if NAMED_REGISTERS_ALLOWED
-      } else if (variable->named_register_storage_class) {
+      } else if (variable->has_named_register_storage_class) {
         /* This variable was defined with an Embedded C named-register
            storage class.  The storage class was already emitted elsewhere. */
 #endif /* NAMED_REGISTERS_ALLOWED */

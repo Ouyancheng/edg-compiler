@@ -331,7 +331,7 @@ address taken, and if not issue an error.
     if (C_mode() &&
         (var->storage_class == (a_storage_class)sc_register
 #if NAMED_REGISTERS_ALLOWED
-         || var->named_register_storage_class
+         || var->has_named_register_storage_class
 #endif /* NAMED_REGISTERS_ALLOWED */
                                              )) {
       /* Cannot take the address of a register variable in C (this includes
@@ -341,7 +341,7 @@ address taken, and if not issue an error.
          registers, a strict error is always issued. */
       if (
 #if NAMED_REGISTERS_ALLOWED
-          !var->named_register_storage_class &&
+          !var->has_named_register_storage_class &&
 #endif /* NAMED_REGISTERS_ALLOWED */
           (SVR4_C_mode || strict_ansi_error_severity != es_error)) {
 	pos_warning(ec_address_of_register_variable, &rep->position);

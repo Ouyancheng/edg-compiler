@@ -1206,7 +1206,9 @@ Enter macros as requires by the UPC specification.  Called in UPC modes only.
 static void enter_predefined_named_address_spaces(void)
 /*
 Enter any predefined named address spaces.  TR 18037 ("Embedded C") requires
-that such memory regions have names in the implementation namespace.
+that such memory regions have names in the implementation namespace.  The
+predefined named address spaces are configured through the initializer of the
+global array named_address_spaces (see targ_def.h).
 */
 {
   a_named_address_space_descr  *nas = &named_address_spaces[1];
@@ -1224,7 +1226,9 @@ that such memory regions have names in the implementation namespace.
 static void enter_predefined_named_registers(void)
 /*
 Enter any predefined named address spaces.  TR 18037 ("Embedded C") requires
-that such memory regions have names in the implementation namespace.
+that such memory regions have names in the implementation namespace.  The
+predefined named registers are configured through the initializer of the
+global array named_register_storage_classes (see targ_def.h).
 */
 {
   a_named_register_storage_class_descr  *nr =

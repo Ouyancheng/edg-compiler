@@ -1810,7 +1810,7 @@ to it.
   vp->asm_name_is_valid           = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if NAMED_REGISTERS_ALLOWED
-  vp->named_register_storage_class = FALSE;
+  vp->has_named_register_storage_class = FALSE;
 #endif /* NAMED_REGISTERS_ALLOWED */
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;

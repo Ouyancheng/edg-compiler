@@ -4711,6 +4711,10 @@ declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
   if (named_registers_enabled) {
+    /* Check and (if needed) record the named-register storage class.
+       If there was an explicit storage class specifier, diagnostics will be
+       issued for those; otherwise, the diagnostic will point to the
+       declarator-id. */
     a_source_position_ptr  diag_pos = &decl_pos_block->storage_class_pos;
     if (diag_pos->seq == 0) diag_pos = &locator->source_position;
     record_named_register_storage_class(variable_ptr, register_id,
@@ -8394,15 +8398,14 @@ In C++ mode an error is issued if a type definition appears in a type-name
   a_decl_modifiers_block       decl_modifiers;
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
-  a_named_register_id          register_id;
 
   db_enter(3, "type_name_full");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, type_ptr, &qualifiers,
-                        (an_attribute_ptr *)NULL, (an_ms_attribute_ptr*)NULL,
-                        &decl_modifiers, &register_id,
+                        (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
+                        &decl_modifiers, (a_named_register_id*)NULL,
                         (a_decl_pos_block_ptr)NULL, (a_upc_block_size*)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) &&
@@ -8499,7 +8502,6 @@ within this routine if is_parenthesized comes in FALSE.
   a_decl_modifiers_block      decl_modifiers;
   a_source_position           start_pos;
   a_storage_class             storage_class;
-  a_named_register_id         register_id;
   a_source_sequence_entry_ptr declarator_ssep = NULL;
   a_decl_pos_block            decl_pos_block;
 
@@ -8516,8 +8518,8 @@ within this routine if is_parenthesized comes in FALSE.
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
                         (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
-                        &decl_modifiers, &register_id, &decl_pos_block,
-                        (a_upc_block_size*)NULL);
+                        &decl_modifiers, (a_named_register_id*)NULL,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -8646,7 +8648,6 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   a_decl_modifiers_block      decl_modifiers;
   a_source_position           pos;
   a_decl_pos_block            decl_pos_block;
-  a_named_register_id         register_id;
 
   check_assertion(microsoft_mode);
   pos = pos_curr_token;
@@ -8654,8 +8655,8 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
                         (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
-                        &decl_modifiers, &register_id, &decl_pos_block,
-                        (a_upc_block_size*)NULL);
+                        &decl_modifiers, (a_named_register_id*)NULL,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -8689,7 +8690,6 @@ operator function reference.
   a_decl_flag_set         dso_flags;
   a_type_qualifier_set    qualifiers;
   a_decl_modifiers_block  decl_modifiers;
-  a_named_register_id     register_id;
   a_type_ptr              specifiers_type, complete_type;
   a_source_position       type_pos;
   a_boolean               is_conversion_operator;
@@ -8750,8 +8750,8 @@ operator function reference.
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
                           (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
-                          &decl_modifiers, &register_id, &decl_pos_block,
-                          (a_upc_block_size*)NULL);
+                          &decl_modifiers, (a_named_register_id*)NULL,
+                          &decl_pos_block, (a_upc_block_size*)NULL);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -9195,7 +9195,6 @@ a normal try.
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers;
-  a_named_register_id          register_id;
   a_symbol_ptr                 sym;
   a_symbol_locator             locator;
   a_source_position            decl_pos;
@@ -9239,14 +9238,13 @@ a normal try.
         remove_stop_token(tok_rparen);
       } else {
         a_decl_pos_block  decl_pos_block;
-
         clear_decl_pos_block(&decl_pos_block);
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
                               &qualifiers, (an_attribute_ptr*)NULL,
                               (an_ms_attribute_ptr*)NULL, &decl_modifiers,
-                              &register_id, &decl_pos_block,
+                              (a_named_register_id*)NULL, &decl_pos_block,
                               (a_upc_block_size*)NULL);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
@@ -9658,7 +9656,6 @@ Return a pointer to the variable that is declared.
   a_decl_flag_set              dsi_flags, dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers;
-  a_named_register_id          register_id;
   a_symbol_ptr                 sym;
   a_variable_ptr               vp;
   a_symbol_locator             locator;
@@ -9680,7 +9677,7 @@ Return a pointer to the variable that is declared.
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
                         &qualifiers, (an_attribute_ptr*)NULL,
                         (an_ms_attribute_ptr*)NULL, &decl_modifiers,
-                        &register_id, &decl_pos_block,
+                        (a_named_register_id*)NULL, &decl_pos_block,
                         (a_upc_block_size*)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -12250,7 +12247,7 @@ continue_with_declaration:
                  or static storage class is called a tentative definition.
                  Variables declared in file scope with a named-register storage
                  class specifier (an Embedded C extension) are also treated as
-                 definitions. */
+                 tentative definitions. */
               is_tentative_definition = TRUE;
               srk_flags |= SRK_TENTATIVE_DEF | SRK_DEFINITION;
             }  /* if */

@@ -1141,12 +1141,12 @@ do_variable:
       break;
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
-      fprintf(f_debug, " (id = %d)", sym->variant.named_address_space.id);
+      fprintf(f_debug, " (id = %d)", (int)sym->variant.named_address_space.id);
       break;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
     case sk_named_register:
-      fprintf(f_debug, " (id = %d)", sym->variant.named_register.id);
+      fprintf(f_debug, " (id = %d)", (int)sym->variant.named_register.id);
       break;
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if CHECKING
@@ -5167,7 +5167,8 @@ token that corresponds to it.
 
 a_symbol_ptr enter_named_address_space(char  *name)
 /*
-Enter a new symbol for a memory region with the given name.
+Enter a new symbol for an Embedded C (TR 18037) named address space with the
+given name.
 */
 {
   a_symbol_ptr  sym;

@@ -6258,14 +6258,16 @@ void record_named_register_storage_class(a_variable_ptr       var,
 /*
 Record the given named-register storage class id in the given variable.  If it
 conflicts with a different construct or a previous declaration, issue an error
-at the given position.  If we're processing redeclaration, is_redecl is TRUE.
+at the given position.  If we're processing a redeclaration, is_redecl is TRUE.
 Also check that the type of the variable is appropriate for the named register
-and issue an error if not.
+and issue an error if not.  This function is also called for variable
+declarations without named-register storage class specifiers so that conflicts
+with previous declarations of that variable can be diagnosed.
 */
 {
   if (is_redecl) {
     /* A redeclaration. */
-    if (var->named_register_storage_class && register_id == 0) {
+    if (var->has_named_register_storage_class && register_id == 0) {
       /* The new declaration has no named-register storage class specifier,
          but the previous one did. */
       pos_start_diagnostic(es_error, ec_missing_named_register_storage_class,
@@ -6273,8 +6275,8 @@ and issue an error if not.
       add_diag_info_with_pos_insert(ec_previous_decl_at,
                                     &var->source_corresp.decl_position);
       end_error();
-    } else if ((!var->named_register_storage_class && register_id != 0) ||
-               (var->named_register_storage_class &&
+    } else if ((!var->has_named_register_storage_class && register_id != 0) ||
+               (var->has_named_register_storage_class &&
                                     register_id != var->asm_name_or_reg.id)) {
       /* The new declaration has a named-register storage class but the
          previous declaration did not or did not have the same one. */
@@ -6302,7 +6304,7 @@ and issue an error if not.
       pos_error(ec_register_too_small, pos);
     } else {
       var->asm_name_is_valid = FALSE;
-      var->named_register_storage_class = TRUE;
+      var->has_named_register_storage_class = TRUE;
       var->asm_name_or_reg.id = register_id;
       named_register_variables[register_id] = var;
     }  /* if */

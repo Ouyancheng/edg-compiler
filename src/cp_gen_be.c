@@ -9629,7 +9629,7 @@ declaration following this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!suppress_specifiers) {
 #if NAMED_REGISTERS_ALLOWED
-    if (var->named_register_storage_class) {
+    if (var->has_named_register_storage_class) {
       storage_class = (a_storage_class)sc_register;
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
@@ -9667,7 +9667,7 @@ declaration following this one is such a continuation.
       gen_storage_class(storage_class);
     }  /* if */
 #if NAMED_REGISTERS_ALLOWED
-    if (var->named_register_storage_class) {
+    if (var->has_named_register_storage_class) {
       write_tok_str(
                 named_register_storage_classes[var->asm_name_or_reg.id].name);
       write_space();
@@ -9717,7 +9717,7 @@ declaration following this one is such a continuation.
   if (var->asm_name_is_valid) {
     form_asm_name(var->asm_name_or_reg.name, &octl);
 #if NAMED_REGISTERS_ALLOWED
-  } else if (var->named_register_storage_class) {
+  } else if (var->has_named_register_storage_class) {
     /* This variable was defined with an Embedded C named-register storage
        class.  The storage class was already emitted elsewhere. */
 #endif /* NAMED_REGISTERS_ALLOWED */

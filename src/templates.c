@@ -7871,7 +7871,6 @@ information.
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_qualifier_set         qualifiers;
   a_source_position            decl_start_pos;
-  a_named_register_id          register_id = 0;
 
   dsi_flags = DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
@@ -7905,18 +7904,8 @@ information.
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type, &qualifiers,
                         attributes, (an_ms_attribute_ptr*)NULL, decl_modifiers,
-                        &register_id, decl_pos_block,
+                        (a_named_register_id*)NULL, decl_pos_block,
                         (a_upc_block_size *)NULL);
-#if NAMED_REGISTERS_ALLOWED
-  if (!is_member_decl && register_id != 0) {
-    /* Do not accept register storage classes in templates.  (Currently not
-       really an issue since register storage classes are only accepted in
-       C mode.)  For member declarations, the diagnostic has been issued by
-       the call to decl_specifiers. */
-    pos_error(ec_named_register_not_allowed,
-              &decl_pos_block->storage_class_pos);
-  }  /* if */
-#endif /* NAMED_REGISTERS_ALLOWED */
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -12005,7 +11994,6 @@ depends on a template parameter type, return TRUE in *template_dependent
   a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers;
   a_storage_class              param_storage_class;
-  a_named_register_id          register_id;
   a_source_position            param_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_ptr                   tp;
@@ -12019,7 +12007,7 @@ depends on a template parameter type, return TRUE in *template_dependent
                         &dso_flags, &param_storage_class, param_type_ptr,
                         &qualifiers, (an_attribute_ptr *)NULL,
                         (an_ms_attribute_ptr*)NULL, &decl_modifiers,
-                        &register_id, &decl_pos_block,
+                        (a_named_register_id*)NULL, &decl_pos_block,
                         (a_upc_block_size *)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
@@ -15462,7 +15450,6 @@ that follows.
   a_decl_flag_set               do_flags, dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifiers_block        decl_modifiers;
-  a_named_register_id           register_id;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
@@ -15505,8 +15492,8 @@ that follows.
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
                         p_attributes, (an_ms_attribute_ptr*)NULL, 
-                        &decl_modifiers, &register_id, &decl_pos_block,
-                        (a_upc_block_size *)NULL);
+                        &decl_modifiers, (a_named_register_id*)NULL,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
   /* A storage class is not permitted on an explicit specialization,
      except for Microsoft in-class specializations. */
   check_assertion(storage_class == (a_storage_class)sc_unspecified ||
@@ -20389,7 +20376,6 @@ instantiation.
   a_decl_flag_set               dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifiers_block        decl_modifiers;
-  a_named_register_id           register_id;
   a_symbol_ptr                  new_sym;
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;
@@ -20462,9 +20448,9 @@ instantiation.
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        (an_attribute_ptr *)NULL, (an_ms_attribute_ptr*)NULL,
-                        &decl_modifiers, &register_id, &decl_pos_block,
-                        (a_upc_block_size *)NULL);
+                        (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
+                        &decl_modifiers, (a_named_register_id*)NULL,
+                        &decl_pos_block, (a_upc_block_size*)NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
   if (microsoft_mode && (decl_modifiers.flags & DM_DLLIMPORT) != 0) {
     /* Microsoft compilers treat __declspec(dllimport) in an explicit

@@ -5958,14 +5958,14 @@ typedef struct a_variable {
 #if GNU_EXTENSIONS_ALLOWED
     a_named_register
 		reg;
-			/* If both named_register_storage_class and
+			/* If both has_named_register_storage_class and
                            asm_name_is_valid are FALSE, the register
 			   to which this variable should be assigned. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
     a_named_register_id
 		id;
-			/* If named_register_storage_class is TRUE, the
+			/* If has_named_register_storage_class is TRUE, the
 			   id of the register in which this variable is
 			   stored. */
 #endif /* NAMED_REGISTERS_ALLOWED */
@@ -6012,7 +6012,7 @@ typedef struct a_variable {
 			   is valid; FALSE if the reg field is valid. */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if NAMED_REGISTERS_ALLOWED
-  a_bit_field   named_register_storage_class:1;
+  a_bit_field   has_named_register_storage_class:1;
 			/* TRUE if the id field of asm_name_or_reg is
 			   valid, which indicates that the variable was
 			   declared with an Embedded C (TR 18037) named

@@ -3558,10 +3558,11 @@ orphan pointers and/or translation unit copy addresses).
 #endif /* (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0 */
 
 /*
-Named address space are identified using small integers of the following
-signed type (the value -1 is used to indicate "no address space; not even the
-generic one which has id zero").  Defined unconditionally because it is used
-in some function signatures.
+Named address space (an Embedded C extensions described in ISO/IEC TR 18037)
+are identified using small integers of the following signed type (the value
+-1 is used to indicate "no address space; not even the generic one which has
+id zero").  Defined unconditionally because it is used in some function
+signatures.
 */
 typedef int a_named_address_space_id;
 
@@ -3628,23 +3629,28 @@ EXTERN a_named_address_space_descr
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
-Named-register storage classes are identified using small integers of the
-following signed type.  Defined unconditionally because it is used in some
-function signatures.
+Named-register storage classes (an Embedded C extension described in ISO/IEC
+TR 18037) are identified using small integers of the following integer type.
+Defined unconditionally because it is used in some function signatures.
+Named-register storage classes are not to be confused with GNU register names
+(which serve a similar purpose but rely on the GNU "asm ( string-literal )"
+construct).
 */
 typedef int a_named_register_id;
 
 #if NAMED_REGISTERS_ALLOWED
 /*
-A structure describing a named-register storage class.  The structure is
-primarily used to construct the array named_register_storage_classes (see
-below).
+A structure describing a named-register storage class (an Embedded C feature
+described in ISO/IEC TR 18037).  The structure is primarily used to construct
+the array named_register_storage_classes (see below).
 */
 typedef struct a_named_register_storage_class_descr {
   char  *name;
 		/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
 		   requires that such storage classes have names in the
-		   implementation namespace. */
+		   implementation namespace: They must start with a double
+		   underscore, or with an underscore followed by an upper-case
+		   letter. */
   a_targ_size_t
 	size;
 		/* Size of the corresponding register: This is an upper

@@ -5548,8 +5548,11 @@ similar). input_flags, output_flags, storage_class, p_ms_attributes, and
 decl_pos_block are parameters forwarded from decl_specifiers.
 *storage_class_pos is set to the position of the specifier (except for error
 cases).  *decl_specifiers_seen is updated with an indication of the specifiers
-that were consumed.  *err is set to TRUE if an error is issued.  All the
-storage class specifier tokens are consumed by this routine.
+that were consumed.  If a named-register storage class specifier (an Embedded
+C extension) is seen, the associated register id is stored in *register_id.
+If register_id is NULL, named-register storage specifiers are not considered.
+*err is set to TRUE if an error is issued.  All the storage class specifier
+tokens are consumed by this routine.
 */
 {
   a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
@@ -5567,9 +5570,10 @@ storage class specifier tokens are consumed by this routine.
     a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_register) {
       is_named_register = TRUE;
-      if (input_flags & (DSI_IS_MEMBER_DECLARATION |
-                         DSI_IS_PARAMETER |
-                         DSI_IS_CONDITION_DECL)) {
+      if (register_id == NULL ||
+          (input_flags & (DSI_IS_MEMBER_DECLARATION |
+                          DSI_IS_PARAMETER |
+                          DSI_IS_CONDITION_DECL))) {
         pos_error(ec_named_register_not_allowed, &pos_curr_token);
       } else {
         *register_id = sym->variant.named_register.id;
@@ -5749,8 +5753,9 @@ storage class specifier tokens are consumed by this routine.
       case tok_auto:
         *storage_class = (a_storage_class)sc_auto;     break;
       case tok_register:
-        /* We need to examine the next token to see if it is an identifier
-           denoting a named register. */
+        /* The storage class depends on whether this was a classic (unnamed)
+           register storage specifier, or a named-register storage specifier
+           (the latter is an Embedded C extension). */
         *storage_class = is_named_register ? (a_storage_class)sc_extern
                                            : (a_storage_class)sc_register;
         break;
