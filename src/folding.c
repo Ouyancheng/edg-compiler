@@ -439,12 +439,13 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
   a_type_ptr            orig_type, curr_type, new_type;
   a_derivation_step_ptr dsp;
   a_targ_ptrdiff_t      offset;
+  a_base_class_ptr      base_class;
 
   *did_not_fold = FALSE;
   /* The code here looks like add_base_class_casts. */
   if (bcp->ambiguous) {
     /* The base class is ambiguous. */
-    pos_error(ec_ambiguous_base_class, err_pos);
+    pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     set_error_constant(result);
   } else {
     copy_constant(constant_1, result);
@@ -455,20 +456,27 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
     orig_type = type_pointed_to(constant_1->type);
     curr_type = skip_typerefs(orig_type);
     for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
+      base_class = dsp->base_class;
       /* Check that the base class is accessible from the current class.
          Accessibility is not checked if the cast is explicit. */
       if (check_cast_access) {
-        if (!is_accessible_base_class(dsp->base_class, curr_type)) {
-          access_okay = FALSE;
+        if (!is_accessible_base_class(base_class, curr_type)) {
+          /* The base class is inaccessible. */
+          /* Keep going, and put out the error only the first time. */
+          if (access_okay) {
+            pos_ty_error(ec_inaccessible_base_class, err_pos,
+                         base_class->type);
+            access_okay = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Adjust the address to reflect the cast to the next level. */
-      curr_type = dsp->base_class->type;
+      curr_type = base_class->type;
       offset = pointer_offset(constant_1);
       if (offset == 0 && base_object(constant_1) == NULL) {
         /* Preserve a NULL pointer. */
       } else {
-        if (dsp->base_class->any_virtual_steps_in_derivation) {
+        if (base_class->any_virtual_steps_in_derivation) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a complete object of the derived class type. */
           if (con_complete_object_type(constant_1) != NULL) {
@@ -487,14 +495,13 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
         }  /* if */
         /* Take the pointer offset, ... */
         /* ... add the offset to the base class, ... */
-        offset += dsp->base_class->offset;
+        offset += base_class->offset;
         /* ... and put the offset into the result pointer constant.  Note
            that no overflow/object-size checking is needed, since the base
            class has to be within the underlying object. */
         set_pointer_offset(result, offset);
       }  /* if */
     }  /* for */
-    if (!access_okay) pos_error(ec_inaccessible_base_class, err_pos);
     /* Set the constant type.  It includes all the type qualifiers from the
        original pointer. */
     new_type = make_identically_qualified_type(curr_type, orig_type);
@@ -521,7 +528,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
   /* The code here looks like add_derived_class_casts. */
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
-    pos_error(ec_ambiguous_derived_class, err_pos);
+    pos_ty_error(ec_ambiguous_derived_class, err_pos, bcp->type);
     set_error_constant(result);
   } else if (bcp->any_virtual_steps_in_derivation) {
     /* The base class is a virtual base of the derived class. */
@@ -653,7 +660,7 @@ explicit casts, so checking for accessibility of base classes is not necessary.
   /* The code here looks like add_pm_base_class_casts. */
   if (bcp->ambiguous) {
     /* The base class is ambiguous. */
-    pos_error(ec_ambiguous_base_class, err_pos);
+    pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     set_error_constant(result);
   } else {
     copy_constant(constant_1, result);
@@ -681,11 +688,12 @@ If there is an error, it is issued at *err_pos.
   a_type_ptr            new_type = result->type, curr_type;
   a_type_ptr            derived_class_type;
   a_derivation_step_ptr dsp;
+  a_base_class_ptr      base_class;
 
   /* The code here looks like add_pm_derived_class_casts. */
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
-    pos_error(ec_ambiguous_derived_class, err_pos);
+    pos_ty_error(ec_ambiguous_derived_class, err_pos, bcp->type);
     set_error_constant(result);
   } else if (bcp->any_virtual_steps_in_derivation) {
     /* The base class is a virtual base of the derived class. */
@@ -699,11 +707,12 @@ If there is an error, it is issued at *err_pos.
       curr_type = derived_class_type;
       for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
         /* Check that the base class is accessible from the current class. */
-        if (!is_accessible_base_class(dsp->base_class, curr_type)) {
-          pos_error(ec_inaccessible_base_class, err_pos);
+        base_class = dsp->base_class;
+        if (!is_accessible_base_class(base_class, curr_type)) {
+          pos_ty_error(ec_inaccessible_base_class, err_pos, base_class->type);
           break;
         }  /* if */
-        curr_type = dsp->base_class->type;
+        curr_type = base_class->type;
       }  /* for */
     }  /* if */
     copy_constant(constant_1, result);

@@ -1008,7 +1008,7 @@ error code.
       m = "declaration may not appear after executable statement in block";
       break;
     case ec_inaccessible_base_class:
-      m = "base class is inaccessible";
+      m = "base class %t is inaccessible";
       break;
     case ec_not_a_base_class_member:
       m = "name is not a member of a base class of %sq";
@@ -1059,7 +1059,7 @@ error code.
       m = "initialization with \"{...}\" is not allowed for this object";
       break;
     case ec_ambiguous_base_class:
-      m = "base class is ambiguous";
+      m = "base class %t is ambiguous";
       break;
     case ec_ambiguous_derived_class:
       m = "derived class contains more than one instance of this class";
@@ -1444,7 +1444,7 @@ error code.
       break;
     case ec_protected_access_problem:
       m =
-      "protected %n is not accessible through this pointer or object";
+     "protected %n is not accessible through a pointer or object of this type";
       break;
     case ec_param_not_allowed:
       m = "a parameter is not allowed";
