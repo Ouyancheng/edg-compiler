@@ -4286,7 +4286,7 @@ statement if necessary.
        blocks, so it needs a prologue and epilogue. */
     need_function_epilogue = TRUE;
   } else if (processing_file_scope_init_routine &&
-             il_header.primary_scope->lifetime->destructions != NULL) {
+             (region_table_var != NULL || array_table_var != NULL)) {
     /* If a generated file-scope initialization routine contains
        partial-aggregate cleanup entries, we need the prologue and epilogue. */
     need_function_epilogue = TRUE;
