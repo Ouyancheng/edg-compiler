@@ -91,6 +91,9 @@ extern void cleanup_on_exit_from_catch(a_handler_ptr      handler,
 
 extern void lower_try_block(a_statement_ptr statement);
 
+extern an_expr_node_ptr make_internal_try_expr(an_expr_node_ptr try_expr,
+                                               an_expr_node_ptr catch_expr);
+
 #if !DO_FULL_PORTABLE_EH_LOWERING
 extern an_expr_node_ptr make_thrown_object_address_node(void);
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */

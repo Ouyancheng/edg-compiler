@@ -384,6 +384,19 @@ Convert the indicated statement into a no-op.
 }  /* turn_statement_into_noop */
 
 
+an_expr_node_ptr zero_cast_to_void(void)
+/*
+Return an expression for "(void)0", a zero constant cast to void.
+*/
+{
+  an_expr_node_ptr zero_node =
+                        node_for_integer_constant(0L, (an_integer_kind)ik_int);
+  an_expr_node_ptr expr = add_cast(zero_node, void_type());
+
+  return expr;
+}  /* zero_cast_to_void */
+
+
 static void insert_if_statement(an_expr_node_ptr       test_expr,
                                 a_boolean              is_initialization_guard,
                                 an_insert_location_ptr insert_location,
@@ -402,24 +415,18 @@ atomic operation.
 */
 {
   a_statement_ptr  if_stmt, block_stmt = NULL;
-  an_expr_node_ptr question_node, op2_node, op3_node, zero_node;
-  a_type_ptr       void_type_ptr;
+  an_expr_node_ptr question_node, op2_node, op3_node;
 
   if (is_expr_insert_location_kind(insert_location->kind)) {
     /* Insert within an expression. */
     /* Insert "test_expr ? (void)0 : (void)0" at the right place. */
-    void_type_ptr = void_type();
     /* The second and third operands are each "(void)0". */
-    zero_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-    op2_node = make_operator_node((an_expr_operator_kind)eok_cast,
-                                  void_type_ptr, zero_node);
-    zero_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-    op3_node = make_operator_node((an_expr_operator_kind)eok_cast,
-                                  void_type_ptr, zero_node);
+    op2_node = zero_cast_to_void();
+    op3_node = zero_cast_to_void();
     test_expr->next = op2_node;
     op2_node->next = op3_node;
     question_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                       void_type_ptr, test_expr);
+                                       op2_node->type, test_expr);
     question_node->is_initialization_guard = is_initialization_guard;
     insert_expr(question_node, insert_location);
     /* The insert location is before the "(void)0" of the second operand. */
@@ -4371,36 +4378,99 @@ inserted at *insert_location.
     /* The storage for this "new" is supposed to be freed if an exception
        is thrown before the initialization is completed.  The fact
        that this pointer is non-NULL means exceptions are enabled. */
-    add_dyn_init_cleanup(dyn_init_to_free_storage, ipdp,
-                         /*set_cond_flag_if_any=*/TRUE,
-                         curr_context, insert_location);
+    if (ndsp->placement_new) {
+      /* The placement delete case is handled later, by inserting an
+         internal "try" block. */
+    } else {
+      /* For a default operator delete, the cleanup can be done through a
+         cleanup region table entry. */
+      add_dyn_init_cleanup(dyn_init_to_free_storage, ipdp,
+                           /*set_cond_flag_if_any=*/TRUE,
+                           curr_context, insert_location);
+    }  /* if */
   }  /* if */
 }  /* set_up_freeing_of_storage_on_exception */
 
 
 static void turn_off_freeing_of_storage_on_exception(
                                   a_new_delete_supplement_ptr ndsp,
+                                  an_init_pos_descr_ptr       ipdp,
+                                  an_expr_node_ptr            delete_args,
                                   an_insert_location          *insert_location)
 /*
 ndsp points to the new/delete supplement for a "new".  We're now at a
 location after the initialization related to the "new" has been done,
 so do the second part of the processing begun by
-set_up_freeing_of_storage_on_exception.  Any code required is inserted
-at *insert_location.
+set_up_freeing_of_storage_on_exception.  ipdp describes the location
+of the allocated storage.  delete_args points to the list of arguments
+for a placement delete call, if one if needed.  *insert_location indicates
+the point at which code should be inserted.
 */
 {
   a_dynamic_init_ptr dyn_init_to_free_storage =
                                          ndsp->freeing_of_storage_on_exception;
 
   if (dyn_init_to_free_storage != NULL) {
-    a_destructible_entity_descr_ptr dedp =
+    if (ndsp->placement_new) {
+      /* Placement delete.  Insert an internal "try" block here,
+         with the "catch" an appropriate call of the delete routine. */
+      an_expr_node_ptr delete_call, init_expr;
+      /* Put a pointer to the allocated storage on the front of the argument
+         list for the delete routine. */
+      an_expr_node_ptr entity_node = make_init_entity_node(
+                                               ipdp, /*using_as_address=*/TRUE,
+                                               /*using_as_dest=*/FALSE);
+      entity_node->next = delete_args;
+      /* Make a call of the placement delete routine. */
+      delete_call = make_call_node(dyn_init_to_free_storage->destructor,
+                                   entity_node, /*honor_virtual=*/FALSE,
+                                   (an_insert_location *)NULL);
+      /* Extract the overall initialization expression from the insert
+         location, and wrap a "try" expression around it, with the placement
+         delete call as the "catch". */
+      check_assertion(is_expr_insert_location(insert_location));
+      init_expr = insert_location->variant.expr;
+      init_expr = make_internal_try_expr(init_expr, delete_call);
+      /* Give back to the caller an insert location that allows insertion
+         after the overall expression as modified. */
+      set_expr_creation_insert_location(insert_location);
+      insert_expr(init_expr, insert_location);
+    } else {
+      /* Normal, non-placement delete case. */
+      a_destructible_entity_descr_ptr dedp =
                            dyn_init_to_free_storage->destructible_entity_descr;
-    if (dedp->conditional_flag_var != NULL) {
-      reset_conditional_flag_var(dedp->conditional_flag_var,
-                                 insert_location);
+      if (dedp->conditional_flag_var != NULL) {
+        reset_conditional_flag_var(dedp->conditional_flag_var,
+                                   insert_location);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* turn_off_freeing_of_storage_on_exception */
+
+
+static an_expr_node_ptr copy_arg_list_for_placement_delete(
+                                                an_expr_node_ptr orig_arg_list)
+/*
+Make a copy of the indicated argument list (for a placement new call) to
+be used for a placement delete call, and return a pointer to it.  Each
+argument in the original list is assigned to a temporary, and the temporary
+is referenced in the second list.  (If an argument expression is invariant,
+no temporary is needed; a copy is made.)
+*/
+{
+  an_expr_node_ptr arg_list = NULL, end_arg_list = NULL, orig_arg, arg;
+
+  for (orig_arg = orig_arg_list; orig_arg != NULL; orig_arg = orig_arg->next) {
+    arg = make_reusable_copy(orig_arg, /*vars_can_change=*/TRUE);
+    if (arg_list == NULL) {
+      arg_list = arg;
+    } else {
+      end_arg_list->next = arg;
+    }  /* if */
+    end_arg_list = arg;
+  }  /* for */
+  return arg_list;
+}  /* copy_arg_list_for_placement_delete */
 
 
 static void lower_new(an_expr_node_ptr expr)
@@ -4414,7 +4484,7 @@ The subtree of the node has not yet been lowered.
   a_type_ptr                  base_type, ptr_base_type;
   a_variable_ptr              temp_var;
   an_expr_node_ptr            temp_var_node, assign_node, compare_node;
-  an_expr_node_ptr            init_node, call_node, null_node;
+  an_expr_node_ptr            init_node, call_node, null_node, delete_args;
   a_constant                  null_constant;
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
@@ -4460,9 +4530,22 @@ The subtree of the node has not yet been lowered.
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   } else {
     /* Non-array case, or array case that does not require special handling. */
-    /* Create a call of the "new" routine. */
+    /* Lower the arguments for the "new" call. */
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type,
                         (a_param_type_ptr)NULL);
+    delete_args = NULL;
+    if (ndsp->placement_new && dip != NULL &&
+        ndsp->freeing_of_storage_on_exception != NULL) {
+      /* This is a placement new for which there is a corresponding placement
+         delete.  Make a copy of the argument list for the new call, to
+         be used in the delete call.  Note that this is done after IL lowering,
+         so the argument expressions are evaluated only once.  But that
+         also means temporaries used to pass class objects via copy
+         constructor are shared. */
+      /* Note that the copy skips the first argument (the size). */
+      delete_args = copy_arg_list_for_placement_delete(ndsp->arg->next);
+    }  /* if */
+    /* Create a call of the "new" routine. */
     call_node = make_call_node(ndsp->routine, ndsp->arg,
                                /*honor_virtual=*/FALSE,
                                (an_insert_location *)NULL);
@@ -4489,15 +4572,11 @@ The subtree of the node has not yet been lowered.
       compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
                                         integer_type((an_integer_kind)ik_int),
                                         assign_node);
-      /* Start the initialization code as just the value of the temporary.
-         Additional code will be inserted by putting comma operators on
-         top of this node. */
-      init_node = var_rvalue_expr(temp_var);
-      set_expr_insert_location(init_node, &insert_location);
       /* Build a description of the entity to be initialized.  Adjust the
          type so that it is an array if necessary. */
       set_var_indirect_init_pos_descr(temp_var, &ipd);
       ipd.base_type = ndsp->type;
+      set_expr_creation_insert_location(&insert_location);
       /* If exceptions are enabled, and if necessary, set up to free the
          storage allocated if an exception is thrown before the storage
          is initialized. */
@@ -4510,7 +4589,13 @@ The subtree of the node has not yet been lowered.
                          &insert_location, (a_boolean *)NULL);
       /* Now that the entity is initialized, turn off the freeing on
          exception. */
-      turn_off_freeing_of_storage_on_exception(ndsp, &insert_location);
+      turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
+                                               &insert_location);
+      /* End the initialization code with an expression that gets the
+         value of the temporary. */
+      init_node = var_rvalue_expr(temp_var);
+      insert_expr(init_node, &insert_location);
+      init_node = insert_location.variant.expr;
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
          and its third is another NULL constant of the right type. */
@@ -4580,9 +4665,7 @@ it is called as a virtual function, which involves some special tricks.
                                       ptr_node);
     /* Make "(ptr_node != NULL) ? dtor(...) : (void)0". */
     compare_node->next = call_node;
-    compare_node->next->next =
-               add_cast(node_for_integer_constant(0L, (an_integer_kind)ik_int),
-                        void_type());
+    compare_node->next->next = zero_cast_to_void();
     call_node = make_operator_node((an_expr_operator_kind)eok_question,
                                    call_node->type, compare_node);
   }  /* if */

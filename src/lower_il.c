@@ -359,7 +359,7 @@ and question-mark nodes).  The expression must have type void
 or an assignable type.  In the assignable case, the value of the
 original expression is saved in a temporary and then fetched after
 the inserted code has been executed.  Since this changes the
-expression tree, so this routine should only be called when it is known
+expression tree, this routine should only be called when it is known
 that an insertion will be made.
 */
 {
@@ -7180,11 +7180,15 @@ the pointer can be NULL if not needed.
   dip->destructible_entity_descr = dedp = alloc_destructible_entity_descr();
   if (dip->is_freeing_of_storage_on_exception) {
     a_routine_ptr delete_routine = dip->destructor;
-    if (delete_routine->opname_kind == (an_opname_kind)onk_array_delete &&
-        delete_routine->source_corresp.is_class_member) {
+    if ((delete_routine->opname_kind == (an_opname_kind)onk_array_delete &&
+         delete_routine->source_corresp.is_class_member) ||
+        !is_default_operator_delete(delete_routine)) {
       /* A class-specific "operator delete[]" is handled by calling
          __array_new, so the freeing on exception is no longer visible at
          this level. */
+      /* Likewise for a placement delete.  In that case an internal "try"
+         block is inserted, with the "catch" a call of the placement delete
+         routine. */
       remove_from_destruction_list(dip);
       goto end_of_routine;
     }  /* if */

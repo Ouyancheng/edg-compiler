@@ -3209,6 +3209,7 @@ must be stored out when modified.
 
 #endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+
 #if DO_FULL_PORTABLE_EH_LOWERING
 /*
 Pointers to the routine entries for the runtime routines setjmp and 
@@ -3219,6 +3220,107 @@ static a_routine_ptr
 		suppress_optim_on_vars_in_try_routine;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
+
+#if DO_FULL_PORTABLE_EH_LOWERING
+
+void initialize_eh_stack_entry_for_try(a_variable_ptr     try_frame,
+                                       a_variable_ptr     catch_array_var,
+                                       an_insert_location *insert_location,
+                                       an_expr_node_ptr   *setjmp_compare_node)
+/*
+Generate code to initialize the fields specific to a try block in the
+EH stack entry identified by the variable try_frame.  catch_array_var is
+the variable containing the catch information, or NULL for an internal
+try block.  Code is inserted at *insert_location, and *insert_location
+is updated accordingly.  An expression that does a setjmp call compared
+with zero is built, and a pointer to it is returned in *setjmp_compare_node.
+*/
+{
+  an_expr_node_ptr   setjmp_call;
+  an_expr_node_ptr   try_frame_catch_entries, try_frame_setjmp_buffer;
+  an_expr_node_ptr   try_frame_rtinfo, try_frame_region_number;
+  a_constant         null_constant;
+
+  /* Put the address of the catch types description array into the stack
+     frame. */
+  try_frame_catch_entries = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                  ehse_variant_field),
+                      ehse_try_field),
+                    ehse_try_catch_entries_field);
+  if (catch_array_var != NULL) {
+    (void)insert_assignment_statement(try_frame_catch_entries,
+                                      (an_expr_operator_kind)eok_passign,
+                                      array_var_lvalue_expr(catch_array_var),
+                                      insert_location);
+  } else {
+    /* Internal try -- no catch_array_var. */
+    make_zero_of_proper_type(ehse_try_catch_entries_field->type,
+                             &null_constant);
+    (void)insert_assignment_statement(try_frame_catch_entries,
+                                      (an_expr_operator_kind)eok_passign,
+                                      alloc_node_for_constant(&null_constant),
+                                      insert_location);
+  }  /* if */
+  /* Set the rtinfo field (which points to runtime information) to NULL. */
+  try_frame_rtinfo = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                  ehse_variant_field),
+                      ehse_try_field),
+                    ehse_try_rtinfo_field);
+  make_zero_of_proper_type(ehse_try_rtinfo_field->type, &null_constant);
+  (void)insert_assignment_statement(try_frame_rtinfo,
+                                    (an_expr_operator_kind)eok_passign,
+                                    alloc_node_for_constant(&null_constant),
+                                    insert_location);
+  /* Set the region_number field to the region number at entry to the try
+     block.  This tells the runtime where to stop the cleanup process to
+     end the "try" but not things in the surrounding function. */
+  try_frame_region_number = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                  ehse_variant_field),
+                      ehse_try_field),
+                    ehse_try_region_number_field);
+  (void)insert_assignment_statement(try_frame_region_number,
+                                    (an_expr_operator_kind)eok_iassign,
+                                    var_rvalue_expr(make_eh_curr_region_var()),
+                                    insert_location);
+  /* Change the original stmk_try_block statement into an if statement
+     that looks like
+       if (setjmp(try_frame.variant.try_block.setjmp_buffer) == 0) ...
+  */
+  /* Make try_frame.variant.try_block.setjmp_buffer.  Note the cast from
+     pointer-to-array to pointer-to-element. */
+  try_frame_setjmp_buffer = 
+                 add_cast(
+                   field_lvalue_selection_expr(
+                     field_lvalue_selection_expr(
+                       field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                   ehse_variant_field),
+                       ehse_try_field),
+                     ehse_try_setjmp_buffer_field),
+                   make_pointer_type(array_element_type(make_jmp_buf_type())));
+  /* Make the setjmp call. */
+#if 0
+  /* We shouldn't assume setjmp is a routine. */
+  /* What if the user has something called setjmp? */
+#endif /* 0 */
+  setjmp_call = make_runtime_rout_call("setjmp", &setjmp_routine,
+                                       integer_type((an_integer_kind)ik_int),
+                                       try_frame_setjmp_buffer);
+  /* Generate the comparison against zero. */
+  setjmp_call->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
+  *setjmp_compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+                                            setjmp_call->type, setjmp_call);
+}  /* initialize_eh_stack_entry_for_try */
+
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 void lower_try_block(a_statement_ptr statement)
 /*
@@ -3236,12 +3338,9 @@ Do IL lowering for an stmk_try_block statement.
                      lifetime;
 #if DO_FULL_PORTABLE_EH_LOWERING
   a_variable_ptr     try_frame, catch_array_var;
-  an_expr_node_ptr   try_frame_catch_entries, try_frame_setjmp_buffer;
-  an_expr_node_ptr   try_frame_rtinfo, try_frame_region_number;
-  an_expr_node_ptr   setjmp_call, compare_node, catch_clause_number_node;
+  an_expr_node_ptr   compare_node, catch_clause_number_node;
   a_statement_ptr    prev_if_stmt, if_stmt;
   long               catch_clause_number;
-  a_constant         null_constant;
 #if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
   a_label_ptr        label;
 #endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
@@ -3277,73 +3376,9 @@ Do IL lowering for an stmk_try_block statement.
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* Generate a description of the catch clause types. */
   catch_array_var = make_catch_array_var(handlers);
-  /* Put the address of the catch types description array into the stack
-     frame. */
-  try_frame_catch_entries = 
-                  field_lvalue_selection_expr(
-                    field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
-                                                  ehse_variant_field),
-                      ehse_try_field),
-                    ehse_try_catch_entries_field);
-  (void)insert_assignment_statement(try_frame_catch_entries,
-                                    (an_expr_operator_kind)eok_passign,
-                                    array_var_lvalue_expr(catch_array_var),
-                                    &insert_location);
-  /* Set the rtinfo field (which points to runtime information) to NULL. */
-  try_frame_rtinfo = 
-                  field_lvalue_selection_expr(
-                    field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
-                                                  ehse_variant_field),
-                      ehse_try_field),
-                    ehse_try_rtinfo_field);
-  make_zero_of_proper_type(void_star_type(), &null_constant);
-  (void)insert_assignment_statement(try_frame_rtinfo,
-                                    (an_expr_operator_kind)eok_passign,
-                                    alloc_node_for_constant(&null_constant),
-                                    &insert_location);
-  /* Set the region_number field to the region number at entry to the try
-     block.  This tells the runtime where to stop the cleanup process to
-     end the "try" but not things in the surrounding function. */
-  try_frame_region_number = 
-                  field_lvalue_selection_expr(
-                    field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
-                                                  ehse_variant_field),
-                      ehse_try_field),
-                    ehse_try_region_number_field);
-  (void)insert_assignment_statement(try_frame_region_number,
-                                    (an_expr_operator_kind)eok_iassign,
-                                    var_rvalue_expr(make_eh_curr_region_var()),
-                                    &insert_location);
-  /* Change the original stmk_try_block statement into an if statement
-     that looks like
-       if (setjmp(try_frame.variant.try_block.setjmp_buffer) == 0) ...
-  */
-  /* Make try_frame.variant.try_block.setjmp_buffer.  Note the cast from
-     pointer-to-array to pointer-to-element. */
-  try_frame_setjmp_buffer = 
-                 add_cast(
-                   field_lvalue_selection_expr(
-                     field_lvalue_selection_expr(
-                       field_lvalue_selection_expr(var_lvalue_expr(try_frame),
-                                                   ehse_variant_field),
-                       ehse_try_field),
-                     ehse_try_setjmp_buffer_field),
-                   make_pointer_type(array_element_type(make_jmp_buf_type())));
-  /* Make the setjmp call. */
-#if 0
-  /* We shouldn't assume setjmp is a routine. */
-  /* What if the user has something called setjmp? */
-#endif /* 0 */
-  setjmp_call = make_runtime_rout_call("setjmp", &setjmp_routine,
-                                       integer_type((an_integer_kind)ik_int),
-                                       try_frame_setjmp_buffer);
-  /* Generate the comparison against zero. */
-  setjmp_call->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
-                                    setjmp_call->type, setjmp_call);
+  /* Initialize the fields specific to a try block in the EH stack entry. */
+  initialize_eh_stack_entry_for_try(try_frame, catch_array_var,
+                                    &insert_location, &compare_node);
   /* Rewrite the stmk_try_block as an "if". */
   set_statement_kind(orig_stmt, (a_statement_kind)stmk_if);
   orig_stmt->expr = compare_node;
@@ -3484,6 +3519,89 @@ Do IL lowering for an stmk_try_block statement.
 
 
 #if DO_FULL_PORTABLE_EH_LOWERING
+/*
+Pointers to routine entries for the runtime routines __throw_setup,
+__throw, and __rethrow, used in throwing exceptions.  NULL until allocated.
+*/
+static a_routine_ptr
+		throw_setup_routine,
+		throw_routine,
+		rethrow_routine;
+
+
+static an_expr_node_ptr make_rethrow_call(void)
+/*
+Make an expression that does a rethrow, and return a pointer to it.
+*/
+{
+  an_expr_node_ptr rethrow_node =
+                 make_runtime_rout_call("__rethrow", &rethrow_routine,
+                                        void_type(), (an_expr_node_ptr)NULL);
+  return rethrow_node;
+} /* make_rethrow_call */
+
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+
+an_expr_node_ptr make_internal_try_expr(an_expr_node_ptr try_expr,
+                                        an_expr_node_ptr catch_expr)
+/*
+Make an expression for an internal "try" block that attempts to execute
+try_expr and, if an exception is thrown, executes catch_expr and then
+does a rethrow.  Return a pointer to the expression created.  The
+type of the overall expression will be void (i.e., the value of try_expr
+is not passed through).
+*/
+{
+#if DO_FULL_PORTABLE_EH_LOWERING
+  a_variable_ptr     try_frame;
+  an_expr_node_ptr   compare_node, rethrow_node, internal_try_node;
+  an_expr_node_ptr   catch_plus_rethrow, zero_node, question_node;
+  an_insert_location insert_location;
+
+  set_expr_creation_insert_location(&insert_location);
+  /* Push a stack frame for the internal try. */
+  push_eh_stack_frame(ehsek_try_block, &try_frame, &insert_location);
+  /* Initialize the fields specific to a try block in the EH stack entry.
+     The NULL array of catch entries indicates an internal try block.
+     This also sets compare_node to point to an expression that
+     does a setjmp call and compares it to zero. */
+  initialize_eh_stack_entry_for_try(try_frame, (a_variable_ptr)NULL,
+                                    &insert_location, &compare_node);
+  /* Make a rethrow. */
+  rethrow_node = make_rethrow_call();
+  /* Make (catch-expr, rethrow). */
+  catch_expr->next = rethrow_node;
+  catch_plus_rethrow = make_operator_node((an_expr_operator_kind)eok_comma,
+                                          rethrow_node->type, catch_expr);
+  /* Add a zero constant cast to void after the rethrow to give the
+     expression void type. */
+  zero_node = zero_cast_to_void();
+  catch_plus_rethrow->next = zero_node;
+  catch_plus_rethrow = make_operator_node((an_expr_operator_kind)eok_comma,
+                                          zero_node->type, catch_plus_rethrow);
+  /* Make (setjmp(...)==0) ? (void)try_expr : (catch_expr, rethrow, (void)0) */
+  /* Cast try_expr to void since its value is discarded. */
+  try_expr = add_cast_if_necessary(try_expr, void_type());
+  compare_node->next = try_expr;
+  try_expr->next = catch_plus_rethrow;
+  question_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                     try_expr->type, compare_node);
+  insert_expr(question_node, &insert_location);
+  /* Pop the stack frame pushed earlier. */
+  pop_eh_stack_frame(ehsek_try_block, try_frame, &insert_location);
+  internal_try_node = insert_location.variant.expr;
+  /* Cast the overall try block expression to void.  Without this, the
+     expression would have as its value/type something quasi-random coming
+     from the end of the code sequence for the stack pop. */
+  internal_try_node = add_cast_if_necessary(internal_try_node, void_type());
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+ #error -- not implemented yet.
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+  return internal_try_node;
+}  /* insert_internal_try_block */
+
+
+#if DO_FULL_PORTABLE_EH_LOWERING
 #if !ABI_CHANGES_FOR_RTTI
 
 /* Routines to build an access string for a throw, using the temp_text
@@ -3607,16 +3725,6 @@ instead.
 }  /* make_throw_access_string */
 
 #endif /* !ABI_CHANGES_FOR_RTTI */
-
-/*
-Pointers to routine entries for the runtime routines __throw_setup,
-__throw, and __rethrow, used in throwing exceptions.  NULL until allocated.
-*/
-static a_routine_ptr
-		throw_setup_routine,
-		throw_routine,
-		rethrow_routine;
-
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 #if !DO_FULL_PORTABLE_EH_LOWERING
@@ -3661,8 +3769,7 @@ Lower an enk_throw expression node.
 #if DO_FULL_PORTABLE_EH_LOWERING
     /* This is a rethrow.  Replace the enk_throw node with a call of
        __rethrow. */
-    call_node = make_runtime_rout_call("__rethrow", &rethrow_routine,
-                                       void_type(), (an_expr_node_ptr)NULL);
+    call_node = make_rethrow_call();
     overwrite_node(expr, call_node);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
     /* No lowering required in the non-portable schemes. */
