@@ -299,6 +299,29 @@ Dump field *fp, for debug purposes.
 }  /* db_base_class_field */
 
 
+static void db_virtual_function_info(a_class_type_supplement_ptr ctsp,
+                                     int                         depth)
+/*
+Dump the virtual_function_info_offset field of a class_type_supplement, for
+debug purposes.
+*/
+{
+  int i;
+
+  if (ctsp->virtual_function_count > 0) {
+    if (depth == -1) {
+      fputs("  ", f_debug);
+    } else {
+      fputs("\n    ", f_debug);
+      for (i = depth; i > 0; --i) fputs("  ", f_debug);
+    }  /* if */
+    fprintf(f_debug, "byte offset for virtual function table ptr = %lu",
+                     ctsp->virtual_function_info_offset);
+    if (depth == -1) fputc('\n', f_debug);
+  }  /* if */
+}  /* db_virtual_function_info */
+
+
 static void db_direct_base_class(a_base_class *bcp,
                                  int          depth)
 /*
@@ -331,6 +354,7 @@ Dump a direct base class entry, for debug purposes.
       db_base_class_field(fp, depth);
       fp = fp->next;
     }  /* while */
+    db_virtual_function_info(tp->variant.class_struct_union.extra_info, depth);
   }  /* if */
   fputs(" ]]", f_debug);
 }  /* db_direct_base_class */
@@ -382,6 +406,8 @@ Dump a virtual base class entry, for debug purposes.
     db_base_class_field(fp, /*nesting_depth=*/0);
     fp = fp->next;
   }  /* while */
+  db_virtual_function_info(tp->variant.class_struct_union.extra_info,
+                           /*nesting_depth=*/0);
   fputs(" )]\n", f_debug);
 }  /* db_virtual_base_class */
 
@@ -501,6 +527,7 @@ class_struct_union:
           a_routine_ptr            rp = ctsp->assoc_scope->routines;
           an_access_adjustment_ptr aap = ctsp->access_adjustments;
 
+          db_virtual_function_info(ctsp, /*nesting_depth=*/-1);
           if (any_virtual_base_classes) {
             fputs("  collected virtual base classes:\n", f_debug);
             for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
