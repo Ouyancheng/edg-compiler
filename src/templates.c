@@ -17326,7 +17326,9 @@ or the specific definition flag (if instantiate is FALSE).
 {
   a_template_instance_ptr	tip = NULL;
   db_enter(3, "update_instantiation_flags");
-  if (is_function_symbol(sym)) {
+  if (translation_unit_needed_only_for_exported_templates) {
+    /* Ignore instantiation directives in export template files. */
+  } else if (is_function_symbol(sym)) {
     if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE,
                                 is_pragma, pragma_kind)) {
       tip = sym->variant.routine.instance_ptr;
