@@ -2956,7 +2956,7 @@ normal_comment:
           }  /* if */
           if (ch == 'N' && curr_char_loc[1] == 'O' &&
               strncmp(curr_char_loc+2, "TREACHED", 8) == 0 &&
-              !isalpha(curr_char_loc[10])) {
+              !isalpha((unsigned char)curr_char_loc[10])) {
             /* The special lint comment "notreached" (in caps), asserting that
                the code following is unreachable. */
 #if DEBUG
@@ -2968,7 +2968,7 @@ normal_comment:
             curr_char_loc += 10;
           } else if (ch == 'A' && curr_char_loc[1] == 'R' &&
                      strncmp(curr_char_loc+2, "GSUSED", 6) == 0 &&
-                     !isalpha(curr_char_loc[8])) {
+                     !isalpha((unsigned char)curr_char_loc[8])) {
             /* The special lint comment "argsused" (in caps), asserting that
                the arguments of the function following are all used (or more
                accurately, that it's okay that they aren't all used). */
@@ -2981,7 +2981,7 @@ normal_comment:
             curr_char_loc += 8;
           } else if (ch == 'V' && curr_char_loc[1] == 'A' &&
                      strncmp(curr_char_loc+2, "RARGS", 5) == 0 &&
-                     !isalpha(curr_char_loc[7])) {
+                     !isalpha((unsigned char)curr_char_loc[7])) {
             /* The special lint comment "varargs" (in caps), asserting that
                the function following takes a variable number of arguments.
                If a number follows the keyword, it is the number of arguments
@@ -2992,7 +2992,7 @@ normal_comment:
             /* Skip any blanks, then scan a decimal number.  lint itself only
                looks at one digit. */
             while (*curr_char_loc == ' ') curr_char_loc++;
-            while (isdigit(ch = *curr_char_loc)) {
+            while (isdigit((unsigned char)(ch = *curr_char_loc))) {
               if (lint_varargs_count > LINT_VARARGS_COUNT_MAX / 10) {
                 lint_varargs_count = 0;
                 break;
@@ -3153,7 +3153,7 @@ token.
       kind = k_hex;
       /* The hex constant stops on a non-hex digit. */
       curr_char_loc++;
-      do {} while (isxdigit(*(++curr_char_loc)));
+      do {} while (isxdigit((unsigned char)*(++curr_char_loc)));
       /* Check for just "0x" by itself.  pcc allows this and interprets
          it as zero. */
       if (curr_char_loc == start_of_curr_token+2 && !fetch_pp_tokens) {
@@ -3169,7 +3169,7 @@ token.
          are valid in floating point, but in octal they are only valid in
          pcc mode.  That is checked later.  For now, the "8" and "9"
          are accumulated. */
-      do {} while (isdigit(*(++curr_char_loc)));
+      do {} while (isdigit((unsigned char)*(++curr_char_loc)));
       /* Check for floating point. */
       if ((ch = *curr_char_loc) == '.') goto float_accum_1;
       if (ch == 'e' || ch == 'E')       goto float_accum_2;
@@ -3183,7 +3183,7 @@ token.
   } else {
     /* Number not starting with "0" or ".".  Could be a decimal integer or
        a floating-point number.  Accumulate the initial digit sequence. */
-    do {} while (isdigit(*(++curr_char_loc)));
+    do {} while (isdigit((unsigned char)*(++curr_char_loc)));
     /* A ".", "e", or "E" now indicates a floating-point constant. */
     if ((ch = *curr_char_loc) == '.') goto float_accum_1;
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
@@ -3228,13 +3228,13 @@ token.
 float_accum_1:
   /* At the decimal point in a floating constant.  Take whatever decimal
      digits follow it. */
-  do {} while (isdigit(*(++curr_char_loc)));
+  do {} while (isdigit((unsigned char)*(++curr_char_loc)));
   if ((ch = *curr_char_loc) != 'e' && ch != 'E') goto end_float_accum;
 float_accum_2:
   /* At the "e" or "E" indicating the start of the exponent of a floating
      constant.  Take an optional sign, then decimal digits of the exponent. */
   if ((ch = *(curr_char_loc+1)) == '+' || ch == '-') curr_char_loc++;
-  if (!isdigit(*(curr_char_loc+1)) && !fetch_pp_tokens) {
+  if (!isdigit((unsigned char)*(curr_char_loc+1)) && !fetch_pp_tokens) {
     /* No digits of the exponent are present. pcc treats this as an exponent
        of zero. */
     if (C_dialect != C_dialect_pcc) {
@@ -3244,7 +3244,7 @@ float_accum_2:
       warning_at_line_pos(ec_bad_float_constant, curr_char_loc+1);
     }  /* if */
   }  /* if */
-  do {} while (isdigit(*(++curr_char_loc)));
+  do {} while (isdigit((unsigned char)*(++curr_char_loc)));
 end_float_accum:
   kind = k_float;
   /* Check for a final suffix of "f" or "l", in upper or lower case. */
@@ -3389,19 +3389,22 @@ directives.
          "x", an octal or hexadecimal value must be scanned.  We recognize
          those digits so we can accurately count characters, but we do
          not convert them at this point. */
-      if (isdigit(ch = *(++curr_char_loc)) && ch != '8' && ch != '9') {
+      ch = *(++curr_char_loc);
+      if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
         /* Octal escape, one to three digits.  Note that neither ANSI nor
            pcc allows 8 and 9 as octal digits in this case.  Note that
            there is code in conv_single_char that must match this code.*/
-        if (isdigit(ch = *(curr_char_loc+1)) && ch != '8' && ch != '9') {
+        ch = *(curr_char_loc+1);
+        if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
           curr_char_loc++;
-          if (isdigit(ch = *(curr_char_loc+1)) && ch != '8' && ch != '9') {
+          ch = *(curr_char_loc+1);
+          if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
             curr_char_loc++;
           }  /* if */
         }  /* if */
       } else if (ch == 'x') {
         /* Hex escape, any number of digits. */
-        while (isxdigit(*(curr_char_loc+1))) curr_char_loc++;
+        while (isxdigit((unsigned char)*(curr_char_loc+1))) curr_char_loc++;
       }  /* if */
     } else if (ch == '\n' ||
                (ch == END_OF_TOKEN_MARKER && !is_header_name) ||
@@ -3960,7 +3963,8 @@ start_of_token_scan:  /* Restart here after scanning white space. */
     case '.':
       /* One of ".", a float constant, or "...". */
       /* In C++, ".*" is also a possibility. */
-      if (isdigit(ch = *(curr_char_loc+1))) {
+      ch = *(curr_char_loc+1);
+      if (isdigit((unsigned char)ch)) {
         ctoken = scan_number();
         goto end_of_token_scan;
       } else if (ch == '.' && *(curr_char_loc+2) == '.') {
@@ -3986,7 +3990,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
           adjust_pp_int_constant();
         }  /* if */
       } else {
-        do {} while (isdigit(*(++curr_char_loc)));
+        do {} while (isdigit((unsigned char)*(++curr_char_loc)));
         end_of_curr_token = curr_char_loc - 1;
         ctoken = tok_digit_sequence;
       }  /* if */
@@ -4314,7 +4318,8 @@ concatenate_adjacent_string_literals:
     skip_white_space();
     while (*curr_char_loc == '"' || *curr_char_loc == '#' ||
            (*curr_char_loc == 'L' && *(curr_char_loc+1) == '"') ||
-           (is_id_char[*curr_char_loc-CHAR_MIN] && !isdigit(*curr_char_loc) &&
+           (is_id_char[*curr_char_loc-CHAR_MIN] &&
+            !isdigit((unsigned char)*curr_char_loc) &&
             (*curr_char_loc != 'L' || *(curr_char_loc+1) != '\''))) {
       /* The next thing is a string literal, a wide string literal,
           or an identifier (the last test rules out wide character constants,
@@ -6110,8 +6115,9 @@ of the front end.
      See standard, 3.1.2.  Also used in scanning pp-numbers; the same
      set applies.  See standard, 3.1.8. */
   for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
-    is_id_char[c-CHAR_MIN] = isascii(c) &&
-                             (isalpha(c) || isdigit(c) || (c == '_') ||
+    is_id_char[c-CHAR_MIN] = (isalpha((unsigned char)c) ||
+                              isdigit((unsigned char)c) ||
+                              c == '_' ||
                               (c == '$' && allow_dollar_in_id_chars));
   }  /* for */
   /* Also initialize pp_lexical_category, used to determine whether or
