@@ -451,7 +451,9 @@ a new symbol is created and entered in the symbol table.
        void f(a) int a[]; { ... }
      In the second declaration the param-id type is int[], but the composite
      type produced for the routine's interface is int[3]. */
-  tp = function_instantiation ? ptp->type : param_id->type;
+  tp = function_instantiation ? make_qualified_type(ptp->type,
+                                                    ptp->qualifiers) :
+                                param_id->type;
   complete_type_is_needed(tp);
   if (is_incomplete_type(tp)) {
     /* Incomplete type is not allowed. */
