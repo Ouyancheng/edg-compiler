@@ -1,5 +1,20 @@
 Version 3.5
 
+7/28/04  C++-generating back end: unbalanced parentheses on member definition
+
+The C++-generating back end put out unbalanced parentheses on the
+definition of a member of a class that uses a typedef that is a
+non-public member of that class as the specifier type when the
+typedef is defined as a pointer to function type (or anything else
+that would require parentheses in the declarator).  Now fixed.
+
+  struct A {
+  protected:
+    typedef void (*T)();
+    static T m_T;
+  };
+  A::T A::m_T = 0;  // Output formerly had unbalanced parentheses
+
 7/28/04  GNU mode: Abort in C++-generating back end on statement expression
 
 In GNU mode with ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS set to TRUE,

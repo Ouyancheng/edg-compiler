@@ -218,6 +218,11 @@ typedef struct a_name_context {
 			/* A class that defines the name context.  NULL
 			   if not applicable (assoc_scope is non-NULL in
 			   that case). */
+  a_type_ptr	class_type_for_access_not_naming;
+			/* If non-NULL, indicates a class that we are within
+			   for access purposes but not for naming purposes,
+			   e.g., because we are in the type specifiers of
+			   a definition of a class member. */
   an_access_specifier
 		access;	/* When putting out a class, the current default
 			   access for a member declaration. */
@@ -540,6 +545,7 @@ This routine is called for both C and C++.
                       "push_name_context: NULL scope");
   ncp->assoc_scope = scope;
   ncp->class_type = class_type;
+  ncp->class_type_for_access_not_naming = NULL;
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
@@ -2004,15 +2010,18 @@ is called.
     if (type->is_builtin_va_list) invisible = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
   } else if (type->source_corresp.is_class_member &&
-             type->source_corresp.access != (an_access_specifier)as_public &&
-             !class_is_in_name_context_stack(
-                                     type->source_corresp.parent.class_type)) {
+             type->source_corresp.access != (an_access_specifier)as_public) {
     /* The typedef is a non-public member of a class.  There might be
        an access problem for this if we're not inside the class, so drop
        the typedef in that case.  This comes up, from example, on template
        arguments for non-member templates that are first established using
        a member typedef. */
-    invisible = TRUE;
+    a_type_ptr parent_class = type->source_corresp.parent.class_type;
+    if (!class_is_in_name_context_stack(parent_class) &&
+        (curr_name_context == NULL ||
+         curr_name_context->class_type_for_access_not_naming != parent_class)){
+      invisible = TRUE;
+    }  /* if */
   }  /* if */
   return invisible;
 }  /* is_typedef_invisible_in_cp_gen_be */
@@ -3626,10 +3635,19 @@ name_ref represents the form of the declarator (or NULL if it wasn't
 recorded).
 */
 {
-  a_boolean force_unqualified_name =
+  a_boolean          force_unqualified_name =
                                    (options & GDO_FORCE_UNQUALIFIED_NAME) != 0;
-  a_boolean context_pop_needed = FALSE;
+  a_boolean          context_pop_needed = FALSE;
+  a_name_context_ptr name_context_for_access_reset = NULL;
 
+  if (!C_mode() && !force_unqualified_name &&
+      scp != NULL && scp->is_class_member) {
+    /* If we're defining a class member, make note of the fact that we
+       have access to its members in the type specifier. */
+    curr_name_context->class_type_for_access_not_naming =
+                                                        scp->parent.class_type;
+    name_context_for_access_reset = curr_name_context;
+  }  /* if */
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -3673,6 +3691,9 @@ recorded).
   form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE, &octl);
   /* Pop the name context for a class/namespace member. */
   if (context_pop_needed) pop_name_context_if_member(scp);
+  if (name_context_for_access_reset != NULL) {
+    name_context_for_access_reset->class_type_for_access_not_naming = NULL;
+  }  /* if */
 }  /* gen_general_declaration_using_type */
 
 
@@ -10053,8 +10074,17 @@ declarator (or NULL if it wasn't recorded).
 {
   a_type_ptr                   qual_rout_type = rout_type;
   a_source_correspondence_ptr  scp = &rout->source_corresp;
+  a_name_context_ptr           name_context_for_access_reset = NULL;
 
   *context_pop_needed = FALSE;
+  if (!C_mode() && !force_unqualified_name &&
+      scp != NULL && scp->is_class_member) {
+    /* If we're defining a class member, make note of the fact that we
+       have access to its members in the type specifier. */
+    curr_name_context->class_type_for_access_not_naming =
+                                                        scp->parent.class_type;
+    name_context_for_access_reset = curr_name_context;
+  }  /* if */
   /* Determine the effective routine type by starting from the routine
      type and removing type qualifiers but not typedefs.  Type qualifiers
      can appear above the function type even in a function definition
@@ -10154,6 +10184,9 @@ declarator (or NULL if it wasn't recorded).
       form_type_second_part_simple(rout_type->variant.routine.return_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
     }  /* if */
+  }  /* if */
+  if (name_context_for_access_reset != NULL) {
+    name_context_for_access_reset->class_type_for_access_not_naming = NULL;
   }  /* if */
 }  /* gen_routine_specifiers_and_declaration */
 
