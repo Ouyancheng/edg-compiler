@@ -260,19 +260,19 @@ patches to put them back in for you.
 
 12/10/94 Setting virtual_function_info_base_class with ambiguous base class
 
-A bug has been fixed in setting virtual_info_base_class when the base class
-in question is ambiguous and one of the derivations involves a virtual
-base class.  For example:
+A bug has been fixed in setting virtual_function_info_base_class when
+the base class in question is ambiguous and one of the derivations
+involves a virtual base class.  For example:
 
   struct A { virtual void f(); };
   struct B : public A { void f(); };
   struct C : public B { void f(); };
   struct D : virtual public C, public B { void f(); } d;
 
-The bug was that the virtual_info_base_class pointer in D was being set to
-point to the A whose path is ==>C==>B==>A; now it is correctly set to point
-to the A whose path is through D's first direct nonvirtual base class,
-namely, ==>B==>A.
+The bug was that the virtual_function_info_base_class pointer in D was
+being set to point to the A whose path is ==>C==>B==>A; now it is
+correctly set to point to the A whose path is through D's first direct
+nonvirtual base class, namely, ==>B==>A.
 
 12/9/94  IL CHANGE: Added implied_break_at_end to a_switch_clause
 
