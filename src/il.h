@@ -479,6 +479,8 @@ Return TRUE if a constant is an error constant.
    (storage_class) == (a_storage_class)sc_unspecified)
 
 #if DEBUG
+extern void db_type_name(a_type_ptr  tp);
+
 extern void db_name(a_source_correspondence *sc);
 
 extern void db_access_control(an_access_specifier as);

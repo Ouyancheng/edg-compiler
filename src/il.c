@@ -247,7 +247,7 @@ Dump a list of template arguments, enclosed by angle brackets.
 }  /* if */
 
 
-static void db_type_name(a_type_ptr  tp)
+void db_type_name(a_type_ptr  tp)
 /*
 Dump the name of a type.  If it's a class generated on the basis of a
 template, dump the template arguments, too.
@@ -256,7 +256,7 @@ template, dump the template arguments, too.
   a_class_type_supplement_ptr ctsp;
 
   db_name(&tp->source_corresp);
-  if (is_class_struct_union_type(tp)) {
+  if (is_immediate_class_type(tp)) {
     ctsp = tp->variant.class_struct_union.extra_info;
     if (ctsp != NULL) db_template_arg_list(ctsp->template_arg_list);
   }  /* if */
