@@ -2652,6 +2652,7 @@ state.
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;
         cssp->has_operator_array_delete = FALSE;
+        cssp->has_two_argument_operator_array_delete = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
         cssp->any_dependent_base_classes = FALSE;

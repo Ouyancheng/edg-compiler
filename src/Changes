@@ -1,5 +1,14 @@
 Version 3.5
 
+7/1/04   Multiple-translation unit problem with two-argument operator delete
+
+When a two-argument class-specific operator delete[] was used in
+a secondary translation unit (and not in the primary translation
+unit) in multi-translation-unit mode, IL lowering sometimes failed
+to recognize that the class has a two-argument delete, and therefore
+failed to use the array new/delete protocol that saves the array
+size.  Now fixed.
+
 6/30/04  Missing error on invalid uses of VLAs with unspecified size
 
 Variable-length arrays (VLAs) with unspecified size (declared using the [*]

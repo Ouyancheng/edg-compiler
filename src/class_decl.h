@@ -91,6 +91,8 @@ extern void check_member_decl_is_copy_constructor(
 				a_type_ptr		class_type,
 				a_boolean		compiler_generated);
 
+extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
+
 extern void report_abstract_class_error(an_error_code      error_code,
                                         a_type_ptr         class_type,
                                         a_source_position  *error_pos);

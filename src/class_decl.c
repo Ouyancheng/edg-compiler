@@ -12847,6 +12847,23 @@ instance record associated with this instantiation.
 }  /* rescan_member_template_declaration */
 
 
+a_boolean is_two_argument_delete(a_routine_ptr delete_routine)
+/*
+Return TRUE if the indicated delete routine is of the two-argument form.
+*/
+{
+  a_boolean                     is_two_arg;
+  a_routine_type_supplement_ptr delete_routine_rtsp =
+                                        f_skip_typerefs(delete_routine->type)->
+                                                    variant.routine.extra_info;
+  a_param_type_ptr              param1 = delete_routine_rtsp->param_type_list;
+
+  check_assertion(param1 != NULL);
+  is_two_arg = (param1->next != NULL);
+  return is_two_arg;
+}  /* is_two_argument_delete */
+
+
 static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
 /*
 Check that the new and delete operators are declared in consistent pairs
@@ -12898,6 +12915,34 @@ in the class designated by tag_sym.
         new_sym = NULL;
       }  /* if */
     }  /* if */
+    del_sym = opname_member_function_symbol(del_kind, class_type);
+    ambiguous = FALSE;
+    if (del_sym != NULL) {
+      a_symbol_ptr default_del_sym;
+      /* Pick the default operator delete (if any) out of the overload set. */
+      default_del_sym = find_default_operator_delete_sym(del_sym, &ambiguous);
+      if (array_pass && !ambiguous && default_del_sym != NULL) {
+        /* Note whether the class operator delete[] is of the two-argument
+           form. */
+        a_routine_ptr delete_routine;
+        a_symbol_ptr  fund_operator_delete =
+                                        fundamental_symbol_of(default_del_sym);
+        check_assertion(fund_operator_delete->kind ==
+                                            (a_symbol_kind)sk_member_function);
+        delete_routine = fund_operator_delete->variant.routine.ptr;
+        if (is_two_argument_delete(delete_routine)) {
+          cssp->has_two_argument_operator_array_delete = TRUE;
+        }  /* if */
+      }  /* if */
+      if (del_sym->kind == (a_symbol_kind)sk_projection &&
+          !del_sym->variant.projection.is_using_decl) {
+        /* Ignore operator delete if it is simply inherited. */
+        del_sym = NULL;
+        ambiguous = FALSE;
+      } else {
+        del_sym = default_del_sym;
+      }  /* if */
+    }  /* if */
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (exceptions_enabled) {
       /* When exceptions are enabled, be sure each placement operator new
@@ -12935,17 +12980,6 @@ in the class designated by tag_sym.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
       /* Just issue a remark if the class has an operator new() but no
          default operator delete() or vice versa. */
-      del_sym = opname_member_function_symbol(del_kind, class_type);
-      ambiguous = FALSE;
-      if (del_sym != NULL) {
-        if (del_sym->kind == (a_symbol_kind)sk_projection &&
-            !del_sym->variant.projection.is_using_decl) {
-          /* Ignore operator delete if it is simply inherited. */
-          del_sym = NULL;
-        } else {
-          del_sym = find_default_operator_delete_sym(del_sym, &ambiguous);
-        }  /* if */
-      }  /* if */
       /* If del_sym is non-NULL it now points to a default operator delete. */
       if (new_sym != NULL) {
         if (del_sym == NULL && !ambiguous) {

@@ -916,6 +916,10 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if a member operator delete[]() has been
 			   declared for this class or a class from which it
 			   is derived. */
+  a_bit_field	has_two_argument_operator_array_delete:1;
+			/* TRUE if a member operator delete[]() having two
+			   arguments has been declared for this class or a
+			   class from which it is derived. */
   a_bit_field	any_nonstatic_data_members:1;
 			/* TRUE if the class or any of its base classes has
 			   one or more nonstatic data members. */
