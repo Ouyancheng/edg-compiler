@@ -4856,11 +4856,6 @@ assumed if the return type is omitted.
     unexpected_condition();
   }  /* if */
   begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
-  /* Push a pragma scope.  This makes certain other scopes (e.g.,
-     template declaration) invisible for name lookup purposes. */
-  (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
-	           (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-	           (a_template_arg_ptr)NULL);
   start_pos = pos_curr_token;
   if (is_generalized_identifier_start(GID_NO_OPTIONS) &&
       next_token() == tok_newline) {
@@ -5028,10 +5023,8 @@ assumed if the return type is omitted.
     error(ec_invalid_instantiation_pragma_argument);
     err = TRUE;
   }  /* if */
-  /* Pop the pragma scope. */
-  pop_scope();
   /* Stop rescanning tokens from the pragma token cache. */
-  wrapup_rescan_of_pragma_tokens(save_stop_tokens_array);
+  wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
   instantiation_mode = saved_instantiation_mode;
 }  /* instantiation_pragma */
 
