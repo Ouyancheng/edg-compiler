@@ -137,6 +137,12 @@ The access_flags string was retained for backward compatibility.
 	  /* Adjust the pointer by the offset provided in the base class
 	     specification. */
 	  new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+          if (bcsp->flags & BCS_VIRTUAL) {
+            /* If this is a virtual base class then the offset provides the
+               location of a pointer to the base class.  Dereference the
+               pointer and use that value. */
+            new_ptr = *((void **)new_ptr);
+          }  /* if */
 	}  /* if */
         /* This is not the base class we are looking for.  Look at the
            base classes of this base class. */

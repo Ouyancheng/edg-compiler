@@ -1,5 +1,29 @@
 Version 2.37
 
+8/12/97  Incorrect handling of nonvirtual base class of a virtual base
+         class in exception handling and dynamic_cast
+
+The runtime __derived_to_base_conversion routine in rtti.c did not
+correctly handle nonvirtual base classes of virtual bases.  This could
+produce incorrect results when such classes are used in exception
+handling or in dynamic_cast operations.  This has been fixed.
+
+  extern "C" int printf(char *, ...);
+  struct B {
+    virtual ~B(){}
+  };
+  struct C:  B { };
+  struct D: virtual C { };
+  struct E: D { };
+ 
+  int main()
+  {
+    E *e = new E;
+    B* correct_b = e;
+    try { throw e; }
+    catch (B* b) { printf ("%s\n", b == correct_b ? "PASS" : "FAIL"); }
+  }
+
 6/23/97  Exception not considered caught when terminate() is entered
 
 When terminate() is called as the result of a throw, the exception should
