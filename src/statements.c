@@ -187,20 +187,6 @@ the current statement sequence.
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
-  if (*head_ptr == NULL) {
-    /* If the statement list is empty, make sure the last pointer is NULL.
-       This is important for the starts of "else" and case clauses. */
-    sssep->last_dep_statement = NULL;
-  } else if (sssep->last_dep_statement == NULL) {
-    /* Otherwise, if the last pointer is NULL, find the last statement
-       in the list and set the pointer to it.  This is needed when
-       switching back to a statement list that already has some statements
-       in it (e.g., after a break statement in a switch).  To do that,
-       we clear last_dep_statement and let it get re-established here. */
-    temp_stmt = *head_ptr;
-    while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
-    sssep->last_dep_statement = temp_stmt;
-  }  /* if */
 
   /* Maintain the code reachable flag.  Labels are always reachable. */
   if (kind == (a_statement_kind)stmk_label) set_reachable(curr_reachability);
@@ -210,8 +196,7 @@ the current statement sequence.
   /* Set the position from pos_curr_token. */
   sp->seq_number = pos_curr_token.seq;
 
-  /* Link it onto the end of the statement list for the current level of
-     the structured statement stack.  Even unreachable code is kept. */
+  /* See if the statement can be attached under the existing statement. */
   if (*head_ptr != NULL && !statement_list_allowed) {
     /* The structured statement already has a statement attached to it,
        and it is not a statement to which a list of statements may
@@ -251,11 +236,22 @@ the current statement sequence.
     head_ptr = &extra_block->variant.block.statements;
     sssep->extra_block = extra_block;
   } /* if */
-  /* Now add the new statement to the end of the list. */
+  /* Add the new statement to the end of the statement list for the
+     current level of the structured statement stack.  Even unreachable
+     code is kept. */
   if (*head_ptr == NULL) {
     /* Add the statement as the first statement on the list. */
     *head_ptr = sp;
   } else {
+    if (sssep->last_dep_statement == NULL) {
+      /* If the last pointer is NULL, find the last statement in the list
+         and set the pointer to it.  This is needed when switching back to
+         a statement list that already has some statements in it (e.g.,
+         after a break statement in a switch). */
+      temp_stmt = *head_ptr;
+      while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
+      sssep->last_dep_statement = temp_stmt;
+    }  /* if */
     sssep->last_dep_statement->next = sp;
   }  /* if */
   sssep->last_dep_statement = sp;
@@ -516,6 +512,8 @@ be the topmost one).
   /* The start of a clause is reachable if the start of the structured
      statement is reachable. */
   curr_reachability = sssep->start_reachable;
+  sssep->extra_block        = NULL;
+  sssep->last_dep_statement = NULL;
 }  /* start_stmt_clause */
 
 
@@ -528,6 +526,8 @@ struct_stmt_stack entry for the structured statement.
   /* If the end of the clause is reachable, then the end of the whole
      structured statement is reachable. */
   merge_reachability(&curr_reachability, &sssep->end_reachable);
+  sssep->extra_block        = NULL;
+  sssep->last_dep_statement = NULL;
 }  /* term_stmt_clause */
 
 
@@ -1221,7 +1221,6 @@ See also 3.6.6.3.
            clause must be ended.  Note that this special trick can be done
            only when the break is at the top level in the case clause. */
         sssep->curr_switch_clause = NULL;
-        sssep->last_dep_statement = NULL;
         term_stmt_clause(sssep);
         set_unreachable(curr_reachability);
         goto break_handled;
@@ -1440,7 +1439,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
   a_label_ptr         label;
   a_statement_ptr     goto_stmt;
   a_reachability_summary
-                      prev_reachability;
+                      prev_reachability, save_reachability;
 
   db_enter(4, "add_switch_clause");
 
@@ -1607,13 +1606,15 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     /* Activate the new switch clause so code will be added here (if the
        switch is the outermost structured statement). */
     sssep->curr_switch_clause = scp;
-    /* Define the label for one of the gotos above, if necessary. */
-    define_label(label);
     /* Start a new clause. */
     start_stmt_clause(sssep);
-    /* If there is flow-in from the previous clause, the code here is
-       reachable. */
     if (label != NULL) {
+      /* Define the label for one of the gotos above, if necessary.
+         Since we generated this label, we can do a better job of maintaining
+         the reachability than is done by the low-level routines. */
+      save_reachability = curr_reachability;
+      define_label(label);
+      curr_reachability = save_reachability;
       merge_reachability(&prev_reachability, &curr_reachability);
     }  /* if */
   }  /* if */
