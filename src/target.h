@@ -58,8 +58,6 @@ be used.
 ??=error -- cfront name lookup bug support requires cfront 2.1 compatibility
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
-
-
 /*
 Target byte order.  Little-endian means the least-significant part of a
 multi-byte integer is at the lowest memory address.
@@ -509,6 +507,19 @@ Integer kind to use for an index into a virtual function table.  Must be
 no smaller than the size of a_virtual_function_number.
 */
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND ((an_integer_kind)ik_short)
+
+/*
+This switch controls whether or not operations with
+returns_lvalue_instead_of_usual_rvalue TRUE are rewritten by IL lowering.
+These are operations (specifically, assignments, prefix ++/--, and
+the "?" and "," operators) that return rvalues in C but can return lvalues
+in C++.  When this switch is TRUE, the non-C cases are transformed into
+valid C, which usually requires some duplication of parts of the expression
+tree.
+*/
+#ifndef LOWER_LVALUE_RETURNING_OPERATIONS
+#define LOWER_LVALUE_RETURNING_OPERATIONS TRUE
+#endif /* ifndef LOWER_LVALUE_RETURNING_OPERATIONS */
 
 #endif /* DO_IL_LOWERING */
 
