@@ -6242,7 +6242,9 @@ e.g., ({ ... }).
         a_statement_ptr  vla_dealloc_stmts =
                             collect_vla_dealloc_stmts_for_function(
                                               end_of_control_flow_descr_list);
-        add_statement_list(vla_dealloc_stmts, curr_reachability.reachable);
+        if (vla_dealloc_stmts != NULL) {
+          add_statement_list(vla_dealloc_stmts, curr_reachability.reachable);
+        }  /* if */
       }  /* if */
       /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */
