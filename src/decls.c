@@ -2772,26 +2772,32 @@ not be TRUE.
                       comp_type->variant.routine.return_type;
       rout_type->variant.routine.extra_info->prototyped =
                       comp_type->variant.routine.extra_info->prototyped;
-      /* Copy the param type entries from the composite type onto the param
-         type entries for the routine type.  This is done in case new param
-         type entries were created.  The original ones must be preseved,
-         however, since they may be pointed to by the parameter variables
-         with which they are associated. */
-      rout_type_ptp = rout_type->variant.routine.extra_info->param_type_list;
-      comp_type_ptp = comp_type->variant.routine.extra_info->param_type_list;
-      for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
-                                    comp_type_ptp = comp_type_ptp->next) {
-        if (rout_type_ptp == comp_type_ptp) {
-          /* Whenever the corresponding param type entries on the two lists
-             are the same entry, all subsequent ones will also be the same,
-             so we can bail out at that point. */
-          break;
-        }  /* if */
-        /* Save the original next pointer and restore it after the copy. */
-        next_rout_type_ptp = rout_type_ptp->next;
-        *rout_type_ptp = *comp_type_ptp;
-        rout_type_ptp->next = next_rout_type_ptp;
-      }  /* for */
+      if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
+        /* The entire list may just be transferred over. */
+        rout_type->variant.routine.extra_info->param_type_list =
+                  comp_type->variant.routine.extra_info->param_type_list;
+      } else {
+        /* Copy the param type entries from the composite type onto the param
+           type entries for the routine type.  This is done in case new param
+           type entries were created.  The original ones must be preseved,
+           however, since they may be pointed to by the parameter variables
+           with which they are associated. */
+        rout_type_ptp = rout_type->variant.routine.extra_info->param_type_list;
+        comp_type_ptp = comp_type->variant.routine.extra_info->param_type_list;
+        for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
+                                      comp_type_ptp = comp_type_ptp->next) {
+          if (rout_type_ptp == comp_type_ptp) {
+            /* Whenever the corresponding param type entries on the two lists
+               are the same entry, all subsequent ones will also be the same,
+               so we can bail out at that point. */
+            break;
+          }  /* if */
+          /* Save the original next pointer and restore it after the copy. */
+          next_rout_type_ptp = rout_type_ptp->next;
+          *rout_type_ptp = *comp_type_ptp;
+          rout_type_ptp->next = next_rout_type_ptp;
+        }  /* for */
+      }  /* if */
       /* has_ellipsis need not be copied -- it will be the same in all of
          the types, since the original two types are compatible. */
       /* Likewise, the implicit_this_param_type pointers should be identical
