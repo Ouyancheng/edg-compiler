@@ -954,6 +954,7 @@ when it is a secondary file.
   il_trans_unit_init();
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
+  scope_stk_trans_unit_init();
   templates_trans_unit_init();
   corresp_trans_unit_init();
   expr_trans_unit_init();

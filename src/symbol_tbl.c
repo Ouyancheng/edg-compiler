@@ -10365,23 +10365,6 @@ of the front end.
   /* Clear the operator name symbol table.  Note that this assumes that
      NULL is a zero bit pattern. */
   memzero((char *)opname_symbol_table, sizeof(opname_symbol_table));
-  /* scope_stack is not per-file and should not be reset. */
-  depth_scope_stack = NO_SCOPE_DEPTH;
-  decl_scope_level = NO_SCOPE_DEPTH;
-  depth_innermost_function_scope = NO_SCOPE_DEPTH;
-  depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
-  innermost_function_scope = NULL;
-  depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
-  depth_template_declaration_scope = NO_SCOPE_DEPTH;
-  curr_deferred_access_scope = NO_SCOPE_DEPTH;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if DO_IL_LOWERING
-  source_sequence_entries_disallowed = il_lowering_needed();
-#else /* !DO_IL_LOWERING */
-  source_sequence_entries_disallowed = FALSE;
-#endif /* DO_IL_LOWERING */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
   file_scope_number = take_next_scope_number();
 

@@ -93,9 +93,6 @@ Do any processing that is required at the end of a translation unit
     instantiation_wrapup();
   }  /* if */
 
-  /* Pop the file scope. */
-  pop_scope();
-
   if (!do_preprocessing_only && any_cfront_mode()) {
     /* Determine whether any classes defined in this file require external
        linkage, and if so do the appropriate fixup.  No such fixup is
@@ -133,17 +130,12 @@ it needs to be executed after all templates have been instantiated.
 
   il_scope = curr_translation_unit->primary_scope;
 
-  /* Reactivate the file scope. */
-  push_file_scope(/*is_reactivation=*/TRUE);
-
   /* Do the wrapup_scope processing on file and namespace scopes. */
   wrapup_scope(il_scope, (a_scope_kind)sck_file,
                &curr_translation_unit->file_scope_pointers_block,
                /*is_namespace_wrapup=*/TRUE);
   wrapup_namespace_scopes(il_scope);
 
-  /* Pop the file scope. */
-  pop_scope();
 }  /* file_scope_il_wrapup_part_1 */
 
 
@@ -161,9 +153,6 @@ secondary translation units will have already been copied over.
   a_scope_ptr	il_scope;
 
   il_scope = curr_translation_unit->primary_scope;
-
-  /* Reactivate the file scope. */
-  push_file_scope(/*is_reactivation=*/TRUE);
 
   if (!C_mode()) {
     /* Go through the fixup list for based-type entries and remove entities

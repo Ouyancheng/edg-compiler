@@ -8394,6 +8394,8 @@ Do one-time initialization of variables related to expression processing.
   }  /* if */
   /* Register variables that must be saved and restored when switching
      between translation units. */
+  register_trans_unit_variable(expr_stack);
+  register_trans_unit_variable(curr_expr_ref_entries);
 #if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_variable(imaginary_unit);
   register_trans_unit_variable(nan_constant);

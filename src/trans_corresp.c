@@ -66,6 +66,23 @@ entry in another translation unit.
 }  /* f_canonical_il_entry_of */
 
 
+static a_symbol_ptr corresp_symbol_list(a_symbol_ptr  sym)
+/*
+Return the symbol list on which an entry corresponding to the given sym may
+be expected.  This is the associated inactive list for all scopes, except for
+the file scope because the latter is active while looking for correspondences.
+*/
+{
+  a_symbol_ptr  result;
+  if (!sym->is_class_member && sym->parent.namespace_ptr == NULL) {
+    result = sym->header->symbol;
+  } else {
+    result = sym->header->inactive_symbols;
+  }  /* if */
+  return result;
+}  /* corresp_symbol_list */
+
+
 #if DEBUG
 static void *trace_corresp_ptr = NULL;
 
@@ -915,7 +932,7 @@ other entities.  (Not significant in C mode: C enumerators have no linkage.)
     for (; enumerator != NULL; enumerator = enumerator->next) {
       a_symbol_ptr  enum_sym = (a_symbol_ptr)enumerator
                                                    ->source_corresp.assoc_info,
-                    sym = enum_sym->header->inactive_symbols;
+                    sym = corresp_symbol_list(enum_sym);
       /* Look through the symbol table for any entities with linkage that may
          conflict with an enumerator. */
       for (; sym != NULL; sym = sym->next) {
@@ -1780,7 +1797,7 @@ translation unit correspondence pointer if one is found.
                             "std", 3) == 0);
     record_trans_unit_corresp(nsp, primary_std_namespace);
   } else {
-    a_symbol_ptr  sym = nsp_sym->header->inactive_symbols;
+    a_symbol_ptr  sym = corresp_symbol_list(nsp_sym);
     if (trans_unit_corresp_pointer_of(nsp) == NULL) {
       /* Mark this namespace as visited to avoid infinite recursion. */
       set_no_trans_unit_corresp(nsp);
@@ -1820,7 +1837,7 @@ unit correspondence pointer if one is found.
 
   if (has_name(type) &&
       type_sym != NULL && may_have_correspondence(type_sym)) {
-    sym = type_sym->header->inactive_symbols;
+    sym = corresp_symbol_list(type_sym);
     for (; sym != NULL; sym = sym->next) {
       /* Don't consider symbols in the same file. */
       if (sym->decl_scope != type_sym->decl_scope &&
@@ -2191,7 +2208,7 @@ unit correspondence pointer if one is found.
   if (is_template_symbol(templ_sym) && !templ_sym->is_template_param) {
     /* Template definitions for nontemplate members of class templates should
        not get here.  Nor should template template parameters. */
-    sym = templ_sym->header->inactive_symbols;
+    sym = corresp_symbol_list(templ_sym);
     for (; sym != NULL; sym = sym->next) {
       if (sym->decl_scope != templ_sym->decl_scope &&
           may_have_correspondence(sym) &&
@@ -2283,7 +2300,7 @@ translation unit correspondence pointer if one is found.
   a_symbol_ptr  sym;
 
   check_assertion(routine_sym != NULL);
-  sym = routine_sym->header->inactive_symbols;
+  sym = corresp_symbol_list(routine_sym);
   if (may_have_correspondence(routine_sym)) {
     for (; sym != NULL; sym = sym->next) {
       /* Don't consider symbols in the same file. */
@@ -2361,7 +2378,7 @@ translation unit correspondence pointer if one is found.
 
   if (has_name(var) &&
       var_sym != NULL && may_have_correspondence(var_sym)) {
-    sym = var_sym->header->inactive_symbols;
+    sym = corresp_symbol_list(var_sym);
     for (; sym != NULL; sym = sym->next) {
       /* Don't consider symbols in the same file. */
       if (sym->decl_scope != var_sym->decl_scope &&
@@ -2815,17 +2832,16 @@ corresponding instance, or NULL if no corresponding instance is found.
 }  /* find_corresponding_class_instance_in_trans_unit */
 
 
-static a_symbol_ptr find_corresponding_inactive_symbol_in_trans_unit(
+static a_symbol_ptr find_corresponding_symbol_on_symbol_list(
 				a_symbol_ptr		sym_to_find,
 				a_translation_unit_ptr	tup)
 /*
-Look through the inactive symbols of the symbol header of sym_to_find
+Look through the symbols of the symbol header of sym_to_find
 to find an entry whose canonical IL entry refers to canonical_entry.
 Return a pointer to the symbol found, or NULL if none is found.
 */
 {
   a_symbol_ptr		result_sym = NULL;
-  a_symbol_header_ptr	sym_header;
   a_symbol_ptr		sym;
   a_boolean		is_routine;
   a_symbol_ptr		parent_sym;
@@ -2859,8 +2875,7 @@ Return a pointer to the symbol found, or NULL if none is found.
       parent_namespace = parent_sym->variant.namespace_info.ptr;
     }  /* if */
   }  /* if */
-  sym_header = sym_to_find->header;
-  for (sym = sym_header->inactive_symbols; sym != NULL; sym = sym->next) {
+  for (sym = corresp_symbol_list(sym_to_find); sym != NULL; sym = sym->next) {
     a_boolean		is_list;
     a_symbol_ptr	sym_to_check;
     /* Check the kind of the symbol to see if it is a potential match. */
@@ -2902,7 +2917,7 @@ Return a pointer to the symbol found, or NULL if none is found.
     if (result_sym != NULL) break;
   }  /* for */
   return result_sym;
-}  /* find_corresponding_inactive_symbol_in_trans_unit */
+}  /* find_corresponding_symbol_on_symbol_list */
 
 
 a_symbol_ptr find_corresponding_symbol_in_trans_unit(
@@ -2923,8 +2938,7 @@ that is refers to an entity that corresponds to sym_to_find.
   } else {
     /* The normal case -- look for the corresponding symbol on the inactive
        list. */
-    result_sym = find_corresponding_inactive_symbol_in_trans_unit(
-                                             sym_to_find, tup);
+    result_sym = find_corresponding_symbol_on_symbol_list(sym_to_find, tup);
   }  /* if */
   return result_sym;
 }  /* find_corresponding_symbol_in_trans_unit */

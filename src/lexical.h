@@ -1331,12 +1331,6 @@ typedef struct a_stop_token_stack_entry {
 			   stop_token_array[token] != 0; */
 } a_stop_token_stack_entry;
 
-EXTERN a_stop_token_stack_entry
-		bottom_of_stop_token_stack;
-			/* The initial entry on the stop token stack.  This
-			   is the entry that is used unless a special lexical
-			   context must be started. */
-
 EXTERN a_stop_token_stack_entry_ptr
 		curr_stop_token_stack_entry;
 			/* Pointer to the current stop token stack entry.

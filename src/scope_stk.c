@@ -5520,7 +5520,55 @@ are handled in scope_stk_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(scope_stack);
+  register_trans_unit_variable(size_scope_stack);
+  register_trans_unit_variable(depth_scope_stack);
+  register_trans_unit_variable(depth_of_initial_lookup_scope);
+  register_trans_unit_variable(decl_scope_level);
+  register_trans_unit_variable(depth_innermost_function_scope);
+  register_trans_unit_variable(innermost_function_scope);
+  register_trans_unit_variable(depth_innermost_instantiation_scope);
+  register_trans_unit_variable(depth_template_declaration_scope);
+  register_trans_unit_variable(curr_deferred_access_scope);
+  register_trans_unit_variable(inside_local_class);
+  register_trans_unit_variable(depth_innermost_namespace_scope);
+  register_trans_unit_variable(
+                         depth_of_innermost_scope_that_affects_access_control);
+  register_trans_unit_variable(num_classes_on_scope_stack);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  register_trans_unit_variable(source_sequence_entries_disallowed);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* scope_stk_one_time_init */
+
+
+void scope_stk_trans_unit_init(void)
+/*
+Initialize variables related to scope stack processing that are specific to a
+given translation unit.
+*/
+{
+  scope_stack = NULL;
+  size_scope_stack = 0;
+  depth_scope_stack = NO_SCOPE_DEPTH;
+  depth_of_initial_lookup_scope = NO_SCOPE_DEPTH;
+  decl_scope_level = NO_SCOPE_DEPTH;
+  depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  innermost_function_scope = NULL;
+  depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
+  depth_template_declaration_scope = NO_SCOPE_DEPTH;
+  curr_deferred_access_scope = NO_SCOPE_DEPTH;
+  inside_local_class = FALSE;
+  depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
+  depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+  num_classes_on_scope_stack = 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DO_IL_LOWERING
+  source_sequence_entries_disallowed = il_lowering_needed();
+#else /* !DO_IL_LOWERING */
+  source_sequence_entries_disallowed = FALSE;
+#endif /* DO_IL_LOWERING */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* scope_stk_trans_unit_init */
 
 
 void scope_stk_init(void)

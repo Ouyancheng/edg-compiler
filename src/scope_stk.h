@@ -998,6 +998,8 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
 
 extern void scope_stk_one_time_init(void);
 
+extern void scope_stk_trans_unit_init(void);
+
 extern void scope_stk_init(void);
 
 #if DEBUG

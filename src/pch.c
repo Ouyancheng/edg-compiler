@@ -2011,6 +2011,8 @@ from the PCH file) to reflect the information loaded from the file.
       (void)take_next_scope_number();
     }  /* for */
   }
+  /* Clear the stop tokens array that was restored. */
+  clear_stop_tokens();
   db_exit();
 }  /* pch_fixup_part_1 */
 

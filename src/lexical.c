@@ -12283,6 +12283,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_stop_token_stack_entries),
       pch_saved_var_array_elem(include_file_history_list),
       pch_saved_var_array_elem(name_linkage_constants),
+      pch_saved_var_array_elem(curr_stop_token_stack_entry),
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),
@@ -12302,6 +12303,14 @@ are handled in lexical_init.)
     register_pch_saved_variables(saved_vars);
   }  /* if */
   register_trans_unit_variable(next_token_is_top_level_decl_start);
+  register_trans_unit_variable(curr_stop_token_stack_entry);
+  register_trans_unit_variable(curr_token);
+  register_trans_unit_variable(curr_token_pragmas);
+  register_trans_unit_variable(cached_token_rescan_list);
+  register_trans_unit_variable(reusable_cache_stack);
+  register_trans_unit_variable(any_initial_get_token_tests_needed);
+  register_trans_unit_variable(treat_newline_as_token);
+  register_trans_unit_variable(curr_token_asm_string);
 }  /* lexical_one_time_init */
 
 
@@ -12314,6 +12323,7 @@ done to determine whether a precompiled header may be used.
 {
   /* Variables in lexical.h: */
   depth_input_stack = -1;
+  curr_token = tok_error;
   curr_ise = NULL;
   if (is_primary_translation_unit) {
     /* These must be reset here after the PCH prefix has been read. */
@@ -12362,6 +12372,11 @@ Initialize variables that are specific to a given translation unit.
      since it is related to tokenization. */
   next_token_is_top_level_decl_start = FALSE;
   include_file_history_list = NULL;
+  /* Clear the set of tokens on which to stop a flush following a
+     syntax error. */
+  curr_stop_token_stack_entry = NULL;
+  push_stop_token_stack();
+  clear_stop_tokens();
 }  /* lexical_trans_unit_init */
 
 
@@ -12378,10 +12393,6 @@ of the front end.
   avail_source_line_modifs = NULL;
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
-  /* Clear the set of tokens on which to stop a flush following a
-     syntax error. */
-  curr_stop_token_stack_entry = &bottom_of_stop_token_stack;
-  clear_stop_tokens();
   /* Static variables in lexical.c: */
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
