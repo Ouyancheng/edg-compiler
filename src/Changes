@@ -1,5 +1,11 @@
 Version 3.5
 
+10/13/04 Embedded C: Named-register variables of void type
+
+In Embedded C mode (and any other modes accepting named-register storage
+class specifiers) an error is now issued if a named-register variable is
+declared to be of a void type.
+
 10/13/04 Microsoft compatibility: Implicit calling conventions
 
 In Microsoft mode, the default calling convention is normally "__cdecl"

@@ -6337,6 +6337,8 @@ variable can be diagnosed.
       pos_error(ec_register_in_use, pos);
     } else if (is_array_type(var->type)) {
       pos_error(ec_no_named_register_for_array, pos);
+    } else if (is_void_type(var->type)) {
+      pos_error(ec_void_named_register, pos);
     } else if (named_register_storage_classes[register_id].size <
                                              skip_typerefs(var->type)->size) {
       pos_error(ec_register_too_small, pos);

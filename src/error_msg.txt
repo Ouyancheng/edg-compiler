@@ -1412,6 +1412,7 @@ ec_unsigned_fixed_point_negation;;"negation of an unsigned fixed-point value"
 ec_operator_not_allowed;;"this operator is not allowed at this point; use parentheses"
 ec_nonconstant_flexible_array_member_init;;"flexible array member initializer must be constant"
 ec_register_name_on_nonregister;;"register names can only be used for register variables"
+ec_void_named_register;;"named-register variables cannot have void type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
