@@ -759,7 +759,6 @@ ec_incr_of_bool_deprecated;;"incrementing a bool value is deprecated"
 ec_bool_type_not_allowed;;"bool type is not allowed"
 ec_base_class_offset_too_large;;"offset of base class %no1 within class %no2 is too large"
 ec_expr_not_bool;;"expression must have bool type (or be convertible to bool)"
-ec_cannot_deduce_from_nontype_expr;;"nontype parameters that must be deduced may be used in expressions"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
