@@ -3060,6 +3060,7 @@ on a prior declaration.
     sym->class_of_which_a_member = class_type;
     sym->variant.routine = make_routine(type_ptr, (a_storage_class)sc_static,
                                         /*at_file_scope=*/TRUE);
+    sym->variant.routine->source_corresp.class_of_which_a_member = class_type;
     *old_type = type_ptr;
   } else {
     /* A member function symbol with a compatible type was found. */

@@ -2489,6 +2489,7 @@ special function kind (e.g., constructor, destructor), if any.
                                               /*at_file_scope=*/FALSE);
     /* Set the source correspondence, including the access specifier. */
     set_source_corresp(&rtn->source_corresp, sym);
+    rtn->source_corresp.class_of_which_a_member = class_type;
     rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
@@ -2697,6 +2698,7 @@ table.
   }  /* if */
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
+  var->source_corresp.class_of_which_a_member = class_type;
   var->source_corresp.name_linkage =
                                (a_name_linkage_kind)nlk_cplusplus_external;
   var->source_corresp.access = access;
@@ -3222,6 +3224,7 @@ class, struct, or union.
       member_sym->defined = TRUE;
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
+    field->source_corresp.class_of_which_a_member = class_type;
     field->source_corresp.access = access;
     /* Add the field to the temporary list for this class/struct/union. */
     if (*end_of_list == NULL) {
@@ -5690,6 +5693,8 @@ class/struct/union is actually defined.
             decl_typedef(&locator, local_type, &typedef_sym_ptr);
             typedef_sym_ptr->class_of_which_a_member = class_type;
             typedef_sym_ptr->variant.type->source_corresp.access = access;
+            typedef_sym_ptr->variant.type->
+                          source_corresp.class_of_which_a_member = class_type;
           } else {
             if (C_dialect == C_dialect_cplusplus) {
               if (!type_explicitly_specified && first_declarator) {
