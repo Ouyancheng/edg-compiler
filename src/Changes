@@ -1,5 +1,11 @@
 Version 3.2
 
+4/23/03  Spurious correspondence errors on inline functions
+
+When support for "extern inline" functions was disabled, the front end
+sometimes issued spurious correspondence errors on inline functions.
+This is now fixed.
+
 4/23/03  Internal error on dependent friend class
 
 When source sequence lists and prototype instantiations are recorded in the

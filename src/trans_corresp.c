@@ -2056,6 +2056,35 @@ is_inline flag.
 }  /* inline_flag_can_differ */
 
 
+static a_boolean routine_name_linkage_can_differ(a_routine_ptr  rp1,
+                                                 a_routine_ptr  rp2)
+/*
+Determine whether two C++ routines can validly have different name linkages.
+This should only happen for inline functions when extern_inline_allowed is
+FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (!extern_inline_allowed) {
+    if (rp1->is_inline) {
+      a_routine_ptr  tmp = rp1;
+      rp1 = rp2;
+      rp2 = tmp;
+    }  /* if */
+    /* rp2 must be inline for the differing name linkages to be valid.
+       If rp1 has not yet been "instantiated", it may still have extern "C" or
+       "C++" linkage, whereas the instantiated entity has internal linkage. */
+    if (rp2->is_inline && rp2->defined && !rp1->defined &&
+        rp2->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_internal) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* routine_name_linkage_can_differ */
+
+
 static a_boolean is_generated_new_or_delete_operator(a_routine_ptr  routine)
 /*
 Return TRUE if the given routine is a new or delete operator (including
@@ -2147,7 +2176,8 @@ is in fact valid.
            routine->fenv_access != corresp_routine->fenv_access ||
            routine->cx_limited_range != corresp_routine->cx_limited_range)) ||
          scp->access != corresp_scp->access ||
-         scp->name_linkage != corresp_scp->name_linkage)) {
+         (scp->name_linkage != corresp_scp->name_linkage &&
+          !routine_name_linkage_can_differ(routine, corresp_routine)))) {
       match = FALSE;
       process_bad_trans_unit_corresp(iek_routine, routine, corresp_routine);
     }  /* if */

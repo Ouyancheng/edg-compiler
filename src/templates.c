@@ -4635,7 +4635,8 @@ prototype instantiation is considered as a potential match.
         a_scope_depth	depth_to_add;
         depth_to_add = tssp->is_nonreal_member ? DEPTH_OF_FILE_SCOPE
                                                : NO_SCOPE_DEPTH;
-        add_to_types_list(class_type, depth_to_add);
+        add_to_types_list_full(class_type, depth_to_add,
+                               /*do_placeholder=*/FALSE);
       }  /* if */
     } else if (sym != prototype_sym) {
       /* Update the friend information associated with this template.
