@@ -6444,7 +6444,7 @@ recorded with this particular header.
     if (param->kind == (a_template_parameter_kind)tpk_nontype) {
       a_constant_ptr  cp = param->variant.nontype.constant;
 
-      /* Remap the source correspondence entry for output: */
+      /* Remap the source correspondence entry for output. */
       remap_template_param(&cp->variant.template_param.variant.coordinates,
                            &param->source_corresp);
       /* Emit the parameter declaration: */
@@ -6467,7 +6467,7 @@ recorded with this particular header.
         gen_constant(dac, /*need_parens=*/FALSE);
       }  /* if */  
     } else if (param->kind == (a_template_parameter_kind)tpk_type) {
-      /* Remap the source correspondence entry for output: */
+      /* Remap the source correspondence entry for output. */
       remap_template_param(&param->variant.type.ptr
                               ->variant.template_param.extra_info
                               ->coordinates,
@@ -6483,6 +6483,9 @@ recorded with this particular header.
       }  /* if */  
     } else {
       check_assertion(param->kind == (a_template_parameter_kind)tpk_template);
+      /* Remap the source correspondence entry for output. */
+      remap_template_param(&param->variant.templ.class_template->coordinates,
+                           &param->source_corresp);
       gen_template_header(param->variant.templ.class_template->template_decl);
       write_tok_str(" class ");
       /* Set the source position for the name. */
@@ -6513,13 +6516,12 @@ particular header.
       a_constant_ptr  cp = param->variant.nontype.constant;
       unmap_template_param(&cp->variant.template_param.variant.coordinates);
     } else if  (param->kind == (a_template_parameter_kind)tpk_type) {
-      /* Remap the source correspondence entry for output: */
-      remap_template_param(&param->variant.type.ptr
+      unmap_template_param(&param->variant.type.ptr
                               ->variant.template_param.extra_info
-                              ->coordinates,
-                           &param->source_corresp);
+                              ->coordinates);
     } else {
-      unexpected_condition_str("Not yet implemented");
+      check_assertion(param->kind == (a_template_parameter_kind)tpk_template);
+      unmap_template_param(&param->variant.templ.class_template->coordinates);
     }  /* if */
   }  /* for */
 }  /* unmap_template_parameters */
