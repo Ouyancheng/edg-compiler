@@ -4833,6 +4833,7 @@ is not a template declaration scope.
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
   a_template_param_ptr		    templ_param_list;
+  a_boolean                         set_invisible = FALSE;
 #if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -4859,6 +4860,9 @@ is not a template declaration scope.
   idlb.effective_decl_level =
               compute_friend_effective_decl_level(orig_decl_level);
   idlb.is_friend_decl = idlb.effective_decl_level != orig_decl_level;
+  if (idlb.is_friend_decl && !friend_injection_enabled) {
+    set_invisible = TRUE;
+  }  /* if */
   idlb.func_info = func_info;
   idlb.type = type_ptr;
   idlb.locator = locator;
@@ -5048,10 +5052,23 @@ is not a template declaration scope.
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new
            symbol and add it to an overload list. */
+        a_boolean  overload_set_is_invisible = FALSE;
+
         check_assertion(!microsoft_mode || !invalid_scope_for_new_or_delete);
+        if (set_invisible && homonym_symbol->is_invisible) {
+          overload_set_is_invisible = TRUE;
+        }  /* if */
         sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
                                       locator, /*is_constructor=*/FALSE,
                                       homonym_symbol, &overload_symbol);
+        if (set_invisible) {
+          sym->is_invisible = TRUE;
+          if (overload_set_is_invisible) {
+            overload_symbol->is_invisible = TRUE;
+          }  /* if */
+        } else if (!idlb.is_friend_decl) {
+          overload_symbol->is_invisible = FALSE;
+        }  /* if */
       } else {
         /* No overloading.  Simply create a new symbol. */
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
@@ -5065,6 +5082,8 @@ is not a template declaration scope.
              table. */
           remove_symbol(sym);
         }  /* if */
+        /* Mark friend functions for which this is the initial declaration. */
+        if (set_invisible) sym->is_invisible = TRUE;
       }  /* if */
       tssp = template_supplement_for_symbol(sym);
       if (tssp->variant.function.decl_cache.decl_info == NULL) {
