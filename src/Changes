@@ -1,12 +1,19 @@
 Version 2.16
 
+4/23/93  Bug in computing base class offsets
+
+A bug has been fixed in computing the base class offset of certain
+nonvirtual indirect base classes that were themselves base classes of
+virtual base classes; it was a problem in "cfront object code
+compatibilty" mode only.
+
 4/22/93  cfront compatibility mode extension for pointers-to-members
 
 Type qualifiers on the "this" parameter may now be dropped in
 initializations and assignments of pointers to member functions:
 
-             struct A { void f() const; };
-             void (A::*fp)() = &A::f;  // allowed as an extension
+  struct A { void f() const; };
+  void (A::*fp)() = &A::f;        // allowed as an extension
 
 4/22/93  Elaborated-type-specifier using template param name
 
