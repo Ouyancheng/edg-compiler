@@ -8395,7 +8395,7 @@ typedef enum /* a_source_language */ {
   sl_C,
   sl_Fortran		/*lint -esym(769,sl_Fortran)*/
 } a_source_language;
-EXTERN struct il_header_tag {
+typedef struct an_il_header {
   a_source_file_ptr
                 primary_source_file;
                         /* The description of the primary source file,
@@ -8551,7 +8551,9 @@ EXTERN struct il_header_tag {
 			/* Pointer to a list of types that were used in an
 			   exception handling or RTTI construct and aren't
 			   otherwise on a types list. */
-} il_header;
+} an_il_header;
+
+EXTERN an_il_header il_header;
 
 
 #if NEAR_AND_FAR_ALLOWED

@@ -97,7 +97,7 @@ static an_error_code
 			/* An error code that specifies why a given
 			   precompiled header file could not be used. */
 
-static struct il_header_tag
+static an_il_header
 		il_header_from_pch;
 			/* Copy of the IL header from the compilation that
 			   generated the PCH file. */
