@@ -4668,7 +4668,7 @@ prototype instantiation is considered as a potential match.
         extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
         update_extended_decl_info_for_class(class_type, &extended_decl_info,
-                                            &pos);
+                                            /*class_definition=*/FALSE, &pos);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -9563,10 +9563,13 @@ Make sure that any default arguments are at the end of the parameter list.
 static void update_extended_decl_info_for_class_template(
                          a_template_symbol_supplement_ptr tssp,
                          an_extended_decl_info_block      *extended_decl_info,
+                         a_boolean                        class_definition,
                          a_source_position                *err_pos)
 /*
 Update the Microsoft decl modifiers information for the specified class
 template.  Also update any instances that have already been generated.
+class_definition is TRUE if the specifiers as part of a class template
+definition (as opposed to a mere declaration).
 */
 {
   a_symbol_ptr  instance_sym;
@@ -9580,7 +9583,7 @@ template.  Also update any instances that have already been generated.
        the subordinate template has no prototype instantiation. */
     prototype_type = type_symbol_type(prototype_sym);
     update_extended_decl_info_for_class(prototype_type, extended_decl_info,
-                                        err_pos);
+                                        class_definition, err_pos);
   }  /* if */
   /* Update any instances that have already been created. */
   for (instance_sym = tssp->variant.class_template.instantiations;
@@ -9588,7 +9591,8 @@ template.  Also update any instances that have already been generated.
     a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym) &&
         !tp->variant.class_struct_union.is_specialized) {
-      update_extended_decl_info_for_class(tp, extended_decl_info, err_pos);
+      update_extended_decl_info_for_class(tp, extended_decl_info,
+                                          /*class_definition=*/FALSE, err_pos);
     }  /* if */
   }  /* for */
   if (tssp->subordinate_templates != NULL) {
@@ -9604,6 +9608,7 @@ template.  Also update any instances that have already been generated.
       subordinate_tssp = template_supplement_for_symbol(subordinate_sym);
       update_extended_decl_info_for_class_template(subordinate_tssp,
                                                    extended_decl_info,
+                                                   class_definition,
                                                    err_pos);
     }  /* for */
   }  /* if */
@@ -11303,6 +11308,7 @@ declaration of a partial specialization declared outside of its class.
          do this for subordinate templates -- the prototype of the prototype
          template is used. */
       update_extended_decl_info_for_class_template(tssp, &extended_decl_info,
+                                                   is_definition,
                                                    &locator.source_position);
     }  /* if */
   }  /* if */

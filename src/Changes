@@ -1,5 +1,13 @@
 Version 3.3
 
+7/2/03   Microsoft mode: __declspec(align(...))
+
+In Microsoft mode, the front end now accepts declaration specifiers of the
+form __declspec(align(x)), where x is an integer literal that is a power of
+two.  This allows the alignment to be specified explicitly for typedef types,
+class types, variables, and fields (the latter only when the configuration
+macro USER_CONTROL_OF_STRUCT_PACKING is set to TRUE).
+
 7/1/03   Microsoft compatibility: __FUNCTION__ etc. are string literals
 
 The Microsoft keywords __FUNCTION__ and __FUNCDNAME__ now represent

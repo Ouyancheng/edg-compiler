@@ -61,6 +61,7 @@ extern void scan_and_discard_extended_decl_modifiers(void);
 extern void update_extended_decl_info_for_class(
                             a_type_ptr                   class_type,
                             an_extended_decl_info_block  *extended_decl_info,
+                            a_boolean                    class_definition,
                             a_source_position            *err_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 

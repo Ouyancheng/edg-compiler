@@ -2306,6 +2306,78 @@ information is given by scp.
   }  /* if */
 }  /* dump_decl_associated_pragmas */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+
+static void dump_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
+/*
+Print a set of Microsoft declaration modifiers.
+*/
+{
+  /* __declspec(nothrow), represented by DM_NOTHROW, is a C++-only attribute
+     and is therefore not put out in C code.  Likewise for
+     __declspec(novtable) and DM_NOVTABLE. */
+  if (decl_modifiers &
+      (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED | DM_SELECTANY)) {
+    write_tok_str("__declspec( ");
+    if (decl_modifiers & DM_DLLIMPORT) {
+      write_tok_str("dllimport ");
+    }  /* if */
+    if (decl_modifiers & DM_DLLEXPORT) {
+      write_tok_str("dllexport ");
+    }  /* if */
+    if (decl_modifiers & DM_THREAD) {
+      write_tok_str("thread ");
+    }  /* if */
+    if (decl_modifiers & DM_NAKED) {
+      write_tok_str("naked ");
+    }  /* if */
+    if (decl_modifiers & DM_SELECTANY) {
+      write_tok_str("selectany ");
+    }  /* if */
+    write_tok_str(") ");
+  }  /* if */
+  if (decl_modifiers & DM_MICROSOFT_INLINE) {
+    write_tok_str("__inline ");
+  }  /* if */
+  if (decl_modifiers & DM_FORCEINLINE) {
+    write_tok_str("__forceinline ");
+  }  /* if */
+}  /* dump_microsoft_decl_modifiers */
+
+
+static void dump_microsoft_allocate_declspec(char *allocate_segname)
+/*
+Put out the Microsoft __declspec(allocate(...)) declaration modifier.
+allocate_segname is the segment name, or NULL if the modifier does not apply.
+*/
+{
+  if (allocate_segname != NULL) {
+    write_tok_str("__declspec(allocate(");
+    ensure_enough_room_on_line(strlen(allocate_segname)+2);
+    write_ch('"');
+    write_str(allocate_segname);
+    write_ch('"');
+    write_tok_str(")) ");
+  }  /* if */
+}  /* dump_microsoft_allocate_declspec */
+
+
+static void dump_microsoft_align_declspec(a_targ_alignment alignment)
+/*
+Put out the Microsoft __declspec(align(...)) declaration modifier if the
+given alignment value is nonzero.
+*/
+{
+  if (alignment != 0) {
+    write_tok_str("__declspec(align(");
+    write_unsigned_num(alignment);
+    write_tok_str(")) ");
+  }  /* if */
+}  /* dump_microsoft_align_declspec */
+
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void dump_typedef_decl(a_type_ptr type)
 /*
@@ -2346,6 +2418,13 @@ Print a typedef declaration.
       dump_decl_associated_pragmas(&type->source_corresp);
       set_output_position(&type->source_corresp.decl_position);
       write_tok_str("typedef ");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+      if (type->alignment_set_explicitly) {
+        dump_microsoft_align_declspec(type->alignment);
+      }  /* if */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
@@ -2723,6 +2802,13 @@ final semicolon if output_final_semi is TRUE.
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str(tag_kind(type->kind));
     write_space();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+    if (type->alignment_set_explicitly) {
+      dump_microsoft_align_declspec(type->alignment);
+    }  /* if */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     dump_type_name(type);
     write_tok_str(" {");
     if (annotate) {
@@ -2748,6 +2834,11 @@ final semicolon if output_final_semi is TRUE.
       }  /* if */
       set_output_position(&field->source_corresp.decl_position);
       dump_decl_associated_pragmas(&field->source_corresp);
+#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+      dump_microsoft_align_declspec(field->alignment);
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
       if (!field->is_bit_field) {
         a_type_ptr field_type = field->type;
         /* Not a bit field. */
@@ -6053,64 +6144,6 @@ for the variable.
   return init_con;
 }  /* constant_initializer */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-
-static void dump_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
-/*
-Print a set of Microsoft declaration modifiers.
-*/
-{
-  /* __declspec(nothrow), represented by DM_NOTHROW, is a C++-only attribute
-     and is therefore not put out in C code.  Likewise for
-     __declspec(novtable) and DM_NOVTABLE. */
-  if (decl_modifiers &
-      (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED | DM_SELECTANY)) {
-    write_tok_str("__declspec( ");
-    if (decl_modifiers & DM_DLLIMPORT) {
-      write_tok_str("dllimport ");
-    }  /* if */
-    if (decl_modifiers & DM_DLLEXPORT) {
-      write_tok_str("dllexport ");
-    }  /* if */
-    if (decl_modifiers & DM_THREAD) {
-      write_tok_str("thread ");
-    }  /* if */
-    if (decl_modifiers & DM_NAKED) {
-      write_tok_str("naked ");
-    }  /* if */
-    if (decl_modifiers & DM_SELECTANY) {
-      write_tok_str("selectany ");
-    }  /* if */
-    write_tok_str(") ");
-  }  /* if */
-  if (decl_modifiers & DM_MICROSOFT_INLINE) {
-    write_tok_str("__inline ");
-  }  /* if */
-  if (decl_modifiers & DM_FORCEINLINE) {
-    write_tok_str("__forceinline ");
-  }  /* if */
-}  /* dump_microsoft_decl_modifiers */
-
-
-static void dump_microsoft_allocate_declspec(char *allocate_segname)
-/*
-Put out the Microsoft __declspec(allocate(...)) declaration modifier.
-allocate_segname is the segment name, or NULL if the modifier does not apply.
-*/
-{
-  if (allocate_segname != NULL) {
-    write_tok_str("__declspec(allocate(");
-    ensure_enough_room_on_line(strlen(allocate_segname)+2);
-    write_ch('"');
-    write_str(allocate_segname);
-    write_ch('"');
-    write_tok_str(")) ");
-  }  /* if */
-}  /* dump_microsoft_allocate_declspec */
-
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void dump_variable_decl(a_variable_ptr variable,
                                a_boolean      dump_vars_without_initializers,
@@ -6306,6 +6339,7 @@ parameters.
         }  /* if */
         dump_microsoft_decl_modifiers(decl_modifiers);
         dump_microsoft_allocate_declspec(variable->allocate_segname);
+        dump_microsoft_align_declspec(variable->alignment);
       }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

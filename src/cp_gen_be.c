@@ -2771,6 +2771,20 @@ put out a "__declspec(deprecated)" specifier.
 }  /* gen_microsoft_deprecated_spec */
 
 
+static void gen_microsoft_align_declspec(a_targ_alignment alignment)
+/*
+Put out the Microsoft __declspec(align(...)) declaration modifier if the
+given alignment value is nonzero.
+*/
+{
+  if (alignment != 0) {
+    write_tok_str("__declspec(align(");
+    write_unsigned_num(alignment);
+    write_tok_str(")) ");
+  }  /* if */
+}  /* gen_microsoft_align_declspec */
+
+
 static void gen_microsoft_class_decl_modifiers(a_type_ptr type)
 /*
 Put out declaration modifiers that apply to a class as a whole.
@@ -2784,6 +2798,9 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
       /* Only display the inheritance kind if it appeared explicitly on at
          least one declaration of the current class. */
       gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
+    }  /* if */
+    if (type->alignment_set_explicitly) {
+      gen_microsoft_align_declspec(type->alignment);
     }  /* if */
     gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
     gen_microsoft_uuid_declspec(ctsp->uuid_string);
@@ -4149,9 +4166,10 @@ declaration following this one is such a continuation.
       write_tok_str("put=");
       write_tok_str(field->put_property_name);
     }  /* if */
-    write_tok_str("))");
+    write_tok_str(")) ");
   }  /* if */
   gen_microsoft_deprecated_spec(&field->source_corresp);
+  gen_microsoft_align_declspec(field->alignment);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
@@ -4483,6 +4501,13 @@ declaration following this one is such a continuation.
   } else {
     a_type_ptr class_type;
     if (!suppress_specifiers) write_tok_str("typedef ");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+    if (type->alignment_set_explicitly) {
+      gen_microsoft_align_declspec(type->alignment);
+    }  /* if */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_function_type(under_type) &&
         (class_type = f_skip_typerefs(under_type)->variant.routine.extra_info->
                                                          this_class) != NULL) {
@@ -9532,6 +9557,7 @@ declaration following this one is such a continuation.
       gen_microsoft_decl_modifiers(decl_modifiers);
       gen_microsoft_allocate_declspec(var->allocate_segname);
       gen_microsoft_deprecated_spec(&var->source_corresp);
+      gen_microsoft_align_declspec(var->alignment);
     }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

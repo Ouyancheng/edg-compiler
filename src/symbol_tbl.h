@@ -1276,6 +1276,10 @@ typedef struct a_decl_modifiers_block {
 			/* Pointer to a string representing the argument of an
 			   allocate decl-modifier (in Microsoft-compatibility
 			   mode). */
+  a_targ_alignment
+		alignment;
+			/* Alignment specified using __declspec(align(x)).
+			   Zero if there was no such specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_decl_modifiers_block;
 

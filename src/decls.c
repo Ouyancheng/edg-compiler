@@ -3203,6 +3203,9 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
   if (new_modifiers->is_deprecated) {
     variable->source_corresp.is_deprecated = TRUE;
   }  /* if */
+  if (new_modifiers->alignment != 0) {
+    variable->alignment = new_modifiers->alignment;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (any_invalid_redecl) {
     pos_diagnostic(es_discretionary_error,
@@ -7168,15 +7171,18 @@ typedef, we must make sure to propagate that to its members.
 }  /* set_linkage_for_class_members */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED || \
+    !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL.  attributes
-                is not used unless GNU extensions are supported. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
+                is not used unless GNU extensions are supported.
+                decl_modifiers is only used with Microsoft extensions. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS... */
 void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,
                   an_attribute_ptr             attributes,
+                  a_decl_modifiers_block_ptr   decl_modifiers,
                   a_symbol_ptr                 *symbol_ptr,
                   a_source_sequence_entry_ptr  declarator_ssep,
                   a_decl_pos_block_ptr         decl_pos_block)
@@ -7538,6 +7544,12 @@ return a pointer to it in *symbol_ptr.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_modifiers != NULL && decl_modifiers->alignment != 0) {
+    set_declspec_align(tp, decl_modifiers->alignment,
+                       &locator->source_position);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 return_point:
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
@@ -11539,8 +11551,8 @@ continue_with_declaration:
            in decl_parameter, called when the function body is scanned. */
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
-        decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL,
-                     attributes, &symbol_ptr, declarator_ssep,
+        decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL, attributes,
+                     &decl_modifiers, &symbol_ptr, declarator_ssep,
                      &decl_pos_block);
       } else if (is_static_data_member) {
         /* A static data member definition. */

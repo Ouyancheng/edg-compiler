@@ -8142,6 +8142,7 @@ i.e., rewrite them as though they had been declared with [*].
 }  /* remove_assoc_vla_dimensions */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 char *uuid_string_of_type(a_type_ptr  type)
 /*
 Return the uuid specification of a class or enum type.  If the given type is
@@ -8160,6 +8161,24 @@ not a class or enum type, return NULL.
   }  /* if */
   return result;
 }  /* uuid_string_of_type */
+
+
+void set_declspec_align(a_type_ptr         type,
+                        a_targ_alignment   alignment,
+                        a_source_position  *pos)
+/*
+Apply the given alignment to the given type: It was specified through a
+Microsoft __declspec(align(x)) construct.  If the alignment was already
+set explicitly, issue a warning for the given position.
+*/
+{
+  if (type->alignment_set_explicitly) {
+    pos_warning(ec_multiple_declspec_align, pos);
+  }  /* if */
+  type->alignment_set_explicitly = TRUE;
+  type->alignment = alignment;
+}  /* set_declspec_align */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

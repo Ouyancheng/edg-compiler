@@ -9577,6 +9577,11 @@ specific information about the member declaration, respectively.
   if (decl_info->decl_modifiers.is_deprecated) {
     field->source_corresp.is_deprecated = TRUE;
   }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (decl_info->decl_modifiers.alignment != 0) {
+    field = decl_info->decl_modifiers.alignment;
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
@@ -12453,8 +12458,8 @@ the IL, the template header is passed via template_decl.
       }  /* if */
       /* Typedef declaration. */
       decl_typedef(&locator, local_type, class_type, attributes,
-                   &decl_info.member_sym, decl_info.declarator_ssep,
-                   &decl_info.decl_pos_block);
+                   &decl_info.decl_modifiers, &decl_info.member_sym,
+                   decl_info.declarator_ssep, &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
           curr_routine_fixup->def_arg_expr_fixup_list != NULL) {

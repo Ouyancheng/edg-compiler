@@ -25,6 +25,7 @@ decl_spec.c -- Scanning of declaration specifiers.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "layout.h"
 #include "folding.h"
 #include "statements.h"
 
@@ -124,6 +125,44 @@ necessarily null-terminated).
   if (str != orig_str+length) err = TRUE;
   return !err;
 }  /* is_valid_GUID_string */
+
+
+static void scan_declspec_align(a_decl_modifiers_block_ptr  decl_modifiers)
+/*
+Scan the Microsoft C/C++ mode extension
+
+  __declspec(align(<integer-literal>)
+
+The current token is the "align" modifier token.  Add the information on
+alignment specification to *decl_modifiers.  Return with the closing
+parenthesis of the property list as the current token.
+*/
+{
+  /* Skip the "align" specifier. */
+  (void)get_token();
+  if (curr_token != tok_lparen) {
+    error(ec_exp_lparen);
+  } else {
+    /* Skip the left parenthesis. */
+    (void)get_token();
+    add_stop_token(tok_rparen);
+    if (curr_token == tok_int_constant) {
+      a_boolean   ovflo = FALSE;
+      a_host_large_integer  alignment =
+                     value_of_integer_constant(&const_for_curr_token, &ovflo);
+      if (ovflo ||
+          !check_pack_alignment_value(alignment, &decl_modifiers->alignment)) {
+        error(ec_bad_alignment_specifier);
+      }  /* if */
+      (void)get_token();
+    } else {
+      syntax_error(ec_exp_int_literal);
+    }  /* if */
+    /* Check for closing parenthesis. */
+    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+  }  /* if */
+}  /* scan_declspec_align */
 
 
 static void scan_declspec_property(a_decl_modifiers_block_ptr  decl_modifiers)
@@ -363,6 +402,8 @@ declaration of a class member.
         } else {
           decl_modifiers->flags |= DM_NORETURN;
         }  /* if */
+      } else if (strcmp(modifier, "align") == 0) {
+        scan_declspec_align(decl_modifiers);
       } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
         if (!is_class_decl) {
           /* "uuid" is allowed only on a class declaration. */
@@ -620,11 +661,14 @@ given position.
 void update_extended_decl_info_for_class(
                             a_type_ptr                  class_type,
                             an_extended_decl_info_block *extended_decl_info,
+                            a_boolean                   class_definition,
                             a_source_position           *err_pos)
 /*
 Update the specified class type with information based on a previous scan of
-extended declaration modifiers, as specified by *extended_decl_info.  err_pos
-is a pointer to a source position used for diagnostics.
+extended declaration modifiers, as specified by *extended_decl_info.
+class_definition is TRUE if the modifiers appeared on a class definition
+(as opposed to just a declaration)  err_pos is a pointer to a source position
+used for diagnostics.
 */
 {
   a_class_type_supplement_ptr ctsp;
@@ -743,6 +787,11 @@ is a pointer to a source position used for diagnostics.
   }  /* if */
   if (extended_decl_info->decl_modifiers.is_deprecated) {
     class_type->source_corresp.is_deprecated = TRUE;
+  }  /* if */
+  if (class_definition && extended_decl_info->decl_modifiers.alignment != 0) {
+    set_declspec_align(class_type,
+                       extended_decl_info->decl_modifiers.alignment,
+                       err_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_extended_decl_info_for_class */
@@ -1688,23 +1737,28 @@ which it was added.
 }  /* duplicate_friend_sym_in_namespace */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
+    !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
              /* marked_as_gnu_extension is not used if GNU C extensions
                 are not allowed. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
-static a_boolean class_specifier(a_boolean         vacuous_decl_allowed,
-                                 a_boolean         is_friend_decl,
-                                 a_boolean         is_typedef,
-                                 a_boolean         is_ref_within_new_expr,
-				 a_boolean         is_explicit_instantiation,
-                                 a_boolean         is_template_specialization,
-                                 a_boolean         marked_as_gnu_extension,
-                                 a_type_ptr        *type_ptr,
-                                 a_boolean         *declares_something,
-                                 a_boolean         *defines_something,
-                                 a_decl_pos_block  *decl_pos_block)
+             /* prefix_decl_modifiers is not used if Microsoft extensions
+                are not allowed. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || ... */
+static a_boolean class_specifier(
+                        a_boolean                   vacuous_decl_allowed,
+                        a_boolean                   is_friend_decl,
+                        a_boolean                   is_typedef,
+                        a_boolean                   is_ref_within_new_expr,
+                        a_boolean                   is_explicit_instantiation,
+                        a_boolean                   is_template_specialization,
+                        a_boolean                   marked_as_gnu_extension,
+                        a_decl_modifiers_block_ptr  prefix_decl_modifiers,
+                        a_type_ptr                  *type_ptr,
+                        a_boolean                   *declares_something,
+                        a_boolean                   *defines_something,
+                        a_decl_pos_block            *decl_pos_block)
 /*
 Scan a class-specifier (3.5.2.1), which declares a struct or
 union type.  The syntax is
@@ -2636,9 +2690,18 @@ new expression and should therefore not be treated as a declaration.
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  if (is_class_definition && prefix_decl_modifiers != NULL &&
+      prefix_decl_modifiers->alignment != 0) {
+    /* Make sure that any __declspec(align(...)) specifier preceding the
+       class-key is applied prior to such specifiers appearing after the
+       keyword. */
+    set_declspec_align(class_type, prefix_decl_modifiers->alignment,
+                       &locator.source_position);
+  }  /* if */
   if (!C_mode() && (microsoft_mode or_near_and_far_enabled()) &&
       tag_sym->kind != (a_symbol_kind)sk_type) {
     update_extended_decl_info_for_class(class_type, &extended_decl_info,
+                                        is_class_definition,
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -4805,6 +4868,113 @@ check_missing_declarator_in_member_declaration.
 }  /* unelaborated_cfront_friend_class */
 
 
+static void microsoft_specific_decl_specifiers(
+                                a_decl_flag_set         input_flags,
+                                a_decl_flag_set         *output_flags,
+                                a_decl_specifiers_set   *decl_specifiers_seen,
+                                a_decl_modifiers_block  *decl_modifiers,
+                                a_boolean               *no_remaining_token,
+                                a_boolean               *err)
+/*
+Scan certain Microsoft-specific specifiers (__declspec(...), __inline, and
+__forceinline) and update *output_flags, *decl_specifiers_seen, and
+*decl_modifiers accordingly.  Set *no_remaining_token when the __declspec
+specifier has been parsed since that process consumes the right parenthesis
+and hence the caller should not skip an additional token.  Set *err in case
+of an error.
+*/
+{
+  an_extended_decl_info_block
+                     extended_decl_info;
+  a_source_position  specifier_start_pos = pos_curr_token;
+  a_boolean          is_declspec = FALSE;
+  a_boolean          is_parameter = ((input_flags & DSI_IS_PARAMETER) != 0);
+  a_boolean          is_member_decl =
+                           ((input_flags & DSI_IS_MEMBER_DECLARATION) != 0);
+
+  clear_extended_decl_info_block(extended_decl_info);
+  /* A Microsoft storage class modifier.  If this is a __declspec,
+     scan the list of declaration modifiers. */
+  switch (curr_token) {
+    case tok_declspec:
+      scan_extended_decl_modifiers(/*is_class_decl=*/FALSE, is_member_decl,
+                                   &extended_decl_info, err);
+      *decl_specifiers_seen |= DS_DECLSPEC;
+      is_declspec = TRUE;
+      break;
+    case tok_microsoft_inline:
+	      extended_decl_info.decl_modifiers.flags = DM_MICROSOFT_INLINE;
+      *decl_specifiers_seen |= DS_MICROSOFT_INLINE;
+      *output_flags |= DSO_INLINE;
+      break;
+    case tok_forceinline:
+	      extended_decl_info.decl_modifiers.flags = DM_FORCEINLINE;
+      *decl_specifiers_seen |= DS_FORCEINLINE;
+      *output_flags |= DSO_INLINE;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED) &&
+      !(input_flags & (DSI_IS_EXPLICIT_INSTANTIATION |
+                       DSI_IS_SPECIALIZATION))) {
+    /* Unless the declaration is an explicit instantiation or an
+       explicit specialization, a diagnostic is issued when
+       DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is not set.  The Microsoft
+       compiler allows (and ignores) __declspec in many places. */
+    pos_diagnostic((an_error_severity)(microsoft_bugs ? es_warning
+                                                      : es_error),
+                   ec_storage_class_not_allowed, &specifier_start_pos);
+    *err = TRUE;
+  } else if (input_flags & DSI_IS_CONDITION_DECL) {
+    pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
+    *err = TRUE;
+  } else {
+    /* There were no errors; update decl_modifiers to reflect this
+       specifier. */
+    a_decl_modifiers_block_ptr  new_modifiers =
+                                           &extended_decl_info.decl_modifiers;
+    decl_modifiers->flags |= new_modifiers->flags;
+    if (new_modifiers->is_deprecated) {
+      decl_modifiers->is_deprecated = TRUE;
+    }  /* if */
+    if (new_modifiers->alignment != 0) {
+      decl_modifiers->alignment = new_modifiers->alignment;
+    }  /* if */
+    /* Check __declspec(property(...)) specifications. */
+    if (new_modifiers->get_property_name != NULL) {
+      if (decl_modifiers->get_property_name != NULL) {
+        /* "get" specified more than once. */
+        pos_error(ec_dupl_get_or_put, &specifier_start_pos);
+      } else {
+        decl_modifiers->get_property_name = new_modifiers->get_property_name;
+      }  /* if */
+    }  /* if */
+    if (new_modifiers->put_property_name != NULL) {
+      if (decl_modifiers->put_property_name != NULL) {
+        /* "put" specified more than once. */
+        pos_error(ec_dupl_get_or_put, &specifier_start_pos);
+      } else {
+        decl_modifiers->put_property_name = new_modifiers->put_property_name;
+      }  /* if */
+    }  /* if */
+    if (new_modifiers->allocate_segname != NULL) {
+      if (decl_modifiers->allocate_segname != NULL) {
+        pos_error(ec_dupl_allocate_segname, &specifier_start_pos);
+      } else {
+        decl_modifiers->allocate_segname = new_modifiers->allocate_segname;
+      }  /* if */
+    }  /* if */
+    if (is_parameter) {
+      /* For parameters, warn if a storage class modifier is used. */
+      pos_warning(ec_bad_param_storage_class, &specifier_start_pos);
+    }  /* if */
+  }  /* if */
+  /* Closing rparen of "__declspec(...)" has already been taken. */
+  *no_remaining_token = is_declspec;
+}
+
+
 #if !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is only used when GNU extension are allowed.
                     upc_block_size is only used when UPC extensions are
@@ -5248,99 +5418,12 @@ Returns TRUE if there is an error in the specifiers.
         /* A Microsoft specific storage class.  Note that Microsoft
            allows these in some nonstandard places such as on
            linkage declarations (e.g., extern "C" declarations). */
-        {
-          an_extended_decl_info_block  extended_decl_info;
-          a_source_position            specifier_start_pos;
-          a_boolean                    is_declspec = FALSE;
-          a_boolean                    local_is_member_decl;
-
-          local_is_member_decl =
-                        ((input_flags & DSI_IS_MEMBER_DECLARATION) != 0);
-          clear_extended_decl_info_block(extended_decl_info);
-          specifier_start_pos = pos_curr_token;
-          /* A Microsoft storage class modifier.  If this is a __declspec,
-             scan the list of declaration modifiers. */
-          switch (curr_token) {
-            case tok_declspec:
-              scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                                           local_is_member_decl,
-                                           &extended_decl_info, &err);
-              decl_specifiers_seen |= DS_DECLSPEC;
-              is_declspec = TRUE;
-              break;
-            case tok_microsoft_inline:
-	      extended_decl_info.decl_modifiers.flags = DM_MICROSOFT_INLINE;
-              decl_specifiers_seen |= DS_MICROSOFT_INLINE;
-              *output_flags |= DSO_INLINE;
-              break;
-            case tok_forceinline:
-	      extended_decl_info.decl_modifiers.flags = DM_FORCEINLINE;
-              decl_specifiers_seen |= DS_FORCEINLINE;
-              *output_flags |= DSO_INLINE;
-              break;
-            default:
-              unexpected_condition();
-          }  /* switch */
-          if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED) &&
-              !(input_flags & (DSI_IS_EXPLICIT_INSTANTIATION |
-                               DSI_IS_SPECIALIZATION))) {
-            /* Unless the declaration is an explicit instantiation or an
-               explicit specialization, a diagnostic is issued when
-               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is not set.  The Microsoft
-               compiler allows (and ignores) __declspec in many places. */
-            pos_diagnostic((an_error_severity)(microsoft_bugs ? es_warning
-                                                              : es_error),
-                           ec_storage_class_not_allowed, &specifier_start_pos);
-            err = TRUE;
-          } else if (input_flags & DSI_IS_CONDITION_DECL) {
-            pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
-            err = TRUE;
-          } else {
-            /* There were no errors; update decl_modifiers to reflect
-               this specifier. */
-            a_decl_modifiers_block  new_modifiers;
-
-            new_modifiers = extended_decl_info.decl_modifiers;
-            decl_modifiers->flags |= new_modifiers.flags;
-            if (new_modifiers.is_deprecated) {
-              decl_modifiers->is_deprecated = TRUE;
-            }  /* if */
-            /* Check __declspec(property(...)) specifications. */
-            if (new_modifiers.get_property_name != NULL) {
-              if (decl_modifiers->get_property_name != NULL) {
-                /* "get" specified more than once. */
-                pos_error(ec_dupl_get_or_put, &specifier_start_pos);
-              } else {
-                decl_modifiers->get_property_name =
-                                               new_modifiers.get_property_name;
-              }  /* if */
-            }  /* if */
-            if (new_modifiers.put_property_name != NULL) {
-              if (decl_modifiers->put_property_name != NULL) {
-                /* "put" specified more than once. */
-                pos_error(ec_dupl_get_or_put, &specifier_start_pos);
-              } else {
-                decl_modifiers->put_property_name =
-                                               new_modifiers.put_property_name;
-              }  /* if */
-            }  /* if */
-            if (new_modifiers.allocate_segname != NULL) {
-              if (decl_modifiers->allocate_segname != NULL) {
-                pos_error(ec_dupl_allocate_segname, &specifier_start_pos);
-              } else {
-                decl_modifiers->allocate_segname =
-                                            new_modifiers.allocate_segname;
-              }  /* if */
-            }  /* if */
-            if (is_parameter) {
-              /* For parameters, warn if a storage class modifier is used. */
-              pos_warning(ec_bad_param_storage_class, &specifier_start_pos);
-            }  /* if */
-          }  /* if */
-          if (is_declspec) {
-            /* Closing rparen of "__declspec(...)" has already been taken. */
-            goto no_get_token;
-          }  /* if */
+        { a_boolean  no_remaining_token;
+          microsoft_specific_decl_specifiers(input_flags, output_flags,
+                                             &decl_specifiers_seen,
+                                             decl_modifiers,
+                                             &no_remaining_token, &err);
+          if (no_remaining_token) goto no_get_token;
         }
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5924,7 +6007,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
-                          marked_as_gnu_extension,
+                          marked_as_gnu_extension, decl_modifiers,
                           type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
@@ -5946,7 +6029,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
-                          marked_as_gnu_extension,
+                          marked_as_gnu_extension, decl_modifiers,
                           &dummy_type, &dummy_flag, &dummy_flag,
                           decl_pos_block);
           }  /* if */
