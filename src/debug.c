@@ -376,6 +376,8 @@ what was done in the stack entry.
 	case da_decrease_level:
 	  debug_level -= request_ptr->level;
 	  break;
+        default:
+          unexpected_condition();
       }  /* switch */
       /* Found a match, break out of while loop. */
       break;
