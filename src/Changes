@@ -20,7 +20,11 @@ aligned):
   I64 x;
   int a = __alignof__(x);  // a was erroneously set to 4 instead of 64.
 
-This is now fixed.
+This is now fixed.  (Note that GNU compilers also sometimes lose track
+of the "aligned" attribute and that in those cases the behavior of the
+EDG front end will differ from that of the GNU compilers.  Before this
+change, the behavior could differ also because the circumstances in
+which the attribute was lost were different.)
 
 1/15/04  Microsoft compatibility: __declspec(selectany) ignored in some cases
 
