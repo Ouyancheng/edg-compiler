@@ -1371,6 +1371,7 @@ over templ_sym2.
   if (result) {
     /* Each of the arguments match.  Now make sure that all arguments were
        deduced, and that nontype arguments have the correct types. */
+    result = FALSE;
     if (wrapup_function_template_argument_deduction(
                dummy_arg_list, templ_sym2, templ_param_list) != NULL) {
       result = TRUE;

@@ -1,5 +1,15 @@
 Version 2.44
 
+1/31/00  Failure to diagnose ambiguous partial ordering
+
+The front end incorrectly accepted certain function template partial
+ordering cases that should have been diagnosed as ambiguous.  This has
+been fixed.
+
+  template <class T,class U> T f(U);
+  template <class T> T f(int);
+  int i = f<int>(1);
+
 1/26/00  Abort on missing left brace in certain catch-clauses
 
 The front end used to abort in the absence of a left brace following the
