@@ -1,6 +1,12 @@
 Version 2.32
 
-2/6/96    using a derived class name to access a member of a template
+2/6/96    Removal of unneeded object lifetime entries
+
+A bug has been fixed to assure that object lifetimes associated with
+default argument expressions are removed from the IL tree when the routines
+they are associated with are eliminated.
+
+2/6/96    Using a derived class name to access a member of a template
           parameter dependent base class
 
 It is supposed to be possible to access a member of a base class
