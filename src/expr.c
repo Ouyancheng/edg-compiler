@@ -3396,7 +3396,7 @@ be inappropriate, because the feature is probably used to implement
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    /* Do not convert lvalues to rvalues, arrays to pointers, or
+    /* Do not convert lvalues to rvalues, arrays to pointers,
        or functions to pointers. */
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
