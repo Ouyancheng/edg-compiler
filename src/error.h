@@ -458,7 +458,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_constructor_param,
   ec_incomplete_return_type_not_allowed,
   ec_protected_access_problem,
-  ec_param_not_allowed
+  ec_param_not_allowed,
+  ec_unimplemented_keyword
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1471,6 +1471,9 @@ error code.
     case ec_param_not_allowed:
       m = "a parameter is not allowed";
       break;
+    case ec_unimplemented_keyword:
+      m = "%n is reserved for future use as a keyword";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
