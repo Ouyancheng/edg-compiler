@@ -528,8 +528,7 @@ extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           a_source_position *position,
                                           an_operand        *result);
 
-extern void temp_init_from_operand(an_operand *operand,
-                                   a_boolean  result_is_addr);
+extern void temp_init_from_operand(an_operand *operand);
 
 extern void overloaded_function_catch_up(
                                   a_symbol_ptr      function_symbol,
@@ -684,10 +683,6 @@ extern void user_convert_operand(
                            a_conv_descr *conversion,
                            a_conv_descr *ctor_arg_conversion,
                            a_boolean    force_temp_for_class_bitwise_copy);
-
-extern void check_access_to_elided_copy_constructor(
-                                             a_type_ptr        source_type,
-                                             a_source_position *err_pos);
 
 extern void prep_elision_initializer_operand(
                                   an_operand         *source_operand,

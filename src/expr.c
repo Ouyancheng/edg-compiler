@@ -12195,7 +12195,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       a_conv_descr conv_2_to_3, conv_3_to_2;
       a_boolean    conv_2_to_3_possible, conv_3_to_2_possible;
       a_boolean    ambig_2_to_3, ambig_3_to_2;
-      a_boolean    force_copy = TRUE;
       conv_2_to_3_possible =
                        conditional_operator_conversion_possible(&operand_2,
                                                                 &operand_3,
@@ -12222,7 +12221,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           conv_3_to_2_possible = FALSE;
         }  /* if */
       }  /* if */
-      if (microsoft_bugs || any_cfront_mode()) force_copy = FALSE;
       expr_stack->inside_conditional_expression = TRUE;
       if (conv_2_to_3_possible && conv_3_to_2_possible) {
         /* Each operand can be converted to the other, so the operation
@@ -12236,7 +12234,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           if (!ambig_2_to_3) {
             user_convert_operand(&operand_2, operand_3.type, &conv_2_to_3,
                                  (a_conv_descr *)NULL,
-                                 force_copy);
+                                 /*force_temp_for_class_bitwise_copy=*/FALSE);
           } else {
             /* The conversion is ambiguous.  Do the test again and this
                time issue an error. */
@@ -12252,7 +12250,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           if (!ambig_3_to_2) {
             user_convert_operand(&operand_3, operand_2.type, &conv_3_to_2,
                                  (a_conv_descr *)NULL,
-                                 force_copy);
+                                 /*force_temp_for_class_bitwise_copy=*/FALSE);
           } else {
             /* The conversion is ambiguous.  Do the test again and this
                time issue an error. */
