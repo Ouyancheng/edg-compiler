@@ -1603,7 +1603,7 @@ the dump (this one counts as the first).
           }  /* if */
           db_statement_list(sp->variant.microsoft_try->cleanup_statement,
                             indent+2, "", how_deep-1);
-           break;
+          break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         default:;
       }  /* switch */
