@@ -485,6 +485,17 @@ already been copied over.
        was done in part 2. */
     file_scope_il_wrapup_needed_flag_processing();
     file_scope_il_wrapup_keep_in_il_processing();
+#if DO_IL_LOWERING
+    if (il_lowering_needed()) {
+      /* Do final name mangling, which can make names that can no longer
+         be embedded in other names, and therefore must be done very late.
+         In particular, it must be done after
+         make_statics_referenced_from_instantiations_external and
+         before the removal of unneeded IL entities (because
+         parent classes and functions need to be around still). */
+      do_final_name_mangling();
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     /* Do removal of unneeded IL entities for the primary translation
        unit.  That was done for secondary translation units in part 3. */
     file_scope_il_wrapup_remove_unneeded_il();
@@ -496,15 +507,6 @@ already been copied over.
       fix_type_list_ordering_problems();
     }  /* if */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
-#if DO_IL_LOWERING
-    if (il_lowering_needed()) {
-      /* Do final name mangling, which can make names that can no longer
-         be embedded in other names, and therefore must be done very late.
-         In particular, it must be done after
-         make_statics_referenced_from_instantiations_external. */
-      do_final_name_mangling();
-    }  /* if */
-#endif /* DO_IL_LOWERING */
     /* Check for memory regions that were not written out but now should
        be.  Among other things, this deals with functions that have
        keep_definition_in_il set but not definition_needed, and inline

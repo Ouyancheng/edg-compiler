@@ -258,6 +258,15 @@ typedef struct a_mangling_control_block {
 } a_mangling_control_block;
 
 
+#if !IA64_ABI
+/*
+TRUE while final_type_name_mangling is running.
+*/
+static a_boolean
+		in_final_type_name_mangling = FALSE;
+#endif /* !IA64_ABI */
+
+
 /*
 Text buffer used for mangling.
 */
@@ -2814,6 +2823,13 @@ should be put out.
         !show_specialization &&
         !type->source_corresp.mangled_name_cannot_be_included_in_other_name) {
       use_previously_mangled_name = TRUE;
+    } else if (in_final_type_name_mangling) {
+      /* In final type name mangling, we can't go back and remangle anything,
+         so use what we have.  We're only generating a name for a type
+         to be used for C code generation, so the exact name (in particular,
+         whether it includes partial specialization arguments in the parent
+         classes) is not important as long as it is unique. */
+      use_previously_mangled_name = TRUE;
     }  /* if */
   }  /* if */
   if (use_previously_mangled_name) {
@@ -5314,6 +5330,7 @@ and truncated names.
   final_entity_name_mangling(&type->source_corresp);
 #else /* !IA64_ABI */
   /* Cfront-like ABI.  Mangle nested type names. */
+  in_final_type_name_mangling = TRUE;
   if (has_name(type)) {
     if (type_needs_parent_qualifier(type)) {
       /* Nested type names must be mangled (because they exist in a scope
@@ -5336,6 +5353,7 @@ and truncated names.
       final_entity_name_mangling(&type->source_corresp);
     }  /* if */
   }  /* if */
+  in_final_type_name_mangling = FALSE;
 #endif /* IA64_ABI */
 }  /* final_type_name_mangling */
 
@@ -6426,6 +6444,7 @@ initialized for each compilation.
   unnamed_member_variable_name_seed = 0;
 #if !IA64_ABI
   avail_compressible_string_pos = NULL;
+  in_final_type_name_mangling = FALSE;
 #if DEBUG
   num_compressible_string_pos_allocated = 0;
 #endif /* DEBUG */

@@ -1,5 +1,25 @@
 Version 3.1
 
+12/8/02  Abort in r_mangled_parent_qualifier
+
+In certain cases name mangling would abort with an assertion failure
+("parent class has no body") in r_mangled_parent_qualifier.
+These aborts involved cases where a class was not needed in the
+IL except for a use in generating a parent class in a mangled
+type name.  The class was removed and then mangling tried to
+reference the deleted class.  Now fixed.
+
+  class _86 {
+    public:void _87() {
+      class _88 {
+        public:class _89 {
+          public:void _90() {
+          };
+        };
+      };
+    };
+  };
+
 12/6/02  More local statics than necessary externalized
 
 When exported templates are used, some static functions are
