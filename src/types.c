@@ -1833,7 +1833,10 @@ base class casts and virtual function calls.
                                             call_case);
       break;
     case enk_typeid:
-      /* For a typeid, the complete object type is type_info. */
+    case enk_uuidof:
+      /* For a typeid, the complete object type is the type of the struct
+         indicated by the node type. */
+      /* Ditto for Microsoft extension __uuidof. */
       complete_object_type = type_pointed_to(node->type);
       break;
     case enk_throw:

@@ -159,6 +159,7 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
     case enk_routine_address:
     case enk_field:
     case enk_address_of_ellipsis:
+    case enk_uuidof:
       /* No side effects. */
       break;
     case enk_operation:

@@ -1212,6 +1212,16 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_node(node->variant.typeid_info.expr, level + 2);
       }  /* if */
       break;
+    case enk_uuidof:
+      fputs("uuidof: type = ", f_debug);
+      db_abbreviated_type(node->variant.typeid_info.type);
+      if (node->variant.typeid_info.expr == NULL) {
+        fputc('\n', f_debug);
+      } else {
+        fputs(", expr =\n", f_debug);
+        db_expr_node(node->variant.typeid_info.expr, level + 2);
+      }  /* if */
+      break;
     case enk_address_of_ellipsis:
       fputs("address of ellipsis\n", f_debug);
       break;
@@ -6486,6 +6496,7 @@ a set of options for the copy.
 #endif /* MINIMAL_INLINING */
       break;
     case enk_typeid:
+    case enk_uuidof:
       /* If the expr field is non-NULL, copy it. */
       if (expr->variant.typeid_info.expr != NULL) {
         expr_copy->variant.typeid_info.expr =

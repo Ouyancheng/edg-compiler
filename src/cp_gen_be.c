@@ -4433,6 +4433,18 @@ done_with_operation:
       }  /* if */
       write_tok_ch(')');
       break;
+    case enk_uuidof:
+      /* Microsoft C++ __uuidof operator. */
+      write_tok_str("__uuidof(");
+      if (expr->variant.typeid_info.expr == NULL) {
+        /* Use type. */
+        gen_type(expr->variant.typeid_info.type);
+      } else {
+        /* Use expression. */
+        gen_lvalue(expr->variant.typeid_info.expr);
+      }  /* if */
+      write_tok_ch(')');
+      break;
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;

@@ -4653,6 +4653,8 @@ enum an_expr_node_kind_tag {
 			   node is not necessarily the top node in the
 			   expression tree.  C++ only. */
   enk_typeid,		/* C++ typeid expression. */
+  enk_uuidof,		/* Microsoft C++ __uuidof function.  Used only when
+			   MICROSOFT_EXTENSIONS_ALLOWED is TRUE. */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -5318,20 +5320,27 @@ typedef struct an_expr_node {
       an_object_lifetime_ptr
 		ptr;	/* The object lifetime itself. */
     } object_lifetime;
-    /* When kind == enk_typeid (C++ only): */
+    /* When kind == enk_typeid (C++ only) or enk_uuidof (Microsoft mode,
+       C++ only): */
     struct {
       a_type_ptr
 		type;	/* If the argument of the typeid operator is a type,
 			   the type specified; if it is an expression, the
 			   type of the expression specified.  In either case,
-			   top-level type qualifiers are removed. */
+			   top-level type qualifiers are removed.  For
+			   enk_uuidof, the underlying class type of the
+			   operand, or NULL for the zero-uuid case. */
       an_expr_node_ptr
 		expr;
 			/* If the argument of the typeid operator is an
 			   expression with one of the special forms (*p or
 			   p[x]), and the type is a polymorphic class type,
 			   this is the lvalue expression specified (i.e.,
-			   its value is the address); otherwise NULL. */
+			   its value is the address); otherwise NULL.
+			   For enk_uuidof, a pointer to the original
+			   lvalue expression if the operand was an expression
+			   (the expression is not evaluated); otherwise,
+			   NULL. */
     } typeid_info;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */

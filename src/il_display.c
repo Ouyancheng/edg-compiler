@@ -2061,6 +2061,11 @@ do_variable:
       disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
       disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
       break;
+    case enk_uuidof:
+      (void)printf("enk_uuidof\n");
+      disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
+      disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
+      break;
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");
       break;
