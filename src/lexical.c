@@ -7742,9 +7742,11 @@ return_end_of_source_token:
       break;
     case '\f':
     case VERTICAL_TAB_CHARACTER:
+    case '\r':
       /* Form feed, vertical tab.  Usually white space, but implementation-
          defined when inside a preprocessing directive.  Let the white space
-         routine decide. */
+         routine decide.  Likewise for carriage return, which is often
+         considered white space as an extension. */
       skip_white_space();
       goto start_of_token_scan;
     case ATTENTION_MARKER:
