@@ -20583,25 +20583,25 @@ is_pragma is TRUE if this is a pragma and FALSE if it is an explicit
 instantiation.
 */
 {
-  a_storage_class               storage_class;
-  a_type_ptr                    type;
-  a_symbol_locator              locator;
-  a_decl_flag_set               do_flags = DO_NO_OUTPUT_FLAGS;
-  a_decl_flag_set               dso_flags, dsi_flags, di_flags;
-  a_type_qualifier_set          qualifiers;
-  a_decl_modifiers_block        decl_modifiers;
-  a_symbol_ptr                  new_sym;
-  a_source_sequence_entry_ptr   declarator_ssep;
-  a_symbol_ptr		        sym;
-  a_token_kind			end_of_statement_token;
-  a_func_info_block             func_info;
-  a_decl_pos_block              decl_pos_block;
+  a_storage_class              storage_class = (a_storage_class)sc_unspecified;
+  a_type_ptr                   type;
+  a_symbol_locator             locator;
+  a_decl_flag_set              do_flags = DO_NO_OUTPUT_FLAGS;
+  a_decl_flag_set              dso_flags, dsi_flags, di_flags;
+  a_type_qualifier_set         qualifiers;
+  a_decl_modifiers_block       decl_modifiers;
+  a_symbol_ptr                 new_sym;
+  a_source_sequence_entry_ptr  declarator_ssep;
+  a_symbol_ptr                 sym;
+  a_token_kind                 end_of_statement_token;
+  a_func_info_block            func_info;
+  a_decl_pos_block             decl_pos_block;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr   ssep;
-  a_source_position             template_keyword_pos;
+  a_source_sequence_entry_ptr  ssep;
+  a_source_position            template_keyword_pos;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  an_error_severity		severity_if_not_found = es_error;
-  a_boolean                     accept_static = FALSE, accept_extern = FALSE;
+  an_error_severity            severity_if_not_found = es_error;
+  a_boolean                    accept_static = FALSE, accept_extern = FALSE;
 
   db_enter(3, "instantiation_directive");
   if (!is_pragma) {
