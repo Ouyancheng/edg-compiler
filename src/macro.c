@@ -3379,7 +3379,7 @@ static a_boolean equiv_replacement_text(char		*repl_text,
 					a_macro_def_ptr	mdp)
 /*
 Return TRUE if the replacement text specified by repl_text, with a length
-of repl_text_length is the same as that of the macro definition mdp.  Note
+of repl_text_length, is the same as that of the macro definition mdp.  Note
 that repl_text_length does not include the rt_null terminator.
 */
 {
