@@ -2536,7 +2536,13 @@ typedef struct a_substitution {
   unsigned long	num_levels;
 			/* For subk_prefix and subk_template_prefix, the
 			   number of levels of the prefix included.  That is,
-			   is the substitution A:: or A::B:: or A::B::C::. */
+			   is the substitution A:: or A::B:: or A::B::C::.
+			   For the subk_template_prefix case, the count
+			   is the number of complete levels (name plus
+			   optional template argument list) that precede
+			   the final name (and no template argument list)
+			   that is part of the substitution.  (Therefore,
+			   the count could be zero.) */
 } a_substitution;
 
 static a_substitution
@@ -2800,12 +2806,14 @@ of constructors and destructors.
               /* Take the right number of levels of the name.  Note that a
                  substitution counts as one level even if it represents
                  several. */
-              p = demangle_nested_name_components(p,
-                                                  subp->num_levels,
-                                                  &is_no_return_name,
-                                                  &has_templ_arg_list,
-                                                  last_component_name,
-                                                  dctl);
+              if (subp->num_levels > 0) {
+                p = demangle_nested_name_components(p,
+                                                    subp->num_levels,
+                                                    &is_no_return_name,
+                                                    &has_templ_arg_list,
+                                                    last_component_name,
+                                                    dctl);
+              }  /* if */
               if (subp->kind == subk_template_prefix) {
                 /* For the template prefix case, take one more
                    <unqualified-name>. */
