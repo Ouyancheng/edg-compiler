@@ -3358,12 +3358,16 @@ initialized.  These are addressed in the course of the processing.
       /* sym represents a field.  Determine whether constructor initialization
          is required. */
       a_field_ptr field = sym->variant.field.ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode && (field->get_property_name != NULL ||
                              field->put_property_name != NULL)) {
         /* Property fields are not really data members and should not be
            initialized. */
         continue;
-      } else if (is_generated_cctor) {
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not add code here. */
+      if (is_generated_cctor) {
         /* All fields are explicitly listed for a generated copy constructor,
            since even if there is no constructor at least a bitwise copy is
            required. */
@@ -3559,13 +3563,16 @@ initialized.  These are addressed in the course of the processing.
           if (locator_for_curr_id.is_qualified_name) {
             pos_error(ec_qualified_name_not_allowed,
                       &locator_for_curr_id.source_position);
-          } else if (microsoft_mode && (field->get_property_name != NULL ||
-                                        field->put_property_name != NULL)) {
-            /* Property fields may not be mention in a constructor initializer
-               list. */
+          }
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          else if (microsoft_mode && (field->get_property_name != NULL ||
+                                      field->put_property_name != NULL)) {
+            /* Property fields can not be mentioned in a constructor
+               initializer list. */
             pos_error(ec_property_name_not_allowed,
                       &locator_for_curr_id.source_position);
           }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           init_type = field->type;
           if (is_array_type(init_type) && !is_string_type(init_type)) {
             /* Arrays can be default-initialized if the expression-list is
