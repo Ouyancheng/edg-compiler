@@ -1,5 +1,12 @@
 Version 2.37
 
+10/8/97   Abbreviated command line options
+
+The eccp script now accepts abbreviated keyword command line options.
+Only as many initial characters as are required to uniquely identify
+an option are needed.  For example, "--bo" may be used to specify
+the "--bool" option.
+
 9/28/97  Name demangling: __STV__ form for externalized statics
 
 Static variables made external are now mangled with names beginning
