@@ -8974,8 +8974,13 @@ otherwise the original "sym" is returned.
       type_wanted = TRUE;
     }  /* if */
     if (!type_wanted) {
+      /* Restore the template argument list from the template class. */
+      locator_for_curr_id.template_arg_list =
+                      sym->variant.class_struct_union.type->
+                      variant.class_struct_union.extra_info->template_arg_list;
       sym = orig_template_sym;
       locator_for_curr_id.specific_symbol = NULL;
+      locator_for_curr_id.do_not_clear_specific_symbol = FALSE;
     }  /* if */
   }  /* if */
   return sym;
