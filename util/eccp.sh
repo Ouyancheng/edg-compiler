@@ -503,6 +503,8 @@ do
          --building_runtime | \
          --bool | \
          --no_bool | \
+         --array_new_and_delete | \
+         --no_array_new_and_delete | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
