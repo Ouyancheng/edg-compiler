@@ -1,5 +1,14 @@
 Version 2.32
 
+4/27/96 Improved output of prototype scope types when generating ANSI/ISO C
+
+When ANSI/ISO C input to the front end is turned into ANSI/ISO C output via
+the C-generating back end (admittedly, not something greatly in demand),
+the output sometimes removed information on parameter types in an
+attempt to deal with a problem with types defined in prototype scopes.
+This approach unfortunately caused other problems, so a more comprehensive
+solution has now been implemented.
+
 4/26/96 Default on ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C to FALSE
 
 The default value for the configuration switch
