@@ -1714,10 +1714,7 @@ is in fact valid.
              matched. */
           for (; inst != NULL; inst = next_instance_sym(inst)) {
             a_type_ptr  inst_type = type_symbol_type(inst);
-            if (!inst_type->variant.class_struct_union.is_specialized) {
-              /* Specializations appear on the types list of their scope. */
-              (void)verify_type_correspondence(inst_type);
-            }  /* if */
+            (void)verify_type_correspondence(inst_type);
           }  /* for */
         }  /* if */
       }  /* if */
@@ -2531,7 +2528,11 @@ template.
     /* Once errors have been detected correspondence checking is no
        longer done so there's no need to maintain this list. */
   } else if (is_primary_translation_unit) {
-    if (is_class_struct_union_symbol(inst)) {
+    if (!secondary_translation_unit_seen()) {
+      /* There is no need to look for a matching instantiation in a secondary
+         translation unit. */
+      add_instantiation(tssp, inst);
+    } else if (is_class_struct_union_symbol(inst)) {
       a_type_ptr               prim = type_symbol_type(inst);
       if (prim->variant.class_struct_union.is_prototype_instantiation) {
         /* Nothing to be done. */
