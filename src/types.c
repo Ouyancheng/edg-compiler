@@ -7001,6 +7001,10 @@ a new tree is built.
     case tk_void:
     case tk_float:
     case tk_integer:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_unknown:
       /* Leaf nodes -- no further traversal required. */
       break;
