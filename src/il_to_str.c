@@ -1597,7 +1597,7 @@ Do the output in the way described by octl.
            the base class and the member type, so add an extra cast to
            adjust the member type, if necessary. */
         a_type_ptr new_member_type = pm_member_type(con_type);
-        a_type_ptr member_type = NULL, member_class;
+        a_type_ptr member_type = NULL, member_class = NULL;
         if (constant->variant.ptr_to_member.is_function_ptr) {
           a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
           if (rout != NULL) {
@@ -1618,13 +1618,13 @@ Do the output in the way described by octl.
              does nothing for pointers to functions. */
           if (member_type == new_member_type) member_type = NULL;
         }  /* if */
-        /* No cast is needed for a null pointer-to-member constant. */
         if (member_type != NULL) {
           /* Make a local pointer to member type and cast to it. */
           a_type temp_type;
           clear_type(&temp_type, (a_type_kind)tk_ptr_to_member);
           temp_type.variant.ptr_to_member.type = new_member_type;
-          temp_type.variant.ptr_to_member.class_of_which_a_member=member_class;
+          temp_type.variant.ptr_to_member.class_of_which_a_member =
+                                                                  member_class;
           form_cast(&temp_type, octl);
         }  /* if */
       }  /* if */
