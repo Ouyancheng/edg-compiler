@@ -20,6 +20,9 @@ expr.h -- Declarations related to expression parsing.
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
 
 extern a_boolean node_has_side_effects(an_expr_node_ptr node);
 
