@@ -1945,6 +1945,11 @@ that make up the declaration and do a prototype instantiation.
   a_stop_token_array                save_stop_token_array;
 
   db_enter(3, "class_template_declaration");
+  if (curr_token == tok_typedef || curr_token == tok_auto ||
+      curr_token == tok_register) {
+    error(ec_bad_storage_class_on_template_decl);
+    (void)get_token();
+  }  /* if */
   if (curr_token == tok_class || curr_token == tok_struct ||
       curr_token == tok_union) {
     switch (curr_token) {

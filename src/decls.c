@@ -5961,6 +5961,10 @@ Returns TRUE if there is an error in the specifiers.
                      curr_token != tok_static && curr_token != tok_typedef) {
             error(ec_bad_member_storage_class);
             err = TRUE;
+          } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION &&
+                     curr_token != tok_extern && curr_token != tok_static) {
+            error(ec_bad_storage_class_on_template_decl);
+            err = TRUE;
           } else {
             if (C_dialect != C_dialect_pcc && !err) {
               if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
