@@ -10858,7 +10858,6 @@ returned to the caller.
       internal_error("template_declaration: bad instance for static mem");
     } /* if */
 #endif /* CHECKING */
-    mark_defined(sym, &locator->source_position);
     tssp = sym->variant.static_data_member.instance_ptr->template_info;
     /* Make sure the parameter list matches the class declaration. */
     if (!member_template_param_list_matches_class
@@ -10951,6 +10950,7 @@ returned to the caller.
        on the definition of the template. */
     set_template_cache_info(&tssp->cache, p_token_cache,
                             decl_state->decl_info);
+    mark_defined(sym, &locator->source_position);
   }  /* if */
   *p_tssp = tssp;
   db_exit();
