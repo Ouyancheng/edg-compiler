@@ -9182,8 +9182,18 @@ entry into one representing a nondefining declaration.
           /* No match -- keep looping. */
           prev_clep = clep;
         }  /* for */
-        check_assertion_str(clep != NULL,
-                            "friend class not found on befriending list");
+#if CHECKING
+        if (clep == NULL) {
+#if DEBUG
+          fprintf(f_debug, "class type: ");
+          db_abbreviated_type(class_type);
+          fprintf(f_debug, "\nfriend class: ");
+          db_abbreviated_type(friend_class);
+          fprintf(f_debug, "\n");
+#endif /* DEBUG */
+          internal_error("friend class not found on befriending list");
+        }  /* if */
+#endif /* CHECKING */
       }  /* if */
       /* Check the next friend class. */
       ctsp->friend_classes = ctsp->friend_classes->next;
@@ -9211,8 +9221,18 @@ entry into one representing a nondefining declaration.
         /* No match -- keep looping. */
         prev_clep = clep;
       }  /* for */
-      check_assertion_str(clep != NULL,
-                          "friend routine not found on befriending list");
+#if CHECKING
+        if (clep == NULL) {
+#if DEBUG
+          fprintf(f_debug, "class type: ");
+          db_abbreviated_type(class_type);
+          fprintf(f_debug, "\nfriend rout: ");
+          db_name(&friend_rout->source_corresp);
+          fprintf(f_debug, "\n");
+#endif /* DEBUG */
+          internal_error("friend routine not found on befriending list");
+        }  /* if */
+#endif /* CHECKING */
       /* Check the next friend function. */
       ctsp->friend_routines = ctsp->friend_routines->next;
     }  /* if */
