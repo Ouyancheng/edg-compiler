@@ -1,6 +1,20 @@
 Version 3.3
 
-7/14/03   GNU IA-64 ABI: Empty base subobject conflicts not ignored
+7/15/03  Microsoft mode: __declspec(intrin_type)
+
+The front end now accepts the Microsoft specifier __declspec(intrin_type).
+This specifier only has an effect when it appears on a class type definition.
+It is used in Microsoft headers to mark certain types used in conjunction
+with SIMD operations (such as Intel's MMX and SSE instruction set extensions,
+as well as AMD's 3DNow! instructions).  For example:
+
+  struct __declspec(intrin_type) __declspec(align(16)) __m128 {    
+    float       m128_f32[4];
+  };
+
+The specifier is rendered by the C- and C++-generating back ends.
+
+7/14/03  GNU IA-64 ABI: Empty base subobject conflicts not ignored
 
 When emulating GNU IA-64 ABI bugs the front end used to ignore base classes
 of nonprimary virtual bases when looking for empty base subobject conflicts.

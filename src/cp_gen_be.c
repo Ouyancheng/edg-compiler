@@ -2785,7 +2785,8 @@ given alignment value is nonzero.
 }  /* gen_microsoft_align_declspec */
 
 
-static void gen_microsoft_class_decl_modifiers(a_type_ptr type)
+static void gen_microsoft_class_decl_modifiers(a_type_ptr type,
+                                               a_boolean  is_definition)
 /*
 Put out declaration modifiers that apply to a class as a whole.
 These follow the tag kind, e.g., "struct __single_inheritance xxx".
@@ -2799,15 +2800,20 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
          least one declaration of the current class. */
       gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
     }  /* if */
-    if (type->alignment_set_explicitly) {
-      gen_microsoft_align_declspec(type->alignment);
-    }  /* if */
     gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
     gen_microsoft_uuid_declspec(ctsp->uuid_string);
     form_type_qualifier(ctsp->qualifiers, UPC_BLOCK_SIZE_NONE,
                         /*need_trailing_space=*/TRUE, &octl);
   }  /* if */
   gen_microsoft_deprecated_spec(&type->source_corresp);
+  if (is_definition) {
+    if (type->alignment_set_explicitly) {
+      gen_microsoft_align_declspec(type->alignment);
+    }  /* if */
+    if (type->is_microsoft_intrinsic) {
+      write_tok_str("__declspec(intrin_type) ");
+    }  /* if */
+  }  /* if */
 }  /* gen_microsoft_class_decl_modifiers */
 
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
@@ -2867,7 +2873,7 @@ or enum.
         if (type->kind != (a_type_kind)tk_enum) {
           /* On the first declaration put out declaration modifiers that apply
              to the class as a whole. */
-          gen_microsoft_class_decl_modifiers(type);
+          gen_microsoft_class_decl_modifiers(type, /*is_definition=*/FALSE);
         } else {
            /* For enums we may have to issue a uuid string. */
            gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
@@ -4358,11 +4364,9 @@ is the one associated with the definition of the class.
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  if (ctsp != NULL) {
-    /* Put out modifiers that apply to the class as a whole, e.g.,
-       "class __declspec(dllimport) A {...}". */
-    gen_microsoft_class_decl_modifiers(type);
-  }  /* if */
+  /* Put out modifiers that apply to the class as a whole, e.g.,
+     "class __declspec(dllimport) A {...}". */
+  gen_microsoft_class_decl_modifiers(type, /*is_definition=*/TRUE);
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */

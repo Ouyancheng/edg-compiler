@@ -1330,6 +1330,9 @@ Display the indicated type entry.
   if (ptr->has_microsoft_w64_specifier) {
     disp_boolean("has_microsoft_w64_specifier", TRUE);
   }  /* if */
+  if (ptr->is_microsoft_intrinsic) {
+    disp_boolean("is_microsoft_intrinsic", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   if (ptr->use_cfront_transitional_nested_type_name_mangling) {

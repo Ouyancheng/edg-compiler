@@ -4847,6 +4847,9 @@ typedef struct a_type {
 			   equal-sized integral types without the __w64
 			   specifier are diagnosed with a remark to help
 			   identify potential 64-bit portability issues. */
+  a_bit_field	is_microsoft_intrinsic:1;
+			/* TRUE if this is a class type declared with the
+			   __declspec(intrinsic) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;

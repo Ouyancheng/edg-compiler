@@ -10127,6 +10127,7 @@ declaration modifiers.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   decl_modifiers->is_deprecated = FALSE;
+  decl_modifiers->is_microsoft_intrinsic = FALSE;
   decl_modifiers->uuid_string = NULL;
   decl_modifiers->get_property_name = NULL;
   decl_modifiers->put_property_name = NULL;

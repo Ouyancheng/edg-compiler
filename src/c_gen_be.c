@@ -2842,6 +2842,9 @@ final semicolon if output_final_semi is TRUE.
     if (type->alignment_set_explicitly) {
       dump_microsoft_align_declspec(type->alignment);
     }  /* if */
+    if (type->is_microsoft_intrinsic) {
+      write_tok_str("__declspec(intrin_type) ");
+    }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     dump_type_name(type);

@@ -1534,6 +1534,7 @@ variant fields to default values.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   pte->has_microsoft_w64_specifier = FALSE;
+  pte->is_microsoft_intrinsic = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;

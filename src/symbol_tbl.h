@@ -1262,6 +1262,9 @@ typedef struct a_decl_modifiers_block {
   a_bit_field	is_deprecated:1;
 			/* TRUE if the declaration was marked with
 			   __declspec(deprecated). */
+  a_bit_field	is_microsoft_intrinsic:1;
+			/* TRUE if the declaration was marked with
+			   __declspec(intrin_type). */
   char		*uuid_string;
 			/* Pointer to a string representing the argument of
 			   a uuid decl-modifier (in Microsoft-compatibility

@@ -390,6 +390,7 @@ Scan the Microsoft __declspec specifier, which has the form
                 uuid ( "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh" )
                 property ( get = xxx, put = yyy )
                 allocate ( data-segment-name )
+                intrin_type
 
 Return the modifiers that were found by updating the decl_modifiers block.
 Issue a warning for an unrecognized modifier.  If an error occurs (e.g., a
@@ -575,6 +576,15 @@ declaration of a class member.
           } else {
             break;
           }  /* if */
+        }  /* if */
+      } else if (!C_mode() && strcmp(modifier, "intrin_type") == 0) {
+        if (!is_class_decl) {
+          /* "intrin_type" only makes sense on a class declaration
+             (but Microsoft compilers appear to accept it anywhere). */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->is_microsoft_intrinsic = TRUE;
         }  /* if */
       } else {
         /* Issue a warning on an unrecognized __declspec attribute. */
@@ -821,10 +831,15 @@ used for diagnostics.
   if (extended_decl_info->decl_modifiers.is_deprecated) {
     class_type->source_corresp.is_deprecated = TRUE;
   }  /* if */
-  if (class_definition && extended_decl_info->decl_modifiers.alignment != 0) {
-    set_declspec_align(class_type,
-                       extended_decl_info->decl_modifiers.alignment,
-                       err_pos);
+  if (class_definition) {
+    if (extended_decl_info->decl_modifiers.is_microsoft_intrinsic) {
+      class_type->is_microsoft_intrinsic = TRUE;
+    }  /* if */
+    if (extended_decl_info->decl_modifiers.alignment != 0) {
+      set_declspec_align(class_type,
+                         extended_decl_info->decl_modifiers.alignment,
+                         err_pos);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_extended_decl_info_for_class */
@@ -4971,6 +4986,9 @@ of an error.
     decl_modifiers->flags |= new_modifiers->flags;
     if (new_modifiers->is_deprecated) {
       decl_modifiers->is_deprecated = TRUE;
+    }  /* if */
+    if (new_modifiers->is_microsoft_intrinsic) {
+      decl_modifiers->is_microsoft_intrinsic = TRUE;
     }  /* if */
     if (new_modifiers->alignment != 0) {
       decl_modifiers->alignment = new_modifiers->alignment;
