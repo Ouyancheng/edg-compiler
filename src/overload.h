@@ -323,6 +323,78 @@ EXTERN unsigned long
 #endif /* DEBUG */
 
 
+/*
+Enumeration indicating the state on return from a scan of a printf format
+string.
+*/
+typedef enum /*a_printf_scan_state*/ {
+  pss_new_specifier,	/* Look for new specifier next time. */
+  pss_after_field_width,/* Start after field width next time. */
+  pss_after_precision	/* Start after precision next time. */
+} a_printf_scan_state;
+
+
+/*
+Block of information used to check correspondence of a sequence of call
+arguments against a sequence of function parameters.
+*/
+typedef struct an_arg_check_block {
+  a_routine_ptr	routine;
+			/* The routine being called, if known.  NULL otherwise,
+			   e.g., for a call through a function pointer. */
+  a_boolean	have_param_info;
+			/* TRUE if we have information on the remaining
+			   parameters.  Can be FALSE because
+			     (a) The called function has a bad type;
+			     (b) The called function has an old-style
+			         parameter list and no body (hence no
+			         parameter declarations);
+			     (c) We're in the ellipsis section of a prototyped
+			         function call (including a printf/scanf-type
+			         routine);
+			     (d) We're in the varargs section of an old-style
+			         function call;
+			     (e) We're scanning extra arguments after issuing
+			         an error about there being too many arguments;
+			         or
+			     (f) We're scanning the arguments for an
+			         overloaded function call. */
+  a_param_type_ptr
+		curr_param_type;
+			/* The current parameter type entry, if there is one;
+			   NULL otherwise. */
+  a_boolean	prototyped;
+			/* TRUE if the function is prototyped. */
+  a_boolean	has_ellipsis;
+			/* TRUE if the function has an ellipsis. */
+  a_pragma_kind	arg_list_kind;
+			/* The kind of any pragma that applies to the
+			   parameter list. */
+  int		varargs_count;
+			/* The argument count for the varargs lint comment. */
+  int		arg_ctr;
+			/* The current argument number. */
+  an_expr_node_ptr
+		argument_head;
+			/* The head of the list of argument expressions
+			   collected so far. */
+  an_expr_node_ptr
+		argument_tail;
+			/* The tail of the list of argument expressions
+			   collected so far. */
+  char		*fmt_string;
+			/* When checking a printf- or scanf-like function,
+			   points to the format string.  NULL otherwise. */
+  a_printf_scan_state
+		pss;
+			/* Current state for printf/scanf argument checking. */
+  a_source_position
+		closing_paren_position;
+			/* Source position of the closing parenthesis of
+			   the call. */
+} an_arg_check_block;
+
+
 extern void free_arg_match_summary_list(an_arg_match_summary_ptr amsp);
 
 extern a_type_ptr operand_complete_object_type(an_operand *operand,
@@ -360,6 +432,7 @@ extern a_symbol_ptr select_overloaded_function(
                            an_error_code            err_none_applies,
                            an_error_code            err_ambiguous,
                            a_source_position        *call_position,
+                           a_boolean                *single_function,
                            an_arg_match_summary_ptr *arg_match_list);
 
 extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
@@ -404,6 +477,15 @@ extern a_boolean make_this_pointer_operand(a_symbol_ptr      member_sym,
                                            a_source_position *member_pos,
                                            a_boolean         check_cast_access,
                                            an_operand        *result);
+
+extern void start_call_argument_processing(a_type_ptr         function_type,
+                                           a_routine_ptr      routine,
+                                           an_arg_check_block *arg_block);
+
+extern void process_call_argument(an_operand         *argument_operand,
+                                  an_arg_check_block *arg_block);
+
+extern void process_end_of_call_arguments(an_arg_check_block *arg_block);
 
 extern void change_refs_on_selector_if_const_function(
                                           a_type_ptr routine_type,
