@@ -4296,7 +4296,7 @@ typedef struct a_class_type_supplement {
 			   virtual_function_info_base_class in that the latter
 			   points to the least-derived class that shares
 			   virtual function info. */
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
   a_targ_size_t size_without_virtual_base_classes;
                         /* The size in bytes of the class, excluding the
                            virtual base classes from which it derives. */
