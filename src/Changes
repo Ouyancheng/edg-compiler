@@ -1,5 +1,7 @@
 Version 2.25
 
+8/18/94  IL version number changed to 2.17
+
 8/18/94  Suppressing redundant inclusion of header files
 
 The front end now recognizes header files that, if included again,
@@ -48,7 +50,7 @@ by a command line option.
 
 In strict ANSI mode we used to issue a warning if "const" or "volatile"
 appeared in type-specifier-seq in a new-expression.  The diagnostic now
-used strict_ansi_error_severity, which means is may be an error in -A
+uses strict_ansi_error_severity, which means it may be an error in -A
 mode.
 
 8/16/94  x ? base : derived
