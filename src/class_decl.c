@@ -8849,17 +8849,19 @@ nested classes when their definition appears outside of the class template.
       /* If there is a base specifier list and this is a class or struct
          declaration, it has to be definition, which means the next token
          should be a brace. */
-      if (curr_token != tok_lbrace &&
-          class_type->kind != (a_type_kind)tk_union) {
-        syntax_error(ec_missing_class_definition);
+      if (curr_token != tok_lbrace) {
+        if (class_type->kind == (a_type_kind)tk_union) {
+          /* An error has already been issued. */
+        } else {
+          syntax_error(ec_missing_class_definition);
+        }  /* if */
         err = TRUE;
-      }  /* if */
-      if (delayed_nested_class_def && !is_template_instantiation &&
-          curr_token != tok_lbrace) {
-        /* Restore the scope stack to its original state. For template
-           instantiations, this is done when the template instantiation
-           scope is popped. */
-        pop_class_reactivation_scope();
+        if (delayed_nested_class_def && !is_template_instantiation) {
+          /* Restore the scope stack to its original state. For template
+             instantiations, this is done when the template instantiation
+             scope is popped. */
+          pop_class_reactivation_scope();
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
