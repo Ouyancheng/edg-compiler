@@ -8794,7 +8794,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   a_boolean             operand_1_is_pointer;
   a_boolean             both_operands_are_arithmetic = FALSE;
   a_boolean		pointer_difference           = FALSE;
+#if C99_IL_EXTENSIONS_SUPPORTED
   a_boolean             imaginary_arithmetic = FALSE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type;
   a_type_ptr            operation_type;
