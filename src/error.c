@@ -777,7 +777,7 @@ error code.
       m = "expression must have pointer-to-object type";
       break;
     case ec_program_too_large:
-      m = "program too large to compile";
+      m = "program too large or complicated to compile";
       break;
     case ec_bad_initializer_type:
       m =
