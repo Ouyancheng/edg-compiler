@@ -35,6 +35,11 @@ il_walk.c -- Routines to walk the intermediate language tree.
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
+/* Type of function called to test for termination in the IL walk.
+   First parameter is the pointer to the entry and second is the kind
+   of entry.  Returned value of TRUE means prune the walk at this entry. */
+typedef a_boolean a_walk_termination_test_function(char *, an_il_entry_kind);
+typedef a_walk_termination_test_function *a_walk_termination_test_function_ptr;
 
 static an_entry_process_function_ptr
 		entry_process_func;
@@ -44,6 +49,12 @@ static a_string_entry_process_function_ptr
 		string_entry_process_func;
 			/* The function to be called for each string entry.
 			   NULL if no function is to be called. */
+static a_walk_termination_test_function_ptr
+		walk_termination_test_func;
+			/* The function to be called to decide on pruning
+			   of the IL walk at a given entry, or NULL if the
+			   default pruning algorithm (using il_walk_flag)
+			   should be used. */
 static a_boolean
 		walking_file_scope;
 			/* TRUE if walking the file-scope IL, FALSE if
@@ -53,6 +64,12 @@ static unsigned int
 			/* Value to be placed in the il_walk_flag field
 			   to indicate that an entry has been visited.
 			   The value alternates between 0 and 1. */
+#if MAINTAIN_NEEDED_FLAGS
+static a_boolean
+		walking_to_set_needed_flags;
+			/* TRUE if the IL walk is being done to set the
+			   "needed" flags in IL entries. */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   remap_ptr or walk_ptr. */
@@ -259,6 +276,67 @@ of each kind.
   db_exit();
 }  /* walk_orphaned_file_scope_il_entries */
 
+/*
+Structure used to save/restore global state information for the IL walk
+routines.
+*/
+typedef struct an_il_walk_state {
+  an_entry_process_function_ptr
+		entry_process_func;
+  a_string_entry_process_function_ptr
+		string_entry_process_func;
+  a_remap_function_ptr
+		walk_remap_func;
+  a_boolean	walking_file_scope;
+  int		flag_value_meaning_visited;
+#if MAINTAIN_NEEDED_FLAGS
+  a_boolean	walking_to_set_needed_flags;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+} an_il_walk_state;
+
+
+/*
+Save the current state of the global variables in the IL walk routines in
+the variable saved_state for later restoration.
+*/
+
+#if MAINTAIN_NEEDED_FLAGS
+#define save_walking_to_set_needed_flags(saved_state)                 \
+  (saved_state).walking_to_set_needed_flags = walking_to_set_needed_flags;
+#else /* !MAINTAIN_NEEDED_FLAGS */
+#define save_walking_to_set_needed_flags(saved_state) /* Nothing */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+
+#define save_il_walk_state(saved_state)                               \
+{ (saved_state).entry_process_func         = entry_process_func;      \
+  (saved_state).string_entry_process_func  = string_entry_process_func; \
+  (saved_state).walk_remap_func            = walk_remap_func;         \
+  (saved_state).walking_file_scope         = walking_file_scope;      \
+  (saved_state).flag_value_meaning_visited = flag_value_meaning_visited; \
+  save_walking_to_set_needed_flags(saved_state)                       \
+}  /* save_il_walk_state */
+
+/*
+Restore the current state of the global variables in the IL walk routines
+from the saved values in the variable saved_state.
+*/
+
+#if MAINTAIN_NEEDED_FLAGS
+#define restore_walking_to_set_needed_flags(saved_state)              \
+  walking_to_set_needed_flags = (saved_state).walking_to_set_needed_flags;
+#else /* !MAINTAIN_NEEDED_FLAGS */
+#define restore_walking_to_set_needed_flags(saved_state) /* Nothing */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+
+#define restore_il_walk_state(saved_state)                            \
+{ entry_process_func         = (saved_state).entry_process_func;      \
+  string_entry_process_func  = (saved_state).string_entry_process_func; \
+  walk_remap_func            = (saved_state).walk_remap_func;         \
+  walking_file_scope         = (saved_state).walking_file_scope;      \
+  flag_value_meaning_visited = (saved_state).flag_value_meaning_visited; \
+  restore_walking_to_set_needed_flags(saved_state)                    \
+}  /* restore_il_walk_state */
+
 
 void walk_file_scope_il(
              an_entry_process_function_ptr       entry_process_function,
@@ -282,12 +360,20 @@ need to be updated from their "old" values to the proper "new" values.
 That is what the remap function does.
 */
 {
+  an_il_walk_state saved_state;
+
   db_enter(4, "walk_file_scope_il");
+  /* Save the state of global variables for later restoration. */
+  save_il_walk_state(saved_state);
   /* Save the function pointers so they don't have to be passed around. */
   entry_process_func = entry_process_function;
   string_entry_process_func = string_entry_process_function;
+  walk_termination_test_func = NULL;
   walk_remap_func = remap_function;
   walking_file_scope = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+  walking_to_set_needed_flags = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #ifdef FFE
   array_bound_walk_index = 0;
 #endif /* ifdef FFE */
@@ -318,6 +404,8 @@ That is what the remap function does.
   /* Walk the list of entries representing macros. */
   walk_list(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
+  /* Restore the state of global variables. */
+  restore_il_walk_state(saved_state);
   db_exit();
 }  /* walk_file_scope_il */
 
@@ -337,25 +425,23 @@ entry_process_function, string_entry_process_function, or remap_function
 can be NULL to indicate that the corresponding function is unnecessary.
 */
 {
-  an_entry_process_function_ptr       prev_entry_process_func =
-                                           entry_process_func;
-  a_string_entry_process_function_ptr prev_string_entry_process_func =
-                                           string_entry_process_func;
-  a_remap_function_ptr                prev_remap_func =
-                                           walk_remap_func;
-  a_boolean                           prev_walking_file_scope =
-                                           walking_file_scope;
-  int                                 prev_flag_value_meaning_visited =
-                                           flag_value_meaning_visited;
-  a_scope_ptr                         scope;
+  a_scope_ptr      scope;
+  an_il_walk_state saved_state;
 
   db_enter(4, "walk_routine_scope_il");
+  /* Save the state of global variables for later restoration. */
+  save_il_walk_state(saved_state);
+
   /* Save the function pointers so they don't have to be passed around. */
   entry_process_func = entry_process_function;
   string_entry_process_func = string_entry_process_function;
+  walk_termination_test_func = NULL;
   walk_remap_func = remap_function;
   /* Walking a routine scope, not the file scope. */
   walking_file_scope = FALSE;
+#if MAINTAIN_NEEDED_FLAGS
+  walking_to_set_needed_flags = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   scope = il_header.region_scope_entry[region_number];
   flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
 #ifdef FFE
@@ -365,15 +451,71 @@ can be NULL to indicate that the corresponding function is unnecessary.
   /* Process the scope and its subtree. */
   walk_entry_and_subtree((char *)scope, iek_scope);
 
-  /* Restore the previous values of the function pointers etc. */
-  entry_process_func = prev_entry_process_func;
-  string_entry_process_func = prev_string_entry_process_func;
-  walk_remap_func = prev_remap_func;
-  walking_file_scope = prev_walking_file_scope;
-  flag_value_meaning_visited = prev_flag_value_meaning_visited;
-
+  /* Restore the state of global variables. */
+  restore_il_walk_state(saved_state);
   db_exit();
 }  /* walk_routine_scope_il */
+
+
+#if MAINTAIN_NEEDED_FLAGS
+
+static a_boolean prune_needed_flag_il_walk(char             *entry_ptr,
+                                           an_il_entry_kind entry_kind)
+/*
+Termination-test routine for the IL walk used to set the "needed" flag in
+a tree of IL entries.  Returns TRUE to indicate that the IL walk should be
+pruned at the given entry, because the entry has already been marked
+as needed.
+*/
+{
+  a_boolean               prune = FALSE;
+  a_source_correspondence *scp;
+
+  /* Only certain entry kinds have a "needed" flag.  See if this one does. */
+  scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
+  if (scp != NULL) {
+    /* The entry does have a "needed" flag. */
+    if (scp->needed) {
+      /* The flag is set already, so prune the walk at this entry.  */
+      prune = TRUE;
+    } else {
+      /* The flag is not set, so set it and keep walking. */
+      scp->needed = TRUE;
+    }  /* if */
+  }  /* if */
+  return prune;
+}  /* prune_needed_flag_il_walk */
+
+
+void mark_as_needed(char             *entry_ptr,
+                    an_il_entry_kind entry_kind)
+/*
+Set the "needed" flag in the indicated entity, and also on everything it
+references.
+*/
+{
+  an_il_walk_state saved_state;
+
+  /* Save the state of global variables for later restoration. */
+  save_il_walk_state(saved_state);
+  /* Set up for this walk. */
+  entry_process_func = NULL;
+  string_entry_process_func = NULL;
+  walk_termination_test_func = prune_needed_flag_il_walk;
+  walk_remap_func = NULL;
+  /* walking_file_scope need not be set. */
+  walking_to_set_needed_flags = TRUE;
+
+  /* Walk the IL tree. */
+  walk_entry_and_subtree(entry_ptr, entry_kind);
+
+  /* Restore the state of global variables. */
+  restore_il_walk_state(saved_state);
+}  /* mark_as_needed */
+
+#endif /* MAINTAIN_NEEDED_FLAGS */
+
+#endif /* IL_WALK_NEEDED */
 
 
 /*
@@ -585,22 +727,6 @@ running them through walk_remap_func.
 
 #undef DO_SUBTREE_WALK
 #undef WALK_ENTRY_ROUTINE_NAME
-
-
-#if MAINTAIN_NEEDED_FLAGS
-
-void mark_as_needed(char             *entry_ptr,
-                    an_il_entry_kind entry_kind)
-/*
-Set the "needed" flag in the indicated entity, and also on everything it
-references.
-*/
-{
-}  /* mark_as_needed */
-
-#endif /* MAINTAIN_NEEDED_FLAGS */
-
-#endif /* IL_WALK_NEEDED */
 
 #if NEED_DECLARATIVE_WALK
 

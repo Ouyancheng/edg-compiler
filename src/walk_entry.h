@@ -181,8 +181,17 @@ the file scope, do not process it (but record an orphan in the latter case).
 */
 {
 #if DO_SUBTREE_WALK
-  /* Only check for having visited this entry already if walking subtrees. */
-  {
+  /* Do a termination test (to prune the walk) if walking subtrees. */
+  if (walk_termination_test_func != NULL) {
+    /* There is a termination-test function provided by the caller.  Call
+       it to see if we just return on encountering this entry. */
+    if (walk_termination_test_func(entry_ptr, entry_kind)) {
+      goto end_of_routine;
+    }  /* if */
+  } else {
+    /* The default termination test is to see if the il_walk_flag is
+       already set appropriately or if we're crossing into another
+       memory region. */
     an_il_entry_prefix_ptr epp = &il_entry_prefix_of(entry_ptr);
     /* If we are walking through a function scope, and the entry here is
        in the file scope, just return. */
@@ -525,6 +534,17 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
+#if MAINTAIN_NEEDED_FLAGS
+        if (walking_to_set_needed_flags) {
+          /* If the routine has a definition, walk it. */
+          if (ptr->assoc_scope != NO_SCOPE_NUMBER) {
+            a_scope_ptr scope = il_header.region_scope_entry[ptr->assoc_scope];
+            check_assertion_str(scope != NULL,
+                 "walk_entry_and_subtree: needed routine scope not in memory");
+            walk_ptr(scope, a_scope_ptr, iek_scope);
+          }  /* if */
+        }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
@@ -1006,7 +1026,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #ifdef CFE
 #if DO_SUBTREE_WALK
-        if (walking_file_scope) {
+        if (walking_file_scope || walking_to_set_needed_flags) {
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
         } else {
