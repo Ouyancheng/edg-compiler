@@ -4612,16 +4612,15 @@ End a name scope by popping an entry off the scope stack.
       }  /* if */
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-      /* If a function or block scope has local types or static variables,
-         make a special entry to record those orphan lists on the il_header
-         scope_orphaned_list_headers list so they can be found when processing
-         the file scope memory region.  Note that processing for block scopes
-         is done at the end of the function scope to give IL lowering a chance
-         to add variables and types in block scopes.  Note that one reason
-         for doing this processing even for routines whose bodies will
-         be discarded is to pick up macros and pragmas on source sequence
-         lists. */
-      add_scope_orphaned_il_lists(il_scope);
+      if (!discard_function_body) {
+        /* If a function or block scope has local types or static variables,
+           make a special entry to record those orphan lists on the il_header
+           scope_orphaned_list_headers list so they can be found when
+           processing the file scope memory region.  Note that processing
+           for block scopes is done at the end of the function scope to give
+           IL lowering a chance to add variables and types in block scopes. */
+        add_scope_orphaned_il_lists(il_scope);
+      }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     }  /* if */
     /* Clear out the shareable constants table for the function scope. */

@@ -11042,7 +11042,11 @@ void clear_function_body(a_scope_ptr sp)
 /*
 sp is the scope for a routine.  Eliminate the routine definition by
 resetting the routine entry to an undefined state and freeing the
-associated memory region.
+associated memory region.  Note that this does not eliminate any
+associated scope orphaned list header entry -- any such entry
+should either be not created in the first place (as in pop_scope)
+or removed by a separate pass (as in
+eliminate_unneeded_scope_orphaned_list_entries).
 */
 {
   a_routine_ptr           rp = sp->variant.routine.ptr;
