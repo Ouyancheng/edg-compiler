@@ -4404,16 +4404,17 @@ static void set_offsets_for_corresponding_virtual_base_classes(
       }  /* if */
       bcp = corresponding_base_class(base_class, /*old_type=*/(a_type_ptr)NULL,
                                      class_type);
-      if (bcp->data_section_base_class == NULL && !*any_overflow) {
-        if (bcp->complete_subobject) {
-          alignment = bcp->type->alignment;
-          size = bcp->type->size;
-        } else {
-          alignment = bcp->type->variant.class_struct_union.extra_info->
-                                        alignment_without_virtual_base_classes;
-          size = bcp->type->variant.class_struct_union.extra_info->
-                                        size_without_virtual_base_classes;
+      if (bcp->data_section_base_class == NULL && bcp->offset == 0 &&
+          !*any_overflow) {
+#if CHECKING
+        /* All virtual base classes should be marked as "complete
+           subobjects". */
+        if (!bcp->complete_subobject) {
+          internal_error("set_offsets_for_corresp...: not complete subobj");
         }  /* if */
+#endif /* CHECKING */
+        alignment = bcp->type->alignment;
+        size = bcp->type->size;
         if (!do_alignment(p_byte_offset, p_bit_offset, alignment)) {
           error(ec_struct_too_large);
           *any_overflow = TRUE;
@@ -4423,10 +4424,13 @@ static void set_offsets_for_corresponding_virtual_base_classes(
              virtual base class entry.  This allows for direct access of
              its fields (rather than through a pointer) as an optimization
              under certain circumstances. */
-          bcp->offset = *p_byte_offset;
-          if (*p_alignment < alignment) {
-            *p_alignment = alignment;
+#if CHECKING
+          if (*p_byte_offset == 0) {
+            internal_error("set_offsets_for_corresp...: zero offset");
           }  /* if */
+#endif /* CHECKING */
+          bcp->offset = *p_byte_offset;
+          if (*p_alignment < alignment) *p_alignment = alignment;
           if (!increment_field_offsets(p_byte_offset, p_bit_offset,
                                        size, 0)) {
             error(ec_struct_too_large);
