@@ -4926,7 +4926,7 @@ As an anachronism, allow an expression inside the [ ].
   a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
-  a_boolean          err = FALSE;
+  a_boolean          err = FALSE, processed = FALSE;
   a_routine_ptr      delete_routine, dtor_routine;
   an_operand         operand;
   a_constant         constant;
@@ -4977,9 +4977,23 @@ As an anachronism, allow an expression inside the [ ].
   }  /* if */
   /* Scan the pointer expression. */
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
-  do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-  /* The operand of a delete must be a pointer. */
-  if (err || !check_pointer_operand(&operand, ec_expr_not_pointer)) {
+  /* Convert from a class type to an integral type if necessary. */
+  if (is_class_struct_union_type(operand.type)) {
+    try_to_convert_class_operand_to_builtin_type(&operand,
+                                                 (a_builtin_type_kind_set)
+                                                                  BTK_POINTER,
+                                                 &processed);
+  }  /* if */
+  if (!processed) {
+    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+    /* The operand of a delete must be a pointer. */
+    if (!err) {
+      if (!check_pointer_operand(&operand, ec_expr_not_pointer)) err = TRUE;
+    }  /* if */
+  } else if (is_error_operand(&operand)) {
+    err = TRUE;
+  }  /* if */
+  if (err) {
     make_error_operand(result);
   } else {
     ptr_delete_type = operand.type;
