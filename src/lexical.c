@@ -5937,7 +5937,8 @@ mechanism.  This routine scans and builds the asm string.
     /* Not an asm block.  Just take tokens up to the end of the line or up
        to an opening brace. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    a_source_position	end_pos = end_pos_curr_token;
+    a_source_position	end_pos;
+    end_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     while (curr_token != tok_end_of_source) {
       if (curr_token == tok_newline || curr_token == tok_rbrace) {
