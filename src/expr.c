@@ -5679,6 +5679,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             operand_2_is_ptr_to_member, operand_3_is_ptr_to_member;
   a_boolean             saved_evaluated = expr_stack->evaluated;
   a_boolean             expr2_evaluated, expr3_evaluated;
+  a_boolean             types_are_the_same = FALSE;
 
   db_enter(4, "scan_conditional_operator");
 
@@ -5745,27 +5746,14 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   if (is_error_operand(&operand_2) || is_error_operand(&operand_3)) {
     /* One or both of the operands has an error. */
     err = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             types_are_compatible(operand_2.type, operand_3.type)) {
-    /* In C++, if the types are the same the result has that type.
-       No arithmetic conversions are done (e.g., integral promotions
-       are not done). */
-    result_type = operand_2.type;
-    /* The result is an lvalue if the second and third operands are lvalues. */
-    if (is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) {
-      result_is_an_lvalue = TRUE;
-      result_type = make_pointer_type(result_type);
+  } else if (C_dialect == C_dialect_cplusplus) {
+    if (types_are_compatible(operand_2.type, operand_3.type)) {
+      /* In C++, if the types are the same the result has that type.
+         No arithmetic conversions are done (e.g., integral promotions
+         are not done). */
+      types_are_the_same = TRUE;
     } else {
-      /* If one is an rvalue, make them both rvalues. */
-      expr_stack->evaluated = expr2_evaluated;
-      conv_lvalue_to_rvalue(&operand_2);
-      expr_stack->evaluated = expr3_evaluated;
-      conv_lvalue_to_rvalue(&operand_3);
-      expr_stack->evaluated = saved_evaluated;
-    }  /* if */
-  } else {
-    /* Deal with cases where the operands are classes. */
-    if (C_dialect == C_dialect_cplusplus) {
+      /* Check for cases where the operands are classes. */
       a_boolean operand_2_is_class =is_class_struct_union_type(operand_2.type);
       a_boolean operand_3_is_class =is_class_struct_union_type(operand_3.type);
       if (operand_2_is_class || operand_3_is_class) {
@@ -5792,17 +5780,36 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                          &operator_position,
                                          result, &processed);
           /* processed TRUE means an error has been detected. */
-          if (processed) err = TRUE;
+          if (processed) {
+            err = TRUE;
+          } else if (types_are_compatible(operand_2.type, operand_3.type)) {
+            /* Check again for the types being the same after doing the
+               conversions. */
+            types_are_the_same = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!processed) {
-      result_type = operand_2.type;  /* Assume. */
+  }  /* if */
+  if (!processed) {
+    result_type = operand_2.type;  /* Assume. */
+    if (types_are_the_same &&
+        is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) {
+      /* In C++, if the types are the same and the second and third operands
+         are lvalues they are left as lvalues. */
+      result_is_an_lvalue = TRUE;
+      result_type = make_pointer_type(result_type);
+    } else {
+      /* Convert the operands to rvalues. */
       expr_stack->evaluated = expr2_evaluated;
       conv_lvalue_to_rvalue(&operand_2);
       expr_stack->evaluated = expr3_evaluated;
       conv_lvalue_to_rvalue(&operand_3);
       expr_stack->evaluated = saved_evaluated;
+    }  /* if */
+    if (types_are_the_same) {
+      /* If the types are the same no further checking of types is needed. */
+    } else {
       operand_2_is_pointer = is_pointer_type(operand_2.type);
       operand_3_is_pointer = is_pointer_type(operand_3.type);
       if (C_dialect == C_dialect_cplusplus) {
