@@ -3686,7 +3686,7 @@ mangled names.
     add_str_to_mangled_name("__", &mctl);
     if (routine->source_corresp.name != NULL) {
       if (routine->source_corresp.name_has_been_mangled &&
-          !routine->source_corresp.final_name_mangling_pending) {
+          final == !routine->source_corresp.final_name_mangling_pending) {
         check_assertion(!routine->source_corresp.
                                 mangled_name_cannot_be_included_in_other_name);
         /* Using the mangled name as written is important if the routine
