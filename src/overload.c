@@ -5238,7 +5238,8 @@ is used only in C++ mode.
   reference_to_implicitly_invoked_function(conversion_symbol, &error_position,
 					   operand->type,
                                            /*honor_virtual=*/FALSE,
-                                           curr_expr_is_evaluated());
+                                           curr_expr_is_evaluated(),
+                                           /*suppress_access_check=*/FALSE);
   /* Convert the operand to the proper type to be an argument of the
      conversion function. */
 #if CHECKING
@@ -5287,7 +5288,8 @@ is used only in C++ mode.
 					   ctor_routine->source_corresp.
                                                        class_of_which_a_member,
                                            /*honor_virtual=*/FALSE,
-                                           curr_expr_is_evaluated());
+                                           curr_expr_is_evaluated(),
+                                           /*suppress_access_check=*/FALSE);
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
      constructor. */
@@ -5761,8 +5763,8 @@ happen only in C++ mode.
                               is_const_qualified_type(source_operand->type),
                               is_volatile_qualified_type(source_operand->type),
                               &source_operand->position, class_type,
-                              &class_bitwise_copy,
-                              curr_expr_is_evaluated());
+                              &class_bitwise_copy, curr_expr_is_evaluated(),
+                              /*suppress_access_check=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5886,12 +5888,12 @@ of the temporary.  Only used in C++ mode.
       /* A copy constructor must be used.  An error is issued if an appropriate
          one does not exist or is inaccessible. */
       cctor_routine = select_copy_constructor(
-                                     temp_type,
-                                     is_const_qualified_type(operand->type),
-                                     is_volatile_qualified_type(operand->type),
-                                     &operand->position, temp_type,
-				     &class_bitwise_copy,
-                                     curr_expr_is_evaluated());
+                                 temp_type,
+                                 is_const_qualified_type(operand->type),
+                                 is_volatile_qualified_type(operand->type),
+                                 &operand->position, temp_type,
+                                 &class_bitwise_copy, curr_expr_is_evaluated(),
+                                 /*suppress_access_check=*/FALSE);
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
         /* cctor_case = FALSE;  -- already set */

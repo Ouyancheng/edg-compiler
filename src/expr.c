@@ -1348,10 +1348,12 @@ is being called for a derived class object).
   }  /* if */
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(constructor_sym, err_pos,
-					     object_class_type,
-                                             /*honor_virtual=*/FALSE,
-                                         curr_expr_is_potentially_evaluated());
+    reference_to_implicitly_invoked_function(
+                                         constructor_sym, err_pos,
+                                         object_class_type,
+                                         /*honor_virtual=*/FALSE,
+                                         curr_expr_is_potentially_evaluated(),
+                                         /*suppress_access_check=*/FALSE);
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   pop_expr_stack();
@@ -3926,10 +3928,11 @@ specification allow a variable-sized array as the top type.
              to destroy elements if a throw is done part-way through the
              initialization of the array. */
           if (exceptions_enabled) {
-            dip->destructor = select_destructor(base_new_type, base_new_type,
-                                                &type_position,
-                                                /*honor_virtual=*/TRUE,
-                                         curr_expr_is_potentially_evaluated());
+            dip->destructor = select_destructor(
+                                        base_new_type, base_new_type,
+                                        &type_position, /*honor_virtual=*/TRUE,
+                                        curr_expr_is_potentially_evaluated(),
+                                        /*suppress_access_check=*/FALSE);
           }  /* if */
         }  /* if */
       } else {
@@ -4132,7 +4135,8 @@ As an anachronism, allow an expression inside the [ ].
         dtor_routine = select_destructor(base_delete_type, base_delete_type,
                                          &operand.position,
                                          /*honor_virtual=*/TRUE,
-                                         curr_expr_is_potentially_evaluated());
+                                         curr_expr_is_potentially_evaluated(),
+                                         /*suppress_access_check=*/FALSE);
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
@@ -8167,7 +8171,8 @@ destructor routines are marked as actually referenced.
                                                dtor_routine->source_corresp.
                                                        class_of_which_a_member,
                                                /*honor_virtual=*/FALSE,
-                                               /*evaluated=*/TRUE);
+                                               /*evaluated=*/TRUE,
+                                              /*suppress_access_check=*/FALSE);
     }  /* if */
     /* Free the one entry. */
     free_dynamic_init_dtor_fixup(didfp);
