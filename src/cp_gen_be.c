@@ -2035,6 +2035,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   gen_name(&(routine)->source_corresp, iek_routine, GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
 #define gen_type_name(type)                                           \
+  gen_name(&(type)->source_corresp, iek_type, GN_NO_OPTIONS,          \
+           (a_boolean *)NULL)
+#define gen_possibly_dependent_type_name(type)                        \
   gen_name(&(type)->source_corresp, iek_type,                         \
            could_be_dependent_class_type(type) ?                      \
                                      GN_DEPENDENT : GN_NO_OPTIONS,    \
@@ -2654,7 +2657,7 @@ A reference is not the definition.
     gen_temp_name((char *)type);
   } else if (type->kind == (a_type_kind)tk_typeref) {
     /* A typedef. */
-    gen_type_name(type);
+    gen_possibly_dependent_type_name(type);
   } else {
     /* A class, struct, union, or enum. */
     a_boolean use_elab_type_spec;
@@ -2683,7 +2686,9 @@ A reference is not the definition.
     }  /* if */
     if (!use_elab_type_spec) {
       /* Use just the type name. */
-      gen_type_name(type);
+      /* Note that for a dependent name that's qualified this will also
+         put out an elaborated type specifier. */
+      gen_possibly_dependent_type_name(type);
     } else {
       /* Use an elaborated type specifier, e.g., "class X". */
       gen_tag_reference(type);
@@ -4007,10 +4012,7 @@ is the one associated with the definition of the class.
           /* Display the derivation access. */
           gen_access_specifier(bcdp->access);
           write_space();
-          /* Don't use gen_type_name to void adding "typename" in
-             prototype instantiations. */
-          gen_name(&bcp->type->source_corresp, iek_type, GN_NO_OPTIONS,
-                   (a_boolean *)NULL);
+          gen_type_name(bcp->type);
         }  /* if */
       }  /* for */
       write_space();
@@ -8493,7 +8495,7 @@ Note that the destructor, if any, is implicit and need not be put out.
       using_old_style_cast = TRUE;
     } else if (has_name_before_mangling(init_entity_type)) {
       /* Normal case: functional notation cast, e.g., X(y). */
-      gen_type(init_entity_type);
+      gen_type_name(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
         /* This zero initialization can't be put out as an old-style cast
            (it has zero arguments), but it can't be put out as a normal
@@ -9079,10 +9081,7 @@ a constructor.
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;
-          /* Don't use "gen_type_name" to avoid "typename" keywords in
-             prototype instantiations. */
-          gen_name(&type->source_corresp, iek_type,
-                   GN_NO_OPTIONS, (a_boolean *)NULL);
+          gen_type_name(type);
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */

@@ -1,5 +1,15 @@
 Version 3.0
 
+3/21/02  C++-generating back end, casts to dependent types in prototype
+         instantiations
+
+In some cases the C++-generating back end, when configured to
+use prototype instantiations of templates to output the template
+definitions, incorrectly rendered a functional-notation cast to
+a possibly dependent type by placing a "class" keyword in front of
+it (not allowed, because a functional-notation cast must have a
+single identifier before the open parenthesis).  Now fixed.
+
 3/21/02  Assertion failure when using --ignore_std
 
 When using the g++ compatiblity feature --ignore_std, which causes the
