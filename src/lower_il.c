@@ -10185,6 +10185,31 @@ destructor scope.
      of classes derived from the current class. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     vtbl_var = bcp->virtual_function_table_var;
+    /* If class_type has no virtual functions but the base class does,
+       it's possible that the virtual function table pointer in the base class
+       is currently set for a class derived from class_type.  Consider:
+         struct A {
+           virtual void f() {}
+           A() {}
+           ~A() {}
+         };
+         struct B : public A {
+            B() {}
+           ~B() {f();}  // Should call A::f according to ARM 12.7
+         };
+         struct C : public B {
+           void f() {}
+         } c;
+       Without this special case, when destroying a C object C::f would
+       be called.  Don't do this in cfront mode.
+    */
+    if (vtbl_var == NULL && !cfront_compatibility_mode) {
+      a_class_type_supplement_ptr base_class_ctsp =
+                              bcp->type->variant.class_struct_union.extra_info;
+      /* Use the virtual function table for the base class as a complete
+         object, if there is one. */
+      vtbl_var = base_class_ctsp->virtual_function_table_var;
+    }  /* if */
     if (vtbl_var != NULL && vtbl_var != primary_vtbl_var) {
       /* The base class virtual function table pointer must be set
          to reflect the fact that it exists as a subobject inside the

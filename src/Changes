@@ -1,5 +1,28 @@
 Version 2.09
 
+9/11/92  Improved virtual function table pointer setting in destructors
+
+Destructor wrapper code generated in IL lowering now sets virtual
+function table pointers of base classes that have virtual function
+pointers even if the derived class does not have virtual functions.
+The following case now works.  The behavior is disabled in cfront
+compatibility mode.
+
+  extern "C" printf(char *,...);
+  struct A {
+    virtual void f() {printf("A::f\n");};
+    A() {}
+    ~A() {}
+  };
+  struct B : public A {
+     B() {}
+    ~B() {f();}  // Should call A::f according to ARM 12.7
+  };
+  struct C : public B {
+    void f() {printf("C::f\n");};
+  } c;
+  main () { return 0;}
+
 9/10/92  Configuring alignment requirements for zero-width bit fields
 
 TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT has been added to target.h; it allows
