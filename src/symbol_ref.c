@@ -1007,6 +1007,11 @@ created for this entity; otherwise, it is NULL.
         if (scptr->decl_pos_info == NULL) {
           scptr->decl_pos_info =
                        alloc_decl_position_supplement(in_file_scope(scptr));
+#if RECORD_TEMPLATES_IN_IL
+        } else if (is_template_symbol(sym_ptr)) {
+          /* The decl-position-supplement in the IL template entry should not
+             be modified. */
+#endif /* RECORD_TEMPLATES_IN_IL */
         } else {
           clear_decl_position_supplement(scptr->decl_pos_info);
         }  /* if */
