@@ -4032,7 +4032,7 @@ arrays with class elements.
                                            elem_dip->init_expr_lifetime);
     /* If exceptions are enabled, a destructor will be specified if
        appropriate. */
-    dtor_routine = dip->destructor;
+    dtor_routine = elem_dip->destructor;
   } else {
     /* There is no dynamic init entry; the storage is not initialized after
        allocation. */
@@ -4068,7 +4068,7 @@ i.e., arrays with class elements.
 */
 {
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
-  a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
+  a_dynamic_init_ptr          dip = ndsp->dynamic_init;
   a_routine_ptr               delete_routine = ndsp->routine;
   a_routine_ptr               dtor_routine;
   an_expr_node_ptr            ptr_node = ndsp->arg, vec_delete_node;
@@ -4077,11 +4077,7 @@ i.e., arrays with class elements.
   lower_expr(ptr_node, /*is_lvalue=*/FALSE);
   if (dip != NULL) {
     /* A destructor must be called. */
-    /* Get a pointer to the dynamic init entry that applies to the array
-       elements instead of the whole array. */
-    elem_dip = elem_dynamic_init(dip);
-    /* Get the destructor to call. */
-    dtor_routine = elem_dip->destructor;
+    dtor_routine = dip->destructor;
     check_assertion(dtor_routine != NULL);
   } else {
     /* There is no dynamic init entry, and therefore no destruction need be
