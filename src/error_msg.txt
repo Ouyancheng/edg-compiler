@@ -1132,6 +1132,7 @@ ec_cl_pp_output_incompatible_with_multiple_trans_units;;"the option to generate 
 ec_field_name_conflicts_with_class;;"a field with the same name as its class cannot be declared in a class with a user-declared constructor"
 ec_cl_implicit_include_incompatible_with_multiple_trans_units;;"\"implicit_include\" cannot be used when compiling more than one translation unit"
 ec_corrupted_export_template_file;;"exported template file %sq is corrupted"
+ec_exported_instantiation_and_specialized;;"%n cannot be instantiated -- it has been explicitly specialized in the translation unit containing the exported definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -14888,6 +14888,35 @@ caller.
 }  /* find_corresponding_instance */
 
 
+static void check_if_already_specialized(a_template_instance_ptr	tip)
+/*
+A translation unit was loaded to define the exported template instance
+specified by "tip" (it is the instance created in the translation unit
+that actually defines the exported template).  Make sure that the
+entity has not already been specialized in the translation unit containing
+the exported definition (because we cannot generate an instantiation in
+such cases).
+*/
+{
+  a_boolean	specialized;
+
+  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr	vp;
+    vp = tip->instance_sym->variant.static_data_member.variable;
+    specialized = vp->is_specialized;
+  } else {
+    a_routine_ptr		      rp;
+    rp = tip->instance_sym->variant.routine.ptr;
+    specialized = rp->is_specialized;
+  }  /* if */
+  if (specialized) {
+    /* A specialization was found.  Issue an error. */
+    pos_sy_error(ec_exported_instantiation_and_specialized,
+                 &tip->instance_sym->decl_position, tip->instance_sym);
+  }  /* if */
+}  /* check_if_already_specialized */
+
+
 static void instantiate_entity(a_template_instance_ptr tip)
 /*
 Call the appropriate routine to instantiate the function or static
@@ -14939,7 +14968,11 @@ data member specified by tip.
          below.  */
       tip->can_be_instantiated = FALSE;
       if (!entity_can_be_instantiated(tip,
-          /*implicit_inclusion_okay=*/FALSE)) {
+                                      /*implicit_inclusion_okay=*/FALSE)) {
+        /* If the entity cannot be instantiated because it has already been
+           specialized in the translation unit containing the exported
+           definition, issue an error. */
+        check_if_already_specialized(tip);
         /* The corresponding temlate cannot be instantiated.  Clear the
            new template instance pointer to suppress an attempt.  This can
            happen if the entity is specialized in the other translation
