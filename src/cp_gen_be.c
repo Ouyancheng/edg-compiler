@@ -130,13 +130,13 @@ static unsigned long
 			   line of output.  Zero means nothing has been
 			   written so far. */
 static unsigned long
-                last_arrow_column;
-                        /* The column position at which the most recent
-                           "->" was written by handle_operator_call. */
+		last_arrow_column;
+			/* The column position at which the most recent
+			   "->" was written by handle_operator_call. */
 static a_line_number
-                last_arrow_line;
-                        /* The line number on which the most recent "->"
-                           was written by handle_operator_call. */
+		last_arrow_line;
+			/* The line number on which the most recent "->"
+			   was written by handle_operator_call. */
 static a_boolean
 		curr_output_pos_known;
 			/* TRUE if the current output position is known. */
