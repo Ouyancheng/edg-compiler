@@ -1604,7 +1604,7 @@ do_signed_char:;
         unqual_type->variant.integer.enum_type) {
       /* Make a "plain" version of this enum type, i.e., the same underlying
          integral type but not tagged as an enum. */
-      promoted_type = integer_type(promoted_type->variant.integer.int_kind);
+      promoted_type = integer_type(unqual_type->variant.integer.int_kind);
     }  /* if */
   }  /* if */
 
