@@ -1080,7 +1080,6 @@ associated with the function is returned.
   a_type_ptr                     old_type, unqualified_rout_type;
   a_routine_type_supplement_ptr  extra_info;
   a_boolean                      prototyped;
-  a_boolean	                 is_member_function_def = FALSE;
   a_param_type_ptr               ptp;
   a_decl_flag_set                flags;
   a_source_sequence_entry_ptr    declarator_ssep;
@@ -1115,7 +1114,6 @@ associated with the function is returned.
       locator->specific_symbol->is_class_member) {
     /* This is the definition of a member function. */
     check_assertion(prototyped);
-    is_member_function_def = TRUE;
     define_member_function(locator, rout_type, func_info, &symbol_ptr,
                            &linkage, decl_modifiers, &old_type, &ext_sym);
   } else {
@@ -1252,7 +1250,7 @@ associated with the function is returned.
      is processed.  This is used to emulate a cfront name lookup bug.
      See check_for_cfront_name_lookup_bug in symbol_tbl.c for more
      information. */
-  if (is_member_function_def) {
+  if (routine_ptr->source_corresp.is_class_member) {
     if (cfront_2_1_mode) {
       if (routine_ptr->special_kind ==
 			 (a_special_function_kind)sfk_constructor ||
