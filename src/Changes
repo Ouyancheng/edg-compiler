@@ -1,5 +1,22 @@
 Version 3.5
 
+10/4/04  GNU mode: --gnu_version option
+
+In order to permit the front end to correctly emulate GNU features that vary
+between versions of the GNU compilers, a command line option has been added
+to specify the version of the GNU compiler that should be emulated.  The new
+option is "--gnu_version" and must be followed by a version number computed
+as x*10000+y*100+z where x.y.z is the version of the GNU compiler to emulate.
+(For example, "--g++ --gnu_version 30401" indicates that the front end should
+emulate g++ version 3.4.1.)  The default version to emulate can be configured
+by setting the macro DEFAULT_GNU_VERSION (30300 by default at this time).
+The various GNU emulation features already implemented in the front end have
+been reviewed and where needed they have been made dependent on the value of
+gnu_version.  (In some cases where not all versions of gcc or g++ support a
+particular GNU feature, it was decided not to make the feature dependent
+on gnu_version because the feature is a pure extension potentially useful
+in all GNU modes.)
+
 10/4/04  __WCHAR_TYPE__ defined by default on Linux
 
 The __WCHAR_TYPE__ macro is now defined (to "long int") by default on
