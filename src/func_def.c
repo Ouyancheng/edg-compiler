@@ -91,8 +91,8 @@ FALSE, it is assumed that no braces are present and it is just a
 single asm instruction line that is to be scanned (another version of
 the Microsoft asm statement).  In the normal case, when is_asm_block
 is TRUE, proceed token by token until the matching right brace is
-found; otherwise, proceed until the end-of-line is reached.  Then
-tokens of an asm block are fetched as pp-tokens.  Each token is placed
+found; otherwise, proceed until the end-of-line or a right brace is reached.
+Then tokens of an asm block are fetched as pp-tokens.  Each token is placed
 in a token cache.  When the block is in the cache,
 add_token_cache_to_string is used to convert the token cache into a
 string.  When the entire text of the asm block has been created, a
@@ -137,10 +137,10 @@ instruction.
       /* Special handling for a left brace embedded within the assembler
          code: assume it has a matching right brace. */
       if (curr_token == tok_lbrace) ++nbrace;
-    } else if (curr_token == tok_newline) {
+    } else if (curr_token == tok_newline || curr_token == tok_rbrace) {
       /* When it's not a brace-enclosed block of statements terminate the
-         scan when end-of-line is reached -- finish the copy, excluding
-         the current token. */ 
+         scan when end-of-line or a right brace is reached -- finish the
+         copy, excluding the current token. */ 
       break;
     }  /* if */
     /* Copy characters from the source line to the buffer, from

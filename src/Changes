@@ -1,5 +1,14 @@
 Version 2.34
 
+12/4/96  Microsoft compatibility: single line __asm blocks terminated by brace
+
+If a single line __asm block was followed, on the same line, with a right
+brace, the right brace was considered part of the __asm.  The Microsoft
+compiler considers the brace to terminate the __asm.  This front end has
+been corrected to handle this in the same way as the Microsoft compiler.
+
+  void f() { __asm mov eax, fs:[0x10] }
+
 12/2/96  Microsoft compatibility: initializing incomplete array type member
 
 In Microsoft C++ mode the following is now accepted (and an internal
