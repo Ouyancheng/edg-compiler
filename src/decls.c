@@ -4705,9 +4705,9 @@ return_point:
 }  /* decl_typedef */
 
 
-void decl_parameter(a_param_id_ptr    param_id,
-                    a_param_type_ptr  ptp,
-                    a_boolean         function_instantiation)
+static void decl_parameter(a_param_id_ptr    param_id,
+                           a_param_type_ptr  ptp,
+                           a_boolean         function_instantiation)
 /*
 Enter the declaration of an identifier for a parameter.  The param_id
 points to an sk_parameter symbol, which under ordinary circumstances, is
@@ -4739,6 +4739,10 @@ a new symbol is created and entered in the symbol table.
     pos_error(ec_incomplete_type_not_allowed, &param_id->type_pos);
     tp = ptp->type = error_type();
   }  /* if */
+  /* Check for value parameters that must be passed using a copy
+     constructor. */
+  set_arg_transfer_method_flag(ptp);
+  /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
   add_to_parameters_list(vp);
   sym = param_id->symbol;
@@ -7950,6 +7954,42 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 }  /* type_keyword */
 
 
+a_boolean check_function_return_type(a_type_ptr         return_type,
+                                     a_source_position  *err_pos,
+                                     a_boolean          is_call)
+/*
+Issue an error if the specified type is not a valid function return type.
+*/
+{
+  an_error_code  error_code;
+
+  /* If return_type is an uninstantiated template class, force its
+     instantiation. */
+  check_for_uninstantiated_template_class(return_type);
+  /* 3.7.1, constraints: The return type of a function shall be void
+     or an object type other than array.  See also the constraints of
+     3.5.4.3 on function declarators, enforced previously by
+     add_to_derived_type_list.  In addition, a reference type (including a
+     reference to an array or function) may also be returned (ARM 8.2.5). */
+  if (is_void_type(return_type) ||
+      (is_object_type(return_type) && !is_array_type(return_type)) ||
+      is_reference_type(return_type)) {
+    /* Okay. */
+  } else if (!is_error_type(return_type)) {
+    /* Bad return type. */
+    if (is_call) {
+      error_code = ec_calling_function_with_incomplete_return_type;
+    } else if (is_class_struct_union_type(return_type) &&
+               is_incomplete_type(return_type)) {
+      error_code = ec_incomplete_return_type_not_allowed;
+    } else {
+      error_code = ec_bad_function_return_type;
+    }  /* if */
+    pos_error(error_code, err_pos);
+  }  /* if */
+}  /* check_function_return_type */
+
+
 void scan_function_body(a_routine_ptr     rout_ptr,
                         a_func_info_block *func_info,
                         a_decl_flag_set   flags)
@@ -7976,12 +8016,17 @@ and for the instantiation of template functions.
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
   rout_type = skip_typerefs(rout_ptr->type);
+  /* Issue an error if this is an invalid return type. */
+  (void)check_function_return_type(rout_type->variant.routine.return_type,
+                                   &rout_ptr->source_corresp.decl_position,
+                                   /*is_call=*/FALSE);
   /* Check whether the routine needs special support for returning a class
      object by value.   This flag is set in declarator (i.e., as soon as the
      routine type is seen) and usually that is sufficient.  However, with
      inlined friend functions a class that is referenced as a return type may
      not have been completely defined. */
   set_routine_calling_method_flag(rout_type);
+#if 0
   /* Similarly, check for value parameters that must be passed using a copy
      constructor. */
   for (ptp = rout_type->variant.routine.extra_info->param_type_list;
@@ -7989,6 +8034,7 @@ and for the instantiation of template functions.
        ptp = ptp->next) {
     set_arg_transfer_method_flag(ptp);
   }  /* for */
+#endif /* if 0 */
   rtsp = rout_type->variant.routine.extra_info;
   if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
     /* Push a class symbol reactivation scope, to make class member names
@@ -8011,6 +8057,7 @@ and for the instantiation of template functions.
                         make_param_variable(rtsp->implicit_this_param_type,
                                             (a_storage_class)sc_auto);
   }  /* if */
+  check_assertion(func_info != NULL);
   if (func_info != NULL) {
     if (!is_instantiation) {
       /* Parameter symbols that were created in the prototype scope (and then
@@ -8126,33 +8173,6 @@ and for the instantiation of template functions.
 }  /* scan_function_body */
 
 
-static void check_function_return_type(a_type_ptr         return_type,
-                                       a_source_position  *err_pos)
-/*
-Issue an error if the specified type is not a valid function return type.
-*/
-{
-  /* 3.7.1, constraints: The return type of a function shall be void
-     or an object type other than array.  See also the constraints of
-     3.5.4.3 on function declarators, enforced previously by
-     add_to_derived_type_list.  In addition, a reference type (including a
-     reference to an array or function) may also be returned (ARM 8.2.5). */
-  if (is_void_type(return_type) ||
-      (is_object_type(return_type) && !is_array_type(return_type)) ||
-      is_reference_type(return_type)) {
-    /* Okay. */
-  } else if (!is_error_type(return_type)) {
-    /* Bad return type. */
-    if (is_class_struct_union_type(return_type) &&
-        is_incomplete_type(return_type)) {
-      pos_error(ec_incomplete_return_type_not_allowed, err_pos);
-    } else {
-      pos_error(ec_bad_function_return_type, err_pos);
-    }  /* if */
-  }  /* if */
-}  /* check_function_return_type */
-
-
 static void function_definition(
                           a_symbol_locator   *locator,
                           a_type_ptr         rout_type,
@@ -8179,7 +8199,7 @@ explicitly specified (rather than defaulted to "int").
   a_routine_ptr      routine_ptr;
   a_param_id_ptr     param_id;
   an_id_linkage_kind linkage;
-  a_type_ptr         return_type, old_type, unqualified_rout_type;
+  a_type_ptr         old_type, unqualified_rout_type;
   a_routine_type_supplement_ptr
                      extra_info;
   a_boolean          prototyped;
@@ -8213,10 +8233,6 @@ explicitly specified (rather than defaulted to "int").
   if (storage_class == (a_storage_class)sc_extern) {
     storage_class = (a_storage_class)sc_unspecified;
   }  /* if */
-  return_type = unqualified_rout_type->variant.routine.return_type;
-  check_for_uninstantiated_template_class(return_type);
-  /* Issue an error if this is an invalid return type. */
-  check_function_return_type(return_type, &locator->source_position);
   /* Create the symbol entry and routine entry for the routine. */
   if (locator->specific_symbol != NULL &&
       locator->specific_symbol->class_of_which_a_member != NULL) {
@@ -8356,18 +8372,7 @@ that appears within a class definition, this routine duplicates relevant
 processing of function definition.
 */
 {
-  a_type_ptr          rout_type, return_type;
-
   db_enter(3, "inline_function_definition");
-  rout_type = skip_typerefs(rout_ptr->type);
-  /* Make sure the return type has been instantiated.  This must be done
-     before calling set_routine_calling_method_flag (which is called by
-     scan_function_body). */
-  return_type = rout_type->variant.routine.return_type;
-  check_for_uninstantiated_template_class(return_type);
-  /* Issue an error if this is an invalid return type. */
-  check_function_return_type(return_type,
-                             &rout_ptr->source_corresp.decl_position);
   /* Scan the function body. */
   scan_function_body(rout_ptr, func_info,
                      (SFB_NO_CLASS_REACTIVATION |
