@@ -1844,20 +1844,33 @@ segment described by "seg_ptr".
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void form_decl_position(a_symbol_ptr    sym,
-                               msg_segment_ptr seg_ptr)
+static void form_decl_position(a_symbol_ptr      sym,
+                               a_source_position *error_pos,
+                               msg_segment_ptr   seg_ptr)
 /*
 Format the declaration position for the specified symbol in the message
 segment described by seg_ptr.  The generated format is:
 
-        (declared at line xxx of "yyyyyy.c")
-*/
+        (declared at line xxx of "file name")
+
+If the file is stdin or the file name is identical to that of the error
+position of the diagnostic message being composed, the file name is not
+emitted as part of this declaration position.  error_pos represents the
+source position of the diagnostic being formed and is used  to eliminate
+redundant file names in a diagnostic.*/
 {
-  char		*file_name, *full_name;
+  char		*file_name, *full_name, *diag_file_name;
   char		buffer[BASE_MSG_SEGMENT_SIZE];
   a_line_number line_number;
   a_boolean	at_end_of_source;
 
+  diag_file_name = "";
+  if (error_pos->seq != 0) {
+    /* Have a valid diagnostic source position. */
+    conv_seq_to_file_and_line(error_pos->seq, &diag_file_name, &full_name,
+                              &line_number, &at_end_of_source);
+    if (at_end_of_source) diag_file_name = "";
+  }  /* if */
   if (sym->decl_position.seq != 0) {
     /* Have a valid source position. */
     conv_seq_to_file_and_line(sym->decl_position.seq, &file_name, &full_name,
@@ -1874,9 +1887,14 @@ segment described by seg_ptr.  The generated format is:
 #endif /* CHECKING */
       (void)sprintf(buffer, "%ld", (unsigned long)line_number);
       add_string_to_segment(&buffer[0], seg_ptr);
-      add_string_to_segment(" of \"", seg_ptr);
-      add_string_to_segment(file_name, seg_ptr);
-      add_string_to_segment("\")", seg_ptr);
+      /* Add the file name if needed. */
+      if (strcmp(file_name, diag_file_name) != 0 &&
+          strcmp(file_name, FILE_NAME_FOR_STDIN) != 0) {
+        add_string_to_segment(" of \"", seg_ptr);
+        add_string_to_segment(file_name, seg_ptr);
+        add_string_to_segment("\"", seg_ptr);
+      }  /* if */
+      add_string_to_segment(")", seg_ptr);
     }  /* if */
   }  /* if */
 }  /* form_decl_position */
@@ -1922,12 +1940,15 @@ return_point:
 }  /* is_overloaded_function */
 
 
-static void form_symbol_name(a_symbol_ptr    sym,
-                             msg_segment_ptr seg_ptr)
+static void form_symbol_name(a_symbol_ptr      sym,
+                             a_source_position *error_pos,
+                             msg_segment_ptr   seg_ptr)
 /*
 Format the name of the symbol pointed to by "sym" in the message segment
 described by "seg_ptr".  Type information is based on the fundamental symbol
-and the name is that of "sym".
+and the name is that of "sym".  error_pos represents the source position of
+the diagnostic being formed and is used when formatting the symbol source
+declaration position to eliminate redundant file names in a diagnostic.
 */
 {
   a_type_ptr	type = NULL;
@@ -1940,6 +1961,7 @@ and the name is that of "sym".
   a_boolean	is_destructor = FALSE;
   a_boolean	is_overloaded = FALSE;
   a_boolean	is_conversion = FALSE;
+  a_boolean	is_declaration_like = FALSE;
 
   /* Determine the fundamental symbol of this symbol. */
   fund_sym = fundamental_symbol_of(sym);
@@ -1983,10 +2005,12 @@ and the name is that of "sym".
       } else {
         entity_kind = "variable ";
       }  /* if */
+      is_declaration_like = TRUE;
       goto symbol_name;
     case sk_extern_variable:
       type = fund_sym->variant.extern_symbol_descr->type;
       entity_kind = "variable ";
+      is_declaration_like = TRUE;
       goto symbol_name;
     case sk_constant:
       type = fund_sym->variant.constant->type;
@@ -1997,29 +2021,38 @@ and the name is that of "sym".
       type = routine_symbol_type(fund_sym);
       routine = fund_sym->variant.routine;
       entity_kind = "function ";
+      is_declaration_like = TRUE;
       goto symbol_name;
     case sk_extern_routine:
       type = fund_sym->variant.extern_symbol_descr->type;
       routine = fund_sym->variant.extern_symbol_descr->variant.routine;
       entity_kind = "function ";
+      is_declaration_like = TRUE;
       goto symbol_name;
     case sk_overloaded_function:
       entity_kind = "function ";
+      /* There is no specific type information available; this entity cannot
+         be expressed as a declaration. */
       goto symbol_name;
     case sk_static_data_member:
       type = fund_sym->variant.variable->type;
       entity_kind = "member ";
+      is_declaration_like = TRUE;
       goto symbol_name;
     case sk_field:
       type = fund_sym->variant.field.ptr->type;
       if (C_dialect == C_dialect_cplusplus) {
         entity_kind = "member ";
+        is_declaration_like = TRUE;
       } else {
         entity_kind = "field ";
       }  /* if */
 symbol_name:
-      /* Add the entity kind is not specified as name only. */
-      if (! seg_ptr->variant.symbol.name_only) {
+      /* Add the entity kind if not specified as name only or full type for
+         a declaration like entity. */
+      if (type == NULL) is_declaration_like = FALSE;
+      if (! seg_ptr->variant.symbol.name_only &&
+          ! (seg_ptr->variant.symbol.full_type && is_declaration_like) ) {
         add_string_to_segment(entity_kind, seg_ptr);
       } /* if */
       /* Add the beginning double quote. */
@@ -2071,7 +2104,7 @@ symbol_name:
 
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
-    form_decl_position(sym, seg_ptr);
+    form_decl_position(sym, error_pos, seg_ptr);
   }  /* if */
 }  /* form_symbol_name */
 
@@ -2845,7 +2878,8 @@ diagnostic is written.
           internal_error("diag_message: missing symbol substitution");
         }  /* if */
 #endif /* CHECKING */
-        form_symbol_name(error_msg_syms[curr_seg->sequence], curr_seg);
+        form_symbol_name(error_msg_syms[curr_seg->sequence],
+                         error_pos, curr_seg);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
         break;
     }  /* switch */
