@@ -6989,8 +6989,14 @@ that follows.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     } else if (dso_flags & (DSO_DEFINES_SOMETHING | DSO_DECLARES_SOMETHING)) {
       /* The specialization should be marked as an autonomous declaration. */
-      set_autonomous_tag_decl_flag(type,
-                                   (dso_flags & DSO_DEFINES_SOMETHING) != 0);
+      is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
+      set_autonomous_tag_decl_flag(type, is_definition);
+      if (is_definition) {
+        type->variant.class_struct_union.is_specialization = TRUE;
+      } else {
+        (void)set_src_seq_secondary_decl_type((char *)type, type,
+                                              /*is_specialization=*/TRUE);
+      }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   } else {
