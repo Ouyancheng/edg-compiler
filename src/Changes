@@ -6,9 +6,10 @@ Configuration flag TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED is now set
 to FALSE when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE (for improved
 Microsoft compatibility); otherwise, it is set to TRUE when
 CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE; otherwise, the default is now
-FALSE.  This setting can affect whether the value extracted from an enum
-bit field is treated as signed or unsigned (i.e., is potentially sign
-extended or not).
+FALSE.  (Formerly it was unconditionally set to TRUE.)  How this flag is
+set can affect whether the value extracted from an enum bit field is
+treated as signed or unsigned (i.e., is potentially sign extended or
+not).
 
 9/22/98   Enum types larger than "int"
 
