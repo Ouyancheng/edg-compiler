@@ -14,6 +14,7 @@ C++ operator delete(size_t, void*);
 */
 
 #include <stddef.h>
+#include "new.h"
 
 #if 0
 void operator delete(void *, void *)

@@ -14,6 +14,7 @@ C++ operator delete();
 */
 
 #include <stdlib.h>
+#include "new.h"
 
 
 extern void operator delete(void *ptr)
