@@ -1,5 +1,10 @@
 Version 2.22
 
+1/3/93   Instantiation pragma error messages
+
+When an instantiation pragma references an entity for which a specialization
+has already been provided a more descriptive error message is now issued.
+
 12/23/93 Reference flag on virtual destructors used only in delete/new
 
 Virtual destructors used only in an array delete, or in an array new

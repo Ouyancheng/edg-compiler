@@ -863,6 +863,18 @@ instantiated.
     if (issue_errors) {
       sym_error(ec_compiler_generated_function_cannot_be_instantiated, sym);
     }  /* if */
+  } else if (sym->variant.routine.instance_ptr == NULL) {
+    /* Not a template function. */
+    result = FALSE;
+    if (issue_errors) {
+      sym_error(ec_not_instantiatable_entity, sym);
+    }  /* if */
+  } else if (sym->variant.routine.instance_ptr->specific_def) {
+    /* A specific definition has been supplied. */
+    result = FALSE;
+    if (issue_errors) {
+      sym_error(ec_instantiation_requested_and_specific_definition, sym);
+    }  /* if */
   } else if (routine->is_inline) {
     result = FALSE;
     if (issue_errors) {
@@ -1223,10 +1235,6 @@ assumed if the return type is omitted.
       if (sym == NULL) {
 	sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
 	err = TRUE;
-      } else if (sym->variant.routine.instance_ptr == NULL) {
-        /* Not a member function of a template class. */
-        sym_error(ec_not_instantiatable_entity, sym);
-	err = TRUE;
       } else {
         /* Update the flags for the symbol found. */
         update_instantiation_flags(sym, pragma_kind, &start_pos);
@@ -1275,11 +1283,6 @@ assumed if the return type is omitted.
       }  /* for */
       if (!any_found) {
 	sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
-	err = TRUE;
-      } else if (new_sym->variant.routine.instance_ptr == NULL ||
-                 new_sym->variant.routine.instance_ptr->specific_def) {
-        /* Not a template function. */
-        sym_error(ec_not_instantiatable_entity, new_sym);
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
