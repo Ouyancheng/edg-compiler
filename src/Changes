@@ -11,15 +11,16 @@ configurations with builtin support for the va_start macro.
 1/22/02  va_arg type should not be promotable
 
 In configurations with builtin support for the va_arg macro (e.g., when
-GCC_BUILTIN_VARARGS or DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE are
-TRUE), the front end now issues an error if the type passed to va_arg would
-have been promoted to another type when passed through a variable argument
-list.
+DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is TRUE), the front end
+now issues a diagnostic (an error in strict mode, a warning otherwise) if
+the type passed to va_arg would have been promoted to another type when
+passed through a variable argument list.
 
   void f(int n, ...) {
     va_list ap;
     va_start(ap, n);
-    va_arg(ap, char);  /* Error: a char would have been promoted to an int */
+    va_arg(ap, char);  /* Error or warning: a char would have been promoted */
+                       /* to an int */
     va_arg(ap, int);   /* OK. */
     va_end(ap);
   }

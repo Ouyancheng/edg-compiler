@@ -5218,7 +5218,7 @@ and type is the type of the argument to be extracted.
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_expr_node_ptr  node;
-  a_type_ptr        type;
+  a_type_ptr        type, type_to_cast_to = NULL;
   a_boolean         err = FALSE;
 
   db_enter(4, "scan_va_arg_operator");
@@ -5254,11 +5254,20 @@ and type is the type of the argument to be extracted.
     /* The type is not allowed to be an array, function, or reference type. */
     pos_error(ec_bad_va_arg, &type_position);
     err = TRUE;
-  } else if (!identical_types(type, default_argument_promotion(type))) {
-    /* The type must possibly be obtained after default promotion. */
-    pos_ty2_error(ec_va_arg_would_have_been_promoted, &type_position,
-                  type, default_argument_promotion(type));
-    err = TRUE;
+  } else {
+    a_type_ptr  promoted_type = default_argument_promotion(type);
+    if (!identical_types(type, promoted_type)) {
+      an_error_severity severity = (an_error_severity)es_warning;
+      if (strict_ansi_mode) {
+        severity = (an_error_severity)es_error;
+        err = TRUE;
+      }  /* if */
+      /* The type must possibly be obtained after default promotion. */
+      pos_ty2_diagnostic(severity, ec_va_arg_would_have_been_promoted,
+                         &type_position, type, promoted_type);
+      type_to_cast_to = type;
+      type = promoted_type;
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
@@ -5272,6 +5281,11 @@ and type is the type of the argument to be extracted.
     /* Create a va_arg expression node. */
     an_expr_node_ptr va_arg_node =
              make_operator_node((an_expr_operator_kind)eok_va_arg, type, node);
+    if (type_to_cast_to != NULL) {
+      cast_node(&va_arg_node, type_to_cast_to, /*check_cast_access=*/TRUE,
+                /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
+                /*reinterpret_semantics=*/FALSE, &start_position);
+    }  /* if */
     make_expression_operand(va_arg_node, type, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
