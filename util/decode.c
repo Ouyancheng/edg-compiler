@@ -66,6 +66,10 @@ typedef struct a_decode_control_block {
 			/* While scanning a constant, this can be set to the
 			   character after the end of the constant as an
 			   aid to disambiguation.  NULL otherwise. */
+  sizeof_t	uncompressed_length;
+			/* If non-zero, the original name was compressed,
+			   and this indicates the length of the uncompressed
+			   (but still mangled) name. */
 } a_decode_control_block;
 
 
@@ -2118,6 +2122,9 @@ address of the uncompressed name.
     bad_mangled_name(dctl);
     goto end_of_routine;
   }  /* if */
+  /* Save the uncompressed length so it can be used later in telling the
+     caller how big a buffer is required. */
+  dctl->uncompressed_length = length;
   id += 2;
   if (length+1 >= dctl->output_id_size) {
     /* The buffer supplied by the caller is too small to contain the
@@ -2196,7 +2203,12 @@ output_buffer_size gives the allocated size of output_buffer.  If there
 is some error in the demangling process, *err will be returned TRUE.
 In addition, if the error is that the output buffer is too small,
 *buffer_overflow_err will (also) be returned TRUE, and *required_buffer_size
-is set to the size of buffer required to do the demangling.
+is set to the size of buffer required to do the demangling.  Note that
+if the mangled name is compressed, and the buffer size is smaller than
+the size of the uncompressed mangled name, the size returned will be
+enough to uncompress the name but not enough to produce the demangled form.
+The caller must be prepared in that case to loop a second time (the
+length returned the second time will be correct).
 */
 {
   char                       *end_ptr, *p;
@@ -2212,6 +2224,7 @@ is set to the size of buffer required to do the demangling.
   dctl->output_overflow_err = FALSE;
   dctl->suppress_id_output = 0;
   dctl->end_of_constant = NULL;
+  dctl->uncompressed_length = 0;
   if (start_of_id_is("__CPR", id)) {
     /* Uncompress a compressed name. */
     id = uncompress_mangled_name(id, dctl);
@@ -2300,7 +2313,10 @@ is set to the size of buffer required to do the demangling.
   if (!dctl->err_in_id && *end_ptr != '\0') bad_mangled_name(dctl);
   *err = dctl->err_in_id;
   *buffer_overflow_err = dctl->output_overflow_err;
-  *required_buffer_size = dctl->output_id_len + 1; /* +1 for final null. */
+  *required_buffer_size = dctl->output_id_len + 1 /* +1 for final null. */
+                          /* If compressed, we need room for the uncompressed
+                             form, and a null, in the buffer. */
+                          + dctl->uncompressed_length+1;
 }  /* decode_identifier */
 
 

@@ -1,5 +1,23 @@
 Version 2.42
 
+4/17/99  Incorrect required_buffer_size returned on attempt to demangle
+         compressed name
+
+The demangler returns a required_buffer_size, intended to allow the caller
+to allocate a larger buffer for the output if the demangled form of the
+name will not fit in the buffer.  When the input mangled name is a
+compressed name, the value returned was not large enough (the routine
+uses the buffer also as working storage to uncompress the name, and
+the size passed back to the caller did not account for that space
+requirement).  As a consequence, the demangling process would fail
+even when a buffer of the requested size was provided.  Now fixed.
+
+Note that if the buffer size given is smaller than the size of the
+uncompressed mangled name, the size returned will be enough to uncompress
+the name but not enough to produce the demangled form.  The caller must
+be prepared in that case to loop a second time (the length returned
+the second time will be correct).
+
 3/16/99  Demangling of compressed names
 
 In some cases, the demangler failed to demangle compressed mangled names.
