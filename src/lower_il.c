@@ -507,19 +507,11 @@ scope, or the lifetime from the parent context, will be used.
   context->lifetime = lifetime;
   context->new_lifetime = new_lifetime;
   /* If this context begins a new object lifetime, set curr_object_lifetime.
-     Also save the old value for restoration by pop_context.  Likewise save
-     curr_cleanup_state. */
-  if (new_lifetime) {
-    context->saved_curr_object_lifetime = curr_object_lifetime;
-    curr_object_lifetime = lifetime;
-    context->saved_curr_cleanup_state = curr_cleanup_state;
-#if CHECKING
-  } else {
-    /* Clear entries to be neat, even though they are not used. */
-    context->saved_curr_object_lifetime = NULL;
-    context->saved_curr_cleanup_state = NULL;
-#endif /* CHECKING */
-  }  /* if */
+     Also save the old value for restoration by pop_context. */
+  context->saved_curr_object_lifetime = curr_object_lifetime;
+  if (new_lifetime) curr_object_lifetime = lifetime;
+  /* Save curr_cleanup_state for later restoration. */
+  context->saved_curr_cleanup_state = curr_cleanup_state;
   /* The latest_initialization list starts at NULL for a new object lifetime,
      or is inherited from the parent if there is no new object lifetime. */
   context->latest_initialization = NULL;
@@ -7771,16 +7763,19 @@ Generate any cleanup actions required preceding the indicated goto statement.
 }  /* gen_goto_cleanup_actions */
 
 
-static void push_block_statement_context(a_statement_ptr block_statement,
-                                         a_context       *context,
-                                         a_boolean       *context_pushed,
-                                         a_boolean       *new_lifetime)
+static void push_block_statement_context(
+                                  a_statement_ptr    block_statement,
+                                  a_context          *context,
+                                  a_boolean          *context_pushed,
+                                  a_boolean          *new_lifetime,
+                                  a_dynamic_init_ptr *saved_curr_cleanup_state)
 /*
 Push a context and start an object lifetime, if necessary, for the
 indicated block statement.  If a context is pushed, context (a local
 variable in the caller) is used as the stack entry and *context_pushed
 is returned TRUE.  *new_lifetime is returned TRUE if a new object lifetime
-is begun.
+is begun.  The value of curr_cleanup_state is saved in
+*saved_curr_cleanup_state so it can be restored at the end of the block.
 */
 {
   a_block_ptr            block = block_statement->variant.block.extra_info;
@@ -7803,6 +7798,7 @@ is begun.
     lifetime = scope->lifetime;
     *new_lifetime = (lifetime != NULL);
   }  /* if */
+  *saved_curr_cleanup_state = curr_cleanup_state;
   if (*new_lifetime) {
     /* A new lifetime was pushed. */
     /* Do initial processing for the lifetime (e.g., generate conditional
@@ -7814,10 +7810,48 @@ is begun.
 }  /* push_block_statement_context */
 
 
-static void pop_block_statement_context(a_statement_ptr block_statement,
-                                        a_statement_ptr last_statement,
-                                        a_boolean       context_pushed,
-                                        a_boolean       new_lifetime)
+#if DO_FULL_PORTABLE_EH_LOWERING
+/*ARGSUSED*/  /* <-- insert_location is not used in that case. */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+static void reset_cleanup_state_at_unreachable_end_of_block(
+                                   a_dynamic_init_ptr saved_curr_cleanup_state,
+                                   an_insert_location *insert_location)
+/*
+We are currently at the end of a block whose end is unreachable.
+Usually, the cleanup state at the end of a block matches the cleanup
+state at the beginning, because either
+  (1)  the block has an associated lifetime, in which case it destroys
+       everything created therein, thus restoring the cleanup state
+       to what it was on entry, or
+  (2)  the block has no associated lifetime (it contains no
+       destructible objects), so it has no effect on the cleanup state.
+However, transfer statements (return, goto, throw) can cause the
+cleanup state to be changed to match the destination of the transfer,
+and because the code after them is unreachable, no destructions are
+emitted and the cleanup state remains in this altered state.
+If the curr_cleanup_state does not match saved_curr_cleanup_state,
+restore the saved value now.  If some code must be inserted to do that,
+insert it at *insert_location.
+*/
+{
+#if DO_FULL_PORTABLE_EH_LOWERING
+  /* For the fully-lowered EH scheme, just update the state variable. */
+  curr_cleanup_state = saved_curr_cleanup_state;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* For the partially-lowered EH schemes, generate the cleanup state
+     operation since it might be used to build a table instead of being
+     considered executable.  */
+  set_curr_cleanup_state(saved_curr_cleanup_state, insert_location);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+}  /* reset_cleanup_state_at_unreachable_end_of_block */
+
+
+static void pop_block_statement_context(
+                                   a_statement_ptr    block_statement,
+                                   a_statement_ptr    last_statement,
+                                   a_boolean          context_pushed,
+                                   a_boolean          new_lifetime,
+                                   a_dynamic_init_ptr saved_curr_cleanup_state)
 /*
 Pop a context and end an object lifetime, if necessary, for the
 indicated block statement.  context_pushed indicates whether or
@@ -7828,6 +7862,8 @@ actions required at the end of the block.  last_statement points to the
 last statement within the block, or is NULL if there are no statements
 in the block or to ask this routine to find the last statement itself.
 Any cleanup code inserted is placed after the last statement.
+*saved_curr_cleanup_state contains the value that curr_cleanup_state
+had at the start of the block.
 */
 {
   a_block_ptr            block = block_statement->variant.block.extra_info;
@@ -7835,6 +7871,21 @@ Any cleanup code inserted is placed after the last statement.
   an_object_lifetime_ptr lifetime = block->lifetime;
   an_insert_location     insert_location;
 
+  /* If the block was originally empty but some statements were
+     added (e.g., to initialize the catch handler parameter), find the
+     last statement. */
+  if (last_statement == NULL &&
+      block_statement->variant.block.statements != NULL) {
+    last_statement = last_statement_in_block(block_statement);
+  }  /* if */
+  /* Determine the insert location for the end of the block. */
+  if (last_statement == NULL) {
+    /* The block is empty, so insert at its beginning. */
+    set_block_start_insert_location(block_statement, &insert_location);
+  } else {
+    /* Insert after the last statement. */
+    set_insert_location(last_statement, &insert_location);
+  }  /* if */
   if (new_lifetime) {
     /* An object lifetime must be ended.  If there were labels in the
        block, this may end several object lifetimes.  (That's one reason
@@ -7845,35 +7896,22 @@ Any cleanup code inserted is placed after the last statement.
       scope = innermost_function_scope;
     }  /* if */
     if (scope != NULL) lifetime = scope->lifetime;
-    /* If the block was originally empty but some statements were
-       added (e.g., to initialize the catch handler parameter), find the
-       last statement. */
-    if (last_statement == NULL &&
-        block_statement->variant.block.statements != NULL) {
-      last_statement = last_statement_in_block(block_statement);
-    }  /* if */
-    if (last_statement == NULL) {
-      /* The block is empty, so insert at its beginning. */
-      set_block_start_insert_location(block_statement, &insert_location);
-    } else {
-      /* Insert after the last statement. */
-      set_insert_location(last_statement, &insert_location);
-    }  /* if */
     /* Insert any cleanup actions after the last statement in the block
        if the end of the block is reachable. */
     if (block->end_of_block_reachable) {
       gen_cleanup_actions(lifetime, &insert_location);
-#if !DO_FULL_PORTABLE_EH_LOWERING
-    } else if (scope != innermost_function_scope) {
-      /* For the partially-lowered EH schemes, indicate the cleanup state
-         even if the end of the block is not reachable since the cleanup
-         state operation might be used to build a table instead of being
-         considered executable.  This is not needed at the end of the
-         top block of a function. */
-      set_curr_cleanup_state(curr_context->saved_curr_cleanup_state,
-                             &insert_location);
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
     }  /* if */
+  }  /* if */
+  if (saved_curr_cleanup_state != curr_cleanup_state &&
+      scope != innermost_function_scope) {
+    /* Adjust the cleanup state at the end of a block that ends with a
+       transfer of control.  There's no point in doing this for the top
+       block of a function. */
+    check_assertion_str2(!block->end_of_block_reachable,
+                         "pop_block_statement_context:",
+                 "curr_cleanup_state is wrong, and end of block is reachable");
+    reset_cleanup_state_at_unreachable_end_of_block(saved_curr_cleanup_state,
+                                                    &insert_location);
   }  /* if */
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
@@ -8006,6 +8044,8 @@ Lower the dependent statement of the indicated "switch" statement.
   a_statement_ptr statement_list, last_statement;
   a_context       context;
   a_boolean       context_pushed, new_lifetime;
+  a_dynamic_init_ptr
+                  saved_curr_cleanup_state;
 
   /* If there is a body statement that is a block, push a context
      around the processing of the switch clauses. */
@@ -8016,13 +8056,15 @@ Lower the dependent statement of the indicated "switch" statement.
        to initialize conditional flags. */
     statement_list = body_statement->variant.block.statements;
     push_block_statement_context(body_statement, &context,
-                                 &context_pushed, &new_lifetime);
+                                 &context_pushed, &new_lifetime,
+                                 &saved_curr_cleanup_state);
     lower_statement_list(statement_list, &last_statement);
     lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
                              new_lifetime ? curr_context->lifetime :
                                             (an_object_lifetime_ptr)NULL);
     pop_block_statement_context(body_statement, last_statement,
-                                context_pushed, new_lifetime);
+                                context_pushed, new_lifetime,
+                                saved_curr_cleanup_state);
   } else {
     /* There is no body statement, or the body statement is something
        other than a block statement. */
@@ -8220,7 +8262,8 @@ handled).
       /* Insert
            if (!value_expr) goto break_label;
       */
-      { a_statement_ptr goto_stmt, if_stmt;
+      { a_statement_ptr    goto_stmt, if_stmt;
+        a_dynamic_init_ptr saved_curr_cleanup_state = curr_cleanup_state;
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
         goto_stmt->variant.label.ptr = break_label;
         /* The common lifetime for the goto and label is the lifetime of the
@@ -8239,6 +8282,9 @@ handled).
         /* If the condition variable requires destruction, put destruction
            code in preceding the goto. */
         gen_goto_cleanup_actions(goto_stmt);
+        reset_cleanup_state_at_unreachable_end_of_block(
+                                                      saved_curr_cleanup_state,
+                                                      &insert_location);
       }
       /* Lower the dependent statement of the loop. */
       lower_statement(dep_statement);
@@ -8292,6 +8338,7 @@ Do IL lowering of the indicated statement and everything under it.
   a_source_position    saved_error_position, saved_code_pos;
   a_block_ptr          block;
   a_boolean            context_pushed, new_lifetime;
+  a_dynamic_init_ptr   saved_curr_cleanup_state;
 
   if (statement != NULL) {
     /* Track the source position. */
@@ -8364,7 +8411,8 @@ Do IL lowering of the indicated statement and everything under it.
         /* Push a context around the processing of the block if it has a scope
            or an object lifetime. */
         push_block_statement_context(statement, &context,
-                                     &context_pushed, &new_lifetime);
+                                     &context_pushed, &new_lifetime,
+                                     &saved_curr_cleanup_state);
         block = statement->variant.block.extra_info;
         scope = block->assoc_scope;
         if (scope != NULL) {
@@ -8377,7 +8425,8 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement_list(statement_list, &last_statement);
         /* Generate any cleanup actions and pop the context. */
         pop_block_statement_context(statement, last_statement,
-                                    context_pushed, new_lifetime);
+                                    context_pushed, new_lifetime,
+                                    saved_curr_cleanup_state);
         break;
       case stmk_switch:
         lower_condition(statement);
