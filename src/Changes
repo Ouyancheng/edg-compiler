@@ -1,5 +1,15 @@
 Version 2.32
 
+2/11/96   C++-generating back end: address of lvalue-returning operation
+
+The C++-generating was failing to put out a "&" in front of an lvalue-returning
+operation whose address is taken.
+
+  main () {
+    int i = 0, j, k;
+    int *p = &(i ? j : k);
+  }
+
 2/11/96   Virtual function table for type_info duplicated
 
 When a program includes <typeinfo> and therefore has a definition of
