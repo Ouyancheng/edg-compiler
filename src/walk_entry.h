@@ -58,13 +58,13 @@ the entry is not reached from elsewhere.
    references are significant and must be followed. */
 #define remap_ptr(ptr, ptr_type, entry_kind) \
   walk_ptr(ptr, ptr_type, entry_kind)
-#else /* !(NEEDED_FLAG_WALK && ...) */
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
 #define remap_ptr(ptr, ptr_type, entry_kind) \
 { if (walk_remap_func != NULL) { \
     (ptr) = (ptr_type)walk_remap_func((char *)(ptr), (entry_kind)); \
   }  /* if */ \
 }  /* remap_ptr */
-#endif /* NEEDED_FLAG_WALK && ... */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 
 /*
 Like remap_ptr, but used for pointers in lists, i.e., "next" pointers
@@ -369,10 +369,10 @@ necessary.
 #undef conditionally_clear_fe_pointer
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
 #define conditionally_clear_fe_pointer(ptr) /* Nothing */
-#else /* !(NEEDED_FLAG_WALK && ...) */
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
 #define conditionally_clear_fe_pointer(ptr) \
 { if (clear_fe_pointers_during_walk) (ptr) = NULL; }
-#endif /* NEEDED_FLAG_WALK && ... */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 
 #if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
 /* We need pm_class_type_possibly_lowered. */
