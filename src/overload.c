@@ -5003,78 +5003,65 @@ used in error messages.
 
   db_enter(4, "conversion_possible");
   clear_user_conv_descr(user_conversion);
-  /* Convert array --> pointer and function --> pointer. */
-  do_operand_transformations(source_operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                             TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
 #if CHECKING
   if (is_reference_type(dest_type)) {
     internal_error("conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
-  source_type = source_operand->type;
-  /* Note that we do not drop type qualifiers on the source and destination
-     types yet, because we may still be dealing with lvalue cases. */
-  if (m_is_error_type(source_type) || m_is_error_type(dest_type)) {
-    /* An error type is compatible with anything. */
-    okay = TRUE;
-    /* If the source is an lvalue, convert it to an rvalue. */
-    conv_lvalue_to_rvalue(source_operand);
-  } else if (C_dialect != C_dialect_cplusplus &&
-             is_class_struct_union_type(dest_type) &&
-             types_are_compatible(f_skip_typerefs(source_type),
-                                  f_skip_typerefs(dest_type))) {
-    /* In C, a struct or union is compatible with the same struct or union.
-       Type qualifiers are ignored because they will be dropped on the source
-       type in the conversion to an rvalue, and any qualifiers on the
-       destination type can be added after that. */
-    user_conversion->class_identity_or_bitwise_copy = TRUE;
-    okay = TRUE;
-    /* If the source is an lvalue, convert it to an rvalue. */
-    conv_lvalue_to_rvalue(source_operand);
-  } else if (is_indefinite_function_operand(source_operand)) {
-    /* The source is an indefinite function, i.e., the address of an
-       overloaded function.  It can be converted to an appropriate
-       pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
-       but sensible). */
-    if (find_addr_of_overloaded_function_match(source_operand->variant.symbol,
-                                               dest_type,
-                                               &source_operand->position,
-                                               &match_level, &ambiguous)
-                                                                     != NULL) {
-      okay = TRUE;
-    } else if (ambiguous) {
-      /* More than one function matches. */
-      pos_sy_error(ec_ambiguous_ptr_to_overloaded_function, err_pos,
-                   source_operand->variant.symbol);
-      conv_to_error_operand(source_operand);
-    } else {
-      /* No match. */
-      pos_sy_error(ec_no_match_for_addr_of_overloaded_function, err_pos,
-                   source_operand->variant.symbol);
-      conv_to_error_operand(source_operand);
-    }  /* if */
-  } else if (C_dialect == C_dialect_cplusplus &&
-             user_defined_conversion_possible(source_operand, dest_type,
-                                              is_initialization,
-                                              user_conversion, &failed)) {
+  if (C_dialect == C_dialect_cplusplus &&
+      user_defined_conversion_possible(source_operand, dest_type,
+                                       is_initialization,
+                                       user_conversion, &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;
   } else if (!failed) {
-    /* If the source is an lvalue, convert it to an rvalue. */
-    conv_lvalue_to_rvalue(source_operand);
-    /* Re-fetch source type in case of an error in the lvalue --> rvalue
-       conversion, and also because any type qualifiers on the source type
-       have been dropped in the conversion to an rvalue. */
+    /* No user-defined conversion applies. */
+    /* Do the lvalue --> rvalue transformation et al. */
+    do_operand_transformations(source_operand,
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+    /* Note that the source type is extracted after the lvalue to
+       rvalue transformation. */
     source_type = source_operand->type;
-    /* See if there is a valid implicit conversion from the source type to
-       the destination type. */
-    if (impl_conversion_possible(source_type,
-                                 is_constant_operand(source_operand),
-                                 &source_operand->variant.constant,
-                                 dest_type,
-                                 /*suppress_extensions=*/FALSE,
-                                 incompatible_err, &warning_suggested)) {
+    if (is_indefinite_function_operand(source_operand)) {
+      /* The source is an indefinite function, i.e., the address of an
+         overloaded function.  It can be converted to an appropriate
+         pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
+         but sensible). */
+      if (find_addr_of_overloaded_function_match(
+                                           source_operand->variant.symbol,
+                                           dest_type,
+                                           &source_operand->position,
+                                           &match_level, &ambiguous) != NULL) {
+        okay = TRUE;
+      } else if (ambiguous) {
+        /* More than one function matches. */
+        pos_sy_error(ec_ambiguous_ptr_to_overloaded_function, err_pos,
+                     source_operand->variant.symbol);
+        conv_to_error_operand(source_operand);
+      } else {
+        /* No match. */
+        if (!is_error_type(dest_type)) {
+          pos_sy_error(ec_no_match_for_addr_of_overloaded_function, err_pos,
+                       source_operand->variant.symbol);
+        }  /* if */
+        conv_to_error_operand(source_operand);
+      }  /* if */
+    } else if (C_dialect != C_dialect_cplusplus &&
+               is_class_struct_union_type(dest_type) &&
+               types_are_compatible(source_type,
+                                    f_skip_typerefs(dest_type))) {
+      /* In C, a struct or union is compatible with the same struct or union.
+         Type qualifiers on the destination are ignored because they
+         can be added on the conversion. */
+      user_conversion->class_identity_or_bitwise_copy = TRUE;
+      okay = TRUE;
+    } else if (impl_conversion_possible(source_type,
+                                        is_constant_operand(source_operand),
+                                        &source_operand->variant.constant,
+                                        dest_type,
+                                        /*suppress_extensions=*/FALSE,
+                                        incompatible_err,
+                                        &warning_suggested)) {
       /* An implicit conversion is legal. */
       okay = TRUE;
       /* Warn on oddball conversions. */
