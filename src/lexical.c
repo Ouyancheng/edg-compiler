@@ -1836,10 +1836,10 @@ search path.  file_name must be allocated in IL storage.
 }  /* open_file_and_push_input_stack */
 
 
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+#if !INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*ARGSUSED*/ /* <-- replace_suffix is used only if instantiation may use
                     implicit inclusion. */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+#endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
 FILE *open_file_for_input(char                       *file_name,
                           a_directory_name_entry_ptr search_path,
                           a_boolean                  replace_suffix,
@@ -1868,9 +1868,6 @@ returned.
      names will bypass the buffer and be allocated directly via alloc_il. */
 #define BUFFER_SIZE 130
   char                        buffer[BUFFER_SIZE];
-  char                        *suffix_loc;
-  a_file_suffix_ptr           fsp;
-  a_boolean                   done;
 
   db_enter(2, "open_file_for_input");
   new_input_file = NULL;
@@ -1883,9 +1880,12 @@ returned.
     new_input_file = stdin;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   } else if (replace_suffix) {
+    char               *suffix_loc;
+    a_file_suffix_ptr  fsp;
+    a_boolean          done = FALSE;
+
     /* We need to try a set of suffixes till we find a file we can open. */
     curr_directory_name_entry = search_path;
-    done = FALSE;
     for (;;) {
       if (is_absolute_file_name(file_name)) {
         /* Force the name to be copied to the buffer or to new storage. */
