@@ -1933,16 +1933,10 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
                    case an error will have already been issued.  This can
                    also occur in Microsoft mode where specializations are
                    allowed in class scopes. */
-                if (microsoft_mode) {
-                  class_type->variant.class_struct_union.is_specialized = TRUE;
-                  /* The specialization that is in the prototype instantiation
-		     of the enclosing class should itself be treated as a
-		     prototype instantiation. */
-                } else {
-                  tag_sym = NULL;
-                  set_to_named_error_locator(locator);
-                  err = TRUE;
-                }  /* if */
+                /* The specialization that is in the prototype instantiation
+		   of the enclosing class should itself be treated as a
+		   prototype instantiation. */
+                class_type->variant.class_struct_union.is_specialized = TRUE;
               } else if (class_type_is_complete && !err) {
                 /* The class has already been instantiated and can't now
                    be specialized. */
@@ -2356,6 +2350,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
                               orig_decl_level, is_local_class,
                               delayed_nested_class_def,
                               /*is_template_instantiation=*/FALSE,
+                              is_template_specialization,
                               (a_template_ptr)NULL,
                               &local_decl_pos_block)) {
       *defines_something = TRUE;

@@ -64,6 +64,7 @@ extern a_boolean scan_class_definition(
                                    a_boolean        is_local_class,
                                    a_boolean        delayed_nested_class_def,
                                    a_boolean        is_template_instantiation,
+				   a_boolean	    is_template_specialization,
                                    a_template_ptr   il_template_entry,
                                    a_decl_pos_block *decl_pos_block);
 

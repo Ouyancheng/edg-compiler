@@ -2169,6 +2169,7 @@ might not be able to if the template itself has not yet been defined.
                     depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/is_class_member,
                     /*is_template_instantiation=*/TRUE,
+                    /*is_template_specialization=*/FALSE,
                     (a_template_ptr)NULL,
                     (a_decl_pos_block_ptr)NULL);
       pending_class_definitions--;
@@ -2675,6 +2676,7 @@ A pointer to the head of the list is returned in tcsp.
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/is_class_member,
                               /*is_template_instantiation=*/TRUE,
+	                      /*is_template_specialization=*/FALSE,
                               decl_state->il_template_entry,
                               &decl_state->decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

@@ -1,5 +1,25 @@
 Version 2.46
 
+5/15/01  Microsoft compatibility: definitions of members of in-class
+         specializations not emitted
+
+The Microsoft compiler permits a member class template to be specialized in
+the scope of the enclosing class (this is prohibited by the standard).  We
+emulate this behavior in Microsoft mode.  When processing such a
+specialization, the members of the specialization were not being handled
+properly.  This could result in link errors or other incorrect behavior,
+and is now fixed.
+
+  template < class T > struct A {
+    template <class T2> struct B { void f() { } };
+    template <> struct B< char > { void f() { } };
+    B<char> b;
+  };
+  int main() {
+    A<int> a;
+    a.b.f();  // link error: A<int>::B<char>::f not defined
+  }
+
 5/14/01  Return without expression in non-void function in C mode gets
          remark instead of warning when not at top level
 

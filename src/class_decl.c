@@ -11772,6 +11772,7 @@ a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_boolean        is_local_class,
                                 a_boolean        delayed_nested_class_def,
                                 a_boolean        is_template_instantiation,
+				a_boolean	 is_template_specialization,
                                 a_template_ptr   il_template_entry,
                                 a_decl_pos_block *decl_pos_block)
 /*
@@ -11789,7 +11790,10 @@ is being instantiated either for the purpose of producing the prototype
 instantiation or for generating a real instantiation.  It is also TRUE for
 nested classes when their definition appears outside of the class template.
 If a prototype instantiation is produced, il_template_entry is set to the
-template entry for the class template definition; otherwise it is NULL. */
+template entry for the class template definition; otherwise it is NULL.
+is_template_specialization is TRUE for explicit specializations of template
+classes.
+*/
 {
   a_boolean                        err = FALSE;
   a_symbol_ptr                     tag_sym;
@@ -11802,6 +11806,7 @@ template entry for the class template definition; otherwise it is NULL. */
   a_boolean                        skip_semicolon_check;
   a_type_ptr                       dummy_type;
   a_boolean			   instantiation_scope_pushed = FALSE;
+  a_boolean			   is_in_class_specialization;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -11843,6 +11848,8 @@ template entry for the class template definition; otherwise it is NULL. */
   class_scope_depth = depth_scope_stack;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  is_in_class_specialization = is_template_specialization &&
+                               !delayed_nested_class_def;
   if (C_dialect == C_dialect_cplusplus) {
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this class type.  This is used
@@ -11875,6 +11882,12 @@ template entry for the class template definition; otherwise it is NULL. */
            to the current class. */
         check_nonreal_nested_class(tag_sym, class_tssp);
       }  /* if */
+    } else if (class_type->variant.class_struct_union.is_nonreal_class) {
+      /* A nonreal class, but not a prototype instantiation.  This can
+         occur when an in-class specialization occurs in a prototype
+         instantiation.  Such specializations are only allowed in Microsoft
+         mode, but may still occur (with an error) in other modes. */
+      class_state.is_nonreal_instantiation = TRUE;
     } else if (is_template_instantiation && tag_sym->is_class_member) {
       /* An instance of a member template.  Mark it as nonreal if the
          instantiation is being triggered inside a prototype instantiation. */
@@ -12338,7 +12351,8 @@ next_declaration:
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
-      if (!tag_sym->is_class_member || delayed_nested_class_def) {
+      if (!tag_sym->is_class_member || delayed_nested_class_def ||
+          is_in_class_specialization) {
         /* For non-nested classes add the class to the list of classes for
            which delayed processing for default argument declarations and
            inline member function definitions must be done.  The actual
