@@ -5278,6 +5278,10 @@ of the function, and again overloading is a possibility.
     sym->variant.routine.ptr = make_routine(function_type,
                                             (a_storage_class)sc_static,
                                             NO_SCOPE_DEPTH);
+    /* If this is a friend declaration in a prototype instantiation,
+       mark it as a prototype instantiation too. */
+    sym->variant.routine.ptr->is_prototype_instantiation =
+                     scope_stack[depth_scope_stack].in_prototype_instantiation;
     /* Set the source correspondence. */
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else {
