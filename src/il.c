@@ -3681,7 +3681,7 @@ the same effect), and return a pointer to the new expression.
   } else {
     /* For other cases, add an indirection operator. */
     node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                              make_pointer_type(node->type), node);
+                              type_pointed_to(node->type), node);
   }  /* if */
   return node;
 }  /* add_indirection_to_node */
