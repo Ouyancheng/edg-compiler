@@ -1704,7 +1704,6 @@ come out on the closing "}".
 {
   a_statement_ptr block;
   a_scope_ptr     scope_ptr;
-  a_column_number opening_brace_column;
 
   db_enter (3, "compound_statement");
 
@@ -1731,7 +1730,6 @@ come out on the closing "}".
   /* Skip over the opening brace.  Note that this is NOT an internal error
      check; when a compound statement is the body of a function, it's
      required. */
-  opening_brace_column = pos_curr_token.column;
   (void)required_token(tok_lbrace, ec_exp_lbrace);
   add_stop_token(tok_rbrace);
   /* Push an associated scope if this block is not for a function.  This
