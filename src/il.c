@@ -83,18 +83,13 @@ static unsigned long
 		num_statements_allocated,
                 num_constructor_inits_allocated,
 		num_scopes_allocated,
+		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
 		num_fs_orphan_pointers_allocated,
 		num_orphaned_il_lists_allocated;
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-#if ALTERNATE_IL_FILE_FORMAT
-static unsigned long
-		num_il_entry_numbers_allocated;
-#endif /* ALTERNATE_IL_FILE_FORMAT */
-#if !STANDALONE_UTILITY_PROGRAM
 
 /*
 Number of times the based_types lists of types are searched for related types.
@@ -1293,75 +1288,97 @@ void db_initializer(a_variable_ptr  var,
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-#if ALTERNATE_IL_FILE_FORMAT
+
 /*
-Macro to increment the entry number allocation count only if DEBUG
+Macro to increment the entry prefix allocation count only if DEBUG
 is TRUE.  Used in do_alloc.
 */
-#if DEBUG
-#define incr_num_il_entry_numbers_allocated()                         \
-  num_il_entry_numbers_allocated++
-#else /* !DEBUG */
-#define incr_num_il_entry_numbers_allocated() /* Do nothing */
-#endif /* DEBUG */
-/*
-For the alternate IL file format, each entry's allocation must be preceded
-by an entry number, which is initialized to zero here.
-*/
-#define do_alloc(ptr, region_number, size)                            \
-{ ptr = alloc_in_region((region_number),                              \
-                         (sizeof_t)((size)+SPACE_FOR_IL_ENTRY_NUMBER)); \
-  incr_num_il_entry_numbers_allocated();                              \
-  *(an_il_entry_number *)ptr = 0;                                     \
-  ptr += SPACE_FOR_IL_ENTRY_NUMBER;                                   \
-}  /* do_alloc */
-#else /* !ALTERNATE_IL_FILE_FORMAT */
-/*
-For the usual IL file format, or when no IL file is written, no extra space
-is required.
-*/
-#define do_alloc(ptr, region_number, size)                            \
-  ptr = alloc_in_region((region_number), (size))
-#endif /* ALTERNATE_IL_FILE_FORMAT */
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#define incr_num_il_entry_prefixes_allocated()                        \
+  num_il_entry_prefixes_allocated++
+#else /* !(DEBUG && ...) */
+#define incr_num_il_entry_prefixes_allocated() /* Nothing */
+#endif /* DEBUG && ... */
 
-#if ORPHAN_PROCESSING_NEEDED
+
 /*
-Orphaned file scope IL entries need to be chained together to ensure that
-they will be visited when the IL is walked during writing, reading
-or display.  The pointer used to chain like IL entry types together
-precedes the IL entry (and follows the IL entry number if there is one).
-The pointer is only needed in file-scope allocations.
+Allocate an IL entry of size "size" preceded by an_il_entry_prefix, and
+initialize the latter to default values.  ptr is a "char *" pointer and is
+set to point to the entry proper.  The allocation is done in the memory
+region memory_region.  file_scope is TRUE if the allocation is in the
+file scope.  (Yes, that could be determined from region_number, but it
+happens that it is usually known by the caller).
 */
+#define do_alloc(ptr, region_number, file_scope, size)                \
+{ ptr = alloc_in_region((region_number),                              \
+                         (sizeof_t)((size)+SPACE_FOR_IL_ENTRY_PREFIX)); \
+  incr_num_il_entry_prefixes_allocated();                             \
+  clear_il_entry_prefix(ptr, file_scope);                             \
+  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                   \
+}  /* do_alloc */
+
+
 /*
 Macro to increment the count of next-orphan pointers allocated only if
 DEBUG is TRUE.  Used in do_fs_alloc.
 */
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
-#define incr_fs_orphan_pointers_allocated()                         \
+#if ORPHAN_PROCESSING_NEEDED && DEBUG && !STANDALONE_UTILITY_PROGRAM
+#define incr_num_fs_orphan_pointers_allocated()                       \
   num_fs_orphan_pointers_allocated++
-#else /* !(DEBUG && ...) */
-#define incr_fs_orphan_pointers_allocated() /* Do nothing */
-#endif /* (DEBUG && ...) */
+#else /* !(ORPHAN_PROCESSING_NEEDED && ...) */
+#define incr_num_fs_orphan_pointers_allocated() /* Nothing */
+#endif /* ORPHAN_PROCESSING_NEEDED && ... */
+
+
+/*
+Allocate a file-scope IL entry of size "size" preceded by an_il_entry_prefix
+and (if appropriate) an orphan list pointer, and initialize the prefix
+and orphan pointer to default values.  ptr is a "char *" pointer and is set
+to point to the entry proper.
+*/
+#if ORPHAN_PROCESSING_NEEDED
+/*
+When orphan processing is needed, also allocate space for the
+next-orphaned-entry pointer preceding the entry and the entry prefix.
+*/
 #define do_fs_alloc(ptr, size)                                        \
-{ do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size+SPACE_FOR_FS_ORPHAN_POINTER); \
-  incr_fs_orphan_pointers_allocated();                                \
-  *(char **)ptr = (char *)NULL;                                       \
+{ ptr = alloc_in_region(FILE_SCOPE_REGION_NUMBER,                     \
+                        (sizeof_t)((size) +                           \
+                                   SPACE_FOR_FS_ORPHAN_POINTER +      \
+                                   SPACE_FOR_IL_ENTRY_PREFIX));       \
+  incr_num_fs_orphan_pointers_allocated();                            \
+  *(char **)ptr = NULL;                                               \
   ptr += SPACE_FOR_FS_ORPHAN_POINTER;                                 \
-}  /* do_alloc */
+  incr_num_il_entry_prefixes_allocated();                             \
+  clear_il_entry_prefix(ptr, TRUE);                                   \
+  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                   \
+}  /* do_fs_alloc */
+#else /* !ORPHAN_PROCESSING_NEEDED */
+/* When orphan processing is not needed, file-scope allocation is like
+   allocation in any other memory region. */
+#define do_fs_alloc(ptr, size)                                        \
+  do_alloc((ptr), FILE_SCOPE_MEMORY_REGION, TRUE, (size))
+#endif /* ORPHAN_PROCESSING_NEEDED */
+
+
+/*
+Allocate space in an arbitrary memory region (i.e., choose between the
+file-scope and normal allocation methods as necessary).
+*/
+#if ORPHAN_PROCESSING_NEEDED
 #define do_any_alloc(ptr, region_number, size)                        \
-{ if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
-    do_fs_alloc(ptr, size);                                           \
+{ if ((region_number) == FILE_SCOPE_REGION_NUMBER) {                  \
+    do_fs_alloc((ptr), (size));                                       \
   } else {                                                            \
-    do_alloc(ptr, region_number, size);                               \
+    do_alloc((ptr), (region_number), FALSE, (size));                  \
   }  /* if */                                                         \
 }  /* do_any_alloc */
 #else /* !ORPHAN_PROCESSING_NEEDED */
 /* No space needed for next-orphan pointer.  Allocation in the file scope
    is the same as allocation in any other region. */
-#define do_fs_alloc(ptr, size)                                        \
-  do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size)
 #define do_any_alloc(ptr, region_number, size)                        \
-  do_alloc(ptr, region_number, size)
+  do_alloc((ptr), (region_number),                                    \
+           ((region_number) == FILE_SCOPE_REGION_NUMBER), (size))
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 
@@ -1903,32 +1920,6 @@ to by ssep.
 }  /* add_to_scopes_list */
 
 
-/*
-Macro to set the il_walk_flag in an IL entry to the appropriate initial
-value based on whether it is in the file scope memory region or a
-function scope memory region.
-*/
-#define set_il_walk_flag_to_initial_value(entry_ptr, at_file_scope)   \
-  ((entry_ptr)->source_corresp.il_walk_flag = (at_file_scope) ?       \
-          curr_fs_initial_il_walk_flag_setting :                      \
-          curr_initial_il_walk_flag_setting)
-
-/*
-Similar macro based on the setting of curr_il_region_number.
-*/
-#define set_il_walk_flag_based_on_curr_il_region_number(entry_ptr)    \
-  (set_il_walk_flag_to_initial_value(entry_ptr,                       \
-                 (curr_il_region_number == FILE_SCOPE_REGION_NUMBER)))
-
-/*
-Similar macro for use on entries always allocated in the file scope
-memory region (e.g., types).
-*/
-#define set_il_walk_entry_for_fs_entry(entry_ptr)                     \
-  ((entry_ptr)->source_corresp.il_walk_flag =                         \
-                                curr_fs_initial_il_walk_flag_setting)
-
-
 static void set_default_source_corresp(a_source_correspondence *sc)
 /*
 Set the given source correspondence struct to default values.
@@ -1951,12 +1942,6 @@ Set the given source correspondence struct to default values.
      the flag to FALSE for associated entities, for which the flag is then
      set to TRUE (for an actual reference) by mark_referenced. */
   sc->referenced              = TRUE;
-  /* Set the IL walk flag to a default setting.  Usually, this is overridden
-     almost immediately, but the value here is important when an IL constant
-     entry is created somewhere other than an IL memory region (e.g., in
-     an expression operand) and then copied into an IL entry.  We use the
-     default setting; if the value matters, the caller must adjust it. */
-  sc->il_walk_flag            = curr_initial_il_walk_flag_setting;
   sc->name_linkage            = (a_name_linkage_kind)nlk_none;
   sc->is_local_to_function    = FALSE;
   sc->name_has_been_mangled   = FALSE;
@@ -1974,7 +1959,6 @@ break the correspondence.
 {
   sc->assoc_info = NULL;
   sc->name       = NULL;
-  /* Note in particular that il_walk_flag is not changed. */
 }  /* break_source_corresp */
 
 
@@ -2082,7 +2066,6 @@ values, and return a pointer to it.
   num_constants_allocated++;
 #endif /* DEBUG */
   clear_constant(cp, kind);
-  set_il_walk_flag_based_on_curr_il_region_number(cp);
 
   db_exit();
   return cp;
@@ -2111,11 +2094,7 @@ void copy_constant(a_constant *from,
 Copy a constant entry from "from" to "to".
 */
 {
-  a_boolean il_walk_flag = to->source_corresp.il_walk_flag;
-
-  /* Do the copy.  Preserve the il_walk_flag setting. */
   *to = *from;
-  to->source_corresp.il_walk_flag = il_walk_flag;
 }  /* copy_constant */
 
 
@@ -2834,9 +2813,6 @@ at file scope.
 #endif /* DEBUG */
   ptp->next = NULL;
   ptp->type = type;
-  /* param_type entries are in the file scope memory region, so use the
-     initial il_walk_flag setting for that region. */
-  ptp->il_walk_flag = curr_fs_initial_il_walk_flag_setting;
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
   ptp->type_involves_template_param = FALSE;
@@ -3295,9 +3271,6 @@ associated variant fields to default values.
   num_types_allocated++;
 #endif /* DEBUG */
   clear_type(tp, kind);
-  /* Type entries are always in the file scope, so use the il_walk_flag
-     value for the file scope memory region. */
-  set_il_walk_entry_for_fs_entry(tp);
   db_exit();
   return tp;
 }  /* alloc_type */
@@ -3479,14 +3452,8 @@ Make or find a type entry for an error type, and return a pointer to it.
   if (il_error_type == NULL) {
     il_error_type = alloc_type((a_type_kind)tk_error);
     set_type_size(il_error_type);
-#if 0
-#if ORPHAN_PROCESSING_NEEDED
-    /* Record the type entry as an orphan in case it is discarded now
-       and then found again in a later phase (e.g., IL lowering). */
-    add_orphaned_file_scope_il_entry((char *)il_error_type,
-                                     (an_il_entry_kind)iek_type);
-#endif /* ORPHAN_PROCESSING_NEEDED */
-#endif /* if 0 */
+    /* The type is deliberately not recorded as an orphan.  If it were, it
+       would be found by IL lowering. */
   }  /* if */
   return il_error_type;
 }  /* error_type */
@@ -3971,7 +3938,6 @@ Copy the type entry "from" to "to".
   a_type_kind                   from_kind;
   a_routine_type_supplement_ptr extra_info;
   a_type_ptr                    next_ptr;
-  a_boolean                     il_walk_flag;
 
   from_kind = from->kind;
   if (from_kind == (a_type_kind)tk_routine) {
@@ -3981,12 +3947,9 @@ Copy the type entry "from" to "to".
   }  /* if */
   /* Preserve the "next" pointer in the "to" entry. */
   next_ptr = to->next;
-  /* Preserve the IL walk flag. */
-  il_walk_flag = to->source_corresp.il_walk_flag;
   /* Copy the type entry. */
   *to = *from;
   to->next = next_ptr;
-  to->source_corresp.il_walk_flag = il_walk_flag;
   to->based_types = NULL;
   if (from_kind == (a_type_kind)tk_array) {
     /* For an array type, check for an array based on an incomplete struct
@@ -4010,18 +3973,14 @@ type in a function definition is based on a typedef).
 */
 {
   a_param_type_ptr  old_ptp, new_ptp, prev_new_ptp;
-  a_boolean         il_walk_flag;
 
   copy_type(from_type, to_type);
   old_ptp = from_type->variant.routine.extra_info->param_type_list;
   prev_new_ptp = NULL;
   for (; old_ptp != NULL; old_ptp = old_ptp->next) {
     new_ptp = alloc_param_type(old_ptp->type);
-    /* Do a struct copy from the old param type to the new -- but preserve
-       the current value of the il_walk_flag. */
-    il_walk_flag = new_ptp->il_walk_flag;
+    /* Do a struct copy from the old param type to the new. */
     *new_ptp = *old_ptp;
-    new_ptp->il_walk_flag = il_walk_flag;
     /* Expressions may not be shared -- that is, they may not be pointed to
        from more than one place.  Therefore a copy must be made of the
        expression node for the default arg (if one exists). */
@@ -4325,7 +4284,6 @@ to it.
 */
 {
   a_variable_ptr vp;
-  a_boolean      at_file_scope = FALSE;
 
   db_enter(5, "alloc_variable");
 
@@ -4335,16 +4293,13 @@ to it.
     /* Variable that will have static storage should always be allocated in
        the file scope memory region. */
     vp = (a_variable_ptr)alloc_il(sizeof(a_variable));
-    at_file_scope = TRUE;
   } else {
     vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));
-    at_file_scope = (curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
   }  /* if */
 #if DEBUG
   num_variables_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(vp->source_corresp));
-  set_il_walk_flag_to_initial_value(vp, at_file_scope);
   vp->next                        = NULL;
   vp->type                        = NULL;
   vp->assoc_param_type            = NULL;
@@ -4432,7 +4387,7 @@ scope depth.
     } else {
 #if CHECKING
       /* Variables with nonstatic storage will be allocated in the file scope
-         memory region only when the scope is function prototype scope (i.e.,
+         memory region only when the scope is a function prototype scope (i.e.,
          in an error case). */
       if (ssep->kind != (a_scope_kind)sck_func_prototype &&
           in_file_scope(var_ptr)) {
@@ -4522,9 +4477,6 @@ to it.
   num_fields_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(fp->source_corresp));
-  /* Field entries are always in the file scope, so use the il_walk_flag
-     value for the file scope memory region. */
-  set_il_walk_entry_for_fs_entry(fp);
   fp->next       = NULL;
   fp->type       = NULL;
   fp->bit_offset = 0;
@@ -4551,9 +4503,6 @@ to it.  The entry is allocated in the file scope memory region.
   num_routines_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(rp->source_corresp));
-  /* Routine entries are always in the file scope, so use the il_walk_flag
-     value for the file scope memory region. */
-  set_il_walk_entry_for_fs_entry(rp);
   rp->next                    = NULL;
   rp->type                    = NULL;
   rp->assoc_scope             = NULL_region_number;
@@ -4708,7 +4657,6 @@ to it.
   num_labels_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(lp->source_corresp));
-  /* il_walk_flag is set correctly by set_default_source_corresp. */
   lp->next = NULL;
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
@@ -5866,10 +5814,8 @@ Display and return the amount of space used for various IL tables.
   write_onex("fs orphan pointers", num_fs_orphan_pointers_allocated,
              SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if ALTERNATE_IL_FILE_FORMAT
-  write_onex("IL entry numbers", num_il_entry_numbers_allocated,
-             SPACE_FOR_IL_ENTRY_NUMBER);
-#endif /* ALTERNATE_IL_FILE_FORMAT */
+  write_one("IL entry prefix", num_il_entry_prefixes_allocated,
+            an_il_entry_prefix);
 
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
 
@@ -5915,8 +5861,9 @@ of the front end.
 {
   /* Variables in il.h: */
   curr_il_region_number = NULL_region_number;
-  curr_initial_il_walk_flag_setting = curr_fs_initial_il_walk_flag_setting =
-                                                   0;  /* Arbitrary: 0 or 1. */
+#if DO_IL_LOWERING
+  initial_value_for_il_lowering_flag = 0;
+#endif /* DO_IL_LOWERING */
 #if CHECKING
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Variable in il_file.h: */
@@ -5981,6 +5928,7 @@ of the front end.
   num_statements_allocated               = 0;
   num_constructor_inits_allocated        = 0;
   num_scopes_allocated                   = 0;
+  num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;
@@ -5992,9 +5940,6 @@ of the front end.
   num_fs_orphan_pointers_allocated       = 0;
   num_orphaned_il_lists_allocated        = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if ALTERNATE_IL_FILE_FORMAT
-  num_il_entry_numbers_allocated         = 0;
-#endif /* ALTERNATE_IL_FILE_FORMAT */
 #endif /* DEBUG */
   avail_rewritten_temporaries = NULL;
   avail_template_args = NULL;
