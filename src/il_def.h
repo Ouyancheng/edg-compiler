@@ -575,7 +575,8 @@ typedef struct a_constant {
     } init_repeat;
 #ifdef CIL
     /* When kind = ck_template_param: */
-    int		list_position;
+    unsigned long
+		list_position;
 			/* Ordinal value indicating the position of the
 			   template parameter in its declaration list (1 is
 			   first param declared, 2 is second, etc.).  Used
@@ -1577,7 +1578,8 @@ typedef struct a_type {
 			/* Type of the member pointed to. */
     } ptr_to_member;
     /* When kind = tk_template_param: */
-    int		list_position;
+    unsigned long
+		list_position;
 			/* Ordinal value indicating the position of the
 			   template parameter in its declaration list (1 is
 			   first param declared, 2 is second, etc.). */
