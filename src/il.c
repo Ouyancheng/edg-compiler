@@ -2267,8 +2267,8 @@ Add the given namespace entry to the namespaces list for the current scope,
 which must be either the file scope or a namespace scope.
 */
 {
-  a_scope_stack_entry_ptr  ssep;
-  a_scope_ptr              sp;
+  a_scope_stack_entry_ptr     ssep;
+  a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
   ssep = &scope_stack[depth_scope_stack];
@@ -2284,6 +2284,28 @@ which must be either the file scope or a namespace scope.
   }  /* if */
   pointers_block->last_namespace = nsp;
 }  /* add_to_namespaces_list */
+
+
+void add_to_using_directives_list(a_using_directive_ptr  udp)
+/*
+Add the given using-directive entry to the using_directives list for the
+current scope.
+*/
+{
+  a_scope_stack_entry_ptr     ssep;
+  a_scope_ptr                 sp;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  ssep = &scope_stack[depth_scope_stack];
+  sp = ensure_il_scope_exists(ssep);
+  pointers_block = assoc_pointers_block_of(ssep);
+  if (sp->using_directives == NULL) {
+    sp->using_directives = udp;
+  } else {
+    pointers_block->last_using_directive->next = udp;
+  }  /* if */
+  pointers_block->last_using_directive = udp;
+}  /* add_to_using_directives_list */
 
 
 void add_to_scopes_list(a_scope_ptr             scope_ptr,
