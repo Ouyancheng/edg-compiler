@@ -555,6 +555,8 @@ encoding.
 
 #if IA64_ABI
 
+#if DO_IL_LOWERING
+
 static void add_signed_number_to_mangled_name(long                     value,
                                               a_mangling_control_block *mctl)
 /*
@@ -571,6 +573,7 @@ encoding.  A negative value is prefixed by "n".
   add_str_to_mangled_name(buffer, mctl);
 }  /* add_signed_number_to_mangled_name */
 
+#endif /* DO_IL_LOWERING */
 
 static void add_base_36_number_to_mangled_name(a_substitution_index      value,
 					       a_mangling_control_block  *mctl)
@@ -4762,7 +4765,7 @@ made into an external) if necessary.
     mangled_name = routine->source_corresp.name;
     /* The routine should not be unnamed. */
     check_assertion(mangled_name != NULL);
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
     if (force_primary_name) {
       /* Change the mangled name of a constructor or destructor to the
          complete-object version instead of the internal name (e.g.,
@@ -4778,13 +4781,13 @@ made into an external) if necessary.
       mangled_name = mangling_text_buffer->buffer;
       mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
     }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
     add_mangled_name_prefix(&mctl);
     /* Create the name. */
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
     /* It's OK to set the base_name_offset here; it will be set to the same
        value every time.  By setting the value here, we make it available to
        callers of get_mangled_function_name, even if mangled_function_name has
@@ -4793,7 +4796,7 @@ made into an external) if necessary.
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
       base_name_offset = &routine->variant.ctor_dtor.base_name_offset;
     }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
     if (externalize_if_necessary) {
       mangled_function_name_externalized_if_necessary(
                                             routine,

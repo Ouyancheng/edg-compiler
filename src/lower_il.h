@@ -28,6 +28,10 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #endif /* ifndef IL_DEF_H */
 
 
+#if IA64_ABI
+extern a_targ_size_t vtbl_entry_size(void);
+#endif /* IA64_ABI */
+
 extern void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
                                                  a_targ_ptrdiff_t *delta);
 
@@ -628,7 +632,6 @@ extern a_type_ptr make_mptr_type(void);
 extern a_type_ptr pointer_to_vtbl_type(void);
 
 #if IA64_ABI
-extern a_targ_size_t vtbl_entry_size(void);
 
 extern a_type_ptr make_virtual_table_table_pointer_type(void);
 

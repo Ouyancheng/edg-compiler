@@ -13198,7 +13198,7 @@ have been processed.
 #endif /* DEBUG */
   }  /* if */
   check_type_for_linkage_change(rp->type, count);
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
   /* If this is a constructor or destructor with alternate entry points,
      change the linkage on those as well. */
   if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -13219,7 +13219,7 @@ have been processed.
       make_routine_externally_linked(rout, count);
     }  /* for */
   }
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
 }  /* make_routine_externally_linked */
 
 

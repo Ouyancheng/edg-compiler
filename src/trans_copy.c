@@ -849,9 +849,9 @@ includes removing any initialization.
   variable->init_kind = (an_init_kind)initk_none;
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
     variable->comdat_group = NULL;
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   }  /* if */
   if (!variable->is_specialized) {
     switch_canonical_for_deleted_definition(&variable->source_corresp);
@@ -1911,18 +1911,18 @@ the secondary translation unit IL).
 #if MAINTAIN_NEEDED_FLAGS
   a_boolean saved_definition_needed = primary_rout->definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
   a_routine_list_entry_ptr saved_alternate_entry_points;
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
   if (primary_rout->special_kind == (a_special_function_kind)sfk_constructor ||
       primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
     saved_alternate_entry_points =
                         primary_rout->variant.ctor_dtor.alternate_entry_points;
   }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   transfer_routine_flags(primary_rout, rout);
   *primary_rout = *rout;
   do_restores_for_overwrite(primary_rout, rout);
@@ -1935,13 +1935,13 @@ the secondary translation unit IL).
 #if MAINTAIN_NEEDED_FLAGS
   primary_rout->definition_needed = saved_definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
   if (primary_rout->special_kind == (a_special_function_kind)sfk_constructor ||
       primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
     primary_rout->variant.ctor_dtor.alternate_entry_points =
                                                   saved_alternate_entry_points;
   }  /* if */
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   establish_as_canonical(&primary_rout->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the

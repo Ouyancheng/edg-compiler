@@ -12771,9 +12771,9 @@ eliminate_unneeded_scope_orphaned_list_entries).
   (skip_typerefs(rp->type))->variant.routine.extra_info->assoc_routine = NULL;
   if (rp->storage_class == (a_storage_class)sc_unspecified) {
     rp->storage_class = (a_storage_class)sc_extern;
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
     rp->use_comdat = FALSE;
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   }  /* if */
 #if DO_IL_LOWERING && MINIMAL_INLINING
   /* If IL lowering was done and these flags are set, clear them to avoid

@@ -41,6 +41,39 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 /* NEED_NAME_MANGLING is always TRUE if DO_IL_LOWERING is TRUE. */
 #if NEED_NAME_MANGLING
 
+#if IA64_ABI || DO_IL_LOWERING
+
+static a_type_ptr make_vtbl_entry_type(void)
+/*
+Return the type of a virtual function table entry.
+*/
+{
+  a_type_ptr vtbl_entry_type;
+
+#if IA64_ABI
+  /* The IA-64 virtual function table contains offsets and pointers.
+     The element type is considered to be a large integral type. */
+  vtbl_entry_type = integer_type(targ_ptrdiff_t_int_kind);
+#else /* !IA64_ABI */
+  vtbl_entry_type = make_mptr_type();
+#endif /* IA64_ABI */
+  return vtbl_entry_type;
+}  /* make_vtbl_entry_type */
+
+#endif /* IA64_ABI || DO_IL_LOWERING */
+
+#if IA64_ABI
+
+a_targ_size_t vtbl_entry_size(void)
+/*
+Return the size of an entry in a virtual function table.
+*/
+{
+  return make_vtbl_entry_type()->size;
+}  /* vtbl_entry_size */
+
+#endif /* IA64_ABI */
+
 static a_targ_ptrdiff_t pm_cast_offset(a_constant_ptr constant)
 /*
 constant is a pointer to member constant.  Return the byte offset to be
@@ -1156,24 +1189,6 @@ cast).
 }  /* make_mptr_type */
 
 
-static a_type_ptr make_vtbl_entry_type(void)
-/*
-Return the type of a virtual function table entry.
-*/
-{
-  a_type_ptr vtbl_entry_type;
-
-#if IA64_ABI
-  /* The IA-64 virtual function table contains offsets and pointers.
-     The element type is considered to be a large integral type. */
-  vtbl_entry_type = integer_type(targ_ptrdiff_t_int_kind);
-#else /* !IA64_ABI */
-  vtbl_entry_type = make_mptr_type();
-#endif /* IA64_ABI */
-  return vtbl_entry_type;
-}  /* make_vtbl_entry_type */
-
-
 a_type_ptr pointer_to_vtbl_type(void)
 /*
 Return the type of a pointer to a virtual function table, which
@@ -1189,15 +1204,6 @@ tables are const.
 }  /* pointer_to_vtbl_type */
 
 #if IA64_ABI
-
-a_targ_size_t vtbl_entry_size(void)
-/*
-Return the size of an entry in a virtual function table.
-*/
-{
-  return make_vtbl_entry_type()->size;
-}  /* vtbl_entry_size */
-
 
 a_type_ptr make_virtual_table_table_pointer_type(void)
 /*

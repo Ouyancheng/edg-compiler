@@ -6481,7 +6481,7 @@ typedef struct a_routine {
 			   calculating the mangled names for alternate entry
 			   points.) */
     } ctor_dtor;
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
   } variant;
   a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been
