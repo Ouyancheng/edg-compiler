@@ -149,6 +149,13 @@ typedef struct an_operand {
   unsigned int	came_from_reference:1;
 			/* For an lvalue, TRUE if the lvalue came from a
 			   C++ reference. */
+  unsigned int	access_control_error_reported:1;
+			/* TRUE if an access control error was reported
+			   on the base identifier for this operand.  This
+			   remains meaningful only for operands that are
+			   essentially still just a representation for
+			   an identifier, e.g., ok_indefinite_function and
+			   ok_sym_for_ptr_to_member. */
   a_source_position
 		position;
 			/* The source position for the operand. */

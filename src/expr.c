@@ -2996,22 +2996,24 @@ operation is a pointer-to-member (see ARM 5.3).
         member_proj_sym = operand.variant.symbol;
         member_sym = fundamental_symbol_of(member_proj_sym);
         /* Protected members of a base class can only be accessed through an
-           object of a derived class.  It is not very clear how this should
-	   affect pointer to member processing.  We allow the address of
-	   a protected member to be taken as a member of the derived class but
-	   not as a member of the base class.   For example:
+           object of a derived class (ARM 11.5).  It is not very clear how
+           this should affect address of member processing.  We allow the
+           address of a protected member to be taken as a member of the
+           derived class but not as a member of the base class.  For example:
 
-		class B { protected: int i; };
-		class D : public B { void mf()};
+		class A { protected: int i; };
+		class B : public A { void mf()};
 
-	        void D::mf() {
+	        void B::mf() {
 			int A::* pmi = &A::i;	// error - protected member
 			int B::* pmi = &B::i;	// OK
 		}
 
-           Cfront does not do this checking so, so we omit it in cfront
-           mode. */
-        if (!cfront_compatibility_mode) {
+           Cfront does not do this checking, so we omit it in cfront mode.
+           Also skip this check if an access control error has already been
+           issued for the identifier. */
+        if (!cfront_compatibility_mode &&
+            !operand.access_control_error_reported) {
           check_protected_member_access(member_proj_sym, &error_position,
 				        member_proj_sym->
 						      class_of_which_a_member);
@@ -6961,6 +6963,11 @@ nonstatic_member_function:
     }  /* if */
   }  /* if */
 
+  /* Remember whether or not an access control error was reported on the
+     identifier.  This is useful for suppressing additional errors due
+     to the ARM 11.5 protected member access check. */
+  result->access_control_error_reported =
+                             locator_for_curr_id.access_control_error_reported;
   /* Advance past the identifier. */
   (void)get_token();
 after_advance_past_id:
