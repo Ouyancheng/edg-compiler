@@ -6899,16 +6899,19 @@ The subtree of the node has not yet been lowered.
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
 
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
   if (!ndsp->placement_new && ndsp->routine != NULL) {
     a_param_type_ptr params =
                           unlowered_param_type_list_for_routine(ndsp->routine);
     if (params != NULL && params->next != NULL) {
-      /* Treat an operator new with default arguments as a placement new. */
+      /* Treat an operator new with default arguments as a placement new.
+         See core issue 127. */
       check_assertion_str(params->next->has_default_arg,
                      "lower_new: placement_new not set but more than one arg");
       ndsp->placement_new = TRUE;
     }  /* if */
   }  /* if */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
       new_or_delete_type_requires_array_handling(base_type,
