@@ -542,7 +542,6 @@ Dump an indirect base class entry, for debug purposes.
   fprintf(f_debug, ", at offset %lu", bcp->offset);
   if (bcp->is_virtual) fputs(", is_virtual", f_debug);
   if (bcp->ambiguous) fputs(", ambiguous", f_debug);
-  if (bcp->any_virtual_steps_in_derivation) fputs (", virtual steps", f_debug);
   fputs(", path = ", f_debug);
   dsp = bcp->derivation;
   if (dsp == NULL) {
