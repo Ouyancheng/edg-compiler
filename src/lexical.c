@@ -9438,7 +9438,7 @@ was declared by a template declaration scope currently on the scope stack.
 
   depth = scope_depth_of_symbol(template_sym, &is_local_to_function);
   if (depth != NO_SCOPE_DEPTH &&
-      scope_stack[depth].kind == (sck_template_declaration)) {
+      scope_stack[depth].kind == (a_scope_kind)sck_template_declaration) {
     result = TRUE;
   }  /* if */
   return result;
