@@ -1345,10 +1345,6 @@ contrary.
 }  /* equivalent_paths */
 
 
-#define is_more_accessible(access1, access2)    \
-    ((int)(access1) < (int)(access2))
-
-
 a_boolean check_for_dominance(a_symbol_ptr          sym1,
                               a_symbol_ptr          sym2,
                               a_derivation_step_ptr path_to_sym2)
@@ -5199,7 +5195,9 @@ static void access_adjustment_decl(an_access_specifier  access,
 /*
 The current token is a qualified name and the next token is a semicolon.
 Syntactically, this is an access adjustment declaration.  If the declaration
-is semantically sound, update the data base appropriately.
+is semantically sound, update the data base appropriately.  "access" is the
+the access (explicitly specified or implicit) controlling the declaration,
+and "class_type" indicates the class in which the declaration occurs.
 */
 {
   an_access_specifier          progenitor_access;
@@ -5209,9 +5207,14 @@ is semantically sound, update the data base appropriately.
   a_symbol_locator             locator;
   an_access_adjustment_ptr     aap;
   a_class_type_supplement_ptr  ctsp;
+  a_boolean                    is_overloaded_function;
+  a_symbol_ptr                 sym;
+  an_access_specifier          function_access;
 
   db_enter(4, "access_adjustment_decl");
 #if CHECKING
+  /* In processing a qualified name the specific_symbol field of the locator
+     will have been filled in. */
   if (curr_token != tok_identifier ||
       locator_for_curr_id.specific_symbol->class_of_which_a_member == NULL) {
     internal_error("access_adjustment_decl: expected qualified name");
@@ -5279,7 +5282,32 @@ is semantically sound, update the data base appropriately.
        derived class declaration. */
     error(ec_access_adjustment_in_private_section);
   } else {
-    progenitor_access = access_for_symbol(immediate_progenitor_sym);
+    sym = fundamental_symbol_of(projection_into_curr_class);
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* Check for uniform access on overloaded functions (requirement
+         inferred from ARM 11.3, bottom of p. 246). */
+      if (!max_access_of_overloaded_function(sym, &function_access)) {
+        /* Functions overloading this name were not all declared with the
+           same access. */
+        str_error(ec_bad_access_adjustment_with_overloading,
+                  name_of_symbol(sym));
+        goto done;
+      }  /* if */
+      if (immediate_progenitor_sym->kind == (a_symbol_kind)sk_projection) {
+        /* Indirectly inherited, so use the access from the projection
+           symbol. */
+        progenitor_access =
+                     immediate_progenitor_sym->variant.projection.access;
+      } else {
+        /* Directly inherited name so we just want the access of the
+           functions -- each of which has an access of function_access. */
+        progenitor_access = function_access;
+      }  /* if */
+      is_overloaded_function = TRUE;
+    } else {
+      progenitor_access = access_for_symbol(immediate_progenitor_sym);
+      is_overloaded_function = FALSE;
+    }  /* if */
     if (access != progenitor_access) {
       if (is_more_accessible(progenitor_access, access)) {
         /* Restricting access beyond what public derivation of its class
@@ -5290,18 +5318,20 @@ is semantically sound, update the data base appropriately.
            would have produced is not allowed. */
         error(ec_increasing_access_not_allowed);
       }  /* if */
-    } else {
-      /* This is a valid access adjustment. */
-      projection_into_curr_class->variant.projection.access = access;
+      goto done;
+    }  /* if */
+    /* This is a valid access adjustment. */
+    projection_into_curr_class->variant.projection.access = access;
+    if (is_overloaded_function) sym = sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
       /* Create an access-adjustment entry to represent this declaration in
          the IL. */
-      aap = new_access_adjustment(
-                   fundamental_symbol_of(projection_into_curr_class), access);
+      aap = new_access_adjustment(sym, access);
       /* Attach it the class type entry. */
       ctsp = class_type->variant.class_struct_union.extra_info;
       aap->next = ctsp->access_adjustments;
       ctsp->access_adjustments = aap;
-    }  /* if */
+    }  /* for */
   }  /* if */
 
 done:
