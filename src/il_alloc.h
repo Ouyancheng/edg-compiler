@@ -133,6 +133,10 @@ extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
 extern an_object_lifetime_ptr alloc_object_lifetime(
                                                an_object_lifetime_kind  kind);
 
+extern void set_scope_kind(a_scope_ptr    sp,
+                           a_scope_kind   kind,
+                           a_routine_ptr  assoc_routine);
+
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
                                a_routine_ptr  assoc_routine);
@@ -170,9 +174,13 @@ extern char *alloc_text_of_string_literal(sizeof_t size);
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if DEBUG
+unsigned long show_il_alloc_space_used(unsigned long grand_total);
+#endif /* DEBUG */
+
 extern void il_alloc_one_time_init(void);
 
-extern void il_one_time_init(void);
+extern void il_alloc_init(void);
 
 #endif /* ifndef IL_ALLOC_H */
 
