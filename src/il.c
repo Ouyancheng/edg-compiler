@@ -4964,6 +4964,11 @@ they are not already present.
       /* For the strange array case, the array type entries must be
          copied in order to avoid changing the typedef type. */
       ptr = copy_array_type_replacing_element_type(orig_base_type, ptr);
+      /* Save a pointer to the original type on the based types list for
+         the new type created by the copy. */
+      add_based_type_list_member(ptr,
+                                 (a_based_type_kind)btk_unqualified_array_type,
+                                 orig_base_type);
     }  /* if */
   } else {
     /* No qualifiers to add, so return the original type. */

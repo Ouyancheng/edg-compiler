@@ -823,6 +823,8 @@ Display the indicated based type list.
         case btk_qualified:      kind_str = "  qualified";               break;
         case btk_reference:      kind_str = "  reference";               break;
         case btk_ptr_to_member:  kind_str = "  pointer to member";       break;
+        case btk_unqualified_array_type:
+                                 kind_str = "  unqualified array type";  break;
 #endif /* ifdef CFE */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
