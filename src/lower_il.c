@@ -8277,10 +8277,13 @@ so they're not reachable.  Do nothing if olp is NULL.
     }  /* while */
     if (detach) {
       /* Unbind this object lifetime from its attached entity. */
-      /* Watch out for lifetimes that have already been unbound (e.g., those
-         associated with enk_object_lifetime nodes). */
-      if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
-        unbind_object_lifetime(olp);
+      /* Label lifetimes don't have two-way binding with an entity. */
+      if (olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
+        /* Watch out for lifetimes that have already been unbound (e.g., those
+           associated with enk_object_lifetime nodes). */
+        if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
+          unbind_object_lifetime(olp);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
