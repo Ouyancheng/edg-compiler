@@ -3157,7 +3157,7 @@ enum a_stdc_pragma_kind_tag {
   stdc_pk_fx_fract_overflow,
   stdc_pk_fx_accum_overflow,
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
-  stdc_pk_last		/*lint -esym(769,a_stdc_pragma_kind_tag::stdc_pk_last)*/
+  stdc_pk_last	/*lint -esym(769,a_stdc_pragma_kind_tag::stdc_pk_last)*/
 };
 
 /* Storage size to be used to hold a STDC pragma kind. */
