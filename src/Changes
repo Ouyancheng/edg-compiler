@@ -1,5 +1,16 @@
 Version 2.33
 
+8/15/96 Spurious errors on declarations of operator new and delete
+
+In part because no exception specifications are put out on the predeclared
+versions of operator new and delete, spurious errors used to be issued on
+the following; they have now been eliminated.
+
+  typedef unsigned int size_t;
+  namespace std { class bad_alloc; }
+  void *operator new(size_t) throw(std::bad_alloc);
+  void operator delete(void *) throw();
+
 8/14/96 Determining when a class is a aggregate class
 
 WP 8.5.1 [dcl.init.aggr] used to say a class was not considered an

@@ -857,7 +857,15 @@ consistent with that of the previous declaration.
          It is compatible only with an identical specification on the current
          declaration. */
       if (new_tsp != NULL) {
-        pos_stsy_error(error_code, throw_pos, "", rout_sym);
+        if (rp->compiler_generated) {
+          /* Don't issue an error on a redeclaration of a compiler-generated
+             function.  This may be the redeclaration of a predeclared
+             operator new or an error case of some sort. */
+        } else {
+          /* Previously the exception specification was absent; now one is
+             provided.  Issue an error. */
+          pos_stsy_error(error_code, throw_pos, "", rout_sym);
+        }  /* if */
       }  /* if */
     } else if (new_tsp == NULL) {
       /* Issue an error on the omission of a throw specification on the current
