@@ -4330,17 +4330,19 @@ declaration.
 #if GNU_EXTENSIONS_ALLOWED
   /* Apply the attributes to the variable declaration. */
   apply_attributes_to_variable(attributes, variable_ptr);
-  if (asm_name && is_register) {
-    /* If the variable has been declared with the register keyword, then
-       the assembly name indicates a particular register. */
-    a_named_register anr = name_to_register(asm_name);
-    if (anr != (a_named_register)anr_invalid) {
-      variable_ptr->asm_name_or_reg.reg = anr;
-      variable_ptr->asm_name_is_valid = FALSE;
+  if (asm_name != NULL) {
+    if (is_register) {
+      /* If the variable has been declared with the register keyword, then
+         the assembly name indicates a particular register. */
+      a_named_register anr = name_to_register(asm_name);
+      if (anr != (a_named_register)anr_invalid) {
+        variable_ptr->asm_name_or_reg.reg = anr;
+        variable_ptr->asm_name_is_valid = FALSE;
+      }  /* if */
+    } else {
+      /* Otherwise, the assembly name is just a name.  */
+      variable_ptr->asm_name_or_reg.name = asm_name;
     }  /* if */
-  } else {
-    /* Otherwise, the assembly name is just a name.  */
-    variable_ptr->asm_name_or_reg.name = asm_name;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (linkage != idl_none) {
@@ -5765,7 +5767,9 @@ skip_overloading:;
   /* Apply the attributes to the routine. */
   apply_attributes_to_routine(attributes, routine_ptr);
   /* Record the assembly name. */
-  routine_ptr->asm_name = asm_name;
+  if (asm_name != NULL) {
+    routine_ptr->asm_name = asm_name;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
