@@ -5015,7 +5015,7 @@ entities from the info file list that can be instantiated.
 {
   a_template_instance_ptr	tip;
   a_template_instantiation_mode	saved_instantiation_mode;
-  a_boolean			instantiations_needed;
+  a_boolean			can_instantiate;
 
   db_enter(3, "automatic_instantiation");
   /* Set the instantiation mode to tim_none.  This is done to ensure that
@@ -5027,36 +5027,36 @@ entities from the info file list that can be instantiated.
   instantiation_mode = tim_none;
   /* Read the list of things to be instantiated from the instantiation
      information file. */
-  instantiations_needed = read_instantiation_info_file();
+  (void)read_instantiation_info_file();
+  /* Set the flag that indicates that this compilation includes
+     external template entities. */
   any_instantiations_required = instantiations_required != NULL;
-  if (instantiations_needed) {
-    for (tip = instantiations_required;
-         tip != NULL; tip = tip->next_in_instantiation_list) {
-      /* Set the flag that indicates that this compilation includes
-         external template entities. */
-      any_instantiations_required = TRUE;
-      /* Skip entries that do were not included in the instantiation
-         information file. */
-      if (!check_if_present_in_info_file(tip)) continue;
-      /* Skip non-external function. */
-      if (is_static_or_inline_template_function(tip)) continue;
-      /* Skip entries that have already been instantiated. */
-      if (tip->already_instantiated) continue;
+  for (tip = instantiations_required;
+       tip != NULL; tip = tip->next_in_instantiation_list) {
+    /* Call can_be_instantiated.  This is done to force any implicit
+       inclusions that may be needed. */
+    can_instantiate = can_be_instantiated(tip);
+    /* Skip entries that do were not included in the instantiation
+       information file. */
+    if (!check_if_present_in_info_file(tip)) continue;
+    /* Skip non-external function. */
+    if (is_static_or_inline_template_function(tip)) continue;
+    /* Skip entries that have already been instantiated. */
+    if (tip->already_instantiated) continue;
 #if DEBUG
-      if (debug_level >= 4) {
-        fprintf(f_debug, "Automatic instantiation processing for:\n");
-        db_symbol(tip->instance_sym, "", 0);
-      }  /* if */
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Automatic instantiation processing for:\n");
+      db_symbol(tip->instance_sym, "", 0);
+    }  /* if */
 #endif /* DEBUG */
-      if (can_be_instantiated(tip)) {
-        if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-          define_template_static_data_member(tip);
-        } else {
-          instantiate_template_function(tip);
-        }  /* if */
+    if (can_instantiate) {
+      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        define_template_static_data_member(tip);
+      } else {
+        instantiate_template_function(tip);
       }  /* if */
-    }  /* for */
-  }  /* if */
+    }  /* if */
+  }  /* for */
   /* Restore the original instantiation mode.  This is needed because it
      is used later on in the front end wrapup process when assigning
      linkage class members. */
