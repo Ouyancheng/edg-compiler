@@ -118,7 +118,7 @@ extern a_boolean scan_class_initializer_expression(
                                               a_type_ptr         required_type,
                                               a_dynamic_init_ptr *dip);
 
-extern a_boolean scan_aggregate_class_initializer_expression(
+extern a_boolean scan_aggregate_initializer_expression(
                                             a_type_ptr         required_type,
                                             a_boolean          static_lifetime,
                                             unsigned long      *levels_down,

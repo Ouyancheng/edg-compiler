@@ -2230,6 +2230,7 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_extended_designators])) {
     /* If extended designators were not enabled or disabled on the command
        line, enable them now. */
+    designators_allowed = TRUE;
     extended_designators_allowed = TRUE;
   }  /* if */
 #endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
@@ -2243,6 +2244,7 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
     /* If extended variadic macros were not enabled or disabled on the command
        line, enable them now. */
+    variadic_macros_allowed = TRUE;
     extended_variadic_macros_allowed = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_allow_dollar_in_id_chars])) {

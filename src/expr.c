@@ -45,9 +45,10 @@ static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  has_explicit_cv_qualifiers);
 static void process_boolean_controlling_expression(an_operand *result);
-static void scan_compound_literal(a_type_ptr        *p_literal_type,
-                                  a_source_position *type_position,
-                                  an_operand        *result);
+static void scan_compound_literal(a_type_ptr               *p_literal_type,
+                                  a_source_position        *type_position,
+                                  an_operand               *result,
+                                  a_local_expr_options_set local_options);
 static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
@@ -4121,7 +4122,8 @@ Syntax:
       if (compound_literals_allowed && curr_token == tok_lbrace) {
         /* Something like sizeof(int){37} -- the type is the beginning
            of a compound literal. */
-        scan_compound_literal(&sizeof_type, &type_position, result);
+        scan_compound_literal(&sizeof_type, &type_position, result,
+                              EOPT_NO_OPTIONS);
         sizeof_type = result->type;
       }  /* if */
     } else {
@@ -8591,9 +8593,10 @@ Return an operand for the expression in *result.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void scan_compound_literal(a_type_ptr        *p_literal_type,
-                                  a_source_position *type_position,
-                                  an_operand        *result)
+static void scan_compound_literal(a_type_ptr              *p_literal_type,
+                                  a_source_position        *type_position,
+                                  an_operand               *result,
+                                  a_local_expr_options_set local_options)
 /*
 Scan a compound literal.  See 6.5.2.5 in the C99 standard.  A compound
 literal looks like a cast in which the source expression is a brace-
@@ -8658,14 +8661,20 @@ to the compound literal.
     /* Static case.  Allocate an unnamed static variable and initialize it
        with the compound literal. */
     a_constant_ptr literal_con;
-    a_variable_ptr temp_var = alloc_temporary_variable(literal_type);
-    temp_var->is_compound_literal = TRUE;
-    temp_var->init_kind = (an_init_kind)initk_static;
     check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
     literal_con = dip->variant.constant;
-    temp_var->initializer.constant = literal_con;
-    /* The operand is an lvalue for the temporary. */
-    make_lvalue_variable_operand(temp_var, result, (a_ref_entry_ptr)NULL);
+    if (gcc_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
+      /* In GNU C mode, the compound literal is treated as a constant-
+         expression. */
+      make_constant_operand(literal_con, result);
+    } else {
+      a_variable_ptr temp_var = alloc_temporary_variable(literal_type);
+      temp_var->is_compound_literal = TRUE;
+      temp_var->init_kind = (an_init_kind)initk_static;
+      temp_var->initializer.constant = literal_con;
+      /* The operand is an lvalue for the temporary. */
+      make_lvalue_variable_operand(temp_var, result, (a_ref_entry_ptr)NULL);
+    }  /* if */
   } else {
     /* Allocate an enk_temp_int node. */
     an_expr_node_ptr expr =
@@ -8750,7 +8759,8 @@ Also scans GNU C statement expressions:
       if (compound_literals_allowed &&
           curr_token == tok_lbrace) {
         /* A compound literal, e.g., (int []){1, 2, 3}.  See 6.5.2.5 in C99. */
-        scan_compound_literal(&type_cast_to, &type_position, result);
+        scan_compound_literal(&type_cast_to, &type_position, result,
+                              local_options);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -14427,16 +14437,37 @@ nonstandard class member constants.  Assumes copy-initialization
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           /*initializing_variable=*/TRUE,  /* Arbitrary. */
-                           /*static_lifetime=*/FALSE,
-                           /*is_copy_initialization=*/TRUE,
-                           /*nontype_template_arg=*/FALSE,
-                           ec_bad_initializer_type);
+  if (is_array_type(required_type) && is_array_type(result.type)) {
+    check_assertion(gcc_mode || is_string_type(result.type));
+    if (!types_are_compatible_ignoring_qualifiers(result.type,
+                                                  required_type)) {
+      pos_ty2_error(ec_bad_initializer_type, &result.position,
+                    result.type, required_type);
+      make_error_operand(&result);
+    }  /* if */
+  } else {
+    /* Convert to the required type. */
+    prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+                             /*initializing_return_value=*/FALSE,
+                             /*initializing_variable=*/TRUE,  /* Arbitrary. */
+                             /*static_lifetime=*/FALSE,
+                             /*is_copy_initialization=*/TRUE,
+                             /*nontype_template_arg=*/FALSE,
+                             ec_bad_initializer_type);
+  }  /* if */
   /* Make a constant from the operand. */
-  extract_constant_from_operand(&result, constant);
+  if (is_an_lvalue(&result) && is_string_type(result.type)) {
+    /* The operand represents a &"..." form: strip the ck_address constant
+       to recover the plain string literal. */
+    a_constant_ptr  string_con = &result.variant.constant;
+    check_assertion(string_con->kind == (a_constant_repr_kind)ck_address &&
+                    string_con->variant.address.kind ==
+                                           (an_address_base_kind)abk_constant);
+    copy_constant(string_con->variant.address.variant.constant, constant);
+  } else {
+    /* The operand could be a constant or an error. */
+    extract_constant_from_operand(&result, constant);
+  }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
@@ -14471,7 +14502,7 @@ or nonconstant; on return, *is_constant is set accordingly, and the result
 is returned either in *expression or in *constant.  Note that the
 required_type may not be an array type.  This routine is not used when
 copy constructor elision is possible; see scan_class_initializer_expression
-and scan_aggregate_class_initializer_expression.
+and scan_aggregate_initializer_expression.
 */
 {
   an_operand          result;
@@ -14627,7 +14658,7 @@ As indicated, this is initialization with the "=" semantics
 }  /* scan_class_initializer_expression */
 
 
-a_boolean scan_aggregate_class_initializer_expression(
+a_boolean scan_aggregate_initializer_expression(
                                             a_type_ptr         required_type,
                                             a_boolean          static_lifetime,
                                             unsigned long      *levels_down,
@@ -14636,32 +14667,32 @@ a_boolean scan_aggregate_class_initializer_expression(
                                             a_constant         *constant)
 /*
 Scan an expression that is the initial value of an entity of
-class type.  required_type indicates the class type (it may have some
+aggregate type.  required_type indicates the type (it may have some
 qualifiers on top of it).  This is copy-initialization.  static_lifetime
 is TRUE if the variable being initialized has static lifetime.  Either
 create a dynamic initialization entry and return a pointer to it in
 *dip (along with *is_constant FALSE), or set *constant to a constant
 value (along with *is_constant TRUE).  This routine exists to deal
 with initialization of aggregate class types, but it can be called for
-non-aggregate class types as well.
+non-aggregate class types as well.  It also handles certain array
+initialization cases.
 
-The initializer for an aggregate class can initialize either the whole
-class or the first member of the class (or its first member, etc.).
-This routine compares the type of the initializer expression to the
-type of the class, then its first member, etc. to determine which
-entity should be initialized.  *levels_down is set to indicate the
-number of levels down at which the expression was matched up (zero
-indicates the aggregate class itself).  The initializer expression
-undergoes appropriate conversions to make it match up with the
-entity being initialized.  If the conversion cannot be done, an
-error is issued and FALSE is returned.
+The initializer for an aggregate can initialize either the whole
+aggregate or the first member of the aggregate (or its first member, etc.).
+This routine compares the type of the initializer expression to the type
+of the aggregate, then its first member, etc. to determine which entity
+should be initialized.  *levels_down is set to indicate the number of
+levels down at which the expression was matched up (zero indicates the
+aggregate itself).  The initializer expression undergoes appropriate
+conversions to make it match up with the entity being initialized.
+If the conversion cannot be done, an error is issued and FALSE is returned.
 
 This routine is called to initialize a sub-aggregate, so the destructor
 pointer in the dynamic initialization is not set.  The caller must set
 it to indicate destruction for a partially-constructed aggregate (on
 a thrown exception) if that is appropriate.
 
-This routine is also called in C99 mode.
+This routine is also called in C99 and GNU C modes.
 */
 {
   an_operand          result;
@@ -14671,8 +14702,9 @@ This routine is also called in C99 mode.
   a_conv_descr        conversion;
   an_expression_kind  expr_kind;
 
-  db_enter(3, "scan_aggregate_class_initializer_expression");
+  db_enter(3, "scan_aggregate_initializer_expression");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  check_assertion(!C_mode() || c99_mode || gcc_mode);
   expr_kind = (an_expression_kind)ek_normal;
   if (C_mode() && static_lifetime) {
     /* C mode aggregate initializers for statics have to be constant. */
@@ -14694,60 +14726,63 @@ This routine is also called in C99 mode.
   /* See whether the expression can initialize the aggregate class.  If not,
      go down to the first member of the class and try again.  Loop until the
      right level is found or until we can go no further. */
-  while (is_class_struct_union_type(required_type) &&
-         (c99_mode ||
-          symbol_supplement_for_class(required_type)->is_class_aggregate)) {
-    a_field_ptr first_field = next_initializable_field(
-                                   skip_typerefs(required_type)->
+  for (;;) {
+    if (is_class_struct_union_type(required_type) &&
+        (c99_mode || gcc_mode ||
+         symbol_supplement_for_class(required_type)->is_class_aggregate)) {
+      a_field_ptr first_field = next_initializable_field(
+                                    skip_typerefs(required_type)->
                                         variant.class_struct_union.field_list);
-    /* Stop looping if the aggregate class has no members. */
-    if (first_field == NULL) goto required_type_determined;
-    /* See whether the expression can be converted to the aggregate class
-       type. */
-    if (c99_mode ?
-          types_are_compatible_ignoring_qualifiers(result.type,
-                                                   required_type) :
-          (conversion_to_class_possible(&result,
-                                        required_type,
-                                        /*try_bitwise_copy=*/TRUE,
-                                        /*is_copy_initialization=*/TRUE,
-                                        /*is_reference_binding=*/FALSE,
-                                        &conversion,
-                                        (a_conv_descr *)NULL,
-                                        &ambiguous,
-                                        (a_candidate_function_ptr *)NULL) ||
-           ambiguous)) goto required_type_determined;
-    /* Go down to the first member. */
-    required_type = first_field->type;
-    (*levels_down)++;
-    while (is_array_type(required_type)) {
-      /* An array is also an aggregate.  However, generally the whole
-         array is not initialized -- the first member is initialized. */
-      if (is_string_type(required_type) &&
-          result.is_simple_string_literal) {
-        /* char array initialized by string literal, either one possibly
-           wide.  Don't go down to the member type. */
-        string_case = TRUE;
-        goto required_type_determined;
-      } else {
-        /* Normal case: initialize the first member of the array. */
-        required_type = array_element_type(required_type);
-        (*levels_down)++;
-      }  /* if */
-    }  /* while */
-  }  /* while */
+      /* Stop looping if the aggregate class has no members. */
+      if (first_field == NULL) goto required_type_determined;
+      /* See whether the expression can be converted to the aggregate class
+         type. */
+      if (c99_mode ?
+            types_are_compatible_ignoring_qualifiers(result.type,
+                                                     required_type) :
+            (conversion_to_class_possible(&result,
+                                          required_type,
+                                          /*try_bitwise_copy=*/TRUE,
+                                          /*is_copy_initialization=*/TRUE,
+                                          /*is_reference_binding=*/FALSE,
+                                          &conversion,
+                                          (a_conv_descr *)NULL,
+                                          &ambiguous,
+                                          (a_candidate_function_ptr *)NULL) ||
+             ambiguous)) goto required_type_determined;
+      /* Go down to the first member. */
+      required_type = first_field->type;
+      (*levels_down)++;
+    } else if (is_array_type(required_type)) {
+      do {
+        /* An array is also an aggregate.  However, generally the whole
+           array is not initialized -- the first member is initialized. */
+        if (is_string_type(required_type) &&
+            result.is_simple_string_literal) {
+          /* char array initialized by string literal, either one possibly
+             wide.  Don't go down to the member type. */
+          string_case = TRUE;
+          goto required_type_determined;
+        } else if (is_array_type(result.type) &&
+                   types_are_compatible_ignoring_qualifiers(result.type,
+                                                            required_type)) {
+          /* In GNU C mode a compound literal may initialize an element of
+             array type. */
+          check_assertion(gcc_mode);
+          goto required_type_determined;
+        } else {
+          /* Normal case: initialize the first member of the array. */
+          required_type = array_element_type(required_type);
+          (*levels_down)++;
+        }  /* if */
+      } while (is_array_type(required_type));
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
 required_type_determined:
-  if (is_class_struct_union_type(required_type)) {
-    /* The entity being initialized has a class type. */
-    /* Build a dynamic initialization entry to describe the initialization. */
-    prep_elision_initializer_operand(&result, required_type,
-                                     /*fill_in_dtor=*/FALSE,
-                                     ec_bad_initializer_type, dip);
-    wrap_up_dynamic_init_full_expression(*dip);
-    /* *dip == NULL means there was an error. */
-    if (*dip == NULL) okay = FALSE;
-  } else {
-    /* The entity being initialized has a non-class type. */
+  if (is_aggregate_or_union_type(required_type)) {
+    /* The entity being initialized has a class or array type. */
     if (string_case) {
       a_constant_ptr con;
       check_assertion(is_constant_operand(&result));
@@ -14760,38 +14795,51 @@ required_type_determined:
       check_assertion(con->kind == (a_constant_repr_kind)ck_string);
       copy_constant(con, constant);
       *is_constant = TRUE;
+    } else if (gcc_mode && result.kind == (an_operand_kind)ok_constant) {
+      /* In GNU C mode, compound literals can be constant-expressions. */
+      copy_constant(&result.variant.constant, constant);
+      *is_constant = TRUE;
     } else {
-      /* Convert to the required type. */
-      prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
-                               /*initializing_return_value=*/FALSE,
-                               /*initializing_variable=*/TRUE,
-                               static_lifetime,
-                               /*is_copy_initialization=*/TRUE,
-                               /*nontype_template_arg=*/FALSE,
-                               ec_bad_initializer_type);
-      switch (result.kind) {
-        case ok_error:
-          /* Some sort of error; message was already issued. */
-          okay = FALSE;
-          discard_curr_expr_object_lifetime();
-          break;
-        case ok_expression:
-          { an_expr_node_ptr expr = result.variant.expression;
-            expr = wrap_up_full_expression(expr);
-            *dip = alloc_expr_dynamic_init(
-                                          (a_dynamic_init_kind)dik_expression);
-            (*dip)->variant.expression = expr;
-          }
-          break;
-        case ok_constant:
-          copy_constant(&result.variant.constant, constant);
-          *is_constant = TRUE;
-          break;
-        default:
-          unexpected_condition_str(
-              "scan_aggregate_class_initializer_expression: bad operand kind");
-      }  /* switch */
+      /* Build a dynamic initialization entry to describe the initialization.
+         */
+      prep_elision_initializer_operand(&result, required_type,
+                                       /*fill_in_dtor=*/FALSE,
+                                       ec_bad_initializer_type, dip);
+      wrap_up_dynamic_init_full_expression(*dip);
+      /* *dip == NULL means there was an error. */
+      if (*dip == NULL) okay = FALSE;
     }  /* if */
+  } else {
+    /* The entity being initialized has a non-class type. */
+    /* Convert to the required type. */
+    prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+                             /*initializing_return_value=*/FALSE,
+                             /*initializing_variable=*/TRUE,
+                             static_lifetime,
+                             /*is_copy_initialization=*/TRUE,
+                             /*nontype_template_arg=*/FALSE,
+                             ec_bad_initializer_type);
+    switch (result.kind) {
+      case ok_error:
+        /* Some sort of error; message was already issued. */
+        okay = FALSE;
+        discard_curr_expr_object_lifetime();
+        break;
+      case ok_expression:
+        { an_expr_node_ptr expr = result.variant.expression;
+          expr = wrap_up_full_expression(expr);
+          *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+          (*dip)->variant.expression = expr;
+        }
+        break;
+      case ok_constant:
+        copy_constant(&result.variant.constant, constant);
+        *is_constant = TRUE;
+        break;
+      default:
+        unexpected_condition_str(
+                   "scan_aggregate_initializer_expression: bad operand kind");
+    }  /* switch */
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -14799,7 +14847,7 @@ required_type_determined:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
   return okay;
-}  /* scan_aggregate_class_initializer_expression */
+}  /* scan_aggregate_initializer_expression */
 
 
 void scan_class_parenthesized_initializer(

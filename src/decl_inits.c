@@ -995,7 +995,7 @@ aggregate are not considered.  For example:
        A a1, a2;
        int z;
    } b = { 4, a, a}; // b.a1.i == 4, b.a2.i == 0, b.z == 20 after this
-The bulk of this work is done in scan_aggregate_class_initializer_expression.
+The bulk of this work is done in scan_aggregate_initializer_expression.
 If a value was scanned but whole object initialization did not apply, the
 resulting constant is placed on context->pending_init_con for use further on.
 In C99 mode, the processing is similar to that in C++.
@@ -1009,24 +1009,27 @@ In C99 mode, the processing is similar to that in C++.
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init_ptr             dip;
 
-  if ((!C_mode() || c99_mode) &&
-      is_class_struct_union_type(context->type) &&
+  if ((!C_mode() || c99_mode || gcc_mode) &&
+      (is_class_struct_union_type(context->type) ||
+       (gcc_mode && is_array_type(context->type))) &&
       (curr_token != tok_lbrace || context->pending_init_con != NULL) &&
       !top_level && !designator_coming((a_boolean *)NULL)) {
     /* If this is an aggregate, whole object initialization is possible but
        not required.  Indeed, if the initializing expression can initialize
        the first initializable member of an aggregate, then that should be
        done instead of whole aggregate initialization.
-       scan_aggregate_class_initializer_expression will determine this. */
+       scan_aggregate_initializer_expression will determine this. */
 
     is_whole_object_init = TRUE;
-    cssp = symbol_supplement_for_class(context->type);
-    check_assertion_str(c99_mode ||
+    if (!is_array_type(context->type)) {
+      cssp = symbol_supplement_for_class(context->type);
+      check_assertion_str(c99_mode ||
                           cssp->has_copy_constructor ||
                           cssp->construction_by_bitwise_copy_allowed ||
                           skip_typerefs(context->type)->
                                   variant.class_struct_union.is_nonreal_class,
                         "process_whole_object_init: missing copy constructor");
+    }  /* if */
     if (context->pending_init_con != NULL) {
       /* The initializer has already been scanned. */
       levels_down = context->pending_init_levels;
@@ -1039,7 +1042,7 @@ In C99 mode, the processing is similar to that in C++.
           is_constant = TRUE;
         }  /* if */
       }  /* if */
-    } else if (!scan_aggregate_class_initializer_expression(
+    } else if (!scan_aggregate_initializer_expression(
                               context->type, init_info->static_lifetime,
                               &levels_down, &is_constant, &dip, &constant)) {
       /* No appropriate initializer was found. */
@@ -2954,6 +2957,23 @@ returned set to TRUE.
         /* No appropriate constructor was found.  Abort the initialization. */
         init_err = TRUE;
       }  /* if */
+    } else if (gcc_mode && curr_token != tok_lbrace && static_lifetime) {
+      /* In GNU C mode, a compound literal is treated as a constant-expression
+         that can initialize a variable with a static lifetime.  We may also
+         arrive here when the initializer is a (possibly parenthesized) string
+         literal. */
+      a_constant  constant;
+      scan_constant_initializer_expression(vp_type, &constant);
+      init_con = alloc_unshared_constant(&constant);
+      if (!var_err && vp != NULL && constant.type != vp->type) {
+        put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                    constant.type);
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = curr_construct_end_position;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else {
       /* Ordinary C-style aggregate initialization, usually with a brace-
          enclosed list of values.  Except that in C++ such lists may include
