@@ -741,9 +741,6 @@ source file's compilation.
      independently of the rest of IL lowering. */
   name_lower_init();
 #endif /* NEED_NAME_MANGLING */
-#if RECORD_MACROS_IN_IL
-  il_header.macros = NULL;
-#endif /* RECORD_MACROS_IN_IL */
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will
@@ -792,8 +789,7 @@ source file's compilation.
   il_header.default_max_member_alignment = default_max_member_alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if RECORD_MACROS_IN_IL
-  /* il_header.macros was initialized above because it needs to be set
-     before init_predefined_macros is called. */
+  il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.microsoft_mode = microsoft_mode;
@@ -943,8 +939,9 @@ This routine is called to reinitialize variables that are specific to
 a given translation unit, when multiple translation units are being
 compiled (e.g., for export template processing).  This initialization
 is also done implicitly during part 1 of the normal front end
-initialization (i.e., by fe_init_part_1).  For example, symbol_tbl_init
-calls symbol_tbl_trans_unit_init.
+initialization (i.e., by fe_init_part_1).  is_primary_translation_unit
+is TRUE when the current translation is a primary file, and FALSE
+when is is a secondary file.
 */
 {
   error_trans_unit_init();
@@ -1042,6 +1039,10 @@ calls symbol_tbl_trans_unit_init.
     /* Preprocessing output cannot be generated for secondary translation
        units. */
     f_pp_output = NULL;
+    generate_pp_output = FALSE;
+    do_preprocessing_only = FALSE;
+    list_included_files = FALSE;
+    list_makefile_dependencies = FALSE;
   }  /* if */
 }  /* fe_translation_unit_init */
 
