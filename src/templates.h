@@ -221,10 +221,11 @@ extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 extern void f_instantiate_template_class(a_type_ptr  type);
 
 extern a_type_ptr copy_type_with_substitution(
-				a_type_ptr		type,
-				a_template_arg_ptr	templ_arg_list,
-				a_source_position	*source_pos,
-				a_boolean		*copy_error);
+				a_type_ptr			type,
+				a_template_arg_ptr		templ_arg_list,
+				a_template_nesting_depth	depth,
+				a_source_position		*source_pos,
+				a_boolean			*copy_error);
 
 extern a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,

@@ -1405,6 +1405,7 @@ typedef unsigned long a_template_nesting_depth;
 			   declaration level.  The first level is 1,
 			   the second 2, etc. */
 
+typedef struct a_template_param_coordinate *a_template_param_coordinate_ptr;
 typedef struct a_template_param_coordinate {
   /* Structure used to identify a template parameter from a template
      declaration using its list position and template nesting depth.

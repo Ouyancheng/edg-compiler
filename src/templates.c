@@ -3832,11 +3832,12 @@ may have been deduced.
 
 
 static a_symbol_ptr copy_template_class_reference_with_substitution(
-				a_symbol_ptr		template_sym,
-				a_type_ptr		orig_type,
-				a_template_arg_ptr	templ_arg_list,
-				a_source_position	*source_pos,
-				a_boolean		*copy_error)
+				a_symbol_ptr			template_sym,
+				a_type_ptr			orig_type,
+				a_template_arg_ptr		templ_arg_list,
+				a_template_nesting_depth	depth,
+				a_source_position		*source_pos,
+				a_boolean			*copy_error)
 /*
 Copy, with substitution, the template argument list from
 orig_type and find the corresponding instance of the template
@@ -3856,7 +3857,7 @@ indicated by template_sym.  The symbol of the new instance is returned.
     if (tap->is_type) {
       new_tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
-                                           templ_arg_list, source_pos,
+                                           templ_arg_list, depth, source_pos,
                                            copy_error);
     } else {
 #if CHECKING
@@ -3881,10 +3882,11 @@ indicated by template_sym.  The symbol of the new instance is returned.
 
 
 static a_symbol_ptr copy_parent_type_with_substitution(
-				a_symbol_ptr		sym,
-				a_template_arg_ptr	templ_arg_list,
-				a_source_position	*source_pos,
-				a_boolean		*copy_error)
+				a_symbol_ptr			sym,
+				a_template_arg_ptr		templ_arg_list,
+				a_template_nesting_depth	depth,
+				a_source_position		*source_pos,
+				a_boolean			*copy_error)
 /*
 sym points to a member symbol.  The parent type is copied using
 copy_type_with_substitution, and the corresponding member is looked
@@ -3911,8 +3913,8 @@ updated parent type does not contain the specified member.
        the original template parameter for the proxy class. */
     parent_type = parent_cssp->template_param_for_proxy_class;
   }  /* if */
-  parent_type = copy_type_with_substitution(
-                          parent_type, templ_arg_list, source_pos, copy_error);
+  parent_type = copy_type_with_substitution(parent_type, templ_arg_list,
+                                            depth, source_pos, copy_error);
   if (*copy_error) goto done;
   if (parent_type == orig_parent_type) {
     /* No change to the parent class, so this is simply a case of A::B --
@@ -3937,7 +3939,8 @@ updated parent type does not contain the specified member.
       check_assertion(is_any_template_instance_class_symbol(sym));
       new_sym = copy_template_class_reference_with_substitution(
                                  new_sym, sym->variant.class_struct_union.type,
-                                 templ_arg_list, source_pos, copy_error);
+                                 templ_arg_list, depth, source_pos,
+                                 copy_error);
     }  /* if */
   }  /* if */
 done:
@@ -3946,10 +3949,11 @@ done:
 
 
 a_type_ptr copy_type_with_substitution(
-				a_type_ptr		type,
-				a_template_arg_ptr	templ_arg_list,
-				a_source_position	*source_pos,
-				a_boolean		*copy_error)
+				a_type_ptr			type,
+				a_template_arg_ptr		templ_arg_list,
+				a_template_nesting_depth	depth,
+				a_source_position		*source_pos,
+				a_boolean			*copy_error)
 /*
 If "type", a pointer to a type entry, is a template-parameter type, return
 the corresponding real type, based on the template argument list.  If "type"
@@ -3988,7 +3992,7 @@ an array of references.
     a_symbol_ptr	sym;
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
     check_assertion(sym != NULL);
-    sym = copy_parent_type_with_substitution(sym, templ_arg_list,
+    sym = copy_parent_type_with_substitution(sym, templ_arg_list, depth,
                                              source_pos, copy_error);
     if (sym == NULL || !is_type_symbol(sym)) {
       /* The type was specified as something like A<T>::B, but the
@@ -4007,18 +4011,24 @@ an array of references.
            parameter, the real type to substitute for it is given in the nth
            template argument.  Find the template argument that matches this
            template parameter and return it to the caller. */
-        { a_template_param_list_pos	list_pos;
-          list_pos = type->
-                      variant.template_param.extra_info->coordinates.position;
-          tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
-                                             &templ_arg_list, list_pos);
-          if (tap->variant.type == NULL) {
-            /* No value has been provided for this template parameter yet.
-               Don't do the substitution, but don't consider this to be
-               a copy error either. */
+        { a_template_param_coordinate_ptr	coordinates;
+          coordinates = &type->variant.template_param.extra_info->coordinates;
+          if (coordinates->depth != depth) {
+            /* A template parameter from a different nesting depth.  Simply
+               leave this type unsubstituted. */
             new_type = type;
           } else {
-            new_type = tap->variant.type;
+            tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
+                                               &templ_arg_list,
+                                               coordinates->position);
+            if (tap->variant.type == NULL) {
+              /* No value has been provided for this template parameter yet.
+                 Don't do the substitution, but don't consider this to be
+                 a copy error either. */
+              new_type = type;
+            } else {
+              new_type = tap->variant.type;
+            }  /* if */
           }  /* if */
         }
         break;
@@ -4026,7 +4036,7 @@ an array of references.
         /* Make a pointer type based on a copy (or reuse, if copying is not
            required) of the type pointed to. */
         tp = type->variant.pointer.type;
-        tp = copy_type_with_substitution(tp, templ_arg_list,
+        tp = copy_type_with_substitution(tp, templ_arg_list, depth,
                                          source_pos, copy_error);
         if (type->variant.pointer.is_reference) {
           new_type = make_reference_type(tp);
@@ -4038,7 +4048,7 @@ an array of references.
         /* Make an identically qualified type of a copy (or reuse) of the type
            that underlies the typeref. */
         tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list,
-                                         source_pos, copy_error);
+                                         depth, source_pos, copy_error);
         new_type = type_plus_qualifiers_from_second_type(tp, type);
         break;
       case tk_ptr_to_member:
@@ -4046,11 +4056,11 @@ an array of references.
            points to two types, so the new type is based on copies (or reuses)
            of each. */
         tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
-                                         templ_arg_list, source_pos,
+                                         templ_arg_list, depth, source_pos,
                                          copy_error);
         tp2 = copy_type_with_substitution(
                           type->variant.ptr_to_member.class_of_which_a_member,
-                          templ_arg_list, source_pos, copy_error);
+                          templ_arg_list, depth, source_pos, copy_error);
         new_type = ptr_to_member_type(tp, tp2);
         break;
       case tk_routine:
@@ -4062,7 +4072,7 @@ an array of references.
         first_new_type_for_param_types_list = NULL;
         new_return_type = copy_type_with_substitution(
                                         type->variant.routine.return_type,
-                                        templ_arg_list, source_pos,
+                                        templ_arg_list, depth, source_pos,
                                         copy_error);
         this_param_type =
                    type->variant.routine.extra_info->implicit_this_param_type;
@@ -4071,7 +4081,7 @@ an array of references.
         } else {
           new_this_param_type = copy_type_with_substitution(
                                         this_param_type, templ_arg_list,
-                                        source_pos, copy_error);
+                                        depth, source_pos, copy_error);
         }  /* if */
         if (new_return_type != type->variant.routine.return_type ||
             new_this_param_type != this_param_type) {
@@ -4084,7 +4094,7 @@ an array of references.
              ptp != NULL;
              ptp = ptp->next) {
           tp = copy_type_with_substitution(ptp->type, templ_arg_list,
-                                           source_pos, copy_error);
+                                           depth, source_pos, copy_error);
           if (tp != ptp->type) {
             /* A substitution was made, so a new routine type will be required.
                Remember tp so we can avoid calling copy_type_with_substituion
@@ -4133,7 +4143,7 @@ make_new_type:
           } else {
             /* copy_type_with_substitution has not been called yet. */
             tp = copy_type_with_substitution(ptp->type, templ_arg_list,
-                                             source_pos, copy_error);
+                                             depth, source_pos, copy_error);
           }  /* if */
           /* Allocate the param type entry and copy default arg info. */
           new_ptp = alloc_param_type(tp);
@@ -4168,7 +4178,7 @@ make_new_type:
            required in the element type.  Note that if the element type doesn't
            require substitution, we don't create a new type entry. */
         tp = copy_type_with_substitution(type->variant.array.element_type,
-                                         templ_arg_list, source_pos,
+                                         templ_arg_list, depth, source_pos,
                                          copy_error);
         if (tp == type->variant.array.element_type) {
           /* Reuse the current type. */
@@ -4209,8 +4219,8 @@ make_new_type:
             if (tap->is_type) {
               new_tap->variant.type =
                        copy_type_with_substitution(tap->variant.type,
-                                                   templ_arg_list, source_pos,
-                                                   copy_error);
+                                                   templ_arg_list, depth,
+						   source_pos, copy_error);
             } else {
 #if CHECKING
               if (tap->variant.constant->kind ==
@@ -4323,12 +4333,15 @@ the field in the template symbol supplement has been set.
   a_boolean				copy_error = FALSE;
   a_template_symbol_supplement_ptr	tssp;
   a_type_ptr				templ_rout_type = NULL;
+  a_template_nesting_depth		depth;
 
   tssp = template_supplement_for_symbol(templ_sym);
   if (templ_param_list == NULL) {
     /* Get the template parameter list, if one was not passed in. */
     templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   }  /* if */
+  /* Determine the template nesting depth of the template being processed. */
+  depth = nesting_depth_of_template_param(templ_param_list);
   if (new_arg_list != NULL) {
     /* An explicit template argument list was specified, initialize the
        new template argument list with the specified list.  If the new
@@ -4349,7 +4362,7 @@ the field in the template symbol supplement has been set.
          template argument list.  Create a new type. */
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       templ_rout_type = copy_type_with_substitution(templ_rout_type,
-                                                    templ_arg_list,
+                                                    templ_arg_list, depth,
 	       					    &templ_sym->decl_position,
 						    &copy_error);
       if (copy_error) templ_rout_type = NULL;
