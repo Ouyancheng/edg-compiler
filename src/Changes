@@ -764,7 +764,7 @@ the invalid declaration of i in the following:
   int i = 0;
   }
 
-(Note: that the declaration of i begins at column-position zero is
+(Note: that the declaration of i begins at column-position 1 is
 significant because it keys an error-recovery optimization.)
 
 4/27/96 IL lowering: pointer to dynamic init entry on return not cleared
