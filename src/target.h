@@ -129,11 +129,6 @@ Integer types:
 #endif /* LONG_LONG_ALLOWED */
 
 /*
-Type used as the representation of an integer value.
-*/
-typedef long an_integer_value;
-
-/*
 If this flag is TRUE, overflows on signed integer operations do
 not cause errors (only warnings).  Usually this would be set to
 match the target machine behavior on integer operations in C.
