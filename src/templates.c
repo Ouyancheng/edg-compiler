@@ -1497,7 +1497,8 @@ returned to the caller.
           ctp = first_token;
             while (ctp != NULL) {
               a_cached_token_ptr	next_ctp = ctp->next;
-              free_cached_token_from_reusable_cache(class_cache, ctp);
+              free_cached_token_from_reusable_cache(
+                                class_cache, ctp, /*keep_pragma_tokens=*/TRUE);
               ctp = next_ctp;
           }  /* while */
         }

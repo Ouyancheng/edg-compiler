@@ -504,7 +504,8 @@ tokens may be added to it.
   cache->last_token = prev_ctp;
   prev_ctp->next = NULL;
   /* Free the terminator token. */
-  free_cached_token_from_reusable_cache(cache, ctp);
+  free_cached_token_from_reusable_cache(cache, ctp,
+                                        /*keep_pragma_tokens=*/FALSE);
 }  /* remove_cache_terminator */
 
 
@@ -1199,10 +1200,15 @@ the cached token is freed.
 #if !DEBUG
 /*ARGSUSED*/ /* <-- because "token_cache" is only used in debug code. */
 #endif /* !DEBUG */
-void free_cached_token_from_reusable_cache(a_token_cache_ptr  token_cache,
-                                           a_cached_token_ptr ctp)
+void free_cached_token_from_reusable_cache(
+				a_token_cache_ptr  token_cache,
+                                a_cached_token_ptr ctp,
+                                a_boolean	   keep_pragma_tokens)
 /*
-Free an individual token from a reusable cache.
+Free an individual token from a reusable cache.  keep_pragma_tokens is TRUE
+when the token caches associated with pragma entries should be retained.
+This is needed when freeing tokens from the original copies of member function
+bodies of class templates.
 */
 {
   /* Free any pragmas associated with this token.  Cached constants will
@@ -1215,6 +1221,7 @@ Free an individual token from a reusable cache.
 #if DEBUG
       num_pragmas_in_reusable_caches--;
 #endif /* DEBUG */
+      if (keep_pragma_tokens) ppp->discard_cache_when_done = FALSE;
       free_pending_pragma(ppp);
       ppp = next_ppp;
     }  /* while */

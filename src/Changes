@@ -1,5 +1,12 @@
 Version 2.35
 
+1/6/97   Incorrect handling of pragmas in member functions of class templates
+
+If a pragma appeared in a member function of a class template, the pragma
+tokens were being discarded following the prototype instantiation of the
+class template.  This would result in incorrect handling of the pragmas,
+and/or internal errors while processing the pragmas.  This has been fixed.
+
 1/5/97   C++-generating back end: pragmas following prototyped parameter lists
 
 A change made in 2.34 (see Changes entry of 11/25/96) to deal with
