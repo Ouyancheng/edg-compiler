@@ -6636,7 +6636,8 @@ is the one associated with the template.
     write_code_string(tp->text);
     /* Advance past the source sequence entry for the template. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (is_definition && tp->kind == templk_class &&
+    if (is_definition && (tp->kind == templk_class ||
+                          tp->kind == templk_member_class) &&
                          tp->prototype_instantiation.type != NULL) {
       /* Source sequence entries were recorded for a class template prototype
          instantiation, but we won't use those to regenerate the template
