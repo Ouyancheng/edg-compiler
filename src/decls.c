@@ -7773,7 +7773,7 @@ continue_with_declaration:
            at the point of definition, so flag it as "set" (even if it is not
            actually set at the current declaration). */
         /* Or else:  This is a tentative definition (C mode only), which should
-           be treated bas though it were a definition. */
+           be treated as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
