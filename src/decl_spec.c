@@ -1863,12 +1863,11 @@ DSI_VIRTUAL_OR_FRIEND_ALLOWED bit is set when a declaration appears within
 a class declaration, to permit recognition of "virtual" and "friend"
 keywords.
 
-The syntax for the Microsoft extensions does not exactly match the
-syntax described in the Microsoft documentation.  It does, however,
-match the observed behavior of the Microsoft compiler.  The
-additional type qualifiers are only recognized when the
-DSI_MICROSOFT_QUALIFIERS_ALLOWED bit of input_flags is set.  The
-additional storage class specifiers are recognized anywhere that
+The syntax for the Microsoft extensions does not exactly match the syntax
+described in the Microsoft documentation.  It does, however, match the
+observed behavior of the Microsoft compiler.  The additional type
+qualifiers are only recognized when MICROSOFT_KEYWORDS_ALLOWED is TRUE.
+The additional storage class specifiers are recognized anywhere that
 storage classes are normally allowed.
 
 Returns *storage_class set to the storage class scanned (or
@@ -1953,6 +1952,11 @@ Returns TRUE if there is an error in the specifiers.
         if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
           error(ec_storage_class_not_allowed);
           err = TRUE;
+#if ASM_FUNCTION_ALLOWED
+        } else if (*storage_class == (a_storage_class)sc_asm) {
+          error(ec_storage_class_not_allowed);
+          err = TRUE;
+#endif /* ASM_FUNCTION_ALLOWED */
         } else if (*storage_class != (a_storage_class)sc_unspecified) {
           /* More than  one storage class may not be specified. */
           error(ec_mult_storage_classes);
@@ -2013,6 +2017,28 @@ Returns TRUE if there is an error in the specifiers.
           }  /* switch */
         }  /* if */
         break;
+#if ASM_FUNCTION_ALLOWED
+      case tok_asm:
+        /* Specifier indicating an asm function declaration.  It is
+           inconsistent with an explicit storage class declaration or
+           "inline". */
+        if (*storage_class == (a_storage_class)sc_asm) {
+          error(ec_dupl_decl_specifier);
+          err = TRUE;
+        } else if (!(input_flags & DSI_ASM_ALLOWED) || is_inline ||
+                   *storage_class != (a_storage_class)sc_unspecified) {
+          /* asm is not allowed if we've already seen a storage class or
+             inline. */
+          error(ec_asm_not_allowed);
+          err = TRUE;
+        } else {
+          /* The asm specifier is represented as a storage class (even though
+             strictly speaking it's more like "inline" as an attribute of a
+             routine declaration). */
+          *storage_class = (a_storage_class)sc_asm;
+        }  /* if */
+        break;
+#endif /* ASM_FUNCTION_ALLOWED */
 #if MICROSOFT_KEYWORDS_ALLOWED
       case tok_microsoft_inline:
       case tok_declspec:
