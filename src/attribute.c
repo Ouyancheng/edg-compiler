@@ -728,11 +728,11 @@ transparent.  If not, issue a diagnostic and return FALSE.
     if (skip_typerefs(f->type)->size != tp->size) {
       a_symbol_ptr sym = (a_symbol_ptr)f->source_corresp.assoc_info;
       if (sym != NULL && has_name(f)) {
-        pos_syty_diagnostic(es_error, ec_union_cannot_be_transparent_sym,
-                            pos, sym, tp);
+        pos_syty_warning(ec_union_cannot_be_transparent_sym,
+                         pos, sym, tp);
       } else {
-        pos_ty2_error(ec_union_cannot_be_transparent, pos,
-                      tp, f->type);
+        pos_ty2_warning(ec_union_cannot_be_transparent, pos,
+                        tp, f->type);
       }  /* if */
       break;
     }  /* if */
@@ -1002,7 +1002,7 @@ must make a copy if tp may already be shared.
                        &ap->position, tp);
         } else if (is_typedef && is_incomplete_type(tp)) {
           pos_warning(ec_transparent_attribute_ignored, &ap->position);
-        } else {
+        } else if (check_transparent_union(tp, &ap->position)) {
           tp->variant.class_struct_union.is_transparent = TRUE;
         }  /* if */
         break;

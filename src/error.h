@@ -343,12 +343,12 @@ extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_type     *type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 extern void pos_ty2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_type     *type1,
                             struct a_type     *type2);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 extern void pos_opt_ty2_warning(an_error_code     error_code,
                                 a_source_position *error_pos,
                                 struct a_type     *type1,
@@ -356,13 +356,12 @@ extern void pos_opt_ty2_warning(an_error_code     error_code,
 extern void type_warning(an_error_code error_code,
                          struct a_type *type);
 #if !STANDALONE_UTILITY_PROGRAM
-#if 0
-/* This routine is not currently used by the compiler. */
+#if GNU_EXTENSIONS_ALLOWED
 extern void pos_syty_warning(an_error_code     error_code,
                              a_source_position *error_pos,
                              struct a_symbol   *symbol,
                              struct a_type     *type);
-#endif /* 0 */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 extern void pos_sy_warning(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_symbol   *symbol);

@@ -3774,7 +3774,7 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty_warning */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 
 void pos_ty2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
@@ -3791,7 +3791,7 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty2_warning */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 
 void pos_opt_ty2_warning(an_error_code     error_code,
                          a_source_position *error_pos,
@@ -3825,9 +3825,7 @@ indicated by error_position.
 }  /* type_warning */
 
 #if !STANDALONE_UTILITY_PROGRAM
-
-#if 0
-/* This routine is not currently used by the compiler. */
+#if GNU_EXTENSIONS_ALLOWED
 
 void pos_syty_warning(an_error_code     error_code,
                       a_source_position *error_pos,
@@ -3843,8 +3841,8 @@ indicated position.
   error_msg_types[1] = type;
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_syty_warning */
-#endif /* 0 */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void pos_sy_warning(an_error_code     error_code,
                     a_source_position *error_pos,
