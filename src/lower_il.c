@@ -2933,8 +2933,8 @@ type-as-subobject that is different from its normal type.
   }  /* for */
   return has_indep_virt_base_classes;
 }  /* class_has_independently_allocated_virtual_base_classes */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 static void make_subobject_class_type(a_type_ptr class_type)
 /*
@@ -3103,12 +3103,7 @@ prelower_class_type_if_complete instead.
           /* Virtual base class.  See if a pointer to the base class is
              required. */
           /* Do not put out the pointer if it is shared with a base class. */
-          if (bcp->pointer_base_class == NULL
-#if !CFRONT_OBJECT_CODE_COMPATIBILITY
-              /* ... or if the base class is indirect. */
-              && bcp->direct
-#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-                                             ) {
+          if (bcp->pointer_base_class == NULL) {
             add_base_class_dummy_field(bcp->type, "__p_",
                                        make_pointer_type(base_class_type),
                                        bcp->pointer_offset, class_type);
