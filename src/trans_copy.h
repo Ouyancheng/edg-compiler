@@ -23,9 +23,6 @@ trans_copy.h -- Declarations related to trans_copy.c (copying of IL
 extern void copy_secondary_trans_unit_IL_to_primary(void);
 
 extern
-void process_functions_moved_from_secondary_trans_units(void);
-
-extern
 void mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed(void);
 
 extern

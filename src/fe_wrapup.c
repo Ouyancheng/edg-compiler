@@ -274,19 +274,14 @@ Do the final wrapup processing on a translation unit.  This is
 called both for secondary translation units (is_primary_translation_unit
 is FALSE) and for primary translation units (is_primary_translation_unit
 is TRUE).  "Part 4" does IL lowering and needed flag processing for
-the primary translation unit, and copying of IL from secondary translation
-units into the primary IL.  When the primary translation unit is
+the primary translation unit, and pops the file scope for both primary
+and secondary translation units.  When the primary translation unit is
 processed here, code from any secondary translation units will have
 already been copied over.
 */
 {
   if (is_primary_translation_unit) {
     if (total_errors == 0) {
-      if (!trans_unit_test_mode) {
-        /* Finish processing of any functions moved from secondary translation
-           units.  This includes lowering of the function bodies. */
-        process_functions_moved_from_secondary_trans_units();
-      }  /* if */
       /* Sweep the primary translation unit IL tree and look for any
          pointers to entities in secondary translation units that it uses,
          and rewrite the pointers as the corresponding primary IL entities. */
@@ -367,15 +362,8 @@ already been copied over.
       clear_parent_information();
     }  /* if */
 #endif /* DO_IL_LOWERING */
-  } else {
-    /* Copy IL from the secondary translation units to the primary IL.
-       In trans_unit_test mode, we don't check for duplicate definitions,
-       so we can't do the copy. */
-    if (total_errors == 0 && !trans_unit_test_mode) {
-      copy_secondary_trans_unit_IL_to_primary();
-    }  /* if */
+    check_for_done_with_memory_region(file_scope_region_number);
   }  /* if */
-  check_for_done_with_memory_region(file_scope_region_number);
 }  /* file_scope_il_wrapup_part_4 */
 
 
@@ -428,6 +416,13 @@ Complete the file scope of each of the translation units.
     switch_translation_unit(tup);
     file_scope_il_wrapup_part_4();
   }  /* for */
+  /* Copy IL from the secondary translation units to the primary IL.
+     This must be done before the lowering of the primary IL.
+     In trans_unit_test mode, we don't check for duplicate definitions,
+     so we can't do the copy. */
+  if (total_errors == 0 && !trans_unit_test_mode) {
+    copy_secondary_trans_unit_IL_to_primary();
+  }  /* if */
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
   /* Process the primary translation unit. */
