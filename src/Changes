@@ -1,5 +1,7 @@
 Version 2.28
 
+3/2/95   IL version number changed to 2.20
+
 3/2/95   Specifying the message to be issued for unimplemented keywords
 
 It is now possible to associate an error code with each unimplemented
