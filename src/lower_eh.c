@@ -1307,6 +1307,9 @@ flag set value is returned.
 
 #endif /* IA64_ABI */
 
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- use_comdat is not used in that case. */
+#endif /* !IA64_ABI */
 static void define_typeinfo_var(a_type_ptr type,
                                 a_boolean  force_static,
                                 a_boolean  use_comdat)
