@@ -2641,7 +2641,11 @@ Return TRUE if the sequence number seq_number falls within an include file.
     /* Sequence number is not in a file, so it's not in an include file. */
     in_include_file = FALSE;
   } else {
-    in_include_file = proper_file->is_include_file;
+    /* The primary_source_file_for_seq test is used to detect a line from
+       a file other than the primary file when reading source with #line
+       directives. */
+    in_include_file = proper_file->is_include_file ||
+                      proper_file != primary_source_file_for_seq(seq_number);
   }  /* if */
   return in_include_file;
 }  /* seq_is_in_include_file */
