@@ -43,7 +43,7 @@ For example:
 The front end now recognizes the redefine_extname pragma when the new
 configuration macro REDEFINE_EXTNAME_PRAGMA_ENABLED is TRUE.  This pragma
 must be followed by two identifiers and causes entities named with the first
-of these identifiers to be have the second name as their external (asm) name.
+of these identifiers to have the second name as their external (asm) name.
 When this feature is enabled, the macro __PRAGMA_REDEFINE_EXTNAME is 
 predefined (to the value "1") by the front end.  The entity whose external
 name is changed in this way must have external C linkage.
