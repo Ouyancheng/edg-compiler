@@ -7195,6 +7195,10 @@ has been used in an exception handling or RTTI construct.
       if (!is_primary_translation_unit && !in_secondary_trans_unit(type_ptr)) {
         /* Force a primary-IL type into the primary IL list. */
         p_il_header = &translation_units->il_header;
+      } else if (is_primary_translation_unit &&
+                 in_secondary_trans_unit(type_ptr)) {
+        /* Force a secondary-IL type into an arbitrary secondary IL list. */
+        p_il_header = &translation_units->next->il_header;
       }  /* if */
       type_ptr->next = p_il_header->nontag_types_used_in_exception_or_rtti;
       p_il_header->nontag_types_used_in_exception_or_rtti = type_ptr;
