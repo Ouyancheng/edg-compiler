@@ -30,11 +30,9 @@ fe_wrapup.c - End of front end processing.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #include "templates.h"
 #include "trans_corresp.h"
+#include "trans_copy.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
-#if DO_C99_IL_LOWERING
-#include "lower_c99.h"
-#endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #if DEBUG
 #include "exprutil.h"
@@ -143,11 +141,6 @@ translation unit IL.
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
-#if DO_C99_IL_LOWERING
-    if (c99_il_lowering_needed()) {
-      lower_c99_il_memory_region(il_scope);
-    }  /* if */
-#endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
   }  /* if */
 
@@ -215,6 +208,19 @@ translation unit IL.
       update_inline_function_flags();
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  } else {
+    /* A secondary translation unit. */
+    if (total_errors == 0
+#if ENABLE_TRANS_UNIT_TEST_MODE
+        /* In trans_unit_test mode, we don't check for duplicate definitions,
+           so we can't do the copy. */
+        && !trans_unit_test_mode
+#endif /* ENABLE_TRANS_UNIT_TEST_MODE */
+                                ) {
+      /* Copy the IL of the secondary translation unit to the primary
+         translation unit IL. */
+      copy_secondary_trans_unit_IL_to_primary();
+    }  /* if */
   }  /* if */
   /* Pop the file scope. */
   pop_scope();
