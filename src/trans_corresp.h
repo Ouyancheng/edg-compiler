@@ -34,7 +34,7 @@ EXTERN a_boolean
    has a correspondence pointer, the pointer is set, and it doesn't
    point to itself). */
 #define has_correspondence(ptr)                                        \
-  (trans_unit_corresp_of(ptr) != NULL &&                               \
+  (trans_unit_corresp_of_unknown_entry(ptr) != NULL &&                 \
    canonical_il_entry_of(ptr) != (char*)(ptr))
 
 
@@ -129,6 +129,58 @@ extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
   ((ptr1) == (ptr2) ||                                                    \
    (canonical_test_needed(ptr1, ptr2) &&				  \
     canonical_template_entry_of(ptr1) == canonical_template_entry_of(ptr2)))
+
+
+/*
+Macro that returns the trans_unit_corresp for an IL entry that has a source
+correspondence.
+*/
+#define trans_unit_corresp_of(ptr)					\
+  ((ptr)->source_corresp.trans_unit_corresp)
+
+/*
+Macro like trans_unit_corresp_of, but that can operate on a char* pointer
+or a direct source correspondence pointer.
+*/
+#define trans_unit_corresp_of_unknown_entry(ptr)			\
+  (((a_source_correspondence*)(ptr))->trans_unit_corresp)
+
+/*
+Macro that returns the canonical IL entry pointer for an IL entry that
+has a source correspondence.  If the entry has no correspondence pointer,
+a NULL pointer is returned.
+*/
+#define canonical_il_entry_of(ptr)				            \
+  (trans_unit_corresp_of_unknown_entry(ptr) != NULL		            \
+                    ? trans_unit_corresp_of_unknown_entry(ptr)->canonical   \
+                    : (char*)ptr)
+
+/*
+Compare two translation unit correspondence pointers.  They match if they
+are equal and non-NULL.
+*/
+#define same_trans_unit_corresps(ptr1, ptr2)				\
+  ((ptr1) == (ptr2) && (ptr1) != NULL)
+
+/*
+Return TRUE if two IL entries (that have source correspondence entries)
+refer to the same IL entity.  If the pointers differ, check the
+translation unit correspondence pointers.
+*/
+#define same_entities(ptr1, ptr2)					\
+  ((ptr1) == (ptr2) ||							\
+   same_trans_unit_corresps(trans_unit_corresp_of(ptr1),		\
+                            trans_unit_corresp_of(ptr1)))
+
+/*
+Return TRUE if two base classes refer to the same IL entry.  If the
+pointers differ, check the translation unit correspondence pointers.
+*/
+#define same_base_classes(ptr1, ptr2)					\
+  ((ptr1) == (ptr2) ||							\
+   same_trans_unit_corresps((ptr1)->trans_unit_corresp,			\
+                            (ptr2)->trans_unit_corresp))
+
 
 extern a_boolean seek_type_corresp(a_type_ptr  type_1,
                                    a_type_ptr  type_2);

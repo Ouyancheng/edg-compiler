@@ -121,7 +121,7 @@ Report correspondence pointer for given entry.
 {
   void  *result;
 
-  if (trans_unit_corresp_of(ptr) != NULL) {
+  if (trans_unit_corresp_of_unknown_entry(ptr) != NULL) {
     result = canonical_il_entry_of(ptr);
     fprintf(f_debug, "Correspondence for 0x%x is 0x%x",
             (unsigned)ptr, (unsigned)result);
@@ -189,8 +189,8 @@ this routine will create such a correspondence entry.
     tcp1 = &((a_base_class*)entity1)->trans_unit_corresp;
     tcp2 = &((a_base_class*)entity2)->trans_unit_corresp;
   } else {
-    tcp1 = &trans_unit_corresp_of(entity1);
-    tcp2 = &trans_unit_corresp_of(entity2);
+    tcp1 = &trans_unit_corresp_of_unknown_entry(entity1);
+    tcp2 = &trans_unit_corresp_of_unknown_entry(entity2);
   }  /* if */
   if (*tcp2 == NULL) {
     /* Presumably, no entity corresponding to entity1 has been processed yet.
@@ -259,7 +259,7 @@ has not yet been examined for a matching entry in another translation unit.
   if (kind == (an_il_entry_kind)iek_base_class) {
     tcp = &((a_base_class*)entity)->trans_unit_corresp;
   } else {
-    tcp = &trans_unit_corresp_of(entity);
+    tcp = &trans_unit_corresp_of_unknown_entry(entity);
   }  /* if */
   check_assertion(*tcp == NULL || (*tcp)->canonical != entity ||
                   (*tcp)->count <= 1);
@@ -3586,7 +3586,8 @@ way, determine to which other IL entry this might correspond.
   /* If we're in the process of establishing correspondences, this particular
      entry may need to be processed now.  Otherwise, it should already have
      been done or no correspondence can be expected. */
-  if (correspondence_checking_underway && trans_unit_corresp_of(scp) == NULL) {
+  if (correspondence_checking_underway &&
+      trans_unit_corresp_of_unknown_entry(scp) == NULL) {
     a_type_ptr  root = NULL;
     /* Class members usually have their correspondence set when their parent
        type is processed.  In those cases we look for the outermost parent
@@ -3661,7 +3662,7 @@ way, determine to which other IL entry this might correspond.
         find_type_correspondence(root, /*parent_found=*/FALSE);
       }  /* if */
     }  /* if */
-    if (trans_unit_corresp_of(scp) == NULL) {
+    if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
       /* A correspondence error at an outer level prevent this entry from
          having a correspondence.  Mark it and its unvisited ancestors as
          having no correspondence. */
@@ -3913,7 +3914,7 @@ by tup and refers to an IL entry whose correspondence pointer is corresp_ptr.
 
   entry = il_entry_for_symbol_null_okay(candidate_sym, &il_kind);
   if (entry != NULL) {
-    result = trans_unit_corresp_of(entry) == corresp_ptr &&
+    result = trans_unit_corresp_of_unknown_entry(entry) == corresp_ptr &&
              symbol_is_from_trans_unit(candidate_sym, tup);
   }  /* if */
   return result;
@@ -3939,7 +3940,7 @@ corresponding instance, or NULL if no corresponding instance is found.
 
   /* Get the correspondence entry associated with sym_to_find. */
   entry = il_entry_for_symbol(sym_to_find, &il_kind);
-  corresp_ptr = trans_unit_corresp_of(entry);
+  corresp_ptr = trans_unit_corresp_of_unknown_entry(entry);
   check_assertion(corresp_ptr != NULL);
   /* Get the corresponding template in the specified translation unit.
      Note that it is possible that there is no such corresponding template. */
@@ -4197,7 +4198,7 @@ NULL if none is found.
   }  /* if */
   /* Get the correspondence entry associated with sym_to_find. */
   il_entry = il_entry_for_symbol(sym_to_find, &il_kind);
-  corresp_ptr = trans_unit_corresp_of(il_entry);
+  corresp_ptr = trans_unit_corresp_of_unknown_entry(il_entry);
   check_assertion(corresp_ptr != NULL);
   if (symbol_list != NULL) {
     /* Find the symbol on a list of symbol list entries. */
