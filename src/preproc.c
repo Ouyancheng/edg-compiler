@@ -893,7 +893,7 @@ or the specific definition flag (if instantiate is FALSE).
       tip = sym->variant.routine.instance_ptr;
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    tip = sym->variant.variable.instance_ptr;
+    tip = sym->variant.static_data_member.instance_ptr;
   } else {
     unexpected_condition();
   }  /* if */
@@ -1135,7 +1135,7 @@ assumed if the return type is omitted.
 	sym = new_sym;
 	update_instantiation_flags(sym, pragma_kind, &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
-                 sym->variant.variable.instance_ptr != NULL) {
+                 sym->variant.static_data_member.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation flags. */
 	update_instantiation_flags(sym, pragma_kind, &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
