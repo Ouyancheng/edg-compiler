@@ -134,15 +134,12 @@ typedef struct an_extern_linkage {
   a_name_linkage_kind
 		kind;
 			/* The kind of external linkage ("C++" or "C"). */
-  a_boolean	is_explicit;
+  a_byte_boolean
+		is_explicit;
 			/* TRUE if the external linkage requirement is
 			   explicitly specified in the source; FALSE for the
 			   default set for the translation unit as a whole. */
 } an_extern_linkage;
-
-/* Copy of object of kind an_extern_linkage. */
-#define copy_external_linkage(from, to)                           \
-  { (to).kind = (from).kind; (to).is_explicit = (from).is_explicit; }
 
 EXTERN an_extern_linkage
 		def_external_linkage;
@@ -207,7 +204,7 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_boolean           is_implicit_function,
                                 a_boolean           is_function_def_with_body,
                                 a_boolean           inline_specified,
-                                an_extern_linkage   *extern_linkage,
+                                an_extern_linkage   extern_linkage,
                                 a_symbol_ptr        *symbol_ptr,
                                 an_id_linkage_kind  *linkage_ptr,
                                 a_type_ptr          *old_type,
