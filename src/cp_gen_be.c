@@ -4970,18 +4970,25 @@ Generate code for the indicated statement.
       if (kind == (a_statement_kind)stmk_label &&
           !has_name(statement->variant.label)) {
         /* The current statement is a compiler-generated label. */
+        a_label_ptr label = statement->variant.label;
         if (num_curr_switch_statements != 0 &&
             curr_source_seq_entry_is_for_switch_clause(&scp) &&
-            is_label_for_non_top_level_switch_clause(scp,
-                                                   statement->variant.label)) {
+            is_label_for_non_top_level_switch_clause(scp, label)) {
           /* This is the label for a non-top-level switch clause.
              Generate the case label, advance past the source sequence
              entry for the switch clause, and then throw away the label. */
           gen_case_label(scp);
           goto done;
         }  /* if */
-        /* The compiler-generated label is probably for a break or continue
-           label.  Let it go. */
+        /* Throw away labels generated as targets for "break" and
+           "continue" statements, since the gotos are put out as breaks
+           and continues.  This is important to avoid a cfront "sorry"
+           with destructors in blocks containing labels. */
+        if (label->break_label || label->continue_label) {
+          suppress_trailing_space = TRUE;
+          goto done;
+        }  /* if */
+        /* Some other kind of compiler-generated label.  Let it go. */
       }  /* if */
     } else {
       /* Check for the presence of the proper source sequence entry and
@@ -5034,17 +5041,23 @@ Generate code for the indicated statement.
       break;
     case stmk_goto:
       /* "goto" statement: generate "goto name;". */
-      write_tok_str("goto ");
-      /* Labels for "break" and "continue" are compiler-generated and may
-         be unnamed. */
-      gen_unqualified_name(&statement->variant.label->source_corresp,
-                           iek_label);
-      write_tok_ch(';');
+      { a_label_ptr label = statement->variant.label;
+        if (label->break_label) {
+          /* This is really a "break". */
+          write_tok_str("break");
+        } else if (label->continue_label) {
+          /* This is really a "continue". */
+          write_tok_str("continue");
+        } else {
+          write_tok_str("goto ");
+          gen_unqualified_name(&label->source_corresp, iek_label);
+        }  /* if */
+        write_tok_ch(';');
+      }
       break;
     case stmk_label:
-      /* Label statement: generate "name:;". */
-      /* Labels for "break" and "continue" are compiler-generated and may be
-         unnamed. */
+      /* Label statement: generate "name:;".  Note that labels generated for
+         "break" and "continue" were thrown away above and do not get here. */
       gen_unqualified_name(&statement->variant.label->source_corresp,
                            iek_label);
       write_tok_str(":;");
