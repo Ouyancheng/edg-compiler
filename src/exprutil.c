@@ -6658,9 +6658,9 @@ gives the source position of the call.
 	      tck = (a_type_class_kind)tck_void;
 	      break;
 	    case tk_integer:
-	      if (is_enum_type(type)) {
-		tck = (a_type_class_kind)tck_enum;
-	      } else if (is_character_type(type)) {
+              /* Although there is a type class for enumeration types, GCC
+                 does not seem to use it.  It returns tck_integer instead. */
+	      if (is_character_type(type)) {
 		tck = (a_type_class_kind)tck_char;
 	      } else if (is_bool_type(type)) {
 		tck = (a_type_class_kind)tck_bool;
