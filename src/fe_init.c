@@ -48,6 +48,7 @@ in the include files will become external definitions for the symbols.
 #include "folding.h"
 #include "host_envir.h"
 #include "il.h"
+#include "layout.h"
 #include "lexical.h"
 #include "literals.h"
 #include "macro.h"
