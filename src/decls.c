@@ -4334,16 +4334,6 @@ of local variables (and types, etc.) of functions and in blocks.
        processing. */
     (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
-    /* This is a declaration at file scope.  Set the source-sequence insert
-       point for instantiations to NULL -- it will be set to point to the
-       first source sequence entry that add_to_source_sequence_list sees,
-       which should be the first entry associated with the current
-       declaration. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
@@ -5305,12 +5295,26 @@ In C++, however, the declaration list is optional (3.4):
     }  /* if */
   } else {
     do {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* For each declaration at file scope, reset the source-sequence insert
+         point for instantiations to NULL -- it will be set to point to the
+         first source sequence entry that add_to_source_sequence_list sees,
+         which should be the first entry associated with the current
+         declaration. */
+      scope_stack[DEPTH_OF_FILE_SCOPE].
+                       ss_list_instantiation_insert_point = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declaration(/*function_definition_allowed=*/TRUE,
                   /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
                   (a_param_id_ptr)NULL);
     } while (curr_token != tok_end_of_source);
   }  /* if */
   /* Do any end-of-translation unit pragma processing that may be required. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* First reset the point for instantiations to NULL. */
+  scope_stack[DEPTH_OF_FILE_SCOPE].
+                       ss_list_instantiation_insert_point = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   process_pragmas_at_end_of_source();
 }  /* translation_unit */
 
