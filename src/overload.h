@@ -113,7 +113,8 @@ for try_to_convert_class_operand_to_builtin_type and
 conversion_from_class_possible.
 */
 #define BTK_INTEGRAL 0x1
-			/* Any integral type. */
+			/* Any integral type (includes enum in C but not in
+			   C++). */
 #define BTK_FLOATING 0x2
 			/* Any floating type. */
 #define BTK_POINTER 0x4
@@ -126,6 +127,9 @@ conversion_from_class_possible.
 			/* Any pointer to member. */
 #define BTK_BOOL 0x40
 			/* bool (C++). */
+#define BTK_ENUM 0x80
+			/* Enumeration types in C++ (in C, they're
+			   integral). */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 
