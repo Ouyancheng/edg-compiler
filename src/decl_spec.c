@@ -2260,35 +2260,21 @@ operator_or_conversion_name:
         }  /* if */
         goto exit_loop;
       case tok_template:
-        {
-        a_boolean     local_err = FALSE;
-
+        /* "template" cannot appear in decl-specifiers. */
+        set_to_error_locator(locator_for_curr_id);
+        locator_for_curr_id.source_position = pos_curr_token;
+        pos_error(ec_template_not_allowed, &pos_curr_token);
         if (next_token() == tok_lt) {
-          /* This appears to be a template declaration inside another
-             declaration.  Go ahead and scan the template declaration. */
-          if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-            /* Error will be issued in template_declaration. */
-            local_err = TRUE;
-          } else {
-            error(ec_template_not_allowed);
-            local_err = TRUE;
-          }  /* if */
-          (void)template_declaration(&defines_something);
-          defines_something = TRUE;
+          flush_tokens();
         } else {
-          local_err = TRUE;
-          error(ec_template_not_allowed);
-          (void)get_token();
+          get_token();
         }  /* if */
-        if (local_err) {
-          err = TRUE;
-          if (basic_type == bt_typedef) {
-            *type_ptr = error_type();
-          } else {
-            basic_type = bt_error;
-          }  /* if */
+        err = TRUE;
+        if (basic_type == bt_typedef) {
+          *type_ptr = error_type();
+        } else {
+          basic_type = bt_error;
         }  /* if */
-        }
         goto no_get_token;
       case tok_compl:
 destructor_name:
