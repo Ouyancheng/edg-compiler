@@ -765,7 +765,7 @@ extern void f_update_source_sequence_list(char                    *entity_ptr,
                                           a_source_sequence_entry *old_ssep);
 
 #define update_source_sequence_list(entity_ptr, kind, old_ssep)          \
-{ if (!source_sequence_entries_disallowed) {                             \
+{ if (old_ssep != NULL || !source_sequence_entries_disallowed) {         \
     f_update_source_sequence_list((entity_ptr), (kind), (old_ssep));     \
   }  /* if */                                                            \
 }  /* update_source_sequence_list */
