@@ -1,5 +1,12 @@
 Version 2.36
 
+6/10/97   Multi-level pointer qualification conversions are exact matches
+
+Pointer conversions that add cv-qualifiers at levels other than the
+first in a multi-level pointer are now considered to be exact matches
+in overload resolution. Formerly, they were considered standard
+conversions.
+
 6/9/97    declared_type field in function parameter variables
 
 When GENERATE_SOURCE_SEQUENCE_ENTRIES is TRUE, the declared_type field in
