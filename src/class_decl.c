@@ -7660,6 +7660,16 @@ skip_tag_scan:
                               scope_stack[decl_scope_level].assoc_type;
         }  /* if */
       }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+      /* If the current declaration coexists with another declaration in the
+         current scope that effectively hides it, record that information in
+         the IL. */
+      if (tag_sym->header->symbol != tag_sym) {
+        check_assertion(tag_sym->header->symbol->decl_scope ==
+                                                      tag_sym->decl_scope);
+        record_defeatable_name_hiding(tag_sym, /*tag_hidden_by_nontag=*/TRUE);
+      }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
     srk_flags = SRK_DECLARATION;
     if (is_class_definition) srk_flags |= SRK_DEFINITION;
