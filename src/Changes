@@ -1,5 +1,23 @@
 Version 3.1
 
+11/5/02  Incorrect EH cleanup state after local block containing array
+
+A change in 2.30 (see 11/19/01 entry below) introduced a bug in
+the determination of the exception handling cleanup state when
+a block ends whose first variable is an array with a {...}
+initializer.  This could cause incomplete destruction if there
+were destructible variables preceding that block.  For example,
+if T is a class with a destructor:
+
+  void abc() {
+    T var;
+    {  
+      T arr[1] = {other_var};
+    }
+    // Cleanup state here does not include destroying "var"
+    throw 1;
+  }  
+
 11/5/02  GNU C++ compatibility: New expressions
 
 In standard C++, when the type specified in a new expression starts with a
