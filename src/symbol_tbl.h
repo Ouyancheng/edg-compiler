@@ -1286,6 +1286,10 @@ typedef struct a_scope_stack_entry {
 			   the stack; the exception is when a template
 			   instantiation scope is pushed, in which case the
 			   flag is cleared. */
+  unsigned int	template_param_decl_scope:1;
+			/* TRUE if this is the first scope that
+			   affects the declarative level after a template
+			   instantiation scope. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -1448,11 +1452,8 @@ typedef struct a_scope_stack_entry {
 			   current scope and the containing function scope. */
   a_template_param_ptr
 		template_param_list;
-                        /* If the current scope is the first scope that
-			   affects the declarative level after a template
-			   instantiation scope this field contains a pointer
-			   to the parameter list for the template.  This is
-			   used to prevent reuse of a parameter name. */
+                        /* When kind == sck_template_instantiation, contains
+			   a pointer to the template parameter list. */
 } a_scope_stack_entry;
 
 

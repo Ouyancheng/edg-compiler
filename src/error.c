@@ -1859,6 +1859,9 @@ error code.
     case ec_redeclaration_of_template_param_name:
       m = "template parameter %sq may not be redeclared in this scope";
       break;
+    case ec_decl_hides_template_parameter:
+      m = "declaration of %sq hides template parameter";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

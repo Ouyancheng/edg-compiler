@@ -1597,18 +1597,17 @@ be issued by the caller.
 }  /* symbols_may_coexist_in_curr_scope */
 
 
-static a_boolean is_redeclared_template_param(a_scope_depth  scope_depth,
-					      a_symbol_ptr   sym)
+static a_boolean is_redeclared_template_param(a_symbol_ptr   sym)
 /*
-Look through the template parameters associated with the scope indicated
-by scope depth for a symbol whose header matches the header of sym.
+Look through the template parameters associated with the innermost
+instantiation scope for a symbol whose header matches the header of sym.
 Return TRUE if a match is found.
 */
 {
   a_template_param_ptr	tpp;
   a_boolean		result = FALSE;
 
-  tpp = scope_stack[scope_depth].template_param_list;
+  tpp = scope_stack[depth_innermost_instantiation_scope].template_param_list;
   check_assertion(tpp != NULL);
   while (tpp != NULL && !result) {
     a_symbol_ptr  param_symbol = tpp->param_symbol;
@@ -1639,6 +1638,7 @@ the proper insert location.
   a_symbol_header_ptr          hdr_ptr = sym_ptr->header;
   a_symbol_ptr                 insert_after;
   a_scope_depth                curr_depth;
+  a_boolean		       redeclared_template_param;
 
   if (sym_ptr->is_error) {
     /* Error symbols are never added to the symbol table. */
@@ -1670,9 +1670,11 @@ the proper insert location.
           old_sym_ptr = old_sym_ptr->next;
         }  /* while */
       }  /* for */
-      if (!suppress_error &&
-          scope_stack[scope_depth].template_param_list != NULL &&
-          is_redeclared_template_param(scope_depth, sym_ptr)) {
+      redeclared_template_param = (depth_innermost_instantiation_scope !=
+				   NO_SCOPE_DEPTH) &&
+				  is_redeclared_template_param(sym_ptr);
+      if (!suppress_error && redeclared_template_param &&
+          scope_stack[scope_depth].template_param_decl_scope) {
         /* A template parameter name has been reused in the first scope
 	   associated with the instantiation that affects the declarative
            level.  Note that we pass the identifier string to the error
@@ -1682,6 +1684,14 @@ the proper insert location.
         pos_st_error(ec_redeclaration_of_template_param_name,
                      &(sym_ptr->decl_position), sym_ptr->header->identifier);
       } else {
+        if (redeclared_template_param) {
+          /* A template parameter name has been reused in an inner scope
+             of a template class or function.  Issue a warning that the
+             template parameter will be hidden. */
+          pos_st_warning(ec_decl_hides_template_parameter,
+                         &(sym_ptr->decl_position),
+                         sym_ptr->header->identifier);
+        }  /* if */
         /* See if there is already a definition of this identifier in the same
            scope and name space.  (For name spaces, see C standard, 3.1.2.3.)
            Because of the code above and because the active list is ordered,
@@ -5506,6 +5516,7 @@ of the template.
   ssep->current_access           = (an_access_specifier)as_public;
   ssep->inactive_symbols_may_be_visible = FALSE;
   ssep->inside_local_class       = inside_local_class;
+  ssep->template_param_decl_scope = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -5600,6 +5611,7 @@ of the template.
          instantiation. */
       ssep->depth_of_previous_instantiation =
                                   tssp->innermost_instantiation_scope;
+      ssep->template_param_list = tssp->parameters;
       tssp->innermost_instantiation_scope = depth_scope_stack;
       /* The current stack state is suspended when an template instantiation
          is done.  It will be restored in pop_scope. */
@@ -5616,17 +5628,14 @@ of the template.
       /* We want to ensure that the first declarative scope following
          an instantiation scope does not allow the redeclaration of a
          template parameter name.  This is done by saving a pointer to
-         the template parameter list in the scope stack entry associated
-         with the scope for which this test must be done.  For template
+         the template parameter list in the scope stack entry of the
+         template instantiation scope and setting the templ_param_decl_scope
+         flag in the scope for which this test must be done.  For template
          classes and template functions the scope is the next scope
          that affects the declarative level.  For static data members
-         there is no such scope, but we attach the parameter list to
-         the instantiation scope for consistency. */
-      a_template_symbol_supplement_ptr  tssp;
-      a_symbol_ptr			sym;
-      sym = scope_stack[depth_innermost_instantiation_scope].template_sym;
-      tssp = template_supplement_for_symbol(sym);
-      ssep->template_param_list = tssp->parameters;
+         there is no such scope, but we set this flag in the instantiation
+         scope for consistency. */
+      ssep->template_param_decl_scope = TRUE;
     }  /* if */
   }  /* if */
   /* Maintain the depth of the innermost function scope. */
