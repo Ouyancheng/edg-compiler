@@ -27,6 +27,7 @@ templates.c -- Support for C++ templates.
 /* Additional header files. */
 #include "disambig.h"
 #include "folding.h"
+#include "trans_corresp.h"
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 #include "lower_name.h"
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -3972,6 +3973,9 @@ prototype instantiation is considered as a potential match.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
+    /* Call a routine that manages the correspondence of entities between
+       translation units to notify it of the not instance. */
+    record_instantiation(sym, tssp);
 #if DEBUG
     if (debug_level >= 3 || db_flag_is_set("instantiations")) {
       db_symbol(sym, "Partial instantiation of: ", 2);
@@ -7055,6 +7059,9 @@ type based on the template argument list and the template parameter list
   /* Decrement the count of pending instantiations of this template. */
   --(tssp->variant.function.pending_partial_instantiations);
   switch_back_to_original_region(region_to_switch_back_to);
+  /* Call a routine that manages the correspondence of entities between
+     translation units to notify it of the not instance. */
+  record_instantiation(sym, tssp);
   /* Function instantiation entries are not marked for actual instantiation
      (that is, for generation of the function body) until there is an
      invocation of the function.  In tim_all mode the instantiations
