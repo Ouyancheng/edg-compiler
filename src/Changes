@@ -188,10 +188,15 @@ linkage is declared using a type with no name linkage. For example:
 6/17/99  Support for oversized bit fields
 
 In C++ a bit field may now be declared with a bit count that exceeds the
-size of its underlying type.  The excess bits are ignored, and a warning is
-issued.  In addition, the configuration variable TARG_MAX_BIT_FIELD_SIZE
-has been removed; the maximum number of bits a bit field may have is now
-simply a function of its type.
+size of its underlying type.  The excess bits are ignored, and a warning
+is issued.
+
+In addition, the configuration variable TARG_MAX_BIT_FIELD_SIZE has been
+removed; the maximum number of bits a bit field may have is now simply a
+function of its type.  With this change back ends may now have to deal
+with longer bit fields than before -- e.g., if TARG_MAX_BIT_FIELD_SIZE had
+been configured to the number of bits in an int and if "long long" is
+allowed or sizeof(long) > sizeof(int).
 
 6/17/99  operator void() is allowed
 
