@@ -1314,6 +1314,7 @@ of a function template.
   } else {
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
                &bottom_derived_type, func_info);
+    func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
   }  /* if */
   if (is_initial_decl) {
     /* An end-of-source marker is not present when the initial declaration
@@ -3065,8 +3066,7 @@ entry is pushed on the scope stack.
       a_boolean  err = FALSE;
 
       /* Process a function template declaration. */
-      decl_function_template(&locator, type, &func_info, &sym, storage_class,
-                             (dso_flags & DSO_INLINE) != 0);
+      decl_function_template(&locator, type, &func_info, &sym, storage_class);
       if (is_error_locator(locator)) {
         err = TRUE;
       } else if (curr_token == tok_lbrace ||
