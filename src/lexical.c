@@ -2010,7 +2010,8 @@ void push_input_stack (FILE  *new_input_file,
 Push the indicated file onto the input stack.
 */
 {
-  int                         isnum, times_name_appears;
+  int                isnum, times_name_appears;
+  a_source_file_ptr  parent_file;
 
   db_enter(2, "push_input_stack");
 #if DEBUG
@@ -2078,9 +2079,21 @@ Push the indicated file onto the input stack.
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
      information. */
-  record_start_of_source_file(depth_input_stack != 0 ? /* Parent file */
-                               input_stack[depth_input_stack-1].assoc_il_file :
-                              (a_source_file_ptr)NULL,
+  if (depth_input_stack == 0) {
+#if !INSTANTIATION_BY_IMPLICIT_INCLUSION
+    parent_file = NULL;
+#else /* if INSTANTIATION_BY_IMPLICIT_INCLUSION */
+    /* Parent file will be set to NULL if this is the primary source file
+       (which won't yet have been recorded in il_header), but if this is
+       a file included as a result of the implicit inclusion feature of
+       automatic instantiation, its parent should be the (already closed)
+       primary source file. */
+    parent_file = il_header.primary_source_file;
+#endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  } else {
+    parent_file = input_stack[depth_input_stack-1].assoc_il_file;
+  }  /* if */
+  record_start_of_source_file(parent_file,
                               (a_seq_number)seq_number_last_read+1,
                               (a_line_number)1, file_name,
                               full_file_name, &(curr_ise->assoc_il_file));
