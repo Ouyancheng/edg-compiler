@@ -27,8 +27,8 @@ typedef a_guard *a_guard_ptr;
 			/* A pointer to a guard variable. */
 
 /*
-None of these functions are presently used by the front end, but
-they are required by the ABI.
+These functions are used by the front end only if
+IA64_ABI_USE_GUARD_ACQUIRE_RELEASE is TRUE.
 */
 
 EXTERN_C int ABI_NAMESPACE::__cxa_guard_acquire(a_guard_ptr guard)
