@@ -209,12 +209,6 @@ typedef struct an_argument_summary {
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
-  a_byte_boolean
-		added_for_default_arg;
-			/* TRUE if this entry was added for a case where the
-			   actual argument was omitted and there is a default
-			   argument value.  The operand will have been cleared
-			   but not set to anything beyond that. */
   an_operand	operand;
 			/* The argument value. */
 } an_argument_summary;
