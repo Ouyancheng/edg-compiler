@@ -1,5 +1,23 @@
 Version 2.23
 
+5/24/94  Cfront-style member function typedef
+
+A bug has been fixed in our support for cfront-compatible member-function
+typedef declarations:
+
+  typedef void A::t1(int);      // Still allowed in cfront mode
+  typedef void (A::t2)(int);    // Now recognized and allowed in cfront mode
+
+5/24/94  Order of variables on the scope variables list
+
+It used to be that the order of the variables in the linked list pointed to
+by the scope entry was strictly that of their appearance in the source.
+Now, when a variable that was previously declared (but not defined -- e.g.,
+in an extern declaration) is subsequently defined, it is removed from the
+variables list and reinserted at the end.  This also applies in C mode to
+variables with a tentative definition that are subsequently defined with an
+initializer.  Only file-scope variables are subject to such reordering.
+
 5/24/94  Destruction of temporaries created in condition exprs in non-loops
 
 Expression temporaries created in condition expressions of statements
