@@ -4944,6 +4944,12 @@ characters should be put out separately (to initialize a substring, probably).
        because K&R/pcc do not allow it. */
     if (type->kind == (a_type_kind)tk_union) {
       *gen_assignments = TRUE;
+    } else if (constant->kind == (a_constant_repr_kind)ck_aggregate &&
+               constant->variant.aggregate.first_constant == NULL) {
+      /* Empty aggregate -- valid in C++, allowed in the "C" IL as an
+         extension that back ends shouldn't have problems with, but
+         not allowed in K&R/pcc C, so go into assignment mode. */
+      *gen_assignments = TRUE;
     }  /* if */
   }  /* if */
 #endif /* ifdef CFE */
@@ -5013,6 +5019,7 @@ characters should be put out separately (to initialize a substring, probably).
 #ifdef CFE
     ipdp->type = type;
 #endif /* ifdef CFE */
+    elem_con = constant->variant.aggregate.first_constant;
     /* Determine the type of the aggregate member first up to be
        initialized. */
 #ifdef FFE
@@ -5031,7 +5038,7 @@ characters should be put out separately (to initialize a substring, probably).
         case tk_union:
           ipdp->curr_field = type->variant.class_struct_union.field_list;
 #if CHECKING
-          if (ipdp->curr_field == NULL) {
+          if (ipdp->curr_field == NULL && elem_con != NULL) {
             internal_error("dump_initializer_part: bad field");
           }  /* if */
 #endif /* CHECKING */
@@ -5065,9 +5072,7 @@ characters should be put out separately (to initialize a substring, probably).
     curr_offset = 0;
 #endif /* FFE */
     count_until_newline = INITS_PER_LINE;
-    for (elem_con = constant->variant.aggregate.first_constant;
-         elem_con != NULL;
-         elem_con = elem_con->next) {
+    for (; elem_con != NULL; elem_con = elem_con->next) {
 #ifdef FFE
       if (elem_con->kind == (a_constant_repr_kind)ck_init_position) {
         /* An init_position constant may indicate a skip in initialization. */
