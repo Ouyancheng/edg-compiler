@@ -34,7 +34,7 @@ encodings.
 According to the standard, an injected class name of a class template
 may only be used as a type template argument.  g++ also allows such a
 name to be used as a template template argument.  We now emulate this
-behavior on g++ mode.
+behavior in g++ mode.
 
   template <template <class> class T> struct A {};
   template <class T> struct B {
