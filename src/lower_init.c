@@ -1483,8 +1483,12 @@ destructor for a complete object.
   a_constant       null_constant;
 #endif /* IA64_ABI */
 
-  if (dtor_needs_implied_arg_list(dtor_routine)) {
-    *implied_arg_list = *end_implied_arg_list = NULL;
+  *implied_arg_list = *end_implied_arg_list = NULL;
+#if IA64_ABI
+  if (dtor_needs_implied_arg_list(dtor_routine))
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  {
     /* Get the class type. */
     class_type = dtor_routine->source_corresp.parent.class_type;
     prelower_class_type(class_type);
@@ -1502,8 +1506,6 @@ destructor for a complete object.
     }  /* if */
 #endif /* IA64_ABI */
     *end_implied_arg_list = implied_arg_node;
-  } else {
-    *implied_arg_list = *end_implied_arg_list = NULL;
   }  /* if */
 }  /* make_dtor_implied_arg_list */
 
