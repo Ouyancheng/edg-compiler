@@ -4297,8 +4297,7 @@ make_new_type:
       break;
     case tk_typeref:
       if (func(type->variant.typeref.type, flags, &tp)) {
-        new_type = make_qualified_type(tp, type->variant.typeref.is_const,
-                                       type->variant.typeref.is_volatile);
+        new_type = type_plus_qualifiers_from_second_type(tp, type);
       }
       break;
     case tk_template_param:
