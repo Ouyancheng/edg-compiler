@@ -923,7 +923,7 @@ to a source position used for diagnostics.
       }  /* if */
       /* Update the routine entry with any valid modifiers that were found.
          (The dllexport/dllimport flags were set separately.) */
-      ctsp->decl_modifiers |= (flags & ~DM_DLLFLAGS);
+      ctsp->decl_modifiers |= flags;
     }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
