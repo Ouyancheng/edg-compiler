@@ -1865,6 +1865,10 @@ typedef struct a_scope_stack_entry {
 			   a list of access checks that were done (and failed)
 			   and must be repeated once the declarator has been
 			   scanned. */
+  an_access_error_descr_ptr
+		last_deferred_access_check;
+			/* When defer_access_checking is TRUE, this points
+			   to the last element in a list of access checks. */
 } a_scope_stack_entry;
 
 
