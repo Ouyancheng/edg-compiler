@@ -563,6 +563,10 @@ Display the indicated source correspondence entry.
   if (scp->copied_from_secondary_trans_unit) {
     disp_boolean("  copied_from_secondary_trans_unit", TRUE);
   }  /* if */
+  if (scp->same_name_as_external_entity_in_secondary_trans_unit) {
+    disp_boolean("  same_name_as_external_entity_in_secondary_trans_unit",
+                 TRUE);
+  }  /* if */
   if (scp->member_of_unknown_base) {
     disp_boolean("  member_of_unknown_base", TRUE);
   }  /* if */

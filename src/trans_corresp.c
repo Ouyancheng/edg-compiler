@@ -2471,18 +2471,28 @@ translation unit correspondence pointer if one is found.
     }  /* if */
     for (; sym != NULL; sym = sym->next) {
       if (sym->decl_scope != nsp_sym->decl_scope &&
-          may_have_correspondence(sym) &&
           same_parents(sym, nsp_sym)) {
         /* Two different declarations in the same namespace and with the same
            name: they should probably match up. */
-        if (is_namespace_symbol(sym) &&
-            sym->variant.namespace_info.ptr->is_namespace_alias ==
+        if (!may_have_correspondence(sym)) {
+          a_source_correspondence_ptr  scp =
+                                         source_corresp_entry_for_symbol(sym);
+          if (scp != NULL && !in_secondary_trans_unit(scp)) {
+            /* The entity corresponding to sym doesn't have linkage, but since
+               it appears in the primary translation unit it could cause a
+               conflict in generated C code when nsp is copied over. */
+            scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
+          }  /* if */
+        } else if (has_correspondence(nsp)) {
+          /* We've found the correspondence already; only look for
+             conflicts. */
+        } else if (is_namespace_symbol(sym) &&
+                   sym->variant.namespace_info.ptr->is_namespace_alias ==
                                                     nsp->is_namespace_alias) {
           /* Mark as unvisited. */
           checked_trans_unit_corresp_pointer_of(nsp) = NULL;
           /* Record the correspondence. */
           record_trans_unit_corresp(nsp, sym->variant.namespace_info.ptr);
-          break;
         } else {
           /* An error since the conflicting entity has external linkage. */
           f_report_bad_trans_unit_corresp((char*)nsp, &sym->decl_position);
@@ -2507,24 +2517,36 @@ entities.
 
   if (has_name(type) &&
       type_sym != NULL && may_have_correspondence(type_sym)) {
-    a_boolean     first_tag_definition = type_sym->defined && 
-                   (type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-                    type_sym->kind == (a_symbol_kind)sk_enum_tag);
+    a_boolean  corresp_found = FALSE;
+    a_boolean  first_tag_definition = type_sym->defined && 
+               (type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+                type_sym->kind == (a_symbol_kind)sk_enum_tag);
     sym = corresp_symbol_list(type_sym);
     for (; sym != NULL; sym = sym->next) {
       /* Don't consider symbols in the same file. */
       if (sym->decl_scope != type_sym->decl_scope &&
-          may_have_correspondence(sym) &&
           (parent_found ? known_same_parents(sym, type_sym)
                         : same_parents(sym, type_sym))) {
         /* Two different declarations in the same namespace and with the same
            name: they should probably match up. */
-        if (sym->kind == type_sym->kind ||
-            /* "class" and "struct" are interchangeable if not both entries
-               are definitions. */
-            (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
-             type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
-             sym->defined != type_sym->defined)) {
+        if (!may_have_correspondence(sym)) {
+          a_source_correspondence_ptr  scp =
+                                         source_corresp_entry_for_symbol(sym);
+          if (scp != NULL && !in_secondary_trans_unit(scp)) {
+            /* The entity corresponding to sym doesn't have linkage, but since
+               it appears in the primary translation unit it could cause a
+               conflict in generated C code when nsp is copied over. */
+            scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
+          }  /* if */
+        } else if (corresp_found) {
+          /* We've found the correspondence already; only look for
+             conflicts. */
+        } else if (sym->kind == type_sym->kind ||
+                   /* "class" and "struct" are interchangeable if not both
+                      entries are definitions. */
+                   (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
+                    type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
+                    sym->defined != type_sym->defined)) {
           if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
               sym->kind == (a_symbol_kind)sk_enum_tag) {
             /* Definitions of class and enum types are preferably matched up
@@ -2533,7 +2555,7 @@ entities.
             if (!type_sym->defined) {
               /* We are processing a declaration that is not a definition. */
               corresp_sym = sym;
-              break;
+              corresp_found = TRUE;
             } else if (sym->defined) {
               /* Both are defined.  Check if sym corresponds to the "canonical
                  definition": the definition at the end of the correspondence
@@ -2548,7 +2570,7 @@ entities.
                    unit that doesn't have a correspondence (i.e., the first
                    encountered definition with no declaration in the primary
                    translation unit). */
-                break;
+                corresp_found = TRUE;
               } else {
                 /* Check if the canonical definition candidate does indeed
                    point to a nondefining declaration (which should be the
@@ -2567,14 +2589,14 @@ entities.
                       (!has_correspondence(next) &&
                        !type_has_definition(next))));
 #endif /* CHECKING */
-                  break;
+                  corresp_found = TRUE;
                 } else {
                   /* canonical_def corresponds to the canonical definition
                      since it has a correspondence pointer that points to a
                      nondefining declaration that is the end of the chain.
                      */
                   check_assertion(!has_correspondence(next));
-                  break;
+                  corresp_found = TRUE;
                 }  /* if */
               }  /* if */
               /* sym did not correspond to a canonical definition: continue
@@ -2588,7 +2610,7 @@ entities.
             /* Not a class or enum type: no need to worry about a "canonical
                definition" concept. */
             corresp_sym = sym;
-            break;
+            corresp_found = TRUE;
           }  /* if */
         } else if (!type_sym->is_class_member &&
                    (!is_tag_symbol(type_sym) ||
@@ -3231,8 +3253,22 @@ translation unit correspondence pointer if one is found.
         a_symbol_ptr  sub_sym = is_list ?
                                 sym->variant.overloaded_function.symbols : sym;
         for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
-          if (may_have_correspondence(sub_sym) &&
-              same_parents(sub_sym, routine_sym)) {
+          if (!same_parents(sub_sym, routine_sym)) {
+            /* Don't consider symbols in noncorresponding scopes. */  
+          } else if (!may_have_correspondence(sub_sym)) {
+            a_source_correspondence_ptr  scp =
+                                         source_corresp_entry_for_symbol(sym);
+            if (scp != NULL && !in_secondary_trans_unit(scp)) {
+              /* The entity corresponding to sym doesn't have linkage, but
+                 since it appears in the primary translation unit it could
+                 cause a conflict in generated C code when the routine is
+                 copied over. */
+              scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
+            }  /* if */
+          } else if (has_correspondence(routine)) {
+            /* We've found the correspondence already; only look for
+               conflicts. */
+          } else {
             /* Two different declarations in the same namespace or class, and
                with the same name: they should probably match up. */
             switch (sub_sym->kind) {
@@ -3254,7 +3290,6 @@ translation unit correspondence pointer if one is found.
                     /* Record the correspondence. */
                     record_trans_unit_corresp(routine,
                                               sub_sym->variant.routine.ptr);
-                    goto done;
                   } else if (routine->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external &&
                              corresp_routine->source_corresp.name_linkage ==
@@ -3282,7 +3317,6 @@ translation unit correspondence pointer if one is found.
       }  /* if */
     }  /* for */
   }  /* if */
-done:
   if (checked_trans_unit_corresp_pointer_of(routine) == NULL) {
     /* Mark this routine as visited. */
     set_no_trans_unit_corresp(routine);
@@ -3303,10 +3337,22 @@ translation unit correspondence pointer if one is found.
       var_sym != NULL && may_have_correspondence(var_sym)) {
     sym = corresp_symbol_list(var_sym);
     for (; sym != NULL; sym = sym->next) {
-      /* Don't consider symbols in the same file. */
-      if (sym->decl_scope != var_sym->decl_scope &&
-          may_have_correspondence(sym) &&
-          same_parents(sym, var_sym)) {
+      if (sym->decl_scope == var_sym->decl_scope ||
+          !same_parents(sym, var_sym)) {
+        /* Don't consider symbols in the same file or in noncorresponding
+           scopes. */
+      } else if (!may_have_correspondence(sym)) {
+        a_source_correspondence_ptr  scp =
+                                         source_corresp_entry_for_symbol(sym);
+        if (scp != NULL && !in_secondary_trans_unit(scp)) {
+          /* The entity corresponding to sym doesn't have linkage, but since
+             it appears in the primary translation unit it could cause a
+             conflict in generated C code when var is copied over. */
+          scp->same_name_as_external_entity_in_secondary_trans_unit = TRUE;
+        }  /* if */
+      } else if (has_correspondence(var)) {
+        /* We've found the correspondence already; only look for conflicts. */
+      } else {
         /* Two different declarations in the same namespace or class, and
            with the same name: they should probably match up. */
         switch (sym->kind) {
@@ -3331,7 +3377,6 @@ translation unit correspondence pointer if one is found.
                     establish_trans_unit_correspondences_for_enum(var->type);
                   }  /* if */
                 }  /* if */
-                goto done;
               }  /* if */
             }
             break;
@@ -3349,7 +3394,6 @@ translation unit correspondence pointer if one is found.
       }  /* if */
     }  /* for */
   }  /* if */
-done:
   if (checked_trans_unit_corresp_pointer_of(var) == NULL) {
     /* Mark this variable as visited. */
     set_no_trans_unit_corresp(var);

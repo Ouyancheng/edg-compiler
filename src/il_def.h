@@ -1107,6 +1107,12 @@ typedef struct a_source_correspondence {
 			   translation unit IL.  That might mean that its
 			   name conflicts with the name of another entity
 			   in the IL. */
+  a_bit_field	same_name_as_external_entity_in_secondary_trans_unit:1;
+			/* TRUE if this is an entity in the primary translation
+			   unit IL that doesn't have external linkage but that
+			   has the same name as an entity with external linkage
+			   from a secondary translation unit with external
+			   linkage. */
   a_bit_field	member_of_unknown_base:1;
 			/* When a name is looked up in a class with
 			   a dependent base class and is not found in the
