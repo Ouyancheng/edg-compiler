@@ -3258,9 +3258,12 @@ See also 3.6.4.1.
     check_assertion_str(sp->variant.if_stmt.else_statement != NULL,
                         "if_statement: else-stmt pointer is NULL");
 #else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-    check_assertion_str(sp->variant.if_stmt.else_statement != NULL ||
-                        sp->has_empty_else_clause,
-                        "if_statement: else-stmt pointer is NULL");
+    if (sp->variant.if_stmt.else_statement == NULL &&
+        !sp->has_empty_else_clause) {
+      /* This can happen when there are errors, in C mode. */
+      check_assertion(C_mode() && total_errors != 0);
+      sp->has_empty_else_clause = TRUE;
+    }  /* if */
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   }  /* if */
   /* End the condition block, if necessary. */
