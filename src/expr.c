@@ -1326,11 +1326,11 @@ error err_code.
 }  /* scan_parenthesized_initializer_expression */
 
 
-void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
-                         an_expr_node_ptr   *arg_expr_list,
-                         a_routine_ptr      *conversion_routine,
-                         a_source_position  *source_pos,
-                         a_type_ptr         object_class_type)
+static void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
+                                an_expr_node_ptr   *arg_expr_list,
+                                a_routine_ptr      *conversion_routine,
+                                a_source_position  *source_pos,
+                                a_type_ptr         object_class_type)
 /*
 Scan the argument list for a C++ constructor call.  The current token is
 the one right after the opening parenthesis of the argument list.  The
@@ -1350,22 +1350,20 @@ The caller need not add the right parenthesis to the stop tokens set, or
 remove it later, as this routine takes care of that.  object_class_type
 is the type of the object being constructed which may be different than
 the type of the constructor being called (e.g., when a base class constructor
-is being called for a derived class object).
+is being called for a derived class object).  On return, the source position
+is after the closing parenthesis of the argument list.
 */
 {
   a_boolean           overloaded_function_case = FALSE;
   a_type_ptr          routine_type;
   a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
-  an_expr_stack_entry expr_stack_entry;
   an_arg_match_summary_ptr
                       arg_match_list;
 
   db_enter(4, "scan_ctor_arguments");
   *conversion_routine = NULL;
   start_position = pos_curr_token;
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
   if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
     /* Constructor is not overloaded.  In this case, the argument types
        can be checked as the argument list is scanned. */
@@ -1422,7 +1420,6 @@ is being called for a derived class object).
                                          /*suppress_access_check=*/FALSE);
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
-  pop_expr_stack();
   db_exit();
 }  /* scan_ctor_arguments */
 
@@ -8564,7 +8561,7 @@ a pointer to the expression tree.
     (void)check_integral_operand(&result);
   }  /* if */
   expression = make_node_from_operand(&result);
-  expression = add_object_lifetime_node_if_needed(expression);
+  expression = wrap_up_full_expression(expression);
   pop_expr_stack();
 
 #if DEBUG
@@ -8602,7 +8599,7 @@ scan full expressions.
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   simplify_void_operand(&result);
   expression = make_node_from_operand(&result);
-  expression = add_object_lifetime_node_if_needed(expression);
+  expression = wrap_up_full_expression(expression);
   /* Indicate that the value of the node is not used. */
   set_expr_result_not_used(expression);
   pop_expr_stack();
@@ -8627,12 +8624,16 @@ expression scan, an error node is assigned.  If ptp is NULL (as the result of
 a prior error) just do the scan.
 */
 {
-  an_operand          result;
-  an_expr_node_ptr    node;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand              result;
+  an_expr_node_ptr        node;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
 
   db_enter(3, "scan_default_arg_expr");
-
+  /* Save, clear, and later restore the expression stack, since this expression
+     is not part of any expression we may currently be inside of. */
+  saved_expr_stack = expr_stack;
+  expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
@@ -8647,9 +8648,10 @@ a prior error) just do the scan.
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   node = make_node_from_operand(&result);
-  node = add_object_lifetime_node_if_needed(node);
+  node = wrap_up_full_expression(node);
   if (ptp != NULL) ptp->default_arg_expr = node;
   pop_expr_stack();
+  expr_stack = saved_expr_stack;
 #if DEBUG
   if (debug_level >= 3) {
     db_expression(node);
@@ -8780,29 +8782,6 @@ lowering or a back end to do the rewriting.
 }  /* check_return_value_optimization */
 
 
-static void bind_curr_expr_lifetime_to_dynamic_init(a_dynamic_init_ptr dip)
-/*
-If the current expression (in the expr_stack) has an associated object
-lifetime, bind that lifetime to the dynamic initialization pointed to
-by dip.  The lifetime is one that wraps around the initialization,
-typically to envelop the "full expression" that is an implied constructor
-call.  If dip is NULL, there was an error; the lifetime is discarded.
-*/
-{
-  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
-
-  if (lifetime != NULL) {
-    if (dip != NULL) {
-      bind_object_lifetime(lifetime, iek_dynamic_init, (char *)dip,
-                           /*ctor_init=*/FALSE);
-    } else {
-      /* Error. */
-      mark_object_lifetime_as_useless(lifetime);
-    }  /* if */      
-  }  /* if */
-}  /* bind_curr_expr_lifetime_to_dynamic_init */
-
-
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
                                         a_dynamic_init_ptr *dip)
@@ -8842,7 +8821,7 @@ the appropriate dynamic initialization entry and return NULL.
     check_return_value_optimization(&result);
     /* Build a dynamic initialization entry for the return statement. */
     prep_return_by_cctor_operand(&result, required_type, err_code, dip);
-    bind_curr_expr_lifetime_to_dynamic_init(*dip);
+    wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
     expression = NULL;
@@ -8862,7 +8841,7 @@ the appropriate dynamic initialization entry and return NULL.
                                err_code);
     }  /* if */
     expression = make_node_from_operand(&result);
-    expression = add_object_lifetime_node_if_needed(expression);
+    expression = wrap_up_full_expression(expression);
   }  /* if */
   pop_expr_stack();
 
@@ -8986,7 +8965,7 @@ C++ mode.
       break;
     case ok_expression:
       *expression = result.variant.expression;
-      *expression = add_object_lifetime_node_if_needed(*expression);
+      *expression = wrap_up_full_expression(*expression);
       *is_constant = FALSE;
       break;
     case ok_constant:
@@ -9215,7 +9194,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
       break;
     case ok_expression:
       *expression = result.variant.expression;
-      *expression = add_object_lifetime_node_if_needed(*expression);
+      *expression = wrap_up_full_expression(*expression);
       *is_constant = FALSE;
       break;
     case ok_constant:
@@ -9271,7 +9250,7 @@ err_pos as the error position.
                         ec_incompatible_param);
   /* Make an expression again. */
   expr = make_node_from_operand(&operand);
-  expr = add_object_lifetime_node_if_needed(expr);
+  expr = wrap_up_full_expression(expr);
   pop_expr_stack();
   expr_stack = saved_expr_stack;
   return expr;
@@ -9311,7 +9290,7 @@ appropriate.
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, required_type, dip);
-  bind_curr_expr_lifetime_to_dynamic_init(*dip);
+  wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
   if (*dip == NULL) okay = FALSE;
   pop_expr_stack();
@@ -9328,13 +9307,15 @@ Scan a parenthesized initializer for an object of type class_type.
 class_type must be a class type having at least one constructor.
 Build a dynamic initialization entry for the initialization, and set
 *dip pointing to it.  If there is an error, set *dip to NULL.
-The current token is the left parenthesis of the initialization.
+The current token is right after the left parenthesis of the initialization.
 This routine is used for constructs like
 
   A a(1, 2, 3);
 
 object_class_type indicates the class type of the full object being
 initialized.  It is the same as class_type, or a derived type thereof.
+On return, the current position is following the closing parenthesis of
+the initializer.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -9343,6 +9324,7 @@ initialized.  It is the same as class_type, or a derived type thereof.
   an_expr_node_ptr              arg_list;
   a_routine_ptr                 conversion_routine;
 
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   db_enter(4, "scan_class_parenthesized_initializer");
   start_position = pos_curr_token;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
@@ -9365,7 +9347,7 @@ initialized.  It is the same as class_type, or a derived type thereof.
     (*dip)->variant.constructor.args = arg_list;
     /* If there's an object lifetime around the initialization, transfer it
        to the dynamic initialization entry. */
-    bind_curr_expr_lifetime_to_dynamic_init(*dip);
+    wrap_up_dynamic_init_full_expression(*dip);
   }  /* if */
   pop_expr_stack();
   db_exit();
@@ -9401,7 +9383,7 @@ full expressions.
   /* Check its type and normalize it. */
   process_boolean_controlling_expression(&result);
   expr = make_node_from_operand(&result);
-  expr = add_object_lifetime_node_if_needed(expr);
+  expr = wrap_up_full_expression(expr);
   pop_expr_stack();
 
 #if DEBUG

@@ -321,6 +321,16 @@ typedef struct an_expr_stack_entry {
 			/* If non-NULL, points to an object lifetime that
 			   exactly covers this expression, i.e., the lifetime
 			   for temporaries created in the expression. */
+  a_dynamic_init_ptr
+		destructions_preceding_expr;
+			/* Points to the dynamic initialization that was the
+			   first on the list of the current object lifetime
+			   (i.e., the most recently constructed) when this
+			   expression was begun.  Needed when no lifetime
+			   is pushed for the current expression, to find
+			   the sequence of destructions associated with the
+			   expression.  NULL if the "lifetime" field is
+			   non-NULL. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -486,10 +496,11 @@ extern void push_expr_stack(an_expression_kind      expression_kind,
 
 extern void pop_expr_stack(void);
 
-extern an_expr_node_ptr add_object_lifetime_node_if_needed(
-                                                        an_expr_node_ptr expr);
+extern an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr);
 
 extern void discard_curr_expr_object_lifetime(void);
+
+extern void wrap_up_dynamic_init_full_expression(a_dynamic_init_ptr dip);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 

@@ -575,11 +575,11 @@ Push a new entry on the top of the expr_stack.  expression_kind indicates
 the kind of the expression.  new_entry is used as the new top-of-stack
 entry (the entries are local variables on the stack).  This is done
 at the start of a major expression.  An object lifetime is pushed
-if necessary (e.g., for a full expression); that's forced by
-new_object_lifetime TRUE (used to say that even if temporaries
-have lifetime to end-of-scope, this expression's temporaries need to be
-destroyed at the end of the expression, e.g., because it's an expression
-repeated in a loop).
+if necessary for a full expression; that's forced by new_object_lifetime
+TRUE (which is used to say that even if temporaries have lifetime to
+end-of-scope, this expression's temporaries need to be destroyed at
+the end of the expression, e.g., because it's an expression repeated
+in a loop).
 */
 {
   /* A "full expression" is one not inside another expression.  That's
@@ -600,6 +600,7 @@ repeated in a loop).
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
+  new_entry->destructions_preceding_expr = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
@@ -620,15 +621,23 @@ repeated in a loop).
        the 1+1 must be evaluated. */
     expr_stack->evaluated = TRUE;
     expr_stack->potentially_evaluated = TRUE;
-  } else if (!C_mode() &&
-             (new_object_lifetime ||
-              (full_expr && !long_lifetime_temps))) {
-    /* Start an object lifetime for this expression if it is a full expression
-       and the lifetime of temporaries ends at end of full expression,
-       or if asked to explicitly.  Note that this isn't done for constant
-       expressions. */
-    push_object_lifetime(iek_none, (char *)NULL, /*ctor_init=*/FALSE);
-    expr_stack->lifetime = curr_object_lifetime;
+  }  /* if */
+  if (!C_mode() && full_expr) {
+    /* Full expression in C++ mode.  We may want to start an object
+       lifetime.  Do so if the lifetime of temporaries is a full
+       expression, or if the caller explicitly requests a lifetime.
+       Don't push a lifetime in a constant expression. */
+    if ((!long_lifetime_temps || new_object_lifetime) &&
+        !curr_expr_kind_is_const()) {
+      push_object_lifetime(iek_none, (char *)NULL, /*ctor_init=*/FALSE);
+      expr_stack->lifetime = curr_object_lifetime;
+    } else {
+      /* Don't start a new lifetime, but remember the destructions pointer
+         from the current lifetime so we can identify any added for the
+         new expression. */
+      expr_stack->destructions_preceding_expr =
+                                            curr_object_lifetime->destructions;
+    }  /* if */
   }  /* if */
 }  /* push_expr_stack */
 
@@ -653,36 +662,310 @@ major expression.
 }  /* pop_expr_stack */
 
 
-an_expr_node_ptr add_object_lifetime_node_if_needed(an_expr_node_ptr expr)
+static void mark_destructions_as_unordered(
+                                     a_dynamic_init_ptr first_destruction,
+                                     a_dynamic_init_ptr after_last_destruction)
 /*
-We're about to do a pop_expr_stack.  If the current stack entry indicates
-that an object lifetime is needed around the current expression, allocate
-an enk_object_lifetime node with "expr" under it, and return a pointer
-to it.  This will be the top node in the final expression.
+Mark the dynamic initialization entries for the indicated list of destructions
+as unordered, i.e., record that the language doesn't guarantee the order of
+evaluation of the initializations.  first_destruction points to the beginning
+of the list and after_last_destruction points to the entry after the end of the
+list.
+*/
+{
+  a_dynamic_init_ptr curr_destruction;
+
+  for (curr_destruction = first_destruction;
+       curr_destruction != after_last_destruction;
+       curr_destruction = curr_destruction->next_in_destruction_list) {
+    check_assertion_str(curr_destruction != NULL,
+                        "mark_destructions_as_unordered: missed end of list");
+    curr_destruction->unordered = TRUE;
+  }  /* for */
+}  /* mark_destructions_as_unordered */
+
+
+/* Declaration needed because of mutual recursion: */
+static a_dynamic_init_ptr examine_expr_for_unordered_temp_inits(
+                                   an_expr_node_ptr   expr,
+                                   a_dynamic_init_ptr after_last_destruction);
+
+
+static a_dynamic_init_ptr examine_expr_list_for_unordered_temp_inits(
+                                   an_expr_node_ptr   expr_list,
+                                   a_boolean          seq_point_after_first,
+                                   a_dynamic_init_ptr after_last_destruction)
+/*
+Examine the list of expressions headed by expr_list, and their subtrees,
+looking for unordered enk_temp_init initializations.  If any are found,
+mark their dynamic initialization entries as unordered.
+If seq_point_after_first is TRUE, there is a sequence point after the
+first expression on the list.  after_last_destruction points to the dynamic
+init entry for the destruction that follows the destructions (if any)
+for this expression list on the current object lifetime list.  Return a
+pointer to the dynamic init entry for the first destruction in the
+expression list (i.e., the last temp constructed), or return
+after_last_destruction if there aren't any destructions in the
+expression list.
+*/
+{
+  a_dynamic_init_ptr first_destruction = after_last_destruction;
+  an_expr_node_ptr   expr;
+
+  /* Go through the expressions and see where the enk_temp_inits fall. */
+  for (expr = expr_list; expr != NULL; expr = expr->next) {
+    a_dynamic_init_ptr prev_first_destruction = first_destruction;
+    first_destruction =
+           examine_expr_for_unordered_temp_inits(expr, prev_first_destruction);
+    /* If this operand has some temp inits, and there were some in the
+       previous operands, they are unordered.  This is not true of operations
+       with a sequence point after the first operand, however.  (And note
+       that in "a ? b : c", b and c are not considered unordered with respect
+       to one another because only one of the two is executed.) */
+    if (!seq_point_after_first &&
+        first_destruction != prev_first_destruction &&
+        prev_first_destruction != after_last_destruction) {
+      mark_destructions_as_unordered(first_destruction,
+                                     after_last_destruction);
+    }  /* if */
+  }  /* for */
+  return first_destruction;
+}  /* examine_expr_list_for_unordered_temp_inits */
+
+
+static a_dynamic_init_ptr examine_dynamic_init_for_unordered_temp_inits(
+                                     a_dynamic_init_ptr dip,
+                                     a_dynamic_init_ptr after_last_destruction)
+/*
+Examine the dynamic initialization entry pointed to by dip, and its subtree,
+looking for unordered enk_temp_init initializations.  Do nothing if
+dip == NULL.  If any unordered temp inits are found, mark their dynamic
+initialization entries as unordered.  after_last_destruction points to
+the dynamic init entry for the destruction that follows the destructions
+(if any) for this dynamic init on the current object lifetime list.
+Return a pointer to the dynamic init entry for the first destruction
+in the dynamic init (i.e., the last temp constructed), or return
+after_last_destruction if there aren't any destructions in the dynamic
+init.
+*/
+{
+  a_dynamic_init_ptr first_destruction;
+
+  if (dip != NULL) {
+    switch (dip->kind) {
+      case dik_none:
+      case dik_zero:
+      case dik_constant:
+        break;
+      case dik_expression:
+      case dik_call_returning_class_via_cctor:
+        first_destruction = examine_expr_for_unordered_temp_inits(
+                                               dip->variant.expression,
+                                               after_last_destruction);
+        break;
+      case dik_constructor:
+        first_destruction = examine_expr_list_for_unordered_temp_inits(
+                                               dip->variant.constructor.args,
+                                               /*seq_point_after_first=*/FALSE,
+                                               after_last_destruction);
+        break;
+      case dik_nonconstant_aggregate:
+      case dik_bitwise_copy:
+        /* These are not expected under expressions. */
+      default:
+        unexpected_condition_str(
+       "examine_dynamic_init_for_unordered_temp_inits: bad dynamic init kind");
+    }  /* switch */
+  }  /* if */
+  return first_destruction;
+}  /* examine_dynamic_init_for_unordered_temp_inits */
+
+
+static a_dynamic_init_ptr examine_expr_for_unordered_temp_inits(
+                                     an_expr_node_ptr   expr,
+                                     a_dynamic_init_ptr after_last_destruction)
+
+/*
+Examine expr and its subtree looking for unordered enk_temp_init
+initializations.  If any are found, mark their dynamic initialization
+entries as unordered.  after_last_destruction points to the dynamic
+init entry for the destruction that follows the destructions (if any)
+for this expression on the current object lifetime list.  Return a
+pointer to the dynamic init entry for the first destruction in the
+expression (i.e., the last temp constructed), or return
+after_last_destruction if there aren't any destructions in the
+expression.
+*/
+{
+  a_dynamic_init_ptr    first_destruction = after_last_destruction;
+  a_dynamic_init_ptr    first_destruction_part_1;
+  an_expr_operator_kind op;
+  a_boolean             seq_point_after_first;
+
+  switch (expr->kind) {
+    case enk_error:
+    case enk_constant:
+    case enk_variable:
+    case enk_variable_address:
+    case enk_routine_address:
+    case enk_field:
+      /* No temp inits. */
+      break;
+    case enk_operation:
+      seq_point_after_first = FALSE;
+      op = expr->variant.operation.kind;
+      if (op == (an_expr_operator_kind)eok_land ||
+          op == (an_expr_operator_kind)eok_lor ||
+          op == (an_expr_operator_kind)eok_comma ||
+          op == (an_expr_operator_kind)eok_question) {
+        /* Operators with a sequence point after the first operand. */
+        seq_point_after_first = TRUE;
+      }  /* if */
+      first_destruction = examine_expr_list_for_unordered_temp_inits(
+                                        expr->variant.operation.operands,
+                                        seq_point_after_first,
+                                        after_last_destruction);
+      break;
+    case enk_temp_init:
+      first_destruction = examine_dynamic_init_for_unordered_temp_inits(
+                                        expr->variant.init.dynamic_init,
+                                        after_last_destruction);
+      /* An enk_temp_init only counts if it is on a lifetime list (which
+         implies it has an associated destruction). */
+      if (expr->variant.init.dynamic_init->lifetime != NULL) {
+        first_destruction = expr->variant.init.dynamic_init;
+      }  /* if */
+      break;
+    case enk_new_delete:
+      first_destruction_part_1 = examine_expr_list_for_unordered_temp_inits(
+                                        expr->variant.new_delete->arg,
+                                        /*seq_point_after_first=*/FALSE,
+                                        after_last_destruction);
+      first_destruction = examine_dynamic_init_for_unordered_temp_inits(
+                                        expr->variant.new_delete->dynamic_init,
+                                        first_destruction_part_1);
+      /* The "new" arguments and the initialization are unordered with
+         respect to another another. */
+      if (first_destruction_part_1 != after_last_destruction &&
+          first_destruction != first_destruction_part_1) {
+        /* The "new" arguments and the initialization each contain at
+           least one temp init, so those are unordered with respect to
+           one another.  Mark all destructions in both lists as
+           unordered. */
+        mark_destructions_as_unordered(first_destruction,
+                                       after_last_destruction);
+      }  /* if */
+      break;
+    case enk_throw:
+      first_destruction = examine_dynamic_init_for_unordered_temp_inits(
+                                        expr->variant.throw_info->dynamic_init,
+                                        after_last_destruction);
+      break;
+    case enk_object_lifetime:  /* Not expected at this level. */
+    default:
+      unexpected_condition_str(
+                     "examine_expr_for_unordered_temp_inits: bad expr kind");
+  }  /* switch */
+  return first_destruction;
+}  /* examine_expr_for_unordered_temp_inits */
+
+
+static a_boolean curr_expr_may_contain_unordered_temp_inits(void)
+/*
+Return TRUE if the current expression potentially contains unordered
+enk_temp_inits.  This is tested by checking whether there are two or
+more temp inits in the whole expression.
+*/
+{
+  a_boolean          may_contain_unordered_temp_inits = TRUE;
+  a_dynamic_init_ptr curr_destruction = curr_object_lifetime->destructions;
+  a_dynamic_init_ptr after_last_destruction =
+                                       expr_stack->destructions_preceding_expr;
+
+  if (curr_destruction == after_last_destruction ||
+      curr_destruction->next_in_destruction_list == after_last_destruction) {
+    /* The dynamic init contains no temp inits or only one, so there can be
+       no unordered temp inits. */
+    may_contain_unordered_temp_inits = FALSE;
+  }  /* if */
+  return may_contain_unordered_temp_inits;
+}  /* curr_expr_may_contain_unordered_temp_inits */
+    
+
+an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr)
+/*
+Do any processing required at the end of a "full expression" that is expr.
+Do nothing if the expression is not a full expression (according to
+the expr_stack).  Also do nothing in C mode.
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
 
-  if (lifetime != NULL) {
-    /* Check to see if the object lifetime has anything in it.  If not,
-       there is no need to add the enk_object_lifetime node. */
-    if (!is_useless_object_lifetime(lifetime)) {
-      /* An error node stays the same. */
-      if (is_error_node(expr)) {
-        mark_object_lifetime_as_useless(lifetime);
-      } else {
-        an_expr_node_ptr orig_expr = expr;
-        expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
-        expr->variant.object_lifetime.expr = orig_expr;
-        /* expr->variant.object_lifetime.ptr is set by the bind call. */
-        expr->type = orig_expr->type;
-        bind_object_lifetime(lifetime, iek_expr_node, (char *)expr,
-                             /*ctor_init=*/FALSE);
+  if (!C_mode() && expr_stack->prev == NULL) {
+    /* Full expression in C++ mode. */
+    /* If the expression contains more than one enk_temp_init, see if they
+       are unordered with respect to one another.  This must be done at the
+       end because of temp inits that get optimized out. */
+    if (curr_expr_may_contain_unordered_temp_inits()) {
+      (void)examine_expr_for_unordered_temp_inits(
+                                      expr,
+                                      expr_stack->destructions_preceding_expr);
+    }  /* if */
+    /* If the current expression has an associated object lifetime with
+       something in it, add an enk_object_lifetime node on the top of the
+       expression tree. */
+    if (lifetime != NULL) {
+      /* Check to see if the object lifetime has anything in it.  If not,
+         there is no need to add the enk_object_lifetime node. */
+      if (!is_useless_object_lifetime(lifetime)) {
+        /* An error node stays the same. */
+        if (is_error_node(expr)) {
+          mark_object_lifetime_as_useless(lifetime);
+        } else {
+          an_expr_node_ptr orig_expr = expr;
+          expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
+          expr->variant.object_lifetime.expr = orig_expr;
+          /* expr->variant.object_lifetime.ptr is set by the bind call. */
+          expr->type = orig_expr->type;
+          bind_object_lifetime(lifetime, iek_expr_node, (char *)expr,
+                               /*ctor_init=*/FALSE);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
   return expr;
-}  /* add_object_lifetime_node_if_needed */
+}  /* wrap_up_full_expression */
+
+
+void wrap_up_dynamic_init_full_expression(a_dynamic_init_ptr dip)
+/*
+Do any processing required at the end of a "full expression" that is
+the constructor call implied by a parenthesized initializer.  dip
+points to the dynamic initialization.
+*/
+{
+  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+
+  if (!C_mode()) {
+    /* If the initialization contains more than one enk_temp_init, see if they
+       are unordered with respect to one another.  This must be done at the
+       end because of temp inits that get optimized out. */
+    if (curr_expr_may_contain_unordered_temp_inits()) {
+      (void)examine_dynamic_init_for_unordered_temp_inits(
+                                      dip,
+                                      expr_stack->destructions_preceding_expr);
+    }  /* if */
+    if (lifetime != NULL) {
+      if (dip != NULL) {
+        bind_object_lifetime(lifetime, iek_dynamic_init, (char *)dip,
+                             /*ctor_init=*/FALSE);
+      } else {
+        /* Error. */
+        mark_object_lifetime_as_useless(lifetime);
+      }  /* if */      
+    }  /* if */
+  }  /* if */
+}  /* wrap_up_dynamic_init_full_expression */
 
 
 void discard_curr_expr_object_lifetime(void)
@@ -1123,7 +1406,7 @@ The result type is "type".  Return the operand in *result.
 
   node = make_node_from_operand(operand_1);
   if (operand_2 != NULL) {
-    node ->next = make_node_from_operand(operand_2);
+    node->next = make_node_from_operand(operand_2);
   }  /* if */
   node = make_operator_node(op, type, node);
   /* Build the ck_template_param constant. */
