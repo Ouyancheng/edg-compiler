@@ -10119,9 +10119,9 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     (void)get_token();
     *start_pos = pos_curr_token;
   }  /* if */    
-  /* If this is a pragma it will end with a tok_newline, if not
+  /* If this is a pragma it will end with a tok_end_of_source, if not
      it will end with a semicolon. */
-  end_of_statement_token = is_pragma ? tok_newline : tok_semicolon;
+  end_of_statement_token = is_pragma ? tok_end_of_source : tok_semicolon;
   (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
@@ -10331,7 +10331,7 @@ assumed if the return type is omitted.
   begin_deferral_of_access_checks();
   start_pos = pos_curr_token;
   if (is_generalized_identifier_start(GID_NO_OPTIONS) &&
-      next_token() == tok_newline) {
+      next_token() == tok_end_of_source) {
     /* An identifier followed by a newline -- this is the simple
        identifier case. */
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
@@ -10381,9 +10381,7 @@ assumed if the return type is omitted.
     /* This is a declaration-style instantiation pragma, the syntax of
        which is the same as the explicit instantiation directive.  Call
        the explicit instantiation routine to do the processing. */
-    add_stop_token(tok_newline);
     instantiation_directive(pragma_kind, /*is_pragma=*/TRUE, &start_pos);
-    remove_stop_token(tok_newline);
   } else {
     /* Not an identifier or a declaration. */
     error(ec_invalid_instantiation_argument);

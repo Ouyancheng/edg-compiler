@@ -1123,8 +1123,8 @@ based on the information specified in the pragma description entry.
   (void)get_token();
   /* Cache the tokens until an end-of-line is found. */
   for (;;) {
-    cache_curr_token(&ppp->token_cache);
     if (curr_token == tok_newline) break;
+    cache_curr_token(&ppp->token_cache);
     (void)get_token();
   }  /* for */
   /* Terminate the token cache. */

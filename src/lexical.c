@@ -8944,9 +8944,7 @@ pragma scope to be used while scanning the pragma tokens.
      put the newline token into it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
-  add_stop_token(tok_newline);
   rescan_reusable_cache(&ppp->token_cache);
-  in_preprocessing_directive = TRUE;
   /* Push a pragma scope.  This prevents names introduced by the pragma
      processing from polluting the current scope. */
   (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
@@ -8960,37 +8958,28 @@ void wrapup_rescan_of_pragma_tokens(a_boolean	       error_in_pragma,
 This routine is called by pragma processing routines when they have reached
 the end of the pragma directive being scanned.  This routine fetches
 the token that terminates the token cache and returns the token stream
-to its original state.  If the current token is not the newline that
-terminates the pragma directive, an error is issued (unless the
+to its original state.  If the current token is not the end-of-source token
+that terminates the pragma directive, an error is issued (unless the
 error_in_pragma flag is set indicating the pragma processing routine already
 diagnosed an error).  The pragma scope pushed when the token cache
 is actived is popped here.
 */
 {
-  if (curr_token != tok_newline) {
+  if (curr_token != tok_end_of_source) {
     if (!error_in_pragma) {
       pos_error(ec_extra_text_in_pp_directive, &pos_curr_token);
     }  /* if */
-    /* Flush any tokens until a newline is found.  Also stop at end of
-       source just in case the user pragma processing routine left us in
-       an unexpected state. */
-    while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+    /* Flush any tokens until an end-of-source token is found. */
+    while (curr_token != tok_end_of_source) {
       (void)get_token();
     }  /* while */
   }  /* if */
-  check_assertion_str(curr_token == tok_newline,
-                      "wrapup_rescan_of_pragma_tokens: tok_newline expected");
-  /* Bypass the newline token. */
-  (void)get_token();
-  check_assertion_str(curr_token == tok_end_of_source,
-                 "wrapup_rescan_of_pragma_tokens: tok_end_of_source expected");
   /* Bypass the cache terminator. */
   (void)get_token();
   /* Restore the stop token set as at entry. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
   /* Pop the pragma scope. */
   pop_scope();
-  in_preprocessing_directive = FALSE;
 }  /* wrapup_rescan_of_pragma_tokens */
 
 

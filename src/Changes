@@ -1,5 +1,26 @@
 Version 2.35
 
+1/15/97 Change in the way that pragma caches are terminated
+
+The correction needed for the nested pragma problem described below involved
+a change in the way that pragma caches are terminated.  Previously, the
+pragma token cache was terminated by a tok_newline followed by a
+tok_end_of_source.  The tok_newline is no longer included in the pragma
+cache.  Pragma processing code that checks for the tok_newline will need
+to be changed to check instead for the tok_end_of_source.
+
+1/15/97 Internal error on nested pragma
+
+If, while processing a pragma, the tokens of another pragma were required
+to be rescanned, an internal error would result.  This could occur,
+for example, when an instantiation pragma results in the use of a token
+cache that contains some other pragma.  This has been fixed.
+
+  template<class T> void
+  #pragma test_immediate
+                        f(T t){ }
+  #pragma instantiate void f(int)
+
 1/14/97 Diagnosis of partial specializations in invalid scopes
 
 Certain invalid partial specialization declarations were accepted without
