@@ -463,8 +463,27 @@ ref field of a class object (or an array of same) remains uninitialized.
          not allowed.  However, pcc will allow initialization with
          a single value and we allow it as an extension. */
       if (top_level && !brace_flag) {
-        if (strict_ansi_mode) {
-          diagnostic(strict_ansi_error_severity, ec_exp_lbrace);
+        /* In ANSI C and C++, the top-level initializer for a class, struct,
+           union, or array must be surrounded by braces (except for whole
+           object initialization of classes, handled elsewhere).  However,
+           pcc allows it -- e.g., "int a[2] = 1;" is equivalent to
+           "int a[2] = { 1 };".  We allow pcc behavior as an extension in
+           C mode, but it's an error in C++ mode. */
+        if (C_dialect != C_dialect_pcc) {
+          an_error_severity  severity;
+
+          if (C_dialect == C_dialect_cplusplus) {
+            severity = es_error;
+          } else if (strict_ansi_mode) {
+            severity = strict_ansi_error_severity;
+          } else {
+            /* Issue a warning in non-ANSI C mode. */
+            severity = es_warning;
+          }  /* if */
+          diagnostic(severity, ec_missing_initializer_list);
+          /* If we're issuing an error, avoid error recovery problems by
+             setting local_type to an error type. */
+          if (severity == es_error) local_type = error_type();
         }  /* if */
       }  /* if */
       /* Get information on the first member of the aggregate to be
@@ -738,38 +757,45 @@ ref field of a class object (or an array of same) remains uninitialized.
       /* The entire list of values for the entity being initialized has
          now been read.  We stopped either because we exhausted the
          initial values or because we ran out of members to initialize. */
-      /* Set the size of an incomplete array from the number of elements
-         in its initial value.  Note that arrays of char initialized
-         to strings are not handled here. */
-      if (is_incomplete_array) {
-        /* Note that curr_array_element indicates the *next* array element
-           to be initialized, and is therefore one larger than the one
-           last initialized.  Thus, it is the array size. */
-        set_initialized_array_size(&local_type, curr_array_element);
-        *type = local_type;
-      } else if (C_dialect == C_dialect_cplusplus && brace_flag &&
-                 kind == (a_type_kind)tk_array) {
-        /* When the number of initializers is fewer than the number of
-           array elements to be initialized, and when the element type is
-           such that a constructor is required to initialize the elements,
-           we are required to provide default initialization by calling
-           the default constructor. */
-        init_remaining_array_elements(local_type, curr_array_element,
-                                      &con_list, &end_of_con_list, di_list,
-                                      end_of_di_list, incomplete_init);
-      }  /* if */
-      /* Allocate the aggregate constant that is the value for the
-         initializer. */
-      init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      init_con->variant.aggregate.first_constant = con_list;
-      init_con->variant.aggregate.last_constant  = end_of_con_list;
-      if (brace_flag) {
-        /* Allow an extra comma before the "}" in a brace-enclosed list.
-           Do not allow it if an extra comma was taken already in 
-           the loop. */
-        if (curr_token == tok_comma && !took_extra_comma) {
-          (void)get_token();
-          took_extra_comma = TRUE;
+      if (top_level && !brace_flag && is_error_type(local_type)) {
+        /* An error has been issued on the missing {...} list.  Although
+           the initializer was scanned anyway, don't create an aggregate
+           constant to represent the initialization -- just an error constant
+           will do (the default upon exiting the routine. */
+      } else {
+        /* Set the size of an incomplete array from the number of elements
+           in its initial value.  Note that arrays of char initialized
+           to strings are not handled here. */
+        if (is_incomplete_array) {
+          /* Note that curr_array_element indicates the *next* array element
+             to be initialized, and is therefore one larger than the one
+             last initialized.  Thus, it is the array size. */
+          set_initialized_array_size(&local_type, curr_array_element);
+          *type = local_type;
+        } else if (C_dialect == C_dialect_cplusplus && brace_flag &&
+                   kind == (a_type_kind)tk_array) {
+          /* When the number of initializers is fewer than the number of
+             array elements to be initialized, and when the element type is
+             such that a constructor is required to initialize the elements,
+             we are required to provide default initialization by calling
+             the default constructor. */
+          init_remaining_array_elements(local_type, curr_array_element,
+                                        &con_list, &end_of_con_list, di_list,
+                                        end_of_di_list, incomplete_init);
+        }  /* if */
+        /* Allocate the aggregate constant that is the value for the
+           initializer. */
+        init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+        init_con->variant.aggregate.first_constant = con_list;
+        init_con->variant.aggregate.last_constant  = end_of_con_list;
+        if (brace_flag) {
+          /* Allow an extra comma before the "}" in a brace-enclosed list.
+             Do not allow it if an extra comma was taken already in 
+             the loop. */
+          if (curr_token == tok_comma && !took_extra_comma) {
+            (void)get_token();
+            took_extra_comma = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */  
