@@ -399,6 +399,9 @@ Return TRUE if the given type is a union type.
 
 a_boolean is_abstract_class_type(a_type_ptr  tp)
 /*
+Return TRUE if tp is a class/struct/union type for which the abstract
+flag is set to TRUE.  Also return TRUE if tp is an uninstantiated template
+class for which the flag will be set when it is instantiated.
 */
 {
   a_boolean  is_abstract = FALSE;
@@ -438,86 +441,6 @@ a_boolean is_abstract_class_type(a_type_ptr  tp)
 }  /* is_abstract_class_type */
 
       
-a_boolean is_illegal_abstract_class_type(a_type_ptr  tp)
-/*
-There are certain restrictions on the use of an abstract class type.
-Specifically, objects of such types may not be created, except insofar as
-they are base class subobjects (ARM 10.3).  This is taken to mean that an
-array of such objects is also illegal, as well as a pointer to an array
-of such objects.  A pointer or reference to such an object is permitted,
-however, since it may be a pointer to a subobject.  This function returns
-TRUE if the type is that of an abstract class, struct, or union, or if it
-is an array of abstract class objects, or if it is pointer or reference
-to an array of abstract class objects.
-*/
-{
-  a_boolean is_abstract = FALSE;
-  a_boolean array_type_required = FALSE;
-
-  for (;;) {
-    tp = skip_typerefs(tp);
-    switch (tp->kind) {
-      case tk_pointer:
-        tp = type_pointed_to(tp);
-        /* Check for NULL pointer in a situation where type is being
-           constructed but is not yet complete.  This applies to pointer
-           and reference types only. */
-        if (tp == NULL) goto done;
-        array_type_required = TRUE;
-        break;
-      case tk_ptr_to_member:
-        tp = pm_member_type(tp);
-        /* Check for NULL pointer in a situation where type is being
-           constructed but is not yet complete.  This applies to pointer
-           and reference types only. */
-        if (tp == NULL) goto done;
-        array_type_required = TRUE;
-        break;
-      case tk_array:
-        tp = tp->variant.array.element_type;
-        array_type_required = FALSE;
-        break;
-      case tk_class:
-      case tk_struct:
-      case tk_union:
-        if (!array_type_required) {
-          if (tp->variant.class_struct_union.abstract) {
-            is_abstract = TRUE;
-          } else if (is_incomplete(tp) &&
-                     tp->variant.class_struct_union.extra_info->
-                                                template_arg_list != NULL) {
-            /* This is an uninstantiated template class.  If the template
-               is abstract, then so will this instance of it be. */
-            a_class_symbol_supplement_ptr  cssp =
-                                              symbol_supplement_for_class(tp);
-            a_symbol_ptr                   prototype_sym;
-
-            if (!cssp->is_specific_template_def) {
-              /* This is not a specific definition, so this instance will
-                 be based on the template.  To get from here to the type
-                 created for the prototype instantiation indirect through
-                 the template symbol to its supplement to the symbol
-                 representing the prototype instantiation to the type. */
-              prototype_sym = cssp->class_template->variant.template_info->
-                                variant.class_template.prototype_instantiation;
-              if (prototype_sym == NULL) {
-                /* Class template has not yet been defined. */
-              } else if (prototype_sym->variant.class_struct_union.type->
-                                         variant.class_struct_union.abstract) {
-                is_abstract = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      default:
-        goto done;
-    }  /* case */
-  }  /* for */
-done:
-  return is_abstract;
-}  /* is_illegal_abstract_class_type */
-
-
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union or aggregate type (array, struct,
