@@ -1,5 +1,17 @@
 Version 3.5
 
+7/22/04  Invalid suffixes on floating-point/fixed-point literals
+
+In modes accepting the Embedded C fixed-point literals, the front end
+failed to diagnose invalid suffixes on floating-point/fixed-point literals.
+Specifically, the fixed-point attribute suffixes 'u', 'U', 'h', and 'H' were
+accepted without the appearance of a 'k', 'K', 'r', or 'R' suffix indicating
+that the literal is in fact a fixed-point literal (and not a floating-point
+literal).  This is now fixed.  For example:
+
+  double x = 0.0h;  // Previously accepted as a floating-point literal.
+                    // Now an error.
+
 7/22/04  Embedded C: Named-register storage class on function declarations
 
 The front end failed to diagnose the use of a named-register storage class on

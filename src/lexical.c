@@ -6041,6 +6041,7 @@ end_float_accum:
 fixed_point_suffix:
 #if FIXED_POINT_ALLOWED
   if (fixed_point_enabled && !fixed_point_ruled_out) {
+    a_boolean  h_suffix_seen = FALSE;
     /* Check for a fixed-point constant suffix, which must be of the following
        general form ([] = optional, {} = required):
            [ u | U ]  [ h | H | l | L ]  { k | K | r | R }
@@ -6068,6 +6069,7 @@ fixed_point_suffix:
       ++l_suffix_seen;
     }  /* if */
     if (l_suffix_seen == 0 && (ch == 'h' || ch == 'H')) {
+      h_suffix_seen = TRUE;
       curr_char_loc++;
       ch = *curr_char_loc;
     }  /* if */
@@ -6081,6 +6083,9 @@ fixed_point_suffix:
       diagnostic_at_line_pos(es_discretionary_error,
                              ec_nonstd_fixed_point_suffix,
                              start_of_curr_token);
+    }  /* if */
+    if (kind == k_float && (u_suffix_seen || h_suffix_seen)) {
+      error_at_line_pos(ec_bad_float_or_fixed_suffix, start_of_curr_token);
     }  /* if */
   }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
