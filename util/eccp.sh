@@ -1985,6 +1985,7 @@ then
 		       $EDG_DEFAULT_LIB_PATHS \
 		       ${library_option}$LIBDIR \
                        $ldoptions -o $executable \
+		       $EDG_STARTUP_FILE \
                        $object_files $EDG_STD_LIBS \
 		       $EDG_C_TO_OBJ_LIBRARIES"
       link_command_suffix=" -l$EDG_RUNTIME_LIB$EDG_LIB_SUFFIX"
