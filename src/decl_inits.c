@@ -2715,9 +2715,10 @@ initialized.  These are addressed in the course of the processing.
     /* Loop through the comma-separated list of initializers. */
     do {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      a_source_position  init_start_pos = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      a_source_position  init_start_pos;
 
+      init_start_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       new_cip = NULL;
       array_type = NULL;
       add_stop_token(tok_comma);
