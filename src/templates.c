@@ -2550,7 +2550,7 @@ and create a function instantiation entry to bind the two symbols together.
       }  /* if */
     }  /* for */
   }  /* if */
-#if CHECKING && 0
+#if CHECKING
   if (sym == NULL || sym->kind != (a_symbol_kind)sk_member_function) {
     internal_error("find_member_function_template: no corresponding template");
   }  /* if */

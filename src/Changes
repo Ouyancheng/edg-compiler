@@ -1,5 +1,18 @@
 Version 2.26
 
+9/8/94   Abort when a function type is used as a template static data member
+
+In this example, "a" may be a static data member or a member function
+depending on whether or not T is a function type.  The language does
+not specify how this should be handled, we have chosen to make this an
+error pending clarification by X3J16/WG21.
+
+  template <class T> struct A {
+    static T a;
+  };
+  A<int> x;        // OK
+  A<int (int)> y;  // aborted
+
 9/7/94   Order in which different pragma kinds are processed
 
 Formerly, if an immediate pragma was followed by a next construct pragma, the
