@@ -3969,6 +3969,78 @@ of the corresponding symbol in the other translation unit.
 }  /* find_corresponding_symbol_on_symbol_list */
 
 
+/* Forward declaration. */
+static a_symbol_ptr find_corresponding_symbol(
+				a_symbol_ptr		sym_to_find,
+				a_translation_unit_ptr	tup);
+
+
+static void get_symbol_list_for_corresp_symbol(
+					a_symbol_ptr		sym_to_find,
+					a_translation_unit_ptr	tup,
+					a_boolean		is_routine,
+					a_symbol_ptr		parent_sym,
+					a_symbol_ptr		*symbols,
+					a_symbol_list_entry_ptr	*symbol_list)
+/*
+Return the symbol list on which to look for "sym_to_find", which is a
+member of "parent_class".  "parent_sym" is the symbol for "parent_class".
+"is_routine" is TRUE if "sym_to_find" is a function or function template
+symbol.
+
+If the symbol list is represented by a list of symbols linked on the next
+pointer, the list is returned in "symbols".  If it is represented by list
+of a_symbol_list_entries, the list is returned in "symbol_list".
+
+If the inactive list from the symbol header is to be used, this routine
+does not set either return value.
+*/
+{
+  a_class_symbol_supplement_ptr	cssp;
+  a_special_function_kind	special_kind;
+
+  if (is_routine) {
+    special_kind = special_function_kind_for_symbol(sym_to_find);
+    cssp = parent_sym->variant.class_struct_union.extra_info;
+    /* Constructor and destructor routines are not entered into the symbol
+       table, so are found using the appropriate symbols from the class
+       symbols supplement. */
+    switch (special_kind) {
+      case sfk_constructor:
+        *symbols = cssp->constructor;
+        break;
+      case sfk_destructor:
+        *symbols = cssp->destructor;
+        break;
+      case sfk_conversion:
+        /* There are two lists of conversion operators.  One for templates
+           and one for non-templates. */
+        if (sym_to_find->kind == (a_symbol_kind)sk_function_template) {
+          *symbol_list = cssp->conversion_template_list;
+         } else {
+          *symbol_list = cssp->conversion_list;
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
+  } else if (sym_to_find->kind == (a_symbol_kind)sk_class_template) {
+    /* If this is a class template, check whether it is a partial
+       specialization.  If so, return the partial specializations list
+       from the corresponding primary template. */
+    a_template_symbol_supplement_ptr	tssp;
+    a_symbol_ptr			primary_sym;
+    tssp = sym_to_find->variant.template_info;
+    primary_sym = tssp->variant.class_template.primary_template_sym;
+    if (primary_sym != NULL) {
+      primary_sym = find_corresponding_symbol(primary_sym, tup);
+      *symbols = primary_sym->variant.template_info->
+                                variant.class_template.partial_specializations;
+    }  /* if */
+  }  /* if */
+}  /* get_symbol_list_for_corresp_symbol */
+
+
 static a_symbol_ptr find_corresponding_symbol(
 				a_symbol_ptr		sym_to_find,
 				a_translation_unit_ptr	tup)
@@ -3995,38 +4067,15 @@ NULL if none is found.
   /* If this is a class or namespace member, get the corresponding parent. */
   if (sym_to_find->is_class_member) {
     /* Find the corresponding parent class. */
-    a_class_symbol_supplement_ptr	cssp;
-    a_special_function_kind		special_kind;
     parent_sym = (a_symbol_ptr)sym_to_find->
                                   parent.class_type->source_corresp.assoc_info;
     parent_sym = find_corresponding_symbol_in_trans_unit(parent_sym, tup);
     if (parent_sym != NULL) {
       parent_class = parent_sym->variant.class_struct_union.type;
       complete_class_type_is_needed(parent_class);
-      special_kind = special_function_kind_for_symbol(sym_to_find);
-      cssp = parent_sym->variant.class_struct_union.extra_info;
-      /* Constructor and destructor routines are not entered into the symbol
-         table, so are found using the appropriate symbols from the class
-         symbols supplement. */
-      switch (special_kind) {
-        case sfk_constructor:
-          symbols = cssp->constructor;
-          break;
-        case sfk_destructor:
-          symbols = cssp->destructor;
-          break;
-        case sfk_conversion:
-          /* There are two lists of conversion operators.  One for templates
-             and one for non-templates. */
-          if (sym_to_find->kind == (a_symbol_kind)sk_function_template) {
-            symbol_list = cssp->conversion_template_list;
-          } else {
-            symbol_list = cssp->conversion_list;
-          }  /* if */
-          break;
-        default:
-          break;
-      }  /* switch */
+      get_symbol_list_for_corresp_symbol(sym_to_find, tup,
+                                         is_routine, parent_sym,
+                                         &symbols, &symbol_list);
     }  /* if */
   } else if (sym_to_find->parent.namespace_ptr != NULL) {
     /* Find the corresponding parent namespace. */
