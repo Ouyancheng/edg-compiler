@@ -1,5 +1,15 @@
 Version 2.44
 
+4/24/00  Diagnose use of virtual on nested classes and enumeration types
+
+The front end now diagnoses the use of the keyword virtual when declaring
+a nested class or enum type.
+
+  struct X {
+    virtual struct Y;       // Error.
+    virtual enum E { e1 };  // Error.
+  };
+
 4/24/00  Block extern declarations of extern "C" static functions
 
 In C++ mode, the front end used to ignore previous name linkages when

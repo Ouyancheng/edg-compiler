@@ -9919,6 +9919,9 @@ moreover, several fields of *decl_info may be updated by this routine.
           pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
                          ec_storage_class_not_allowed, err_pos);
         }  /* if */
+        if (dso_flags & DSO_VIRTUAL) {
+          pos_error(ec_virtual_not_allowed, err_pos);
+        }  /* if */
         if (dso_flags & DSO_INLINE) {
           pos_error(ec_inline_not_allowed, err_pos);
         }  /* if */
