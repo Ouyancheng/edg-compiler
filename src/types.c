@@ -762,6 +762,7 @@ Return TRUE if ref_bcp appears as a step on any derivation of bcp.
   a_boolean                    found;
   a_base_class_derivation_ptr  bcdp;
   a_derivation_step_ptr        step;
+  a_base_class_ptr             start_bcp;
 
   if (ref_bcp == bcp) {
     /* They're the same base class -- return TRUE. */
@@ -782,13 +783,16 @@ Return TRUE if ref_bcp appears as a step on any derivation of bcp.
           break;
         }  /* if */
       }  /* for */
-      /* If the current derivation does not start with a direct base class,
-         it must start with a virtual base class whose own derivation(s)
-         also need to be scanned. */
-      if (!bcdp->direct &&
-          is_on_any_derivation_of(ref_bcp, bcdp->path->base_class)) {
-        found = TRUE;
-        break;
+      /* If the current derivation is not direct, it may start with a virtual
+         base class whose own derivation(s) should be scanned as well. */
+      if (!bcdp->direct) {
+        /* Set start_bcp to the first base class in this path. */
+        start_bcp = bcdp->path->base_class;
+        if (start_bcp->is_virtual &&
+            is_on_any_derivation_of(ref_bcp, start_bcp)) {
+          found = TRUE;
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
