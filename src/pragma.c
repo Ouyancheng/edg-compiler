@@ -703,7 +703,6 @@ there is additional processing to be done.
   a_pragma_ptr             pp;
   a_memory_region_number   region_to_switch_back_to;
   a_scope_depth            scope_depth = depth_scope_stack;
-  a_scope_depth            scope_depth_to_switch_to;
   a_source_correspondence  *scp = NULL;
 
   db_enter(5, "add_pragma_to_il");
@@ -772,28 +771,27 @@ there is additional processing to be done.
       scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
       check_assertion_str2(scp != NULL, "add_pragma_to_il:",
                            "invalid entity kind (no source corresp)");
-      if (in_file_scope(entity_ptr)) {
-        if (!C_mode() &&
-            (scp->is_class_member || scp->parent.namespace_ptr != NULL)) {
-          /* For class and namespace members we will use the corresponding IL
-             scope. */
-          scope_depth = NO_SCOPE_DEPTH;
-        } else {
-          /* All other file-scope entities will be attached to the file
-             scope itself. */
-          scope_depth = DEPTH_OF_FILE_SCOPE;
-        }  /* if */
+      /* Except for function-local entities, let the low-level routines
+         figure out the scope and memory region. */
+      if (!scp->is_local_to_function) {
+        scope_depth = NO_SCOPE_DEPTH;
+      } else if (in_file_scope(scp)) {
+        /* Pragmas for things like local static variables are placed on
+           the file-scope pragmas list, because there are no orphan lists
+           for pragmas. */
+        scope_depth = DEPTH_OF_FILE_SCOPE;
       }  /* if */
       /* Set the has_associated_pragma field. */
       scp->has_associated_pragma = TRUE;
     }  /* if */
-    /* If we know the scope depth, use that depth.  For class and namespace
-       members (in which case scope_depth is NO_SCOPE_DEPTH) use the
-       file scope for purposes of switching to the proper memory region. */
-    scope_depth_to_switch_to = scope_depth != NO_SCOPE_DEPTH ?
-                                             scope_depth : DEPTH_OF_FILE_SCOPE;
-    switch_to_scope_region(scope_depth_to_switch_to,
-                           &region_to_switch_back_to);
+    /* Switch to the proper memory region for the scope depth.  When
+       scope_depth is NO_SCOPE_DEPTH, let the low-level routines do
+       the switch. */
+    if (scope_depth != NO_SCOPE_DEPTH) {
+      switch_to_scope_region(scope_depth, &region_to_switch_back_to);
+    } else {
+      check_assertion(scp != NULL);
+    }  /* if */
     pp = alloc_pragma(ppp->descr_ptr->kind, scp);
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
@@ -803,7 +801,9 @@ there is additional processing to be done.
       pp->entity.ptr = entity_ptr;
     }  /* if */
     add_to_pragma_list(pp, scope_depth, scp);
-    switch_back_to_original_region(region_to_switch_back_to);
+    if (scope_depth != NO_SCOPE_DEPTH) {
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
                                 ppp->source_sequence_entry);

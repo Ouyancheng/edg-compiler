@@ -5002,6 +5002,37 @@ base class bcp.  This path has a single step to the virtual base class.
 }  /* cast_virtual_derivation_path_of */
 
 
+a_translation_unit_ptr trans_unit_for_source_corresp(
+                                                  a_source_correspondence *scp)
+/*
+Return the translation unit associated with the indicated source
+correspondence.  The entity must have an associated symbol.
+*/
+{
+  a_translation_unit_ptr tup;
+  a_symbol_ptr           sym = (a_symbol_ptr)(scp->assoc_info);
+
+  check_assertion_str(in_front_end,
+                      "trans_unit_for_source_corresp: not in front end");
+  check_assertion_str(sym != NULL,
+                      "trans_unit_for_source_corresp: no assoc symbol");
+  if (sym->decl_scope == NO_SCOPE_NUMBER) {
+    /* There must be some previous error. */
+    check_assertion(total_errors != 0);
+    /* Pick an arbitrary translation unit, primary or secondary as
+       appropriate. */
+    if (in_secondary_trans_unit(scp)) {
+      tup = translation_units->next;
+    } else {
+      tup = translation_units;
+    }  /* if */
+  } else {
+    tup = trans_unit_for_symbol(sym);
+  }  /* if */
+  return tup;
+}  /* trans_unit_for_source_corresp */
+
+
 static a_scope_ptr get_scope_for_list(
                                  a_scope_depth               scope_level,
                                  a_source_correspondence     *scp,
@@ -5020,7 +5051,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
 */
 {
   a_scope_stack_entry_ptr  ssep;
-  a_scope_ptr              sp;
+  a_scope_ptr              sp = NULL;
   a_namespace_ptr          nsp = NULL;
   a_type_ptr               class_type = NULL;
 
@@ -5045,8 +5076,18 @@ for the scope, which means no last-pointer is being maintained (anymore).
         scope_level = DEPTH_OF_FILE_SCOPE;
       }  /* if */
     }  /* if */
+    if (secondary_translation_unit_seen() &&
+        scope_level == DEPTH_OF_FILE_SCOPE) {
+      /* There is more than one translation unit, so determine which
+         file scope is meant. */
+      a_translation_unit_ptr tup = trans_unit_for_source_corresp(scp);
+      sp = tup->primary_scope;
+      *pointers_block = &tup->file_scope_pointers_block;
+    }  /* if */
   }  /* if */
-  if (class_type != NULL) {
+  if (sp != NULL) {
+    /* The scope has already been determined. */
+  } else if (class_type != NULL) {
     sp = scp->parent.class_type->
                  variant.class_struct_union.extra_info->assoc_scope;
     if (sp != NULL) {

@@ -408,17 +408,8 @@ NULL, allocate the space in the current file scope memory region.
   } else {
     /* Allocate in some secondary translation unit's file scope memory
        region. */
-    a_translation_unit_ptr tup;
-    a_symbol_ptr           sym = (a_symbol_ptr)(scp->assoc_info);
-    check_assertion(sym != NULL);
-    if (sym->decl_scope == NO_SCOPE_NUMBER) {
-      /* There must be some previous error. */
-      check_assertion(total_errors != 0);
-      /* Pick an arbitrary secondary translation unit. */
-      tup = translation_units->next;
-    } else {
-      tup = trans_unit_for_symbol(sym);
-    }  /* if */
+    a_translation_unit_ptr tup = trans_unit_for_source_corresp(scp);
+    check_assertion(tup != translation_units);
     ptr = alloc_secondary_file_scope_il(size, tup);
   }  /* if */
   return ptr;

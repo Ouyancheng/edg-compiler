@@ -1053,6 +1053,12 @@ extern a_derivation_step_ptr cast_virtual_derivation_path_of(
   ((depth1) == (depth2) ||						\
    (depth1) == NO_NESTING_DEPTH || (depth2 == NO_NESTING_DEPTH))
 
+typedef struct a_translation_unit a_translation_unit_dummy_typedef;
+
+#if !STANDALONE_UTILITY_PROGRAM
+struct a_translation_unit *trans_unit_for_source_corresp(
+                                                 a_source_correspondence *scp);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG
 extern void db_template_arg_list(a_template_arg_ptr tap);
@@ -1142,7 +1148,6 @@ extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 
 #if ORPHAN_PROCESSING_NEEDED
-typedef struct a_translation_unit a_translation_unit_dummy_typedef;
 /*
 Record a file-scope entry as a potential orphan.  The macro here ensures
 that once the entry is placed on an orphan list the subroutine is no
