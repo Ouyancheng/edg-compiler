@@ -3038,6 +3038,12 @@ extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
   ((sym)->kind == (a_symbol_kind)sk_projection &&                     \
    (sym)->variant.projection.is_using_decl)
 
+/* Return TRUE if a symbol is a class template symbol that represents
+   a nonreal template (such as X in T::X<int>). */
+#define is_nonreal_template_symbol(sym)					\
+  ((sym)->kind == (a_symbol_kind)sk_class_template &&			\
+   (sym)->variant.template_info->is_nonreal_member)
+
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */

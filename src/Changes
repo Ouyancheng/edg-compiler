@@ -1,5 +1,19 @@
 Version 2.39
 
+5/19/98   Instances of nonreal member class templates not compared properly
+
+A template such as "X" in "T::X<int>" is considered a "nonreal" template
+because it depends on a template parameter type (T) making it impossible
+to know much about the template when the reference is scanned.  A bug
+in the comparison of two such types resulted in a spurious error on the
+example below.  This has been fixed.
+
+  template<class T> struct A{
+    A(typename T::template X<int>);
+  };   
+
+  template<class T> A<T>::A(typename T::template X<int>){}
+
 5/18/98   Function type involving variable-length-array parameter
 
 When VLA support is enabled, the routine type is now set correctly (see

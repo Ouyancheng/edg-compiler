@@ -1959,6 +1959,33 @@ Return TRUE if the two array types have identical bounds.
 }  /* identical_array_type_level */
 
 
+static a_boolean equiv_nonreal_templates(a_type_ptr	type_1,
+				         a_symbol_ptr	sym_1,
+					 a_type_ptr	type_2,
+					 a_symbol_ptr	sym_2)
+/*
+Return TRUE if sym_1 and sym_2 are equivalent nonreal templates, such
+as X in "T::X<int>" and "Y::X<int>".  type_1 and type_2 are nonreal
+class types that are instances of the templates pointed to by sym_1 and sym_2.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_nonreal_template_symbol(sym_1) && is_nonreal_template_symbol(sym_2)) {
+    /* They are both nonreal templates. */
+    if (sym_1->header == sym_2->header) {
+      /* They have the same names. */
+      if (identical_types(type_1->source_corresp.parent.class_type,
+                          type_2->source_corresp.parent.class_type)) {
+        /* Their parent types are the same. */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* equiv_nonreal_templates */
+
+
 static a_boolean equiv_class_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  error_matches_anything)
@@ -2003,28 +2030,33 @@ checking instead of equivalence checking).
           equiv = TRUE;
         }  /* if */
       } else if (cssp_1->class_template != NULL &&
-                 cssp_2->class_template == cssp_1->class_template) {
-        /* Both types are template classes, and they are based on the same
-           class template.  Check further if (a) they are both nonreal
-           template classes, or (b) error arguments are to be considered
-           equivalent to anything. */
-        if ((cssp_1->is_nonreal_class && cssp_2->is_nonreal_class) ||
-            error_matches_anything) {
-          an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
-          if (error_matches_anything) {
-            eta_options |= ETA_ERROR_MATCHES_ANYTHING;
-          }  /* if */
-          if (cssp_1->class_template->
-                                   variant.template_info->is_nonreal_member) {
-            eta_options |= ETA_IS_NONREAL_MEMBER;
-          }  /* if */
-          if (equiv_template_arg_lists(
+                 cssp_2->class_template != NULL) {
+        if (cssp_1->class_template == cssp_2->class_template ||
+            equiv_nonreal_templates(type_1, cssp_1->class_template,
+                                    type_2, cssp_2->class_template)) {
+          /* Both types are template classes, and they are based on the same
+             class template, or equivalent nonreal templates.  Check further
+             if (a) they are both nonreal template classes, or (b) error
+             arguments are to be considered
+             equivalent to anything. */
+          if ((cssp_1->is_nonreal_class && cssp_2->is_nonreal_class) ||
+              error_matches_anything) {
+            an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+            if (error_matches_anything) {
+              eta_options |= ETA_ERROR_MATCHES_ANYTHING;
+            }  /* if */
+            if (is_nonreal_template_symbol(cssp_1->class_template) ||
+                is_nonreal_template_symbol(cssp_2->class_template)) {
+              eta_options |= ETA_IS_NONREAL_MEMBER;
+            }  /* if */
+            if (equiv_template_arg_lists(
                              type_1->variant.class_struct_union.extra_info->
                                                             template_arg_list,
                              type_2->variant.class_struct_union.extra_info->
                                                             template_arg_list,
                              eta_options)) {
-            equiv = TRUE;
+              equiv = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
