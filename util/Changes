@@ -1,5 +1,10 @@
 Version 2.42
 
+8/11/99  Demangling of promoted local static names
+
+Certain mangled names of promoted local static variables were not
+demangled correctly (e.g., i__L14__f__Fv).  Now fixed.
+
 8/4/99   Prelinker: Default SGI nm options changed for Irix 6.x
 
 The options passed to the nm command on Irix have been changed from

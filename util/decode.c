@@ -237,12 +237,13 @@ not, call bad_mangled_name.  In either case, return the updated value of p.
 }  /* advance_past_underscore */
 
 
-static char *get_number(char                       *p,
+static char *get_length(char                       *p,
                         unsigned long              *num,
                         a_decode_control_block_ptr dctl)
 /*
-Accumulate a number starting at position p and return its value in *num.
-Return a pointer to the character position following the number.
+Accumulate a number indicating a length, starting at position p, and
+return its value in *num.  Return a pointer to the character position
+following the number.
 */
 {
   unsigned long n = 0;
@@ -259,6 +260,30 @@ Return a pointer to the character position following the number.
       n = dctl->input_id_len;
       goto end_of_routine;
     }  /* if */
+    p++;
+  } while (isdigit((unsigned char)*p));
+end_of_routine:
+  *num = n;
+  return p;
+}  /* get_length */
+
+
+static char *get_number(char                       *p,
+                        unsigned long              *num,
+                        a_decode_control_block_ptr dctl)
+/*
+Accumulate a number starting at position p and return its value in *num.
+Return a pointer to the character position following the number.
+*/
+{
+  unsigned long n = 0;
+
+  if (!isdigit((unsigned char)*p)) {
+    bad_mangled_name(dctl);
+    goto end_of_routine;
+  }  /* if */
+  do {
+    n = n*10 + (*p - '0');
     p++;
   } while (isdigit((unsigned char)*p));
 end_of_routine:
@@ -288,7 +313,7 @@ end_of_routine:
 }  /* get_single_digit_number */
 
 
-static char *get_number_with_optional_underscore(
+static char *get_length_with_optional_underscore(
                                                char                       *p,
                                                unsigned long              *num,
                                                a_decode_control_block_ptr dctl)
@@ -305,7 +330,7 @@ Return a pointer to the character position following the number.
        e.g., "L_10_1234567890". */
     p++;
     /* Multi-digit number followed by underscore. */
-    p = get_number(p, num, dctl);
+    p = get_length(p, num, dctl);
     p = advance_past_underscore(p, dctl);
   } else if (isdigit((unsigned char)p[0]) && isdigit((unsigned char)p[1]) &&
              (dctl->end_of_constant == NULL || p+2 < dctl->end_of_constant) &&
@@ -319,14 +344,14 @@ Return a pointer to the character position following the number.
        nontype template arguments for functions.  In any case, interpret
        "multi-digit" as "2-digit" and don't look further for the underscore. */
     /* Multi-digit number followed by underscore. */
-    p = get_number(p, num, dctl);
+    p = get_length(p, num, dctl);
     p = advance_past_underscore(p, dctl);
   } else {
     /* Single-digit number not followed by underscore. */
     p = get_single_digit_number(p, num, dctl);
   }  /* if */
   return p;
-}  /* get_number_with_optional_underscore */
+}  /* get_length_with_optional_underscore */
 
 
 static a_boolean is_immediate_type_qualifier(char *p)
@@ -499,7 +524,7 @@ position following what was demangled.
       }  /* if */
       p++;  /* Advance past the "L". */
       /* Get the length of the constant. */
-      p = get_number_with_optional_underscore(p, &nchars, dctl);
+      p = get_length_with_optional_underscore(p, &nchars, dctl);
       /* Process the characters of the literal constant. */
       is_nonzero = FALSE;
       for (; nchars > 0; nchars--, p++) {
@@ -557,13 +582,13 @@ position following what was demangled.
       }  /* if */
       p++;
       /* Get the index length. */
-      /* Note that get_number_with_optional_underscore is not used because
+      /* Note that get_length_with_optional_underscore is not used because
          this is an ambiguous situation: an underscore follows the index
          value, and there's no way to tell if it's the multi-digit
          indicator for the length or the separator between fields. */
       if (*p == '_') {
         /* New-form encoding, no ambiguity. */
-        p = get_number_with_optional_underscore(p, &nchars, dctl);
+        p = get_length_with_optional_underscore(p, &nchars, dctl);
       } else {
         p = get_single_digit_number(p, &nchars, dctl);
       }  /* if */
@@ -757,7 +782,7 @@ block that controls output of extra information on template parameters.
   */
   write_id_ch('<', dctl);
   /* Scan the size. */
-  p = get_number(p, &nchars, dctl);
+  p = get_length(p, &nchars, dctl);
   arg_base = p;
   p = advance_past_underscore(p, dctl);
   /* Loop to process the arguments. */
@@ -1288,7 +1313,7 @@ controls output of extra information on template parameters.
   a_boolean     has_function_local_info = FALSE;
 
   /* Get the length. */
-  p = get_number(p, &nchars, dctl);
+  p = get_length(p, &nchars, dctl);
   if (nchars >= 8) {
     /* Look for a function-local indication, e.g., "__Ln__f" for block
        "n" of function "f". */
@@ -2105,18 +2130,12 @@ address of the uncompressed name.
 
   /* Advance past "__CPR". */
   id += 5;
-  /* Accumulate the length of the uncompressed name.  Cannot use get_number
-     here because the number's value can be bigger than the input id
-     length. */
-  length = 0;
+  /* Accumulate the length of the uncompressed name. */
   if (!isdigit((unsigned char)*id)) {
     bad_mangled_name(dctl);
     goto end_of_routine;
   }  /* if */
-  do {
-    length = length*10 + (*id - '0');
-    id++;
-  } while (isdigit((unsigned char)*id));
+  id = get_number(id, &length, dctl);
   /* Check for the two underscores following the length. */
   if (id[0] != '_' || id[1] != '_') {
     bad_mangled_name(dctl);
@@ -2158,7 +2177,7 @@ address of the uncompressed name.
              earlier, at position "nnn". */
           unsigned long pos, prev_len;
           char          *prev_str, *prev_str2;
-          src = get_number(src, &pos, dctl);
+          src = get_length(src, &pos, dctl);
           if (*src != 'J') {
             bad_mangled_name(dctl);
             goto end_of_routine;
@@ -2169,7 +2188,7 @@ address of the uncompressed name.
             goto end_of_routine;
           }  /* if */
           /* Get the length of the repeated string. */
-          prev_str2 = get_number(prev_str, &prev_len, dctl);
+          prev_str2 = get_length(prev_str, &prev_len, dctl);
           /* Copy the repeated string to the uncompressed output. */
           prev_str2 += prev_len;
           while (prev_str < prev_str2) *dst++ = *prev_str++;
