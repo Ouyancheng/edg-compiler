@@ -837,6 +837,7 @@ new_bcp is the base class being created in new_class.
 {
   an_overriding_virtual_function_ptr  ovfp, new_ovfp, old_list;
   a_boolean                           check_new_list;
+
   db_enter(4, "copy_virtual_function_override_list");
   old_list = old_bcp->overriding_virtual_functions;
   if (old_list != NULL) {
@@ -862,8 +863,9 @@ new_bcp is the base class being created in new_class.
           new_ovfp->base_class = find_direct_base_class_of(new_class,
                                                            old_class);
         } else {
-          new_ovfp->base_class = corresponding_base_class(ovfp->base_class,
-                                                          new_class);
+          new_ovfp->base_class = 
+                         corresponding_base_class(ovfp->base_class, new_class,
+                                                  (a_base_class_ptr)NULL);
         }  /* if */
 #if DEBUG
         if (debug_level >= 4) {
@@ -1050,7 +1052,7 @@ with which bcp shares its virtual function info, return TRUE.
     bcp = bcp->type->variant.class_struct_union.extra_info->
                                               virtual_function_info_base_class;
     if (bcp != NULL) {
-      bcp = corresponding_base_class(bcp, class_type);
+      bcp = corresponding_base_class(bcp, class_type, (a_base_class_ptr)NULL);
       if (virtual_function_info_base_class == bcp) {
         shares = TRUE;
       }  /* if */
@@ -1760,7 +1762,7 @@ looks like this:
 This routine is called when a virtual base class is already in the base
 classes list being built, and a second virtual base class is encountered
 that refers to the same class.  For instance, the base classes list for
-class C already contains A, V, X, Y, and B (in that order) when a second V
+class C already contains X, Y, V, and A (in that order) when a second V
 is encountered.  It is not sufficient to simply ignore the second V (and
 its own base classes X and Y) since it has declaration information that
 may need to merged with that of the other instance of V or that supersedes
@@ -1863,7 +1865,8 @@ is a base class.
     for (other_bcp = base_classes_of(base_class->type);
          other_bcp != NULL;
          other_bcp = other_bcp->next) {
-      bcp = corresponding_base_class(other_bcp, new_class);
+      bcp = corresponding_base_class(other_bcp, new_class,
+                                     (a_base_class_ptr)NULL);
 #if DEBUG
       if (debug_level >= 3) {
         fputs("may need fixup: ", f_debug);
@@ -1932,7 +1935,8 @@ the pointer_base_class for both V1 and V2 is C.
            if its pointer is embedded in some other base class, we don't want
            it after all.  In such a case we'll encounter that base class
            later in processing and use it then. */
-        bcp = corresponding_base_class(base_class, dsp->base_class->type);
+        bcp = corresponding_base_class(base_class, dsp->base_class->type,
+                                       (a_base_class_ptr)NULL);
         if (bcp->pointer_base_class == NULL) {
           base_class->pointer_base_class = dsp->base_class;
         }  /* if */
@@ -2126,7 +2130,8 @@ subobject (e.g., C).
              base_class) or is an incomplete subobject (meaning it cannot
              have data sections for virtual base classes embedded within it),
              then this is where base_class may be embedded. */
-          bcp = corresponding_base_class(base_class, dsp->base_class->type);
+          bcp = corresponding_base_class(base_class, dsp->base_class->type,
+                                         (a_base_class_ptr)NULL);
           if (bcp->data_section_base_class == NULL) {
             base_class->data_section_base_class = dsp->base_class;
             updated = TRUE;
@@ -2165,7 +2170,8 @@ algorithm.
         /* bcp is one of the virtual base class of base_class.  Find the
            base class entry that corresponds to it in the base classes list
            for class_type. */
-        embedded_base_class = corresponding_base_class(bcp, class_type);
+        embedded_base_class = corresponding_base_class(bcp, class_type,
+                                                       (a_base_class_ptr)NULL);
         if (embedded_base_class->data_section_base_class != NULL) {
           /* The data section for this virtual base class has already been
              assigned a location. */
@@ -2186,7 +2192,7 @@ algorithm.
                location in the layout of class_type. */
             embedded_base_class->data_section_base_class =
                   corresponding_base_class(bcp->data_section_base_class,
-                                           class_type);
+                                           class_type, (a_base_class_ptr)NULL);
           }  /* if */
           /* Apply the algorithm recursively. */
           fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
@@ -2617,7 +2623,8 @@ or struct definition.  The syntax is
               db_virtual_function_override_list(bcp);
             }  /* if */
 #endif /* DEBUG */
-            new_bcp = corresponding_base_class(bcp, type_ptr);
+            new_bcp = corresponding_base_class(bcp, type_ptr,
+                                               (a_base_class_ptr)NULL);
             /* Copy the virtual function override entries from bcp (which is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
@@ -2664,7 +2671,8 @@ or struct definition.  The syntax is
                direct base class does.  (In the above example, set the field
                to point to A.) */
             ctsp->virtual_function_info_base_class =
-                                      corresponding_base_class(bcp, type_ptr);
+                            corresponding_base_class(bcp, type_ptr,
+                                                     (a_base_class_ptr)NULL);
           }  /* if */
           /* Advance the virtual function count so that any new virtual
              functions will be tacked on at the end of the shared virtual
