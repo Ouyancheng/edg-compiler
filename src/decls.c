@@ -4702,7 +4702,7 @@ otherwise it is NULL.  The syntax is:
           options |= GID_DISALLOW_QUALIFIED_NAME;
         }  /* if */
         /* The declarator may be a qualified name or a normal name. */
-        if (coalesce_and_lookup_qualified_name(options, &err)) {
+        if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
           /* See if the name is a qualified name, like "A::x" or "::j". */
           if (locator_for_curr_id.is_qualified_name) {
             member_parent_type = locator_for_curr_id.qualifier_class_type;
@@ -5111,21 +5111,45 @@ caution when modifying this routine.
 {
   a_symbol_ptr      tag_sym = NULL;
   a_token_kind      next_tok;
+  a_boolean	    err = FALSE;
+  a_boolean	    tag_err = FALSE;
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
-  /* Find a declaration of this tag in the current scope.  (We only look
-     in the current scope for now, but we may have to do a complete lookup
-     later.) */
-  if (C_dialect == C_dialect_cplusplus && curr_token == tok_identifier &&
-      decl_scope_level == DEPTH_OF_FILE_SCOPE &&
-      tag_kind != (a_symbol_kind)sk_enum_tag) {
+  /* Check for the presence of a qualified name.  If we have a qualified
+     name, do the lookup in a manner that will only find tag names. */
+  if (coalesce_and_lookup_qualified_name(GID_TEMPLATE_ARGS_OPTIONAL,
+                                         ilm_tag, &err)) {
+    if (err) {
+      /* An error occurred while scanning or looking up the qualified
+         name. */
+      tag_err = TRUE;
+    } else {
+      tag_sym = locator_for_curr_id.specific_symbol;
+      if (tag_sym != NULL && tag_sym->kind != tag_kind) {
+        /* A qualified name is being used with a different tag kind than
+           that of its declaration.  Issue an error. */
+        pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                       &locator_for_curr_id.source_position,
+		       name_of_symbol_kind(tag_kind), tag_sym);
+        tag_sym = NULL;
+        tag_err = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (C_dialect == C_dialect_cplusplus &&
+             curr_token == tok_identifier &&
+             decl_scope_level == DEPTH_OF_FILE_SCOPE &&
+             tag_kind != (a_symbol_kind)sk_enum_tag) {
     /* Check for an identifier that is a class template name.  A class
        template name at file scope must have an argument list.  A use
        of a class template name in another scope is actually a
        declaration of a new class that has nothing to do with the template. */
     a_symbol_ptr  templ_sym;
-    a_boolean     err;
+    /* Look up what may be a class template symbol.  If the name is
+       the start of a qualified name (e.g., A::B) or has a template
+       argument list (e.g., A<T>) it will have been coalesced by the
+       call to coalesce_and_lookup_qualified_name.  If it just a simple
+       identifier (e.g., "A") we need look it up and coalesce it here. */
     templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
     /* There are two situations that need to be handled: this could be the
        first time we are scanning this template reference -- in which case
@@ -5142,7 +5166,10 @@ caution when modifying this routine.
         /* If an error occurred while scanning the template arguments, set
            tag_sym to NULL.  The caller is not prepared for it to point to
            an error symbol. */
-        if (err) tag_sym = NULL;
+        if (err) {
+          tag_sym = NULL;
+          tag_err = TRUE;
+        }  /* if */
       } else if (is_template_class_symbol(templ_sym)) {
         /* Use the symbol pointer from the locator (returned by
            normal_id_lookup earlier).  The template class reference has
@@ -5154,29 +5181,23 @@ caution when modifying this routine.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (curr_token == tok_colon_colon ||
-      next_token() == tok_colon_colon ||
-      (curr_token == tok_identifier &&
-       locator_for_curr_id.is_qualified_name)) {
-    a_boolean     err;
-    /* This looks like a qualified name, which is not allowed here. */
-    error(ec_qualified_name_not_allowed);
-    (void)coalesce_and_lookup_qualified_name
-                         (GID_NO_OPTIONS, &err);
-    set_to_error_locator(*locator);
-    tag_sym = NULL;
-  } else if (tag_sym != NULL) {
-    /* Tag symbol is a template class reference. */
+  if (tag_sym != NULL) {
+    /* Tag symbol is a qualified name or a template class reference. */
     /* Return a copy of the locator to the caller. */
     *locator = locator_for_curr_id;
+  } else if (tag_err) {
+    /* An error occurred while handling a qualified name or a template
+       reference earlier. */
   } else {
     /* Look for a tag symbol in the current scope.  If the tag kind does
-       not match the tag being processed, set the symbol to NULL and reset
-       the locator. */
+       not match the tag being processed, issue an error. */
     tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
     if (tag_sym != NULL && tag_sym->kind != tag_kind) {
+      pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                     &locator_for_curr_id.source_position,
+		     name_of_symbol_kind(tag_kind), tag_sym);
       tag_sym = NULL;
-      locator_for_curr_id.specific_symbol = NULL;
+      tag_err = TRUE;
     }  /* if */
     /* Save the symbol locator for this identifier before doing the
        get_token. */
@@ -5249,6 +5270,11 @@ caution when modifying this routine.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (tag_err) {
+    /* If an error occurred while scanning the tag, make the locator that
+       is returned to the caller an error locator. */
+    set_to_error_locator(*locator);
   }  /* if */
   /* Now that we have completed the lookup on the tag identifier we can
      advance past it. */
