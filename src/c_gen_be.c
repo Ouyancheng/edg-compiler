@@ -4349,6 +4349,7 @@ Generate C for a statement.
   a_statement_ptr  init_stmt, else_stmt;
   an_expr_node_ptr init_expr;
   a_statement_kind kind;
+  a_boolean        need_for_init_closing_brace;
 
   if (statement == NULL) {
     /* Empty statement. */
@@ -4419,6 +4420,7 @@ Generate C for a statement.
     case stmk_for:
       /* Put the initializing statement outside the "for" if it's not
          a simple expression statement. */
+      need_for_init_closing_brace = FALSE;
       init_stmt = statement->variant.for_loop.extra_info->initialization;
       if (init_stmt == NULL) {
         init_expr = NULL;
@@ -4440,6 +4442,8 @@ Generate C for a statement.
         if (init_stmt->kind == (a_statement_kind)stmk_expr) {
           init_expr = init_stmt->expr;
         } else {
+          write_tok_ch('{');
+          need_for_init_closing_brace = TRUE;
           dump_statement(init_stmt);
           init_expr = NULL;
         }  /* if */
@@ -4469,6 +4473,7 @@ Generate C for a statement.
       indent += 2;
       dump_statement(statement->variant.for_loop.statement);
       indent -= 2;
+      if (need_for_init_closing_brace) write_tok_ch('}');
       break;
     case stmk_goto:
       write_tok_str("goto ");
