@@ -1789,6 +1789,9 @@ error code.
     case ec_bad_use_of_ptr_to_member_typedef:
       m = "%n may be used only in pointer-to-member declaration";
       break;
+    case ec_initializer_list_for_empty_class_object:
+      m = "initializer list for variable of empty %n is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
