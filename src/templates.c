@@ -10724,6 +10724,8 @@ resulting constant is stored in the pointer pointed to by "constant".
   a_boolean				type_involves_template_param;
   a_boolean				constant_involves_template_param;
   static unsigned int			pending_instantiations = 0;
+  a_boolean				dependent_arg_list;
+  a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
 
   type_involves_template_param =
                param_ptr->variant.constant.type_involves_template_param;
@@ -10734,6 +10736,10 @@ resulting constant is stored in the pointer pointed to by "constant".
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  dependent_arg_list = template_arg_list_involves_template_param(arg_list);
+  /* If the argument list is dependent, flag this as a nonreal
+     instantiation. */
+  if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
   if (type_involves_template_param) {
     if (pending_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
@@ -10752,7 +10758,7 @@ resulting constant is stored in the pointer pointed to by "constant".
 				        (a_symbol_ptr)NULL,
 				        template_sym, arg_list,
                                         /*push_stop_tokens=*/TRUE,
-				        PS_NO_OPTIONS);
+				        ps_options);
       /* Rescan the tokens of the function declaration. */
       rescan_reusable_cache(&param_ptr->cache.tokens);
       /* Scan the declaration specifiers. */
@@ -10774,21 +10780,15 @@ resulting constant is stored in the pointer pointed to by "constant".
     /* This parameter has a default argument whose value is to be used. */
     /* Determine whether the template argument list depends on a template
        parameter type.  */
-    a_boolean	dependent_arg_list;
-    dependent_arg_list = template_arg_list_involves_template_param(arg_list);
     if (constant_involves_template_param) {
       if (pending_instantiations == max_pending_instantiations) {
         error(ec_recursive_inst_of_templ_default_arg);
         *constant = alloc_error_constant();
       } else {
         a_template_cache_ptr		tcp;
-        a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
         /* Increment the count of pending default argument instantiations.
            This is used to detect infinite recursion. */
         ++pending_instantiations;
-        /* If the argument list is dependent, flag this as a nonreal
-           instantiation. */
-        if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
         /* Push the template instantiation scope.  See note above regarding
            the instance symbol and class type. */
         tcp = &param_ptr->default_arg_cache;
