@@ -8214,6 +8214,12 @@ continue_with_declaration:
         is_definition = TRUE;
       }  /* if */
       if (is_definition) {
+        /* At the point at which an object of incomplete template class is
+           defined, its class needs to be instantiated.  When its type is
+           ref-template-class, the instantiation is also required.  Note that
+           in this respect a reference does not behave like a pointer -- in
+           the latter case, the instantiation is not required until the pointer
+           is dereferenced. */
         a_type_ptr  tp = local_type_ptr;
         if (is_reference_type(tp)) tp = type_pointed_to(tp);
         check_for_uninstantiated_template_class(tp);
