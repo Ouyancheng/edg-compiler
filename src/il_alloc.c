@@ -1291,7 +1291,7 @@ to default values.
 #if GNU_EXTENSIONS_ALLOWED
       rtsp->fmt_arg                  = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWE || GNU_X86_ATTRIBUTES_ALLOWEDD
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
       rtsp->calling_convention       = (a_calling_convention)cc_default;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       rtsp->this_class               = NULL;
