@@ -10,7 +10,7 @@ flag is FALSE the resulting object code may be somewhat more compact.
 8/16/92 Sharing of virtual function tables/pointers
 
 Pointers to virtual function tables are now shared between classes
-and their base classes, where possible.  The virtual funciton tables
+and their base classes, where possible.  The virtual function tables
 themselves are also shared.  This is an optimization that reduces
 the size of many classes, and also is necessary for cfront compatibility.
 
@@ -285,7 +285,8 @@ This did not occur in C++ mode.
 Two changes were made to the representation of virtual function tables
 created by IL lowering:
 
-  (1)  The [0] entry of the table is skipped.
+  (1)  The [0] entry of the table is skipped, and a zeroed entry
+       is added at the end of the table.
   (2)  The entry type in the array is now the same struct used for
        pointers to member functions, i.e., it has three fields instead
        of the two actually required.
