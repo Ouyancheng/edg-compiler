@@ -3303,18 +3303,17 @@ to it.
 
 
 void add_to_variables_list(a_variable_ptr var_ptr,
-                           a_boolean      at_file_scope)
+                           a_scope_depth  scope_depth)
 /*
-Add the given variable to the variables list for the current scope, or
-for the file scope if at_file_scope is TRUE.
+Add the given variable to the variables list for the scope at the indicated
+scope depth.
 */
 {
-  a_scope_stack_entry_ptr
-		 ssep;
-  a_scope_ptr    sp;
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
 
   /* Get pointer to current or file scope entry. */
-  ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
+  ssep = &scope_stack[scope_depth];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
   if (sp->variables == NULL) {
@@ -3359,21 +3358,28 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
 {
   a_variable_ptr temp_var;
   a_scope_kind   scope_kind;
+  a_scope_depth  scope_depth = depth_scope_stack;
 
   temp_var = alloc_variable();
   temp_var->type = temp_type;
   /* Use auto storage class in functions, static elsewhere. */
-  scope_kind = scope_stack[depth_scope_stack].kind;
-  if (scope_kind == (a_scope_kind)sck_function ||
-      scope_kind == (a_scope_kind)sck_block) {
-    temp_var->storage_class = (a_storage_class)sc_auto;
-  } else {
+  scope_kind = scope_stack[scope_depth].kind;
+  /* If necessary, pop out to the containing scope -- file scope, function
+     scope, or block scope. */
+  while (scope_kind != (a_scope_kind)sck_file &&
+         scope_kind != (a_scope_kind)sck_function &&
+         scope_kind != (a_scope_kind)sck_block) {
+    scope_kind = scope_stack[--scope_depth].kind;
+  }  /* while */
+  if (scope_kind == (a_scope_kind)sck_file) {
     temp_var->storage_class = (a_storage_class)sc_static;
+  } else {
+    temp_var->storage_class = (a_storage_class)sc_auto;
   }  /* if */
   /* Name linkage stays nlk_none. */
-  add_to_variables_list(temp_var, /*at_file_scope=*/FALSE);
+  add_to_variables_list(temp_var, scope_depth);
   return temp_var;
-}  /* make_temporary */
+}  /* alloc_temporary_variable */
 
 
 a_field_ptr alloc_field(void)
