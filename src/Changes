@@ -290,7 +290,7 @@ generated code where it had not been set previously, e.g., assignments
 that initialize temporaries that replace parameters.  This produces
 slightly better line number information in symbolic debugging output.
 
-2/2/97    Microsoft compatibility: #import
+2/2/98    Microsoft compatibility: #import
 
 The #import preprocessing directive is now supported in Microsoft mode.
 Our implementation depends on the fact that the Microsoft compiler
