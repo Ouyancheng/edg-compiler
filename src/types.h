@@ -567,7 +567,7 @@ extern a_boolean is_or_contains_unnamed_or_local_type(a_type_ptr  type_ptr,
 						      a_boolean	  *is_unnamed,
 						      a_boolean   *is_local);
 extern a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
-extern void set_type_involves_template_param_flags(a_type_ptr  rout_type);
+extern void set_type_involves_deduced_template_param(a_type_ptr  rout_type);
 extern a_boolean is_or_contains_specific_template_param
 						(a_type_ptr  type_ptr,
 						 a_type_ptr  tparam_type);
@@ -681,6 +681,13 @@ typedef int a_type_tree_traversal_flag_set;
 #define TTT_STOP_AT_TYPEDEFS 0x800
 			/* When the type encountered is a typedef, stop
 			   the traversal. */
+#define TTT_DEDUCED_CONTEXTS_ONLY 0x1000
+			/* When the type is traversed, only consider contexts
+			   in which a template argument value can be deduced.
+			   This ignores template parameters used in
+			   the parent classes of a type (e.g., ignore
+			   the T in A<T>::B) and nontype template
+			   parameters used in expression contexts. */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */

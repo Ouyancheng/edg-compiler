@@ -4752,9 +4752,10 @@ make_new_comp_type:
                           duplicate_default_arg_expr(ptp2->default_arg_expr);
           }  /* if */
         }  /* if */
-        if (ptp1->type_involves_template_param) {
-          check_assertion(ptp2 == NULL || ptp2->type_involves_template_param);
-          new_ptp->type_involves_template_param = TRUE;
+        if (ptp1->type_involves_deduced_template_param) {
+          check_assertion(ptp2 == NULL ||
+                          ptp2->type_involves_deduced_template_param);
+          new_ptp->type_involves_deduced_template_param = TRUE;
         }  /* if */
         if (ptp1->passed_via_copy_constructor) {
           check_assertion(ptp2 == NULL || ptp2->passed_via_copy_constructor);
@@ -5079,10 +5080,10 @@ in C++ mode.  See ARM 13.
         goto distinguishable_determined;
       } else {
         /* See if the types are distinguishable.  A parameter containing
-           template types is always distinguishable from one not containing
-           such types. */
-        if ((old_param->type_involves_template_param !=
-                           new_param->type_involves_template_param) ||
+           deducible template types is always distinguishable from one
+           not containing such types. */
+        if ((old_param->type_involves_deduced_template_param !=
+                           new_param->type_involves_deduced_template_param) ||
             !f_types_are_compatible(old_param->type, new_param->type,
                                     TCF_NO_FLAGS)) {
           distinguishable = TRUE;
@@ -5202,10 +5203,18 @@ they are in name mangling; it is the underlying type, not the typedef name
 
 /* A pointer to the specific template parameter type to be found by
    ttt_is_or_contains_template_param. */
-static a_type_ptr specific_template_param_type;
+static a_type_ptr
+		specific_template_param_type;
+
 /* A pointer to the specific template parameter constant to be found by
    ttt_contains_template_param_constant. */
-static a_constant_ptr specific_template_param_constant;
+static a_constant_ptr
+		specific_template_param_constant;
+
+/* TRUE if only deduced contexts should be considered by
+   ttt_contains_template_param_constant. */
+static a_boolean
+		deduced_contexts_only;
 
 
 static a_boolean ttt_contains_template_param_constant(
@@ -5255,8 +5264,11 @@ based on the specified template parameter constant.
           } else if (cp->variant.template_param.kind ==
                         (a_template_param_constant_kind)tpck_expression) {
             /* Look for a particular template param constant in the expression
-               tree. */
-            if (expr_tree_contains_template_param_constant(
+               tree.  This is not done when only deduced contexts are
+               considered because template parameters cannot be deduced
+               from expressions. */
+            if (!deduced_contexts_only &&
+                expr_tree_contains_template_param_constant(
                                       cp->variant.template_param.variant.expr,
                                       specific_template_param_constant)) {
               found = TRUE;
@@ -5303,6 +5315,36 @@ it returns TRUE if type_ptr is the specified template parameter type.
   }  /* if */
   return found;
 }  /* ttt_is_or_contains_template_param */
+
+
+static a_boolean ttt_is_or_contains_deduced_template_param(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  Returns TRUE if the type specified by type_ptr
+is a template parameter, or is based on a template parameter in a context
+from which a template parameter value can be deduced.
+*/
+{
+  a_boolean  found = FALSE;
+
+  if (is_template_param(type_ptr)) {
+    /* A type parameter -- make sure it is an actual template parameter
+       and not something like tptk_member type. */
+    if (type_ptr->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_param) {
+      *force_end_of_traversal = found = TRUE;
+    }  /* if */
+  } else {
+    /* We are not looking for a specific template param type, so any
+       template constant (e.g., appearing as an array bound) will also
+       serve. */
+    found = ttt_contains_template_param_constant(type_ptr,
+                                                 force_end_of_traversal);
+  }  /* if */
+  return found;
+}  /* ttt_is_or_contains_deduced_template_param */
 
 
 static a_boolean ttt_set_force_external_linkage_flag(
@@ -5521,7 +5563,13 @@ its parameters?).
         check_assertion((a_boolean)type_ptr->source_corresp.is_class_member ==
                         (type_ptr->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_member));
-        if (type_ptr->source_corresp.is_class_member) {
+        if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
+             nonstandard_qualifier_deduction) &&
+            type_ptr->source_corresp.is_class_member) {
+          /* Check the template parameter associated with the proxy class that
+             is the parent class.  This is only checked when considering
+             nondeduced contexts, or when this is a deduced context when
+             nonstandard deduction is enabled. */
           tp = type_ptr->source_corresp.parent.class_type;
           tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
           if (tp != NULL) {
@@ -5570,7 +5618,12 @@ its parameters?).
             }  /* if */
           }  /* if */
 check_enclosing_classes:
-          if (!status && type_ptr->source_corresp.is_class_member) {
+          if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
+               nonstandard_qualifier_deduction) &&
+              !status && type_ptr->source_corresp.is_class_member) {
+            /* Check the the parent class.  This is only done when considering
+               nondeduced contexts, or when this is a deduced context when
+               nonstandard deduction is enabled. */
             tp = type_ptr->source_corresp.parent.class_type;
             status = traverse_type_tree(tp, func, flags);
           }  /* if */      
@@ -5676,16 +5729,47 @@ a template parameter constant.
      or constant will do. */
   specific_template_param_type = NULL;
   specific_template_param_constant = NULL;
+  deduced_contexts_only = FALSE;
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_template_param */
 
 
-void set_type_involves_template_param_flags(a_type_ptr  rout_type)
+a_boolean is_or_contains_deduced_template_param(a_type_ptr  type_ptr)
 /*
-Go through the parameters for rout_type, which is assumed to be a function
-type.  If any of the associated types involves a template parameter, mark
-the param type entry; this is useful for function arg matching.
+Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
+type entry or is a type tree containing such a type, or a type containing
+a template parameter constant, in a context in which the template
+parameter can be deduced.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+					       TTT_DEDUCED_CONTEXTS_ONLY |
+                                               TTT_TEMPLATE_ARGS);
+
+  check_assertion_str(!C_mode(),
+                      "is_or_contains_template_param: not callable in C mode");
+  /* Setting these pointers to NULL indicates that any template param type
+     or constant will do. */
+  specific_template_param_type = NULL;
+  specific_template_param_constant = NULL;
+  deduced_contexts_only = TRUE;
+  return (traverse_type_tree(type_ptr,
+                             ttt_is_or_contains_deduced_template_param,
+                             ttt_flags));
+}  /* is_or_contains_deduced_template_param */
+
+
+void set_type_involves_deduced_template_param(a_type_ptr  rout_type)
+/*
+Go through the parameters for rout_type, which is assumed to be a
+function type.  If any of the associated types involves a template
+parameter in a context in which the parameter can be deduced, mark the
+param type entry; this is useful for function arg matching.
+Nondeduced contexts are the parent classes of a type (e.g., ignore the
+T in A<T>::B) and nontype template parameters used in expression
+contexts.
 */
 {
   a_param_type_ptr  ptp;
@@ -5693,11 +5777,10 @@ the param type entry; this is useful for function arg matching.
   check_assertion(is_function_type(rout_type));
   ptp = skip_typerefs(rout_type)->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
-    if (is_or_contains_template_param(ptp->type)) {
-      ptp->type_involves_template_param = TRUE;
-    }  /* if */
+    ptp->type_involves_deduced_template_param = 
+                              is_or_contains_deduced_template_param(ptp->type);
   }  /* for */
-}  /* set_type_involves_template_param_flags */
+}  /* set_type_involves_deduced_template_param */
 
 
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
@@ -5715,6 +5798,7 @@ containing such a reference to the type.
   /* This indicates that only a specific template parameter may be found. */
   specific_template_param_type = tparam_type;
   specific_template_param_constant = NULL;
+  deduced_contexts_only = FALSE;
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_specific_template_param */
@@ -5735,6 +5819,7 @@ in the type tree represented by tp.
      found. */
   specific_template_param_constant = cp;
   specific_template_param_type = NULL;
+  deduced_contexts_only = FALSE;
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
@@ -5999,15 +6084,15 @@ make_new_type:
         new_ptp = make_param_type(tp, &dummy_decl_pos);
         if (ptp->has_default_arg) {
           new_ptp->has_default_arg = TRUE;
-          if (!ptp->type_involves_template_param) {
+          if (ptp->default_arg_expr != NULL) {
             new_ptp->default_arg_expr =
                              duplicate_default_arg_expr(ptp->default_arg_expr);
           }  /* if */
         }  /* if */
         /* Recompute the value of the flag, if necessary. */
-        new_ptp->type_involves_template_param =
-              (ptp->type == tp) ? ptp->type_involves_template_param :
-                                  is_or_contains_template_param(new_ptp->type);
+        new_ptp->type_involves_deduced_template_param = (ptp->type == tp)
+                        ? ptp->type_involves_deduced_template_param
+                        : is_or_contains_deduced_template_param(new_ptp->type);
         /* Add the new param type entry to the param types list. */
         if (prev_ptp == NULL) {
           new_type->variant.routine.extra_info->param_type_list = new_ptp;

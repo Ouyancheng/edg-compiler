@@ -514,7 +514,7 @@ at file scope.
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
-  ptp->type_involves_template_param = FALSE;
+  ptp->type_involves_deduced_template_param = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if CHECKING
   ptp->avoid_codecenter_warnings = 0;

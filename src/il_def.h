@@ -1959,11 +1959,11 @@ typedef struct a_param_type {
 			   flag may be set even though default_arg_expr
                            remains NULL; this a temporary state and applies to
 			   front-end processing only. */
-  a_bit_field	type_involves_template_param:1;
+  a_bit_field	type_involves_deduced_template_param:1;
 			/* TRUE if the type entry associated with the
-			   parameter involves (anywhere in its type tree) a
-			   tk_template_param type entry (C++ front end
-			   only). */
+			   parameter involves a template parameter in a
+			   context in which a template argument value can
+			   be deduced. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers on the parameter type
 			   on the definition of the function.  Not updated

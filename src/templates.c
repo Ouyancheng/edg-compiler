@@ -1010,12 +1010,8 @@ occurred in the substitution process, a NULL pointer is returned.
 
   if (wrapup_template_argument_deduction(templ_arg_list, rout_templ_sym,
                                          templ_param_list)) {
-#if 0
     new_type = substitute_template_arguments(rout_templ_sym, templ_arg_list,
                                              (a_template_arg_ptr*)NULL);
-#else
-    new_type = error_type();
-#endif
   }  /* if */
   return new_type;
 }  /* wrapup_function_template_argument_deduction */
@@ -4319,7 +4315,7 @@ supplement associated with the function template being used.
   for (stlep = tssp->variant.function.substituted_types;
        stlep != NULL; stlep = stlep->next) {
     if (equiv_template_arg_lists(templ_arg_list, stlep->templ_arg_list,
-                                 ETA_NO_OPTIONS)) {
+                                 ETA_IGNORE_UNKNOWN_ARG_VALUES)) {
       result_type = stlep->type;
       break;
     }  /* if */
@@ -4369,7 +4365,17 @@ returned in *new_arg_list.
       /* This is the first time this routine has been called for this
          template argument list.  Create a new type. */
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
+      templ_rout_type = copy_type_with_substitution(templ_rout_type,
+                                                    templ_arg_list,
+	       					    &templ_sym->decl_position,
+						    &copy_error);
       if (copy_error) templ_rout_type = NULL;
+      if (templ_rout_type != NULL) {
+        /* Reset the flags in the param type entry to reflect whether the
+           parameter contains any template parameters that participate in
+           template argument deduction. */
+        set_type_involves_deduced_template_param(templ_rout_type);
+      }  /* if */
       /* Add the new type to the list of substituted types. */
       add_to_substituted_types_list(tssp, templ_arg_list, templ_rout_type);
     }  /* if */
@@ -8145,7 +8151,7 @@ arguments.
   only_in_default_args = (only_used_in_default_args != NULL);
   ptp = rout_type->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
-    if (ptp->type_involves_template_param) {
+    if (ptp->type_involves_deduced_template_param) {
       if (template_param_used_in_type(param_sym, ptp->type)) {
         found = TRUE;
         if (!ptp->has_default_arg) only_in_default_args = FALSE;
@@ -8873,7 +8879,7 @@ information returned from decl_specifiers and declarator.
   db_enter(4, "function_template_declaration");  
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
-  set_type_involves_template_param_flags(type);
+  set_type_involves_deduced_template_param(type);
   if (curr_token == tok_lbrace && decl_state->is_member_decl &&
       decl_state->is_template_friend) {
     /* A function template defined inside a class or class template is

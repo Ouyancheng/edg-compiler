@@ -5518,7 +5518,7 @@ in-class member function declarations.)
   }  /* if */
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
-  set_type_involves_template_param_flags(member_type);
+  set_type_involves_deduced_template_param(member_type);
   /* Create the new symbol and enter it into the symbol table. */
   effective_decl_level = class_type->variant.class_struct_union.extra_info->
                                            assoc_scope->depth_in_scope_stack;
@@ -7374,7 +7374,7 @@ operator should be created.  No routine body is generated at this time.
     /* Set a flag in the param type entry if its associated type is or contains
        a template parameter. */
     if (is_or_contains_template_param(class_type)) {
-      ptp->type_involves_template_param = TRUE;
+      ptp->type_involves_deduced_template_param = TRUE;
     }  /* if */
   }  /* if */
   extra_info->param_type_list = ptp;
@@ -7689,7 +7689,7 @@ The routine body is not generated until it is known to be needed.
                                make_qualified_type(class_type, qualifiers)));
     /* Set a flag in the param type entry if its associated type is or contains
        a template parameter. */
-    ptp->type_involves_template_param =
+    ptp->type_involves_deduced_template_param =
                                   is_or_contains_template_param(class_type);
     initialize_member_decl_info(&decl_info, pos);
     decl_info.is_constructor = TRUE;
@@ -7716,7 +7716,7 @@ The routine body is not generated until it is known to be needed.
                                make_qualified_type(class_type, qualifiers)));
       /* Set a flag in the param type entry if its associated type is or
          contains a template parameter. */
-      ptp->type_involves_template_param =
+      ptp->type_involves_deduced_template_param =
                                   is_or_contains_template_param(class_type);
       initialize_member_decl_info(&decl_info, pos);
       generate_special_function(class_type, class_state, &decl_info, ptp);
@@ -8649,7 +8649,7 @@ tracks information about the current declaration.
        parameters for this function type, and if any of the associated types
        involves a template parameter, mark the param type entry; this is
        useful for function arg matching. */
-    set_type_involves_template_param_flags(*type);
+    set_type_involves_deduced_template_param(*type);
   }  /* if */
 }  /* check_completed_member_type */
 

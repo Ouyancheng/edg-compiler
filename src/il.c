@@ -5500,7 +5500,7 @@ and return a pointer to the new list.
     new_tap = alloc_template_arg((a_boolean)tap->is_type);
     *new_tap = *tap;
     new_tap->next = NULL;
-    if (new_list == NULL) new_list = tap;
+    if (new_list == NULL) new_list = new_tap;
     if (tail != NULL) tail->next = new_tap;
     tail = new_tap;
   }  /* for */
