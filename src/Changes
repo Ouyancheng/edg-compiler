@@ -13,14 +13,18 @@ GENERATE_SOURCE_SEQUENCE_LISTS is configured to TRUE.)
 When a function prototype scope has nested within it another function
 prototype scope for which an IL scope entry is needed, e.g.,
 
-  void f(int (*pf)(struct A { int i })) { /* ... */ }
+  void f(int (*pf)(struct A { int i; })) { /* ... */ }
 
 the IL scope entry of the inner scope is now recorded on the scopes list
 of the IL scope entry for the containing scope.  In the example (which is
 valid in C mode only) an IL scope entry is required for the inner scope
 because a struct is defined in that scope; the scope that is created is
-placed on the scopes list of the outer scope's IL entry.  Note that latter
-would not have been created otherwise.
+placed on the scopes list of the outer scope's IL entry.  Note that the
+latter would not have been created otherwise.
+
+Note: as a consequence of this change, it is no longer the case that an IL
+scope entry's having a non-NULL scopes pointer implies that it is a
+function or block scope.
 
 3/23/94  Elaborated types in function template parameter lists
 
