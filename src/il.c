@@ -1984,7 +1984,7 @@ type if necessary.
 #endif /* DEBUG */
   }  /* if */
   /* Develop and return a pointer to the right element. */
-  element_ptr = &btap[element_num];
+  element_ptr = &btap[(int)element_num];
 #if DEBUG
   /* Count cases where the allocation will have to be done. */
   if (*element_ptr == NULL) num_costly_get_based_type_calls++;
