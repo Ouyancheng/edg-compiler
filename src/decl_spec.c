@@ -2225,6 +2225,9 @@ process_class_specifier:
           }  /* if */
           break;
         }  /* if */
+        /* Getting to this point means the identifier is not a type name.
+           However, the lookup may still have found something -- see
+           locator_for_curr_id.specific_symbol. */
         if (input_flags & DSI_IS_NEW_TYPE_NAME) {
           /* This is a an identifier in a "new" expression so it was
              probably intended to be a type name.  Issue an error and
@@ -2255,23 +2258,6 @@ process_class_specifier:
              instead of "A::~A".  If we are not processing the definition of
              class A, we simply fall through this test. */
           goto destructor_name;
-        }  /* if */
-        if (is_friend_decl) {
-          if (curr_token_type_symbol == NULL) {
-            /* This is a declaration of the form "... friend X ... ",
-               where X is already known to be neither the name of a class
-               in a friend class declaration nor the name of a type for a
-               function return type.  That means it is probably the name of
-               a function with an implicit return type.  Clear the specific
-               symbol pointer in the locator to deal with this sort of case:
-                 class A {
-                   int x;         // Declare A::x
-                   friend x();    // Cause injection of ::x at file scope
-                 };
-            */
-            clear_specific_symbol(locator_for_curr_id);
-          }  /* if */
-          goto exit_loop;
         }  /* if */
         if (is_error_locator(locator_for_curr_id) &&
             locator_for_curr_id.is_template_id) {
@@ -2377,8 +2363,27 @@ process_class_specifier:
               } else if (is_destructor_symbol(sym)) {
                 *output_flags |= DSO_DESTRUCTOR;
                 basic_type = bt_no_type;
+              } else if (is_friend_decl) {
+                /* This is a declaration of the form "... friend X ... ",
+                   where X is already known to be neither the name of a class
+                   in a friend class declaration nor the name of a type for a
+                   function return type.  That means it is probably the name
+                   of a function with an implicit return type.  Clear the
+                   specific symbol pointer in the locator to deal with this
+                   sort of case:
+                     class A {
+                       int x;         // Declare A::x
+                       friend x();    // Cause injection of ::x at file scope
+                     };
+                */
+                clear_specific_symbol(locator_for_curr_id);
               }  /* if */
             }  /* if */
+            goto exit_loop;
+          } else if (is_friend_decl) {
+            /* Clear the specific symbol pointer in the locator so that
+               subsequent lookups will be done correctly. */
+            clear_specific_symbol(locator_for_curr_id);
             goto exit_loop;
           }  /* if */
         }  /* if */
