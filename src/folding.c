@@ -1740,7 +1740,7 @@ exit:
        constant.  This was fixed in MSVC++ 7.1. */
     new_constant.null_pointer_constant_ruled_out = TRUE;
   } else if (is_integral_or_enum_type(new_type) &&
-      is_arithmetic_or_enum_type(constant_type)) {
+             is_arithmetic_or_enum_type(constant_type)) {
     /* Arithmetic --> integral.  Okay. */
   } else if (C_mode() &&
              is_void_star_type(new_type) &&
