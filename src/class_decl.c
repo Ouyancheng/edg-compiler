@@ -4361,7 +4361,7 @@ as defined in the IA64 ABI.
          fp != NULL;
          fp = fp->next) {
       if ((!fp->is_bit_field || fp->bit_size != 0) &&
-          !(fp->compiler_generated &&
+          !(fp->compiler_generated && has_name(fp) &&
             strcmp(fp->source_corresp.name, "__vptr") == 0)) {
         nearly_empty = FALSE;
         break;
