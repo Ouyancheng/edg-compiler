@@ -143,7 +143,6 @@ and return a pointer to it.
   tucp->count = 0;
 #endif /* CHECKING */
   tucp->kind = iek_none;
-  tucp->entry_on_copied_list = NULL;
   return tucp;
 }  /* alloc_trans_unit_corresp */
 

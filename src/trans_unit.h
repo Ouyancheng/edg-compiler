@@ -160,16 +160,6 @@ typedef struct a_trans_unit_corresp {
 #endif /* CHECKING */
   an_il_entry_kind
                 kind;   /* Kind of entity. */
-  char		*entry_on_copied_list;
-			/* Set in the preparation for the process of copying
-			   secondary translation unit IL to the primary IL,
-			   to point to the entry for this entity in the
-			   secondary IL that is on a list being copied to
-			   the primary IL.  NULL if there is no such entry,
-			   in which case the copied entry will have to be added
-			   to the proper primary IL list.  Note that if
-			   the "primary" field is non-NULL, the entity is
-			   already on a primary IL list. */
 } a_trans_unit_corresp;
 
 extern void trans_unit_early_init(void);

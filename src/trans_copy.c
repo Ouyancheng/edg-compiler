@@ -61,6 +61,19 @@ Reset the flag that indicates that an entry needs to be copied.
 #define reset_entry_needs_copy_flag(ptr) \
   (il_entry_prefix_of(ptr).il_walk_flag = FALSE)
 
+/*
+Macro interface to f_mark_to_merge, which allows it to be called for
+entries of various kinds.
+*/
+#define mark_to_merge(ptr, kind) f_mark_to_merge((char *)(ptr), (kind))
+
+/*
+Return TRUE if the given entry is to be merged with its counterpart
+in the primary IL (this tests a flag, which must have been set previously).
+*/
+#define entry_to_be_merged(ptr) \
+  (il_entry_prefix_of(ptr).il_lowering_flag)
+
 
 static void copy_entry(char             *ptr,
                        an_il_entry_kind kind);
@@ -258,20 +271,20 @@ pruned at the entry pointed to by ptr, of kind "kind".
 static char *remap_secondary_ptr_to_primary_full(
                               char             *ptr,
                               an_il_entry_kind kind,
-                              a_boolean        known_will_process_in_curr_walk)
+                              a_boolean        is_list_pointer)
 
 /*
 Called during the IL walk that copies IL from the secondary translation
 unit to the primary translation unit, to remap a pointer to something
 in a secondary translation unit ("ptr", of kind "kind") to the
-corresponding entry in the primary file IL.
-If known_will_process_in_curr_walk is TRUE, it is known that the pointer
-will be processed (and not merely have its address remapped) in the current
-IL walk.
+corresponding entry in the primary file IL.  If is_list_pointer is TRUE,
+the pointer is a list pointer, i.e., a "next" pointer or a start-of-list
+pointer.
 */
 {
   char *corresp;
 
+top_of_routine:
   if (ptr == NULL) {
     /* Leave a NULL pointer unchanged. */
     corresp = NULL;
@@ -282,9 +295,43 @@ IL walk.
     /* Leave a function scope pointer unchanged. */
     corresp = ptr;
   } else {
+    if (is_list_pointer) {
+      /* For a "next" pointer or start-of-list pointer, adjust the value to
+         skip any merged entries on the list.  This makes a copied list
+         that contains only copied entries, not merged ones. */
+      if (entry_to_be_merged(ptr)) {
+        switch (kind) {
+          case iek_type:
+           ptr = (char *)((a_type_ptr)ptr)->next;
+            break;
+          case iek_variable:
+            ptr = (char *)((a_variable_ptr)ptr)->next;
+            break;
+          case iek_routine:
+            ptr = (char *)((a_routine_ptr)ptr)->next;
+            break;
+          case iek_namespace:
+            ptr = (char *)((a_namespace_ptr)ptr)->next;
+            break;
+          case iek_template:
+            ptr = (char *)((a_template_ptr)ptr)->next;
+            break;
+          case iek_scope:
+            ptr = (char *)((a_scope_ptr)ptr)->next;
+            break;
+          case iek_object_lifetime:
+            ptr = (char *)((an_object_lifetime_ptr)ptr)->next;
+            break;
+          default:
+            unexpected_condition_str(
+                      "remap_secondary_ptr_to_primary_full: bad merged entry");
+        }  /* switch */
+        goto top_of_routine;
+      }  /* if */
+    }  /* if */
     /* If the pointer wasn't encountered previously, make sure its
        copy address pointer is set.  This happens for "next" pointers. */
-    copy_address_setup(ptr, kind, known_will_process_in_curr_walk);
+    copy_address_setup(ptr, kind, is_list_pointer);
     /* Fetch the copy address assigned by copy_address_setup. */
     corresp = transitive_copy_address_of(ptr);
   }  /* if */
@@ -301,7 +348,7 @@ corresponding entry in the primary file IL.
 {
   char *corresp = remap_secondary_ptr_to_primary_full(
                                     ptr, kind,
-                                    /*known_will_process_in_curr_walk=*/FALSE);
+                                    /*is_list_pointer=*/FALSE);
   return corresp;
 }  /* remap_secondary_ptr_to_primary */
 
@@ -316,7 +363,7 @@ for list pointers, i.e., "next" pointers and start-of-list pointers.
 {
   char *corresp = remap_secondary_ptr_to_primary_full(
                                      ptr, kind,
-                                     /*known_will_process_in_curr_walk=*/TRUE);
+                                     /*is_list_pointer=*/TRUE);
   return corresp;
 }  /* remap_secondary_list_ptr_to_primary */
 
@@ -418,44 +465,11 @@ and remap the pointers in the copy.
     if (scp != NULL) {
       a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
       if (tucp != NULL && !in_secondary_trans_unit(copy)) {
-        char *entry_on_list = tucp->entry_on_copied_list;
         /* This entry is the canonical one, so update the canonical pointer
            to point to the copy in the primary IL.  For the "merge" case,
            the overwrite_primary_xxx routine updates the canonical pointer. */
         check_assertion(tucp->canonical == ptr);
         tucp->canonical = copy;
-        if (entry_on_list != NULL &&
-            entry_on_list != ptr) {
-          /* Set the "next" pointer in the copied entry to point to the
-             entry that follows on the copy of the parent list being copied. */
-          char *next_ptr;
-          char **copy_next_ptr;
-          switch (kind) {
-            case iek_type:
-              next_ptr = (char *)((a_type_ptr)entry_on_list)->next;
-              copy_next_ptr = (char **)&((a_type_ptr)copy)->next;
-              break;
-            case iek_variable:
-              next_ptr = (char *)((a_variable_ptr)entry_on_list)->next;
-              copy_next_ptr = (char **)&((a_variable_ptr)copy)->next;
-              break;
-            case iek_routine:
-              next_ptr = (char *)((a_routine_ptr)entry_on_list)->next;
-              copy_next_ptr = (char **)&((a_routine_ptr)copy)->next;
-              break;
-            case iek_namespace:
-              next_ptr = (char *)((a_namespace_ptr)entry_on_list)->next;
-              copy_next_ptr = (char **)&((a_namespace_ptr)copy)->next;
-              break;
-            case iek_template:
-              next_ptr = (char *)((a_template_ptr)entry_on_list)->next;
-              copy_next_ptr = (char **)&((a_template_ptr)copy)->next;
-              break;
-            default:
-              unexpected_condition_str("copy_entry: entry_on_copied_list bad");
-          }  /* switch */
-          *copy_next_ptr = remap_secondary_list_ptr_to_primary(next_ptr, kind);
-        }  /* if */
       }  /* if */
       scp->copied_from_secondary_trans_unit = TRUE;
     }  /* if */
@@ -1083,32 +1097,6 @@ is called.
   }  /* if */
 }  /* f_mark_to_merge */
 
-/*
-Macro interface to f_mark_to_merge, which allows it to be called for
-entries of various kinds.
-*/
-#define mark_to_merge(ptr, kind) f_mark_to_merge((char *)(ptr), (kind))
-
-/*
-Return TRUE if the given entry is to be merged with its counterpart
-in the primary IL (this tests a flag, which must have been set previously).
-*/
-#define entry_to_be_merged(ptr) \
-  (il_entry_prefix_of(ptr).il_lowering_flag)
-
-/*
-The entry "entry" is being kept on its parent's list in
-prepare_for_trans_unit_copy.  If the parent scope is being copied or
-overwritten, rather than merged, as indicated by check_member_merges,
-record the address of the entry as one that will be copied on a list.
-*/
-#define record_if_copy_places_entity_on_list(entry) \
-{ if (!check_member_merges && \
-      trans_unit_corresp_of(entry) != NULL) { \
-    trans_unit_corresp_of(entry)->entry_on_copied_list = (char *)entry; \
-  }  /* if */ \
-}
-      
 
 static a_boolean prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
@@ -1304,7 +1292,6 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_type = type;
       any_members_to_process = TRUE;
-      record_if_copy_places_entity_on_list(type);
     } else {
       /* Remove this entry from the list. */
       if (prev_type == NULL) {
@@ -1357,7 +1344,6 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_variable = variable;
       any_members_to_process = TRUE;
-      record_if_copy_places_entity_on_list(variable);
     } else {
       /* Remove this entry from the list. */
       if (prev_variable == NULL) {
@@ -1484,7 +1470,6 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_routine = routine;
       any_members_to_process = TRUE;
-      record_if_copy_places_entity_on_list(routine);
     } else {
       /* Remove this entry from the list. */
       if (prev_routine == NULL) {
@@ -1533,7 +1518,6 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_templ = templ;
       any_members_to_process = TRUE;
-      record_if_copy_places_entity_on_list(templ);
     } else {
       /* Remove this entry from the list. */
       if (prev_templ == NULL) {
@@ -1562,7 +1546,6 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_nsp = nsp;
       any_members_to_process = TRUE;
-      record_if_copy_places_entity_on_list(nsp);
     } else {
       /* Remove this entry from the list. */
       if (prev_nsp == NULL) {
@@ -1940,19 +1923,6 @@ the secondary translation unit IL).
     }  /* switch */
   }  /* if */
 }  /* overwrite_primary_routine */
-
-
-/*
-"entry" is an entry that has been copied (not merged) to the primary IL.
-Return TRUE if it needs to be added to the appropriate list in the
-primary IL.  The local variable scope_being_merged is TRUE if the
-parent scope for the entry is being merged rather than copied.
-*/
-#define copied_entry_needs_to_be_added_to_list(entry) \
-  ((trans_unit_corresp_of(entry) != NULL) ? \
-   (trans_unit_corresp_of(entry)->entry_on_copied_list == NULL && \
-    trans_unit_corresp_of(entry)->primary == NULL) : \
-   scope_being_merged)
   
 
 static void finish_trans_unit_copy(a_scope_ptr scope)
@@ -1999,10 +1969,9 @@ unit set to the primary translation unit.
                                                        extra_info->assoc_scope;
         finish_trans_unit_copy(class_scope);
       }  /* if */
-      add_to_list = FALSE;
       if (!entry_to_be_merged(type)) {
-        /* The entry got copied. */
-        add_to_list = copied_entry_needs_to_be_added_to_list(corresp_type);
+        /* The entry was copied. */
+        add_to_list = scope_being_merged;
       } else {
         /* The entry gets merged into the corresponding type. */
         a_type_ptr primary_type =
@@ -2015,6 +1984,7 @@ unit set to the primary translation unit.
           db_entity_info((char *)corresp_type, iek_type);
         }  /* if */
 #endif /* DEBUG */
+        add_to_list = FALSE;
         if (is_immediate_class_type(corresp_type)) {
           merge_class_details(corresp_type, primary_type);
         }  /* if */
@@ -2035,7 +2005,7 @@ unit set to the primary translation unit.
              unit is chosen as the canonical entry, and then its
              definition is not needed anywhere and is removed by
              the unneeded-entity removal processing). */
-          move_to_end = (!is_class_scope && !add_to_list &&
+          move_to_end = (!is_class_scope &&
                          class_type_has_body(corresp_type));
           if (move_to_end) {
             /* Also remove any associated namespace placeholder, but do
@@ -2094,10 +2064,9 @@ unit set to the primary translation unit.
          variable = variable->next) {
       a_variable_ptr corresp_variable =
                   (a_variable_ptr)checked_trans_unit_copy_address_of(variable);
-      add_to_list = FALSE;
       if (!entry_to_be_merged(variable)) {
-        /* The entry got copied. */
-        add_to_list = copied_entry_needs_to_be_added_to_list(corresp_variable);
+        /* The entry was copied. */
+        add_to_list = scope_being_merged;
       } else {
         /* The entry gets merged into the corresponding variable. */
         a_variable_ptr primary_variable =
@@ -2111,6 +2080,7 @@ unit set to the primary translation unit.
           db_entity_info((char *)corresp_variable, iek_variable);
         }  /* if */
 #endif /* DEBUG */
+        add_to_list = FALSE;
         if (primary_variable->storage_class ==
                                              (a_storage_class)sc_unspecified) {
           /* Eliminate the definition of the primary variable (this happens
@@ -2125,7 +2095,7 @@ unit set to the primary translation unit.
            Class members are not moved to the end of the list.
            Also do not move if a specialization declaration replaces
            an unspecialized variable (with or without a definition). */
-        move_to_end = (!is_class_scope && !add_to_list &&
+        move_to_end = (!is_class_scope &&
                        corresp_variable->storage_class ==
                                               (a_storage_class)sc_unspecified);
         if (move_to_end) {
@@ -2208,10 +2178,9 @@ unit set to the primary translation unit.
          routine = routine->next) {
       a_routine_ptr corresp_routine =
                     (a_routine_ptr)checked_trans_unit_copy_address_of(routine);
-      add_to_list = FALSE;
       if (!entry_to_be_merged(routine)) {
-        /* The entry got copied. */
-        add_to_list = copied_entry_needs_to_be_added_to_list(corresp_routine);
+        /* The entry was copied. */
+        add_to_list = scope_being_merged;
       } else {
         /* The entry gets merged into the corresponding routine. */
         a_routine_ptr primary_routine =
@@ -2225,6 +2194,7 @@ unit set to the primary translation unit.
           db_entity_info((char *)corresp_routine, iek_routine);
         }  /* if */
 #endif /* DEBUG */
+        add_to_list = FALSE;
         merge_routine_details(corresp_routine, primary_routine);
         if (!entry_should_overwrite_primary_entry(routine)) {
           /* No overwriting is needed, so we're done.  This happens,
@@ -2238,7 +2208,7 @@ unit set to the primary translation unit.
              Class members are not moved to the end of the list.
              Also do not move if a specialization declaration replaces
              an unspecialized routine (with or without a definition). */
-          move_to_end = (!is_class_scope && !add_to_list &&
+          move_to_end = (!is_class_scope &&
                          corresp_routine->assoc_scope != NULL_region_number);
           if (move_to_end) {
             remove_from_routines_list(primary_routine, NO_SCOPE_DEPTH);
@@ -2305,7 +2275,7 @@ unit set to the primary translation unit.
       a_template_ptr corresp_templ =
                      (a_template_ptr)checked_trans_unit_copy_address_of(templ);
       check_assertion(!entry_to_be_merged(templ));
-      if (copied_entry_needs_to_be_added_to_list(corresp_templ)) {
+      if (scope_being_merged) {
         /* Add the template to the end of the list. */
         if (is_class_scope && last_templ == NULL) {
           /* Determine the last template the first time it is needed. */
@@ -2333,10 +2303,8 @@ unit set to the primary translation unit.
     for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
       a_namespace_ptr corresp_nsp =
                       (a_namespace_ptr)checked_trans_unit_copy_address_of(nsp);
-      if (!entry_to_be_merged(nsp) &&
-          copied_entry_needs_to_be_added_to_list(corresp_nsp)) {
-        /* An entry that was simply copied.  Add it to the end of the
-           list. */
+      if (!entry_to_be_merged(nsp) && scope_being_merged) {
+        /* Add the namespace to the end of the list. */
         if (last_nsp == NULL) {
           primary_scope->namespaces = corresp_nsp;
         } else {

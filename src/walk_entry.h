@@ -257,7 +257,7 @@ simple walk_list.
           needed_flag_is_set(&local_ptr->source_corresp) || \
           il_entry_prefix_of(local_ptr).keep_in_il) { \
         clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind);\
-        walk_ptr(local_ptr, ptr_type, (entry_kind)); \
+        walk_list_ptr(local_ptr, ptr_type, (entry_kind)); \
       }  /* if */ \
     }  /* for */ \
   } else { \
@@ -285,7 +285,7 @@ to nothing.  In other modes, expands to a simple walk_list.
 { ptr_type local_ptr = (ptr); \
   for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
     clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind); \
-    walk_ptr(local_ptr, ptr_type, (entry_kind)); \
+    walk_list_ptr(local_ptr, ptr_type, (entry_kind)); \
   }  /* for */ \
 }  /* walk_list_with_keep_in_il_reset */
 #else /* !KEEP_IN_IL_WALK */
