@@ -1404,9 +1404,8 @@ Syntax:
                                             operand);
         if (have_selector) {
           /* This comes up with operator() cases. */
-          a_boolean is_arrow_operator = TRUE;
           combine_unneeded_selector_with_operand(bound_function_selector,
-                                                 &is_arrow_operator,
+                                                 /*is_arrow_operator=*/TRUE,
                                                  operand);
         }  /* if */
       }  /* if */
@@ -2404,7 +2403,7 @@ qualified_name_check:
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
                               result, rep);
-          combine_unneeded_selector_with_operand(operand_1, &is_arrow_operator,
+          combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
         case sk_member_function:
@@ -2470,7 +2469,7 @@ nonstatic_member_function:
                                              rep,
                                              result);
             combine_unneeded_selector_with_operand(operand_1,
-                                                   &is_arrow_operator,
+                                                   is_arrow_operator,
                                                    result);
           }  /* if */
           break;
@@ -2501,14 +2500,14 @@ nonstatic_member_function:
                                                   locator_for_curr_id.
                                                              template_arg_list,
                                                   result);
-          combine_unneeded_selector_with_operand(operand_1, &is_arrow_operator,
+          combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
           change_nonreal_member_constant_operand_to_lvalue(result);
-          combine_unneeded_selector_with_operand(operand_1, &is_arrow_operator,
+          combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
         case sk_type:

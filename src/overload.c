@@ -4611,13 +4611,13 @@ checking error was detected and reported.
 
 void combine_unneeded_selector_with_operand(
                                            an_operand *bound_function_selector,
-                                           a_boolean  *is_arrow_operator,
+                                           a_boolean  is_arrow_operator,
                                            an_operand *operand)
 /*
 *operand is a reference to a static class member, and *bound_function_selector
 is an unneeded selector for that reference.  Save it by attaching it to
 *operand (it must be evaluated, even though its type only -- and not its
-value -- is used to select the member referenced).  *is_arrow_operator is
+value -- is used to select the member referenced).  is_arrow_operator is
 TRUE if the selector is a pointer, and FALSE if it is a class.
 */
 {
@@ -4636,11 +4636,25 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
     discard_operand(bound_function_selector);
   } else {
     orig_operand = *operand;
+    /* In some cases (with bound function references) the selector is
+       standardized to a pointer.  Change back to the "." form for
+       some instances.  This is necessary for the enk_temp_init case
+       to avoid using the enk_temp_init address as an rvalue. */
+    if (is_arrow_operator && is_expression_operand(bound_function_selector)) {
+      an_expr_node_ptr selector_expr =
+                                   bound_function_selector->variant.expression;
+      if ((selector_expr->kind == (an_expr_node_kind)enk_temp_init &&
+           selector_expr->variant.init.result_is_addr) ||
+          is_variable_address_node(selector_expr)) {
+        conv_object_pointer_to_lvalue(bound_function_selector);
+        is_arrow_operator = FALSE;
+      }  /* if */
+    }  /* if */
     selector_expr = make_node_from_operand(bound_function_selector);
     expr = make_node_from_operand(operand);
     selector_expr->next = expr;
     /* Determine the operator to use. */
-    if (*is_arrow_operator) {
+    if (is_arrow_operator) {
       op = (an_expr_operator_kind)eok_points_to_static;
     } else if (is_an_lvalue(bound_function_selector)) {
       op = (an_expr_operator_kind)eok_lvalue_dot_static;
@@ -5038,7 +5052,7 @@ identifier in the call.
     if (*have_selector) {
       /* Attach the unneeded selector provided to the function operand. */
       combine_unneeded_selector_with_operand(bound_function_selector,
-                                             &is_arrow_operator,
+                                             is_arrow_operator,
                                              function_operand);
       *have_selector = FALSE;
     }  /* if */

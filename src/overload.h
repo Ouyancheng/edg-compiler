@@ -503,7 +503,7 @@ extern void overloaded_function_catch_up(
 
 extern void combine_unneeded_selector_with_operand(
                                            an_operand *bound_function_selector,
-                                           a_boolean  *is_arrow_operator,
+                                           a_boolean  is_arrow_operator,
                                            an_operand *operand);
 
 extern void cast_pointer_for_field_selection(
