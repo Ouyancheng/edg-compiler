@@ -3336,16 +3336,16 @@ precedence confusion.  Do the output in the way described by octl.
               octl->output_str("(void *)");
               suppress_cast_on_integer_constant = TRUE;
             }  /* if */
-          } else if (is_pointer_type(con_type) &&
-                     kind == (a_constant_repr_kind)ck_integer &&
-                     cmplit_integer_constant(constant,
-                                             (a_host_large_integer)0) == 0) {
-            /* Always put casts on null pointers, because when "x" is
-               changed to "x != (T *)0" because it appears in a condition
-               context, you don't want to put out "x != 0" which might be
-               ambiguous when x has a class type. */
-            need_cast = TRUE;
           }  /* if */
+        } else if (is_pointer_type(con_type) &&
+                   kind == (a_constant_repr_kind)ck_integer &&
+                   cmplit_integer_constant(constant,
+                                           (a_host_large_integer)0) == 0) {
+          /* Always put casts on null pointers, because when "x" is
+             changed to "x != (T *)0" because it appears in a condition
+             context, you don't want to put out "x != 0" which might be
+             ambiguous when x has a class type. */
+          need_cast = TRUE;
         }  /* if */
       }  /* if */
       if (need_cast) {
