@@ -5123,7 +5123,7 @@ is not "C".
   if (is_function_type(tp)) {
     rtsp = tp->variant.routine.extra_info;
     if (rtsp->implicit_this_param_type == NULL ||
-        rtsp->routine_name_linkage == nlk_external) {
+        rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
       /* Before updating it, copy the routine type if it might be shared. */
       if (tp->variant.routine.return_type != NULL) {
         /* If the return type is not set, the type is still under construction
@@ -5135,9 +5135,10 @@ is not "C".
       if (rtsp->implicit_this_param_type == NULL) {
         rtsp->implicit_this_param_type = make_pointer_type(class_type);
       }  /* if */
-      if (rtsp->routine_name_linkage == nlk_external) {
+      if (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* Change from C linkage to C++ linkage: */
-        rtsp->routine_name_linkage = nlk_cplusplus_external;
+        rtsp->routine_name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
       }  /* if */
     }  /* if */
   }  /* if */
