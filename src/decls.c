@@ -91,14 +91,43 @@ Macro that is TRUE if the current token is the start of a declarator
     (curr_token == tok_ampersand || curr_token == tok_operator)))
 
 
+static a_boolean is_ptr_to_member_declarator_start(void)
+/*
+Return TRUE if the current identifier token is the start of a pointer-to-
+member declarator (class-name :: *).
+*/
+{
+  a_boolean      is_start = FALSE;
+  a_token_cache  token_cache;
+  a_type_ptr     class_type;
+  a_boolean      is_file_scope_qualifier, has_global_qualifier, err;
+
+  if (curr_token == tok_identifier &&
+      get_class_qualifier(&token_cache, &class_type, &is_file_scope_qualifier,
+                          &has_global_qualifier, &err)) {
+    /* A class qualifier is present.  Note that file scope qualifiers are not
+       permitted.  This is a pointer-to-member declarator if the current token
+       is a "*". */
+    if (curr_token == tok_star) is_start = TRUE;
+    /* Back up to the start of the class qualifier.  It will be rescanned
+       by the caller. */
+    rescan_cached_tokens(&token_cache);
+  }  /* if */
+  return is_start;
+}  /* is_ptr_to_member_declarator_start */
+
+
 /*
 Macro that is TRUE if the current token is the start of an abstract
 declarator (3.5.5).
 */
 #define is_abstract_declarator_start()                                \
-  (curr_token == tok_star       || curr_token == tok_lbracket ||      \
+  (curr_token == tok_star || curr_token == tok_lbracket ||            \
    curr_token == tok_lparen ||                                        \
-   (C_dialect == C_dialect_cplusplus && curr_token == tok_ampersand))
+   (C_dialect == C_dialect_cplusplus &&                               \
+    ((curr_token == tok_identifier &&                                 \
+      is_ptr_to_member_declarator_start()) ||                         \
+     curr_token == tok_ampersand)))
 
 
 static a_boolean has_name_of_curr_class(a_symbol_locator  *loc)
