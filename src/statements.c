@@ -1381,7 +1381,7 @@ See also 3.6.6.4.
   /* If a return expression was found in a void function (which is allowed
      in cfront mode) generate an expression statement that is output
      before the return statement.  This is done to prevent generating
-     and return statement in the IL that has a void type and yet contains
+     a return statement in the IL that has a void type and yet contains
      a return expression. */
   if (void_return_used && return_expr != NULL) {
     sp = add_statement((a_statement_kind)stmk_expr);
@@ -1814,8 +1814,12 @@ expr_statement:
       if (curr_token == tok_rbrace || curr_token == tok_else) {
         if (prev_was_label && curr_token == tok_rbrace) {
           /* When a label definition precedes a "}", let it by as an
-             extension, with a warning in all modes. */
-          warning(ec_exp_statement);
+             extension, with a warning (at least) in all modes. */
+          if (strict_ansi_mode) {
+            diagnostic(strict_ansi_error_severity, ec_exp_statement);
+          } else {
+            warning(ec_exp_statement);
+          }  /* if */
         } else {
           add_stop_token(tok_semicolon);
           syntax_error(ec_exp_statement);
