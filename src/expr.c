@@ -4835,12 +4835,16 @@ C-style casts and C++ functional-notation type conversions.
           }  /* if */
         }  /* if */
       } else {
-        /* Normal case (not a cast to reference).  Do array --> pointer and
-           function --> pointer conversions.  They must be done now because
-           they affect the type of the operand.  Don't do lvalue --> rvalue
-           yet because of the pcc lvalue cast case. */
+        /* Normal case (not a cast to reference). */
+        /* Do array --> pointer and function --> pointer conversions.
+           They must be done now because they affect the type of the operand.
+           Don't do lvalue --> rvalue yet because of the pcc lvalue cast
+           case. */
+        /* Keep indefinite functions too, since a particular function can
+           be chosen by a cast to a pointer or pointer-to-member type. */
         do_operand_transformations(operand,
-                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
       }  /* if */
       /* Get the source type after the transformations. */
       source_type = operand->type;
@@ -4975,6 +4979,29 @@ C-style casts and C++ functional-notation type conversions.
             /* Any other use of a bound function.  Error. */
             error_in_operand(ec_bound_function_must_be_called, operand);
             operand->bound_function = FALSE;
+          }  /* if */
+        } else if (is_indefinite_function_operand(operand)) {
+          /* An overloaded function may be cast to a pointer type that
+             disambiguates, but is not valid in any other kind of cast. */
+          an_arg_match_level match_level;
+          a_std_conv_descr   std_conversion;
+          a_boolean          ambiguous;
+
+          if (find_addr_of_overloaded_function_match(operand->variant.symbol,
+                                                     type_cast_to,
+                                                     &operand->position,
+                                                     &match_level,
+                                                     &std_conversion,
+                                                     &ambiguous)) {
+            /* The cast selects one of the overloaded functions and is
+               valid. */
+            cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
+          } else {
+            /* The cast doesn't select one of the overloaded functions,
+               so it's an error. */
+            err = TRUE;
+            pos_sy_error(ec_indeterminate_overloaded_function,
+                         &operand->position, operand->variant.symbol);
           }  /* if */
         } else if (is_void_type(type_cast_to)) {
           /* Anything --> void, allowed. */

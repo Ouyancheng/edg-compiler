@@ -1,8 +1,18 @@
 Version 2.26
 
-8/29/94  Missing cross-reference entry
+9/30/94  Cast as disambiguator for overloaded function
 
-A cross reference entry was missing in two cases:
+A cast can now be used to select one function out of a set of overloaded
+functions:
+
+  void f(int);
+  void f(double);
+  void (*p)(int) = (void (*)(int))f;
+
+9/29/94  Missing cross-reference entry
+
+A cross reference entry (i.e., a line in the optional cross-reference
+information output file) was missing in two cases:
 
 - The operator new function referenced in a new operator:
 
