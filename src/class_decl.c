@@ -5298,6 +5298,7 @@ specified by decl_scope_level.
         break;
       case sk_member_function:
       case sk_overloaded_function:
+      case sk_function_template:
         /* Remove the symbol and don't reenter it. */
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         /* This may be a compiler generated default assignment operator, which
@@ -5312,7 +5313,8 @@ specified by decl_scope_level.
         for (; mf_sym != NULL;
                mf_sym = is_overloaded ? mf_sym->next : NULL) {
           if (!member_function_error_already_issued &&
-              !mf_sym->variant.routine.ptr->compiler_generated) {
+              (mf_sym->kind == (a_symbol_kind)sk_function_template ||
+               !mf_sym->variant.routine.ptr->compiler_generated)) {
             pos_error(ec_anon_union_member_function,
                       &assoc_object_type->source_corresp.decl_position);
             member_function_error_already_issued = TRUE;
@@ -5368,11 +5370,18 @@ specified by decl_scope_level.
         check_for_defeatable_name_hiding(sym);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
         break;
+      case sk_class_template:
+        /* Member class template -- issue an error.  (This is not explicitly
+           required by anything in the WP at this time.) */
+        pos_error(ec_anon_union_class_member_template,
+                  &assoc_object_type->source_corresp.decl_position);
+        /* Remove the symbol and don't reenter it. */
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
       case sk_static_data_member:
         /* Must be an error, since unions cannot have static data members,
            and the nonstandard case is only allowed to have fields.  Ignore
            this symbol. */
-       break;
+        break;
 #if CHECKING
       default:
         internal_error("check_anonymous_union_symbols: unexpected sym kind");
