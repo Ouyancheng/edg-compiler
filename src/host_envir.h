@@ -966,7 +966,7 @@ file mode), or to contain template instantiation flags.
 #if DRIVER_COMPATIBILITY_VERSION >= 237
 #define USE_TEMPLATE_INFO_FILE TRUE
 #else /* DRIVER_COMPATIBILITY_VERSION >= 237 */
-#define USE_TEMPLATE_INFO_FILE TRUE
+#define USE_TEMPLATE_INFO_FILE FALSE
 #endif /* !DRIVER_COMPATIBILITY_VERSION >= 237 */
 #endif /* ifndef USE_TEMPLATE_INFO_FILE */
 
