@@ -1675,9 +1675,9 @@ is not empty, because it contains a name or a derived type).
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
-       typedef. */
-    check_assertion_str(qual_type == type,
-                        "gen_type_first_part: qualifier on function type");
+       typedef, but they can get here if the typedef is not yet defined
+       (see is_not_yet_defined_typedef).  Drop all qualifiers here, always,
+       to get around that.  They don't mean anything anyway. */
     gen_type_first_part(type->variant.routine.return_type,
                         /*need_paren=*/TRUE,
                         /*need_trailing_space=*/TRUE);
