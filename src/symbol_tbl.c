@@ -5581,6 +5581,7 @@ to avoid an 8-character external name clash with symbol_table.)
   name_space_for_symbol_kind[(int)sk_extern_variable]     = nsk_extern;
   name_space_for_symbol_kind[(int)sk_extern_routine]      = nsk_extern;
   name_space_for_symbol_kind[(int)sk_projection]          = nsk_other;
+  name_space_for_symbol_kind[(int)sk_overloaded_function] = nsk_other;
   name_space_for_symbol_kind[(int)sk_class_template]      = nsk_other;
   name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
 #if CHECKING
