@@ -3993,7 +3993,7 @@ static a_symbol_ptr make_predeclared_function_symbol(
                                               a_type_ptr        param3_type)
 /*
 Create a symbol and routine entry for a predeclared function.  locator points
-the a symbol locator created to represent the entity's name.  return_type
+to a symbol locator created to represent the entity's name.  return_type
 (which must be non-NULL) and the parameter types (which may be NULL) indicate
 how to form the function's signature.
 */
@@ -4044,6 +4044,7 @@ how to form the function's signature.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* make_predeclared_function_symbol */
+
 
 void make_global_operator_new_or_delete_symbol(an_opname_kind  opname)
 /*
