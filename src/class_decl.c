@@ -1195,8 +1195,6 @@ nested class.
            list to represent a partial instantiation. */
         a_template_instance_ptr       tip;
 
-        tip = rfp->symbol->variant.routine.instance_ptr;
-        check_assertion(tip != NULL && tip->partial_instantiation != NULL);
         if (curr_scope_class_type != rfp->class_type) {
           if (curr_scope_class_type != NULL) {
             /* Pop the reactivated class scope from the scope stack. */
@@ -1207,7 +1205,10 @@ nested class.
                                                      is_template_based);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
-        update_source_sequence_list(
+        tip = rfp->symbol->variant.routine.instance_ptr;
+        check_assertion(tip != NULL && tip->partial_instantiation != NULL);
+        check_assertion(!source_sequence_entries_disallowed);
+        f_update_source_sequence_list(
                                (char *)tip->partial_instantiation,
                                (an_il_entry_kind)iek_src_seq_secondary_decl,
                                (a_source_sequence_entry_ptr)NULL);
