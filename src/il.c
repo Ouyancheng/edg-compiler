@@ -8021,10 +8021,18 @@ Copy the type entry "from" to "to".
       dtf_kind = (a_dependent_type_fixup_kind)dtfk_array_type_size;
       if (from->variant.array.has_assoc_vla_dimension) {
         /* A variable-length array (VLA): Create a new a_vla_dimension entry
-           for the new copy of the type. */
+           for the new copy of the type.  VLA types can only be copied while
+           the function scope of the original is still active.  However, in
+           some cases, it is possible that a function prototype scope is the
+           current scope for new declarations.  To avoid confusing the
+           make_vla_dimension routine, we temporarily reset decl_scope_level
+           back to depth_innermost_function_scope. */
+        a_scope_depth        saved_decl_scope_level = decl_scope_level;
         a_vla_dimension_ptr  vdp = find_vla_dimension(from), new_vdp;
+        decl_scope_level = depth_innermost_function_scope;
         new_vdp = make_vla_dimension(to, (an_expr_node_ptr)NULL,
                                      vdp->in_prototype_scope, &vdp->position);
+        decl_scope_level = saved_decl_scope_level;
         new_vdp->original_dimension = vdp;
         check_assertion(C_mode());
       }  /* if */
