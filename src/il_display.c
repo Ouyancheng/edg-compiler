@@ -2475,6 +2475,9 @@ Display the indicated hidden-name entry.
     case (templk_static_data_member):
       (void)printf("templk_static_data_member\n");
       break;
+    case (templk_member_class):
+      (void)printf("templk_member_class\n");
+      break;
     default:
       (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */

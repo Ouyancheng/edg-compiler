@@ -5860,8 +5860,10 @@ enum a_template_kind_tag {
   templk_function,	/* (Non-member) function template. */
   templk_member_function,
 			/* Member function template. */
-  templk_static_data_member
+  templk_static_data_member,
 			/* Static data member template. */
+  templk_member_class
+			/* A class nested within a class template. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_template_kind;
