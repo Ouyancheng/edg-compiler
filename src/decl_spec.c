@@ -2639,7 +2639,6 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  is_friend_decl = FALSE;
   a_boolean                  is_inline = FALSE;
   an_error_severity          es;
-  an_identifier_options_set  options;
   a_basic_type               basic_type = bt_none;
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
@@ -3411,8 +3410,9 @@ process_class_specifier:
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
         if (C_dialect == C_dialect_cplusplus) {
+          an_identifier_options_set  options = GID_NO_OPTIONS;
+
           /* In case the identifier has not yet been coalesced, do it now. */
-          options = GID_NO_OPTIONS;
           if (input_flags & DSI_IS_NEW_TYPE_NAME) {
             options |= GID_IS_NEW_TYPE_NAME;
           }  /* if */
@@ -3626,15 +3626,12 @@ process_class_specifier:
              this to be like an unidentified type name. */
           bad_type_name_error = TRUE;
         } else if (type_specifier_allowed && basic_type == bt_none &&
-                   sign == sign_none && size == size_none &&
-                   (locator_for_curr_id.specific_symbol == NULL ||
-                    locator_for_curr_id.specific_symbol->kind ==
-                                         (a_symbol_kind)sk_undefined)) {
-          /* No type name has been seen and the current token may be
-             undeclared identifier or an invalid qualified name.  If the
-             next token is the start of a declarator, we may plausibly
-             have something like "extern x y" or "static x *z", where x
-             can be interpreted as a type name. */
+                   sign == sign_none && size == size_none) {
+          /* This is an error recovery optimization.  The current identifier
+             is not a type name, but if it is undefined and the next token
+             is the start of a declarator, we may plausibly have something
+             like "extern x y" or static x *z", where x can be interpreted
+             as a type name. */
           a_token_cache  cache;
 
           clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -3654,7 +3651,8 @@ process_class_specifier:
         }  /* if */
         if (bad_type_name_error) {
           if (!is_error_locator(locator_for_curr_id)) {
-            if (normal_id_lookup(&locator_for_curr_id,
+            if (!locator_for_curr_id.is_qualified_name &&
+                normal_id_lookup(&locator_for_curr_id,
                                  IDL_NO_OPTIONS) == NULL) {
               str_error(ec_undefined_identifier,
                         locator_for_curr_id.symbol_header->identifier);
@@ -3670,7 +3668,6 @@ process_class_specifier:
         }  /* if */
         if (num_specifiers ==
                      ((is_friend_decl ? 1 : 0) + (is_inline ? 1 : 0))) {
-          a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
 
           /* A function declaration without declaration specifiers is
              permitted. */
@@ -3679,27 +3676,21 @@ process_class_specifier:
           }  /* if */
           /* Set the type appropriately if this the name of a constructor
              member function. */
-          if (sym != NULL) {
-            if (is_constructor_symbol(sym)) {
-              *output_flags |= DSO_CONSTRUCTOR;
-              basic_type = bt_no_type;
-            } else if (is_destructor_symbol(sym)) {
-              *output_flags |= DSO_DESTRUCTOR;
-              basic_type = bt_no_type;
-            } else if (is_friend_decl) {
-              /* This is a declaration of the form "... friend X ... ",
-                 where X is already known to be neither the name of a class
-                 in a friend class declaration nor the name of a type for a
-                 function return type.  That means it is probably the name
-                 of a function with an implicit return type.  Clear the
-                 specific symbol pointer in the locator to deal with this
-                 sort of case:
-                   class A {
-                     int x;         // Declare A::x
-                     friend x();    // Cause injection of ::x at file scope
-                   };
-              */
-              clear_specific_symbol(locator_for_curr_id);
+          if (locator_for_curr_id.is_class_member) {
+            a_symbol_ptr  sym  = class_qualified_id_lookup(
+                                        &locator_for_curr_id,
+                                        locator_for_curr_id.parent.class_type,
+                                        IDL_DIRECT_CLASS_MEMBERS_ONLY);
+            if (sym != NULL) {
+              if (is_constructor_symbol(sym)) {
+                *output_flags |= DSO_CONSTRUCTOR;
+                basic_type = bt_no_type;
+              } else if (is_destructor_symbol(sym)) {
+                *output_flags |= DSO_DESTRUCTOR;
+                basic_type = bt_no_type;
+              } else {
+                clear_specific_symbol(locator_for_curr_id);
+              }  /* if */
             }  /* if */
           }  /* if */
           goto exit_loop;
