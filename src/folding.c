@@ -2302,6 +2302,7 @@ detected, or *err_code == ec_no_error if everything went fine.
   an_integer_value op2;
   a_constant       offset;
   a_boolean        err, offset_is_signed, op2_is_signed, just_past_end;
+  a_boolean        integer_case = FALSE;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -2309,6 +2310,7 @@ detected, or *err_code == ec_no_error if everything went fine.
   if (op == (an_expr_operator_kind)eok_iadd ||
       op == (an_expr_operator_kind)eok_isubtract) {
     /* For the (int)address +- constant case, the size (scaling) is 1. */
+    integer_case = TRUE;
     size = 1;
   } else {
     /* Get the size of the thing pointed to. */
@@ -2325,7 +2327,10 @@ detected, or *err_code == ec_no_error if everything went fine.
   if (!err) {
     /* Get the offset from the first constant. */
     get_pointer_offset(constant_1, &offset);
-    offset_is_signed = int_constant_is_signed(&offset);
+    /* When dealing with an address cast to an integral type, treat the
+       offset as having the signedness of the type cast to. */
+    offset_is_signed = integer_case ? int_constant_is_signed(constant_1) :
+                                      int_constant_is_signed(&offset);
     /* Add/subtract the increment to/from the original offset. */
     if (op == (an_expr_operator_kind)eok_psubtract ||
         op == (an_expr_operator_kind)eok_isubtract) {
@@ -2337,6 +2342,8 @@ detected, or *err_code == ec_no_error if everything went fine.
                                       offset_is_signed,
                                       &op2, op2_is_signed, &err);
     }  /* if */
+    /* If this was an unsigned integer operation, overflow is ignored. */
+    if (integer_case && !offset_is_signed) err = FALSE;
   }  /* if */
   if (!err) {
     /* Build the result pointer constant. */

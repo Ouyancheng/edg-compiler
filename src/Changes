@@ -1,5 +1,13 @@
 Version 2.23
 
+4/1/94   Overflow check in constant pointer addition/subtraction
+
+In an example like the following:
+
+  x = ((unsigned long) &end) - 0xfff0000000000000;
+
+the overflow check is now suppressed (since the operation is unsigned).
+
 3/31/94  Vacuous enum declarations in strict ANSI mode
 
 The handling of the following case is now different in strict ANSI mode
