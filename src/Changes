@@ -1,5 +1,29 @@
 Version 3.2
 
+2/24/03  Bad C for function with covariant return and two return statements
+
+The C-generating back end generated bad C, specifically several
+temporary variables with the same name within a single function, when
+processing a function with a covariant return type and more than
+one return statement in its body.  Now fixed.
+
+  struct A {
+    int i;
+    virtual A *f();
+  };
+  struct AA { int j; };
+  struct B : public AA, public A {
+    virtual B *f();
+  };
+  B *B::f() {
+    if (i == 0) return 0;
+    return 0;
+  };
+  B b;
+  int main() {
+    b.f();
+  }
+
 2/24/03  Internal error in IL lowering of exception handling
 
 An internal error ("region table generated but empty lifetime on func",

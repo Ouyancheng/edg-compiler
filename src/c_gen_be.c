@@ -6688,6 +6688,39 @@ Dump out the local label declarations (a GNU C extension) of the given scope
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+
+static void dump_covariant_return_temp(void)
+/*
+Put out the declaration for a temporary used in the code for return
+statements in wrapper functions for covariant returns, if needed in
+the current routine.
+*/
+{
+  if (covariant_return_expr != NULL) {
+    /* Declare a temporary to be used for the transformation on the
+       return statement that adds a cast for a covariant return. */
+    a_routine_ptr curr_routine = innermost_function_scope->variant.routine.ptr;
+    a_type_ptr    curr_routine_type = skip_typerefs(curr_routine->type);
+    a_type_ptr    return_type = curr_routine_type->variant.routine.return_type;
+
+    /* In the IA64 ABI this code is used for thunks to non-covariant
+       returns; in that case, we must be careful not to create invalid
+       declarations like "void temp;". */
+    return_type = skip_typerefs(return_type); /* Rvalue type. */
+    if (!is_void_type(return_type)) {
+      dump_general_declaration_using_type(return_type,
+                                          NO_SCP, NO_VARIABLE,
+                                          (char *)covariant_return_expr,
+                                          NO_NAME, TQ_NONE,
+                                          /*suppress_const=*/FALSE);
+      write_tok_ch(';');
+    }  /* if */
+  }  /* if */
+}  /* dump_covariant_return_temp */
+
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+
 static void dump_block_declarations(a_statement_ptr statement)
 /*
 Dump out the declarations (if any) for a block.
@@ -6731,6 +6764,9 @@ Dump out the declarations (if any) for a block.
                          /*interleave_asm_decls=*/FALSE,
                          /*dump_vars_without_initializers=*/TRUE,
                          /*dump_initializers=*/TRUE);
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    dump_covariant_return_temp();
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     dump_prescan_temps(statement->variant.block.statements);
     dump_rout_initializations(rout);
     /* If the first statement in the block has no source position, set the
@@ -7560,6 +7596,7 @@ its subtree.
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
       case stmk_expr:
       case stmk_goto:
+      case stmk_return:
       case stmk_label:
 #if GNU_EXTENSIONS_ALLOWED
       case stmk_assigned_goto:
@@ -7581,30 +7618,6 @@ its subtree.
       case stmk_upc_fence:
 #endif /* UPC_EXTENSIONS_ALLOWED */
         /* No subtree of statements. */
-        break;
-      case stmk_return:
-        if (covariant_return_expr != NULL) {
-          /* Declare a temporary to be used for the transformation on the
-             return statement that adds a cast for a covariant return. */
-          a_routine_ptr curr_routine =
-                                 innermost_function_scope->variant.routine.ptr;
-          a_type_ptr    curr_routine_type = skip_typerefs(curr_routine->type);
-          a_type_ptr    return_type =
-                                curr_routine_type->variant.routine.return_type;
-
-          /* In the IA64 ABI this code is used for thunks to non-covariant
-             returns; in that case, we must be careful not to create invalid
-             declarations like "void temp;". */
-          return_type = skip_typerefs(return_type); /* Rvalue type. */
-          if (!is_void_type(return_type)) {
-            dump_general_declaration_using_type(return_type,
-                                                NO_SCP, NO_VARIABLE,
-                                                (char *)covariant_return_expr,
-                                                NO_NAME, TQ_NONE,
-                                                /*suppress_const=*/FALSE);
-            write_tok_ch(';');
-          }  /* if */
-        }  /* if */
         break;
       case stmk_init:
         dump_dynamic_init_prescan_temps(statement->variant.dynamic_init);
