@@ -1,5 +1,22 @@
 Version 2.20
 
+10/12/93 Order of types on type list when IL lowering does type promotion
+
+When IL lowering promotes types to the file-scope types list, they
+now end up in the order of original source definition.  This was
+more or less true in the past, but not always.  For example:
+
+  struct OUTER {
+    class C {};
+    TMPL<C> x;
+  };
+
+Formerly, the types ended up in the order TMPL<C>, OUTER, C.  Now they
+appear in source order (C, TMPL<C>, OUTER).
+
+int main () { return 0; }
+
+
 10/8/93  Reference initialization cases
 
 The diagnostics on two cases have been changed:

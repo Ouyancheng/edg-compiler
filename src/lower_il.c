@@ -52,15 +52,13 @@ static a_boolean
 			/* TRUE if lowering the file scope's IL, FALSE if
 			   lowering a routine scope's IL. */
 static a_type_ptr
-		*type_promotion_insert_location;
-			/* If non-NULL, indicates the position in the
-			   file-scope types list at which promoted types
-			   should be inserted (it points to the "next"
-			   pointer of the entry after which the insert should
-			   be done, or to the head-of-list pointer for
-			   the file-scope types list).  If NULL, promotions
-			   should be moved to the end of the file-scope
-			   list. */
+		type_promotion_insert_location;
+			/* If non-NULL, points to a type that was the last
+			   one examined by
+			   determine_type_promotion_insert_location.
+			   This is used to speed up the search for an insert
+			   location in the usual case that the types are
+			   promoted in sequential order. */
 
 #if DEBUG
 /*
@@ -785,8 +783,7 @@ inside other user-written structs.
 {
   type->next = il_header.primary_scope->types;
   il_header.primary_scope->types = type;
-  if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE &&
-      scope_stack[DEPTH_OF_FILE_SCOPE].last_type == NULL) {
+  if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE && type->next == NULL) {
     /* There are no types on the file scope list, so this type is also the
        last type on the list. */
     scope_stack[DEPTH_OF_FILE_SCOPE].last_type = type;
@@ -3595,6 +3592,56 @@ Promote the constants on the scope list to the file scope.
 }  /* promote_constants */
 
 
+/*
+Macro to extract the declaration sequence number from a type.
+It does that by going up to the associated symbol.
+*/
+#define decl_seq_of_type(type)                                        \
+  (((a_symbol_ptr)type->source_corresp.assoc_info)->decl_seq)
+
+
+static void determine_type_promotion_insert_location(a_type_ptr type)
+/*
+Determine the right spot in the file scope types list to insert the
+type "type", based on original declaration sequence.  Set the global
+variable type_promotion_insert_location to indicate the entry after
+which the insert should be done (NULL for the beginning of the list).
+Also use the previous value of type_promotion_insert_location to
+speed up the search for the right spot.
+*/
+{
+  a_decl_sequence_number type_decl_seq = decl_seq_of_type(type);
+  a_type_ptr             next_type;
+
+  /* If there is a saved value of type_promotion_insert_location from the
+     previous call, consider starting the loop there. */
+  if (type_promotion_insert_location != NULL &&
+      /* Compare the declaration sequence number of the type at
+         type_promotion_insert_location with that of the type to be
+         inserted.  If we're already too far into the types list, do not
+         use the saved position (start at the beginning instead). */
+      decl_seq_of_type(type_promotion_insert_location) <= type_decl_seq) {
+    /* Okay, start the loop at the saved position. */
+    next_type = type_promotion_insert_location->next;
+  } else {
+    /* Start at the beginning of the types list. */
+    type_promotion_insert_location = NULL;
+    next_type = il_header.primary_scope->types;
+  }  /* if */
+  /* Loop comparing the declaration sequence number of the type to be
+     inserted with that of the next type on the list. */
+  for (;
+       next_type != NULL;
+       type_promotion_insert_location = next_type,
+                                        next_type = next_type->next) {
+    /* Exit the loop if we've found the right spot for the insertion. */
+    if (type_decl_seq < decl_seq_of_type(next_type)) break;
+  }  /* for */
+  /* type_promotion_insert_location is now set correctly.  NULL means
+     insert at the beginning of the list. */
+}  /* determine_type_promotion_insert_location */
+
+
 #if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 /*ARGSUSED*/ /* <-- routine is only used when local entities are promoted. */
 #endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
@@ -3602,9 +3649,10 @@ static void promote_types(a_scope_ptr   scope,
                           a_routine_ptr routine)
 /*
 Promote the types on the scope list to the file scope.  Types promoted
-will be inserted at the point indicated by type_promotion_insert_location.
-If routine is non-NULL, the scope is (directly or indirectly) part of the
-indicated function (as opposed to a class).
+will be inserted at the right point in the file scope types list based
+on their declaration sequence position.  If routine is non-NULL, the
+scope is (directly or indirectly) part of the indicated function (as
+opposed to a class).
 */
 {
   a_type_ptr  type, next_type;
@@ -3618,14 +3666,20 @@ indicated function (as opposed to a class).
       mangle_promoted_entity_name(&type->source_corresp, routine);
     }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-    if (type_promotion_insert_location != NULL) {
-      /* Insert at the indicated point. */
-      type->next = *type_promotion_insert_location;
-      *type_promotion_insert_location = type;
-      type_promotion_insert_location = &type->next;
+    /* Find the right spot to insert the type. */
+    determine_type_promotion_insert_location(type);
+    if (type_promotion_insert_location == NULL) {
+      /* Insert at the beginning of the list. */
+      type->next = il_header.primary_scope->types;
+      il_header.primary_scope->types = type;
     } else {
-      /* Add to the end of the list. */
-      add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
+      type->next = type_promotion_insert_location->next;
+      type_promotion_insert_location->next = type;
+    }  /* if */
+    if (depth_scope_stack >= DEPTH_OF_FILE_SCOPE && type->next == NULL) {
+      /* This type is the last type on the file scope types list.  Keep
+         the last_type pointer up to date. */
+      scope_stack[DEPTH_OF_FILE_SCOPE].last_type = type;
     }  /* if */
   }  /* for */
   scope->types = NULL;
@@ -3750,15 +3804,7 @@ Do IL lowering of the indicated list of types and everything under it.
 */
 {
   a_type_ptr type;
-  a_boolean  is_file_scope_list;
 
-  /* See if the list we are handling is the one for the file scope. */
-  is_file_scope_list = (type_list == il_header.primary_scope->types);
-  if (is_file_scope_list) {
-    /* When lowering the file-scope list, get promoted types inserted into
-       the middle of the types list. */
-    type_promotion_insert_location = &il_header.primary_scope->types;
-  }  /* if */
   for (type = type_list; type != NULL; type = type->next) {
     lower_type(type);
     if (is_immediate_class_type(type)) {
@@ -3773,9 +3819,7 @@ Do IL lowering of the indicated list of types and everything under it.
          given type list. */
       lower_class_struct_union_type(type);
     }  /* if */
-    if (is_file_scope_list) type_promotion_insert_location = &type->next;
   }  /* for */
-  if (is_file_scope_list) type_promotion_insert_location = NULL;
 }  /* lower_type_list */
 
 
