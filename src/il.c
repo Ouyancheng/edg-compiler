@@ -3489,8 +3489,7 @@ a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
 Simple interface to copy_constant_full for the usual case.
 */
 {
-  return copy_constant_full(old_constant, (a_constant *)NULL,
-                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+  return copy_constant_full(old_constant, (a_constant *)NULL, CE_NO_OPTIONS);
 }  /* copy_unshared_constant */
 
 
@@ -7037,10 +7036,15 @@ expression node.  options is a set of options for the copy.
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
-      /* The constant pointed to is unshared and must be copied. */
-      new_dip->variant.constant = copy_constant_full(dip->variant.constant,
-                                                     (a_constant *)NULL,
-                                                     options);
+      { an_expr_copy_options_set options_unshared;
+        /* The constant pointed to is unshared and must be copied. */
+        options_unshared = (options &
+                            ~(an_expr_copy_options_set)
+                                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+        new_dip->variant.constant = copy_constant_full(dip->variant.constant,
+                                                       (a_constant *)NULL,
+                                                       options_unshared);
+      }
       break;
 #if CHECKING
     case dik_bitwise_copy:
