@@ -634,7 +634,7 @@ vp had an incomplete array type that has been completed by an initializer.
     make_locator_for_symbol(symbol_ptr, &locator);
     name_linkage = symbol_ptr->variant.variable->source_corresp.name_linkage;
     ext_sym = find_external_symbol(&locator, name_linkage,
-                                   (a_routine_ptr)NULL, &ext_locator);
+                                   (a_type_ptr)NULL, &ext_locator);
 #if CHECKING
     if (ext_sym == NULL) {
       internal_error("put_type_back_into_variable: ext_sym not found");
