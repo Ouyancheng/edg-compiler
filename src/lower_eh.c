@@ -2546,44 +2546,22 @@ Do IL lowering for an stmk_try_block statement.
 
 
 #if DO_FULL_PORTABLE_EH_LOWERING
-static char	*access_string_buffer = NULL;
-static sizeof_t	size_access_string_buffer /* = 0 */;
-			/* Buffer used to build the access string for throws.
-			   General storage; reallocated if necessary to
-			   make it larger. */
+
+/* Routines to build an access string for a throw, using the temp_text
+   buffer. */
+
 static sizeof_t	curr_size_access_string_buffer;
 			/* Number of characters currently used in
-			   access_string_buffer. */
-
-
-static void expand_access_string_buffer(sizeof_t size_needed)
-/*
-Expand the access_string_buffer by reallocating it, so that its total size
-is at least size_needed.
-*/
-{
-  sizeof_t new_size;
-
-  db_enter(4, "expand_access_string_buffer");
-  new_size = size_access_string_buffer + 200;
-  if (new_size < size_needed) new_size  = size_needed;
-  access_string_buffer = realloc_general(access_string_buffer,
-                                         size_access_string_buffer, new_size);
-  size_access_string_buffer = new_size;
-  db_exit();
-}  /* expand_access_string_buffer */
+			   temp_text_buffer. */
 
 
 static void add_char_to_access_string_buffer(char ch)
 /*
-Add the indicated character to the access_string_buffer.
+Add the indicated character to the temp_text_buffer.
 */
 {
-  if (curr_size_access_string_buffer == size_access_string_buffer) {
-    /* Increase the size of the buffer. */
-    expand_access_string_buffer((sizeof_t)1);
-  }  /* if */
-  access_string_buffer[curr_size_access_string_buffer++] = ch;
+  ensure_temp_text_buffer_space(curr_size_access_string_buffer+1);
+  temp_text_buffer[curr_size_access_string_buffer++] = ch;
 }  /* add_char_to_access_string_buffer */
 
 
@@ -2675,7 +2653,7 @@ is needed, return NULL.
     add_char_to_access_string_buffer('\0');
     /* Build the string constant. */
     pstr = alloc_text_of_string_literal(curr_size_access_string_buffer);
-    (void)strcpy(pstr, access_string_buffer);
+    (void)strcpy(pstr, temp_text_buffer);
     clear_constant(&constant, (a_constant_repr_kind)ck_string);
     constant.type = string_type((a_targ_size_t)curr_size_access_string_buffer);
     constant.variant.string.length = curr_size_access_string_buffer;
