@@ -1030,7 +1030,7 @@ vp had an incomplete array type that has been completed by an initializer.
 
   db_enter(5, "put_type_back_into_variable");
   /* See if the variable has linkage. */
-  if (linkage != idl_none) {
+  if (symbol_ptr->kind == (a_symbol_kind)sk_variable && linkage != idl_none) {
     /* The type of a variable with linkage has been adjusted because it
        is an incomplete array that has been initialized.  Check that the
        new type is compatible with other declarations of the variable.
