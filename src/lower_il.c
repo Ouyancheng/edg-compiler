@@ -2432,7 +2432,6 @@ and if not, issue an error.  This version is for signed integer kinds.
                        &did_not_fold, &error_position);
 }  /* set_integer_constant_with_overflow_check */
 
-#if GENERATE_EH_TABLES
 
 void set_unsigned_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
@@ -2458,7 +2457,6 @@ and if not, issue an error.  This version is for unsigned integer kinds.
                        &did_not_fold, &error_position);
 }  /* set_unsigned_integer_constant_with_overflow_check */
 
-#endif /* GENERATE_EH_TABLES */
 
 static void set_delta_constant(a_targ_ptrdiff_t delta,
                                a_constant_ptr   delta_con)
