@@ -34,6 +34,7 @@ Flags to be set for any version that uses the C++ generating back end.
 /* On NT, don't generate an IL file. */
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 0
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
+#define DELETE_CAN_BE_FOLDED_INTO_DTOR 0
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
 #endif /* ifdef _WIN32 */
 #endif /* ifdef CP_GEN_BE_VERSION */
