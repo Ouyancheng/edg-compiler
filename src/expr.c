@@ -1221,15 +1221,21 @@ __builtin_constant_p and __builtin_classify_type are processed here.
     case bfk_constant_p:
       /* Lvalue-to-rvalue transformation is needed to ensure that a global
          variable lvalue (which is represented as an address constant) is
-         not treated as a constant by is_constant_operand.  Address constants
-         are not considered constants in this context by GNU compilers. */
-      do_operand_transformations(&arg, TOPT_NO_OPTIONS);
-      set_integer_constant(&result,
-                           (a_host_large_integer)(
-                             is_constant_operand(&arg) &&
-                             arg.variant.constant.kind !=
-                                            (a_constant_repr_kind)ck_address),
-                           result_type->variant.integer.int_kind);
+         not treated as a constant by is_constant_operand.  Except for string
+         literals, GNU compilers do not treat address constants as
+         constants.  (Note that operand_is_string_literal only works prior
+         to applying the lvalue-to-rvalue transformation.) */
+      {
+        a_boolean  result_value = operand_is_string_literal(&arg);
+        do_operand_transformations(&arg, TOPT_NO_OPTIONS);
+        if (result_value == FALSE) {
+          result_value = is_constant_operand(&arg) &&
+                         arg.variant.constant.kind !=
+                                             (a_constant_repr_kind)ck_address;
+        }  /* if */
+        set_integer_constant(&result, (a_host_large_integer)result_value,
+                             result_type->variant.integer.int_kind);
+      }
       break;
     case bfk_classify_type:
 #if FIXED_POINT_ALLOWED
