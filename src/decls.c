@@ -3208,7 +3208,8 @@ skip_overloading:;
              defining a variable that has already been declared. */
           check_assertion(in_file_scope(variable_ptr));
           remove_from_variables_list(variable_ptr);
-          add_to_variables_list(variable_ptr, /*at_file_scope=*/TRUE);
+          add_to_variables_list(variable_ptr,
+                                /*at_file_or_namespace_scope=*/TRUE);
         }  /* if */
       }  /* if */
     }  /* if */
