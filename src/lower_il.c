@@ -2629,6 +2629,11 @@ in that case, a NULL pointer is put out for the function.
     implicit_cast(func_con, vptp_type);
     /* Mark the routine as referenced. */
     func_to_call->source_corresp.referenced = TRUE;
+    /* If the function is a template function, now marked as referenced,
+       an instantiation is now required somewhere. */
+    if (func_to_call->can_be_instantiated) {
+      func_to_call->instance_required = TRUE;
+    }  /* if */
   }  /* if */
   /* The "i" field is set to zero -- it's not used in virtual function
      tables, only in pointers to member functions. */
