@@ -1302,36 +1302,48 @@ void record_predeclared_template_function(a_symbol_ptr  templ_sym,
 }  /* record_predeclared_template_function */
 
 
-void find_member_function_template(a_symbol_ptr    rout_sym,
-                                   a_scope_number  decl_scope)
+void find_member_function_template(a_symbol_ptr  rout_sym,
+                                   a_symbol_ptr  corresp_prototype_tag_sym)
 /*
-rout_sym is a member function of a template class.  decl_scope is the scope
-in which the corresponding member function of a prototype instantiation was
-declared; the symbol for that corresponding member function is a function
-template symbol.  Find the function template symbol that corresponds to
-rout_sym (if the name is overloaded, use the source position to decide),
-and then create a function instantiation entry to bind the two symbols
-together.
+rout_sym is a member function of a template class.  corresp_prototype_tag_sym
+is a symbol representing the corresponding prototype instantiation.  (For
+instance, if rout_sym is a member of A<int>, the corresponding prototype
+instantiation is A<T>; if rout_sym is a member of A<int>::B, the corresponding
+prototype instantiation is A<T>::B.)  Find the function template symbol that
+is a member of the corresponding prototype instantiation and that corresponds
+to rout_sym (if the name is overloaded, use the source position to decide),
+and create a function instantiation entry to bind the two symbols together.
 */
 {
   a_symbol_ptr                       sym;
   a_template_symbol_supplement_ptr   tssp;
   a_function_instantiation_entry_ptr fiep;
   a_type_ptr                         tp;
+  a_scope_number                     corresp_prototype_decl_scope;
 
-  db_enter(3, "find_memeber_function_template");
+  db_enter(3, "find_member_function_template");
   /* Find a function symbol on the inactive list that is in the scope of the
      prototype instantiation.  It should either be a function template or
      overloaded function symbol. */
-  for (sym = rout_sym->header->inactive_symbols;
-       sym != NULL;
-       sym = sym->next) {
-    if (sym->decl_scope == decl_scope &&
-        (sym->kind == (a_symbol_kind)sk_function_template ||
-         sym->kind == (a_symbol_kind)sk_overloaded_function)) {
-      break;
-    }  /* if */
-  }  /* for */
+  if (is_constructor_symbol(rout_sym)) {
+    sym = corresp_prototype_tag_sym->
+                         variant.class_struct_union.extra_info->constructor;
+  } else {
+    /* Get the scope in which the members of the class represented by
+       corresp_prototype_tag_sym were declared. */
+    tp = type_symbol_type(corresp_prototype_tag_sym);
+    corresp_prototype_decl_scope =
+               tp->variant.class_struct_union.extra_info->assoc_scope->number;
+    for (sym = rout_sym->header->inactive_symbols;
+         sym != NULL;
+         sym = sym->next) {
+      if (sym->decl_scope == corresp_prototype_decl_scope &&
+          (sym->kind == (a_symbol_kind)sk_function_template ||
+           sym->kind == (a_symbol_kind)sk_overloaded_function)) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
 #if CHECKING
   if (sym != NULL)
 #endif /* CHECKING */
@@ -1669,6 +1681,7 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
 
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
+  add_stop_token(tok_colon);
   clear_token_cache(&local_token_cache);
   cache_token_stream(&local_token_cache);
   /* Add an end-of-source token to the end of the token cache to assure that
@@ -1700,9 +1713,17 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
   }  /* if */
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
+  remove_stop_token(tok_colon);
   if (curr_token == tok_end_of_source) {
     /* Advance past the end-of-source token. */
     (void)get_token();
+    if (curr_token == tok_colon && is_constructor_symbol(*sym)) {
+      add_stop_token(tok_lbrace);
+      add_stop_token(tok_semicolon);
+      cache_token_stream(p_token_cache);
+      remove_stop_token(tok_lbrace);
+      remove_stop_token(tok_semicolon);
+    }  /* if */      
     if (curr_token == tok_lbrace) {
       if (!err) (*sym)->defined = TRUE;
       /* Cache the "{" and advance past it. */
