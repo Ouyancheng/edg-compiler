@@ -43,9 +43,10 @@ and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
 }  /* check_pm_member_type */
 
 
-static a_boolean is_cfront_member_function_typedef(a_type_ptr  type_ptr,
-                                                   a_type_ptr  *rout_type,
-                                                   a_type_ptr  *class_type)
+static a_boolean is_cfront_member_function_typedef(a_type_ptr   type_ptr,
+                                                   a_type_ptr   *rout_type,
+                                                   a_type_ptr   *class_type,
+                                                   a_symbol_ptr *sym)
 /*
 We are checking for a type entry produced by a typedef declaration like
 this:
@@ -65,20 +66,51 @@ and
 
 have the very same meaning for cfront.  Although this is not part of the
 language defined in the ARM, it is supported for cfront compatibility.
+
+Return TRUE if this is a member function typedef.  Also return a pointer to
+the function type and the class type if this is the case -- and a pointer to
+type symbol for the typedef, for use in diagnostics.
 */
 {
   a_type_ptr  tp;
+  a_boolean   is_member_function_typedef = FALSE;
 
   *class_type = NULL;
-  if (any_cfront_mode() && is_function_type(type_ptr)) {
+  *rout_type = NULL;
+  *sym = NULL;
+  if (type_ptr->kind == (a_type_kind)tk_typeref &&
+      typeref_is_typedef(type_ptr) && is_function_type(type_ptr)) {
     *rout_type = skip_typerefs(type_ptr);
     if (*rout_type != type_ptr) {
       tp = (*rout_type)->variant.routine.extra_info->implicit_this_param_type;
-      if (tp != NULL) *class_type = type_pointed_to(tp);
+      if (tp != NULL) {
+        is_member_function_typedef = TRUE;
+        *class_type = type_pointed_to(tp);
+        *sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+      }  /* if */
     }  /* if */
   }  /* if */
-  return (*class_type != NULL);
+  return is_member_function_typedef;
 }  /* is_cfront_member_function_typedef */
+
+
+a_boolean check_member_function_typedef(a_type_ptr         tp,
+                                        a_source_position  *pos)
+/*
+If tp is a "member function typedef" (cfront compatibility mode only) issue
+an error diagnostic and return TRUE.
+*/
+{
+  a_boolean     is_member_function_typedef = FALSE;
+  a_type_ptr    rout_type, class_type;
+  a_symbol_ptr  sym;
+
+  if (is_cfront_member_function_typedef(tp, &rout_type, &class_type, &sym)) {
+    pos_sy_error(ec_bad_use_of_member_function_typedef, pos, sym);
+    is_member_function_typedef = TRUE;
+  }  /* if */
+  return is_member_function_typedef;
+}  /* check_member_function_typedef */
 
 
 static a_type_qualifier_set collect_type_qualifiers(void)
@@ -238,6 +270,10 @@ type is legal.
   a_boolean               err = FALSE;
   a_type_kind             tkind;
   a_boolean               array_of_incomp_struct_or_union = FALSE;
+  a_boolean               is_member_function_typedef = FALSE;
+  a_type_ptr              mft_class_type, mft_rout_type;
+  a_symbol_ptr            mft_sym;
+
 
   db_enter(3, "add_to_derived_type_list");
 #if DEBUG
@@ -276,6 +312,16 @@ type is legal.
       /* The bottom derived type is an error, and nothing can be attached
          to it.  Therefore, the new type is thrown away. */
     } else {
+      if (any_cfront_mode()) {
+        /* Check for a "member function typedef" type -- it can only be used
+           to form pointer-to-member types. */
+        if (is_cfront_member_function_typedef(new_type_ptr, &mft_rout_type,
+                                              &mft_class_type, &mft_sym)) {
+          /* The validity of this use in the current context is checked
+             later. */
+          is_member_function_typedef = TRUE;
+        }  /* if */
+      }  /* if */
       if (tkind == (a_type_kind)tk_array) {
         /* Array.  See if the element type is proper.  3.1.2.5: the 
            elements must have an object type.  If the element type is
@@ -326,7 +372,12 @@ type is legal.
           }  /* if */
         } else {
           /* Element type is not okay.  Select a specific error message. */
-          if (is_function_type(temp_type)) {
+          if (is_member_function_typedef) {
+            /* A cfront member function typedef type can only be used in
+               forming a pointer-to-member type. */
+            sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
+            err = TRUE;
+          } else if (is_function_type(temp_type)) {
             error(ec_array_of_function);
             err = TRUE;
           } else if (is_void_type(temp_type)) {
@@ -347,10 +398,7 @@ type is legal.
         (*bottom_derived_type)->variant.array.element_type = new_type_ptr;
       } else if (is_pointer_type(*bottom_derived_type)) {
         /* Pointer type. */
-        a_type_ptr  class_type, rout_type;
-
-        if (is_cfront_member_function_typedef(new_type_ptr, &rout_type,
-                                              &class_type)) {
+        if (is_member_function_typedef) {
           /* The code contains "T*" where "T" names a member function typedef.
              It points to a routine type in which the implicit this-param
              type pointer identifies the parent class, say "S".  Then "T*" is
@@ -360,11 +408,11 @@ type is legal.
              something to *bottom_derived_type (as in other cases) but rather
              to change it from a "pointer-to-???" type to a "ptr-to-member"
              type pointing the class and routine type. */
-          tp = ptr_to_member_type(rout_type, class_type);
+          tp = ptr_to_member_type(mft_rout_type, mft_class_type);
           copy_type(tp, *bottom_derived_type);
           /* Change new_type_ptr and tkind to make it seem as if this were
              an ordinary ptr-to-member declaration. */
-          new_type_ptr = rout_type;
+          new_type_ptr = mft_rout_type;
           tkind = (a_type_kind)tk_ptr_to_member;
         } else {
           if (is_reference_type(skip_typerefs(new_type_ptr))) {
@@ -390,6 +438,11 @@ type is legal.
 	  /* Reference to void is illegal. */
           error(ec_reference_to_void);
 	  err = TRUE;
+        } else if (is_member_function_typedef) {
+          /* A cfront member function typedef type can only be used in
+             forming a pointer-to-member type. */
+          sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
+          err = TRUE;
         }  /* if */
 	if (err) new_type_ptr = error_type();
 #if RESTRICT_ALLOWED
@@ -400,10 +453,15 @@ type is legal.
         (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
       } else if (is_ptr_to_member_type(*bottom_derived_type)) {
         /* Pointer-to-member type. */
-        if (!check_pm_member_type(new_type_ptr)) {
-          new_type_ptr = error_type();
+        if (is_member_function_typedef) {
+          /* A cfront member function typedef type can only be used in
+             forming a pointer-to-member type. */
+          sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
+          err = TRUE;
+        } else if (!check_pm_member_type(new_type_ptr)) {
           err = TRUE;
         }  /* if */
+        if (err) new_type_ptr = error_type();
 #if RESTRICT_ALLOWED
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                      derived_type,
@@ -420,7 +478,12 @@ type is legal.
            function is called or defined.  These are the constraints on
            a declarator; there are additional constraints (3.7.1) on function
            definitions -- see function_definition. */
-        if (is_function_type(new_type_ptr)) {
+        if (is_member_function_typedef) {
+          /* A cfront member function typedef type can only be used in
+             forming a pointer-to-member type. */
+          sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
+          err = TRUE;
+        } else if (is_function_type(new_type_ptr)) {
           error(ec_function_returning_function);
           err = TRUE;
         } else if (is_array_type(new_type_ptr)) {
@@ -1742,12 +1805,20 @@ are NULL.
         /* Normal case -- the specifiers type is given, and the pointer or
            reference type can be attached directly to it.  (Or, this is a
            pointer to a pointer type or a reference to a pointer type). */
-        a_type_ptr  temp_type;
+        a_type_ptr    temp_type;
+        a_symbol_ptr  sym;
+        a_boolean     is_member_function_typedef = FALSE;
 
         temp_type = skip_typerefs(complete_type);
+        if (any_cfront_mode() && temp_type != complete_type) {
+          is_member_function_typedef =
+                  is_cfront_member_function_typedef(complete_type, &rout_type,
+                                                    &class_type, &sym);
+        }  /* if */
         if (curr_token == tok_star) {
-          if (is_cfront_member_function_typedef(complete_type, &rout_type,
-                                                &class_type)) {
+          if (is_member_function_typedef) {
+            /* This is the proper use of a cfront member function typedef type
+               -- to form a pointer-to-member type.  Do the transformation. */
             complete_type = ptr_to_member_type(rout_type, class_type);
           } else {
             if (is_reference_type(temp_type)) {
@@ -1766,6 +1837,11 @@ are NULL.
           } else if (is_void_type(temp_type)) {
             /* Type "reference to void" is illegal. */
             error(ec_reference_to_void);
+            err = TRUE;
+          } else if (is_member_function_typedef) {
+            /* A cfront member function typedef type can only be used in
+               forming a pointer-to-member type. */
+            sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
           }  /* if */
           complete_type = err ? error_type() :

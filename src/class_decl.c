@@ -6237,15 +6237,37 @@ Scan the body of a class definition, including the base classes list.
                        &locator, &local_type, &bottom_derived_type,
                        (a_call_conv_descr_ptr)NULL,
                        &declarator_ssep, &func_info);
-            cfront_member_function_typedef =
-                  declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
             if (!C_mode()) {
+              /* Check whether this is a non-standard typedef declaration. */
+              cfront_member_function_typedef =
+                  declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
               remove_stop_token(tok_lbrace);
-              /* Abstract class objects are prohibited (ARM 10.3). */
-              if (member_storage_class != (a_storage_class)sc_typedef &&
-                  is_abstract_class_type(local_type)) {
-                pos_error(ec_abstract_class_object_not_allowed,
-                          &locator.source_position);
+              if (member_storage_class != (a_storage_class)sc_typedef) {
+                if (is_abstract_class_type(local_type)) {
+                  /* Abstract class objects are prohibited (ARM 10.3). */
+                  pos_error(ec_abstract_class_object_not_allowed,
+                            &locator.source_position);
+                } else if (any_cfront_mode() &&
+                           check_member_function_typedef(
+                                                 local_type,
+                                                 &locator.source_position)) {
+                  /* This is declaration using a member function typedef.  A
+                     typedef has been previously been declared like this:
+                          typedef void A::t(int);  // Nonstandard
+                     meaning "t" names a routine type taking an int argument
+                     and returning void and having an implicit this-param type
+                     of const-ptr-to-A.  (This "member function typedef" is
+                     not part of the language of the ARM  and is allowed for
+                     cfront compatibility only.)  The only supported use is
+                     to declare a pointer-to-member type, e.g.,
+                          t *pm;                   // Okay
+                     Whereas it is apparently being used here to declare a
+                     function, e.g.,
+                            t f;                     // Error
+                     The diagnostic has already been issued by the subroutine,
+                     but change the type to an error type. */
+                  local_type = error_type();
+                }  /* if */
               }  /* if */
               if (local_defines_something &&
                   !error_on_def_in_return_type_already_issued) {
@@ -6356,10 +6378,8 @@ Scan the body of a class definition, including the base classes list.
               /* When scanning the declarator does not change the type,
                  we know this member is a function based on the specifier
                  type alone.  This is only possible with a typedef name that
-                 represents a function type.  Such typedef types do not
-                 (usually) have implicit this-param types.  Moreover, since
-                 they are shared, they are unsuited to be the type of
-                 a defined function. */
+                 represents a function type.  Such typedef types are shared
+                 and so are unsuited to be the type of a defined function. */
               a_type_ptr  rout_type = skip_typerefs(local_type);
               a_boolean   copy_needed = TRUE;
 
@@ -6367,28 +6387,7 @@ Scan the body of a class definition, including the base classes list.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
               func_info.declarator_ssep = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-              if (any_cfront_mode() &&
-                  rout_type->variant.routine.extra_info->
-                                          implicit_this_param_type != NULL) {
-                /* We have a situation in which a typedef has been declared
-                   like this:
-                          typedef void A::t(int);  // Nonstandard
-                   meaning "t" names a routine type taking an int argument
-                   and returning void and having an implicit this-param type
-                   of const-ptr-to-A.  (This "member function typedef" is
-                   not part of the language of the ARM  and is allowed for
-                   cfront compatibility only.)  The only supported use is
-                   to declare a pointer-to-member type, e.g.,
-                          t *pm;                   // Okay
-                   Whereas it is apparently being used here to declare a
-                   function, e.g.,
-                          t f;                     // Error
-                   Issue the error. */
-                pos_sy_error(ec_bad_use_of_ptr_to_member_typedef,
-                             &decl_start_pos,
-                             (a_symbol_ptr)local_type->
-                                      source_corresp.assoc_info);
-              } else if (function_def_present) {
+              if (function_def_present) {
                 /* Not legal to define a function with a typedef type. */
                 pos_error(ec_function_type_must_come_from_declarator,
                           &locator.source_position);

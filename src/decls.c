@@ -335,34 +335,39 @@ This routine is called for all function parameter declarations.  It does
 error checking and type adjustments as required.
 */
 {
-  /* Adjust the type if necessary (for example, "array of x" becomes
-     "pointer to x"). */
-  adjust_parameter_type(type_ptr, restrict_qualified);
-  /* Disallow "void" as a parameter type. */
-  if (is_void_type(*type_ptr)) {
-    pos_error(ec_void_param_not_allowed, error_pos);
+  if (any_cfront_mode() &&
+      check_member_function_typedef(*type_ptr, error_pos)) {
     *type_ptr = error_type();
   } else {
-    /* See if any type qualifiers were specified, and if they are
-       okay. */
-    check_type_qualifiers(type_ptr);
-    /* In C++ (except in cfront compatibility mode) disallow a parameter type
-       that includes a pointer or reference to an array of unspecified size
-       (WP 8.3.5 para 3). */
-    if (!C_mode() && !any_cfront_mode()) {
-      a_boolean  is_ref = FALSE;
+    /* Adjust the type if necessary (for example, "array of x" becomes
+       "pointer to x"). */
+    adjust_parameter_type(type_ptr, restrict_qualified);
+    /* Disallow "void" as a parameter type. */
+    if (is_void_type(*type_ptr)) {
+      pos_error(ec_void_param_not_allowed, error_pos);
+      *type_ptr = error_type();
+    } else {
+      /* See if any type qualifiers were specified, and if they are
+         okay. */
+      check_type_qualifiers(type_ptr);
+      /* In C++ (except in cfront compatibility mode) disallow a parameter type
+         that includes a pointer or reference to an array of unspecified size
+         (WP 8.3.5 para 3). */
+      if (!C_mode() && !any_cfront_mode()) {
+        a_boolean  is_ref = FALSE;
 
 #if 0
-      /* WP 8.3.5 para 3 uses "includes" -- does this cover use in a template
-         argument?  We currently assume "yes", but it the answer turns out to
-         be "no", change the flags passed to traverse_type_tree by
-         is_or_contains_ptr_or_ref_to_unknown_bound_array. */
+        /* WP 8.3.5 para 3 uses "includes" -- does this cover use in a template
+           argument?  We currently assume "yes", but it the answer turns out to
+           be "no", change the flags passed to traverse_type_tree by
+           is_or_contains_ptr_or_ref_to_unknown_bound_array. */
 #endif /* if 0 */
-      if (is_or_contains_ptr_or_ref_to_unknown_bound_array(*type_ptr,
-                                                           &is_ref)) {
-        pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
-                           ec_param_type_ptr_to_array_of_unknown_bound,
-                  error_pos);
+        if (is_or_contains_ptr_or_ref_to_unknown_bound_array(*type_ptr,
+                                                             &is_ref)) {
+          pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
+                             ec_param_type_ptr_to_array_of_unknown_bound,
+                    error_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5116,6 +5121,15 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       has_parenthesized_initializer = do_flags & DO_PARENTHESIZED_INITIALIZER;
+      if (is_function && any_cfront_mode()) {
+        /* Check for the declaration with a "member function typedef" type --
+           it is only  supposed to be used for pointer-to-member declarations
+           (only in cfront compatibility mode). */
+        if (check_member_function_typedef(local_type_ptr, &decl_start_pos)) {
+          is_function = FALSE;
+          local_type_ptr = type_ptr = error_type();
+        }  /* if */
+      }  /* if */
       /* top_declarator_type_is_function is TRUE if the fact that this is a
          function is derived from the declarator and not from a typedef.  It
          is sufficient that the result type is a function type and a
@@ -5123,28 +5137,6 @@ continue_with_declaration:
       top_declarator_type_is_function = (is_function &&
 				         skip_typerefs(local_type_ptr) !=
                                                       skip_typerefs(type_ptr));
-      if (is_function && !top_declarator_type_is_function &&
-          any_cfront_mode()) {
-        a_type_ptr                     tp = skip_typerefs(local_type_ptr);
-        a_routine_type_supplement_ptr  rtsp = tp->variant.routine.extra_info;
-
-        /* Check for the declaration of a function with a typedef type that
-           is supposed to be used only for pointer-to-member declarations
-           (and only in cfront compatibility mode). */
-        if (rtsp->implicit_this_param_type != NULL) {
-          /* It must be one of these special member function typedefs.  Issue
-             an error, since this appears to be a function declaration,
-             not a pointer to member declaration. */
-          pos_sy_error(ec_bad_use_of_ptr_to_member_typedef, &decl_start_pos,
-                       (a_symbol_ptr)(make_unqualified_type(local_type_ptr)->
-                                                   source_corresp.assoc_info));
-          /* Replace the type with one that does not have an implicit
-             this param. */
-          local_type_ptr = copy_routine_type_with_param_types(tp);
-          skip_typerefs(local_type_ptr)->variant.routine.extra_info->
-                                       implicit_this_param_type = NULL;
-        }  /* if */
-      }  /* if */
       if (C_dialect == C_dialect_cplusplus && defines_something) {
         /* The ARM (8.2.5) explicitly prohibits defining a type in a
            function return type.  This is taken to apply to pointer-to-function
