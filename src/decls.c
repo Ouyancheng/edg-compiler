@@ -2890,10 +2890,10 @@ created; the caller must set it.
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
-    if ((gcc_mode || C_dialect == C_dialect_pcc) && scp->assoc_info != NULL) {
-      /* In GNU C and pcc modes, block-external declarations declared in
-         other function scopes need not be compatible with the current
-         declaration. */
+    check_assertion(C_dialect != C_dialect_pcc);
+    if (gcc_mode && scp->assoc_info != NULL) {
+      /* In GNU C mode, block-external declarations declared in other function
+         scopes need not be compatible with the current declaration. */
       a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
       a_boolean     is_local_to_function;
       if (scope_depth_of_symbol(prev_sym, &is_local_to_function) ==
