@@ -1980,8 +1980,12 @@ whole process.
 This switch controls whether designated initializers (a C9X feature)
 are lowered to standard C.  Well, almost standard C: a designated
 initializer allows initialization of a member other than the first in
-a union.  For that case, a ck_designator is left in the IL tree
-(but only one, and only for members other than the first).
+a union.  For that case, a ck_designator constant is left in the IL tree
+(but only one, and only for members other than the first).  Also,
+for extended designators of the form "[a ... b] = x", or when elements
+of arrays are skipped in initialization, ck_init_repeat constants
+are used to repeat an initializer constant the appropriate number
+of times.
 */
 #ifndef LOWER_DESIGNATED_INITIALIZERS
 #define LOWER_DESIGNATED_INITIALIZERS TRUE
