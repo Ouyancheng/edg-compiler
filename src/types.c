@@ -4240,7 +4240,7 @@ preference is given to the first.
         /* Since the types are compatible and old-style parameter lists
            have been ruled out, the two parameter lists should be the same
            length. */
-        internal_error("composite_type: unequal length param lists");
+        internal_error("composite_routine_type: unequal length param lists");
       }  /* if */
 #endif /* CHECKING */
       if (!C_mode()) {
