@@ -2600,6 +2600,9 @@ It might be changed later to add a definition.
 }  /* make_var_for_virtual_function_table */
 
 
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY
+/*ARGSUSED*/  /* <-- Because class_type is not used in that case. */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 static a_boolean base_class_needs_virtual_function_table(
                                                    a_base_class_ptr bcp,
                                                    a_type_ptr       class_type)
