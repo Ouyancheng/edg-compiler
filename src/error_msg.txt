@@ -164,7 +164,7 @@ REMOVED;ec_nonstd_default_arg;;"this use of a default argument is nonstandard"
 ec_never_defined;;"%n was referenced but not defined"
 ec_continue_must_be_in_loop;;"a continue statement may only be used within a loop"
 ec_break_must_be_in_loop_or_switch;;"a break statement may only be used within a loop or switch"
-ec_no_value_returned_in_non_void_function;;"non-void %nd should return a value"
+ec_no_value_returned_in_non_void_function;;"non-void %n should return a value"
 ec_value_returned_in_void_function;;"a void function may not return a value"
 ec_cast_to_bad_type;;"cast to type %t is not allowed"
 ec_bad_return_value_type;;"return value type does not match the function type"
@@ -987,6 +987,7 @@ ec_redecl_changes_access;;"redeclaration of %n alters its access"
 ec_qualified_name_required;;"a class or namespace qualified name is required"
 ec_implicit_int_on_main;;"return type \"int\" omitted in declaration of function \"main\""
 ec_invalid_inheritance_kind_for_class;;"pointer-to-member representation %sq is too restrictive for %n"
+ec_implicit_return_from_non_void_function;;"missing return statement at end of non-void %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

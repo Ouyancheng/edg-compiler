@@ -4282,9 +4282,9 @@ The return expression is also set for a return from a constructor.
   if (issue_no_value_returned_diag) {
     if (strict_ansi_mode && !C_mode()) {
       /* In strict C++ mode, the severity may be an error. */
-      no_returned_value_severity = strict_ansi_error_severity;
+      no_returned_value_severity = strict_ansi_discretionary_severity;
     }  /* if */
-    if ((int)no_returned_value_severity < (int)es_error &&
+    if ((int)no_returned_value_severity <= (int)es_warning &&
         is_implicit_return &&
         !curr_reachability.reachable_considering_hints) {
       /* Suppress a non-error diagnostic if this is an implicit return and the
@@ -4299,7 +4299,9 @@ The return expression is also set for a return from a constructor.
       }  /* if */
 #endif /* CHECKING */
       sym_diagnostic(no_returned_value_severity,
-                     ec_no_value_returned_in_non_void_function,
+                     is_implicit_return ?
+                       ec_implicit_return_from_non_void_function :
+                       ec_no_value_returned_in_non_void_function,
                      function_name_symbol);
     }  /* if */
   }  /* if */

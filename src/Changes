@@ -1,5 +1,22 @@
 Version 2.40
 
+9/16/98   New diagnostic on implicit return from non-void function
+
+A new diagnostic (ec_implicit_return_from_non_void_function) has been
+added for "falling off the end" of a non-void function.  This allows
+an implementation or a user to control the diagnostic severity of two
+distinct cases independently:
+
+  int f(bool x) {
+    switch (x) {
+      case false:  return 1;
+      case true:   return;   // ec_no_value_returned_in_non_void_function
+    }
+  }                          // ec_implicit_return_from_non_void_function
+
+In -A mode both diagnostics are now put out with as discretionary
+errors.
+
 9/9/98    Microsoft compatibility: improved support for inheritance kinds
 
 Support in Microsoft-compatibility mode for specifying the inheritance
