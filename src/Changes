@@ -1,5 +1,95 @@
 Version 2.44
 
+7/18/00  Lookup of names in templates
+
+The front end now implements the special template name lookup rules
+specified in the standard (known as "dependent name" lookup).  This feature
+can be enabled or disabled with the --[no_]dep_name command-line option.
+The default is specified by the DEFAULT_DEPENDENT_NAME_PROCESSING
+configuration flag.  It is automatically enabled in strict mode, and is
+automatically disabled in Microsoft mode and cfront mode.
+
+Dependent name processing requires that nonclass prototype instantiations
+be enabled (see below).  As with nonclass prototype instantiations, enabling
+dependent name lookup is likely to cause compilation errors when compiling
+code that was not written with the feature in mind.
+
+The dependent name lookup rules require that nondependent names be
+looked up at the point of use in the template definition, and that
+overload resolution be performed on nondependent calls at that point.
+For dependent calls, the set of names considered is the set visible
+at the point of use in the template definition plus any names made
+visible by argument-dependent lookup at the point of instantiation.
+Note that built-in types have no associated namespaces, so calls
+with only built-in types can only resolve to names visible in the
+template definition.  Furthermore, names from dependent base classes
+are not visible to unqualified lookups.
+
+The following illustrates some of the most common code problems encountered
+when using dependent name lookup:
+
+  template <class T> struct B {
+    void f();
+  };
+
+  template <class T> struct A : public B<T> {
+    X x;  // error: X not visible yet
+    void g() {
+      f();        // error: B<T>::f not visible
+      this->f();  // must be written this way
+      h(1);  // error: h(int) not visible using argument-dependent lookup
+    }
+  };
+
+  struct X {};
+  void h(int);
+  A<int> ai;
+
+7/18/00  Semantic analysis of nonclass template definitions
+
+The front end is now capable of doing semantic analysis of nonclass
+template definitions (it always has done semantic analysis of class
+template definitions).  This processing is enabled using the
+--parse_function_templates option, and is automatically enabled when
+standard conforming dependent name lookup is enabled.  Although the
+option is called --parse_function_templates, it also controls the
+analysis of template static data member definitions, function template
+default arguments, and default template arguments.
+
+The EDG term for the semantic analysis of a template definition
+is "prototype instantiation".  The processing enabled by the
+--parse_function_templates option is known as nonclass prototype
+instantiations.
+
+The semantic analysis of these constructs requires the ability to parse
+the template definitions without the use of actual template argument
+values.  This, in turn, requires the use of the "typename" and "template"
+keywords for syntactic disambiguation.  For example:
+
+  template <class T> void f(T) {
+    typename T::X *x;  // "typename" needed to know that X is a type
+    typename T::template Y<int> y; // "template" needed to know that
+                                   // Y is a template
+  }
+
+Code that was not written with this requirement in mind will probably
+not compile when doing nonclass prototype instantiations.
+
+7/18/00  Prototype instantiations in the IL
+
+The front end can now be configured to provide detailed information about
+template definitions in the IL.  Formerly, only a textual representation
+of templates was available.  The information that is provided is in the
+form of a "prototype instantiation" of the template.  For example,
+a class template is represented by a type entry for a class, a function
+template is represented by a routine entry, etc.
+
+Prototype instantiations can only be supplied when doing semantic
+analysis of nonclass template definitions because it is the semantic
+analysis that produces the IL for the template definition.  Consequently,
+it is only possible to produce prototype instantiations for code that
+can be parsed using the --parse_function_templates option.
+
 7/18/00  Nested types in nonstandard anonymous unions
 
 Microsoft compilers accept named nested types in nonstandard anonymous unions
