@@ -7569,9 +7569,25 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* LONG_LONG_ALLOWED */
         } else if (size != size_none) {
           /* Size has already been specified in some way. */
-          bad_combination_of_type_specifiers = TRUE;
-          error(ec_bad_combination_of_type_specifiers);
+          if ((size == size_short) == (curr_token == tok_short)) {
+            /* "short short" or "long long". */
+            if (cfront_compatibility_mode && curr_token == tok_short) {
+              /* Cfront allows the redundancy.  It issues a warning on
+                 "long long", so we do too. */
+            } else {
+              /* Since the redundancy is harmless, just issue a warning
+                 (except in -A mode). */
+              diagnostic((strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning),
+                         ec_dupl_decl_specifier);
+            }  /* if */
+          } else {
+            /* Mixing size specifications. */
+            bad_combination_of_type_specifiers = TRUE;
+            error(ec_bad_combination_of_type_specifiers);
+          }  /* if */
         } else {
+          /* First specification of size. */
           if (curr_token == tok_short) {
             size = size_short;
           } else {
@@ -7588,9 +7604,24 @@ Returns TRUE if there is an error in the specifiers.
           err = TRUE;
         } else if (sign != sign_none) {
           /* Sign has already been specified in some way. */
-          bad_combination_of_type_specifiers = TRUE;
-          error(ec_bad_combination_of_type_specifiers);
+          if ((sign == sign_signed) == (curr_token == tok_signed)) {
+            /* Either "signed signed" or "unsigned unsigned". */
+            if (cfront_compatibility_mode) {
+              /* Cfront allows the redundancy. */
+            } else {
+              /* Since the redundancy is harmless, just issue a warning
+                 (except in -A mode). */
+              diagnostic((strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning),
+                         ec_dupl_decl_specifier);
+            }  /* if */
+          } else {
+            /* Mixing signs. */
+            bad_combination_of_type_specifiers = TRUE;
+            error(ec_bad_combination_of_type_specifiers);
+          }  /* if */
         } else {
+          /* First specification of sign. */
           if (curr_token == tok_signed) {
             sign = sign_signed;
             explicitly_signed = TRUE;
