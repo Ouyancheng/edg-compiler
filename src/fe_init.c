@@ -697,6 +697,13 @@ Initialize everything that has to do with the front end.
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_external;
   def_external_linkage.is_explicit = FALSE;
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Add symbols for ::operator new and ::operator delete to the symbol
+       table.  This is delayed till now (rather than done with other symbol
+       table initialization) because routine entries are also created. */
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
+  }  /* if */
   /* The following (source file initialization) is done last so that any
      initialization errors or uses of source position will correctly
      identify the position as before the start of source. */
