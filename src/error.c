@@ -2859,7 +2859,11 @@ error_source_line for later use by diagnostic output functions.
       for (skip_lines = physical_line - starting_line;
            skip_lines > 0;
            skip_lines--) {
-        while (getc(f_err_src_file) != '\n') {}
+        while ((ch = getc(f_err_src_file)) != '\n') {
+          /* If the file has been changed under us, fail softly and assume
+             the source line is not readable. */
+          if (ch == EOF) goto close_file;
+        }  /* while */
       }  /* for */
       /* Now positioned to read the actual source line desired.  Check if the
          error_source_line_buffer has been allocated.  This check may seem
