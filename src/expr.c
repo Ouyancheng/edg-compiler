@@ -7423,12 +7423,14 @@ this routine is called.
         }  /* if */
         err = TRUE;
       }  /* if */
-    } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
+    } else if ((local_options & (EOPT_OPERAND_OF_CAST |
+                                 EOPT_MICROSOFT_CASE_LABEL)) &&
                is_pointer_type(dest_type) &&
                (is_integral_or_enum_type(source_type) ||
                 is_template_param_type(source_type))) {
       /* When the cast is the immediate operand of another cast, allow
-         integer --> pointer as an extension. */
+         integer --> pointer as an extension.  Also allowed for a case
+         label in Microsoft mode. */
       if (strict_ansi_mode) {
         pos_diagnostic(strict_ansi_error_severity,
                        enum_type_is_integral ?
@@ -8976,7 +8978,9 @@ Also scans GNU C statement expressions:
       /* Parentheses do not affect the fact that the expression is the
          immediate operand of a cast, so pass down that option. */
       a_local_expr_options_set options =
-                                      (local_options & EOPT_OPERAND_OF_CAST) |
+                                      (local_options &
+                                                 (EOPT_OPERAND_OF_CAST |
+                                                  EOPT_MICROSOFT_CASE_LABEL)) |
                                        EOPT_ALLOW_BOUND_FUNCTION |
                                        EOPT_PRESERVE_PROPERTY_REF;
       /* Ordinarily, parentheses do affect whether an expression is the
@@ -15258,12 +15262,13 @@ things like (void *)1 as case constants.
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
 
-  db_enter(4, "scan_microsoft_case_label_constant_expression");
-  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
+  db_enter(3, "scan_microsoft_case_label_constant_expression");
+  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  scan_expr(&result, PREC_LOWEST,
+            (EOPT_DISALLOW_COMMA_OPERATOR | EOPT_MICROSOFT_CASE_LABEL));
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -15277,7 +15282,7 @@ things like (void *)1 as case constants.
        constant once cast to an integral type. */
     error_in_operand(ec_expr_not_integral_constant, &result);
     set_error_constant(constant);
-  } else if (!is_integral_type(constant->type)) {
+  } else if (!is_integral_or_enum_type(constant->type)) {
     pos_warning(ec_expr_not_integral_constant, &result.position);
   }  /* if */
   pop_expr_stack();

@@ -58,6 +58,9 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_MARKED_AS_GNU_EXTENSION 0x40
 			/* The caller of scan_expr scanned over the GNU keyword
 			   __extension__. */
+#define EOPT_MICROSOFT_CASE_LABEL 0x80
+			/* The expression is the top level of a case label
+			   constant in Microsoft mode. */
 #define EOPT_NO_OPTIONS 0
 typedef int a_local_expr_options_set;
 
