@@ -313,6 +313,8 @@ match the runtime's definition.
 #if ABI_CHANGES_FOR_RTTI
 #define BCS_PUBLIC		0x04
 			/* TRUE if the base class is public. */
+#define BCS_AMBIGUOUS		0x08
+			/* TRUE if the base class is ambiguous. */
 #endif /* ABI_CHANGES_FOR_RTTI */
 
 
@@ -426,6 +428,9 @@ allocated in the file scope memory region.
         if (bcdp->access == (an_access_specifier)as_public) {
           flags_value |= BCS_PUBLIC;
         }  /* if */
+      }  /* if */
+      if (bcp->ambiguous) {
+        flags_value |= BCS_AMBIGUOUS;
       }  /* if */
 #endif /* ABI_CHANGES_FOR_RTTI */
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
@@ -728,7 +733,7 @@ for the similar decision for virtual function tables) is available.
 }  /* define_scope_class_typeinfo_vars */
 
 
-static a_variable_ptr make_typeinfo_var(a_type_ptr type)
+a_variable_ptr make_typeinfo_var(a_type_ptr type)
 /*
 Make a typeinfo variable for the indicated type (if it does not exist
 already) and return a pointer to it.  The variable points to runtime

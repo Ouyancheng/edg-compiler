@@ -41,6 +41,8 @@ extern void type_is_used_in_exception(a_type_ptr type);
 
 extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
 
+extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
+
 #if DO_FULL_PORTABLE_EH_LOWERING
 extern a_handle_number object_addr_table_index(void);
 
