@@ -1942,10 +1942,10 @@ Display the indicated expression node.
 {
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("next", (char *)ptr->next, iek_expr_node);
-  disp_name("kind");
   if (ptr->result_is_not_used) {
     disp_boolean("result_is_not_used", (a_boolean)ptr->result_is_not_used);
   }  /* if */
+  disp_name("kind");
 #ifdef FFE
   disp_boolean("allow_reordering", (a_boolean)ptr->allow_reordering);
 #endif /* ifdef FFE */
