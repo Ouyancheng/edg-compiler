@@ -2005,7 +2005,7 @@ for more information.
           break;
         case tk_routine:
           {
-            a_boolean	implicit_this_matches;
+            a_boolean	implicit_this_matches = FALSE;
             a_type_ptr	this1;
             a_type_ptr	this2;
             rtsp1 = type_1->variant.routine.extra_info;
@@ -2019,8 +2019,14 @@ for more information.
               /* One, but not both, of the this parameter types are NULL.
                  This is considered a match if the flag is set that 
                  indicates that we don't yet know whether the type has
-                 an implicit this parameter type. */
-              implicit_this_matches = unknown_implicit_this_type;
+                 an implicit this parameter type and if the non-NULL type
+                 has no qualifiers. */
+              a_type_ptr	nonnull_type = this1 != NULL ? this1 : this2;
+              /* Get the type pointed to by the this parameter. */
+              nonnull_type = type_pointed_to(nonnull_type);
+              implicit_this_matches = unknown_implicit_this_type &&
+                                      get_type_qualifiers(nonnull_type) ==
+                                                 (a_type_qualifier_set)TQ_NONE;
             } else {
               /* Both types are non-null, see if they are identical. */
               implicit_this_matches = f_identical_types(this1, this2,

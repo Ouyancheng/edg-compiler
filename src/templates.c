@@ -2827,10 +2827,27 @@ template parameter list.
                   /* One or both of the types does not have an implicit
                      this parameter.  This is okay if they are both NULL. 
                      It is also okay if the type has no implicit this type
-                     and the unknown implicit this type flag was passed in. */
-                  match = tp == ttp ||
-                          (tp == NULL &&
-                           (flags & MTT_UNKNOWN_IMPLICIT_THIS_TYPE) != 0);
+                     the unknown implicit this type flag was passed in, and
+                     the other this parameter type has no qualifiers. */
+                  if (tp == ttp) {
+                    /* They are both NULL, this is a match. */
+                    match = TRUE;
+                  } else if (ttp == NULL) {
+                    /* The template type is NULL and the other type is not.
+                       This is not a match. */
+                    match = FALSE;
+                  } else { /* tp == NULL */
+                    /* The template type is not NULL.  This is a match when
+                       the unknown implicit this flag is set and the this
+                       parameter from the template has no qualifiers. */
+                    match = FALSE;
+                    if ((flags & MTT_UNKNOWN_IMPLICIT_THIS_TYPE) != 0) {
+                      /* Get the type pointed to by the this parameter. */
+                      a_type_ptr	this_type = type_pointed_to(ttp);
+                      match = get_type_qualifiers(this_type) ==
+                                                (a_type_qualifier_set)TQ_NONE;
+                    }  /* if */
+                  }  /* if */
                 } else {
                   /* They both have implicit this parameters, make sure the
                      types match. */
