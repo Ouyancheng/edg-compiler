@@ -3364,9 +3364,8 @@ correspondence pointer for each of them.
        type != NULL;
        type = skip_generated_type(type->next)) {
     if (trans_unit_corresp_of(type) == NULL) {
-      /* Some types (e.g., certain unnamed class types that acquired a name
-         thought a typedef) may not have been processed yet. */
-      clear_type_correspondence(type, /*visited=*/TRUE);
+      /* Some types (e.g., C-mode types not participating in entities with
+         linkage) may not have a correspondence. */
     } else {
       a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       /* Note that placeholder types do not have an associated symbol. */
