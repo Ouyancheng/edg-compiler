@@ -3584,6 +3584,55 @@ header file, so some of the predefined macros need to be altered.
 }  /* fixup_predefined_macros */
 
 
+static char *conv_int_to_str(int val)
+/*
+Convert an integer to a character string.  Return a pointer to the
+buffer containing the string.  The buffer is static storage that will
+be overwritten by subsequent calls.
+*/
+{
+  static char buffer[50];
+  sprintf(buffer, "%d", val);
+  return buffer;
+}  /* conv_int_to_str */
+
+
+static void init_runtime_macros(void)
+/*
+Initialize a set of macros that are use to pass configuration information
+from the front end to the runtime.
+*/
+{
+  char		*ptr;
+  /* Define a macro that specifies the type of an element of the setjmp
+     buffer. */
+  if (targ_jmp_buf_elements_are_float) {
+    ptr = float_kind_name(targ_jmp_buf_element_float_kind);
+  } else {
+    ptr = int_kind_name(targ_jmp_buf_element_int_kind);
+  }  /* if */
+  (void)enter_predef_macro(ptr, "__EDG_JMP_BUF_ELEMENT_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Define the number of elements in the setjmp buffer. */
+  (void)enter_predef_macro(conv_int_to_str(targ_jmp_buf_num_elements),
+			   "__EDG_JMP_BUF_NUM_ELEMENTS",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Define the size of the offset field in the virtual function table. */
+  (void)enter_predef_macro(int_kind_name(TARG_DELTA_INT_KIND),
+			   "__EDG_DELTA_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Define the size of the virtual function index field of the virtual
+     function table. */
+  (void)enter_predef_macro(int_kind_name(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND),
+			   "__EDG_VIRTUAL_FUNCTION_INDEX_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+}  /* init_runtime_macros */
+
+
 void init_predefined_macros(char  curr_date_time[26])
 /*
 Enter symbols for predefined macros, including those established by
@@ -3645,6 +3694,11 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
+  }  /* if */
+  if (building_runtime) {
+    /* Define macros used to pass configuration information to the
+       runtime library. */
+    init_runtime_macros();
   }  /* if */
 
   /* __LINE__, __FILE__, and defined are special (they cannot be defined

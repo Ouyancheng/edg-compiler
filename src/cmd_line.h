@@ -121,6 +121,7 @@ typedef enum /*an_option_kind*/ {
 #if ABI_CHANGES_FOR_RTTI
   optk_rtti,
 #endif /* ABI_CHANGES_FOR_RTTI */
+  optk_building_runtime,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -553,6 +554,12 @@ EXTERN a_boolean
                                                ;
                         /* TRUE if a reference to nonconst can be bound to
 			   a class rvalue. */
+
+EXTERN a_boolean
+		building_runtime /* = FALSE*/;
+			/* TRUE if we are compiling the runtime library.
+			   Causes additional predefined macros to be
+			   defined. */
 
 
 /* Process the command line arguments. */
