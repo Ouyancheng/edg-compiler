@@ -6395,7 +6395,7 @@ function).  Access control only exists in C++.
 /*
 Return TRUE if the scope stack entry kind is for something that should
 affect the the current declarative level.  In C, the current declarative
-level is is the same as depth_scope_stack except when struct/union field
+level is the same as depth_scope_stack except when struct/union field
 scopes are active; when they are, it indicates the first non-struct-or-union
 scope.  In C++, struct/union/class scopes are real scopes; however,
 class reactivations and template instantiations are not real scopes.
@@ -7700,11 +7700,25 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
   }  /* if */
 }  /* mark_variable_value_set */
 
+
+void set_decl_sequence_info(a_decl_seq_info_ptr  decl_seq_info,
+                            an_il_entry_kind     kind)
+/*
+*/
+{
+  decl_seq_info->decl_seq = ++decl_seq_counter;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  decl_seq_info->source_sequence_entry =
+                              add_incomplete_source_sequence_entry(kind);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* set_decl_sequence_info */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void sym_update_source_sequence_list(a_symbol_ptr       sym,
                                             a_source_position  *pos,
-                                            a_boolean          is_primary_decl)
+                                            a_boolean          is_primary_decl,
+                                            a_decl_seq_info    *decl_seq_info)
 /*
 Allocate a source sequence entry for the IL entry to which sym refers and
 add it to the list for the appropriate scope.  If is_primary_decl is TRUE
@@ -7793,15 +7807,16 @@ secondary status.
           scp->source_sequence_entry = NULL;
         }  /* if */
       }  /* if */
-      update_source_sequence_list(il_entry_ptr, kind, pos);
+      update_source_sequence_list(il_entry_ptr, kind, pos, decl_seq_info);
     }  /* if */
   }  /* if */
 }  /* sym_update_source_sequence_list */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-void mark_defined(a_symbol_ptr      sym_ptr,
-                  a_source_position *source_position)
+void mark_defined(a_symbol_ptr         sym_ptr,
+                  a_source_position    *source_position,
+                  a_decl_seq_info_ptr  decl_seq_info)
 /*
 Indicate that the given symbol is defined.  The source position will be
 recorded in the symbol as its "decl_position" (overwriting what's there
@@ -7821,7 +7836,11 @@ the IL entry.  A cross-reference entry for a definition will be put out.
        associated with this declaration (again, unconditionally, since this is
        the definition). */
     sym_ptr->decl_position = *source_position;
-    set_decl_sequence_number(sym_ptr);
+    if (decl_seq_info != NULL && decl_seq_info->decl_seq > 0) {
+      sym_ptr->decl_seq = decl_seq_info->decl_seq;
+    } else {
+      set_decl_sequence_number(sym_ptr);
+    }  /* if */
   }  /* if */
   /* Update the cross reference file if it exists and if this is not a
      template instantiation. */
@@ -7837,7 +7856,8 @@ the IL entry.  A cross-reference entry for a definition will be put out.
        previously defined and this is just a redefinition, this should be
        recorded as a secondary declaration. */
     sym_update_source_sequence_list(sym_ptr, source_position,
-                                    /*is_primary_decl=*/!sym_ptr->defined);
+                                    /*is_primary_decl=*/!sym_ptr->defined,
+                                    decl_seq_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (!sym_ptr->defined) {
@@ -7853,8 +7873,9 @@ the IL entry.  A cross-reference entry for a definition will be put out.
 }  /* mark_defined */
 
 
-void mark_declared(a_symbol_ptr      sym_ptr,
-                   a_source_position *source_position)
+void mark_declared(a_symbol_ptr         sym_ptr,
+                   a_source_position    *source_position,
+                   a_decl_seq_info_ptr  decl_seq_info)
 /*
 Indicate that the given symbol is declared at the given position.
 */
@@ -7867,10 +7888,16 @@ Indicate that the given symbol is declared at the given position.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     sym_update_source_sequence_list(sym_ptr, source_position,
-                                    /*is_primary_decl=*/FALSE);
+                                    /*is_primary_decl=*/FALSE, decl_seq_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  if (sym_ptr->decl_seq == 0) set_decl_sequence_number(sym_ptr);
+  if (sym_ptr->decl_seq == 0) {
+    if (decl_seq_info != NULL && decl_seq_info->decl_seq > 0) {
+      sym_ptr->decl_seq = decl_seq_info->decl_seq;
+    } else {
+      set_decl_sequence_number(sym_ptr);
+    }  /* if */
+  }  /* if */
 }  /* mark_declared */
 
 
@@ -8094,6 +8121,10 @@ locator_for_curr_id.
   pip->type_pos.seq = 0;
   pip->type_pos.column = SP_COL_UNKNOWN;
   pip->storage_class = (a_storage_class)sc_unspecified;
+  pip->decl_seq_info.decl_seq = 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  pip->decl_seq_info.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return(pip);
 }  /* alloc_param_id */
@@ -8245,6 +8276,10 @@ Clear the fields of a function information block to default values.
   func_info->is_main_function            = FALSE;
   func_info->is_implicit_declaration     = FALSE;
   func_info->function_type_from_typedef  = FALSE;
+  func_info->decl_seq_info.decl_seq      = 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  func_info->decl_seq_info.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* clear_func_info */
 
 
