@@ -40,6 +40,18 @@ one-parameter version of operator new().  This is because it cannot be
 overloaded.  The same restriction had already been in place for operator
 delete().
 
+12/16/93 Change in name of prelinker options
+
+The names of some of the nm format options of the edg_prelink command
+have been changed.
+
+The nm format option for Solaris has been changed from SVR4 to Solaris
+because we learned that the Solaris format is actually different from
+the standard SVR4 format.
+
+The M88K option has been renamed to SVR4 because it more closely matches
+the standard SVR4 nm output.
+
 12/15/93  Allocation-cleanup for exception handling
 
 When a "new" allocation is done outside of a constructor, the address
