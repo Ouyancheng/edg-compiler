@@ -36,6 +36,15 @@ static void prep_conversion_operand(an_operand        *source_operand,
 static a_boolean operand_is_temp_init(an_operand *operand);
 
 
+/*
+Return TRUE if the indicated symbol is invisible because it was
+declared in a friend declaration and not confirmed with an explicit
+declaration, when friend injection is turned off.
+*/
+#define symbol_is_invisible_friend(sym) \
+  ((sym)->is_invisible && !(sym)->is_class_member)
+
+
 static void clear_conv_descr(a_conv_descr_ptr conv)
 /*
 Clear a conversion description.
@@ -169,7 +178,7 @@ cast.
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
-        if (proj_sym->is_invisible) {
+        if (symbol_is_invisible_friend(proj_sym)) {
           /* Ignore invisible symbols from friend declarations. */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template.  Ignore on this pass, but enable a second pass
@@ -202,7 +211,7 @@ cast.
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
-        if (proj_sym->is_invisible) {
+        if (symbol_is_invisible_friend(proj_sym)) {
           /* Ignore invisible symbols from friend declarations. */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
@@ -253,7 +262,7 @@ cast.
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
-        if (proj_sym->is_invisible) {
+        if (symbol_is_invisible_friend(proj_sym)) {
           /* Ignore invisible symbols from friend declarations. */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Template.  Could be converted to "void *", but that would always
@@ -2163,7 +2172,7 @@ call.
   /* Ignore friend functions that aren't visible.  Note that this
      test is done on the projection symbol, if any, and not on the
      underlying fundamental symbol. */
-  if (function_symbol->is_invisible) {
+  if (symbol_is_invisible_friend(function_symbol)) {
     visible = FALSE;
     goto end_of_function;
   }  /* if */

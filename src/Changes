@@ -1,5 +1,25 @@
 Version 2.46
 
+1/16/01  Errors on qualified references to names from base classes
+         in templates
+
+A bug introduced in 2.44 caused spurious errors on certain references
+to members of dependent base classes in templates, when dependent name
+processing is being done.  Now fixed.
+
+  template <class T> struct A {
+    template <class T2> void f(T2);
+  };
+  template <class T> struct B : A<T> {
+    void h() {
+      this->f(1);  // Formerly got an error
+    }
+  };
+  int main() {
+    B<int> bi;
+    bi.h();
+  }
+
 1/16/01  C++-generating back end: missing parentheses in "->*" output
 
 Parentheses were sometimes missing around the first operand of a "->*"
