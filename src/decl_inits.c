@@ -2447,7 +2447,7 @@ initialized.  These are addressed in the course of the processing.
     }  /* if */
   }  /* for */
   /* Move on to the third list -- the list of nonstatic data members requiring
-    initialization. */
+     initialization. */
   cip_list = end_of_cip_list = NULL;
   /* Loop through the symbol list for the class, not the field list, since
      the symbol list contains only user-defined fields whereas the field
