@@ -1983,8 +1983,8 @@ end_of_routine:
 }  /* full_demangle_identifier */
 
 
-static char *demangle_static_name(char                       *ptr,
-                                  a_decode_control_block_ptr dctl)
+static char *demangle_static_variable_name(char                       *ptr,
+                                           a_decode_control_block_ptr dctl)
 /*
 Demangle the name of a static variable promoted to being external by
 addition of a prefix "__STV__" and a suffix of a module id.  Just put out
@@ -2004,7 +2004,24 @@ the part in the middle, which is the original name.
   /* Advance over the module id part of the name. */
   while (*ptr != '\0') ptr++;
   return ptr;
-}  /* demangle_static_name */
+}  /* demangle_static_variable_name */
+
+
+static char *demangle_static_function_name(char                       *ptr,
+                                           a_decode_control_block_ptr dctl)
+/*
+Demangle the name of a static function promoted to being external by
+addition of a prefix "__STF__" and a suffix of a module id.  Just put out
+the part in the middle, which is the original mangled name.
+*/
+{
+  ptr += 7;  /* Move to after "__STF__". */
+  /* Demangle the function name. */
+  ptr = demangle_identifier(ptr, dctl);
+  /* Advance over the module id part of the name. */
+  while (*ptr != '\0') ptr++;
+  return ptr;
+}  /* demangle_static_function_name */
 
 
 static char *demangle_local_name(char                       *ptr,
@@ -2134,7 +2151,11 @@ is set to the size of buffer required to do the demangling.
   } else if (start_of_id_is("__STV__", id)) {
     /* Static variable made external by addition of prefix "__STV__" and
        suffix of module id. */
-    end_ptr = demangle_static_name(id, dctl);
+    end_ptr = demangle_static_variable_name(id, dctl);
+  } else if (start_of_id_is("__STF__", id)) {
+    /* Static function made external by addition of prefix "__STF__" and
+       suffix of module id. */
+    end_ptr = demangle_static_function_name(id, dctl);
   } else if (start_of_id_is("__", id) && isdigit((unsigned char)id[2])) {
     /* Local variable mangled by the C-generating back end: __nn_mm_name,
        where "nn" and "mm" are decimal integers. */
