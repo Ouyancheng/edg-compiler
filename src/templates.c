@@ -2066,6 +2066,33 @@ enclosing template.
 }  /* determine_referencing_namespace */
 
 
+static a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym)
+/*
+If "sym" was declared in a translation unit other than the current one,
+push its translation unit onto the translation unit stack.
+
+Return TRUE if a translation unit was pushed, FALSE if not.
+*/
+{
+  a_boolean			push_needed;
+  a_translation_unit_ptr	tup;
+
+  tup = trans_unit_for_symbol(sym);
+  push_needed = tup != curr_translation_unit;
+  if (push_needed) {
+    push_translation_unit_stack(tup);
+  }  /* if */
+  if (curr_translation_unit_stack_entry->next != NULL &&
+      curr_translation_unit == translation_units) {
+    /* If we are in the primary translation unit, and if there are multiple
+       translation units on the stack, set a flag that indicates that the
+       primary IL may contain references to other translation units. */
+    primary_il_may_reference_other_trans_units = TRUE;
+  }  /* if */
+  return push_needed;
+}  /* push_translation_unit_if_needed */
+
+
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
 class_type is an incomplete class type.  If it is an instance of a class
@@ -2117,11 +2144,9 @@ might not be able to if the template itself has not yet been defined.
        the class definition.  Simply ignore the instantiation request. */
   } else {
     a_template_cache_ptr	body_cache;
-    /* Make sure the class being instantiated is in the current translation
-       unit. */
-    check_assertion(instance_sym->decl_scope == NO_SCOPE_NUMBER ||
-                    symbol_is_from_trans_unit(instance_sym,
-                                              curr_translation_unit));
+    a_boolean			trans_unit_pushed;
+    /* Switch to the translation unit containing the template, if needed. */
+    trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     tssp = template_supplement_for_symbol(template_sym);
     /* Check whether this particular instance should be generated from a
        partial specialization.  This is only done for class templates, not
@@ -2298,6 +2323,8 @@ might not be able to if the template itself has not yet been defined.
          established. */
       establish_class_instantiation_corresp(class_type);
       set_instantiation_required_for_template_class_members(class_type);
+      /* If the translation unit stack was pushed above, pop it now. */
+      if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
   }  /* if */
   db_exit();
@@ -6618,6 +6645,9 @@ instantiated.
   /* Now that we've found the corresponding parameter of the template,
      instantiate that default argument value. */
   if (daefp != NULL) {
+    a_boolean	trans_unit_pushed;
+    /* Switch to the translation unit containing the template, if needed. */
+    trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     /* Push the template instantiation scope for the context in which the
        default argument is to be evaluated. */
     push_template_instantiation_scope(daefp->cache.decl_info,
@@ -6664,6 +6694,8 @@ instantiated.
     pop_scope();
     /* Pop the template instantiation scope. */
     pop_template_instantiation_scope();
+    /* If the translation unit stack was pushed above, pop it now. */
+    if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
 done:
   /* Reset the flag that indicates that this default value has not yet
@@ -7169,6 +7201,7 @@ type based on the template argument list and the template parameter list
   a_decl_flag_set		    dso_flags;
   a_boolean			    is_member_decl;
   a_type_ptr	      		    parent_class;
+  a_boolean			    trans_unit_pushed;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -7184,6 +7217,8 @@ type based on the template argument list and the template parameter list
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
   switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Switch to the translation unit containing the template, if needed. */
+  trans_unit_pushed = push_translation_unit_if_needed(templ_sym);
   rp = alloc_routine();
   {
     /* Create a routine type by rescanning the original declaration
@@ -7200,7 +7235,6 @@ type based on the template argument list and the template parameter list
     a_source_position	 locator_position;
 #endif /* DECL_MODIFIERS_IN_USE */
     a_template_cache_ptr tcp;
-
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
        because the type associated with the symbol is not yet complete
@@ -7434,6 +7468,8 @@ type based on the template argument list and the template parameter list
   /* Note that if the instance required flag is already set, it will not
      be cleared by this call. */ 
   set_instance_required(sym, /*value=*/FALSE, SIR_NONE);
+  /* If the translation unit stack was pushed above, pop it now. */
+  if (trans_unit_pushed) pop_translation_unit_stack();
   db_exit();
   return sym;
 }  /* make_template_function */
@@ -14876,22 +14912,34 @@ the exported templates in that file.
 }  /* load_exported_template_file */
 
 
-static void ensure_exported_template_file_is_loaded(
+static a_boolean ensure_exported_template_file_is_loaded(
 						a_template_instance_ptr	tip)
 /*
 We are about to instantiate the template specified by tip, which is an
 instance of an exported template.  If the translation unit containing that
 template has not yet been loaded, load it now.
+
+Return TRUE if a translation unit was pushed, FALSE if not.
 */
 {
   an_exported_template_file_ptr	etfp;
+  a_boolean			trans_unit_pushed = FALSE;
+  a_boolean			push_trans_unit = FALSE;
 
   etfp = tip->exported_template_file;
   check_assertion(etfp != NULL);
   if (etfp->translation_unit == NULL) {
     /* The translation unit has not been loaded yet.  Load it now. */
     load_exported_template_file(etfp);
+    push_trans_unit = TRUE;
+  } else if (etfp->translation_unit != curr_translation_unit) {
+    push_trans_unit = TRUE;
   }  /* if */
+  if (push_trans_unit) {
+    push_translation_unit_stack(etfp->translation_unit);
+    trans_unit_pushed = TRUE;
+  }  /* if */
+  return trans_unit_pushed;
 }  /* ensure_exported_template_file_is_loaded */
 
 
@@ -15014,7 +15062,7 @@ Call the appropriate routine to instantiate the function or static
 data member specified by tip.
 */
 {
-  a_boolean			trans_unit_stack_pushed = FALSE;
+  a_boolean			trans_unit_pushed = FALSE;
 
   /* The instantiation process may rescan various things and invalidate the
      current token positions as a result.  Save these positions so that they
@@ -15032,24 +15080,15 @@ data member specified by tip.
   /* See if the exported template was defined in a translation unit other
      than the current one. */
   if (tip->exported_template_file != NULL) {
-    if (tip->exported_template_file->translation_unit !=
-                                                       curr_translation_unit) {
-      /* If the template was defined in an exported template file, make sure
-         that file is loaded as a translation unit. */
-      ensure_exported_template_file_is_loaded(tip);
-      /* Push the translation unit containing the template definition onto the
-         stack.  This will make it the current translation unit. */
-      push_translation_unit_stack(tip->
-                                     exported_template_file->translation_unit);
-      trans_unit_stack_pushed = TRUE;
-    }  /* if */
-    if (curr_translation_unit_stack_entry->next != NULL &&
-        curr_translation_unit == translation_units) {
-      /* If we are in the primary translation unit, and if there are multiple
-         translation units on the stack, set a flag that indicates that the
-         primary IL may contain references to other translation units. */
-      primary_il_may_reference_other_trans_units = TRUE;
-    }  /* if */
+    /* If the template was defined in an exported template file, make sure
+       that file is loaded as a translation unit. */
+    trans_unit_pushed = ensure_exported_template_file_is_loaded(tip);
+  } else {
+    /* For a non-exported template, switch to the translation unit
+       containing the template. */
+    trans_unit_pushed = push_translation_unit_if_needed(tip->template_sym);
+  }  /* if */
+  if (tip->exported_template_file != NULL) {
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
@@ -15089,7 +15128,7 @@ data member specified by tip.
       num_total_pending_instantiations--;
     }  /* if */
   }  /* if */
-  if (trans_unit_stack_pushed) {
+  if (trans_unit_pushed) {
     /* Restore the previously active translation unit. */
     pop_translation_unit_stack();
   }  /* if */

@@ -3800,6 +3800,8 @@ extern a_scope_number take_next_scope_number(void);
 extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
 					   a_translation_unit_ptr	tup);
 
+extern a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym);
+
 extern void symbol_tbl_one_time_init(void);
 
 extern void symbol_tbl_trans_unit_init(void);

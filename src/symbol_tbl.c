@@ -10106,6 +10106,20 @@ with the translation unit specified by tup.
 }  /* symbol_is_from_trans_unit */
 
 
+a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym)
+/*
+Return the translation unit pointer for the translation unit in which
+"sym" was declared.
+*/
+{
+  a_scope_number	scope_number;
+
+  scope_number = sym->decl_scope;
+  check_assertion(scope_number != NO_SCOPE_NUMBER);
+  return trans_unit_for_scope[scope_number];
+}  /* trans_unit_for_symbol */
+
+
 a_symbol_ptr f_class_template_for_type(a_type_ptr	type)
 /*
 If "type" is based on a class template, return the class template on which

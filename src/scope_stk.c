@@ -2595,6 +2595,11 @@ is pushed here, and popped when the instantiation scope is popped.
   innermost_function_scope = NULL;
   saved_innermost_scope_that_affects_access =
                          depth_of_innermost_scope_that_affects_access_control;
+  /* Make sure we are in the right translation unit. */
+  check_assertion_str2(symbol_is_from_trans_unit(template_sym,
+                                                 curr_translation_unit),
+                       "push_template_instantiation_scope:",
+                       "wrong translation unit");
   /* Determine whether the bottom-level entity is a template.  In some
      cases the only instantiation scopes that are pushed are ones
      that make up the context for the definition of an entity.  This
