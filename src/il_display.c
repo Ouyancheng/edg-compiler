@@ -3613,6 +3613,7 @@ Set up for use of the il_to_str routines.
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_stdout;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
+  octl.debug_output = TRUE;
 }  /* init_for_il_to_str_output */
 
 
