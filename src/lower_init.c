@@ -2884,12 +2884,12 @@ be kept, FALSE if it should be deleted.
       goto do_assignment;
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
-      lower_normal_expr(dip->variant.expression);
       if (expr_copy_needed) {
         /* Copy a file-scope expression into the current (function scope)
            memory region. */
         dip->variant.expression = copy_expr_tree(dip->variant.expression);
       }  /* if */
+      lower_normal_expr(dip->variant.expression);
 do_assignment:;
 #if CHECKING
       if (ipdp->whole_array) {
