@@ -4544,6 +4544,10 @@ its subtree.
         dump_var_for_wide_string_constant(
                                         con->variant.address.variant.constant);
       }  /* if */
+#if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
+    } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+      dump_expr_prescan_temps(node->variant.object_lifetime.expr);
+#endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     }  /* if */
   }  /* if */
 }  /* dump_expr_prescan_temps */
