@@ -137,7 +137,7 @@ extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
 typedef unsigned int an_sssd_flag_set;
 
 /* Constants defining bits in the bit vector used in calls to
-   update_src_seq_secondary_decl. */
+   set_src_seq_secondary_decl_fields. */
 #define SSSD_NO_FLAGS ((an_sssd_flag_set)0x0)
 #define SSSD_AUTONOMOUS_TAG_DECL ((an_sssd_flag_set)0x1)
 			/* If this bit is set, set autonomous_tag_decl in the
