@@ -1939,7 +1939,8 @@ bound with the function in *bound_function_selector.
   a_boolean             is_arrow_operator;
   a_type_ptr            class_struct_union_type, orig_class_struct_union_type;
   a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
-  an_error_code         err_in_operand_1 = ec_no_error;
+  a_boolean             operand_1_is_complete_class = FALSE;
+  a_boolean             need_operand_1_type_check = FALSE;
   an_xref_entry_ptr     xep;
   a_routine_ptr         routine_ptr;
   a_boolean             is_qualified_name;
@@ -2011,29 +2012,12 @@ bound with the function in *bound_function_selector.
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
       /* Instantiate the class if it is a template class. */
       check_for_uninstantiated_template_class(class_struct_union_type);
-      if (!is_complete_class_struct_union_type(class_struct_union_type)) {
-        /* Not (a pointer to) a complete class, struct, or union. */
-        err_in_operand_1 = is_arrow_operator ?
-                                  ec_expr_not_ptr_to_struct_or_union :
-				  ec_expr_not_struct_or_union;
-        /* If the problem is that the class is incomplete, use a different
-           error message. */
-        if (is_class_struct_union_type(class_struct_union_type)) {
-          err_in_operand_1 = is_arrow_operator ?
-                                  ec_ptr_to_incomplete_class_type_not_allowed :
-  				  ec_incomplete_type_not_allowed;
-        }  /* if */
-        if (C_dialect == C_dialect_pcc &&
-            (is_arrow_operator || is_an_lvalue(operand_1))) {
-           /* In pcc mode, for "->", or for "." with an lvalue as the
-              left operand, delay issuing the error because one is
-              allowed to select a field from a non-struct/union. */
-        } else {
-          /* In the usual case, issue the error right away. */
-          error_in_operand(err_in_operand_1, operand_1);
-          err_in_operand_1 = ec_no_error;
-        }  /* if */
-      }  /* if */
+      operand_1_is_complete_class =
+                  is_complete_class_struct_union_type(class_struct_union_type);
+      /* No error is issued yet if the first operand is not (a pointer to)
+         a class, because (a) pcc mode allows fields to be selected from
+         non-class pointers, and (b) C++ allows p->int::~int(). */
+      need_operand_1_type_check = TRUE;
     }  /* if */
   }  /* if */
 
@@ -2043,6 +2027,7 @@ bound with the function in *bound_function_selector.
   if (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS |
                                       GID_DTOR_RECOGNIZED)) {
     found_id = TRUE;
+    member_sym = NULL;
     /* See if the name following the operator is a C++ qualified name, as
        in "p->A::x". */
     is_qualified_name = coalesce_and_lookup_qualified_name
@@ -2055,7 +2040,7 @@ bound with the function in *bound_function_selector.
     qualified_member_position = pos_curr_token;
     /* Further checking beyond the fact that this is an identifier is not
        possible if there was an error in the first operand. */
-    if (!is_error_operand(operand_1)) {
+    if (operand_1_is_complete_class) {
       if (is_qualified_name) {
         /* There was a qualified member name, as in "p->A::x".  "A" in the
            preceding must be the class pointed to by p or a base class
@@ -2090,53 +2075,56 @@ bound with the function in *bound_function_selector.
         member_sym = class_qualified_id_lookup(&locator_for_curr_id,
                                                class_struct_union_type,
                                                IDL_NO_OPTIONS);
-        /* If the field was not found, in pcc mode, look for any field with
-           that name.  If there's only one (or several with the same offsets),
-           cast the left-side variable to the right struct/union type and do
-           the selection with the found field. */
-        if (member_sym == NULL && C_dialect == C_dialect_pcc &&
-            /* Avoid the "rvalue . field" case. */
-            (is_arrow_operator || is_an_lvalue(operand_1))) {
-          a_symbol_ptr other_field_sym = other_field_with_same_name();
-          if (other_field_sym != NULL) {
-            /* We found a field we can use. */
-            member_sym = other_field_sym;
-            make_locator_for_symbol(member_sym, &locator_for_curr_id);
-            /* Suppress the error on the first operand. */
-            err_in_operand_1 = ec_no_error;
-            if (is_arrow_operator) {
-              /* "->" operator. */
-              warning(ec_old_fashioned_ptr_field_selection);
-            } else {
-              /* "." operator.  Convert the lvalue to an rvalue pointer, then
-                 use "->" instead.  Note that the test above has ensured that
-                 operand_1 here is an lvalue. */
-              warning(ec_old_fashioned_field_selection);
-              take_address_of_lvalue(operand_1, expression_kind);
-              is_arrow_operator = TRUE;
-            }  /* if */
-            /* Cast the pointer to a pointer to the proper struct or union. */
-            orig_class_struct_union_type = member_sym->class_of_which_a_member;
-            class_struct_union_type =
-                                   skip_typerefs(orig_class_struct_union_type);
-            cast_operand(make_pointer_type(class_struct_union_type),
-                         operand_1, expression_kind,
-                         /*is_implicit_cast=*/FALSE);
-            /* Mark the struct or union type as referenced, since a field
-               therein has been referenced. */
-            orig_class_struct_union_type->source_corresp.referenced = TRUE;
-          }  /* if */
-        }  /* if */
-        if (member_sym == NULL && err_in_operand_1 == ec_no_error) {
-          /* The identifier is not a member of the operand_1 class, struct,
-             or union. */
-          pos_stsy_error(ec_not_a_member, &error_position,
-                         locator_for_curr_id.symbol_header->identifier,
-                         (a_symbol_ptr)class_struct_union_type->
-                                                    source_corresp.assoc_info);
-          err = TRUE;
-        }  /* if */
       }  /* if */
+    }  /* if */
+    /* If the field was not found, in pcc mode, look for any field with
+       that name.  If there's only one (or several with the same offsets),
+       cast the left-side variable to the right struct/union type and do
+       the selection with the found field. */
+    if (member_sym == NULL && C_dialect == C_dialect_pcc &&
+        /* Avoid the "rvalue . field" case. */
+        (is_arrow_operator || is_an_lvalue(operand_1))) {
+      a_symbol_ptr other_field_sym = other_field_with_same_name();
+      if (other_field_sym != NULL) {
+        /* We found a field we can use. */
+        member_sym = other_field_sym;
+        make_locator_for_symbol(member_sym, &locator_for_curr_id);
+        if (is_arrow_operator) {
+          /* "->" operator. */
+          warning(ec_old_fashioned_ptr_field_selection);
+        } else {
+          /* "." operator.  Convert the lvalue to an rvalue pointer, then
+             use "->" instead.  Note that the test above has ensured that
+             operand_1 here is an lvalue. */
+          warning(ec_old_fashioned_field_selection);
+          take_address_of_lvalue(operand_1, expression_kind);
+          is_arrow_operator = TRUE;
+        }  /* if */
+        /* Cast the pointer to a pointer to the proper struct or union. */
+        orig_class_struct_union_type = member_sym->class_of_which_a_member;
+        class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
+        operand_1_is_complete_class = TRUE;
+        cast_operand(make_pointer_type(class_struct_union_type),
+                     operand_1, expression_kind,
+                     /*is_implicit_cast=*/FALSE);
+        /* Mark the struct or union type as referenced, since a field
+           therein has been referenced. */
+        orig_class_struct_union_type->source_corresp.referenced = TRUE;
+      }  /* if */
+    }  /* if */
+    if (member_sym == NULL) {
+      /* The identifier is not a member of the operand_1 class, struct,
+         or union. */
+      if (!operand_1_is_complete_class) {
+        /* An error will be produced below because the first operand is
+           not (a pointer to) a class, so do not issue an error here. */
+      } else {
+        pos_stsy_error(ec_not_a_member, &error_position,
+                       locator_for_curr_id.symbol_header->identifier,
+                       (a_symbol_ptr)class_struct_union_type->
+                                                    source_corresp.assoc_info);
+      }  /* if */
+      err = TRUE;
     }  /* if */
   } else {
     /* The identifier is not present; error. */
@@ -2144,10 +2132,21 @@ bound with the function in *bound_function_selector.
     err = TRUE;
   }  /* if */
 
-  /* Put out the delayed error for operand 1 now if it wasn't suppressed. */
-  if (err_in_operand_1 != ec_no_error) {
-    error_in_operand(err_in_operand_1, operand_1);
-    err_in_operand_1 = ec_no_error;
+  if (need_operand_1_type_check && !operand_1_is_complete_class) {
+    /* The first operand is not (a pointer to) a complete class, struct,
+       or union. */
+    an_error_code err_code;
+    /* If the problem is that the class is incomplete, use a different
+       error message. */
+    if (is_incomplete_type(class_struct_union_type)) {
+      err_code = is_arrow_operator ?
+                                  ec_ptr_to_incomplete_class_type_not_allowed :
+  				  ec_incomplete_type_not_allowed;
+    } else {
+      err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
+                                     ec_expr_not_struct_or_union;
+    }  /* if */
+    error_in_operand(err_code, operand_1);
     err = TRUE;
   }  /* if */
 
