@@ -162,6 +162,10 @@ extern void reference_to_implicitly_invoked_function
                                      a_boolean          evaluated,
                                      a_boolean          suppress_access_check);
 
+extern a_boolean reference_to_trivial_default_constructor(
+                                                a_type_ptr         class_type,
+                                                a_source_position  *pos);
+
 #if RECORD_HIDDEN_NAMES_IN_IL
 
 extern void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr);

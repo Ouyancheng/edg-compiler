@@ -2121,19 +2121,16 @@ the default constructor (if one exists) is called.
            initialization were done even though it wasn't -- this will
            prevent a redundant diagnostic from being issued. */
         def_init_performed = TRUE;
-      } else if (!is_const && cssp->trivial_default_constructor != NULL) {
-        /* The language definition says that the object is "default
-           initialized", which means the trivial default constructor is
-           called (even though it's a no-op).  This means its definition is
-           supposed to be generated, and since that may have side-effects
-           we try at least to produce the side-effects even if we don't
-           actually generate the definition. */
-        reference_to_implicitly_invoked_function(
-                                       cssp->trivial_default_constructor,
-                                       err_pos, tp, /*honor_virtual=*/FALSE,
-                                       /*evaluated=*/TRUE,
-                                       /*suppress_access_check=*/TRUE);
-        def_init_performed = TRUE;
+      } else if (!is_const) {
+        /* There is no user-declared or nontrivial implicitly declared default
+           constructor.  However, the language definition says that a
+           non-const object is "default initialized", which means the trivial
+           default constructor will be called.  We apply the as-if rule and
+           suppress the call (since it's a no-op), but the definition still
+           needs to be generated, since it may have side-effects. */
+        if (reference_to_trivial_default_constructor(tp, err_pos)) {
+          def_init_performed = TRUE;
+        }  /* if */
       }  /* if */
       dtor = select_destructor(tp, tp, err_pos,
                                /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
@@ -2812,13 +2809,11 @@ scan_paren:
               }  /* if */
             }  /* if */
           } else if (curr_token == tok_rparen && cssp != NULL &&
-                     cssp->trivial_default_constructor != NULL) {
-            reference_to_implicitly_invoked_function(
-                                       cssp->trivial_default_constructor,
-                                       &error_position, init_type,
-                                       /*honor_virtual=*/FALSE,
-                                       /*evaluated=*/TRUE,
-                                       /*suppress_access_check=*/TRUE);
+                     reference_to_trivial_default_constructor(
+                                         init_type, &error_position)) {
+            /* We fake a call to the trivial default constructor for the
+               class.  No call is actually made, but the constructor
+               definition is triggered (in case there are side-effects). */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             /* Bypass the right paren. */
             (void)get_token();
@@ -3092,12 +3087,10 @@ scan_paren:
                              &err_pos, tp);
               }  /* if */
             }  /* if */
-          } else if (cssp->trivial_default_constructor != NULL) {
-            reference_to_implicitly_invoked_function(
-                                       cssp->trivial_default_constructor,
-                                       &err_pos, tp, /*honor_virtual=*/FALSE,
-                                       /*evaluated=*/TRUE,
-                                       /*suppress_access_check=*/TRUE);
+          } else {
+            /* If there is a trivial default constructor for this class,
+               treat this as a reference to it. */
+            (void)reference_to_trivial_default_constructor(tp, &err_pos);
           }  /* if */
         }  /* if */
         if (cssp == NULL ||

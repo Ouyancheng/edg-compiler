@@ -1230,6 +1230,34 @@ TRUE, no access control checking is done.
 }  /* reference_to_implicitly_invoked_function */
 
 
+a_boolean reference_to_trivial_default_constructor(
+                                              a_type_ptr         class_type,
+                                              a_source_position  *pos)
+/*
+Return TRUE if class_type has an associated trivial default constructor.
+(This should never be the case for PODs, for classes with any user-declared
+constructors, or for classes with an implicitly declared nontrivial default
+constructor.)  If a trivial default constructor is found, record a reference
+to it -- checking its accessibility, updating the cross-reference listing if
+appropriate, and assuring that it is defined, which is done (even though the
+function is not actually called) in case the definition has side effects.
+*/
+{
+  a_symbol_ptr   ctor_sym;
+
+  check_assertion(is_class_struct_union_type(class_type));
+  ctor_sym = symbol_supplement_for_class(class_type)->
+                                            trivial_default_constructor;
+  if (ctor_sym != NULL) {
+    reference_to_implicitly_invoked_function(ctor_sym, pos, class_type,
+                                             /*honor_virtual=*/FALSE,
+                                             /*evaluated=*/TRUE,
+                                             /*suppress_access_check=*/FALSE);
+  }  /* if */
+  return (ctor_sym != NULL);
+}  /* reference_to_trivial_default_constructor */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
