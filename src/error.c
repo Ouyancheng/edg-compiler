@@ -1324,6 +1324,9 @@ error code.
     case ec_incomplete_return_type_not_allowed:
       m = "a function with an incomplete return type may not be called";
       break;
+    case ec_call_of_pure_virtual_function:
+      m = "a pure virtual function may not be called";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

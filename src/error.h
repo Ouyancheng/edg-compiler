@@ -459,7 +459,8 @@ typedef enum /*an_error_code*/ {
   ec_nested_class_anachronism,
   ec_too_many_params_for_destructor,
   ec_bad_constructor_param,
-  ec_incomplete_return_type_not_allowed
+  ec_incomplete_return_type_not_allowed,
+  ec_call_of_pure_virtual_function
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
