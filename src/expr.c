@@ -10715,7 +10715,8 @@ except for standard operand transformations.
   pointer_case = is_pointer_type(result->type) ||
                  is_ptr_to_member_type(result->type);
   was_constant = (is_constant_operand(result) &&
-                  result->variant.constant.kind != ck_template_param);
+                  result->variant.constant.kind !=
+                                      (a_constant_repr_kind)ck_template_param);
   /* Check that the operand is scalar or a pointer to member.  Note that
      this is done even for the cases where a class type has been converted
      to such a type, because the subroutine does some additional checking
