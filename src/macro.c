@@ -2616,7 +2616,7 @@ argument number).
 */
 #define put_start_of_section(kind, number)                            \
 { ensure_macro_buffer_space(1+NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER); \
-  *next_avail_in_macro_buffer++ = (char)kind;                         \
+  *next_avail_in_macro_buffer++ = (char)(kind);                         \
   put_macro_repl_text_number(number, next_avail_in_macro_buffer);     \
 }  /* put_start_of_section */
 
