@@ -69,6 +69,15 @@ static char *compress_mangled_name(char                     *mangled_name,
 static char *truncate_mangled_name(char                     *mangled_name,
                                    a_source_correspondence  *scp,
                                    a_mangling_control_block *mctl);
+static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
+                                       unsigned long            nesting_level,
+                                       a_mangling_control_block *mctl);
+
+/*
+Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
+*/
+#define mangled_parent_qualifier(parent, mctl)                        \
+  r_mangled_parent_qualifier((parent), (unsigned long)1, (mctl))
 
 
 static sizeof_t digits_to_represent(unsigned long value)
@@ -1132,6 +1141,49 @@ If the indicated member variable is unnamed, give it a name.
 }  /* give_unnamed_member_variable_a_name */
 
 
+static void mangled_encoding_for_template_template_argument(
+                                                a_template_arg_ptr       tap,
+                                                a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the template template argument
+given by tap.
+*/
+{
+  a_source_correspondence  *scp = &tap->variant.templ->source_corresp;
+  sizeof_t                 str_length;
+  a_boolean                is_member;
+  a_mangling_control_block sctl;
+
+  /* Name of template.  The encoding is like
+       4abcd <-- encoding for template "abcd"
+        ^^^^---- Name of entity.
+       ^-------- Length of the name.
+  */
+  check_assertion(scp->name != NULL);
+  /* Compute the length of the mangled name. */
+  str_length = strlen(scp->name);
+  is_member = (scp->is_class_member || scp->parent.namespace_ptr != NULL);
+  if (is_member) {
+    /* The template is a member of a class or namespace, so it needs a
+       parent qualifier.  Compute the length of the qualifier. */
+    set_control_block_for_suppression(&sctl, mctl);
+    mangled_parent_qualifier(scp, &sctl);
+    str_length += 2 + sctl.slength;  /* "2" for the underscores. */
+  }  /* if */
+  /* Put out the length. */
+  add_number_to_mangled_name((unsigned long)str_length, mctl);
+  /* Put out the base part of the name. */
+  add_str_to_mangled_name(scp->name, mctl);
+  if (is_member) {
+    /* Add two underscores after the name. */
+    add_str_to_mangled_name("__", mctl);
+    /* Put out the name of the class or namespace of which this template
+       is a member. */
+    mangled_parent_qualifier(scp, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_template_template_argument */
+
+
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
                                     a_boolean                partial_spec,
@@ -1182,7 +1234,7 @@ literals.
         mangled_encoding_for_type(tap->variant.type, eff_ctl);
       } else if (is_template_templ_arg(tap)) {
         /* A template template argument. */
-        /* FIXME - template template arguments. */
+        mangled_encoding_for_template_template_argument(tap, eff_ctl);
       } else {
         check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                              "mangled_template_arguments:",
@@ -1561,13 +1613,6 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
     mangled_name_with_length(name, mctl);
   }  /* if */
 }  /* r_mangled_parent_qualifier */
-
-
-/*
-Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
-*/
-#define mangled_parent_qualifier(parent, mctl)                        \
-  r_mangled_parent_qualifier((parent), (unsigned long)1, (mctl))
 
 
 /* Return TRUE if the indicated type needs a parent (class or namespace)
