@@ -1117,6 +1117,7 @@ do
   # instantiations directory, otherwise they go into a temporary directory.
   # When the "keep" option is used, the instantiations list goes into the
   # current directory, otherwise it goes in the temporary directory.
+  instantiation_list=$instantiation_dir/$basefile.list
   if [ $one_instantiation_per_object -ne 0 ] ; then
     if [ $keep_int_file -ne 0 ] ; then
       instantiation_gen_c_dir=$instantiation_dir
@@ -1135,7 +1136,6 @@ do
         exit 1
       fi
     fi
-    instantiation_list=$instantiation_dir/$basefile.list
     instantiation_dir_option="--instantiation_dir=$instantiation_gen_c_dir --instantiation_file_list=$instantiation_list"
   fi
   command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
