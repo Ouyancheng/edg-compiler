@@ -682,6 +682,8 @@ typedef struct a_token_cache {
 extern void clear_token_cache(a_token_cache *cache);
 /* Save the current token in a token cache. */
 extern void cache_curr_token(a_token_cache *cache);
+/* Save a token stream in a token cache. */
+extern void cache_token_stream(a_token_cache *cache);
 /* Put some cached tokens on the get_token rescan list. */
 extern void rescan_cached_tokens(a_token_cache *cache);
 
