@@ -4018,9 +4018,8 @@ Declare the type va_list when <stdarg.h> is treated as a builtin.
     sym->variant.type = va_list_typedef;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Put out a source sequence entry for the type. */
-    update_source_sequence_list((char *)va_list_typedef,
-                                (an_il_entry_kind)iek_type,
-                                (a_source_sequence_entry_ptr)NULL);
+    add_to_source_sequence_list((char *)va_list_typedef,
+                                (an_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     builtin_va_list_type = type_symbol_type(sym);
 #undef VA_LIST_NAME

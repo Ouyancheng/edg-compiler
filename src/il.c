@@ -9675,7 +9675,7 @@ points to sublist.
 }  /* find_sublist_parent */
 
 
-void add_to_source_sequence_list(a_source_sequence_entry_ptr  new_ssep)
+void add_source_sequence_entry_to_list(a_source_sequence_entry_ptr  new_ssep)
 /*
 Add new_ssep to the end of the source-sequence list of the appropriate scope,
 which is either the file scope or a function scope; if the latter, new_ssep
@@ -9687,7 +9687,7 @@ will go on a sublist if it was allocated in the file-scope memory region.
   a_scope_ptr                  sp;
   a_source_sequence_entry_ptr  func_scope_ssep = NULL;
 
-  db_enter(4, "add_to_source_sequence_list");
+  db_enter(4, "add_source_sequence_entry_to_list");
   scope_stack_ptr = &scope_stack[depth_innermost_ss_list_scope];
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
@@ -9715,12 +9715,12 @@ will go on a sublist if it was allocated in the file-scope memory region.
          their respective lists. */
       sublist = make_sublist_header_and_parent(new_ssep, &func_scope_ssep);
       add_to_src_seq_sublist_list(sublist);                
-      add_to_source_sequence_list(func_scope_ssep);
+      add_source_sequence_entry_to_list(func_scope_ssep);
     }  /* if */
   } else {
     sp = scope_stack_ptr->il_scope;
     check_assertion_str(sp != NULL,
-                        "add_to_source_sequence_list: NULL IL scope");
+                        "add_source_sequence_entry_to_list: NULL IL scope");
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* Often a secondary-source sequence entry for a partial instantiation
        is put out immediately prior to the entry for a full instantiation.
@@ -9766,7 +9766,7 @@ will go on a sublist if it was allocated in the file-scope memory region.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   db_exit();
-}  /* add_to_source_sequence_list */
+}  /* add_source_sequence_entry_to_list */
 
 
 void f_update_source_sequence_list(char                         *entity_ptr,
@@ -9981,7 +9981,7 @@ entry that has already been created and linked in for this entity.
     }  /* if */
   }  /* if */
   if (old_ssep == NULL) {
-    add_to_source_sequence_list(new_ssep);
+    add_source_sequence_entry_to_list(new_ssep);
   } else {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
@@ -10142,7 +10142,7 @@ region -- and then add it to the end of the source sequence list.
     ssep = alloc_source_sequence_entry();
     ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
     /* Note that the entity.ptr field is left NULL. */
-    add_to_source_sequence_list(ssep);
+    add_source_sequence_entry_to_list(ssep);
   }  /* if */
   db_exit();
   return ssep;
@@ -10195,7 +10195,7 @@ sequence list.
     ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_end_of_construct;
     ssep->entity.ptr = (char *)sseocp;
     /* Add the source sequence entry to the list. */
-    add_to_source_sequence_list(ssep);
+    add_source_sequence_entry_to_list(ssep);
     if (force_alloc_in_filescope) {
       switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */

@@ -1069,9 +1069,8 @@ nested class.
                clearing the source-sequence pointer to be sure it will be
                reset. */
             rp->source_corresp.source_sequence_entry = NULL;
-            update_source_sequence_list((char *)rp,
-                                        (an_il_entry_kind)iek_routine,
-                                        (a_source_sequence_entry_ptr)NULL);
+            add_to_source_sequence_list((char *)rp,
+                                        (an_il_entry_kind)iek_routine);
             /* Since a source-sequence entry for the member function is being
                inserted immediately after the end-of-construct-entry for the
                class, mark this as an autonomous class definition (even if

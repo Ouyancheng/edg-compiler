@@ -1147,10 +1147,7 @@ current scope.
   /* Also put out a source sequence entry for the variable (even though the
      variable declaration doesn't actually appear). */
   vp->declared_type = anon_union_type;
-  if (!source_sequence_entries_disallowed) {
-    f_update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
-                                  (a_source_sequence_entry_ptr)NULL);
-  }  /* if */
+  add_to_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Promote symbols for anonymous unions members to the enclosing scope.
      Error checking is also done. */
@@ -6918,11 +6915,7 @@ make_asm_entry:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* There's no name or symbol for the asm declaration, so call
          update_source_sequence_list directly. */
-      if (!source_sequence_entries_disallowed) {
-        update_source_sequence_list((char *)ap,
-                                    (an_il_entry_kind)iek_asm_entry,
-                                    (a_source_sequence_entry_ptr)NULL);
-      }  /* if */
+      add_to_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
@@ -7083,11 +7076,7 @@ will be found during name lookup.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (nsp->source_corresp.name != NULL) {
     /* Not a compiler-generated using directive for an unnamed namespace. */
-    if (!source_sequence_entries_disallowed) {
-      update_source_sequence_list((char *)udp,
-                                  (an_il_entry_kind)iek_using_decl,
-                                  (a_source_sequence_entry_ptr)NULL);
-    }  /* if */
+    add_to_source_sequence_list((char *)udp, (an_il_entry_kind)iek_using_decl);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* make_using_directive */
@@ -7399,7 +7388,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         /* For each declaration at namespace scope, reset the
            source-sequence insert point for instantiations to NULL -- it
            will be set to point to the first source sequence entry that
-           add_to_source_sequence_list sees, which should be the first
+           add_source_sequence_entry_to_list sees, which should be the first
            entry associated with the current declaration. */
         scope_stack[DEPTH_OF_FILE_SCOPE].
                        ss_list_instantiation_insert_point = NULL;
@@ -9227,8 +9216,8 @@ In C++, however, the declaration list is optional (3.4):
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* For each declaration at file scope, reset the source-sequence insert
          point for instantiations to NULL -- it will be set to point to the
-         first source sequence entry that add_to_source_sequence_list sees,
-         which should be the first entry associated with the current
+         first source sequence entry that add_source_sequence_entry_to_list
+         sees, which should be the first entry associated with the current
          declaration. */
       scope_stack[DEPTH_OF_FILE_SCOPE].
                        ss_list_instantiation_insert_point = NULL;

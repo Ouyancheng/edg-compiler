@@ -4506,8 +4506,8 @@ label_position indicates the source position of the label.
     sssep->last_const_in_last_switch_clause = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry for the switch clause. */
-    update_source_sequence_list((char *)scp, iek_switch_clause,
-                                (a_source_sequence_entry_ptr)NULL);
+    add_to_source_sequence_list((char *)scp,
+                                (an_il_entry_kind)iek_switch_clause);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Add the new value to the (new?) current switch clause.  For the

@@ -1398,9 +1398,8 @@ the identifier in the using-declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!source_sequence_entries_disallowed) {
     if (prev_udp == NULL) {
-      update_source_sequence_list((char *)udp,
-                                  (an_il_entry_kind)iek_using_decl,
-                                  (a_source_sequence_entry_ptr)NULL);
+      add_to_source_sequence_list((char *)udp,
+                                  (an_il_entry_kind)iek_using_decl);
     } else {
       prev_udp->next_in_overload_set = udp;
     }  /* if */

@@ -973,17 +973,30 @@ extern void dump_ss(a_scope_ptr  sp,
 extern a_source_sequence_entry_ptr find_sublist_parent(
                                                a_src_seq_sublist_ptr sublist);
 
-extern void add_to_source_sequence_list(a_source_sequence_entry  *new_ssep);
+extern void add_source_sequence_entry_to_list(
+                                       a_source_sequence_entry_ptr new_ssep);
 
 extern void f_update_source_sequence_list(char                    *entity_ptr,
                                           an_il_entry_kind        kind,
                                           a_source_sequence_entry *old_ssep);
 
+/* Macro interface to f_update_source_sequence_list when there may be an
+   empty source-sequence entry on the list that needs to be filled in. */
 #define update_source_sequence_list(entity_ptr, kind, old_ssep)          \
 { if (old_ssep != NULL || !source_sequence_entries_disallowed) {         \
     f_update_source_sequence_list((entity_ptr), (kind), (old_ssep));     \
   }  /* if */                                                            \
 }  /* update_source_sequence_list */
+
+/* Macro interface to f_update_source_sequence_list when a new entry is to
+   be added to the list. */
+#define add_to_source_sequence_list(entity_ptr, kind)                    \
+{ if (!source_sequence_entries_disallowed) {                             \
+    f_update_source_sequence_list((entity_ptr), (kind),                  \
+                                  (a_source_sequence_entry_ptr)NULL);    \
+  }  /* if */                                                            \
+}  /* add_to_source_sequence_list */
+
 
 extern a_src_seq_sublist_ptr sublist_header_of(
                                             a_source_sequence_entry_ptr ssep);

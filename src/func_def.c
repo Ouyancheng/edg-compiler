@@ -1026,7 +1026,7 @@ and for the instantiation of template functions.
             /* For types (as well as other miscellany, such as fields in a
                C struct definition), add the entries to a sublist of the
                function scope list. */
-            add_to_source_sequence_list(ssep);
+            add_source_sequence_entry_to_list(ssep);
             break;
             /* No action. */
         }  /* switch */

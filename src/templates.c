@@ -577,8 +577,7 @@ as the decl_position of the template declaration as a whole.
   }  /* if */
   /* There's not yet a name or symbol for the template declaration, so call
      update_source_sequence_list directly. */
-  update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
-                              (a_source_sequence_entry_ptr)NULL);
+  add_to_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return tp;
@@ -2671,9 +2670,8 @@ Instantiate the body of the template function associated with tip.
        function itself must be in the list to indicate when to make use of
        the source sequence list for the function body. */
     if (rout_ptr->source_corresp.source_sequence_entry == NULL) {
-      update_source_sequence_list((char *)rout_ptr,
-                                  (an_il_entry_kind)iek_routine,
-                                  (a_source_sequence_entry_ptr)NULL);
+      add_to_source_sequence_list((char *)rout_ptr,
+                                  (an_il_entry_kind)iek_routine);
     }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
