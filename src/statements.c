@@ -2541,8 +2541,6 @@ statements since they are not allowed to have condition declarations even
 in C++.
 */
 {
-  a_boolean  repeated_in_loop = FALSE;
-
   if (!C_mode() &&
       is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
                        /*real_declarator_allowed=*/TRUE,
