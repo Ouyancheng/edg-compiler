@@ -8187,6 +8187,7 @@ This routine is only used in C++ mode.
   /* Note that this routine is like a simplified version of
      select_overloaded_function that works for user-defined conversion
      functions (no arguments, just a "this" parameter). */
+  clear_user_conv_descr(user_conversion);
   class_type = skip_typerefs(dest_type);
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
@@ -8308,6 +8309,7 @@ is only used in C++ mode.
 
   db_enter(4, "conversion_from_class_possible");
   /* This routine is similar to select_overloaded_function. */
+  clear_user_conv_descr(user_conversion);
   candidate_functions = NULL;
   /* Find any viable conversion functions. */
   try_conversion_function_match(source_operand, dest_type,
