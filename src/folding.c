@@ -645,6 +645,7 @@ explicit casts, so checking for accessibility of base classes is not necessary.
     set_error_constant(result);
   } else {
     copy_constant(constant_1, result);
+    result->variant.ptr_to_member.class_of_which_a_member = bcp->type;
     implicit_cast(result, new_type);
   }  /* if */
 }  /* fold_pm_base_class_cast */
@@ -666,6 +667,7 @@ If there is an error, it is issued at *err_pos.
 */
 {
   a_type_ptr            new_type = result->type, curr_type;
+  a_type_ptr            derived_class_type;
   a_derivation_step_ptr dsp;
 
   /* The code here looks like add_pm_derived_class_casts. */
@@ -678,11 +680,12 @@ If there is an error, it is issued at *err_pos.
     pos_error(ec_derived_class_from_virtual_base, err_pos);
     set_error_constant(result);
   } else {
+    derived_class_type =
+        skip_typerefs(new_type)->variant.ptr_to_member.class_of_which_a_member;
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
-      curr_type = skip_typerefs(new_type)->variant.ptr_to_member.
-                                                       class_of_which_a_member;
+      curr_type = derived_class_type;
       for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
         /* Check that the base class is accessible from the current class. */
         if (!is_accessible_base_class(dsp->base_class, curr_type)) {
@@ -693,6 +696,7 @@ If there is an error, it is issued at *err_pos.
       }  /* for */
     }  /* if */
     copy_constant(constant_1, result);
+    result->variant.ptr_to_member.class_of_which_a_member = derived_class_type;
     implicit_cast(result, new_type);
   }  /* if */
 }  /* fold_pm_derived_class_cast */
@@ -793,6 +797,8 @@ Convert an integer constant to a pointer to member.
   new_type = new_constant->type;
   new_type = skip_typerefs(new_type);
   member_type = new_type->variant.ptr_to_member.type;
+  new_constant->variant.ptr_to_member.class_of_which_a_member =
+                       new_type->variant.ptr_to_member.class_of_which_a_member;
   new_constant->variant.ptr_to_member.is_function_ptr = is_function_ptr =
                                                  is_function_type(member_type);
   /* NULL pointer implies a NULL pointer-to-member constant. */
