@@ -763,6 +763,7 @@ typedef struct a_class_symbol_supplement {
 			/* For an real instantiation, this is TRUE if the
 			   full instantiation is in the process of being
 			   generated. */
+  bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 
 

@@ -1717,6 +1717,9 @@ state.
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;
+#if CHECKING
+        cssp->avoid_codecenter_warnings = FALSE;
+#endif /* CHECKING */
       }
       break;
     case sk_variable:
