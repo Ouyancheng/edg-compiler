@@ -4828,11 +4828,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                surrounding parentheses, to avoid problems with overloaded
                functions (the function identifier must be right next to the
                argument parentheses). */
-            gen_lvalue_no_parens(operand_1);
+            gen_expression(operand_1);
           } else {
             /* Specific routine is not known (e.g., call through a pointer). */
             /* Note that this can't be a member function. */
-            gen_lvalue(operand_1);
+            gen_expr_with_parens(operand_1);
           }  /* if */
           /* Put out the arguments. */
           gen_argument_list(args, type_pointed_to(operand_1->type),
