@@ -2932,7 +2932,7 @@ a_symbol_list_entry_ptr nonmember_operator_function_lookup(
 /*
 Look up the set of operator function symbols that will be used to produce
 a list of candidate functions for a given overloaded operator.
-This routine performs the lookup.extra_infoibed in [over.match.oper].
+This routine performs the lookup described in [over.match.oper].
 Specifically, it produces the set of nonmember candidates by doing
 a normal lookup (but excluding member functions) and combining the
 result of that lookup with a lookup in the namespaces of the classes
