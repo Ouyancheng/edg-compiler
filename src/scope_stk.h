@@ -293,6 +293,11 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if is_try_block is TRUE or if this scope is
 			   an sck_block scope nested within a scope for which
 			   is_try_block is set. */
+  a_bit_field	is_catch_in_function_try:1;
+			/* TRUE if this is the block scope pushed for a catch
+			   clause in a function try block.  Some special error
+			   tests are required for variables declared in such
+			   blocks. */
   a_bit_field	using_directives_apply:1;
 			/* One or more using directives are present in this
 			   scope or a scope nested within this scope for which

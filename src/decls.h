@@ -391,7 +391,8 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_boolean                   is_specialization);
 
 extern void handler_declaration(a_statement_ptr     sp,
-                                a_source_position*  catch_pos);
+                                a_source_position*  catch_pos,
+				a_boolean	    is_function_try_block);
 
 extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
                                         a_boolean  is_asm_statement);

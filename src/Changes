@@ -1,5 +1,18 @@
 Version 3.1
 
+9/27/02  Diagnostic on redeclaration of parameter in catch clause
+
+In a function try block, the standard prohibits a catch handler variable
+or a variable in the outer block of the catch clause from having the same
+name as a parameter of the function.  A diagnostic is now issued for
+such cases.
+
+  void f(int i, int j)
+  try { }
+  catch (int i) {
+    int j;
+  }
+ 
 9/26/02  Member function template with template args as pointer to member
 
 When a reference to a member function template includes explicit

@@ -1432,6 +1432,7 @@ the scope being pushed.
   ssep->defer_access_checks      = FALSE;
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
+  ssep->is_catch_in_function_try = FALSE;
   ssep->within_unnamed_namespace = FALSE;
   ssep->namespace_pushed         = FALSE;
   ssep->exclude_from_context_output = FALSE;

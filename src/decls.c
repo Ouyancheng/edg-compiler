@@ -8454,7 +8454,8 @@ pos is used to mark the location that carries any diagnostic.
 
 
 void handler_declaration(a_statement_ptr     try_block_stmt,
-                         a_source_position*  catch_pos)
+                         a_source_position*  catch_pos,
+			 a_boolean	     is_function_try_block)
 /*
 Process a handler declaration:
 
@@ -8462,6 +8463,8 @@ Process a handler declaration:
 
 try_block_stmt is a pointer to the try-block statement to which the catch
 clause is to be attached.  catch_pos is the source position of "catch".
+is_function_try_block is TRUE if this is a function try block, FALSE for
+a normal try.
 */
 {
   a_handler_ptr                handler, prev_handler;
@@ -8484,6 +8487,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
      same as that of the handler's compound statement block. */
   (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
                    (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  scope_stack[depth_scope_stack].is_catch_in_function_try =
+                                                         is_function_try_block;
   /* Allocate the handler. */
   handler = alloc_handler();
   /* Set the assoc_handler field of the IL scope entry. */

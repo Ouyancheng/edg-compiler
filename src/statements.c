@@ -3741,12 +3741,13 @@ declared with an explicit return type.
 */
 {
   a_source_position  catch_pos;
+  a_boolean	     is_function_try_block;
 
   db_enter(3, "try_block_statement");
+  /* The statement will already have been created for function try blocks. */
+  is_function_try_block = sp != NULL;
   /* Allocate the statement. */
-  if (sp != NULL) {
-    /* A function try block. */
-  } else {
+  if (!is_function_try_block) {
     check_for_unreachable_code();
     sp = add_statement((a_statement_kind)stmk_try_block);
     stmt_update_source_sequence_list(sp);
@@ -3776,7 +3777,7 @@ declared with an explicit return type.
     do {
       term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
       start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
-      handler_declaration(sp, &catch_pos);
+      handler_declaration(sp, &catch_pos, is_function_try_block);
       /* Again, save the current token position as catch_pos before
          checking. */
       catch_pos = pos_curr_token;

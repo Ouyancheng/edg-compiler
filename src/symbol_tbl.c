@@ -3096,6 +3096,36 @@ this is not allowed, an error will be issued by the caller.
 }  /* symbols_may_coexist_in_curr_scope */
 
 
+static a_boolean is_redeclared_in_handler(a_symbol_header_ptr	sym_hdr)
+/*
+Return TRUE if a variable of the name specified by sym_hdr is a parameter
+of the nearest enclosing function.
+*/
+{
+  a_boolean	result = FALSE;
+
+  /* Look on the symbols list of the enclosing function, if any. */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr	ssep;
+    a_symbol_ptr		sym;
+    ssep = &scope_stack[depth_innermost_function_scope];
+    for (sym = assoc_pointers_block_of(ssep)->symbols;
+         sym != NULL; sym = sym->next_in_scope) {
+      if (sym->header == sym_hdr && sym->kind == (a_symbol_kind)sk_variable) {
+        /* If this is a variable, see if it is a parameter.  If so, we have
+           redeclared a parameter. */
+        a_variable_ptr	vp = sym->variant.variable.ptr;
+        if (vp->is_parameter) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_redeclared_in_handler */
+
+
 static a_boolean is_redeclared_template_param(a_symbol_ptr      sym,
                                               an_error_severity *severity)
 /*
@@ -3369,6 +3399,16 @@ symbol must be added to the inactive list.
                            sym_ptr->header->identifier);
             }  /* if */
             redecl_err = TRUE;
+          }  /* if */
+          if (!suppress_error &&
+              scope_stack[depth_scope_stack].is_catch_in_function_try &&
+              is_redeclared_in_handler(sym_ptr->header)) {
+            /* A variable declared in a catch parameter or the top block
+               of a catch clause is also the name of a function parameter. */
+            pos_st_diagnostic(strict_ansi_discretionary_severity,
+                              ec_handler_redeclares_parameter,
+                              &(sym_ptr->decl_position),
+                              sym_ptr->header->identifier);
           }  /* if */
         }  /* if */
         /* See if this name a redeclaration of a template parameter name.
