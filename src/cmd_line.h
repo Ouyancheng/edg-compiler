@@ -27,11 +27,7 @@ cmd_line.h -- Declarations relating to cmd_line.c (relating
 #ifndef LANG_FEAT_H
 #include "lang_feat.h"
 #endif /* ifndef LANG_FEAT_H */
-#if 1 /* FIXME */
-#ifndef TARG_DEF_H
-#include "targ_def.h"
-#endif /* ifndef TARG_DEF_H */
-#endif /* FIXME */
+
 /*
 List of all command-line option kinds.
 */
