@@ -2199,7 +2199,6 @@ setting the offset field in the latter.
 #if IA64_ABI
   proximate_derivation->offset_is_set = TRUE;
   if (proximate_derivation->primary_base_class != NULL &&
-      !proximate_derivation->primary_base_class->direct &&
       proximate_derivation->primary_base_class->is_virtual) {
     /* An indirect nearly-empty virtual base might have been chosen as a
        primary base.  We will therefore have to consider indirect bases. */
