@@ -2534,7 +2534,8 @@ produced.
 
 a_constant_ptr alloc_error_constant(void)
 /*
-Allocate and return an error constant.
+Allocate and return an error constant.  The constant is allocated in the
+file scope and is unshared.
 */
 {
   a_constant_ptr cp;
