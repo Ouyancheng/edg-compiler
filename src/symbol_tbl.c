@@ -46,6 +46,7 @@ unnamed class symbols.
 static a_symbol_header_ptr
 		error_symbol_header,
 		unnamed_class_symbol_header,
+		anonymous_parent_object_symbol_header,
 		unnamed_field_symbol_header;
 
 /*
@@ -1387,7 +1388,7 @@ state.
       break;
     case sk_field:
       sym_ptr->variant.field.ptr = NULL;
-      sym_ptr->variant.field.anonymous_union_variable = NULL;
+      sym_ptr->variant.field.anonymous_parent_object = NULL;
       break;
     case sk_routine:
     case sk_member_function:
@@ -2632,6 +2633,29 @@ sake of identifying a given field entry as representing an unnamed field.
   }  /* if */
   return &sym;
 }  /* unnamed_field_symbol */
+
+
+a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
+                                                 a_source_position  *pos)
+/*
+Return a symbol for a field or variable that serves as the "anonymous
+parent object" for an anonymous union.  Do not enter it in the symbol table.
+*/
+{
+  a_symbol_ptr  sym;
+
+  db_enter(4, "make_anonymous_parent_object_symbol");
+  /* Use the unnamed class symbol header.  Allocate it if necessary. */
+  if (anonymous_parent_object_symbol_header == NULL) {
+    anonymous_parent_object_symbol_header = alloc_symbol_header();
+    anonymous_parent_object_symbol_header->identifier = "<unnamed>";
+    anonymous_parent_object_symbol_header->identifier_length = 9;
+  }  /* if */
+  sym = alloc_symbol(kind, anonymous_parent_object_symbol_header, pos);
+  sym->decl_scope = scope_stack[decl_scope_level].number;
+  db_exit();
+  return sym;
+}  /* make_anonymous_parent_object_symbol */
 
 
 a_symbol_ptr full_enter_symbol(char          *identifier,
@@ -7419,18 +7443,18 @@ NULL.
       scp = &sym->variant.constant->source_corresp;
       break;
     case sk_field:
-      if (C_dialect != C_dialect_cplusplus) {
+      if (sym->variant.field.anonymous_parent_object == NULL) {
         scp = &sym->variant.field.ptr->source_corresp;
-      } else if (sym->variant.field.anonymous_union_variable != NULL) {
-        scp = &sym->variant.field.anonymous_union_variable->source_corresp;
       } else {
-        a_field_ptr  fp = sym->variant.field.ptr;
-        for (;;) {
-          scp = &fp->source_corresp;
-          if (scp->class_of_which_a_member == NULL) break;
-          fp = (skip_typerefs(scp->class_of_which_a_member))->variant.
-                         class_struct_union.extra_info->anonymous_union_field;
-          if (fp == NULL) break;
+        a_symbol_ptr  apo_sym;
+
+        for (apo_sym = sym->variant.field.anonymous_parent_object;
+             apo_sym->kind == (a_symbol_kind)sk_field;
+             apo_sym = apo_sym->variant.field.anonymous_parent_object) {
+          if (apo_sym->variant.field.anonymous_parent_object == NULL) {
+            scp = &apo_sym->variant.field.ptr->source_corresp;
+            break;
+          }  /* if */
         }  /* for */
       }  /* if */
       break;
@@ -8589,6 +8613,7 @@ to avoid an 8-character external name clash with symbol_table.)
   avail_dependent_type_fixups = NULL;
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
+  anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;

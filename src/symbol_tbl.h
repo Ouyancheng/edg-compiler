@@ -1301,11 +1301,15 @@ typedef struct a_symbol {
       a_field_ptr
 		ptr;
 			/* The field. */
-      a_variable_ptr
-		anonymous_union_variable;
-			/* If this field is a member of an anonymous union
-			   that is associated with a variable (not a field),
-			   a pointer to that variable; otherwise NULL. */
+      a_symbol_ptr
+		anonymous_parent_object;
+			/* If this field is a member of an anonymous union,
+			   a pointer to the symbol for the (unnamed) variable
+			   or field it is associated with; otherwise NULL.
+			   Note that the symbol for an anonymous union member
+			   is "promoted" into the scope of its parent entity,
+			   so that this is a way to get at the intervening
+			   anonymous structure(s) it belongs to. */
     } field;
     /* When kind == sk_routine or sk_member_function: */
     struct {
@@ -1963,6 +1967,10 @@ extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
 extern a_boolean is_unnamed_class_symbol(a_symbol_ptr  sym);
 
 extern a_symbol_ptr unnamed_field_symbol(void);
+
+extern a_symbol_ptr make_anonymous_parent_object_symbol(
+                                                    a_symbol_kind      kind,
+                                                    a_source_position  *pos);
 
 extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      sizeof_t      identifier_length,
