@@ -4656,7 +4656,11 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_const:
         /* const type qualifier (3.5.3). */
-        if (is_const_qualified) {
+        if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+          /* const may not appear in a new-type-name. */
+          error(ec_const_volatile_not_allowed);
+          err = TRUE;
+        } else if (is_const_qualified) {
           /* const may not appear more than once. */
           error(ec_dupl_type_qualifier);
           err = TRUE;
@@ -4670,7 +4674,11 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_volatile:
         /* volatile type qualifier (3.5.3). */
-        if (is_volatile_qualified) {
+        if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+          /* volatile may not appear in a new-type-name. */
+          error(ec_const_volatile_not_allowed);
+          err = TRUE;
+        } else if (is_volatile_qualified) {
           /* volatile may not appear more than once. */
           error(ec_dupl_type_qualifier);
           err = TRUE;
@@ -5537,6 +5545,20 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
 
 void new_type_name(a_type_ptr        *type_ptr,
                    an_expr_node_ptr  *dimension_expr)
+/*
+Scan a C++ new-type-name (ARM 5.3.3) and return a pointer to the type.  The
+syntax is:
+   new-type-name:
+              type-specifier-list new-declarator
+                                                opt
+   new-declarator:
+              * cv-qualifier-list    new-declarator
+                                 opt               opt
+              class-name :: * cv-qualifier-list    new-declarator
+                                               opt               opt
+              new-declarator    [ expression ]
+                            opt
+*/
 {
   a_type_ptr            specifiers_type, complete_type, new_type_ptr;
   a_type_ptr            derived_type, bottom_derived_type = NULL;
@@ -5545,12 +5567,13 @@ void new_type_name(a_type_ptr        *type_ptr,
   a_storage_class       storage_class;
   an_extern_linkage     dummy_linkage;
 
-  db_enter(3, "type_name");
+  db_enter(3, "new_type_name");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   *dimension_expr = NULL;
-  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-			&storage_class, &specifiers_type, &dummy_linkage);
+  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
+                        &dso_flags, &storage_class, &specifiers_type,
+                        &dummy_linkage);
   if (C_dialect == C_dialect_cplusplus && dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -5560,8 +5583,7 @@ void new_type_name(a_type_ptr        *type_ptr,
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   bottom_derived_type = NULL;
-  complete_type = pointer_declarator(specifiers_type,
-                                     &bottom_derived_type);
+  complete_type = pointer_declarator(specifiers_type, &bottom_derived_type);
   derived_type = NULL;
   bottom_derived_type = NULL;
   add_stop_token(tok_lbracket);
