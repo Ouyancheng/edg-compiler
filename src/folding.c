@@ -1129,8 +1129,7 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
                              did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
   }  /* if */
-  if (new_type->kind == (a_type_kind)tk_integer &&
-      new_type->variant.integer.bool_type) {
+  if (is_bool_type(new_type)) {
     /* Conversion of any type to bool.  Set the boolean value to FALSE (zero)
        if the source constant is some form of "false".  Otherwise, set it
        to TRUE (1). */
