@@ -3065,7 +3065,10 @@ list), and liberate the constants therein by clearing their "next" fields.
 static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
 /*
 Make sure that the scope stack entry pointed to by ssep points to an IL
-scope.  For block scopes, create the scope now if necessary.
+scope.  If it does not and the current scope stack entry is for a block
+scope, create the scope entry and return it.  (Note that a NULL pointer
+is returned only for scopes that might appear in exceptional cases; the
+caller is responsible for sorting that out.)
 */
 {
   a_scope_ptr            sp = ssep->il_scope;
@@ -3084,7 +3087,8 @@ scope.  For block scopes, create the scope now if necessary.
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
 #if CHECKING
-    } else if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+    } else if (ssep->kind != (a_scope_kind)sck_func_prototype &&
+               ssep->kind != (a_scope_kind)sck_pragma) {
       internal_error("ensure_il_scope_exists: NULL IL scope");
 #endif /* CHECKING */
     }  /* if */
@@ -3108,9 +3112,7 @@ constants) or the current scope (for member constants, which are not shared).
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
-#if CHECKING
-  if (sp == NULL) internal_error("add_to_constants_list: NULL IL scope");
-#endif /* CHECKING */
+  check_assertion_str(sp != NULL, "add_to_constants_list: NULL IL scope");
   if (sp->constants == NULL) {
     sp->constants = con_ptr;
   } else {
@@ -3746,18 +3748,13 @@ scope_level.
      allocated by default.  It is allocated here in this routine the first
      time it is needed.  It is saved in il_scope of the current scope stack
      entry and also under the associated routine type. */
-  if (sp == NULL) {
+  if (sp == NULL && ssep->kind == (a_scope_kind)sck_func_prototype) {
     a_type_ptr              routine_type;
 
     /* A prototype scope must be allocated.  add_to_scopes_list is not
        called because this is not a scope for a statement block.  It is
        allocated in the file scope memory region because it is pointed to
        from the routine type supplement, which is always at file scope. */
-#if CHECKING
-    if (ssep->kind != (a_scope_kind)sck_func_prototype) {
-      internal_error("add_type_types_list: NULL IL scope");
-    }  /* if */
-#endif /* CHECKING */
     switch_to_file_scope_region(&region_to_switch_back_to);
     sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                      (a_routine_ptr)NULL);
@@ -3774,14 +3771,16 @@ scope_level.
     /* Link the prototype scope entry to the routine type. */
     sp->variant.assoc_type = routine_type;
   }  /* if */
-  /* Add the type to the list of types for this scope. */
-  if (sp->types == NULL) {
-    sp->types = type_ptr;
-  } else {
-    ssep->last_type->next = type_ptr;
+  if (sp != NULL) {
+    /* Add the type to the list of types for this scope. */
+    if (sp->types == NULL) {
+      sp->types = type_ptr;
+    } else {
+      ssep->last_type->next = type_ptr;
+    }  /* if */
+    ssep->last_type = type_ptr;
+    type_ptr->next = NULL;
   }  /* if */
-  ssep->last_type = type_ptr;
-  type_ptr->next = NULL;
 }  /* add_to_types_list */
 
 
@@ -4752,11 +4751,7 @@ scope depth.
     } else {
       /* Create the IL scope if necessary (for block scopes). */
       sp = ensure_il_scope_exists(ssep);
-#if CHECKING
-      if (sp == NULL) {
-        internal_error("add_to_variables_list: NULL IL scope");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(sp != NULL, "add_to_variables_list: NULL IL scope");
     }  /* if */
   }  /* if */
   if (sp != NULL) {
@@ -5054,6 +5049,7 @@ for the file scope if at_file_scope is TRUE.
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL, "add_to_routines_list: NULL IL scope");
   if (sp->routines == NULL) {
     sp->routines = rout_ptr;
   } else {
@@ -5098,6 +5094,7 @@ Add the given routine to the asm entries list for the current scope.
   ssep = &scope_stack[decl_scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL, "add_to_asm_entries_list: NULL IL scope");
   if (sp->asm_entries == NULL) {
     sp->asm_entries = asm_entry_ptr;
   } else {
@@ -5800,6 +5797,8 @@ must do that).
      point of view) part of this scope.  That's important, because it has to
      be destroyed at the right point. */
   (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+  check_assertion_str(scope_stack[decl_scope_level].il_scope != NULL,
+                      "alloc_temp_init_node: NULL IL scope");
   return temp_init_node;
 }  /* alloc_temp_init_node */
 
@@ -6145,6 +6144,7 @@ Set the assoc_handler field of the current scope.
   a_scope_ptr  sp;
 
   sp = ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+  check_assertion_str(sp != NULL, "set_block_scope_handler: NULL IL scope");
   sp->variant.assoc_handler = handler;
 }  /* set_block_scope_handler */
 
