@@ -354,13 +354,9 @@ be issued.
          operand of a comma expression to suppress the warning, e.g.,
          ((void)0, (void)0). */
       /* If the first operand has side effects, the whole operation has
-         side effects, so suppress the warning on the whole operation.
-         Note that if the first operand does not have side effects
-         "suppress" is not set.  That allows warnings higher up in the
-         tree even if the first operand contains something that suppresses
-         the warning for that operand. */
+         side effects, so suppress the warning on the whole operation. */
       if (node_has_side_effects(check_node->variant.operation.operands,
-                                (a_boolean *)NULL)) {
+                                &suppress)) {
         suppress = TRUE;
         break;
       }  /* if */
