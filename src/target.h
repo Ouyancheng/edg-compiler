@@ -21,10 +21,28 @@ target.h -- Definition of target machine characteristics.
 /*
 Flag that is TRUE if object code compatibility with AT&T's cfront is
 required.  The main issue is class layout and specifically how the data
-sections for virtual base classes are put out.  The default behavior
+sections for virtual base classes are put out.  Other issues include
+when virtual tables are generated.  The default behavior
 (when this flag is FALSE) produces a more efficient use of space.
+Some features of cfront changed from release 2.1 to release 3.0.  For example,
+release 2.1 provided a special feature to ease the transition between
+non-nested classes and nested classes.  This feature was removed for release
+3.0.  Either the 2.1 or 3.0 flag should be set to designate the variety
+of cfront compatibility that is desired.  When testing these flags for
+behavior that did not change between 2.1 and 3.0 the general flag should
+be used.
 */
-#define CFRONT_OBJECT_CODE_COMPATIBILITY TRUE
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY TRUE
+#define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY FALSE
+#define CFRONT_OBJECT_CODE_COMPATIBILITY \
+                           CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ||        \
+                           CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
+
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY && \
+    CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
+error -- must select either 2.1 compatibility or 3.0 compatibility
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ... */
+
 
 /*
 Target byte order.  Little-endian means the least-significant part of a
