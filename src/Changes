@@ -109,9 +109,9 @@ This is now fixed.  (See also Changes entry of 7/8/99.)
 
 3/24/05  Diagnostic on branch past trivial default initializations
 
-The front end previous failed to diagnose branches past non-POD variables
-default-initialized with a trivial constructor (unless the variable had
-a nontrivial destructor).  For example:
+The front end previously failed to diagnose branches past non-POD variables
+default-initialized with a trivial constructor (unless the variable had a
+nontrivial destructor).  For example:
 
   struct B {};
   struct D: B {};
