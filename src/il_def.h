@@ -710,17 +710,6 @@ typedef struct a_class_list_entry {
    "fields") is kept in the type entry. */
 typedef struct a_class_type_supplement *a_class_type_supplement_ptr;
 typedef struct a_class_type_supplement {
-  a_routine_ptr member_functions;
-                        /* A linked list of routine entries representing
-                           the member functions of the current class.  All
-                           member functions (static and nonstatic, virtual
-                           and nonvirtual, inline and ordinary) are included
-                           in this list.  However, friend functions are
-                           not included. */
-  a_variable_ptr
-                static_data_members;
-                        /* A linked list of variable entries representing
-                           the static data members of the current class. */
   a_base_class_ptr
                 base_classes;
                         /* A linked list of entries describing the base
@@ -744,9 +733,19 @@ typedef struct a_class_type_supplement {
                            the befriending class; in the IL the befriending
                            class is recorded in the befriended class (or
                            routine). */
-  a_type_ptr    types;  /* A linked list of type entries representing local
-                           types defined within the scope of the current
-                           class, including nested classes. */
+  a_scope_ptr	assoc_scope;
+			/* The scope for the class type.  In the scope entry,
+			   "routines" gives a linked list of routine entries
+			   representing the member functions of the class.
+			   All member functions (static and nonstatic, virtual
+			   and nonvirtual, inline and ordinary) are included
+ 			   in this list.  However, friend functions are
+			   not included.  "variables" gives a linked list of
+			   variable entries representing the static data
+			   members of the class.  "types" gives a linked list
+			   of type entries representing local types defined
+			   within the scope of the class, including nested
+			   classes. */
 } a_class_type_supplement;
 
 #endif /* ifdef CIL */
@@ -1071,8 +1070,8 @@ typedef struct a_variable {
                         /* TRUE if this is a dummy argument of a function,
                            subroutine, or statement function. */
   unsigned int  by_address:1;
-                        /* TRUE if this is_parameter is TRUE and if it is
-                           passed by address. */
+			/* TRUE if is_parameter is TRUE and if the
+			   parameter is passed by address. */
   a_variable_ptr
                 base_var;
                         /* If storage_class is sc_associated, this points
@@ -2240,9 +2239,53 @@ typedef struct an_entry_description {
 } an_entry_description;
 
 #endif /* ifdef FIL */
+
+typedef enum /*a_scope_kind*/ {
+  /* Kinds of scopes. */
+  sck_file,		/* File scope. */
+#ifdef CIL
+  sck_func_prototype,   /* Function prototype scope, used also during
+			   function declarators that are part of a
+			   function definition (since we don't know at
+			   that point whether or not a body will follow). */
+  sck_block,		/* Block scope, for blocks other than the topmost
+			   in a function. */
+  sck_class_struct_union,
+			/* In C, pseudo-scope for fields of a struct or
+			   union (and only used in the front end); in C++,
+			   real scope for members of a class/struct/union. */
+  sck_class_reactivation,
+			/* In C++, reactivation of a class scope, making
+			   the class members visible without qualification.
+			   This is used, for example, when processing a
+			   member function definition.  Only used in the
+			   front end. */
+#endif /* ifdef CIL */
+#ifdef FIL
+  sck_stmt_function,	/* Statement function scope. */
+#endif /* ifdef FIL */
+  sck_function		/* Function scope. */
+} a_scope_kind;
+
+/*
+Numbering for scopes.  Each new scope is given a number.  These
+numbers are unique identifiers for each scope, not simply the nesting
+level of the scope.  Also, each struct or union has a unique scope
+number for its member fields, even though no true scope with that
+number is created.  In C++, a class/struct/union has a true scope
+associated with it.  These scope numbers are mostly of interest to the
+front end.
+*/
+typedef short a_scope_number;
+#define MAX_SCOPE_NUMBER SHRT_MAX
+#define NO_SCOPE_NUMBER (-1)
+			/* Scope number used for things without scope. */
+#define FILE_SCOPE_NUMBER 0
+			/* Scope number for the file scope. */
+
 typedef struct a_scope {
   /* Definition of a name scope.  There is one of these for the file
-     level, and one for each function. */
+     level, one for each function, etc. */
   /* Scope entries are a key part of the scheme for keeping the
      intermediate language divided up into separate memory regions.
      There is a region for the file scope and a region (containing both
@@ -2263,51 +2306,74 @@ typedef struct a_scope {
                 next;
                         /* Pointer to next scope on the same level, which
                            must be in the same memory region. */
-  a_routine_ptr assoc_routine;
-                        /* Pointer to the routine associated with this scope,
-                           or NULL if there is no associated routine. */
+  a_scope_number
+		number;	/* Scope number (unique identifier) for this scope. */
+  a_scope_kind	kind;
+			/* Kind of scope (file, function, block, function
+			   prototype, etc.).  */
+  union {
+    /* When kind == sck_file, no variant fields. */
+#ifdef FIL
+    /* When kind == sck_statement_func, no variant fields. */
+#endif /* ifdef FIL */
+#ifdef CIL
+    /* When kind == sck_block, no variant fields (but see assoc_block
+       below). */
+    /* When kind == sck_func_prototype or sck_class_struct_union: */
+    a_type_ptr	assoc_type;
+			/* The function type whose prototype scope this is,
+			   or the class/struct/union type. */
+#endif /* ifdef CIL */
+    /* When kind == sck_function: */
+    struct {
+      a_routine_ptr
+		ptr;
+                        /* Pointer to the routine associated with this
+			   scope. */
 #ifdef FIL
                         /* This is the primary routine if there are Fortran
                            ENTRYs. */
 #endif /* ifdef FIL */
-  a_variable_ptr
+      a_variable_ptr
                 parameters;
                         /* List of parameters of the associated routine,
-                           if assoc_routine != NULL.  In declaration order.
-                           NULL if no parameters. */
+                           in declaration order.  NULL if no parameters. */
 #ifdef CIL
-  a_variable_ptr
+      a_variable_ptr
                 this_param_variable;
 			/* If the scope is for a C++ nonstatic member
 			   function, this field points to the implicit "this"
 			   parameter.  It is NULL in all other cases. */
 #endif /* ifdef CIL */
 #ifdef FIL
-  a_variable_ptr
+      a_variable_ptr
                 function_result_var;
                         /* If this scope is for a Fortran FUNCTION, this
                            points to the function result variable (it has
                            the same name as the function, and the function
                            result is specified by assigning to it). */
 #endif /* ifdef FIL */
+    } routine;
+  } variant;
   a_statement_ptr
                 assoc_block;
-                        /* Non-NULL if this scope has an associated block
-                           of statements.  NULL for the file scope.  Can
-                           be non-NULL even when there is no associated
-                           routine, i.e., when this scope is for a local
-                           block. */
+			/* Non-NULL if this scope has an associated block
+			   of statements.  NULL if none.  Used only when
+			   kind == sck_function or sck_block. */
   a_constant_ptr
                 constants;
                         /* List of named constants of this scope, NULL if
-                           none.  Only used at the file scope (NULL
-                           otherwise). */
+                           none. */
   a_type_ptr    types;  /* List of local types of this scope, NULL if
                            none. */
   a_variable_ptr
                 variables;
                         /* List of local variables of this scope, NULL
                            if none. */
+#ifdef CIL
+			/* In a scope for a class, this is the list of
+			   static data members. */
+#endif /* ifdef CIL */
   a_label_ptr   labels; /* List of local labels of this scope, NULL
                            if none.  Only used at the function scope level
                            (NULL otherwise). */
@@ -2315,10 +2381,11 @@ typedef struct a_scope {
                         /* List of local routines of this scope, NULL
                            if none.  Includes both routines with definitions
                            and those that are just declarations of interfaces
-                           to external routines.  Only used at the file
-                           scope (NULL otherwise); routines at other levels
-                           are promoted to the file scope. */
+                           to external routines. */
 #ifdef CIL
+			/* In a scope for a class, points to a list of the
+			   member functions for the class (both static and
+			   non-static). */
   a_scope_ptr   scopes; /* List of local scopes that aren't function scopes
                            or prototype scopes -- i.e., scopes associated
                            with blocks that contain declarations.  NULL if
@@ -2335,7 +2402,7 @@ typedef struct a_scope {
                            routine.  Only used at the function scope level. */
   a_namelist_group_ptr
                 namelist_groups;
-                        /* List of namelist groups of this scope, NULL if
+                        /* List of NAMELIST groups of this scope, NULL if
                            none.  Only used at the function scope level. */
 #endif /* ifdef FIL */
 } a_scope;
