@@ -312,6 +312,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_size_affected_by_tail_padding)*/
 /*lint -esym(769,ec_gnu_may_use_bit_padding)*/
 /*lint -esym(769,ec_no_gnu_virtual_base_gap)*/
+/*lint -esym(769,ec_gnu_virtual_base_gap)*/
 /*lint -esym(759,build_construction_vtbls_pointer)*/
 /*lint -esym(765,build_construction_vtbls_pointer)*/
 #endif /* IA64_ABI */
