@@ -10394,8 +10394,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         make_instantiation_directive(kind, sym, ssep, &template_keyword_pos);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else if (sym != NULL) {
-      /* Something else -- issue an error. */
+    } else if (sym != NULL && !sym->is_error) {
+      /* A symbol that refers to an entity that is not a template class. */
       sym_error(ec_not_instantiatable_entity, sym);
     } else {
       /* A NULL symbol was returned. */

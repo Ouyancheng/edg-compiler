@@ -771,6 +771,9 @@ declaration position to eliminate redundant file names in a diagnostic.
     case sk_namespace:
       entity_kind = "namespace ";
       goto symbol_name;
+    case sk_undefined:
+      entity_kind = "";
+      goto symbol_name;
     case sk_function_template:
       entity_kind = "function template ";
       routine = fund_sym->variant.template_info->variant.function.routine;
