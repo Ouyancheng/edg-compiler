@@ -3562,6 +3562,7 @@ existing type entry.
 {
   register a_type_ptr tp;
 
+  class_type = skip_typerefs(class_type);
   /* Check if this is an incomplete type being formed. */
   if (member_type != NULL) {
     /* See if a pointer-to-member type such as the one being requested has
