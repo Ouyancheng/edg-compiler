@@ -2506,8 +2506,6 @@ Do IL lowering for an stmk_try_block statement.
   begin_object_lifetime(lifetime, &insert_location);
   stmt_to_try = tsp->statement;
   handlers = tsp->handlers;
-  /* Lower the dependent statement of the try. */
-  lower_statement(stmt_to_try);
   /* Generate a description of the catch clause types. */
   catch_array_var = make_catch_array_var(handlers);
   /* Put the address of the catch types description array into the stack
@@ -2584,6 +2582,8 @@ Do IL lowering for an stmk_try_block statement.
   copy_of_orig_stmt->expr = compare_node;
   /* The dependent statement is the statement under the "try". */
   copy_of_orig_stmt->variant.if_stmt.then_statement = stmt_to_try;
+  /* Lower the dependent statement of the try. */
+  lower_statement(stmt_to_try);
   if_stmt = copy_of_orig_stmt;
   /* Walk through the catch clauses and turn each one into an "if" in the
      "else" part of the previous "if". */
