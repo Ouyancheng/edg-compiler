@@ -3953,6 +3953,7 @@ enum an_expr_node_kind_tag {
 			   code above those nodes, so after IL lowering this
 			   node is not necessarily the top node in the
 			   expression tree.  C++ only. */
+  enk_typeid,		/* C++ typeid expression. */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -4040,6 +4041,7 @@ enum an_expr_operator_kind_tag {
   eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue in
 			   pcc mode.  An lvalue cast to a like-sized type
 			   can remain an lvalue. */
+  eok_dynamic_cast,     /* C++ dynamic_cast operation (see 5.2.6). */
   eok_complement,       /* Integer bitwise complement ("~" operator). */
   eok_ipost_incr,       /* Integer post increment. */
   eok_ipost_decr,       /* Integer post decrement. */
@@ -4544,6 +4546,18 @@ typedef struct an_expr_node {
       an_object_lifetime_ptr
 		ptr;	/* The object lifetime itself. */
     } object_lifetime;
+    /* When kind == enk_typeid (C++ only): */
+    struct {
+      a_type_ptr
+		type;	/* If the argument of the typeid operator is a type,
+			   the type specified; if it is an expression, the
+			   type of the expression specified. */
+      an_expr_node_ptr
+		expr;
+			/* If the argument of the typeid operator is an
+			   expression, the expression specified; otherwise
+			   NULL. */
+    } typeid;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
     struct {
@@ -6087,7 +6101,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef CIL
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
-   "lvalue cast", "~",
+   "lvalue cast", "dynamic cast", "~",
    "i++", "i--", "++i", "--i",
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",

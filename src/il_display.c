@@ -1664,6 +1664,7 @@ Display the name of an expression operator.
                                 s = "eok_pm_base_class_cast";     break;
     case eok_pm_derived_class_cast:
                                 s = "eok_pm_derived_class_cast";  break;
+    case eok_dynamic_cast:      s = "eok_dynamic_cast"            break;
     case eok_lvalue_cast:       s = "eok_lvalue_cast";            break;
     case eok_complement:        s = "eok_complement";             break;
     case eok_ipost_incr:        s = "eok_ipost_incr";             break;
@@ -1972,6 +1973,11 @@ do_variable:
                iek_expr_node);
       disp_ptr("ptr", (char *)ptr->variant.object_lifetime.ptr,
                iek_object_lifetime);
+      break;
+    case enk_typeid:
+      (void)printf("enk_typeid\n");
+      disp_ptr("type", (char *)ptr->variant.typeid.type, iek_type);
+      disp_ptr("expr", (char *)ptr->variant.typeid.expr, iek_expr_node);
       break;
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");
