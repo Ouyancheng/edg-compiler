@@ -2965,18 +2965,21 @@ the same constant.
       } else if (type1 == NULL || type2 == NULL) {
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
-      } else if (ignore_qualifiers && identical_types(skip_typerefs(type1),
-                                                      skip_typerefs(type2))) {
-        /* In Microsoft bugs mode top level qualifiers are ignored when
-           comparing two argument lists. */
-        /* Okay. */
       } else if (identical_types(type1, type2)) {
         /* Okay. */
       } else if (error_matches_anything &&
                  (is_error_type(type1) || is_error_type(type2))) {
         /* Okay. */
       } else {
-        equiv = FALSE;
+        a_type_ptr	tp1 = skip_typerefs(type1);
+        a_type_ptr	tp2 = skip_typerefs(type2);
+        if (ignore_qualifiers && identical_types(tp1, tp2)) {
+          /* In Microsoft bugs mode top level qualifiers are ignored when
+             comparing two argument lists. */
+          /* Okay. */
+        } else {
+          equiv = FALSE;
+        }  /* if */
       }  /* if */
       if (!equiv) break;
     }  /* if */
