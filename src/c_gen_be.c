@@ -2926,6 +2926,12 @@ done_with_operation:
       dump_routine_name(expr->variant.routine);
       if (need_parens) m_write_tok_ch(')');
       break;
+#if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
+    case enk_object_lifetime:
+      /* Ignore this node (use what's under it). */
+      dump_expr(expr->variant.object_lifetime.expr, need_parens);
+      break;
+#endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");

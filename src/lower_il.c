@@ -2661,8 +2661,7 @@ constants in other scopes.
        can never be an orphan, so member constants are not recorded as
        orphans. */
     if (constant->source_corresp.class_of_which_a_member == NULL) {
-      add_orphaned_file_scope_il_entry((char *)constant,
-                                       (an_il_entry_kind)iek_constant);
+      add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
     }  /* if */
   } else {
     lower_constant(constant);
@@ -6082,11 +6081,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       lower_throw(expr);
       break;
     case enk_object_lifetime:
-#if 0
-#else /* 0 */
       lower_expr(expr->variant.object_lifetime.expr, is_lvalue);
-      overwrite_node(expr, expr->variant.object_lifetime.expr);
-#endif /* 0 */
+      if (!keep_object_lifetime_info_in_lowered_il) {
+        /* Not keeping object lifetime information, so eliminate this node. */
+        unbind_object_lifetime(expr->variant.object_lifetime.ptr);
+        overwrite_node(expr, expr->variant.object_lifetime.expr);
+      }  /* if */
       break;
 #if CHECKING
     default:
@@ -8085,8 +8085,12 @@ if olp is NULL.
          child_olp = child_olp->next) {
       eliminate_object_lifetime_tree(child_olp);
     }  /* if */
-    /* Unbind this object lifetime from its attached entity. */
-    unbind_object_lifetime(olp);
+    /* Watch out for lifetimes that have already been unbound (e.g., those
+       associated with enk_object_lifetime nodes). */
+    if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
+      /* Unbind this object lifetime from its attached entity. */
+      unbind_object_lifetime(olp);
+    }  /* if */
   }  /* if */
 }  /* eliminate_object_lifetime_tree */
 
