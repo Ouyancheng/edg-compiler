@@ -1215,7 +1215,8 @@ void deferred_friend_function_fixup(a_routine_fixup_ptr	rfp)
 When deferring the fixup of friend functions, called when a friend
 function defined in a class template is first used.  Does the fixup on
 the friend function that is otherwise done when the enclosing class is
-instantiated.
+instantiated.  This routine is also used for Microsoft in-class member
+function template specializations.
 */
 {
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
@@ -1282,7 +1283,16 @@ instantiated.
      declaration, not a definition. */
   rp->defined = TRUE;
   ((a_symbol_ptr)rp->source_corresp.assoc_info)->defined = TRUE;
-  rp->defined_in_friend_decl = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (rp->is_in_class_specialization) {
+    /* The fixup was for an in-class specialization, not for a friend
+       declaration: Nothing needs to be done. */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* No not insert code here. */
+  {
+    rp->defined_in_friend_decl = TRUE;
+  }  /* if */
   /* Let get_token know about the cache. */
   rescan_cached_tokens(&rfp->function_body_token_cache);
   /* Scan the function body. */
