@@ -2758,7 +2758,8 @@ scan_paren:
   if (uninit_list != NULL) {
     /* Issue an error for uninitialized const and ref members. */
     if (ctor_rout->compiler_generated) {
-      pos_ty_start_error(ec_cannot_initialize_fields, &pos_curr_token,
+      pos_ty_start_error(ec_cannot_initialize_fields,
+                         &class_type->source_corresp.decl_position,
                          class_type);
     } else {
       pos_sy_start_error(ec_missing_initializer_on_fields, &pos_curr_token,
