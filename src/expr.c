@@ -12442,7 +12442,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     } else if (is_pointer_type(operand.type)) {
       /* Cannot throw a pointer to incomplete type, except a pointer
          to (possibly cv-qualified) void. */
-      if (!is_void_type(type_pointed_to(operand.type))) {
+      a_type_ptr under_type = type_pointed_to(operand.type);
+      complete_type_is_needed(under_type);
+      if (is_incomplete_type(under_type) && !is_void_type(under_type)) {
         if (!microsoft_mode) {
           error_in_operand(ec_ptr_incomplete_throw, &operand);
         } else {
