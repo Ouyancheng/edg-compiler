@@ -1,5 +1,17 @@
 Version 2.46
 
+1/22/01  Incorrect lookup in "p.template f<>()" during prototype instantiation
+
+When doing nonclass prototype instantiations, in examples such as the
+following, the lookup of "f" would find the global scope function f instead
+of using the f that is a member of the class specified by template parameter
+T during a real instantiation.  This has been fixed.
+
+  void f();
+  template <class T> void g(T t) {
+    t.template f<T>();
+  }
+
 1/20/01  Superseded code to set instance-required flags in IL lowering
          removed
 

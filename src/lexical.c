@@ -9677,17 +9677,6 @@ Set the specific symbol to the associated nonfundamental symbol.
   a_symbol_ptr	result_sym;
   a_symbol_ptr	specific_symbol;
 
-  /* In a prototype instantiation, if the name found is a template
-     parameter and we also found a normal symbol, disregard the
-     class symbol because there may not actually be one in a real
-     instantiation. */
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    if (normal_sym != NULL && class_sym != NULL) {
-      if (class_fund_sym->is_nonreal_member) {
-        class_sym = NULL;
-      }  /* if */
-    }  /* if */
-  }  /* if */
   /* This implements the special handling in 3.4.5 (basic.lookup.classref)
      of possible template names in class member access expressions
      (e.g., "p->f<...").  If the name is found in the class, the class
@@ -9695,7 +9684,7 @@ Set the specific symbol to the associated nonfundamental symbol.
      the normal symbol can also be considered if it is also a class
      template. */
   if (normal_sym != NULL && class_sym != NULL && might_be_template) {
-    if (is_template_symbol(class_sym)) {
+    if (is_template_symbol(class_fund_sym)) {
       /* When the identifier is followed by a "<", and the name is found
          as a template in the class, ignore the other symbol unless it is a
          class template. */
@@ -9706,6 +9695,12 @@ Set the specific symbol to the associated nonfundamental symbol.
       /* The class symbol is the constructor.  Ignore this for purposes of
          this lookup, because the constructor cannot be referenced by name
          in this context. */
+      class_sym = NULL;
+    } else if (class_fund_sym->is_nonreal_member &&
+               !is_template_symbol(class_fund_sym) &&
+               is_template_symbol(normal_fund_sym)) {
+      /* The class symbols is a nonreal nontemplate and the normal symbol
+         is a template.  Use the normal symbol. */
       class_sym = NULL;
     } else {
       /* The name is a member of the class that is not a template.  Use that
@@ -9744,6 +9739,13 @@ Set the specific symbol to the associated nonfundamental symbol.
       if (identical_types(normal_type, class_fund_sym->parent.class_type)) {
         equiv_symbols = TRUE;
       }  /* if */
+    } else if (class_fund_sym->is_nonreal_member) {
+      /* The class symbol is nonreal.  Use the normal symbol.  During the
+         real instantiation, any class symbol that is found is required to
+         refer to the same type as the one found by the normal lookup,
+         so we can safely use the normal symbol here and issue an error
+         during the real instantiation if necessary. */
+      equiv_symbols = TRUE;
     }  /* if */
     if (equiv_symbols) {
       /* The symbols are equivalent.  Use the normal symbol unless otherwise
