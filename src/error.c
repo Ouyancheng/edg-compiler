@@ -3469,49 +3469,16 @@ additional messages in a multiple message diagnostic.
   static a_boolean         source_text_needed;
   static a_boolean         in_current_source_line;
   int                      line_len;
-  static a_source_position *saved_error_position;
-  static an_error_severity saved_severity;
 
-  /* Based on the category of diagnostic to be processed, save argument
-     in static variables for use in subsequent calls or reestablish 
-     values from earlier calls. */
-  switch (diag_kind) {
-    case dck_standalone:
-      /* Since this will be the only call for this category of message, no
-         values must be saved.  Set the first column of the message to
-         the default value. */
-      diagnostic_indent = NORMAL_DIAG_INDENT;
-      break;
-    case dck_primary:
-      /* The principal message of a multiple message diagnostic.  Save the
-         arguments for later calls. */
-      diagnostic_indent = NORMAL_DIAG_INDENT;
-      saved_error_position = error_pos;
-      saved_severity = severity;
-      break;
-    case dck_list:
-      /* Reestablish previous arguments. */
-      diagnostic_indent = LIST_DIAG_INDENT;
-      goto reestablish_arguments;
-    case dck_end_list:
-      /* End of the multiple message diagnostic; add the source line if
-         available. */
-      diagnostic_indent = NORMAL_DIAG_INDENT;
-reestablish_arguments:
-      error_pos = saved_error_position;
-      severity = saved_severity;
-      break;
-#if CHECKING
-    default:
-      internal_error("write_diagnostic: invalid diagnostic category kind");
-#endif /* CHECKING */
-  }  /* switch */
-
-  
   if ((int)severity < (int)error_threshold) {
     /* Ignore the message if its severity is below the threshold. */
   } else {
-
+    if (diag_kind == (a_diagnostic_category_kind)dck_list) {
+      diagnostic_indent = LIST_DIAG_INDENT;
+    } else {
+      diagnostic_indent = NORMAL_DIAG_INDENT;
+    }  /* if */
+  
     if (diag_kind != dck_end_list) {
       /* Perform any indentation needed (based on the category kind) */
       for (line_len = 0; line_len < diagnostic_indent; line_len++) {
@@ -3701,6 +3668,53 @@ return_point:;
 
 #endif /* CHECKING */
 
+
+static a_boolean check_severity(a_source_position          **error_pos,
+                                an_error_severity          *severity,
+                                a_diagnostic_category_kind diag_kind)
+/*
+Compare the current error severity with the threshold setting to see if
+this diagnostic should be issued.  If this is a multi-message diagnostic,
+it may be necessary to save the current source position and severity or
+restore the previously saved settings.
+*/
+{
+  static a_source_position  saved_error_position;
+  static an_error_severity  saved_severity = (an_error_severity)es_none;
+
+#if CHECKING
+  /* The saved severity level should be es_none if and only if this is a
+     diagnostic without extra message lines or if it is the first message
+     with such extra lines. */
+  if ((saved_severity == (an_error_severity)es_none) !=
+      (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
+       diag_kind == (a_diagnostic_category_kind)dck_primary)) {
+    internal_error("check_severity: bad saved severity");
+  }  /* if */
+#endif /* CHECKING */
+  if (diag_kind == (a_diagnostic_category_kind)dck_standalone) {
+    /* Just use the severity and error position specified. */
+  } else if (diag_kind == (a_diagnostic_category_kind)dck_primary) {
+    /* The principal message of a multiple message diagnostic.  Save the
+       arguments for later calls. */
+    copy_source_position(**error_pos, saved_error_position);
+    saved_severity = *severity;
+  } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
+             diag_kind == (a_diagnostic_category_kind)dck_end_list) {
+    /* Reuse the error postion and severity from the primary diagnostic. */
+    *error_pos = &saved_error_position;
+    *severity = saved_severity;
+#if CHECKING
+    if (diag_kind == (a_diagnostic_category_kind)dck_end_list) {
+      saved_severity = (an_error_severity)es_none;
+    }  /* if */
+#endif /* CHECKING */
+  }  /* if */
+  /* Return FALSE if the current severity is below the threshold. */
+  return ((int)*severity >= (int)error_threshold);
+}  /* check_severity */
+
+
 static void diag_message (an_error_code              error_code,
                           a_source_position          *error_pos,
                           an_error_severity          severity,
@@ -3719,81 +3733,79 @@ template associated with error_code.  After constructing the segment list
   char               *msg_template;
   int                i;
 
-  /* Get the error message text (template) and construct the message
-     segment list. */
-  if (diag_kind != dck_end_list) {
-    msg_template = error_text(error_code);
-  } else {
-    msg_template = "";
-  };
-  construct_message_segments(msg_template);
+  if (check_severity(&error_pos, &severity, diag_kind)) {
+    /* Get the error message text (template) and construct the message
+       segment list. */
+    if (diag_kind != dck_end_list) {
+      msg_template = error_text(error_code);
+    } else {
+      msg_template = "";
+    };
+    construct_message_segments(msg_template);
 
-  /* Walk through the message segments and complete any required 
-     expansion. */
-  for (curr_seg = error_message_head;
-       curr_seg != NULL && curr_seg->kind != (a_message_segment_kind)msk_last;
-       curr_seg = curr_seg->next ) {
-    switch (curr_seg->kind) {
-      /* No processing is needed for msk_error_text_part. */
-
-      case msk_user_string:
+    /* Walk through the message segments and complete any required 
+       expansion. */
+    for (curr_seg = error_message_head;
+         curr_seg != NULL &&
+            curr_seg->kind != (a_message_segment_kind)msk_last;
+         curr_seg = curr_seg->next ) {
+      switch (curr_seg->kind) {
+        /* No processing is needed for msk_error_text_part. */
+        case msk_user_string:
 #if CHECKING
-        if (error_msg_strings[curr_seg->sequence_no] == NULL) {
-          internal_error(
-                "diag_message: missing string substitution");
-        }  /* if */
+          if (error_msg_strings[curr_seg->sequence_no] == NULL) {
+            internal_error(
+                  "diag_message: missing string substitution");
+          }  /* if */
 #endif /* CHECKING */
-        if (curr_seg->variant.string.quoted) {
-          /* Rebuild the user string surrounded by double quotes. */
-          add_string_to_segment("\"", curr_seg);
-          curr_seg->first_quote = curr_seg->segment + curr_seg->length - 1;
-          add_string_to_segment(error_msg_strings[curr_seg->sequence_no],
-                                curr_seg);
-          add_string_to_segment("\"", curr_seg);
-          curr_seg->second_quote = curr_seg->segment + curr_seg->length - 1;
-        }  /* if */
-        break;
-        
-      case msk_type:
+          if (curr_seg->variant.string.quoted) {
+            /* Rebuild the user string surrounded by double quotes. */
+            add_string_to_segment("\"", curr_seg);
+            curr_seg->first_quote = curr_seg->segment + curr_seg->length - 1;
+            add_string_to_segment(error_msg_strings[curr_seg->sequence_no],
+                                  curr_seg);
+            add_string_to_segment("\"", curr_seg);
+            curr_seg->second_quote = curr_seg->segment + curr_seg->length - 1;
+          }  /* if */
+          break;
+        case msk_type:
 #if CHECKING
-        if (error_msg_types[curr_seg->sequence_no] == NULL) {
-          internal_error(
-                "diag_message: missing type substitution");
-        }  /* if */
+          if (error_msg_types[curr_seg->sequence_no] == NULL) {
+            internal_error("diag_message: missing type substitution");
+          }  /* if */
 #endif /* CHECKING */
-        form_type_summary(error_msg_types[curr_seg->sequence_no], curr_seg);
-        break;
-      case msk_symbol:
+          form_type_summary(error_msg_types[curr_seg->sequence_no], curr_seg);
+          break;
+        case msk_symbol:
 #if !STANDALONE_UTILITY_PROGRAM
 #if CHECKING
-        if (error_msg_syms[curr_seg->sequence_no] == NULL) {
-          internal_error(
-                "diag_message: missing symbol substitution");
-        }  /* if */
+          if (error_msg_syms[curr_seg->sequence_no] == NULL) {
+            internal_error("diag_message: missing symbol substitution");
+          }  /* if */
 #endif /* CHECKING */
-        form_symbol_name(error_msg_syms[curr_seg->sequence_no],
-                         error_pos, curr_seg);
+          form_symbol_name(error_msg_syms[curr_seg->sequence_no],
+                           error_pos, curr_seg);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-        break;
-    }  /* switch */
-  }  /* for */
+          break;
+      }  /* switch */
+    }  /* for */
 #if CHECKING
-  for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
-    if (error_msg_strings[i] != NULL) {
-      check_if_fill_in_used(msk_user_string, i, error_code);
-    }  /* if */
-    if (error_msg_types[i] != NULL) {
-      check_if_fill_in_used(msk_type, i, error_code);
-    }  /* if */
+    for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
+      if (error_msg_strings[i] != NULL) {
+        check_if_fill_in_used(msk_user_string, i, error_code);
+      }  /* if */
+      if (error_msg_types[i] != NULL) {
+        check_if_fill_in_used(msk_type, i, error_code);
+      }  /* if */
 #if !STANDALONE_UTILITY_PROGRAM
-    if (error_msg_syms[i] != NULL) {
-      check_if_fill_in_used(msk_symbol, i, error_code);
-    }  /* if */
+      if (error_msg_syms[i] != NULL) {
+        check_if_fill_in_used(msk_symbol, i, error_code);
+      }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  }  /* for */
+    }  /* for */
 #endif /* CHECKING */
-
-  write_diagnostic(error_pos, severity, diag_kind);
+    write_diagnostic(error_pos, severity, diag_kind);
+  }  /* if */
 }  /* diag_message */
 
 
