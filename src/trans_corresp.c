@@ -4691,6 +4691,32 @@ true class template (as opposed to a member type of a class template).
 }  /* type_is_top_level_prototype_instantiation */
 
 
+static a_type_ptr outer_class_without_correspondence(
+                                                 a_source_correspondence  *scp)
+/*
+The given scp corresponds to a class member (and has no correspondence yet).
+Find the outermost enclosing class of that entity that doesn't have a
+correspondence either.  If all parents have a correspondence already, return
+the direct parent class.
+*/
+{
+  a_type_ptr  root;
+
+  check_assertion(scp->is_class_member);
+  root = scp->parent.class_type;
+  while (root->source_corresp.is_class_member &&
+         !type_is_top_level_prototype_instantiation(root)) {
+    a_type_ptr  next_out = root->source_corresp.parent.class_type;
+    if (trans_unit_corresp_of(next_out) == NULL) {
+      root = next_out;
+    } else {
+      break;
+    }  /* if */
+  }  /* while */
+  return root;
+}  /* outer_class_without_correspondence */
+
+
 static void determine_correspondence(a_source_correspondence_ptr  scp,
                                      an_il_entry_kind             kind)
 /*
@@ -4711,7 +4737,6 @@ way, determine to which other IL entry this might correspond.
        type is processed.  In those cases we look for the outermost parent
        type without a correspondence. */
     if (scp->is_class_member) {
-      root = scp->parent.class_type;
       if (kind == (an_il_entry_kind)iek_type &&
           type_is_top_level_prototype_instantiation((a_type_ptr)scp)) {
         /* Prototype instantiations are not always recorded in the IL.
@@ -4722,15 +4747,7 @@ way, determine to which other IL entry this might correspond.
         /* Search for the outermost parent class, but stop at a class type
            that has no correspondence or at one that is a prototype
            instantiation of a true class template. */
-        while (root->source_corresp.is_class_member &&
-               !type_is_top_level_prototype_instantiation(root)) {
-          a_type_ptr  next_out = root->source_corresp.parent.class_type;
-          if (trans_unit_corresp_of(next_out) == NULL) {
-            root = next_out;
-          } else {
-            break;
-          }  /* if */
-        }  /* while */
+        root = outer_class_without_correspondence(scp);
       }  /* if */
     }  /* if */
     if (root == NULL) {
@@ -4818,10 +4835,21 @@ way, determine to which other IL entry this might correspond.
         }  /* if */
       }  /* if */
     }
-    if (trans_unit_corresp_of_unknown_entry(scp) == NULL &&
-        scp->assoc_info != NULL) {
-      /* The entity might be an instantiation waiting to be processed. */
-      process_instantiation_if_pending((a_symbol_ptr)scp->assoc_info);
+    if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
+      /* If scp is a member of a class instantiation, we may have to look for
+         its parent on the pending instantiations list.  Otherwise, we may
+         have to look for scp itself. */
+      if (root != NULL) {
+        a_type_ptr  parent = outer_class_without_correspondence(scp);
+        a_symbol_ptr  parent_sym =
+                               (a_symbol_ptr)parent->source_corresp.assoc_info;
+        if (parent_sym != NULL) {
+          process_instantiation_if_pending(parent_sym);
+        }  /* if */
+      }  /* if */
+      if (scp->assoc_info != NULL) {
+        process_instantiation_if_pending((a_symbol_ptr)scp->assoc_info);
+      }  /* if */
     }  /* if */
     if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
       /* A failure to find a correspondence error at an outer level prevents
