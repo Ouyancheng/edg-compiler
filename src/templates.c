@@ -3065,8 +3065,9 @@ entry is pushed on the scope stack.
       a_boolean  err = FALSE;
 
       /* Process a function template declaration. */
-      decl_function_template(&locator, type, &sym, storage_class,
-                             (dso_flags & DSO_INLINE) != 0);
+      decl_function_template(&locator, type,
+                             func_info.exception_specifications, &sym,
+                             storage_class, (dso_flags & DSO_INLINE) != 0);
       if (is_error_locator(locator)) {
         err = TRUE;
       } else if (curr_token == tok_lbrace ||
