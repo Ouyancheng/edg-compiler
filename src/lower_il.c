@@ -1494,6 +1494,7 @@ an_expr_node_ptr add_cast(an_expr_node_ptr node,
                           a_type_ptr       new_type)
 /*
 Add a cast to new_type to the node and return the cast node.
+new_type should not have any top-level type qualifiers.
 */
 {
   return make_operator_node((an_expr_operator_kind)eok_cast, new_type, node);
@@ -1505,6 +1506,7 @@ an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
 /*
 Add a cast to new_type to the node and return the cast node.  If the
 type of the node is already new_type return the original node.
+new_type should not have any top-level type qualifiers.
 */
 {
   if (!il_identical_types(node->type, new_type)) {
