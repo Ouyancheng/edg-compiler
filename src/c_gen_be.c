@@ -2458,7 +2458,8 @@ bit field in the generated code.
     } else {
       /* The type is not explicitly signed, so put out a signedness
          indication. */
-      write_tok_str(field->bit_field_is_signed ? "signed " : "unsigned ");
+      write_tok_str(field->bit_field_is_signed ? (char *)"signed " :
+                                                 (char *)"unsigned ");
     }  /* if */
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   }
@@ -7512,6 +7513,7 @@ its subtree.
           /* In the IA64 ABI this code is used for thunks to non-covariant
              returns; in that case, we must be careful not to create invalid
              declarations like "void temp;". */
+          return_type = skip_typerefs(return_type); /* Rvalue type. */
           if (!is_void_type(return_type)) {
             dump_general_declaration_using_type(return_type,
                                                 NO_SCP, NO_VARIABLE,

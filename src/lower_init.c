@@ -10597,10 +10597,8 @@ The overriding function must have a definition in the current compilation.
   }  /* for */
   overriding_function = routine->overriding_function_for_covariant_return_type;
   overridden_function = routine->overridden_function_for_covariant_return_type;
-  overriding_return_type = skip_typerefs(overriding_function->type)->
-                                                   variant.routine.return_type;
-  overridden_return_type = skip_typerefs(overridden_function->type)->
-                                                   variant.routine.return_type;
+  overriding_return_type = return_type_of(overriding_function->type);
+  overridden_return_type = return_type_of(overridden_function->type);
   /* The overriding function must have a definition in this compilation. */
   check_assertion(overriding_function->assoc_scope != NULL_region_number &&
                   !overriding_function->suppress_inline_body);
@@ -10617,7 +10615,7 @@ The overriding function must have a definition in the current compilation.
                                   type_pointed_to(overridden_return_type),
                                   /*instantiate_if_necessary=*/FALSE);
     check_assertion(bcp != NULL);
-    add_base_class_casts(bcp, overridden_return_type,
+    add_base_class_casts(bcp, type_pointed_to(overridden_return_type),
                          /*check_cast_access=*/FALSE,
                          /*is_implicit_cast=*/TRUE,
                          /*implicit_in_naming=*/FALSE,
