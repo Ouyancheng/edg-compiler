@@ -1012,11 +1012,11 @@ The indicated type is used in an exception context.  Put out any necessary
 information on it.
 */
 {
-  long flags;
+  unsigned long flags_value;
 
   /* We need a typeinfo variable for the underlying type.  Make it if it
      does not exist already. */
-  (void)typeinfo_var_for_type(type, &flags);
+  (void)typeinfo_var_for_type(type, &flags_value);
 }  /* type_is_used_in_exception */
 
 
