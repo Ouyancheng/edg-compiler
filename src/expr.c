@@ -4028,6 +4028,7 @@ conversions.
     }  /* if */
   }  /* if */
   if (err) make_error_operand(operand);
+  operand->position = *start_position;
 }  /* do_cast */
 
 
@@ -4272,6 +4273,9 @@ expression_kind indicates the kind of the current expression.
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   }  /* if */
+  /* Set the error position to the starting position. */
+  copy_source_position(start_position, error_position);
+  copy_source_position(start_position, result->position);
   db_exit();
 }  /* scan_functional_notation_type_conversion */
 
