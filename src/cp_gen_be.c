@@ -1568,7 +1568,13 @@ constants, which must have the form of a qualified name).
              gen_initializer. */
           !curr_name_context->invisible_to_cfront &&
           !force_qualified_name) {
-        /* Qualifier not needed. */
+        /* Reference to class member within its class.  Qualifier is not
+           needed. */
+      } else if (entry_kind == iek_type &&
+                 curr_name_context_is_class((a_type_ptr)scp) &&
+                 !force_qualified_name) {
+        /* Reference to class within itself.  Qualifier not needed.
+           This is necessary to avoid some bugs in MSVC++ 5.0. */
       } else {
         gen_class_qualifier(class_type);
       }  /* if */

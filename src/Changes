@@ -1,5 +1,10 @@
 Version 2.37
 
+7/8/97    C++-generating back end: reference of nested class to itself
+
+To avoid a bug in MSVC++ 5.0, the C++-generating back end now puts out
+a reference to a class within itself as an unqualified name.
+
 7/8/97    C++-generating back end: no default arguments on specializations
 
 Specializations are not allowed to have default arguments.  The
