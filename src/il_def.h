@@ -4110,14 +4110,6 @@ typedef struct a_new_delete_supplement {
 			   to the delete routine to be used to undo the
 			   allocation if an exception is thrown.  NULL if
 			   no deletion is needed, as on a placement new. */
-  an_object_lifetime_ptr
-		lifetime_of_uninitialized_storage;
-			/* Non-NULL only for "new" (but not placement "new"),
-			   and only when exceptions are enabled.
-			   Indicates the lifetime for the storage while it is
-			   allocated but not yet initialized/constructed
-			   (the space must be freed if an exception is
-			   thrown before the space has been initialized). */
 } a_new_delete_supplement;
 
 
@@ -5240,10 +5232,6 @@ typedef struct an_object_lifetime {
 			  lifetime).
 	iek_try_supplement
 			Try block; points to exception try block supplement.
-	iek_new_delete_supplement
-			New; points to new/delete supplement.  Used only when
-			  exceptions are enabled, to identify the lifetime
-			  for the allocated-but-not-yet-constructed space.
 	iek_dynamic_init
 			Dynamic initialization; points to the dynamic
 			  initialization entry.  Used for temporaries created

@@ -1371,8 +1371,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->arg, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->delete_routine, a_routine_ptr, iek_routine);
-        remap_ptr(ptr->lifetime_of_uninitialized_storage,
-                  an_object_lifetime_ptr, iek_object_lifetime);
       }
       break;
     case iek_throw_supplement:
