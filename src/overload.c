@@ -5308,7 +5308,7 @@ a reference type (the caller should have rewritten that case).
 {
   a_boolean                okay = FALSE, ambiguous;
   a_boolean                single_type_message = FALSE;
-  a_type_ptr               source_type, diag_dest_type = dest_type;
+  a_type_ptr               source_type, diag_dest_type = dest_type, class_type;
   an_error_code            err_code;
   a_candidate_function_ptr ambiguity_list;
 
@@ -5341,8 +5341,8 @@ a reference type (the caller should have rewritten that case).
       /* Pick the right error code. */
       if (is_class_struct_union_type(source_type)) {
         /* Both the source and destination types are classes. */
-        if (types_are_compatible(f_skip_typerefs(dest_type),
-                                 f_skip_typerefs(source_type))) {
+        class_type = f_skip_typerefs(dest_type);
+        if (types_are_compatible(class_type, f_skip_typerefs(source_type))) {
           /* This is a copy constructor case. */
           err_code = ambiguous ? ec_ambiguous_copy_constructor :
                                  ec_no_suitable_copy_constructor;
@@ -5400,8 +5400,7 @@ a reference type (the caller should have rewritten that case).
            describe the problem). */
         if (single_type_message) {
           /* Single-type case. */
-          pos_ty_error(err_code, &source_operand->position,
-                       f_skip_typerefs(source_type));
+          pos_ty_error(err_code, &source_operand->position, class_type);
           conv_to_error_operand(source_operand);
         } else {
           /* Normal double-type case. */
@@ -5414,8 +5413,12 @@ a reference type (the caller should have rewritten that case).
       /* A NULL ambiguity_list indicates a case that was undecidable because
          of an error (no additional error is needed). */
       if (ambiguity_list != NULL) {
-        pos_ty2_start_error(err_code, &source_operand->position,
-                            source_type, diag_dest_type);
+        if (single_type_message) {
+          pos_ty_start_error(err_code, &source_operand->position, class_type);
+        } else {
+          pos_ty2_start_error(err_code, &source_operand->position,
+                              source_type, diag_dest_type);
+        }  /* if */
         diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
         free_candidate_function_list(ambiguity_list);
       }  /* if */
