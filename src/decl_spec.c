@@ -259,8 +259,8 @@ static void scan_declspec_attributes(
 /*
 Scan the Microsoft __declspec specifier, which has the form
 
-	__declspec ( extended-decl-modifier-seq )
-
+	__declspec ( extended-decl-modifier-seq   )
+	                                       opt
 	extended-decl-modifier-seq:
 		extended-decl_modifier
 		                      opt
@@ -293,232 +293,227 @@ declaration of a class member.
   (void)get_token();
   if (required_token(tok_lparen, ec_exp_lparen)) {
     add_stop_token(tok_rparen);
-    if (curr_token != tok_identifier) {
-      syntax_error(ec_exp_identifier);
-      *err = TRUE;
-    } else {
-      while (curr_token == tok_identifier) {
-        char *modifier;
-        modifier = locator_for_curr_id.symbol_header->identifier;
-        if (strcmp(modifier, "dllexport") == 0) {
-          if (decl_modifiers->flags & DM_DLLIMPORT) {
-            /* The dllimport and dllexport attributes are mutually
-               exclusive. */
-            warning(ec_bad_combination_of_dll_attributes);
-          } else {
-            decl_modifiers->flags |= DM_DLLEXPORT;
-          }  /* if */
-        } else if (strcmp(modifier, "dllimport") == 0) {
-          if (decl_modifiers->flags & DM_DLLEXPORT) {
-            /* The dllimport and dllexport attributes are mutually
-               exclusive. */
-            warning(ec_bad_combination_of_dll_attributes);
-          } else {
-            decl_modifiers->flags |= DM_DLLIMPORT;
-          }  /* if */
-        } else if (strcmp(modifier, "thread") == 0) {
-          if (is_class_decl) {
-            /* "thread" is not allowed on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            decl_modifiers->flags |= DM_THREAD;
-          }  /* if */
-        } else if (strcmp(modifier, "naked") == 0) {
-          if (is_class_decl) {
-            /* "naked" is not allowed on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            decl_modifiers->flags |= DM_NAKED;
-          }  /* if */
-        } else if (strcmp(modifier, "selectany") == 0) {
-          if (is_class_decl) {
-            /* "selectany" is not allowed on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            decl_modifiers->flags |= DM_SELECTANY;
-          }  /* if */
-        } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
-          if (is_class_decl) {
-            /* "nothrow" is not allowed on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            decl_modifiers->flags |= DM_NOTHROW;
-          }  /* if */
-        } else if (!C_mode() && strcmp(modifier, "novtable") == 0) {
-          if (!is_class_decl) {
-            /* "novtable" is allowed only on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            decl_modifiers->flags |= DM_NOVTABLE;
-          }  /* if */
-        } else if (strcmp(modifier, "noreturn") == 0) {
-          if (is_class_decl) {
-            /* "noreturn" is not allowed on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            decl_modifiers->flags |= DM_NORETURN;
-          }  /* if */
-        } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
-          if (!is_class_decl) {
-            /* "uuid" is allowed only on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-            if (next_token() == tok_lparen) {
-              /* Advance past "uuid" to the left paren. */
-              (void)get_token();
-              /* Flush all tokens till the matching right paren is
-                 found. */
-              flush_until_matching_token();
-            }  /* if */
-          } else {
-            /* The syntax is
-                 uuid ( string-literal )
-               where the string-literal optionally begins and ends with
-               braces and is of the form
-                 hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
-               where "h" is any hex digit and the hyphens are required. */
-            /* Advance past "uuid". */
-            (void)get_token();
-            if (required_token(tok_lparen, ec_exp_lparen)) {
-              if (curr_token != tok_string_literal) {
-                /* Error. */
-                syntax_error(ec_bad_uuid_string);
-              } else {
-                char          *str =
-                                 const_for_curr_token.variant.string.value;
-                a_targ_size_t length = /* Without null. */
-                              const_for_curr_token.variant.string.length-1;
-
-                if (*str == '{') {
-                  /* Has surrounding braces. */
-                  /* Check for matching closing brace. */
-                  if (str[length-1] != '}') {
-                    error(ec_bad_uuid_string);
-                    goto end_of_uuid_string;
-                  }  /* if */
-                  str++;
-                  length -= 2;
-                }  /* if */
-                /* Do error checking on the string. */
-                if (is_valid_GUID_string(str, length)) {
-                  decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
-                  /* Copy the string, lower-casing hex letters so that
-                     strcmp can be used to compare strings. */
-                  { char		*src = str;
-                    char		*dst = decl_modifiers->uuid_string;
-                    a_targ_size_t	count = length;
-                    for (; count != 0; count--) {
-                      char ch = *src++;
-                      if (isalpha((unsigned char)ch)) ch = tolower(ch);
-                      *dst++ = ch;
-                    }  /* for */
-                    *dst = '\0';
-                  }
-                } else {
-                  error(ec_bad_uuid_string);
-                  *err = TRUE;
-                }  /* if */
-end_of_uuid_string:
-                (void)get_token();
-              }  /* if */
-              (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-            } else {
-              break;
-            }  /* if */
-          }  /* if */
-        } else if (!C_mode() && strcmp(modifier, "property") == 0) {
-          if (is_class_decl || !is_member_decl) {
-            /* "property" is not allowed on a class declaration, and
-               not on a non-member declaration. */
-            pos_diagnostic(es_discretionary_error,
-                           ec_declspec_property_not_allowed,
-                           &pos_curr_token);
-            if (next_token() == tok_lparen) {
-              /* Advance past "property" to the left paren. */
-              (void)get_token();
-              /* Flush all tokens till the matching right paren is
-                 found. */
-              flush_until_matching_token();
-            }  /* if */
-          } else {
-            /* __declspec(property(get=..., put=...)) */
-            scan_declspec_property(decl_modifiers);
-          }  /* if */
-        } else if (strcmp(modifier, "allocate") == 0) {
-          if (is_class_decl) {
-            /* "allocate" is not allowed on a class declaration. */
-            pos_error(ec_declspec_allocate_not_allowed, &pos_curr_token);
-            *err = TRUE;
-            if (next_token() == tok_lparen) {
-              /* Advance past "allocate" to the left paren. */
-              (void)get_token();
-              /* Flush all tokens till the matching right paren is
-                 found. */
-              flush_until_matching_token();
-            }  /* if */
-          } else {
-            /* The syntax is
-                 allocate ( string-literal )
-               where string-literal specifies the name of a data segment
-               in which a data item will be allocated. */
-            /* Advance past "allocate". */
-            (void)get_token();
-            if (required_token(tok_lparen, ec_exp_lparen)) {
-              if (curr_token != tok_string_literal) {
-                /* Error. */
-                syntax_error(ec_bad_allocate_segname);
-                *err = TRUE;
-              } else {
-                /* The current token is a string literal.  No checking
-                   is done to assure that it is a valid data segment name
-                   (though such a check could be added if the appropriate
-                   #pragma support were also added). */
-                char           *str;
-                a_targ_size_t  len;  /* Length includes terminal null. */
-
-                str = const_for_curr_token.variant.string.value;
-                len = const_for_curr_token.variant.string.length;
-                /* Copy the token string into IL memory and save the
-                   address. */
-                decl_modifiers->allocate_segname = alloc_il((sizeof_t)len);
-                (void)memcpy(decl_modifiers->allocate_segname, str,
-                             size_t_arg(len));
-                check_assertion(decl_modifiers->
-                                         allocate_segname[len-1] == '\0');
-                /* Advance past the string literal. */
-                (void)get_token();
-              }  /* if */
-              /* Advance past the right paren. */
-              (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-            } else {
-              break;
-            }  /* if */
-          }  /* if */
+    while (curr_token == tok_identifier) {
+      char *modifier;
+      modifier = locator_for_curr_id.symbol_header->identifier;
+      if (strcmp(modifier, "dllexport") == 0) {
+        if (decl_modifiers->flags & DM_DLLIMPORT) {
+          /* The dllimport and dllexport attributes are mutually
+             exclusive. */
+          warning(ec_bad_combination_of_dll_attributes);
         } else {
-          /* Issue a warning on an unrecognized __declspec attribute. */
-          pos_st_warning(ec_bad_declspec_modifier, &error_position,
-                         modifier);
-          /* An unrecognized construct could be of two forms:
-               __declspec(xxx)        // Like "dllimport" or "nothrow"
-               __declspec(xxx(yyy))   // Like "allocate" or "uuid"
-             If the next token is a left paren, skip to the matching
-             right paren. */
+          decl_modifiers->flags |= DM_DLLEXPORT;
+        }  /* if */
+      } else if (strcmp(modifier, "dllimport") == 0) {
+        if (decl_modifiers->flags & DM_DLLEXPORT) {
+          /* The dllimport and dllexport attributes are mutually
+             exclusive. */
+          warning(ec_bad_combination_of_dll_attributes);
+        } else {
+          decl_modifiers->flags |= DM_DLLIMPORT;
+        }  /* if */
+      } else if (strcmp(modifier, "thread") == 0) {
+        if (is_class_decl) {
+          /* "thread" is not allowed on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_THREAD;
+        }  /* if */
+      } else if (strcmp(modifier, "naked") == 0) {
+        if (is_class_decl) {
+          /* "naked" is not allowed on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_NAKED;
+        }  /* if */
+      } else if (strcmp(modifier, "selectany") == 0) {
+        if (is_class_decl) {
+          /* "selectany" is not allowed on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_SELECTANY;
+        }  /* if */
+      } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
+        if (is_class_decl) {
+          /* "nothrow" is not allowed on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_NOTHROW;
+        }  /* if */
+      } else if (!C_mode() && strcmp(modifier, "novtable") == 0) {
+        if (!is_class_decl) {
+          /* "novtable" is allowed only on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_NOVTABLE;
+        }  /* if */
+      } else if (strcmp(modifier, "noreturn") == 0) {
+        if (is_class_decl) {
+          /* "noreturn" is not allowed on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_NORETURN;
+        }  /* if */
+      } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
+        if (!is_class_decl) {
+          /* "uuid" is allowed only on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
           if (next_token() == tok_lparen) {
-            /* Advance to the left paren. */
+            /* Advance past "uuid" to the left paren. */
             (void)get_token();
-            /* Flush all tokens till the matching right paren is found. */
+            /* Flush all tokens till the matching right paren is
+               found. */
             flush_until_matching_token();
           }  /* if */
+        } else {
+          /* The syntax is
+               uuid ( string-literal )
+             where the string-literal optionally begins and ends with
+             braces and is of the form
+               hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+             where "h" is any hex digit and the hyphens are required. */
+          /* Advance past "uuid". */
+          (void)get_token();
+          if (required_token(tok_lparen, ec_exp_lparen)) {
+            if (curr_token != tok_string_literal) {
+              /* Error. */
+              syntax_error(ec_bad_uuid_string);
+            } else {
+              char          *str =
+                               const_for_curr_token.variant.string.value;
+              a_targ_size_t length = /* Without null. */
+                            const_for_curr_token.variant.string.length-1;
+
+              if (*str == '{') {
+                /* Has surrounding braces. */
+                /* Check for matching closing brace. */
+                if (str[length-1] != '}') {
+                  error(ec_bad_uuid_string);
+                  goto end_of_uuid_string;
+                }  /* if */
+                str++;
+                length -= 2;
+              }  /* if */
+              /* Do error checking on the string. */
+              if (is_valid_GUID_string(str, length)) {
+                decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
+                /* Copy the string, lower-casing hex letters so that
+                   strcmp can be used to compare strings. */
+                { char		*src = str;
+                  char		*dst = decl_modifiers->uuid_string;
+                  a_targ_size_t	count = length;
+                  for (; count != 0; count--) {
+                    char ch = *src++;
+                    if (isalpha((unsigned char)ch)) ch = tolower(ch);
+                    *dst++ = ch;
+                  }  /* for */
+                  *dst = '\0';
+                }
+              } else {
+                error(ec_bad_uuid_string);
+                *err = TRUE;
+              }  /* if */
+end_of_uuid_string:
+              (void)get_token();
+            }  /* if */
+            (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+          } else {
+            break;
+          }  /* if */
         }  /* if */
-        (void)get_token();
-      }  /* while */
-    }  /* if */
+      } else if (!C_mode() && strcmp(modifier, "property") == 0) {
+        if (is_class_decl || !is_member_decl) {
+          /* "property" is not allowed on a class declaration, and
+             not on a non-member declaration. */
+          pos_diagnostic(es_discretionary_error,
+                         ec_declspec_property_not_allowed,
+                         &pos_curr_token);
+          if (next_token() == tok_lparen) {
+            /* Advance past "property" to the left paren. */
+            (void)get_token();
+            /* Flush all tokens till the matching right paren is
+               found. */
+            flush_until_matching_token();
+          }  /* if */
+        } else {
+          /* __declspec(property(get=..., put=...)) */
+          scan_declspec_property(decl_modifiers);
+        }  /* if */
+      } else if (strcmp(modifier, "allocate") == 0) {
+        if (is_class_decl) {
+          /* "allocate" is not allowed on a class declaration. */
+          pos_error(ec_declspec_allocate_not_allowed, &pos_curr_token);
+          *err = TRUE;
+          if (next_token() == tok_lparen) {
+            /* Advance past "allocate" to the left paren. */
+            (void)get_token();
+            /* Flush all tokens till the matching right paren is
+               found. */
+            flush_until_matching_token();
+          }  /* if */
+        } else {
+          /* The syntax is
+               allocate ( string-literal )
+             where string-literal specifies the name of a data segment
+             in which a data item will be allocated. */
+          /* Advance past "allocate". */
+          (void)get_token();
+          if (required_token(tok_lparen, ec_exp_lparen)) {
+            if (curr_token != tok_string_literal) {
+              /* Error. */
+              syntax_error(ec_bad_allocate_segname);
+              *err = TRUE;
+            } else {
+              /* The current token is a string literal.  No checking
+                 is done to assure that it is a valid data segment name
+                 (though such a check could be added if the appropriate
+                 #pragma support were also added). */
+              char           *str;
+              a_targ_size_t  len;  /* Length includes terminal null. */
+
+              str = const_for_curr_token.variant.string.value;
+              len = const_for_curr_token.variant.string.length;
+              /* Copy the token string into IL memory and save the
+                 address. */
+              decl_modifiers->allocate_segname = alloc_il((sizeof_t)len);
+              (void)memcpy(decl_modifiers->allocate_segname, str,
+                           size_t_arg(len));
+              check_assertion(decl_modifiers->
+                                       allocate_segname[len-1] == '\0');
+              /* Advance past the string literal. */
+              (void)get_token();
+            }  /* if */
+            /* Advance past the right paren. */
+            (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+          } else {
+            break;
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Issue a warning on an unrecognized __declspec attribute. */
+        pos_st_warning(ec_bad_declspec_modifier, &error_position,
+                       modifier);
+        /* An unrecognized construct could be of two forms:
+             __declspec(xxx)        // Like "dllimport" or "nothrow"
+             __declspec(xxx(yyy))   // Like "allocate" or "uuid"
+           If the next token is a left paren, skip to the matching
+           right paren. */
+        if (next_token() == tok_lparen) {
+          /* Advance to the left paren. */
+          (void)get_token();
+          /* Flush all tokens till the matching right paren is found. */
+          flush_until_matching_token();
+        }  /* if */
+      }  /* if */
+      (void)get_token();
+    }  /* while */
     remove_stop_token(tok_rparen);
     /* Check for the closing right paren. */
     (void)required_token(tok_rparen, ec_exp_rparen);

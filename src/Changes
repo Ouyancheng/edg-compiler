@@ -1,5 +1,11 @@
 Version 2.44
 
+6/12/00  Microsoft compatibility: empty __declspec specifiers
+
+The front end now allows empty __declspec specifiers in Microsoft mode.
+
+  class __declspec()  A {};  // No longer an error with --microsoft
+
 6/9/00   &T::x as nontype template argument
 
 A nondeduced nontype template argument that is the address of a member
