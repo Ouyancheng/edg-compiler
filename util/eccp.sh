@@ -369,6 +369,7 @@ do
     -T)
 #     Supress automatic template instantiation processing
       feoptions=$feoptions" "$1;
+      ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
       ;;
