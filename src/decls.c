@@ -3379,6 +3379,21 @@ on for use in generating cross-reference output describing this declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
+    if (locator->is_operator_name &&
+        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+        (!locator->is_qualified_name ||
+         locator->is_file_scope_qualified_name)) {
+      /* This operator declaration either appears inside a namespace or else
+         has the effect of injecting a declaration into a namespace.  Be sure
+         it's not operator new, new[], delete, or delete[]. */
+      if (is_new_operator(locator->variant.opname)) {
+        error(ec_allocation_operator_in_namespace);
+        set_to_named_error_locator(*locator);
+      } else if (is_delete_operator(locator->variant.opname)) {
+        error(ec_deallocation_operator_in_namespace);
+        set_to_named_error_locator(*locator);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (func_info->is_implicit_declaration) {
     check_assertion(srk_flags & SRK_IMPLICIT);

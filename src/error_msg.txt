@@ -779,6 +779,8 @@ ec_namespace_name_not_allowed;;"a namespace name is not allowed"
 ec_bad_combination_of_dll_attributes;;"invalid combination of DLL attributes"
 ec_sym_not_a_class_template;;"%n is not a class template"
 ec_array_of_incomplete_type;;"array with incomplete element type is nonstandard"
+ec_allocation_operator_in_namespace;;"allocation operator may not be declared in a namespace"
+ec_deallocation_operator_in_namespace;;"deallocation operator may not be declared in a namespace"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
