@@ -4158,8 +4158,6 @@ current scope.
 void lookup_one_time_init(void)
 /*
 Do one-time initialization of variables related to name lookup.
-(Variables that need to be reinitialized with each new translation unit
-are handled in lookup_init.)
 */
 {
   init_cleared_lookup_state();
