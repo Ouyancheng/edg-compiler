@@ -4101,6 +4101,8 @@ class template.
   a_routine_ptr                     rout_ptr;
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
+  a_boolean                         namespace_reactivated = FALSE;
+  a_boolean                         is_friend_decl;
 #if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -4118,6 +4120,7 @@ class template.
      the proper adjustment will be made. */
   effective_decl_level =
               compute_friend_effective_decl_level(depth_scope_stack - 1);
+  is_friend_decl = (effective_decl_level != depth_scope_stack - 1);
   if (locator->is_qualified_name && locator->is_class_member &&
       locator->specific_symbol != NULL) {
     /* Member function template. */
@@ -4191,6 +4194,22 @@ class template.
       /* Copy the type entry, since the typedef type may not be shared. */
       type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr));
     }  /* if */
+  }  /* if */
+  if (locator->specific_symbol != NULL &&
+      (qualifier_namespace_ptr(*locator) != NULL ||
+       locator->is_file_scope_qualified_name)) {
+    /* This identifier is a namespace-qualified name that was previously
+       declared, or else a file-scope qualified name (friend declarations
+       only).  Do the appropriate checking, including overload resolution.
+       Furthermore, for definitions of namespace-qualified names, be sure
+       this is a valid scope for the definition (7.3.1.4). */
+    an_id_linkage_kind  linkage;
+
+    /* Look up the name. */
+    sym = qualified_name_redecl_sym(locator, type_ptr, &effective_decl_level,
+                                    func_info->is_definition, is_friend_decl,
+                                    &linkage, &homonym_symbol,
+                                    &namespace_reactivated);
   }  /* if */
   if (sym == NULL) {
     /* id_linkage will set sym to point to an existing symbol when we have
@@ -4340,6 +4359,14 @@ class template.
         }  /* if */
         rp->is_inline = TRUE;
       }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Restore the scope stack. */
+  if (namespace_reactivated)  {
+    if (is_friend_decl) {
+      pop_namespace_reactivation_scope();
+    } else {
+      pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
   /* Return the function template symbol. */
