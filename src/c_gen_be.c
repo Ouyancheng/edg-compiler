@@ -1200,7 +1200,14 @@ Output the indicated constant.
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
+    /* Put out variable-length array (VLA) bounds as unknown bounds in
+       casts. */
+    a_boolean saved_gen_vla_array_as_unknown_bound_array =
+                                     octl.gen_vla_array_as_unknown_bound_array;
+    octl.gen_vla_array_as_unknown_bound_array = TRUE;
     form_constant(constant, /*need_parens=*/TRUE, &octl);
+    octl.gen_vla_array_as_unknown_bound_array =
+                                    saved_gen_vla_array_as_unknown_bound_array;
   }  /* if */
 }  /* dump_constant */
 
@@ -1392,8 +1399,16 @@ is non-NULL, in which case that is the function scope.
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
   a_variable_ptr                param_var;
+  a_boolean                     saved_gen_vla_array_as_asterisk_bound_array =
+                                    octl.gen_vla_array_as_asterisk_bound_array;
 
-  if (scope != NULL) param_var = scope->variant.routine.parameters;
+  if (scope != NULL) {
+    param_var = scope->variant.routine.parameters;
+  } else {
+    /* Put out VLA dimensions as "[*]" because the expression information is
+       not available. */
+    octl.gen_vla_array_as_asterisk_bound_array = TRUE;
+  }  /* if */
   write_tok_ch('(');
   /* A routine is put out as unprototyped if its interface is unprototyped
      or if this is the definition and the definition is old-style (i.e.,
@@ -1534,6 +1549,8 @@ is non-NULL, in which case that is the function scope.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   }  /* if */
   write_tok_ch(')');
+  octl.gen_vla_array_as_asterisk_bound_array =
+                                   saved_gen_vla_array_as_asterisk_bound_array;
 }  /* dump_function_declarator_with_scope */
 
 
@@ -2385,8 +2402,15 @@ Generate a cast to the indicated type.
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
+    a_boolean saved_gen_vla_array_as_unknown_bound_array =
+                                     octl.gen_vla_array_as_unknown_bound_array;
     m_write_tok_ch('(');
+    /* Put out variable-length array (VLA) bounds as unknown bounds in
+       casts. */
+    octl.gen_vla_array_as_unknown_bound_array = TRUE;
     dump_type(type, /*add_pointer_to=*/FALSE);
+    octl.gen_vla_array_as_unknown_bound_array =
+                                    saved_gen_vla_array_as_unknown_bound_array;
     m_write_tok_ch(')');
   }  /* if */
 }  /* dump_cast */
@@ -2397,10 +2421,18 @@ static void dump_cast_to_pointer_to(a_type_ptr type)
 Generate a cast to pointer-to the indicated type.
 */
 {
+  a_boolean saved_gen_vla_array_as_unknown_bound_array =
+                                     octl.gen_vla_array_as_unknown_bound_array;
+
   /* Can't use dump_cast because we don't have the pointer type and
      we can't call make_pointer_type in the "back end". */
   write_tok_ch('(');
+  /* Put out variable-length array (VLA) bounds as unknown bounds in
+     casts. */
+  octl.gen_vla_array_as_unknown_bound_array = TRUE;
   dump_type(type, /*add_pointer_to=*/TRUE);
+  octl.gen_vla_array_as_unknown_bound_array =
+                                    saved_gen_vla_array_as_unknown_bound_array;
   write_tok_ch(')');
 }  /* dump_cast_to_pointer_to */
 

@@ -44,6 +44,8 @@ Clear an output control block to default values.
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
   octl->force_qualified_name      = FALSE;
+  octl->gen_vla_array_as_unknown_bound_array = FALSE;
+  octl->gen_vla_array_as_asterisk_bound_array = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -1090,7 +1092,10 @@ the way described by octl.
   octl->output_str("[");
   if (type->variant.array.is_vla) {
     /* Variable-length array. */
-    if (!type->variant.array.has_assoc_vla_dimension) {
+    if (octl->gen_vla_array_as_unknown_bound_array) {
+      /* Put out the VLA dimension as "[]". */
+    } else if (!type->variant.array.has_assoc_vla_dimension ||
+               octl->gen_vla_array_as_asterisk_bound_array) {
       /* Array[*] case. */
       octl->output_str("*");
     } else {
