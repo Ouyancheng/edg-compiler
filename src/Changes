@@ -1,5 +1,23 @@
 Version 2.44
 
+1/31/00  Microsoft mode: block extern declaration not linked to a later
+                         redeclaration
+
+The implementation of the Microsoft compatibility feature documented in the
+Changes entry of 10/6/99 caused the front end not to link an initial block
+extern declaration to a later redeclaration of that same entity, even though
+the entity had C++ linkage.  For example:
+
+  void f(char *x, char *y) {
+    int cmp(char *, char *);  // (1)
+    int d = cmp(x, y);
+  }
+  int cmp(char *s1, char *s2) { return 1; }  // Not linked to (1) in version
+                                             // 2.43 of the C++ front end (in
+                                             // (Microsoft bugs mode).
+
+This is now fixed.
+
 1/31/00  Failure to diagnose ambiguous partial ordering
 
 The front end incorrectly accepted certain function template partial
