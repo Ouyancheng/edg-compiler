@@ -1,5 +1,24 @@
 Version 2.29
 
+5/1/95   TARG_ALL_POINTERS_SAME_SIZE may now be set to FALSE
+
+You may now configure TARG_ALL_POINTERS_SAME_SIZE to FALSE, but if so
+TARG_SIZEOF_POINTER and TARG_ALIGNOF_POINTER are no longer defined and you
+will need to look closely at the configuration values that by default are
+dependent on them.  Moreover, global variables targ_sizeof_pointer and
+targ_alignof_pointer are not defined when TARG_ALL_POINTERS_SAME_SIZE is
+FALSE; in their place we now use a new routine, size_of_pointer_to, which
+you will need to customize according to the requirements of your target
+environment.
+
+5/1/95   Configuring a "pointer to virtual base class" class member
+
+Two new configuration flags, TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS and
+TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS, and their corresponding global
+variables, are now defined.  They are used to specify the attributes of a
+class member that is a "pointer" to a virtual base class; it is up to the
+implementation whether such a field is actually of pointer type.
+
 4/30/95  Incomplete array fields in Microsoft C mode
 
 "[0]" may be used in place of "[]" to declare a final field of incomplete
