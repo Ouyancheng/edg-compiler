@@ -1727,13 +1727,20 @@ typedef a_const_void_ptr a_bsearch_arg_type;
 
 
 /*
-The C++ standard does not specify whether bsearch and qsort take pointers
-to C functions or pointers to C++ functions.  By default, we assume that
-they accept C++ functions.  If they require C functions, this flag should be
-set to TRUE.
+The C++ standard specifies that two versions of bsearch and qsort must
+be supplied so that either a C or C++ linkage pointer may be passed as
+an argument.  However, some implementations only provide the version
+that takes a C linkage function.  When using an implementation that
+requires a C linkage function, this flag may be set cause the
+functions that are passed to bsearch and qsort to be declared as
+extern "C".  This flag must not be TRUE when compiling in C mode.
 */
 #ifndef BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+#ifdef __cplusplus
+#define BSEARCH_QSORT_FUNCTION_IS_EXTERN_C TRUE
+#else /* ifndef __cplusplus */
 #define BSEARCH_QSORT_FUNCTION_IS_EXTERN_C FALSE
+#endif /* ifdef __cplusplus */
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 #if !defined(__cplusplus) && BSEARCH_QSORT_FUNCTION_IS_EXTERN_C

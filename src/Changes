@@ -8,6 +8,15 @@ were a result of the change to make string literals const.  There were also
 problems related to the linkage of the function pointer passed to the
 qsort and bsearch routines.  The front end now compiles in strict C++ mode.
 
+A new configuration flag, BSEARCH_QSORT_FUNCTION_IS_EXTERN_C, has been
+added that is used when building the front end as C++ code.  The C++
+standard specifies that two versions of bsearch and qsort must be
+supplied so that either a C or C++ linkage pointer may be passed as an
+argument.  If the front end is being built using an implementation
+that only supplies the C linkage version, this flag may be set cause
+the functions that are passed to bsearch and qsort to be declared as
+extern "C".
+
 8/16/99  C linkage ignored on pointer-to-member-function
 
 The front end no longer distinguishes pointer-to-member-functions with C
