@@ -477,7 +477,7 @@ definition of the class is needed, and not just the declaration.
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-      fprintf(f_debug, "Setting definition_needed (%ld) on ",
+      fprintf(f_debug, "Setting definition_needed (%lu) on ",
                        needed_flag_bit_number);
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       fprintf(f_debug, "Setting definition_needed on ");
@@ -562,7 +562,7 @@ as needed.
             entry_kind == iek_routine ||
             entry_kind == iek_namespace) {
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-          fprintf(f_debug, "Setting needed (%ld) on ", needed_flag_bit_number);
+          fprintf(f_debug, "Setting needed (%lu) on ", needed_flag_bit_number);
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
           fprintf(f_debug, "Setting needed on ");
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
