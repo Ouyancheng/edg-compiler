@@ -214,6 +214,12 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       suppress = TRUE;
       break;
     case enk_constant:
+      if (is_error_constant(node->variant.constant)) {
+        /* An error constant might have been anything -- suppress the
+           warning. */
+        suppress = TRUE;
+      }  /* if */
+      break;
     case enk_variable_address:
     case enk_routine_address:
     case enk_field:
@@ -314,28 +320,50 @@ if it is something that has no effect but for which a warning should not
 be issued.
 */
 {
-  an_expr_node_ptr node = *node_ptr;
-  a_boolean        suppress = FALSE;
+  an_expr_node_ptr node = *node_ptr, check_node;
+  a_boolean        suppress = FALSE, any_commas = FALSE;
 
   /* This routine could do various kinds of pruning -- in fact, it used to;
      however, in accord with the philosophy that the front end does no
      optimization, it now only removes an unnecessary top-level cast to
      void. */
-  /* Check for an explicit cast-to-void node, remove the node, and
-     suppress the warning about a node with no effect in that case.
-     This is because we assume that a programmer who casts something
-     to void is doing so for some good reason, and also because the
-     macro for "assert" expands to a (void)0 when NDEBUG is defined. */
-  while ((node->kind == (an_expr_node_kind)enk_operation) &&
-         (node->variant.operation.kind == (an_expr_operator_kind)eok_cast) &&
-         is_void_type(node->type)) {
-    /* This is a cast to void; remove the cast node. */
-    node = node->variant.operation.operands;
-    /* Set the flag to suppress the warning. */
-    suppress = TRUE;
-  }  /* while */
+  check_node = node;
+  for (;;) {
+    /* Check for an explicit cast-to-void node, remove the node, and
+       suppress the warning about a node with no effect in that case.
+       This is because we assume that a programmer who casts something
+       to void is doing so for some good reason, and also because the
+       macro for "assert" expands to a (void)0 when NDEBUG is defined. */
+    if (is_operation_node(check_node) &&
+         check_node->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_cast &&
+         is_void_type(check_node->type)) {
+      /* This is a cast to void; suppress the warning. */
+      suppress = TRUE;
+      check_node = check_node->variant.operation.operands;
+      /* If this cast is at the top (not under a comma expression), remove
+         it. */
+      if (!any_commas) node = check_node;
+    } else if (is_operation_node(check_node) &&
+               check_node->variant.operation.kind ==
+                                            (an_expr_operator_kind)eok_comma) {
+      /* For a comma node, the check for side effects was already done
+         on the first operand when it was scanned (and a warning issued
+         if appropriate), so do not repeat that test.  Just check the
+         second operand.  This allows use of a (void) cast on any
+         operand of a comma expression to suppress the warning, e.g.,
+         ((void)0, (void)0). */
+      check_node = check_node->variant.operation.operands->next;
+      any_commas = TRUE;
+    } else {
+      /* Not a cast to void or a comma operator, so exit the loop. */
+      break;
+    }  /* if */
+  }  /* for */
   /* See if the node has some effect. */
-  if (!suppress && node_has_side_effects(node, &suppress)) suppress = TRUE;
+  if (!suppress) {
+    if (node_has_side_effects(check_node, &suppress)) suppress = TRUE;
+  }  /* if */
   *suppress_warning = suppress;
   /* Put the possibly updated pointer back into *node_ptr. */
   *node_ptr = node;

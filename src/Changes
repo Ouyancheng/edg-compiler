@@ -1,5 +1,15 @@
 Version 2.46
 
+1/19/01  Suppression of "expression has no effect" warning on comma
+         expressions
+
+The "expression has no effect" warning is now suppressed on comma
+expressions where the second operand is cast to void.  Formerly,
+a cast to void on the first operand, or on the entire expression,
+would suppress the warning, but not a cast on the second operand.
+
+  ((void)0, (void)0);  // Formerly got a warning
+
 1/17/01  Missing function body in nested class template strings
 
 When a nontemplate class contained a class template, the bodies of member
