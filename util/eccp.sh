@@ -1253,7 +1253,7 @@ process_option()
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 -a \
                "$curr_param" != "-" ] ; then
-            absolute_path=`expr match $curr_param '/.*'`
+            absolute_path=`expr $curr_param : '/.*'`
             if [ $absolute_path -eq 0 ] ; then
               # The directory is a relative path.  Add the current directory
               # to convert it to an absolute path
@@ -1323,7 +1323,7 @@ process_option()
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
             dir_name=`expr $arg : '-I\(.*\)'`    # Get the string after the -I
             if [ "$dir_name" != "-" ] ; then
-              absolute_path=`expr match $dir_name '/.*'`
+              absolute_path=`expr $dir_name : '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
@@ -1340,7 +1340,7 @@ process_option()
             dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
             opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
             if [ "$dir_name" != "-" ] ; then
-              absolute_path=`expr match $dir_name '/.*'`
+              absolute_path=`expr $dir_name : '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
@@ -1707,7 +1707,7 @@ do
   if [ $one_instantiation_per_object -ne 0 ] ; then
     if [ $keep_int_file -ne 0 ] ; then
       instantiation_gen_c_dir=$instantiation_dir
-      absolute_path=`expr match $instantiation_gen_c_dir '/.*'`
+      absolute_path=`expr $instantiation_gen_c_dir : '/.*'`
       if [ $absolute_path -eq 0 ] ; then
         # The directory is a relative path.  Add the current directory
         # to convert it to an absolute path

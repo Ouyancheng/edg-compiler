@@ -1,3 +1,12 @@
+Version 3.1
+
+7/9/02   eccp: eliminated use of "match" option
+
+eccp made use of the "match" option of the expr command.  This option is
+not supported on some versions of expr (notably newer verions of Solaris).
+The ":" form of the option, which is more widely available, is now used
+instead.
+-------------------------------------------------------------------------------
 Version 3.0, May 9, 2002
 
 5/8/02   Demangling of names with nested externalized function names
