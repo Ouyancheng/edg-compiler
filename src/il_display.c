@@ -1844,8 +1844,39 @@ Display the indicated expression node.
       disp_name("kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
-      disp_boolean("assignment_returns_lvalue",
+      if (ptr->variant.operation.kind == eok_iassign ||
+          ptr->variant.operation.kind == eok_fassign ||
+          ptr->variant.operation.kind == eok_passign
+#ifdef FFE
+                                                     ||
+          ptr->variant.operation.kind == eok_xassign ||
+          ptr->variant.operation.kind == eok_cassign
+#endif /* ifdef FFE */
+#ifdef CFE
+                                                     ||
+          ptr->variant.operation.kind == eok_sassign ||
+          ptr->variant.operation.kind == eok_bassign ||
+          ptr->variant.operation.kind == eok_pmassign ||
+          ptr->variant.operation.kind == eok_iadd_assign ||
+          ptr->variant.operation.kind == eok_isubtract_assign ||
+          ptr->variant.operation.kind == eok_imultiply_assign ||
+          ptr->variant.operation.kind == eok_idivide_assign ||
+          ptr->variant.operation.kind == eok_remainder_assign ||
+          ptr->variant.operation.kind == eok_fadd_assign ||
+          ptr->variant.operation.kind == eok_fsubtract_assign ||
+          ptr->variant.operation.kind == eok_fmultiply_assign ||
+          ptr->variant.operation.kind == eok_fdivide_assign ||
+          ptr->variant.operation.kind == eok_padd_assign ||
+          ptr->variant.operation.kind == eok_psubtract_assign ||
+          ptr->variant.operation.kind == eok_shiftl_assign ||
+          ptr->variant.operation.kind == eok_shiftr_assign ||
+          ptr->variant.operation.kind == eok_and_assign ||
+          ptr->variant.operation.kind == eok_or_assign ||
+          ptr->variant.operation.kind == eok_xor_assign) {
+#endif /* ifdef CFE */
+        disp_boolean("assignment_returns_lvalue",
                  (a_boolean)ptr->variant.operation.assignment_returns_lvalue);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;
