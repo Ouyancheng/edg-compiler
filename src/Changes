@@ -1,5 +1,13 @@
 Version 2.36
 
+4/3/97    Microsoft compatibility: empty macro arguments ignored
+
+Microsoft-compatibility mode now treats empty macro arguments like
+MSVC++ (4.2 and 5.0, at least) does, i.e., it ignores them.
+
+  #define M(a,b) { a, b } 
+  int a[2] = M(,,,,,,0, ,1,,);  // Same as M(0,1)
+
 4/3/97    AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is obsolete
 
 2.35 was changed to provide better support for use of long long to represent

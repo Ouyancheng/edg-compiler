@@ -1736,21 +1736,28 @@ end_scan_for_macro_modifs:;
              characters of each token (and any white space preceding it)
              are deleted as the token is scanned.  Also, white space at
              the beginning and end of the argument is ignored. */
-          if (pp == NULL) {
-            /* Too many arguments. */
-            if (!too_many_args_diag_given) {
-              if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode) {
-                /* In pcc, SVR4 C, and Microsoft mode, this is only a
-                   warning. */
-                warning(ec_too_many_macro_args);
-              } else {
-                error(ec_too_many_macro_args);
-              }  /* if */
-              too_many_args_diag_given = TRUE;
-            }  /* if */
-          }  /* if */
           map = alloc_macro_arg();
           add_to_arg_values(map);
+do_argument_again:
+          if (pp == NULL) {
+            /* Too many arguments. */
+            if (microsoft_mode &&
+                (curr_token == tok_comma || curr_token == tok_rparen)) {
+              /* In Microsoft mode, it's not an extra argument if it's
+                 empty (see test for empty argument below). */
+            } else {
+              if (!too_many_args_diag_given) {
+                if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode) {
+                  /* In pcc, SVR4 C, and Microsoft mode, this is only a
+                     warning. */
+                  warning(ec_too_many_macro_args);
+                } else {
+                  error(ec_too_many_macro_args);
+                }  /* if */
+                too_many_args_diag_given = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
           paren_count = 0;
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;
@@ -1818,9 +1825,15 @@ end_scan_for_macro_modifs:;
              the end of source or of a preprocessing directive.  This
              is a warning instead of a strict ANSI diagnostic because this
              is "undefined" and not illegal. */
-          if (strict_ansi_mode && map->raw_len == 0 &&
+          if (map->raw_len == 0 &&
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
-            warning(ec_empty_macro_argument);
+            if (strict_ansi_mode) warning(ec_empty_macro_argument);
+            /* Strangely, the Microsoft compiler ignores empty macro arguments.
+               This has been verified with MSVC++ 4.2 and 5.0. */
+            if (microsoft_mode && curr_token == tok_comma) {
+              (void)arg_get_token(&any_white_space_skipped);
+              goto do_argument_again;
+            }  /* if */
           }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
              again with macro expansion.  We do that by temporarily
