@@ -1,5 +1,12 @@
 Version 2.18
 
+6/17/93  Restrictions on nontype template arguments
+
+Nontype template arguments are now scanned either (a) as integral
+constant expressions, if the corresponding parameter is integral, or
+(b) as a new expression kind (ek_template_arg), which disallows all
+operators except & and sizeof.
+
 6/16/93  Name mangling for nested typedefs
 
 The names of typedefs defined within classes are now mangled correctly.

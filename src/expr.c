@@ -488,7 +488,11 @@ Syntax:
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Subscripting not allowed in integral constant expression. */
-    pos_error(ec_expr_not_integral, &operator_position);
+    pos_error(ec_bad_integral_operator, &operator_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* Subscripting not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
@@ -1901,6 +1905,10 @@ bound with the function in *bound_function_selector.
     /* Field selection not allowed in integral constant expression. */
     pos_error(ec_bad_integral_operator, &pos_curr_token);
     err = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* Field selection not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
+    err = TRUE;
   } else {
     /* In C++, the first operand of "->" may be a class object that is
        converted to a class pointer via an operator->() function.  The operator
@@ -2358,6 +2366,10 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Field selection not allowed in integral constant expression. */
     pos_error(ec_bad_integral_operator, &operator_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* Field selection not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
@@ -2975,6 +2987,10 @@ See section 3.3.3.2 of the standard.
     /* Address indirection not allowed in integral constant expressions. */
     pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* Address indirection not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
+    err = TRUE;
   }  /* if */
 
   /* Scan the operand. */
@@ -3048,7 +3064,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   a_source_position     start_position;
   a_type_ptr            result_type;
   a_boolean             did_not_fold, template_constant;
-  a_boolean             do_promotion, processed = FALSE;
+  a_boolean             do_promotion, err = FALSE, processed = FALSE;
   a_constant            result_constant;
 
   db_enter(4, "scan_arith_prefix_operator");
@@ -3057,12 +3073,22 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* These operators not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
+    err = TRUE;
+  }  /* if */
+
   /* Scan the operand. */
   (void)get_token();
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
-  if (C_dialect == C_dialect_cplusplus &&
-      is_class_or_error_operand(&operand)) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             is_class_or_error_operand(&operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/TRUE,
@@ -3526,12 +3552,13 @@ specification allow a variable-sized array as the top type.
 
   /* Save the position of the start. */
   copy_source_position(pos_curr_token, start_position);
-#if CHECKING
-  if (curr_expr_kind_is(ek_pp)) {
-    /* New not possible for preprocessing expressions. */
-    internal_error("scan_new_operator: in preprocessing expr");
+
+  if (curr_expr_kind_is_const()) {
+    /* "new" not allowed in constant expressions. */
+    pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
   }  /* if */
-#endif /* CHECKING */
+
   if (curr_token == tok_colon_colon) {
     /* "::" appears first, meaning use the global new operator. */
     use_global_new = TRUE;
@@ -3609,8 +3636,10 @@ specification allow a variable-sized array as the top type.
   }  /* if */
   ptr_new_type = make_pointer_type(base_new_type);
   /* The operand of a new must be an object type. */
-  if (!is_object_type(new_type) &&
-      (!is_array_type(new_type) || new_array_dimension == NULL)) {
+  if (err) {
+    /* Error already issued (operator not valid in this kind of expression). */
+  } else if (!is_object_type(new_type) &&
+             (!is_array_type(new_type) || new_array_dimension == NULL)) {
     /* Invalid type. */
     if (is_error_type(new_type)) {
       /* Error already issued. */
@@ -3917,6 +3946,7 @@ As an anachronism, allow an expression inside the [ ].
   a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
+  a_boolean          err = FALSE;
   a_symbol_ptr       operator_delete_symbol;
   a_routine_ptr      delete_routine, dtor_routine;
   an_operand         operand;
@@ -3934,12 +3964,13 @@ As an anachronism, allow an expression inside the [ ].
 
   /* Save the position of the start. */
   copy_source_position(pos_curr_token, start_position);
-#if CHECKING
-  if (curr_expr_kind_is(ek_pp)) {
-    /* Delete not possible for preprocessing expressions. */
-    internal_error("scan_delete_operator: in preprocessing expr");
+
+  if (curr_expr_kind_is_const()) {
+    /* "delete" not allowed in constant expressions. */
+    pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
   }  /* if */
-#endif /* CHECKING */
+
   if (curr_token == tok_colon_colon) {
     /* "::" appears first, meaning use the global delete operator. */
     use_global_delete = TRUE;
@@ -3973,7 +4004,7 @@ As an anachronism, allow an expression inside the [ ].
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
   do_operand_transformations(&operand, TOPT_NO_OPTIONS);
   /* The operand of a delete must be a pointer. */
-  if (!check_pointer_operand(&operand, ec_expr_not_pointer)) {
+  if (err || !check_pointer_operand(&operand, ec_expr_not_pointer)) {
     make_error_operand(result);
   } else {
     ptr_delete_type = operand.type;
@@ -4169,7 +4200,11 @@ functional-notation type conversions.
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(type_cast_to);
   /* Check the type to see if it's permissible. */
-  if (is_error_type(type_cast_to)) {
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* Casts not allowed in a template argument expression, period. */
+    error(ec_bad_templ_arg_expr_operator);
+    err = TRUE;
+  } else if (is_error_type(type_cast_to)) {
     err = TRUE;
   } else if (is_template_param_type(type_cast_to)) {
     /* We are in a prototype instantiation of a template.  The type is
@@ -4809,7 +4844,7 @@ be of integral type.  See section 3.3.5 of the standard.
   a_source_position     operator_position;
   an_expr_operator_kind op;
   a_type_ptr            result_type;
-  a_boolean             processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
 
   db_enter(4, "scan_mult_operator");
 
@@ -4818,13 +4853,23 @@ be of integral type.  See section 3.3.5 of the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* These operators not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
+
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_class_or_error_operand(operand_1) ||
-       is_class_or_error_operand(&operand_2))) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             (is_class_or_error_operand(operand_1) ||
+              is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -4904,13 +4949,23 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* These operators not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
+
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_class_or_error_operand(operand_1) ||
-       is_class_or_error_operand(&operand_2))) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             (is_class_or_error_operand(operand_1) ||
+              is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -5067,7 +5122,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   a_source_position     operator_position;
   a_type_ptr            result_type;
   an_error_code         err_code;
-  a_boolean             processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
 
   db_enter(4, "scan_shift_operator");
 
@@ -5075,13 +5130,23 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* These operators not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
+
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_class_or_error_operand(operand_1) ||
-       is_class_or_error_operand(&operand_2))) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             (is_class_or_error_operand(operand_1) ||
+              is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -5228,7 +5293,7 @@ standard.
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer;
-  a_boolean             processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
   db_enter(4, "scan_rel_operator");
@@ -5237,13 +5302,23 @@ standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* Operator not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
+
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_class_or_error_operand(operand_1) ||
-       is_class_or_error_operand(&operand_2))) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             (is_class_or_error_operand(operand_1) ||
+              is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -5362,7 +5437,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer, operand_1_is_ptr_to_member;
-  a_boolean             processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
   db_enter(4, "scan_eq_operator");
@@ -5371,13 +5446,23 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* Operator not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
+
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_class_or_error_operand(operand_1) ||
-       is_class_or_error_operand(&operand_2))) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             (is_class_or_error_operand(operand_1) ||
+              is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -5487,7 +5572,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   a_source_position     operator_position;
   a_type_ptr            result_type;
   an_expr_operator_kind op;
-  a_boolean             processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
   int                   prec_level;
 
   db_enter(4, "scan_bit_operator");
@@ -5504,13 +5589,23 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* Operator not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
+
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_class_or_error_operand(operand_1) ||
-       is_class_or_error_operand(&operand_2))) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             (is_class_or_error_operand(operand_1) ||
+              is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -5558,7 +5653,7 @@ standard.
   a_boolean             known_result       = FALSE;
   a_token_kind          save_token;
   a_type_ptr            result_type;
-  a_boolean             processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
   a_boolean             might_be_overloaded = FALSE;
   int                   prec_level;
   a_boolean             operand_1_transformations_done = FALSE;
@@ -5580,6 +5675,12 @@ standard.
   }  /* if */
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* Operator not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       opname_symbol_table[opname_kind_for_token[(int)save_token]] != NULL) {
@@ -5631,13 +5732,17 @@ standard.
   /* Restore the evaluated flag as it was on entry. */
   expr_stack->evaluated = saved_evaluated;
 
-  /* Note that we do not test might_be_overloaded here, because we want
-     to go to the subroutine to look for conversions from class types
-     to built-in types. */
-  if (C_dialect == C_dialect_cplusplus &&
-      (is_class_or_error_operand(operand_1) ||
-       is_class_or_error_operand(&operand_2))) {
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
+  } else if (C_dialect == C_dialect_cplusplus &&
+             (is_class_or_error_operand(operand_1) ||
+              is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
+    /* Note that we do not test might_be_overloaded here, because we want
+       to go to the subroutine to look for conversions from class types
+       to built-in types. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
@@ -5850,6 +5955,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   db_enter(4, "scan_conditional_operator");
 
+  if (curr_expr_kind_is(ek_template_arg)) {
+    /* Operator not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    err = TRUE;
+  }  /* if */
+
   /* Check the first operand's type. */
   process_boolean_controlling_expression(operand_1);
 
@@ -5910,9 +6021,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   /* Check the operands for compatibility.  Both must be arithmetic,
      both compatible struct/union types, both void, or both pointers. */
-  if (is_error_operand(&operand_2) || is_error_operand(&operand_3)) {
-    /* One or both of the operands has an error. */
-    err = TRUE;
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+    processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus) {
     if (types_are_compatible(operand_2.type, operand_3.type)) {
       /* In C++, if the types are the same the result has that type.
@@ -6564,9 +6676,9 @@ sym_ptr is a symbol for a variable being referenced in an expression.
 Return TRUE if the reference is invalid because either
 
 (1)  we are inside a local class, and the variable is a nonstatic variable
-from an enclosing function (ARM 9.8), or
+     from an enclosing function (ARM 9.8), or
 (2)  we are inside a default argument expression, and the variable is a
-local variable of an enclosing function (ARM 8.2.6).
+     local variable of an enclosing function (ARM 8.2.6).
 
 The symbol may be a member of an anonymous union.
 */
@@ -6781,9 +6893,10 @@ bound_function_selector to the associated "this" pointer.
                but the lvalue never gets turned into an rvalue, so it's
                okay. */
             /* Note that in C++ initializer expressions are used only for
-               non-type template arguments and for the argument of
+               class constants (an extension) and for the argument of
                __INTADDR__. */
-            if (curr_expr_kind_is(ek_init_constant) &&
+            if ((curr_expr_kind_is(ek_init_constant) ||
+                 curr_expr_kind_is(ek_template_arg)) &&
                 has_static_storage_duration(var_ptr->storage_class) &&
                 /* Disallow C++ reference variables in constant
                    expressions, because of the extra indirection. */
@@ -7942,10 +8055,19 @@ Return the constant in *constant.
   an_expr_stack_entry  expr_stack_entry;
   an_arg_match_summary arg_summary;
   a_boolean            okay;
+  an_expression_kind   expr_kind;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
-  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
+  /* If the parameter is integral, scan the expression as an integral
+     constant expression.  Otherwise, scan it as an ek_template_arg
+     expression. */
+  if (is_integral_type(param_type)) {
+    expr_kind = (an_expression_kind)ek_integral_constant;
+  } else {
+    expr_kind = (an_expression_kind)ek_template_arg;
+  }  /* if */
+  push_expr_stack(expr_kind, &expr_stack_entry);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
