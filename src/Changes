@@ -1,5 +1,13 @@
 Version 3.1
 
+1/20/03  Precompiled headers: workaround for mmap problem on Linux
+
+When using MAP_FIXED on Linux, mmap will succeed if a request is made to
+map the same block more than once.  This can result in aborts or other
+incorrect behavior when using precompiled header files.  The routine
+map_input_file_to_region has been modified to work around this problem
+when the front end is built with __linux__ defined.
+
 1/20/03  Precompiled headers: abort caused by include guard processing
 
 An abort would occur when using a precompiled header file associated with

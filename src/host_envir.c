@@ -2652,24 +2652,33 @@ file to a memory region.
 {
   int		fd = fileno(file);
   a_void_ptr	result_addr;
+  int		mmap_flags = MAP_FIXED;
 
+#ifdef __linux__
+  /* MAP_FIXED is not used because it doe not work properly on Linux.
+     The Linux mmap will succeed even if the block had been previously
+     mapped.  Instead, we compare the resulting address with the
+     address requested. */
+  mmap_flags = 0;
+#endif /* ifdef __linux__ */
   result_addr = (a_void_ptr)mmap((caddr_t)address, size,
-                            PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
+                            PROT_WRITE | PROT_READ, MAP_PRIVATE | mmap_flags,
                             fd, (off_t)offset);
-  /* mmap returns (cresult_addr_t)-1 if the operation fails. */
+  /* mmap returns (caddr_t)-1 if the operation fails. */
+  if (result_addr == (caddr_t)-1 || result_addr != address) {
+    result_addr = NULL;
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("mmap") || debug_level >= 4) {
     fprintf(f_debug,
         "map_input_file_to_region: allocated %lu bytes of mmap memory at %p\n",
             (unsigned long)size, address);
   }  /* if */
-  if ((db_flag_is_set("mmap") || debug_level >= 1) &&
-      result_addr == (caddr_t)-1) {
+  if ((db_flag_is_set("mmap") || debug_level >= 1) && result_addr == NULL) {
     fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
             address, (unsigned long)size, (unsigned long)offset);
   }  /* if */
 #endif /* DEBUG */
-  if (result_addr == (caddr_t)-1) result_addr = NULL;
   return result_addr;
 }  /* map_input_file_to_region */
 
