@@ -4733,10 +4733,14 @@ for example, in something like "(short)i = 0").
         if (casts_removed) {
           if (gpp_mode &&
               (gnu_version >= 30400 ||
-               !is_integral_type(type_cast_to) ||
-               !is_integral_type(type_before_cast))) {
+               !((is_integral_type(type_cast_to) &&
+                  is_integral_type(type_before_cast)) ||
+                 (is_pointer_type(type_cast_to) &&
+                  is_pointer_type(type_before_cast)) ||
+                 (is_floating_type(type_cast_to) &&
+                  is_floating_type(type_before_cast))))) {
             /* g++ 3.4 made this into an error.  g++ versions before that gave
-               errors on non-integral cases. */
+               errors on mixed cases. */
             error_in_operand(ec_gcc_use_of_cast_as_lvalue, operand);
           } else {
             pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
