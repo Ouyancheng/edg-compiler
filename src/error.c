@@ -905,8 +905,8 @@ error code.
     case ec_bad_destructor_decl:
       m = "invalid destructor declaration";
       break;
-    case ec_id_has_same_name_as_class:
-      m = "class name may not be used to name this member";
+    case ec_class_and_member_name_conflict:
+      m = "invalid declaration for a member with name \"%s\"";
       break;
     case ec_unary_colon_colon_in_declarator:
       m = "unary \"::\" is not allowed on a name in a declarator";
@@ -1306,6 +1306,9 @@ error code.
       break;
     case ec_inline_main:
       m = "\"main()\" may not be declared inline";
+      break;
+    case ec_class_and_member_function_name_conflict:
+      m = "member function is named \"%s\" but is not a constructor";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

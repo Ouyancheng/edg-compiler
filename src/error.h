@@ -325,7 +325,7 @@ typedef enum /*an_error_code*/ {
   ec_bad_friend_decl,
   ec_value_returned_in_constructor,
   ec_bad_destructor_decl,
-  ec_id_has_same_name_as_class,
+  ec_class_and_member_name_conflict,
   ec_unary_colon_colon_in_declarator,
   ec_name_not_found_in_file_scope,
   ec_qualified_name_not_allowed,
@@ -454,7 +454,8 @@ typedef enum /*an_error_code*/ {
   ec_no_access_to_constructors,
   ec_nonstd_member_function_redeclaration,
   ec_static_main,
-  ec_inline_main
+  ec_inline_main,
+  ec_class_and_member_function_name_conflict
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
