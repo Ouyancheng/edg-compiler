@@ -3038,6 +3038,11 @@ the symbol and its linkage (which is always "none").
   }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     var = sym->variant.variable;
+#if CHECKING
+    if (var->storage_class != (a_storage_class)sc_static) {
+      internal_error("define_static_data_member:  not sc_static");
+    }  /* if */
+#endif /* CHECKING */
     if (sym->defined) {
       pos_error(ec_redefinition_not_allowed, &locator->source_position);
       err = TRUE;
@@ -3048,12 +3053,6 @@ the symbol and its linkage (which is always "none").
     } else {
       /* The type of the variable should be the composite of the two types. */
       var->type = composite_type(type_ptr, var->type);
-      /* Change the storage class from sc_extern to sc_unspecified.  (In
-         error cases -- where a static data member was declared for a local
-	 scope -- the storage class will be sc_static; leave it that way.) */
-      if (var->storage_class == (a_storage_class)sc_extern) {
-        var->storage_class = (a_storage_class)sc_unspecified;
-      }  /* if */
       /* Mark the static data member defined.  It can only be defined once. */
       sym->defined = TRUE;
     }  /* if */
@@ -3091,7 +3090,7 @@ the symbol and its linkage (which is always "none").
                        locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/TRUE);
     sym->variant.variable = make_variable(error_type(),
-					  (a_storage_class)sc_unspecified,
+					  (a_storage_class)sc_static,
 					  /*at_file_scope=*/TRUE);
     /* Make the error symbol have a class_of_which_a_member field, since
        it is expected on sk_static_data_member fields downstream. */
