@@ -209,7 +209,9 @@ typedef struct a_destructible_entity_descr {
 			   always the same as the value in the "next"
 			   field in the constant pointed to by
 			   region_table_entry, when unordered entries are
-			   involved. */
+			   involved.  Also, this does not leave a lifetime,
+			   whereas the previous entry in the region table
+			   might be from a previous lifetime. */
 			   
 } a_destructible_entity_descr;
 
