@@ -5242,9 +5242,9 @@ its result still an lvalue.
        actual conversion involved. */
     /* is_still_an_lvalue = FALSE; -- already set. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (is_integral_type(type_before_cast) &&
+  } else if (microsoft_mode && is_integral_type(type_before_cast) &&
              is_integral_type(type_cast_to)) {
-    /* In Microsoft C lvalue casts involving integral types of different
+    /* In Microsoft mode lvalue casts involving integral types of different
        sizes are allowed -- e.g.,
          long l; ++(char)l;   // affects only the low-order 8 bits
     */
