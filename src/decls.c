@@ -4136,6 +4136,9 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
     case tok_void:
       type = void_type();
       break;
+    case tok_wchar_t:
+      type = wchar_t_type();
+      break;
     default:
       type = NULL;
       break;

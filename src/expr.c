@@ -8329,6 +8329,7 @@ handle_trapped_left_paren:
     case tok_float:
     case tok_double:
     case tok_void:
+    case tok_wchar_t:
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
       if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;
