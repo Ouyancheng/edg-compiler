@@ -677,7 +677,9 @@ static void set_user_conversion_for_class_copy(an_operand   *arg_operand,
 arg_operand (of class type) is being passed as an argument to a parameter
 of type param_type (also a class type, either the same one or a base type
 thereof).  Set *conversion to indicate the conversion that is required
-to do that (a bitwise copy or a copy constructor call).
+to do that (a bitwise copy or a copy constructor call).  Note that
+conversion->std.cast_base_class is set already, and that value is preserved
+in the bitwise copy case.
 */
 {
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(param_type);
@@ -685,7 +687,8 @@ to do that (a bitwise copy or a copy constructor call).
 
   if (cssp->construction_by_bitwise_copy_allowed) {
     /* This is a bitwise copy. */
-    clear_conv_descr(conversion);
+    /* Do NOT clear the conversion entry here.  We want to preserve the
+       cast_base_class pointer. */
     conversion->class_identity_or_bitwise_copy = TRUE;
   } else {
     /* This case must require a copy constructor. */
@@ -1792,8 +1795,10 @@ evaluated (but not checked to see if the match is good enough).
         /* Error match.  Okay. */
       } else if (!strict_ansi_mode &&
                  arg_match->match_level == aml_std_conversion &&
-                 arg_match->conversion.std.cast_base_class != NULL) {
-        /* A cast to a base class.  Okay as an extension. */
+                 (arg_match->conversion.std.cast_base_class != NULL ||
+                  !is_null_user_conv_descr(&arg_match->conversion))) {
+        /* A cast to a base class, or an object of a derived class passed
+           to a parameter of a base class.  Okay as an extension. */
       } else {
         /* Other match: the template cannot be used. */
         goto done;
