@@ -1212,8 +1212,9 @@ part of secondary translation units (perhaps).
       /* This memory has already been freed. */
     } else {
       a_scope_ptr sp = il_header.region_scope_entry[n];
-      /* Skip the memory regions of secondary translation units. */
-      if (!sp->part_of_secondary_trans_unit) {
+      /* Skip the file-scope memory regions of secondary translation units. */
+      if (!sp->part_of_secondary_trans_unit ||
+          sp->kind != (a_scope_kind)sck_file) {
         a_routine_ptr rout;
         check_assertion(sp->kind == (a_scope_kind)sck_function);
         rout = sp->variant.routine.ptr;
@@ -1224,12 +1225,14 @@ part of secondary translation units (perhaps).
         if (debug_level >= 3 || db_flag_is_set("needed_flags")) {
           fprintf(f_debug,
                   "check_for_done_with_all_function_memory_regions: ");
-          fprintf(f_debug, "writing/freeing memory region for ");
+          fprintf(f_debug, "%s memory region for ",
+                           !sp->part_of_secondary_trans_unit ?
+                                                "writing/freeing" : "freeing");
           db_name(&rout->source_corresp);
           fprintf(f_debug, "\n");
         }  /* if */
 #endif /* DEBUG */
-        write_memory_region(n);
+        if (!sp->part_of_secondary_trans_unit) write_memory_region(n);
         free_memory_region(n);
       }  /* if */
     }  /* if */
