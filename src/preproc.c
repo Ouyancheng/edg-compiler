@@ -1518,9 +1518,28 @@ being scanned is a Microsoft __pragma operator.
                               &ppp->token_cache);
     }  /* if */
   }  /* if */
-  /* Add this pragma to the list of pragmas associated with the
-     current token. */
-  add_to_curr_token_pragma_list(ppp);
+  if (pkdp->binding_kind == pbk_preproc_immediate) {
+    /* Process a "preprocessing immediate" pragma.  Such pragmas are
+       processed when they are encountered instead of being associated
+       with a token or construct.  Since source sequence lists don't represent
+       entities as fine-grained as tokens or preprocessing tokens, the
+       representation of these pragmas may not be entirely precise. */
+    a_preproc_immediate_pragma_function_ptr pipfp;
+    pipfp = pkdp->variant.preproc_immediate_processing_function;
+    if (pipfp != NULL) (*pipfp)(pkdp->kind);
+    if (pkdp->automatically_include_in_il) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      ppp->source_sequence_entry = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      add_pragma_to_il(ppp, (an_il_entry_kind)iek_none, (char*)NULL,
+                       /*is_global=*/TRUE);
+    }  /* if */
+    free_pending_pragma(ppp);
+  } else {
+    /* Add this pragma to the list of pragmas associated with the
+       current token. */
+    add_to_curr_token_pragma_list(ppp);
+  }  /* if */
 }  /* enter_pending_pragma */
 
 
@@ -1538,8 +1557,6 @@ Record this information in the input stack entry.
     set_ifg_state(IFG_STATE_ONCE);
     curr_ise->include_history->pragma_once = TRUE;
   }  /* if */
-  /* Bypass the "once" token. */
-  (void)get_token();
 }  /* once_pragma */
 
 
@@ -1552,9 +1569,6 @@ preprocessing directives.  When they are encountered during a
 real compilation, they should just be ignored.
 */
 {
-  while (curr_token != tok_newline && curr_token != tok_end_of_source) {
-    (void)get_token();
-  }  /* while */
 }  /* hdrstop_or_no_pch_pragma */
 
 
@@ -1594,46 +1608,6 @@ expansion of macros if necessary for this kind of pragma.
 }  /* pass_pragma_to_output */
 
 
-static void process_preproc_immediate_pragma(
-                   a_pragma_kind_description_ptr  pkdp,
-		   a_boolean			  is_microsoft_pragma_operator)
-/*
-Process the "preprocessing immediate" pragma described by "pkdp".  Such
-pragmas are processed when they are encountered instead of being associated
-with a token or construct.  Since source sequence lists don't represent
-entities as fine-grained as tokens or preprocessing tokens, the representation
-of these pragmas may not be entirely precise.  is_microsoft_pragma_operator is
-TRUE when the pragma being scanned is a Microsoft __pragma operator.
-*/
-{
-  a_preproc_immediate_pragma_function_ptr pipfp;
-  a_memory_region_number  region_to_switch_back_to;
-  a_pending_pragma_ptr    ppp;
-
-  if (pkdp->automatically_include_in_il) {
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    ppp = alloc_pending_pragma(pkdp);
-    cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
-  }  /* if */
-  pipfp = pkdp->variant.preproc_immediate_processing_function;
-  if (pipfp != NULL) (*pipfp)(pkdp->kind);
-  if (pkdp->automatically_include_in_il) {
-    /* Preprocessing immediate pragmas that are to be included in the IL
-       should always be recorded as text. */ 
-    check_assertion(pkdp->make_text_not_tokens);
-    convert_pragma_to_string(ppp);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    ppp->source_sequence_entry = add_empty_source_sequence_entry();
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    add_pragma_to_il(ppp, (an_il_entry_kind)iek_none, (char*)NULL,
-                     /*is_global=*/TRUE);
-    switch_back_to_original_region(region_to_switch_back_to);
-    free_pending_pragma(ppp);
-  }  /* if */
-}  /* process_preproc_immediate_pragma */
-
-
-
 void record_pragma(a_pragma_kind_description_ptr pkdp,
 		   a_source_position		 *start_of_dir_position,
 		   a_source_position		 *id_position,
@@ -1648,17 +1622,10 @@ a Microsoft __pragma operator.
 {
   a_boolean processed = FALSE;
   if (pkdp != NULL) {
-    if (pkdp->binding_kind == pbk_preproc_immediate) {
-      /* Preprocessing immediate pragmas are processed when
-         encountered.  Call the processing routine associated with
-         this pragma. */
-      process_preproc_immediate_pragma(pkdp, is_microsoft_pragma_operator);
-    } else {
-      /* Scan the pragma directive, recording it as either a token cache
-         or as a character string. */
-      enter_pending_pragma(pkdp, start_of_dir_position, id_position,
-                           is_microsoft_pragma_operator);
-    }  /* if */
+    /* Scan the pragma directive, recording it as either a token cache
+       or as a character string. */
+    enter_pending_pragma(pkdp, start_of_dir_position, id_position,
+                         is_microsoft_pragma_operator);
     processed = TRUE;
   }  /* if */
   if (!processed) {

@@ -136,6 +136,10 @@ but cannot be referenced by name in a pragma directive.
                         make_text_not_tokens),
                        "add_pragma_kind_description:",
 		       "flags not valid when fetching pp-tokens");
+  /* Preprocessing immediate pragmas must have the fetch_pp_tokens flag set. */
+  check_assertion_str2(binding_kind != pbk_preproc_immediate ||
+                       p_fetch_pp_tokens, "add_pragma_kind_description:",
+                       "preproc_immediate pragmas must use fetch_pp_tokens");
   /* Allocate a new entry. */
   pkdp = (a_pragma_kind_description_ptr)
 				alloc_fe(sizeof(a_pragma_kind_description));
@@ -305,9 +309,9 @@ used for creating pbk_preproc_immediate pragmas.
             (a_generic_pragma_function_ptr)processing_function,
             /*is_pseudo_pragma=*/FALSE, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, /*global=*/FALSE,
-            automatically_include_in_il, automatically_include_in_il,
+            automatically_include_in_il, /*make_text_not_tokens=*/TRUE,
             /*expand_macros=*/FALSE, /*processing_C_code=*/FALSE,
-            /*fetch_pp_tokens=*/FALSE, /*ignore_in_back_end=*/FALSE,
+            /*fetch_pp_tokens=*/TRUE, /*ignore_in_back_end=*/FALSE,
             /*il_info_is_complete=*/FALSE, /*error_severity=*/es_none);
 }  /* add_preproc_immediate_pragma_kind_description */
 
@@ -407,6 +411,9 @@ possible.
     case pk_enable_ldscope:
     case pk_disable_ldscope:
 #endif /* SUN_EXTENSIONS_ALLOWED */
+    case pk_once:
+    case pk_hdrstop:
+    case pk_no_pch:
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
