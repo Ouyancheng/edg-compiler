@@ -1,5 +1,15 @@
 Version 2.25
 
+8/9/94   Class layout processing
+
+This is just a repackaging of the same functionality: now instead of
+allocating nonvirtual base classes early, allocating nonstatic data
+members on the fly, and then calling finish_laying_out_class at the end of
+the class definition to handle virtual base classes, etc., all class
+layout processing has been consolidated in do_class_layout (called at the
+end of scanning the class definition).  This will make it more convenient
+to customize the way in which classes are laid out.
+
 8/8/94   Using new to create object with uninitialized const or ref fields
 
 An error is now issued (instead of a warning) when new is used, with no
