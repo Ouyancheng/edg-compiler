@@ -4016,8 +4016,8 @@ Also, add the instance to the definitions list for the template.
        associated.  Create a static data member def entry and set the pointers
        to bind them all together. */
     a_template_instance_ptr  tip = alloc_template_instance();
-    sym->variant.static_data_member.instance_ptr = tip;
-    tip->instance_sym = sym;
+    static_data_member_sym->variant.static_data_member.instance_ptr = tip;
+    tip->instance_sym = static_data_member_sym;
     tip->template_sym = sym;
     vp = static_data_member_sym->variant.static_data_member.variable;
     /* Link the new entry to the start of the definition list of the static
