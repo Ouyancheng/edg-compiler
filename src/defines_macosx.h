@@ -7,6 +7,21 @@
 * Copyright 2002-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
+/*
+
+defines.h -- Defines configuration parameters for a given version of the
+             front end.
+
+This version is for the Apple MacOS X operating system.
+
+*/
+
+
+#ifdef DEMO_VERSION
+/* Demo versions should support multiple translation units. */
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#define DEBUG 0
+#endif /* ifdef DEMO_VERSION */
 
 /* Configuration definitions determined by dettarg.c: */
 #define TARG_LITTLE_ENDIAN FALSE
