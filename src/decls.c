@@ -860,7 +860,7 @@ scope is that of a class definition.
                           extra_info;
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
-  a_boolean               default_arg_expr_allowed;
+  a_boolean               default_arg_expr_allowed = FALSE;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -917,9 +917,12 @@ scope is that of a class definition.
         func_info->scope_number = scope_stack[depth_scope_stack].number;
       }  /* if */
       last_param_type = NULL;
-      default_arg_expr_allowed = (C_dialect_cplusplus &&
-                                  !(locator->is_operator_name ||
-                                    locator->is_conversion_name));
+      if (C_dialect == C_dialect_cplusplus) {
+        if (locator != NULL &&
+            !locator->is_operator_name && !locator->is_conversion_name) {
+          default_arg_expr_allowed = TRUE;
+        }  /* if */
+      }  /* if */
       do {
         an_extern_linkage  dummy_linkage;
 
