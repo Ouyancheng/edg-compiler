@@ -7243,22 +7243,24 @@ Syntax:
   if (err) {
     /* Some error, previously issued. */
     make_error_operand(result);
-  } else if (template_param_case) {
-    /* Put out a generic operator for a case involving template parameter
-       types. */
-    generic_cast_operand(&operand, operation_type, 
-                         (an_expr_operator_kind)eok_const_cast,
-                         /*is_implicit_cast=*/FALSE);
-    copy_operand(&operand, result);
   } else {
-    /* The types are already the same except for qualifiers.  The result
-       is just the source cast to the destination type. */
-    /* Note that the cast has been turned into pointer form if it was a
-       reference cast. */
-    cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
-    copy_operand(&operand, result);
+    if (template_param_case) {
+      /* Put out a generic operator for a case involving template parameter
+         types. */
+      generic_cast_operand(&operand, operation_type, 
+                           (an_expr_operator_kind)eok_const_cast,
+                           /*is_implicit_cast=*/FALSE);
+      copy_operand(&operand, result);
+    } else {
+      /* The types are already the same except for qualifiers.  The result
+         is just the source cast to the destination type. */
+      /* Note that the cast has been turned into pointer form if it was a
+         reference cast. */
+      cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
+                   /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
+      copy_operand(&operand, result);
+    }  /* if */
     /* For a cast to a reference type, the result is an lvalue. */
     if (reference_case) {
       conv_object_pointer_to_lvalue(result);
