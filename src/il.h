@@ -134,7 +134,17 @@ typedef struct an_orphaned_il_entry_list {
 } an_orphaned_il_entry_list;
 
 EXTERN an_orphaned_il_entry_list
-		 orphaned_file_scope_il_entries[(int)iek_last];
+		orphaned_file_scope_il_entries[(int)iek_last];
+			/* Array of orphaned IL entry lists containing
+			   individual orphaned file scope IL entries. */
+EXTERN an_orphaned_il_entry_list
+		orphaned_file_scope_il_lists[(int)iek_last];
+			/* Array of orphaned file scope IL entry lists
+			   where each member of this list is the head of
+			   another list of IL entries chained together by
+			   their "next" pointer.  At present the only
+			   expected elements of this array are for "iek_type"
+			   and "iek_varaible" IL entries. */
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 /*
@@ -450,6 +460,9 @@ IL entry at ptr.
 
 extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                              an_il_entry_kind entry_kind);
+
+extern void add_orphaned_file_scope_il_list(char             *entry_ptr,
+                                            an_il_entry_kind entry_kind);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 extern void il_init(void);
