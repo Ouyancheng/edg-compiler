@@ -3850,6 +3850,7 @@ after_check:
         goto_stmt = add_statement((a_statement_kind)stmk_goto);
       } else {
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
+        set_stmt_source_position(goto_stmt->position, pos_curr_token);
         scp->statements = goto_stmt;
       }  /* if */
       goto_stmt->variant.label.ptr = label;
@@ -4446,6 +4447,16 @@ branching into it is disallowed).
   if (!at_function_level) (void)required_token(tok_rbrace, ec_exp_rbrace);
   remove_stop_token(tok_rbrace);
 
+#if DEBUG
+  if (debug_level >= 3) {
+    fputs("terminating compound statement for ", f_debug);
+    if (at_function_level) {
+      db_scope(scope_stack[depth_scope_stack].il_scope);
+      fputs("\n", f_debug);
+    }  /* if */
+    db_statement_list(block, /*indent=*/0, "", /*how_deep=*/3);
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
   return block;
 }  /* compound_statement */
