@@ -32,7 +32,7 @@ version 3.0 of the NIH libraries.
 */
 {
   static a_boolean	main_called = FALSE;
-  /* If main is called more than once, only invoke the static contructors
+  /* If main is called more than once, only invoke the static constructors
      the first time.  Doing otherwise can result in an infinite loop during
      static destruction because entries on the needed destruction list are
      improperly linked. */
