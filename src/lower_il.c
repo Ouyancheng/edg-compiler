@@ -825,7 +825,6 @@ on return.
 
 void make_lowered_field(char          *field_name,
                         a_type_ptr    field_type,
-                        a_targ_size_t *byte_offset,
                         a_type_ptr    struct_type,
                         a_field_ptr   *last_field)
 /*
@@ -843,9 +842,6 @@ It cannot create bit fields.  field_name may not be NULL.
 {
   sizeof_t                   name_length, alloc_length;
   a_field_ptr                field_ptr;
-  a_targ_alignment           alignment;
-  an_unnormalized_bit_offset bit_offset;
-  a_targ_size_t              old_byte_offset;
 
   /* Copy the name into the file-scope IL memory region. */
   name_length = strlen(field_name);
@@ -863,40 +859,16 @@ It cannot create bit fields.  field_name may not be NULL.
     (*last_field)->next = field_ptr;
   }  /* if */
   *last_field = field_ptr;
-  /* Determine the field offset and update the offset and struct alignment. */
-  alignment = struct_type->alignment;
-  bit_offset = 0;
-  if (struct_type->kind == (a_type_kind)tk_union) {
-    /* For a union, each field is at offset 0. */
-    old_byte_offset = *byte_offset;
-    *byte_offset = 0;
-  }  /* if */
-  (void)set_field_size_and_offset(field_ptr, byte_offset, &bit_offset,
-                                  &alignment);
-  struct_type->alignment = alignment;
-  if (struct_type->kind == (a_type_kind)tk_union) {
-    /* For unions, maintain the size of the largest field. */
-    if (*byte_offset < old_byte_offset) *byte_offset = old_byte_offset;
-  }  /* if */
 }  /* make_lowered_field */
 
 
-void finish_class_type(a_type_ptr    class_type, 
-                       a_targ_size_t *byte_offset)
+void finish_class_type(a_type_ptr    class_type)
 /*
 Finish off a created class type by doing final alignment and storing the
 size and alignment.  Works for both structs and unions.
 */
 {
-  a_class_type_supplement_ptr ctsp;
-  an_unnormalized_bit_offset  bit_offset = 0;
-
-  (void)do_alignment(byte_offset, &bit_offset, class_type->alignment);
-  /* Put final size into the struct or union type. */
-  class_type->size = *byte_offset;
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  ctsp->size_without_virtual_base_classes = *byte_offset;
-  ctsp->alignment_without_virtual_base_classes = class_type->alignment;
+  do_class_layout(class_type);
 }  /* finish_class_type */
 
 
@@ -994,29 +966,26 @@ There, the "i" field is never needed.  (cfront does it that way, so for
 compatibility we do too.)
 */
 {
-  a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
   if (mptr_type == NULL) {
     /* Make the __mptr struct type.  It doesn't actually have a name. */
     mptr_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(mptr_type);
-    byte_offset = 0;
     last_field = NULL;
     /* field: short d; (delta) */
-    make_lowered_field("d", integer_type(TARG_DELTA_INT_KIND),
-                       &byte_offset, mptr_type, &last_field);
+    make_lowered_field("d", integer_type(TARG_DELTA_INT_KIND), mptr_type,
+                       &last_field);
     mptr_d_field = last_field;
     /* field: short i; (index into virtual function table) */
     make_lowered_field("i", integer_type(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND),
-                       &byte_offset, mptr_type, &last_field);
+                       mptr_type, &last_field);
     mptr_i_field = last_field;
     /* field: __vptp f; (pointer to function for nonvirtual case, or
        offset to vtbl ptr, appropriately cast, in nonvirtual case) */
-    make_lowered_field("f", make_vptp_type(), &byte_offset, mptr_type,
-                       &last_field);
+    make_lowered_field("f", make_vptp_type(), mptr_type, &last_field);
     mptr_f_field = last_field;
-    finish_class_type(mptr_type, &byte_offset);
+    finish_class_type(mptr_type);
 #if CHECKING
     if (mptr_type->size != targ_sizeof_ptr_to_member_function ||
         mptr_type->alignment != targ_alignof_ptr_to_member_function) {
