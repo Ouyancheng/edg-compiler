@@ -150,7 +150,7 @@ Enter some predefined macros for a MacOS X (Apple) system.
     /* Some older MacOS X headers included insufficient guards for the C mode
        typedef of wchar_t.  It appears to be fixed in the more recent headers,
        but to enable earlier versions we nevertheless explicitly disable the
-       typedef in C++ modes by defined the _BSD_WCHAR_T_DEFINED macro. */
+       typedef in C++ modes by defining the _BSD_WCHAR_T_DEFINED macro. */
     (void)enter_predef_macro("1", "_BSD_WCHAR_T_DEFINED",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
