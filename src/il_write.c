@@ -307,8 +307,8 @@ corresponding entry number, and return that number cast to "char *".
 #if CHECKING
       if (is_string_entry_kind(entry_kind)) {
         /* All string entries should have entry numbers already.  See
-          write_entry.  We can't handle them here because we don't have the
-          length. */
+           write_entry.  We can't handle them here because we don't have the
+           length. */
 #if DEBUG
         display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
 #endif /* DEBUG */
