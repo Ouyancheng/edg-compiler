@@ -318,7 +318,8 @@ typedef enum /*an_error_code*/ {
   ec_not_member_of_a_direct_base_class,
   ec_private_access_declaration_not_allowed,
   ec_increasing_access_not_allowed,
-  ec_restricting_access_not_allowed
+  ec_restricting_access_not_allowed,
+  ec_improperly_terminated_macro_call
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

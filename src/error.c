@@ -888,6 +888,9 @@ error code.
     case ec_restricting_access_not_allowed:
       m = "restricting access of an inherited member is not allowed";
       break;
+    case ec_improperly_terminated_macro_call:
+      m = "improperly terminated macro invocation";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
