@@ -7103,12 +7103,15 @@ TRUE if an error was reported while the decl-specifiers were scanned.
 */
 {
   a_boolean          declarator_omitted = FALSE;
-  a_boolean          declares_something = dso_flags & DSO_DECLARES_SOMETHING;
+  a_boolean          declares_something;
+  a_boolean          defines_something;
+  a_boolean          inline_specified;
   an_error_severity  severity;
 
+  declares_something = ((dso_flags & DSO_DECLARES_SOMETHING) != 0);
   if (curr_token == tok_semicolon) {
-    a_boolean  defines_something = dso_flags & DSO_DEFINES_SOMETHING;
-    a_boolean  inline_specified = dso_flags & DSO_INLINE;
+    defines_something = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
+    inline_specified = ((dso_flags & DSO_INLINE) != 0);
 
     declarator_omitted = TRUE;
     if (decl_spec_err) {
@@ -7524,7 +7527,8 @@ continue_with_declaration:
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
                         &qualifiers, &decl_modifiers);
-  has_explicit_type_specifier = dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
+  has_explicit_type_specifier =
+                      ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
   if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
     if (extern_implied) {
       /* This is something like ``extern "C" f();'' -- treat the linkage
@@ -7558,9 +7562,9 @@ continue_with_declaration:
   } else {
     /* Flags based results from decl_specifiers. */
     is_constructor_or_destructor =
-                            dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR);
-    inline_specified = dso_flags & DSO_INLINE;
-    defines_something = dso_flags & DSO_DEFINES_SOMETHING;
+                     ((dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0);
+    inline_specified = ((dso_flags & DSO_INLINE) != 0);
+    defines_something = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
     /* Set the various flags for declarator processing. */
     di_flags = DI_REAL_DECLARATOR_ALLOWED;
     if (C_dialect == C_dialect_cplusplus) {
@@ -7675,7 +7679,8 @@ continue_with_declaration:
           set_to_error_locator(locator);
         }  /* if */
       }  /* if */
-      has_parenthesized_initializer = do_flags & DO_PARENTHESIZED_INITIALIZER;
+      has_parenthesized_initializer =
+                          ((do_flags & DO_PARENTHESIZED_INITIALIZER) != 0);
       if (is_function && any_cfront_mode()) {
         /* Check for the declaration with a "member function typedef" type --
            it is only  supposed to be used for pointer-to-member declarations
@@ -7759,7 +7764,7 @@ continue_with_declaration:
           /* Check that the type is legal, and do required adjustments. */
 #if RESTRICT_ALLOWED
           restrict_qualified = 
-                (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
+                ((do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0);
 #endif /* RESTRICT_ALLOWED */
           check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
                                           restrict_qualified);
