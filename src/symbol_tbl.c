@@ -3034,6 +3034,12 @@ this is not allowed, an error will be issued by the caller.
          insert point is not changed, so the newly entered symbol will be
          used. */
       err = FALSE;
+    } else if (gpp_mode &&
+               old_sym->kind == (a_symbol_kind)sk_variable &&
+               old_sym->variant.variable.ptr->is_handler_param) {
+      /* A declaration can hide a handler parameter in g++ mode.  Note that
+         the kind of the new symbol is not important. */
+      err = FALSE;
     } else {
       a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
       a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
