@@ -9378,7 +9378,8 @@ the dynamic init entry to the object lifetime.
            Clear the flag that indicates that. */
         a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
         if (outer_dip != NULL) {
-          if (outer_dip->overlaps_temps_in_inner_lifetime) {
+          if (outer_dip->overlaps_temps_in_inner_lifetime &&
+              outer_dip->init_expr_lifetime == olp) {
             outer_dip->overlaps_temps_in_inner_lifetime = FALSE;
             olp->parent_destruction_sublist =
                                            outer_dip->next_in_destruction_list;

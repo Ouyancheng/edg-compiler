@@ -1,5 +1,33 @@
 Version 2.42
 
+7/14/99  EH cleanup state problem
+
+When the initialization of a destructible variable involves a temporary,
+and the declaration is both preceded and followed by declarations of
+destructible variables, and the declaration following involves copy
+constructor elision, the cleanup state indicated between the time the
+temporary is created and the time it is destroyed was incorrect (it
+did not call for destruction of the preceding variable).
+
+  struct A {
+    A(int);
+    A(const A&);
+    ~A();
+  };
+  struct B {
+    B();
+    B(const B&);
+    ~B();
+  };
+  A fa();
+  B fb(const A&);
+  int main () {
+    A a(1);
+    B b = fb(A(1));  // Cleanup state was wrong on temporary here;
+                     // throw during call of fb would not destroy a
+    A aa = fa();
+  }
+
 7/14/99  Option to not pack bit fields that straddle alignment boundaries
 
 A configuration flag USER_CONTROL_OF_STRUCT_BIT_PACKING -- which by default is
