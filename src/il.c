@@ -9190,6 +9190,9 @@ entry into one representing a nondefining declaration.
     class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
     class_type->variant.class_struct_union.
                any_virtual_functions_including_in_base_classes = FALSE;
+#if DO_IL_LOWERING
+    class_type->typeinfo_var = NULL;
+#endif /* DO_IL_LOWERING */
   }  /* if */
   /* Reset size and alignment to default values, as though this class had
      never been defined. */
