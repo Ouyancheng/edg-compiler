@@ -6321,9 +6321,9 @@ specifier is restored.
       declaration(function_definition_allowed, /*is_linkage_spec_decl=*/TRUE,
                   is_old_style_param_decl, is_top_level_declaration,
                   param_id_list);
-      /* pop_name_linkage will aleady have been called in declaration (before
-         before advancing past the end of the declaration, because there is
-         a dependency in precompiled header processing on the state
+      /* pop_name_linkage will aleady have been called in declaration
+         (before advancing past the end of the declaration, because there
+         is a dependency in precompiled header processing on the state
          maintained in the scope stack entry). */
     }  /* if */
   }  /* if */
