@@ -1,5 +1,15 @@
 Version 2.29
 
+5/12/95  Type qualifiers in Microsoft mode
+
+Type qualifiers are now allowed in certain nonstandard places
+in Microsoft mode.  For example:
+
+  int i, const j;
+
+The diagnostic for duplicate type qualifiers has been demoted to
+a warning in Microsoft C mode.
+
 5/11/95  Diagnostic on uninitialized empty-class object
 
 We used to suppress the diagnostic on failing to initialize a const
