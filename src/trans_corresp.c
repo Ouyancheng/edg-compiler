@@ -2932,6 +2932,28 @@ are not checked.
           set_trans_unit_corresp(iek_constant, constant, corresp_constant);
         }  /* for */
       }
+      /* Traverse friend functions. */
+      {
+        /* It is possible for a namespace scope function to only be declared
+           in a friend declaration.  If the friend declaration appears in a
+           template, it will not appear in the routines list until the class
+           is isntantiated.  To ensure that it has its correspondence set,
+           we intercept such functions here. */
+        a_routine_list_entry_ptr
+           rle = type->variant.class_struct_union.extra_info->friend_routines,
+           corresp_rle = corresp_type->variant.class_struct_union.extra_info
+                                     ->friend_routines;
+        for (; rle != NULL && corresp_rle != NULL;
+             rle = rle->next, corresp_rle = corresp_rle->next) {
+          if ((trans_unit_corresp_of(rle->routine) == NULL ||
+               trans_unit_corresp_of(corresp_rle->routine) == NULL) &&
+              !rle->routine->source_corresp.is_class_member &&
+              !corresp_rle->routine->source_corresp.is_class_member) {
+            set_trans_unit_corresp(iek_routine,
+                                   rle->routine, corresp_rle->routine);
+          }  /* if */
+        }  /* for */
+      }
     }  /* if */
   }  /* if */
 }  /* establish_trans_unit_correspondences_for_class */
