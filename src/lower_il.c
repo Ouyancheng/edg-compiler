@@ -9434,9 +9434,11 @@ the top node of the indicated statement (which is an expression statement).
     /* We know the specific routine being called. */
     a_routine_ptr routine = routine_from_node(first_arg);
 #if IA64_ABI
-    if (routine->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Transform calls to the main destructor into calls to the alternate
-         entry point. */
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Transform calls to a constructor or destructor into calls to the
+         "complete" alternate entry point.  That entry point needs no
+         added implied arguments. */
       routine = alternate_entry_point(routine, 
                                       (a_ctor_or_dtor_kind)cdk_complete,
                                       /*define_now=*/FALSE);
