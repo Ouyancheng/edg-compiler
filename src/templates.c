@@ -11390,9 +11390,10 @@ declaration of a partial specialization declared outside of its class.
           a_boolean	default_allowed;
           default_allowed = !sym->is_class_member ||
                             decl_state->class_declared_in != NULL;
-          if (microsoft_bugs && sym->defined) {
-            /* The Microsoft compiler does not check the parameter list
-               of a template that is redeclared after it has been defined. */
+          if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
+            /* The Microsoft compiler (prior to version 7.1) does not check
+               the parameter list of a template that is redeclared after
+               it has been defined. */
           } else if (!reconcile_template_param_lists(
                                 templ_params, sym, &locator.source_position,
                                 default_allowed)) {
