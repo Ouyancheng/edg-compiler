@@ -1,5 +1,21 @@
 Version 2.46
 
+1/17/01  Use of invalid pointer could cause undefined behavior
+
+In versions that use the hidden name table, it is possible for the
+scope stack to be reallocated during pop_scope processing.  This
+could result in the use of an invalid scope stack entry pointer.
+The use of the invalid pointer causes an IL read/write error on
+some versions and could in theory, result in other kinds of behavior
+such as aborts, etc.  This has been fixed.
+
+This example results in the use of an invalid pointer on versions
+that use the hidden name table.
+
+  struct S2 { struct S3 { struct S4 { struct S5 { struct S6 {
+    struct S7 { struct S8 { struct S9 { }; }; }; }; }; }; }; };
+
+
 1/17/01  #ident/#pragma ident string incorrectly rendered by C/C++-generating
          back ends
 

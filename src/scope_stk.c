@@ -4213,6 +4213,10 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+  /* Get a new pointer to the current scope stack entry in case the scope
+     stack has been reallocated (e.g., by check_name_hiding_for_scope). */
+  ssep = &scope_stack[depth_scope_stack];
+  pointers_block = assoc_pointers_block_of(ssep);
   /* Remove symbols from the symbol table, and reenter them on the
      inactive list if necessary. */
   wrapup_scope(ssep->il_scope, kind, pointers_block,
