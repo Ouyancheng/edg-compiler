@@ -82,7 +82,9 @@ typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 typedef struct a_template_decl *a_template_decl_ptr;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 typedef struct a_template *a_template_ptr;
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
