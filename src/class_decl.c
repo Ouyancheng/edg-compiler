@@ -5589,8 +5589,12 @@ class/struct/union is actually defined.
               local_type = error_type();
             } else {
               /* Member function. */
-              if (virtual_specified && (friend_specified ||
-                       member_storage_class == (a_storage_class)sc_static)) {
+              if (virtual_specified && is_union_type(class_type)) {
+                /* Unions may not have virtual member functions. */
+                pos_error(ec_virtual_function_in_union, &decl_start_pos);
+                virtual_specified = FALSE;
+              } else if (virtual_specified && (friend_specified ||
+                         member_storage_class == (a_storage_class)sc_static)) {
                 /* Only nonstatic member functions may be specified as
                    virtual.  This is a kind of specifiers conflict, so just
                    issue the message once. */
