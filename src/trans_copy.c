@@ -1987,6 +1987,17 @@ entries in the primary IL.
 }  /* update_namespace_pointers_block */
 
 
+/*
+Return TRUE if the indicated entry (the target of a copy or merge)
+has already been put on a list in the primary IL.  FALSE means the
+entity has been copied but its translation unit has not been copied
+yet and therefore the entity is not on the proper list yet.
+*/
+#define entity_already_on_primary_list(ptr)                           \
+  (!(ptr)->source_corresp.copied_from_secondary_trans_unit ||         \
+   (ptr)->source_corresp.placed_on_list_after_copied)
+
+
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file, namespace, or class scope from the secondary file IL.  Do
@@ -1998,6 +2009,7 @@ secondary scope to the primary file IL.
   a_scope_pointers_block *pointers_block;
   a_boolean              is_class_scope =
                          (scope->kind == (a_scope_kind)sck_class_struct_union);
+  a_boolean              move_to_end;
 
   if (scope->kind == (a_scope_kind)sck_file) {
     /* Top-level call. */
@@ -2083,15 +2095,19 @@ secondary scope to the primary file IL.
              existing primary type.  Move the primary IL type
              to the end of the types list so that it appears on
              the list at the point where the definition appears.
-             Class members are not moved to the end of the list. */
-          if (!is_class_scope) {
+             Class members are not moved to the end of the list.
+             Nor are entities that are not yet on a primary IL list. */
+          move_to_end = (!is_class_scope &&
+                         entity_already_on_primary_list(primary_type));
+          if (move_to_end) {
             move_to_end_of_primary_file_types_list(primary_type);
           }  /* if */
           overwrite_primary_type(corresp_type, primary_type);
           corresp_type = primary_type;
-          if (is_class_scope) goto end_of_type_list_add;
+          if (!move_to_end) goto end_of_type_list_add;
         } /* if */
         corresp_type->next = NULL;
+        corresp_type->source_corresp.placed_on_list_after_copied = TRUE;
         last_type = corresp_type;
         if (pointers_block != NULL) pointers_block->last_type = last_type;
 end_of_type_list_add:;
@@ -2119,7 +2135,8 @@ end_of_type_list_add:;
              and the primary translation unit instance does not).  Move
              the primary IL variable to the end of the variables list so
              that it appears on the list at the point where the definition
-             appears.  Class members are not moved to the end of the list. */
+             appears.  Class members are not moved to the end of the list.
+             Nor are entities that are not yet on a primary IL list. */
           a_variable_ptr primary_variable =
                    (a_variable_ptr)checked_trans_unit_corresp_pointer_of(
                                                              corresp_variable);
@@ -2145,13 +2162,15 @@ end_of_type_list_add:;
               clear_variable_definition(primary_variable);
             }  /* if */
           }  /* if */
-          if (!is_class_scope) {
+          move_to_end = (!is_class_scope &&
+                         entity_already_on_primary_list(primary_variable));
+          if (move_to_end) {
             remove_from_primary_file_variables_list(primary_variable);
             last_variable = pointers_block->last_variable;
           }  /* if */
           overwrite_primary_variable(corresp_variable, primary_variable);
           corresp_variable = primary_variable;
-          if (is_class_scope) goto end_of_variable_list_add;
+          if (!move_to_end) goto end_of_variable_list_add;
         }  /* if */
         if (is_class_scope && last_variable == NULL) {
           /* Determine the last variable the first time it is needed. */
@@ -2176,6 +2195,7 @@ end_of_type_list_add:;
           last_variable->next = corresp_variable;
         }  /* if */
         corresp_variable->next = NULL;
+        corresp_variable->source_corresp.placed_on_list_after_copied = TRUE;
         last_variable = corresp_variable;
         if (pointers_block != NULL) {
           pointers_block->last_variable = last_variable;
@@ -2267,14 +2287,17 @@ end_of_variable_list_add:;
              existing primary routine.  Move the primary IL routine
              to the end of the routines list so that it appears on
              the list at the point where the definition appears.
-             Class members are not moved to the end of the list. */
-          if (!is_class_scope) {
+             Class members are not moved to the end of the list.
+             Nor are entities that are not yet on a primary IL list. */
+          move_to_end = (!is_class_scope &&
+                         entity_already_on_primary_list(primary_routine));
+          if (move_to_end) {
             remove_from_primary_file_routines_list(primary_routine);
             last_routine = pointers_block->last_routine;
           }  /* if */
           overwrite_primary_routine(corresp_routine, primary_routine);
           corresp_routine = primary_routine;
-          if (is_class_scope) goto end_of_routine_list_add;
+          if (!move_to_end) goto end_of_routine_list_add;
         }  /* if */
         if (is_class_scope && last_routine == NULL) {
           /* Determine the last routine the first time it is needed. */
@@ -2299,6 +2322,7 @@ end_of_variable_list_add:;
           last_routine->next = corresp_routine;
         }  /* if */
         corresp_routine->next = NULL;
+        corresp_routine->source_corresp.placed_on_list_after_copied = TRUE;
         last_routine = corresp_routine;
         if (pointers_block != NULL) {
           pointers_block->last_routine = last_routine;
