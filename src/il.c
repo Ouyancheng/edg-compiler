@@ -2269,18 +2269,20 @@ which must be either the file scope or a namespace scope.
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   ssep = &scope_stack[depth_scope_stack];
   check_assertion_str(ssep->kind == (a_scope_kind)sck_file ||
                       ssep->kind == (a_scope_kind)sck_namespace,
                       "add_to_namespaces_list: bad scope kind");
   sp = ensure_il_scope_exists(ssep);
+  pointers_block = assoc_pointers_block_of(ssep);
   if (sp->namespaces == NULL) {
     sp->namespaces = nsp;
   } else {
-    ssep->last_namespace->next = nsp;
+    pointers_block->last_namespace->next = nsp;
   }  /* if */
-  ssep->last_namespace = nsp;
+  pointers_block->last_namespace = nsp;
 }  /* add_to_namespaces_list */
 
 
@@ -3332,18 +3334,20 @@ constants) or the current scope (for member constants, which are not shared).
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   /* Get pointer to current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
+  pointers_block = assoc_pointers_block_of(ssep);
   check_assertion_str(sp != NULL, "add_to_constants_list: NULL IL scope");
   if (sp->constants == NULL) {
     sp->constants = con_ptr;
   } else {
-    ssep->last_constant->next = con_ptr;
+    pointers_block->last_constant->next = con_ptr;
   }  /* if */
-  ssep->last_constant = con_ptr;
+  pointers_block->last_constant = con_ptr;
   con_ptr->next = NULL;
 }  /* add_to_constants_list */
 
@@ -3584,6 +3588,7 @@ scope_level.
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[scope_level];
@@ -3604,6 +3609,7 @@ scope_level.
      The prototype scope is hardly ever needed, and therefore it is not
      allocated by default.  It is allocated in ensure_il_scope_exists. */
   sp = ensure_il_scope_exists(ssep);
+  pointers_block = assoc_pointers_block_of(ssep);
   if (sp == NULL) {
     /* May be an error case. */
   } else {
@@ -3611,9 +3617,9 @@ scope_level.
     if (sp->types == NULL) {
       sp->types = type_ptr;
     } else {
-      ssep->last_type->next = type_ptr;
+      pointers_block->last_type->next = type_ptr;
     }  /* if */
-    ssep->last_type = type_ptr;
+    pointers_block->last_type = type_ptr;
   }  /* if */
   type_ptr->next = NULL;
 }  /* add_to_types_list */
@@ -4764,10 +4770,12 @@ the variables in order of appearance of their definitions.
   a_variable_ptr           prev_var, vp;
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   /* Get pointer to the file scope entry. */
   ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
   sp = ssep->il_scope;
+  pointers_block = assoc_pointers_block_of(ssep);
   check_assertion_str(sp != NULL, "remove_from_variables_list: NULL IL scope");
   /* Find the variable on the current list that precedes var_ptr; we'll need
      it to unlink var_ptr. */
@@ -4787,8 +4795,8 @@ the variables in order of appearance of their definitions.
   }  /* if */
   /* If the entry being removed was the last on the list, update the
      last_variable pointer. */
-  if (var_ptr == ssep->last_variable) {
-    ssep->last_variable = prev_var;
+  if (var_ptr == pointers_block->last_variable) {
+    pointers_block->last_variable = prev_var;
   }  /* if */
 }  /* remove_from_variables_list */
 
@@ -4802,6 +4810,7 @@ scope depth.
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   /* Get pointer to current or file scope entry. */
   if (at_file_scope) {
@@ -4844,12 +4853,13 @@ scope depth.
         internal_error("add_to_variables_list: var not in file scope region");
       }  /* if */
 #endif /* CHECKING */
+      pointers_block = assoc_pointers_block_of(ssep);
       if (sp->variables == NULL) {
         sp->variables = var_ptr;
       } else {
-        ssep->last_variable->next = var_ptr;
+        pointers_block->last_variable->next = var_ptr;
       }  /* if */
-      ssep->last_variable = var_ptr;
+      pointers_block->last_variable = var_ptr;
     } else {
 #if CHECKING
       /* Variables with nonstatic storage will be allocated in the file scope
@@ -4981,6 +4991,7 @@ the routines in order of appearance of their definitions (bodies).
   a_scope_stack_entry_ptr
 		 ssep;
   a_scope_ptr    sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   /* Get pointer to the file scope entry. */
   ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
@@ -4988,6 +4999,7 @@ the routines in order of appearance of their definitions (bodies).
 #if CHECKING
   if (sp == NULL) internal_error("remove_from_routines_list: NULL IL scope");
 #endif /* CHECKING */
+  pointers_block = assoc_pointers_block_of(ssep);
   /* Find the routine on the current list in order to find the previous entry
      so we can unlink. */
   for (prev_routine = NULL, routine = sp->routines;
@@ -5007,8 +5019,8 @@ found_routine:
   }  /* if */
   /* If the entry being removed was the last on the list, update the
      last_routine pointer. */
-  if (rout_ptr == ssep->last_routine) {
-    ssep->last_routine = prev_routine;
+  if (rout_ptr == pointers_block->last_routine) {
+    pointers_block->last_routine = prev_routine;
   }  /* if */
 }  /* remove_from_routines_list */
 
@@ -5022,18 +5034,20 @@ for the file scope if at_file_scope is TRUE.
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   /* Get pointer to current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
   check_assertion_str(sp != NULL, "add_to_routines_list: NULL IL scope");
+  pointers_block = assoc_pointers_block_of(ssep);
   if (sp->routines == NULL) {
     sp->routines = rout_ptr;
   } else {
-    ssep->last_routine->next = rout_ptr;
+    pointers_block->last_routine->next = rout_ptr;
   }  /* if */
-  ssep->last_routine = rout_ptr;
+  pointers_block->last_routine = rout_ptr;
   rout_ptr->next = NULL;
 }  /* add_to_routines_list */
 
@@ -5045,17 +5059,19 @@ Add the given routine to the asm entries list for the current scope.
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   ssep = &scope_stack[decl_scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
   check_assertion_str(sp != NULL, "add_to_asm_entries_list: NULL IL scope");
+  pointers_block = assoc_pointers_block_of(ssep);
   if (sp->asm_entries == NULL) {
     sp->asm_entries = asm_entry_ptr;
   } else {
-    ssep->last_asm_entry->next = asm_entry_ptr;
+    pointers_block->last_asm_entry->next = asm_entry_ptr;
   }  /* if */
-  ssep->last_asm_entry = asm_entry_ptr;
+  pointers_block->last_asm_entry = asm_entry_ptr;
   asm_entry_ptr->next = NULL;
 }  /* add_to_asm_entries_list */
 
@@ -6075,6 +6091,7 @@ on the value of at_file_scope.
 {
   a_scope_ptr              sp;
   a_scope_stack_entry_ptr  ssep = NULL;
+  a_scope_pointers_block_ptr  pointers_block;
 
   if (class_type != NULL && !C_mode()) {
     /* The pragma is bound to a member of a class.  The binding may be
@@ -6107,6 +6124,7 @@ on the value of at_file_scope.
                       (((a_boolean)in_file_scope(pragma)) ==
                          (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER)),
                       "add_to_pragma_list: memory region mismatch");
+  if (ssep != NULL) pointers_block = assoc_pointers_block_of(ssep);
   if (sp->pragmas == NULL) {
     sp->pragmas = pragma;
   } else if (ssep == NULL) {
@@ -6116,9 +6134,9 @@ on the value of at_file_scope.
     while (end_of_list->next != NULL) end_of_list = end_of_list->next;
     end_of_list->next = pragma;
   } else {
-    ssep->last_pragma->next = pragma;
+    pointers_block->last_pragma->next = pragma;
   }  /* if */
-  if (ssep != NULL) ssep->last_pragma = pragma;
+  if (ssep != NULL) pointers_block->last_pragma = pragma;
 }  /* add_to_pragma_list */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -8214,18 +8232,20 @@ Add the IL template entry pointed to by tp to the list for the file scope.
 {
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
   ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
   sp = ssep->il_scope;
 #if CHECKING
   if (sp == NULL) internal_error("add_to_templates_list: NULL IL scope");
 #endif /* CHECKING */
+  pointers_block = assoc_pointers_block_of(ssep);
   if (sp->templates == NULL) {
     sp->templates = tp;
   } else {
-    ssep->last_template->next = tp;
+    pointers_block->last_template->next = tp;
   }  /* if */
-  ssep->last_template = tp;
+  pointers_block->last_template = tp;
   tp->next = NULL;
 }  /* add_to_templates_list */
 

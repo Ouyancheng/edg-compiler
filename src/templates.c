@@ -2311,7 +2311,7 @@ Rescan the default arguments of a function template.
     /* Restore the prototype scope symbols pointer in the func_info
        block. It shouldn't have changed, but we do it to be safe. */
     tssp->variant.function.func_info.prototype_scope_symbols =
-                                 scope_stack[depth_scope_stack].symbols;
+            assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
     /* Pop the reactivated function prototype scope off the stack. */
     pop_scope();
   }  /* if */

@@ -405,7 +405,7 @@ routine recursively for each nested class.
           /* Restore the prototype scope symbols pointer in the func info
              block. It shouldn't have changed, but we do it to be safe. */
           rfp->func_info.prototype_scope_symbols =
-                                       scope_stack[depth_scope_stack].symbols;
+             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
         }  /* if */
@@ -5306,7 +5306,7 @@ routine body is generated at this time.
      it may have been empty), so update the class symbol supplement, just to
      be safe. */
   (symbol_supplement_for_class(class_type))->symbols =
-                                      scope_stack[depth_scope_stack].symbols;
+            assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
   db_exit();
 }  /* generate_special_function */
 
@@ -5683,7 +5683,8 @@ next_base_class_conversion_list_entry:;
     /* Since the scope symbol list may have been empty before and since
        at least one new symbol has been added, update the symbols list
        attached to the class. */
-    cssp->symbols = scope_stack[depth_scope_stack].symbols;
+    cssp->symbols =
+          assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -7377,7 +7378,8 @@ next_declaration:
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
        since symbols may be inherited. */
-    cssp->symbols = scope_stack[depth_scope_stack].symbols;
+    cssp->symbols =
+            assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
     /* A number of the checks done as a part the "wrapup" phase of scanning a
        class definition produce diagnostics.  Set error_position to assure
        that these diagnostics will be associated with tag_sym instead of

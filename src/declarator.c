@@ -1343,7 +1343,7 @@ scope is that of a class definition.
          from earlier in this routine because scope_stack might have been
          reallocated in the interim. */
       func_info->prototype_scope_symbols =
-                                        scope_stack[depth_scope_stack].symbols;
+             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Record the start and end of the prototype scope. */
       terminate_param_source_sequence_sublist(func_info,

@@ -943,7 +943,7 @@ inside other user-written structs.
   if (type->next == NULL && depth_scope_stack >= DEPTH_OF_FILE_SCOPE) {
     /* There are no types on the file scope list, so this type is also the
        last type on the list. */
-    scope_stack[DEPTH_OF_FILE_SCOPE].last_type = type;
+    scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_type = type;
   }  /* if */
 }  /* add_to_front_of_file_scope_types_list */
 
@@ -1131,7 +1131,9 @@ scope.
   last_ptr_ptr = NULL;
   if (temp->storage_class == (a_storage_class)sc_static) {
     prev_ptr_ptr = &scope->variables;
-    if (ssep != NULL) last_ptr_ptr = &ssep->last_variable;
+    if (ssep != NULL) {
+      last_ptr_ptr = &(assoc_pointers_block_of(ssep)->last_variable);
+    }  /* if */
   } else {
     prev_ptr_ptr = &scope->nonstatic_variables;
     if (ssep != NULL) last_ptr_ptr = &ssep->last_nonstatic_variable;
@@ -3710,7 +3712,8 @@ this routine to do a relatively simple copy of the all the fields.
       /* The class type is the last on a list.  See if the list is one of the
          ones being tracked in the scope stack. */
       for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
-        if (class_type == scope_stack[scope_depth].last_type) {
+        if (class_type ==
+              assoc_pointers_block_of(&scope_stack[scope_depth])->last_type) {
           /* Found the list.  Add the subobject type to its end. */
           add_to_types_list(subobject_type, scope_depth);
           goto added_to_list;
@@ -8403,13 +8406,14 @@ promotion_scope, at the position indicated by *insert_pointer, and
         for (pp = class_pragmas; pp->next != NULL; pp = pp->next) {}
         /* Put the class pragma list on the end of the file-scope pragma
            list. */
-        last_fs_pragma = scope_stack[DEPTH_OF_FILE_SCOPE].last_pragma;
+        last_fs_pragma =
+                  scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma;
         if (last_fs_pragma == NULL) {
           il_header.primary_scope->pragmas = class_pragmas;
         } else {
           last_fs_pragma->next = class_pragmas;
         }  /* if */
-        scope_stack[DEPTH_OF_FILE_SCOPE].last_pragma = pp;
+        scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_pragma = pp;
         scope->pragmas = NULL;
       }  /* if */
     }  /* if */
@@ -8514,7 +8518,7 @@ scope and all subscopes.
     /* If this scope is in the scope_stack, update its last_type pointer. */
     depth = scope->depth_in_scope_stack;
     if (depth != NO_SCOPE_DEPTH) {
-      scope_stack[depth].last_type = insert_pointer;
+      assoc_pointers_block_of(&scope_stack[depth])->last_type = insert_pointer;
     }  /* if */
   }  /* if */
   /* Visit all block scopes. */
@@ -8746,7 +8750,9 @@ scope) along with the class members.
     }  /* for */
     /* Clear the types list now that all types have been promoted. */
     scope->types = NULL;
-    if (depth != NO_SCOPE_DEPTH) scope_stack[depth].last_type = NULL;
+    if (depth != NO_SCOPE_DEPTH) {
+      assoc_pointers_block_of(&scope_stack[depth])->last_type = NULL;
+    }  /* if */
   }  /* if */
   /* See if there are local static variables to promote. */
   variable = scope->variables;
@@ -8811,7 +8817,9 @@ scope) along with the class members.
     /* Clear the variables list now that all variables have been promoted. */
     scope->variables = NULL;
     scope->local_static_variable_inits = NULL;
-    if (depth != NO_SCOPE_DEPTH) scope_stack[depth].last_variable = NULL;
+    if (depth != NO_SCOPE_DEPTH) {
+      assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
+    }  /* if */
   }  /* if */
   /* Visit all block scopes and promote the local entities therein. */
   for (block_scope = scope->scopes;

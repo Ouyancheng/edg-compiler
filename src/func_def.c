@@ -1167,7 +1167,7 @@ associated with the function is returned.
          a type declaration) may be.  Record them so that they can be
          transferred to the function scope later. */
       func_info->prototype_scope_symbols =
-                                      scope_stack[depth_scope_stack].symbols;
+            assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
       /* Process pragmas associated with the opening brace before the current
          scope is popped.  This means, for old-style param lists, a pragma
          immediately preceding the left brace is interpreted as belonging to
