@@ -51,16 +51,6 @@ static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
 #endif /* GENERATE_EH_TABLES */
 
-/*
-Put the current code_pos_for_lowering into a statement, if the statement
-pointer is non-NULL.
-*/
-#define set_stmt_pos_to_code_pos_for_lowering(stmt)                   \
-{ if ((stmt) != NULL) {                                               \
-    set_stmt_source_position((stmt)->position, code_pos_for_lowering);\
-  }  /* if */                                                         \
-}  /* set_stmt_pos_to_code_pos_for_lowering */
-
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
                                      a_type_ptr param_1_type)

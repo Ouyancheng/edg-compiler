@@ -423,6 +423,16 @@ EXTERN a_source_position
 			/* The source position associated with executable code
 			   currently being lowered. */
 
+/*
+Put the current code_pos_for_lowering into a statement, if the statement
+pointer is non-NULL.
+*/
+#define set_stmt_pos_to_code_pos_for_lowering(stmt)                   \
+{ if ((stmt) != NULL) {                                               \
+    set_stmt_source_position((stmt)->position, code_pos_for_lowering);\
+  }  /* if */                                                         \
+}  /* set_stmt_pos_to_code_pos_for_lowering */
+
 
 extern a_boolean il_lowering_needed(void);
 
