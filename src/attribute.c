@@ -632,8 +632,10 @@ attributes apply to the variable.  Return the type, appropriately
 adjusted for the attributes.  Diagnostics are not issued for invalid
 attributes.  */
 {
-  while (attributes != NULL) {
-    switch (attributes->kind) {
+  an_attribute_ptr ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
         /* The aligned attribute is handled by setting the alignment
@@ -653,15 +655,13 @@ attributes.  */
              int i;
 
            on a machine where sizeof(int) == 4. */
-        type = get_type_with_mode(type, attributes->variant.mode,
-                                  &attributes->position);
+        type = get_type_with_mode(type, ap->variant.mode, &ap->position);
         break;
       default:
         /* No action. */
         break;
     }  /* switch */
-    attributes = attributes->next;
-  }  /* while */
+  }  /* for */
   return type;
 }  /* apply_attributes_to_variable_type */
 
@@ -755,7 +755,7 @@ invalid attributes.
     switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
-        alignment = attributes->variant.alignment;
+        alignment = ap->variant.alignment;
         if (check_alignment_attribute(vp->type, alignment,
                                       &ap->position)) {
           vp->alignment = alignment;
@@ -778,7 +778,7 @@ invalid attributes.
         break;
       case ak_section:
         if (check_variable_not_local(vp, ap)) {
-          vp->section = attributes->variant.section;
+          vp->section = ap->variant.section;
         }  /* if */
         break;
       case ak_nocommon:
@@ -811,7 +811,6 @@ invalid attributes.
                      (a_symbol_ptr)vp->source_corresp.assoc_info);
         break;
     }  /* switch */
-    attributes = attributes->next;
   }  /* for */
 }  /* apply_attributes_to_variable */
 
@@ -1117,8 +1116,10 @@ Issue error messages about any attributes that are not valid
 for a parameter.
 */
 {
-  while (attributes != NULL) {
-    switch (attributes->kind) {
+  an_attribute_ptr ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
       case ak_mode:
         /* These attributes apply to the type of the parameter, so
            they are OK. */
@@ -1129,23 +1130,19 @@ for a parameter.
       case ak_unused:
         /* These attributes apply to the variable itself and so are
            not permitted here. */
-        pos_st_error(ec_attribute_only_in_func_def,
-                     &attributes->position, 
-                     attribute_kind_names[(int)attributes->kind]);
+        pos_st_error(ec_attribute_only_in_func_def, &ap->position, 
+                     attribute_kind_names[(int)ap->kind]);
         break;
       default:
         /* These attributes do not apply to parameters. */
-        if (sym) {
-          pos_sy_error(ec_attribute_does_not_apply,
-                       &attributes->position, sym);
+        if (sym != NULL) {
+          pos_sy_error(ec_attribute_does_not_apply, &ap->position, sym);
         } else {
-          pos_error(ec_attribute_does_not_apply_to_param,
-                    &attributes->position);
+          pos_error(ec_attribute_does_not_apply_to_param, &ap->position);
         }  /* if */
         break;
     }  /* switch */
-    attributes = attributes->next;
-  }  /* while */
+  }  /* for */
 }  /* check_for_invalid_param_attributes */
 
 
