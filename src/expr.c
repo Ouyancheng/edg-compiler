@@ -7155,22 +7155,22 @@ As an anachronism, allow an expression inside the [ ].
   }  /* if */
   /* Scan the pointer expression. */
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
-  /* Convert from a class type to an integral type if necessary. */
-  if (is_class_struct_union_type(operand.type)) {
+  if (is_template_dependent_context() &&
+      is_template_param_or_nonreal_class_type(operand.type)) {
+    /* A template parameter type or nonreal class type in a prototype
+       instantiation. */
+    template_case = TRUE;
+  } else if (is_class_struct_union_type(operand.type)) {
+    /* Convert from a class type to a pointer type if necessary. */
     try_to_convert_class_operand_to_builtin_type(&operand,
                                                  (a_builtin_type_kind_set)
                                                                   BTK_POINTER,
                                                  &processed);
   }  /* if */
-  if (is_template_dependent_context() &&
-      is_template_dependent_type(operand.type)) {
-    /* A template parameter type is acceptable in a prototype instantiation. */
-    template_case = TRUE;
-  }  /* if */
   if (!processed) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
     /* The operand of a delete must be a pointer. */
-    if (!err) {
+    if (!err && !template_case) {
       if (!check_pointer_operand(&operand, ec_expr_not_pointer)) err = TRUE;
     }  /* if */
   } else if (is_error_operand(&operand)) {
@@ -7211,7 +7211,7 @@ As an anachronism, allow an expression inside the [ ].
       base_delete_type = skip_typerefs(base_delete_type);
     }  /* if */
     /* See if the object needs destruction. */
-    if (is_class_struct_union_type(base_delete_type) && !template_case) {
+    if (is_class_struct_union_type(base_delete_type)) {
       /* Instantiate the class if it is a template class. */
       complete_type_is_needed(base_delete_type);
       if (is_incomplete_type(base_delete_type)) {
@@ -7257,7 +7257,8 @@ As an anachronism, allow an expression inside the [ ].
                                              array_delete,
                                              &delete_position);
     }  /* if */
-    /* Note that delete_routine will be NULL if an ambiguity was found. */
+    /* Note that delete_routine will be NULL if an ambiguity was found or
+       when template_case is TRUE. */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
     if (array_delete && !template_case) {
       /* If a deleting an array and a runtime routine will be used, the
