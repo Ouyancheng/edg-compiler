@@ -2365,9 +2365,6 @@ Scan and process a #define directive.
 		  param_list;
   a_boolean	  object_like;
   a_boolean	  redefinition = FALSE;
-  a_repl_text_seq_kind
-		  rts_kind;
-  sizeof_t        rts_number;
   a_source_position
                   start_pos;
   a_boolean	  try_to_scan_and_save_constant_value = FALSE;
@@ -2654,6 +2651,8 @@ Scan and process a #define directive.
 #if DEBUG
     if (debug_level >= 3) {
       char *temp_ptr;  /* Doesn't need to be registered. */
+      a_repl_text_seq_kind rts_kind;
+      sizeof_t             rts_number;
       fprintf(f_debug, "Definition of macro %s:\n",
                        assoc_symbol->header->identifier);
       if (object_like) {
