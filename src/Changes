@@ -1,5 +1,10 @@
 Version 3.1
 
+6/26/02   PODs can have pointer-to-member fields
+
+A field of pointer-to-member type no longer makes a class type a non-POD
+(in all C++ modes).
+
 6/25/02  Microsoft __intN specifiers are synonyms for other types
 
 The change to make Microsoft __intN specifiers distinct types (see

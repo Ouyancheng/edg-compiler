@@ -9032,12 +9032,6 @@ specific information about the member declaration, respectively.
       if (is_reference_type(member_type)) {
         /* A POD may not have a field with a reference type. */
         class_state->POD_ruled_out = TRUE;
-      } else {
-        /* A POD may not have a field with a type that is a pointer-to-member
-           (or array thereof). */
-        a_type_ptr  tp = member_type;
-        if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-        if (is_ptr_to_member_type(tp)) class_state->POD_ruled_out = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
