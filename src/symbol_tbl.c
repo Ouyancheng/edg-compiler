@@ -1390,6 +1390,26 @@ template symbol.
 }  /* overload_set_contains_template */
 
 
+a_boolean is_proxy_member_symbol(a_symbol_ptr  sym)
+/*
+Return TRUE if the symbol sym refers to a hypothetical member of a proxy
+class.  (E.g., the symbol returned for T::f, where T is a template parameter.
+*/
+{
+  a_boolean  result = FALSE;
+  if (sym->kind == (a_symbol_kind)sk_constant) {
+    a_constant_ptr  constant = sym->variant.constant;
+    if (constant != NULL &&
+        constant->kind == (a_constant_repr_kind)ck_template_param &&
+        constant->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_member) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_proxy_member_symbol */
+
+
 static a_symbol_header_ptr alloc_symbol_header(void)
 /*
 Allocate a new symbol header, and return a pointer to it.

@@ -1065,6 +1065,33 @@ fixup_function_scope_source_sequence_list has been called.)
   db_exit();
 }  /* f_remove_from_src_seq_list */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || \
+    PROTOTYPE_INSTANTIATIONS_IN_IL
+
+a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
+                                            char               *ptr,
+                                            an_il_entry_kind   kind,
+                                            a_type_ptr         declared_type)
+/*
+Allocate and initialize a secondary-declaration entry for the specified IL
+entry.  Set its declared type to the indicated type.
+*/
+{
+  a_src_seq_secondary_decl_ptr  sssdp;
+  a_memory_region_number        region_to_switch_back_to;
+
+  /* Allocate and initialize the source sequence entry. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  sssdp = alloc_src_seq_secondary_decl();
+  switch_back_to_original_region(region_to_switch_back_to);
+  sssdp->entity.ptr = ptr;
+  sssdp->entity.kind = (a_byte_il_entry_kind)kind;
+  sssdp->declared_type = declared_type;
+  return sssdp;
+}  /* make_source_sequence_secondary_decl */
+
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS || PROTOTYPE_... */
+
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -1592,29 +1619,6 @@ insert it at the appropriate place in another scope.
   }  /* if */
   insert_src_seq_list(head, tail, depth, insert_before);
 }  /* insert_instantiation_src_seq_list */
-
-
-a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
-                                            char               *ptr,
-                                            an_il_entry_kind   kind,
-                                            a_type_ptr         declared_type)
-/*
-Allocate and initialize a secondary-declaration entry for the specified IL
-entry.  Set its declared type to the indicated type.
-*/
-{
-  a_src_seq_secondary_decl_ptr  sssdp;
-  a_memory_region_number        region_to_switch_back_to;
-
-  /* Allocate and initialize the source sequence entry. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  sssdp = alloc_src_seq_secondary_decl();
-  switch_back_to_original_region(region_to_switch_back_to);
-  sssdp->entity.ptr = ptr;
-  sssdp->entity.kind = (a_byte_il_entry_kind)kind;
-  sssdp->declared_type = declared_type;
-  return sssdp;
-}  /* make_source_sequence_secondary_decl */
 
 
 void add_source_sequence_entry_for_partial_instantiation(

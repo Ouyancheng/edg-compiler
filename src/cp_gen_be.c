@@ -1938,7 +1938,11 @@ Output a routine name that is the declarator name in a friend function
 declaration.
 */
 {
-  if (decl_scope_of(scp) == innermost_nonclass_scope()) {
+  /* decl_scope_of cannot return the associated scope of a template parameter
+     proxy class (because there is no such scope).  So explicitly test for the
+     class member friend case. */
+  if (!scp->is_class_member &&
+      decl_scope_of(scp) == innermost_nonclass_scope()) {
     /* The name is declared in the innermost nonclass scope, so an unqualified
        name can be used (and, in some cases, must be used). */
     gen_unqualified_name(scp, iek_routine);

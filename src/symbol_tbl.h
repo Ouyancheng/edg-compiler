@@ -3328,6 +3328,8 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class)
 
+extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
+
 /* Return TRUE if the symbol is a specific definition of a class template
    instance or a class nested within a class template. */
 #define is_template_instance_specific_def_symbol(sym)			\

@@ -2469,8 +2469,10 @@ after_entry_from_class:
         an_il_entry_kind             kind = (an_il_entry_kind)ptr->entity.kind;
         /* Types get walked instead of remapped because some types defined
            in prototype scopes in C (e.g., in a cast) get eliminated from the
-           IL. */
-        if (kind == iek_type) {
+           IL.  Similarly, friend function declarations may refer to routines
+           that do not appear on any list (e.g., dependent class members) and
+           must be walked here. */
+        if (kind == iek_type || ptr->friend_decl) {
           walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
         } else {
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);

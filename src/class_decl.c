@@ -5056,6 +5056,44 @@ a friend declaration.  This is used for template instantiations.
   } /* if */
 }  /* update_friend_function_info */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+static void decl_proxy_member_friend(a_symbol_ptr           sym,
+                                     a_type_ptr             function_type,
+                                     a_func_info_block_ptr  func_info)
+/*
+The given symbol sym is a tpck_member constant created by the lookup of a
+qualified friend function declarator in a proxy class.  The type of the friend
+function is function_type and func_info provides additional information about
+the declaration.  If a source sequence entry is available for the declaration,
+then this function makes it refer to a new routine entry.  This routine entry is
+not put on any list.
+*/
+{
+  if (func_info->declarator_ssep != NULL) {
+    a_routine_ptr                 rp;
+    a_src_seq_secondary_decl_ptr  sssdp;
+    a_source_sequence_entry_ptr   ssep = func_info->declarator_ssep;
+    a_memory_region_number        region_to_switch_back_to;
+
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* Make a routine entry for this member: */
+    rp = make_routine(function_type, (a_storage_class)sc_extern, NO_SCOPE_DEPTH);
+    set_source_corresp(&rp->source_corresp, sym);
+    set_class_membership((a_symbol_ptr)NULL, &rp->source_corresp,
+                         sym->parent.class_type);
+    /* Point to it from a secondary source sequence_entry: */
+    sssdp = make_source_sequence_secondary_decl((char*)rp, iek_routine,
+                                                func_info->declared_type);
+    sssdp->decl_position = sym->decl_position;
+    sssdp->friend_decl = TRUE;
+    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+    ssep->entity.ptr  = (char *)sssdp;
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+}  /* decl_proxy_member_friend */
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static a_symbol_ptr decl_friend_function(a_symbol_locator       *locator,
                                          a_type_ptr             class_type,
@@ -5112,9 +5150,26 @@ of the function, and again overloading is a possibility.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (sym != NULL && sym->is_class_member &&
         !is_member_function_symbol(sym)) {
-      /* sym represents a member of a class, but it is not a member function.
+      /* If sym represents a member of a class, but it is not a member function.
          Issue an error. */
-      if (sym->kind == (a_symbol_kind)sk_projection) {
+      if (is_template_dependent_context() && is_proxy_member_symbol(sym)) {
+        /* The nominated function is a member of a proxy class.  Such a member
+           must be "made up" (but cannot be defined). */
+        if (func_info->is_definition) {
+          /* A member function cannot be defined in a friend declaration. */
+          pos_sy_error(ec_bad_scope_for_definition,
+                       &locator->source_position, sym);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        } else {
+          /* Create a routine entry for this friend, but don't place it on any
+             scope list.  Instead, it will be pointed to from a secondary source
+             sequence entry only. */
+          check_assertion(prototype_instantiations_in_il);
+          decl_proxy_member_friend(sym, function_type, func_info);
+          goto done;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+        }  /* if */
+      } else if (sym->kind == (a_symbol_kind)sk_projection) {
         /* A member of a base class. */
         pos_error(ec_inherited_member_not_allowed, &locator->source_position);
       } else {
@@ -5123,7 +5178,9 @@ of the function, and again overloading is a possibility.
       }  /* if */
       sym = NULL;
       set_to_error_locator(*locator);
-    } else if (sym == NULL || !is_member_function_symbol(sym)) {
+    } else if (sym == NULL ||
+              !(is_member_function_symbol(sym) ||
+                is_proxy_member_symbol(sym))) {
       /* Not a member function.  Get the symbol -- the rest of what's returned
          from decl_routine is not relevant for processing in this context. */
       /* If the friend function is defined in this declaration or if it was
@@ -5302,6 +5359,9 @@ of the function, and again overloading is a possibility.
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+done:
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   db_exit();
   return sym;
 }  /* decl_friend_function */
@@ -11192,7 +11252,7 @@ instance record associated with this instantiation.
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
                                  &member_template_instance_type, instance,
-                                 (a_template_decl_ptr)NULL,
+                                 /*template_decl=*/NULL,
                                  (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
@@ -11846,7 +11906,7 @@ nested classes when their definition appears outside of the class template.
                                        &skip_semicolon_check,
                                        &dummy_type,
                                        (a_template_instance_ptr)NULL,
-                                       (a_template_decl_ptr)NULL,
+                                       /*template_decl=*/NULL,
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
