@@ -1972,6 +1972,7 @@ nonstatic data member of a class.
   a_constant              constant;
   a_boolean               err = FALSE;
   a_boolean               has_vla_asterisk = FALSE;
+  a_boolean               template_dependent_bound = FALSE;
   a_source_position       start_pos;
   an_expr_node_ptr        dim_expr = NULL;
 
@@ -2062,6 +2063,7 @@ nonstatic data member of a class.
           break;
         case ck_template_param:
           /* Template-dependent bound.  Handled below. */
+          template_dependent_bound = TRUE;
           break;
         case ck_error:
           err = TRUE;
@@ -2116,7 +2118,7 @@ nonstatic data member of a class.
       } else {
         (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
       }  /* if */
-    } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+    } else if (template_dependent_bound) {
       /* Template-dependent bound (constant but not a known value). */
       a_constant_ptr il_constant = alloc_shareable_constant(&constant);
       (*new_type_ptr)->variant.array.variant.element_count_constant =
