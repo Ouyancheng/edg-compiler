@@ -790,7 +790,7 @@ if there are any temp inits (unordered or not) in the expression.
   a_boolean             any_temp_inits = FALSE, any_temp_inits_part_2;
   a_boolean             seq_point_after_first;
   an_expr_operator_kind op;
-  a_dynamic_init_ptr    dip;
+  a_dynamic_init_ptr    dip, dyn_init_to_free_storage;
 
   switch (expr->kind) {
     case enk_error:
@@ -833,6 +833,17 @@ if there are any temp inits (unordered or not) in the expression.
                                         expr->variant.new_delete->arg,
                                         /*seq_point_after_first=*/FALSE,
                                         mark_all_unordered);
+      /* The strange dynamic initialization entry that describes the freeing
+         of uninitialized storage on an exception is guaranteed to happen
+         after the "new" arguments are evaluated (you can't free storage
+         until after you've allocated it), so bundle it into the
+         setting of any_temp_inits. */
+      dyn_init_to_free_storage =
+                     expr->variant.new_delete->freeing_of_storage_on_exception;
+      if (dyn_init_to_free_storage != NULL) {
+        any_temp_inits = TRUE;
+        if (mark_all_unordered) dyn_init_to_free_storage->unordered = TRUE;
+      }  /* if */
       /* The "new" arguments and the initialization are unordered with
          respect to one another.  If there were temp inits in the
          "new" arguments, we mark the temp inits in the initialization as we
@@ -849,6 +860,11 @@ if there are any temp inits (unordered or not) in the expression.
                                         expr->variant.new_delete->arg,
                                         /*seq_point_after_first=*/FALSE,
                                         /*mark_all_unordered=*/TRUE);
+        /* Also mark the dynamic initialization entry that frees storage as
+           unordered. */
+        if (dyn_init_to_free_storage != NULL) {
+          dyn_init_to_free_storage->unordered = TRUE;
+        }  /* if */
       }  /* if */
       any_temp_inits |= any_temp_inits_part_2;
       break;

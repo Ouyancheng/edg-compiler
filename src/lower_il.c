@@ -6026,14 +6026,18 @@ and *insert_location is updated.
            "begin_object_lifetime: destructible entity descr already present");
     dip->destructible_entity_descr = alloc_destructible_entity_descr();
     if (dip->inside_conditional_expression ||
-        (exceptions_enabled && dip->unordered)) {
+        (exceptions_enabled &&
+         (dip->unordered || dip->is_freeing_of_storage_on_exception))) {
       /* This destruction requires a conditional flag that indicates that
          the construction was done; add one and initialize it to zero.
          The conditional flag is used for the unordered case if we can't
          predict the order in which certain initializations will be
          done (because the C language leaves evaluation order weakly
          defined; a real back end could figure out the actual evaluation
-         order and would not need the flags for this case). */
+         order and would not need the flags for this case).  Also use
+         a conditional flag for the cleanup for a new-allocation, which
+         frees the storage if an exception is thrown before the storage
+         is initialized. */
       add_conditional_flag(dip);
       init_conditional_flag_var(dip->destructible_entity_descr->
                                                           conditional_flag_var,
@@ -6570,10 +6574,13 @@ code.
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
         if (dip->is_expr_temp_init && skip_temporaries) {
           /* Skipping temporaries, so skip this destruction. */
-        } else if (dip->is_constructor_init) {
+        } else if (dip->is_constructor_init ||
+                   dip->is_freeing_of_storage_on_exception) {
           /* Also skip entries for constructor inits (in constructors and
              destructors).  They apply for exception cleanup but not on
-             exit via branch. */
+             exit via branch.  Ditto for freeing storage for a new-allocation
+             if an exception is thrown before the initialization is
+             completed. */
         } else if (dip->variable == NULL &&
                    dip->destructible_entity_descr->init_pos_descr.variable ==
                                                return_value_pointer_variable) {

@@ -65,16 +65,18 @@ extern a_cleanup_region_number cleanup_region_number(a_dynamic_init_ptr dip);
 extern void set_eh_curr_region(a_cleanup_region_number region_number,
                                an_insert_location      *insert_location);
 
-extern void make_dtor_region_table_entry(a_dynamic_init_ptr dip,
-                                         an_insert_location *insert_location);
+extern a_constant_ptr make_region_table_entry(
+                              an_init_pos_descr_ptr   ipdp,
+                              a_routine_ptr           routine,
+                              a_boolean               is_delete,
+                              a_variable_ptr          conditional_flag_var,
+                              a_handle_number         conditional_flag_handle,
+                              a_cleanup_region_number *region_number,
+                              an_insert_location      *insert_location);
 
-extern void make_delete_region_table_entry(
-                               an_init_pos_descr_ptr   ipdp,
-                               a_routine_ptr           delete_routine,
-                               a_variable_ptr          conditional_flag_var,
-                               a_handle_number         conditional_flag_handle,
-                               a_cleanup_region_number *region_number,
-                               an_insert_location      *insert_location);
+extern void make_dyn_init_region_table_entry(
+                                          a_dynamic_init_ptr dip,
+                                          an_insert_location *insert_location);
 
 extern void clone_region_table_entry_list(a_dynamic_init_ptr dip,
                                           a_dynamic_init_ptr stop_before);

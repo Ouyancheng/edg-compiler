@@ -2393,6 +2393,22 @@ to a nonzero value.
 }  /* set_conditional_flag_var */
 
 
+static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
+                                       an_insert_location *insert_location)
+/*
+Insert code at *insert_location to reset the indicated conditional flag
+variable to a zero value.
+*/
+{
+  (void)insert_var_assignment_statement(
+                            conditional_flag_var,
+                            (an_expr_operator_kind)eok_iassign,
+                            node_for_integer_constant(0L,
+                                                      (an_integer_kind)ik_int),
+                            insert_location);
+}  /* reset_conditional_flag_var */
+
+
 /*
 Pointer to the struct type used to provide information to the runtime about
 a needed destruction for a file-scope or local static variable.
@@ -2968,7 +2984,7 @@ do_assignment:;
       if (exceptions_enabled) {
         /* Make a region table entry for the entity (and for its conditional
            flag, if it has one). */
-        make_dtor_region_table_entry(dip, insert_location);
+        make_dyn_init_region_table_entry(dip, insert_location);
         /* Insert code to set eh_curr_region to the region number for the
            cleanup for this initialization, because we've done the
            initialization now. */
@@ -3390,8 +3406,7 @@ The subtree of the node has not yet been lowered.
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
   a_boolean                   keep_dynamic_init;
-  a_dynamic_init_ptr          last_destruction_before_initialization;
-  a_cleanup_region_number     new_cleanup_region_number;
+  a_dynamic_init_ptr          dyn_init_to_free_storage;
   
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
@@ -3470,18 +3485,18 @@ The subtree of the node has not yet been lowered.
          type so that it is an array if necessary. */
       set_var_indirect_init_pos_descr(temp_var, &ipd);
       ipd.base_type = ndsp->type;
-      if (ndsp->delete_routine != NULL) {
-        /* Exceptions are enabled, so make a cleanup region table entry
-           to get the storage freed if a throw occurs. */
-        last_destruction_before_initialization = curr_context->destructions;
-        make_delete_region_table_entry(&ipd,
-                                       ndsp->delete_routine,
-                                       (a_variable_ptr)NULL,
-                                       (a_handle_number)0,
-                                       &new_cleanup_region_number,
-                                       &insert_location);
+      dyn_init_to_free_storage = ndsp->freeing_of_storage_on_exception;
+      if (dyn_init_to_free_storage != NULL) {
+        /* Make a cleanup region table entry to get the storage freed if
+           a throw occurs before the entity is initialized. */
+        copy_init_pos_descr(&ipd,
+                            &dyn_init_to_free_storage->
+                                    destructible_entity_descr->init_pos_descr);
+        make_dyn_init_region_table_entry(dyn_init_to_free_storage,
+                                         &insert_location);
         /* Set the region number to the delete cleanup entry. */
-        set_eh_curr_region(new_cleanup_region_number, &insert_location);
+        set_eh_curr_region(cleanup_region_number(dyn_init_to_free_storage),
+                           &insert_location);
       }  /* if */
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
@@ -3489,18 +3504,13 @@ The subtree of the node has not yet been lowered.
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
-      if (ndsp->delete_routine != NULL) {
-        /* Exceptions are enabled.  If there were any temporaries created
-           within the initialization, the cleanup entries for those must
-           be cloned so we have one set that runs through the delete entry
-           and one set (for use after this point) that does not. */
-        if (last_destruction_before_initialization !=
-                                                  curr_context->destructions) {
-          clone_region_table_entry_list(curr_context->destructions,
-                                       last_destruction_before_initialization);
-          set_eh_curr_region(cleanup_region_number(curr_context->destructions),
-                             &insert_location);
-        }  /* if */
+      if (dyn_init_to_free_storage != NULL) {
+        /* While the initialization was being done, if an exception was
+           thrown the storage would have been freed.  Now, the initialization
+           is complete, so clear the flag to suppress the deletion. */
+        reset_conditional_flag_var(dyn_init_to_free_storage->
+                               destructible_entity_descr->conditional_flag_var,
+                                   &insert_location);
       }  /* if */
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
@@ -4411,7 +4421,7 @@ constructor scope, and also lower the user code.
          if (this != NULL || (this = new-rout(size)) != NULL)
        The entire rest of the routine (both wrapper code and user code)
        is placed in the dependent statement of the "if". */
-    /* Ordering issue: we want to do the call of make_delete_region_table_entry
+    /* Ordering issue: we want to do the call of make_region_table_entry
        before any region table entries have been created for anything else,
        but we don't want to enclose the whole routine in an "if" until the
        user code has been lowered, because we want cleanup code emitted
@@ -4464,12 +4474,13 @@ constructor scope, and also lower the user code.
         set_conditional_flag_var(cond_var, &expr_insert_location);
         /* Add the cleanup region table entry. */
         set_var_indirect_init_pos_descr(this_param_var, &ipd);
-        make_delete_region_table_entry(&ipd,
-                                       ctsp->assoc_operator_delete_routine,
-                                       cond_var,
-                                       cond_var_handle,
-                                       &new_cleanup_region_number,
-                                       &expr_insert_location);
+        (void)make_region_table_entry(&ipd,
+                                      ctsp->assoc_operator_delete_routine,
+                                      /*is_delete=*/TRUE,
+                                      cond_var,
+                                      cond_var_handle,
+                                      &new_cleanup_region_number,
+                                      &expr_insert_location);
         /* Set the region number to the delete cleanup entry. */
         set_eh_curr_region(new_cleanup_region_number, &expr_insert_location);
       }  /* if */
@@ -4637,7 +4648,7 @@ is inserted at *insert_location.
   /* Do the first entry on the list. */
   curr_cleanup_region_number =
                             dip->destructible_entity_descr->next_region_number;
-  make_dtor_region_table_entry(dip, insert_location);
+  make_dyn_init_region_table_entry(dip, insert_location);
 #if CHECKING
   check_assertion_str(dip->destructible_entity_descr->conditional_flag_var ==
                                                                           NULL,

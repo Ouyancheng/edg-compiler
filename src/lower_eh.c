@@ -1741,41 +1741,49 @@ the aggregate constant.
 }  /* add_region_table_entry */
 
 
-static a_constant_ptr make_region_table_entry(
+a_constant_ptr make_region_table_entry(
                               an_init_pos_descr_ptr   ipdp,
                               a_routine_ptr           routine,
-                              a_boolean               is_delete_routine,
-                              a_boolean               force_array_info,
+                              a_boolean               is_delete,
                               a_variable_ptr          conditional_flag_var,
                               a_handle_number         conditional_flag_handle,
-                              a_cleanup_region_number next_region_number,
                               a_cleanup_region_number *region_number,
                               an_insert_location      *insert_location)
 /*
 Add an entry to the region table (which describes destructible objects)
 related to the object whose position is given by ipdp.  routine is
-a destructor (is_delete_routine == FALSE) or a delete routine
-(is_delete_routine == TRUE) to be called to do cleanup on the object.
-force_array_info is TRUE if array information should be put out for
-the object even if it is not an array (this is useful for the 2-argument
-delete case, to get the entity size).  conditional_flag_var, if non-NULL,
-points to a conditional flag variable that is non-zero to indicate that
-the destruction or deletion should be done.  conditional_flag_handle
-gives the object address table index for the conditional flag.
-next_region_number is the next-region-table-entry number to be placed
-in in the new entry.  The region table entry number for the new entry
-is returned in *region_number.  Any initialization code required will
-be inserted at *insert_location.  The region table variable is created
-if necessary.  Return a pointer to the aggregate constant for the
-region table entry.
+a destructor (is_delete == FALSE) or a delete routine (is_delete ==
+TRUE) to be called to do cleanup on the object.  conditional_flag_var,
+if non-NULL, points to a conditional flag variable that is non-zero to
+indicate that the destruction or deletion should be done.  In that case,
+conditional_flag_handle gives the object address table index for the
+conditional flag.  curr_cleanup_region_number is used as the
+next-region-table-entry number for the new entry.  The region table
+entry number for the new entry is returned in *region_number.  Any
+initialization code required will be inserted at *insert_location.  The
+region table variable is created if necessary.  Return a pointer to the
+aggregate constant for the region table entry.
 */
 {
   a_handle_number handle_number;
   unsigned long   flags_value = 0;
   a_constant_ptr  region_table_entry;
+  a_boolean       need_array_info = FALSE;
 
   /* See if we need array information on the entity. */
-  if (ipdp->whole_array || force_array_info) {
+  if (ipdp->whole_array) {
+    need_array_info = TRUE;
+  } else if (is_delete) {
+    /* Check for the 2-argument version of delete; we need array information
+       for that because we need the size of the entity. */
+    a_param_type_ptr param1 = unlowered_param_type_list(routine->type);
+    check_assertion(param1 != NULL);
+    if (param1->next != NULL) {
+      /* Two-argument form.  Need array information. */
+      need_array_info = TRUE;
+    }  /* if */
+  }  /* if */
+  if (need_array_info) {
     /* We need an entry in the array table. */
     handle_number = array_table_entry(ipdp, insert_location);
     /* Set the flag that indicates this object is an array. */
@@ -1795,7 +1803,7 @@ region table entry.
        was not constructed.  See init_conditional_flag_var. */
     flags_value |= RDF_CONDITIONAL_FLAG;
   }  /* if */
-  if (is_delete_routine) {
+  if (is_delete) {
     /* Indicate the delete case. */
     flags_value |= RDF_NEW_ALLOCATION;
   }  /* if */
@@ -1812,7 +1820,7 @@ region table entry.
   /* Make the region table entry. */
   region_table_entry = add_region_table_entry(routine,
                                               handle_number,
-                                              next_region_number,
+                                              curr_cleanup_region_number,
                                               flags_value);
   if (conditional_flag_var != NULL) {
     /* Make a second region table entry for the conditional flag. */
@@ -1825,8 +1833,8 @@ region table entry.
 }  /* make_region_table_entry */
 
 
-void make_dtor_region_table_entry(a_dynamic_init_ptr dip,
-                                  an_insert_location *insert_location)
+void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
+                                      an_insert_location *insert_location)
 /*
 Add an entry to the region table (which describes destructible objects)
 for the initialization described by dip.  The entry will point to
@@ -1835,7 +1843,7 @@ must have an attached destructible entity description, and the
 conditional_flag_var field of that entry must be filled in if
 appropriate (if a conditional flag variable is indicated, a region
 table entry will be created for it as well).  Also insert (at
-*insert_location) initialization code for the proper entry/entries in
+*insert_location) initialization code for the proper entry in
 the object address table.  The region table variable is created if
 necessary.
 */
@@ -1847,74 +1855,13 @@ necessary.
   dedp->region_table_entry =
                          make_region_table_entry(&dedp->init_pos_descr,
                                                  dip->destructor,
-                                                 /*is_delete_routine=*/FALSE,
-                                                 /*force_array_info=*/FALSE,
+                                                 (a_boolean)dip->
+                                            is_freeing_of_storage_on_exception,
                                                  dedp->conditional_flag_var,
                                                  dedp->conditional_flag_handle,
-                                                 curr_cleanup_region_number,
                                                  &dedp->region_number,
                                                  insert_location);
-  if (dip->unordered) {
-    /* If this initialization is part of a cluster of unordered entries,
-       use the same region table index for all of them.  That is, put all
-       of the cleanup actions on at one time, and leave it to the
-       conditional flags to decide which cleanup actually needs to be done. */
-    a_dynamic_init_ptr next_dip;
-    for (next_dip = dip->next_in_destruction_list;
-         next_dip != NULL && next_dip->unordered;
-         next_dip = next_dip->next_in_destruction_list) {
-      next_dip->destructible_entity_descr->region_number = dedp->region_number;
-    }  /* for */
-  }  /* if */
-}  /* make_dtor_region_table_entry */
-
-
-void make_delete_region_table_entry(
-                               an_init_pos_descr_ptr   ipdp,
-                               a_routine_ptr           delete_routine,
-                               a_variable_ptr          conditional_flag_var,
-                               a_handle_number         conditional_flag_handle,
-                               a_cleanup_region_number *region_number,
-                               an_insert_location      *insert_location)
-/*
-Add an entry to the region table (which describes destructible objects)
-for the cleanup required to delete a new-allocation.  ipdp describes
-the position of the space to be deleted.  delete_routine is the delete
-routine to be called.  conditional_flag_var, if non-NULL, points to a
-conditional flag variable that is non-zero to indicate that the
-deletion should be done.  conditional_flag_handle gives the object
-address table index number for the conditional flag.  The "next" field
-of the entry created is set to point to curr_cleanup_region_number.
-The region table entry number for the new entry is returned in
-*region_number.  Also insert (at *insert_location) initialization code
-for the proper entry in the object address table.  The region table
-variable is created if necessary.
-*/
-{
-  a_boolean               force_array_info = FALSE;
-  a_param_type_ptr        param1;
-  a_cleanup_region_number next_region_number;
-
-  /* Check for the 2-argument version of delete; we need array information
-     for that because we need the size of the entity. */
-  param1 = unlowered_param_type_list(delete_routine->type);
-  check_assertion(param1 != NULL);
-  if (param1->next != NULL) {
-    /* Two-argument form.  Need array information. */
-    force_array_info = TRUE;
-  }  /* if */
-  next_region_number = curr_cleanup_region_number;
-  /* Make the region table entry. */
-  (void)make_region_table_entry(ipdp,
-                                delete_routine,
-                                /*is_delete_routine=*/TRUE,
-                                force_array_info,
-                                conditional_flag_var,
-                                conditional_flag_handle,
-                                next_region_number,
-                                region_number,
-                                insert_location);
-}  /* make_delete_region_table_entry */
+}  /* make_dyn_init_region_table_entry */
 
 
 static a_constant_ptr clone_raw_region_table_entry(
