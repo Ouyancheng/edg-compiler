@@ -862,7 +862,6 @@ Process the default argument expressions for the indicated class.
      made to handle nested classes.  This assures that all default arguments
      are processed, even those belonging to member functions of nested
      classes, before any inline member function bodies are scanned. */
-#if 0
   /* This does not, however, fix dependency problems in a case like this:
        class A {
          int f1(int i=f2()) { return i; }
@@ -875,7 +874,6 @@ Process the default argument expressions for the indicated class.
      language impose some restrictions on what can appear in a default
      argument expression?
   */
-#endif /* if 0 */
   /* First go though the routine fixup entries and scan the default
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
@@ -4624,18 +4622,10 @@ or struct definition.  The syntax is
               db_virtual_function_override_list(bcp);
             }  /* if */
 #endif /* DEBUG */
-#if 0
-            /* bcp is a base class of new_direct_bcp->type.  We need to find
-               the corresponding base class of type_ptr.  Find a disambiguator
-               in case what we are looking for is an ambiguous base class of
-               type_ptr. */
-            disambiguator = find_disambiguator(new_direct_bcp, bcp);
-            new_bcp = corresponding_base_class(bcp, type_ptr, disambiguator);
             /* Copy the virtual function override entries from bcp (which is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
                bases list for type_ptr). */
-#endif /* if 0 */
             copy_virtual_function_override_list(bcp, new_bcp,
                                                 base_class_type, type_ptr);
 #if DEBUG
