@@ -4043,6 +4043,15 @@ do_assignment:;
                              eff_context, eff_insert_location);
       }  /* if */
     }  /* if */
+    if (dip->lifetime == NULL && dip->destructible_entity_descr != NULL) {
+      /* If the dynamic initialization has been removed from its lifetime
+         (because the cleanup has been handled some other way), free the
+         destructible entity description entry now.  The normal freeing
+         process finds the entries by walking the object lifetime tree,
+         but this dynamic initialization isn't in the tree anymore. */
+      free_destructible_entity_descr(dip->destructible_entity_descr);
+      dip->destructible_entity_descr = NULL;
+    }  /* if */
   }  /* if */
   /* If the dynamic init defines a lifetime that surrounds the initialization,
      pop the context for that lifetime. */
