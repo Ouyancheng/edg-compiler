@@ -645,6 +645,14 @@ definition of the routine is needed, and not just the declaration.
         }  /* if */
       }  /* if */
     }  /* if */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    if (rout->overriding_function_for_covariant_return_type != NULL) {
+      /* For a thunk, set the definition needed on the actual routine
+         referenced. */
+      set_routine_definition_needed(rout->
+                                overriding_function_for_covariant_return_type);
+    }  /* if */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     /* For a routine that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will be
        copied to the primary IL. */
@@ -1362,6 +1370,14 @@ declaration.
         innermost_function_scope = saved_innermost_function_scope;
       }  /* if */
     }  /* if */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    if (rout->overriding_function_for_covariant_return_type != NULL) {
+      /* For a thunk, set the definition needed on the actual routine
+         referenced. */
+      set_routine_keep_definition_in_il(rout->
+                                overriding_function_for_covariant_return_type);
+    }  /* if */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     /* For a routine that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will be
        copied to the primary IL. */
