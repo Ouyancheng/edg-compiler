@@ -9501,27 +9501,6 @@ to the compound literal.
   if (is_static) switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_compound_literal */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-
-static void change_operand_to_expression_form(an_operand* operand)
-/*
-If the indicated operand is in constant form, change it to expression form.
-This is sometimes desirable because the expression form can retain more
-detailed source position information.
-*/
-{
-  if (!curr_expr_kind_is_const() && is_constant_operand(operand)) {
-    an_expr_node_ptr expr = make_node_from_operand(operand);
-    an_operand_state saved_state = operand->state;
-    an_operand       orig_operand;
-    orig_operand = *operand;
-    make_expression_operand(expr, operand->type, operand);
-    operand->state = saved_state;
-    restore_operand_details_incl_ref(operand, &orig_operand);
-  }  /* if */
-}  /* change_operand_to_expression_form */
-
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 static void scan_cast_or_expr(
                              an_operand               *result,
@@ -9650,12 +9629,6 @@ Also scans GNU C statement expressions:
       scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
-      /* Change to an expression representation because we want to
-         be able to keep different source positions for the expression
-         (without parentheses) and the operand (with parentheses).
-         This comes up for an lvalue for a variable with static storage
-         duration. */
-      change_operand_to_expression_form(result);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
