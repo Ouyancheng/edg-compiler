@@ -52,6 +52,14 @@ Return codes to be used when the highest error severity is as given:
 #endif /* __VMS__ */
 
 /*
+If this switch is set, an internal error causes an exit instead of
+an abort.
+*/
+#ifndef EXIT_ON_INTERNAL_ERROR
+#define EXIT_ON_INTERNAL_ERROR FALSE
+#endif /* ifndef EXIT_ON_INTERNAL_ERROR */
+
+/*
 Alignment required of pointers to malloc'd space (i.e., the maximum
 alignment required by the host computer).  Use "1" if there are no
 alignment requirements.  This must be defined as an actual constant

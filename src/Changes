@@ -1,5 +1,10 @@
 Version 2.33
 
+7/17/96 EXIT_ON_INTERNAL_ERROR
+
+A new configuration flag EXIT_ON_INTERNAL_ERROR can be set to request
+an exit() call instad of an abort() call if an internal error occurs.
+
 7/17/96 C-generating back end: output of "const void"
 
 In an attempt to avoid the "const" when putting out

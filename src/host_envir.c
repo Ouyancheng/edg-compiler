@@ -1447,8 +1447,12 @@ severe diagnostic issued in this compilation.  This routine does not return.
       exit(RC_CATASTROPHE);
     case es_internal_error:
     default:
+#if EXIT_ON_INTERNAL_ERROR
+      exit(RC_CATASTROPHE);
+#else /* !EXIT_ON_INTERNAL_ERROR */
       (void)fflush(stderr);
       abort();
+#endif /* EXIT_ON_INTERNAL_ERROR */
   }  /* switch */
   /*NOTREACHED*/
 }  /* exit_compilation */
