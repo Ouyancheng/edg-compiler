@@ -2265,8 +2265,12 @@ If the operation cannot be folded, *did_not_fold is returned TRUE.
     /* Non-virtual base class. */
     /* Take the pointer offset, ... */
     offset = pointer_offset(constant_1);
-    /* ... add the offset to the base class, ... */
-    offset += base_class->offset;
+    if (offset == 0 && base_object(constant_1) == NULL) {
+      /* Preserve a NULL pointer. */
+    } else {
+      /* ... add the offset to the base class, ... */
+      offset += base_class->offset;
+    }  /* if */
     /* ... and put the offset into the result pointer constant.  Note that
        no overflow/object-size checking is needed, since the base class has
        to be within the underlying object. */
