@@ -1626,6 +1626,20 @@ type of the node is already new_type return the original node.
 }  /* add_cast_if_necessary */
 
 
+static void change_to_cast(an_expr_node_ptr node,
+                           an_expr_node_ptr operand_node,
+                           a_type_ptr       new_type)
+/*
+Change an existing node into a cast of operand_node to new_type.
+*/
+{
+  set_expr_node_kind(node, (an_expr_node_kind)enk_operation);
+  set_node_operator(node, (an_expr_operator_kind)eok_cast,
+                    new_type, operand_node);
+  node->variant.operation.compiler_generated = TRUE;
+}  /* change_to_cast */
+
+
 static a_type_ptr char_star_type(void)
 /*
 Make and return a "char *" type.
@@ -2081,6 +2095,8 @@ their operands.
   an_expr_node_ptr node_next = node->next;
 
   /* Copy the node.  Preserve the original "next" field. */
+  /* Note that the new/delete supplement from the source node is used
+     by the destination node; no copy is needed. */
   *node = *source_node;
   node->next = node_next;
 }  /* overwrite_node */
@@ -2484,10 +2500,7 @@ to data members are lowered into a small integer type.
     } else {
       /* Add a cast, but reuse the original node as the cast to preserve the
          expression address. */
-      an_expr_node_ptr expr_copy = copy_node(expr);
-      set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-      set_node_operator(expr, (an_expr_operator_kind)eok_cast,
-                      promoted_type, expr_copy);
+      change_to_cast(expr, copy_node(expr), promoted_type);
     }  /* if */
   }  /* if */
 }  /* do_ptr_to_data_member_arg_promotion_on_node */
@@ -6091,23 +6104,23 @@ array.
 }  /* num_elem_node_from_count */
 
 
-static a_type_ptr new_delete_elem_type_from_pointer_type(a_type_ptr ptr_type)
+static a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type)
 /*
-ptr_type is the type of pointer operated on in a new or delete operation.
+type is the type operated on in a new or delete operation.
 Extract and return the underlying entity type.
 */
 {
-  a_type_ptr elem_type;
+  a_type_ptr base_type;
 
-  elem_type = type_pointed_to(ptr_type);
+  base_type = type;
   /* For multi-dimensional array cases, drop down to the underlying class
      type. */
-  while (is_array_type(elem_type)) {
-    elem_type = array_element_type(elem_type);
+  while (is_array_type(base_type)) {
+    base_type = array_element_type(base_type);
   }  /* while */
-  elem_type = skip_typerefs(elem_type);
-  return elem_type;
-}  /* new_delete_elem_type_from_pointer_type */
+  base_type = skip_typerefs(base_type);
+  return base_type;
+}  /* new_delete_base_type_from_operation_type */
 
 
 static an_expr_node_ptr size_elem_node_from_pointer_type(a_type_ptr ptr_type)
@@ -6119,7 +6132,8 @@ type of the array pointed to by ptr_type, and return a pointer to it.
   a_type_ptr       elem_type;
   an_expr_node_ptr size_elem_node;
 
-  elem_type = new_delete_elem_type_from_pointer_type(ptr_type);
+  elem_type = new_delete_base_type_from_operation_type(
+                                                    type_pointed_to(ptr_type));
   size_elem_node = node_for_integer_constant((long)elem_type->size,
                                         (an_integer_kind)TARG_SIZE_T_INT_KIND);
   return size_elem_node;
@@ -8106,8 +8120,7 @@ is_lvalue is TRUE.
   } else {
     /* A final cast is needed, so change the original node into the proper
        cast. */
-    node->variant.operation.kind = (an_expr_operator_kind)eok_cast;
-    node->variant.operation.operands = result_node;
+    change_to_cast(node, result_node, node->type);
   }  /* if */
 }  /* lower_related_class_cast */
 
@@ -8768,8 +8781,7 @@ the expression have already been lowered.
   /* Change the original node into a cast of the pointer expression to a
      pointer to the data member type.  The original expression type is
      already the correct pointer type. */
-  set_node_operator(expr, (an_expr_operator_kind)eok_cast,
-                    expr->type, plus_node);
+  change_to_cast(expr, plus_node, expr->type);
 }  /* lower_pm_field */
 
 
@@ -8808,190 +8820,186 @@ the dynamic init entry that applies to each element and return a pointer to it.
 }  /* elem_dynamic_init */
 
 
-static a_boolean array_new_or_delete_call_is_new_call(an_expr_node_ptr expr)
+static void lower_array_new(an_expr_node_ptr expr)
 /*
-expr points to a call of a new or delete routine for an array.  Return TRUE
-if the call is of a "new" routine.
+Do lowering of an array new operation.  expr points to the enk_new_delete
+expression.  The subtrees of the original expressions have not been lowered
+yet.  This routine is used for arrays that require special handling, i.e.,
+arrays with class elements.
 */
 {
-  an_expr_node_ptr rout_node;
-  a_routine_ptr    rout;
-  a_boolean        is_new_call = FALSE;
+  a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+  a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
+  a_type_ptr                  array_type, elem_type, ptr_elem_type;
+  an_expr_node_ptr            entity_node, new_node, temp_var_node;
+  an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
+  a_variable_ptr              temp_var;
+  a_constant                  num_elem_constant;
+  a_boolean                   preserve_size_node;
+  a_targ_size_t               elem_size;
+  an_expr_node_ptr            size_node, constant_node, nonconstant_node;
+  a_constant                  size_constant, null_constant;
+  a_targ_size_t               con_for_size;
+  a_boolean                   ovflo;
+  a_routine_ptr               ctor_routine;
 
-#if CHECKING
-  if (!is_operation_node(expr) ||
-      !expr->variant.operation.new_or_delete_call_for_array) {
-    internal_error(
-                 "array_new_or_delete_call_is_new_call: not array new/delete");
-  }  /* if */
-#endif /* CHECKING */
-  rout_node = expr->variant.operation.operands;
-  rout = routine_from_node(rout_node);
-#if CHECKING
-  if (rout->special_kind != (a_special_function_kind)sfk_operator) {
-    internal_error(
-                 "array_new_or_delete_call_is_new_call: not operator routine");
-  }  /* if */
-#endif /* CHECKING */
-  if (rout->opname_kind == (an_opname_kind)onk_new) {
-    is_new_call = TRUE;
-#if CHECKING
-  } else {
-    if (rout->opname_kind != (an_opname_kind)onk_delete) {
-      internal_error(
-                    "array_new_or_delete_call_is_new_call: not new or delete");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* if */
-  return is_new_call;
-}  /* array_new_or_delete_call_is_new_call */
-
-
-static an_expr_node_ptr operand_of_delete_call(an_expr_node_ptr expr)
-/*
-expr points to a call of a "delete" function.  Find the operand of the call
-(i.e., the pointer to delete) and return a pointer to it.
-*/
-{
-  an_expr_node_ptr entity_node;
-
-  /* The operand is the second operand of the call (the first identifies
-     the routine).  There will always be a cast to "void *" on top of
-     the "real" operand. */
-  entity_node = expr->variant.operation.operands->next;
-#if CHECKING
-  if (!is_operation_node(entity_node) ||
-      entity_node->variant.operation.kind != (an_expr_operator_kind)eok_cast) {
-    internal_error("operand_of_delete_call: missing cast");
-  }  /* if */
-#endif /* CHECKING */
-  entity_node = entity_node->variant.operation.operands;
-  return entity_node;
-}  /* operand_of_delete_call */
-
-
-static a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type)
-/*
-type is the pointer type involved in an array new or delete.  Return TRUE
-if the underlying type requires special handling for arrays.  Special
-handling means the __vec_new and __vec_delete routines will be called, so
-that constructors and destructors will be called, and so that the size of
-the array is recorded for use at the time of the delete of the array pointer.
-*/
-{
-  a_boolean                     special = FALSE;
-  a_class_symbol_supplement_ptr cssp;
-
-  type = new_delete_elem_type_from_pointer_type(type);
-  /* Only types with a constructor or destructor require special handling. */
-  if (is_class_struct_union_type(type)) {
-    cssp = symbol_supplement_for_class(type);
-    if (cssp->constructor != NULL || cssp->destructor != NULL) {
-      special = TRUE;
-    }  /* if */
-  }  /* if */
-  return special;
-}  /* new_or_delete_type_requires_array_handling */
-
-
-static a_boolean new_call_requires_array_handling(an_expr_node_ptr alloc_node,
-                                                  an_expr_node_ptr cast_node)
-/*
-alloc_node points to an array "new" call.  cast_node is either the same pointer
-or points to a cast immediately on top of the call.  Return TRUE if the
-"new" call is one that requires special handling for arrays.  If it doesn't,
-return FALSE and also clear the new_or_delete_call_for_array flag in
-alloc_node.
-*/
-{
-  a_boolean special = FALSE;
-
-  /* The type of the expression is a pointer to the underlying entity type. */
-  if (new_or_delete_type_requires_array_handling(cast_node->type)) {
-    special = TRUE;
-  } else {
-    /* Clear the flag on the call. */
-    /* This is important so that a "new" rejected when we see the cast above
-       it is not considered again by itself at the next level down. */
-    alloc_node->variant.operation.new_or_delete_call_for_array = FALSE;
-  }  /* if */
-  return special;
-}  /* new_call_requires_array_handling */
-
-
-static a_boolean delete_call_requires_array_handling(an_expr_node_ptr expr)
-/*
-Return TRUE if the indicated array delete call is one that requires
-special handling for arrays.
-*/
-{
-  a_boolean  special = FALSE;
-  a_type_ptr entity_type;
-
-  /* The second argument of the call, under a cast to void *, is a pointer
-     to the object to be deleted. */
-  entity_type = operand_of_delete_call(expr)->type;
-  if (new_or_delete_type_requires_array_handling(entity_type)) {
-    special = TRUE;
-  }  /* if */
-  return special;
-}  /* delete_call_requires_array_handling */
-
-
-static void lower_array_new(an_expr_node_ptr   alloc_expr,
-                            a_dynamic_init_ptr dip,
-                            an_expr_node_ptr   top_expr)
-/*
-Do lowering of an array new operation.  alloc_expr points to the expression
-that calls the "new" function.  dip points to the dynamic init entry that
-describes the initialization to be done after the allocation, or is NULL
-if there is no such initialization.  The expression after lowering must
-end up at the address given by top_expr, which is the top of the original
-expression tree (and may be the same as alloc_expr; if it isn't, what's
-between top_expr and alloc_expr is casts).  The subtrees of the original
-expressions have not been lowered yet.
-*/
-{
-  a_routine_ptr      ctor_routine;
-  an_expr_node_ptr   num_elem_node, entity_node, size_node, call_node;
-  an_expr_node_ptr   new_alloc_node, assign_node, alloc_temp_node;
-  an_expr_node_ptr   constant_node, nonconstant_node;
-  a_type_ptr         elem_type;
-  a_targ_size_t      elem_size;
-  a_dynamic_init_ptr elem_dip;
-  a_constant         size_constant, null_constant;
-  a_boolean          vec_new_can_do_allocation, preserve_size_node;
-  a_variable_ptr     alloc_temp_var;
-  a_targ_size_t      con_for_size;
-  a_boolean          ovflo;
-  
   /* Get the array element type. */
-  elem_type = new_delete_elem_type_from_pointer_type(top_expr->type);
-  /* Get the node under the call of the "new" routine that gives the
-     size. */
-#if CHECKING
-  if (!is_operation_node(alloc_expr) ||
-      alloc_expr->variant.operation.kind != (an_expr_operator_kind)eok_call) {
-    internal_error("lower_array_new: bad alloc_expr");
+  array_type = skip_typerefs(ndsp->type);
+  elem_type = new_delete_base_type_from_operation_type(ndsp->type);
+  ptr_elem_type = make_pointer_type(elem_type);
+  /* Build the node for the address of the array (entity_node). */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+  if (ndsp->routine == NULL) {
+    /* The __vec_new routine should do the allocation of the array (the normal
+       case).  The entity_node is therefore a NULL pointer. */
+    make_zero_of_proper_type(ptr_elem_type, &null_constant);
+    entity_node = alloc_node_for_constant(&null_constant);
+    /* Lower "arg" even though it is ignored.  This is necessary to get the
+       IL walk flags flipped in the expressions.  Note that it is not
+       necessary to lower this as an argument list because it will not
+       be used as such. */
+    lower_expr_list(ndsp->arg, 0, FALSE);
+    preserve_size_node = FALSE;
+  } else {
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+    /* The allocation is not standard and must be done before calling
+       the __vec_new routine.  This happens for something like
+         A *p = new (x, y, z) A[3];
+       The "new" call is assigned to a temporary, and entity_node uses
+       the temporary, as in
+         ((temp = (type *)new-call(...)), (type *)__vec_new(temp, ...))
+       The comma expression is necessary because we can't count on the
+       order of evaluation of arguments of the __vec_new call and the new-call
+       may contain the assignment to a temporary needed to make a reusable
+       copy of the size expression.  */
+    /* Make the "new" call. */
+    lower_arg_expr_list(ndsp->arg, ndsp->routine->type);
+    new_node = make_call_node(ndsp->routine, ndsp->arg);
+    /* Make "temp = (type *)new-call(...)". */
+    temp_var = make_temporary(ptr_elem_type);
+    temp_var_node = var_lvalue_expr(temp_var);
+    temp_var_node->next = add_cast_if_necessary(new_node, ptr_elem_type);
+    assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
+                                     ptr_elem_type, temp_var_node);
+    /* The comma node is built at the end of this routine. */
+    entity_node = var_rvalue_expr(temp_var);
+    /* The size node is used in the "new" call, so it cannot be destroyed. */
+    preserve_size_node = TRUE;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   }  /* if */
-#endif /* CHECKING */
-  size_node = alloc_expr->variant.operation.operands->next;
-  /* Lower the subtree of the "new" call.  Clear the array flag so that the
-     call will not be specially processed. */
-  alloc_expr->variant.operation.new_or_delete_call_for_array = FALSE;
-  lower_normal_expr(alloc_expr);
-  vec_new_can_do_allocation = FALSE;
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+  /* Here, we have entity_node pointing to an expression for the address
+     of the entity. */
+  /* Make a node for the number of elements in the array. */
+  if (array_type->size != 0) {
+    /* The easy and usual case -- the array has a constant number of
+       elements.  Do a division to get the right answer for the
+       multi-dimensional array case. */
+    set_unsigned_integer_constant(&num_elem_constant,
+                                  array_type->size / elem_type->size,
+                                  (an_integer_kind)TARG_SIZE_T_INT_KIND);
+    num_elem_node = alloc_node_for_constant(&num_elem_constant);
+  } else {
+    /* Nonconstant number of elements in the array.  The number of elements
+       must be extracted from the size expression.  If preserve_size_node
+       is TRUE, the size expression is used in the "new" call, and therefore
+       a reusable copy must be made of whatever part is reused here. */
+    /* Get the node that gives the size of the allocation. */
+    size_node = ndsp->arg;
+    /* Drop any cast on the top of the expression, such as one added by
+       lower_arg_expr_list to promote the expression for calling an old-style
+       function. */
+    while (is_operation_node(size_node) &&
+           size_node->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_cast) {
+      size_node = size_node->variant.operation.operands;
+    }  /* if */
+    /* Get the size of each element, in bytes. */
+    elem_size = elem_type->size;
+    if (elem_size == 1) {
+      /* The element size is 1, so the number of elements is equal to the
+         total size. */
+      if (preserve_size_node) {
+        /* size_node must be preserved, so make a copy of it. */
+        num_elem_node = make_reusable_copy(size_node);
+      } else {
+        num_elem_node = size_node;
+      }  /* if */
+    } else {
+      /* A division by the element size is required.  The size expression
+         should look like "expr*n" where "n" is the element size,
+         i.e., a multiplication added while scanning the "new" to convert
+         the number of elements to the total size.  The usual strategy
+         is to remove the "*n".  Note however that for a multi-dimensional
+         array case "n" is the product of the element size and the dimension
+         bounds after the first; for that case we create a new constant
+         that is "n" divided by the element size. */
+      check_assertion(is_operation_node(size_node) &&
+                      size_node->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_imultiply);
+      nonconstant_node = size_node->variant.operation.operands;
+      constant_node = nonconstant_node->next;
+      check_assertion(is_constant_node(constant_node));
+      if (preserve_size_node) {
+        /* We need to preserve size_node, and therefore we need a copy of the
+           nonconstant node. */
+        nonconstant_node = make_reusable_copy(nonconstant_node);
+      }  /* if */
+      /* Divide the constant by the element size. */
+      size_constant = *constant_node->variant.constant;
+      check_assertion(size_constant.kind == (a_constant_repr_kind)ck_integer);
+      con_for_size = unsigned_value_of_integer_constant(&size_constant,
+                                                        &ovflo);
+      check_assertion(!ovflo);
+      /* Note that we know the type is not incomplete, so the element size
+         is not zero. */
+      con_for_size /= elem_size;
+      if (con_for_size == 1) {
+        /* The constant can be eliminated altogether, i.e., there was a
+           multiplication by the base element size which is now not needed. */
+        /* Remove the multiplication, leaving the original first operand
+           which is the number of elements. */
+        num_elem_node = nonconstant_node;
+        if (!preserve_size_node) {
+          /* Break the connection between the first operand and second operand
+             of the "*" operation. */
+          num_elem_node->next = NULL;
+        }  /* if */
+      } else {
+        /* The multiplication is still needed.  This must be a multi-
+           dimensional array case. */
+        set_unsigned_integer_value(&size_constant.variant.integer_value,
+                                   (unsigned long)con_for_size);
+        if (preserve_size_node) {
+          /* We need to preserve size_node, so make a new node for the
+             constant and a new multiplication. */
+          constant_node = alloc_node_for_constant(&size_constant);
+          nonconstant_node->next = constant_node;
+          num_elem_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_imultiply,
+                                          size_node->type,
+                                          nonconstant_node);
+        } else {
+          /* We do not need to preserve size_node, so reuse the constant node
+             for the altered constant. */
+          constant_node->variant.constant =
+                                      alloc_shareable_constant(&size_constant);
+          /* We can reuse the existing multiplication. */
+          num_elem_node = size_node;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Here, num_elem_node is an expression for the number of elements in
+     the array. */
+  /* Determine the constructor routine (if any) to be called. */
   if (dip != NULL) {
     /* There is a dynamic init entry to initialize the storage after it is
        allocated. */
     /* Get a pointer to the dynamic init entry that applies to the array
        elements instead of the whole array. */
     elem_dip = elem_dynamic_init(dip);
-#if CHECKING
-    if (elem_dip->kind != (a_dynamic_init_kind)dik_constructor) {
-      internal_error("lower_array_new: elem_dip not constructor");
-    } /* if */
-#endif /* CHECKING */
+    check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor) ;
     /* Get the constructor routine to call. */
     ctor_routine = elem_dip->variant.constructor.routine;
     /* If the constructor has default arguments, make a routine that
@@ -9005,542 +9013,310 @@ expressions have not been lowered yet.
        allocation. */
     ctor_routine = NULL;
   }  /* if */
-  /* If the "new" routine is the standard one (i.e., there are no extra
-     arguments), __vec_new can do the allocation. */
-  if (size_node->next == NULL) {
-    vec_new_can_do_allocation = TRUE;
-  } /* if */
-  preserve_size_node = FALSE;
-  if (vec_new_can_do_allocation) {
-    /* The __vec_new routine can do the allocation of the array (the normal
-       case).  The entity_node is therefore a NULL pointer. */
-    make_zero_of_proper_type(top_expr->type, &null_constant);
-    entity_node = alloc_node_for_constant(&null_constant);
-  } else {
-    /* The allocation is not standard and must be done before calling
-       the __vec_new routine.  This happens for something like
-         A *p = new (x, y, z) A[3];
-       The original "new" call will be evaluated and assigned to a temporary,
-       and entity_node will use the temporary. */
-    alloc_temp_var = make_temporary(top_expr->type);
-    entity_node = var_rvalue_expr(alloc_temp_var);
-    /* The assignment to the temporary is generated later in this routine. */
-    /* We need to preserve size_node for that call (instead of using it
-       for spare parts in putting together the element count node). */
-    preserve_size_node = TRUE;
-  }  /* if */
-  /* Get the size of each element, in bytes. */
-  elem_size = elem_type->size;
-  /* The size expression gives the size in bytes.  Divide it by the element
-     size to get the number of elements. */
-  if (elem_size == 1) {
-    /* The element size is 1, so the total size is equal to the number
-       of elements. */
-    if (preserve_size_node) {
-      /* size_node must be preserved, so make a copy of it. */
-      num_elem_node = make_reusable_copy(size_node);
-    } else {
-      num_elem_node = size_node;
-    }  /* if */
-  } else {
-    /* A division by the element size is required.  Look for a constant
-       that can be altered at compile time.  There should always be one. */
-    nonconstant_node = NULL;
-    if (is_constant_node(size_node)) {
-      /* The size expression is constant. */
-      constant_node = size_node;
-    } else {
-      /* Size is not constant.  It should look like "expr*n" where "n"
-         is the element size, i.e., a multiplication added while scanning
-         the "new" to convert number of elements to total size.  Note however
-         that for a multi-dimensional array case "n" is the product of the
-         element size and the dimension bounds after the first. */
-#if CHECKING
-      if (!is_operation_node(size_node) ||
-          size_node->variant.operation.kind !=
-                                        (an_expr_operator_kind)eok_imultiply) {
-        internal_error("lower_array_new: bad size expr (1)");
-      }  /* if */
-#endif /* CHECKING */
-      nonconstant_node = size_node->variant.operation.operands;
-      constant_node = nonconstant_node->next;
-#if CHECKING
-      if (!is_constant_node(constant_node)) {
-        internal_error("lower_array_new: bad size expr (2)");
-      }  /* if */
-#endif /* CHECKING */
-      if (preserve_size_node) {
-        /* We need to preserve size_node, and therefore we need a copy of the
-           nonconstant node. */
-        nonconstant_node = make_reusable_copy(nonconstant_node);
-      }  /* if */
-    }  /* if */
-    /* Divide the constant by the element size. */
-    size_constant = *constant_node->variant.constant;
-#if CHECKING
-    if (size_constant.kind != (a_constant_repr_kind)ck_integer) {
-      internal_error("lower_array_new: size_constant not integral");
-    }  /* if */
-#endif /* CHECKING */
-    con_for_size = unsigned_value_of_integer_constant(&size_constant, &ovflo);
-#if CHECKING
-    if (ovflo) {
-      internal_error("lower_array_new: ovflo on extraction of size");
-    }  /* if */
-#endif /* CHECKING */
-    /* Note that we know the type is not incomplete, so the element size
-       is not zero. */
-    con_for_size /= elem_size;
-    if (nonconstant_node != NULL && con_for_size == 1) {
-      /* The constant can be eliminated altogether, i.e., there was a
-         multiplication by the base element size which is now not needed. */
-      /* Remove the multiplication, leaving the original first operand
-         which is the number of elements. */
-      num_elem_node = nonconstant_node;
-      if (!preserve_size_node) {
-        /* Break the connection between the first operand and second operand
-           of the "*" operation. */
-        num_elem_node->next = NULL;
-      }  /* if */
-    } else {
-      /* The altered constant still figures in the number-of-elements
-         expression. */
-      set_unsigned_integer_value(&size_constant.variant.integer_value,
-                                 (unsigned long)con_for_size);
-      if (preserve_size_node) {
-        /* We need to preserve size_node, so make a new node for the
-           constant. */
-        constant_node = alloc_node_for_constant(&size_constant);
-      } else {
-        /* We do not need to preserve size_node, so reuse the constant node
-           for the altered constant. */
-        constant_node->variant.constant =
-                                      alloc_shareable_constant(&size_constant);
-      }  /* if */
-      if (nonconstant_node == NULL) {
-        /* The size expression is constant, i.e., the constant node is the
-           whole expression. */
-        num_elem_node = constant_node;
-      } else {
-        /* The multiplication is still needed.  This must be a multi-
-           dimensional array case. */
-        if (preserve_size_node) {
-          /* We need to preserve size_node, so build a new multiplication. */
-          nonconstant_node->next = constant_node;
-          num_elem_node = make_operator_node(
-                                          (an_expr_operator_kind)eok_imultiply,
-                                          size_node->type,
-                                          nonconstant_node);
-        } else {
-          /* We can reuse the existing multiplication.  The constant has
-             already been changed. */
-          num_elem_node = size_node;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
   /* Construct the call of __vec_new. */
-  call_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine);
-  /* Cast the result of __vec_new (of type void *) to the right pointer
-     type. */
-  new_alloc_node = add_cast_if_necessary(call_node, top_expr->type);
-  if (!vec_new_can_do_allocation) {
-    /* For the case where the allocation must be done before __vec_new is
-       called, add the assignment of the allocation pointer to a temporary
-       before the __vec_new call in a comma expression, as in
-         ((temp = (type *)new-routine(...)), (type *)__vec_new(temp, ...))
-       The comma expression is necessary because we can't count on the
-       order of evaluation of arguments of the __vec_new call and we need to
-       make a reusable copy of the size expression. */
-    alloc_temp_node = var_lvalue_expr(alloc_temp_var);
-    alloc_temp_node->next = add_cast_if_necessary(alloc_expr,
-                                                  alloc_temp_var->type);
-    assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                     alloc_temp_var->type, alloc_temp_node);
-    assign_node->next = new_alloc_node;
-    new_alloc_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                        new_alloc_node->type, assign_node);
+  vec_new_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine);
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+  if (ndsp->routine != NULL) {
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+    /* Build a comma node that encloses the allocation call and the
+       __vec_new call.  See comment above. */
+    assign_node->next = vec_new_node;
+    vec_new_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                      vec_new_node->type, assign_node);
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   }  /* if */
-  /* Overwrite top_node with the cast. */
-  overwrite_node(top_expr, new_alloc_node);
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+  /* Overwrite expr with a cast of the result of __vec_new (of type void *)
+     to the right pointer type. */
+  change_to_cast(expr, vec_new_node, expr->type);
 }  /* lower_array_new */
 
 
 static void lower_array_delete(an_expr_node_ptr expr)
 /*
-Do lowering of an array delete operation.  expr points to the expression
-that calls the "delete" function.  There may or may not be an enk_new_init
-node under the delete call.  The subtree of the expression has not been
-lowered yet.
+Do lowering of an array delete operation.  expr points to the enk_new_delete
+for the operation.  The subtrees of the expression have not been lowered
+yet, except for the new/delete supplement arg expression.  This routine is
+used for arrays that require special handling, i.e., arrays with class
+elements.
 */
 {
-  an_expr_node_ptr   call_node, entity_node;
-  a_dynamic_init_ptr dip, elem_dip;
-  a_routine_ptr      dtor_routine;
+  a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+  a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
+  a_routine_ptr               dtor_routine;
+  an_expr_node_ptr            vec_delete_node;
 
-#if CHECKING
-  if (!is_operation_node(expr) ||
-      expr->variant.operation.kind != (an_expr_operator_kind)eok_call) {
-    internal_error("lower_array_delete: bad expr");
-  }  /* if */
-#endif /* CHECKING */
-  /* The second operand of the call is either the pointer to the storage
-     to be deleted or an enk_new_init that describes destruction to be done
-     before the deletion.  Find out which. */
-  entity_node = operand_of_delete_call(expr);
-  if (entity_node->kind == (an_expr_node_kind)enk_new_init) {
-    /* There is an enk_new_init. */
-    dip = entity_node->variant.init.dynamic_init;
-    entity_node = entity_node->variant.init.expr;
+  if (dip != NULL) {
+    /* A destructor must be called. */
     /* Get a pointer to the dynamic init entry that applies to the array
        elements instead of the whole array. */
     elem_dip = elem_dynamic_init(dip);
     /* Get the destructor to call. */
     dtor_routine = elem_dip->destructor;
-#if CHECKING
-    if (dtor_routine == NULL) {
-      internal_error("lower_array_delete: elem_dip has no destructor");
-    } /* if */
-#endif /* CHECKING */
+    check_assertion(dtor_routine != NULL);
   } else {
-    /* There is no enk_new_init, and therefore no destruction need be done
-       along with the deallocation. */
+    /* There is no dynamic init entry, and therefore no destruction need be
+       done along with the deallocation. */
     dtor_routine = NULL;
   }  /* if */
-  /* Lower the subtree of the entity_node. */
-  lower_normal_expr(entity_node);
-  call_node = make_vec_delete_call(entity_node, /*array_element_count=*/-1L,
-                                   dtor_routine, /*free_storage=*/TRUE);
+  vec_delete_node = make_vec_delete_call(ndsp->arg,
+                                         /*array_element_count=*/-1L,
+                                         dtor_routine,
+                                         /*free_storage=*/TRUE);
   /* Overwrite the original node with the __vec_delete call. */
-  overwrite_node(expr, call_node);
+  overwrite_node(expr, vec_delete_node);
 }  /* lower_array_delete */
 
 
-static void lower_new_init(an_expr_node_ptr expr)
+static a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type)
 /*
-Do IL lowering of an enk_new_init expression node, used to do initialization
-for a "new" or destruction for a "delete".  The subtree of the node has not
-yet been lowered.
+type is the base type underlying an array type involved in a new or delete.
+Return TRUE if the new or delete operation requires special handling.
+Special handling means the __vec_new and __vec_delete routines must be
+called, so that constructors and destructors will be called, and so 
+that the size of the array is recorded for use at the time of the delete
+of the array pointer.
 */
 {
-  a_constant         null_constant;
-  a_variable_ptr     temp_var;
-  an_expr_node_ptr   temp_var_node, assign_node, compare_node, null_node;
-  an_expr_node_ptr   init_node, init_expr, alloc_node, cast_node;
-  an_insert_location insert_location;
-  an_init_pos_descr  ipd;
-  a_dynamic_init_ptr dip;
-  a_boolean          keep_dynamic_init, keep_constant, delete_case;
-  a_type_ptr         array_type;
+  a_boolean                     special = FALSE;
+  a_class_symbol_supplement_ptr cssp;
 
-  dip = expr->variant.init.dynamic_init;
-  /* Handle new of an array in a specialized routine.  Delete of an array
-     shouldn't end up here because the array delete call above this
-     enk_temp_init should be specially handled. */
-  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    alloc_node = cast_node = expr->variant.init.expr;
-    /* Drop any casts on top of the call of the "new" function. */
-    while (is_operation_node(alloc_node) &&
-           alloc_node->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_cast) {
-      alloc_node = alloc_node->variant.operation.operands;
-    }  /* while */
-    if (new_call_requires_array_handling(alloc_node, cast_node)) {
-      lower_array_new(alloc_node, dip, expr);
-      goto node_processed;
+  /* Only types with a constructor or destructor require special handling. */
+  if (is_class_struct_union_type(type)) {
+    cssp = symbol_supplement_for_class(type);
+    if (cssp->constructor != NULL || cssp->destructor != NULL) {
+      special = TRUE;
     }  /* if */
   }  /* if */
-  /* An enk_new_init node means:
-       (1)  Evaluate the expression (which will be a call of an operator new()
-            for new, or the delete pointer for delete).
-       (2)  If the expression is non-NULL, do the initialization or
-            destruction indicated in the dynamic init entry pointed to.
-     This is translated into
-       ((temp = expression) != NULL) ? (initialization, temp) : NULL
-  */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  /* If assignment to "this" is allowed, the simplest cases of class
-     allocation (non-array, constructor call) can be done by calling the
-     constructor with a NULL pointer.  The constructor will do the allocation
-     and also the test to verify that the allocation succeeded.  Note that
-     the corresponding delete case is tested in lowering of eok_call (the
-     call there is above the enk_new_init). */
-  if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-    /* The initialization is a constructor call.  That test also guarantees
-       that we are not dealing with an array case or a delete case. */
+  return special;
+}  /* new_or_delete_type_requires_array_handling */
+
+
+static void lower_new(an_expr_node_ptr expr)
+/*
+Do IL lowering of an enk_new_delete expression node for a "new".
+The subtree of the node has not yet been lowered.
+*/
+{
+  a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+  a_dynamic_init_ptr          dip = ndsp->dynamic_init;
+  a_type_ptr                  base_type, ptr_base_type;
+  a_variable_ptr              temp_var;
+  an_expr_node_ptr            temp_var_node, assign_node, compare_node;
+  an_expr_node_ptr            init_node, call_node, null_node;
+  a_constant                  null_constant;
+  an_insert_location          insert_location;
+  an_init_pos_descr           ipd;
+  a_boolean                   keep_dynamic_init;
+
+  
+  base_type = new_delete_base_type_from_operation_type(ndsp->type);
+  if (is_array_type(ndsp->type) &&
+      new_or_delete_type_requires_array_handling(base_type)) {
+    /* An array "new". */
+    lower_array_new(expr);
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+  } else if (ndsp->routine == NULL) {
+    /* The "new" call has been folded into the constructor call. */
     a_routine_ptr    ctor_routine = dip->variant.constructor.routine;
-    an_expr_node_ptr temp_expr, null_node, call_node;
-    a_type_ptr       rout_class;
     an_expr_node_ptr implied_arg_list, end_implied_arg_list;
 
-    /* See if the address comes from a call of the default "new" routine. */
-    temp_expr = expr->variant.init.expr;
-    if (is_operation_node(temp_expr) &&
-        temp_expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-      /* (There's a cast from "void *" to pointer-to-class on top of the
-         new routine call.) */
-      temp_expr = temp_expr->variant.operation.operands;
-      if (is_operation_node(temp_expr) &&
-          temp_expr->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_call) {
-        temp_expr = temp_expr->variant.operation.operands;
-        rout_class = ctor_routine->source_corresp.class_of_which_a_member;
-        if (temp_expr->kind == (an_expr_node_kind)enk_routine_address &&
-            temp_expr->variant.routine ==
-                            rout_class->variant.class_struct_union.extra_info->
-                                                  assoc_operator_new_routine) {
-          /* The address is given by a call of the default "new" routine.
-             This is a case that can be rewritten as just a constructor
-             call, passing NULL as the "this" pointer. */
-          make_zero_of_proper_type(expr->type, &null_constant);
-          null_node = alloc_node_for_constant(&null_constant);
-          /* Add any implicit arguments for the constructor. */
-          make_ctor_implied_arg_list(ctor_routine, &implied_arg_list,
-                                     &end_implied_arg_list);
-          if (implied_arg_list != NULL) {
-            null_node->next = implied_arg_list;
-          } else {
-            end_implied_arg_list = null_node;
-          }  /* if */
-          /* Preserve any additional parameters from the constructor call. */
-          if (dip->variant.constructor.args != NULL) {
-            lower_arg_expr_list(dip->variant.constructor.args,
-                                ctor_routine->type);
-            if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
-                in_file_scope(dip->variant.constructor.args)) {
-              /* When generating the file-scope initialization routine we have
-                 expressions from the file scope that must be used in the
-                 function scope of the initialization routine, so copy them.
-                 Otherwise we have a difficult job keeping track of the nodes
-                 that are in the file scope and those that are in the function
-                 scope. */
-              dip->variant.constructor.args =
-                        copy_list_of_expr_trees(dip->variant.constructor.args);
-            }  /* if */
-            end_implied_arg_list->next = dip->variant.constructor.args;
-          }  /* if */
-          /* Make the constructor call. */
-          call_node = make_call_node(ctor_routine, null_node);
-          /* Overwrite the enk_new_init node with the call node. */
-          overwrite_node(expr, call_node);
-          goto node_processed;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  /* Allocate the temporary. */
-  init_expr = expr->variant.init.expr;
-  temp_var = make_temporary(expr->type);
-  temp_var_node = var_lvalue_expr(temp_var);
-  /* Assign the entity address expression to the temporary. */
-  lower_normal_expr(init_expr);
-  temp_var_node->next = init_expr;
-  assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                   expr->type, temp_var_node);
-  /* Compare the assignment node to a NULL constant of the right type. */
-  make_zero_of_proper_type(expr->type, &null_constant);
-  null_node = alloc_node_for_constant(&null_constant);
-  assign_node->next = null_node;
-  compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
-                                    integer_type((an_integer_kind)ik_int),
-                                    assign_node);
-  /* Start the initialization code as just the value of the temporary.
-     Additional code will be inserted by putting comma operators on
-     top of this node. */
-  init_node = var_rvalue_expr(temp_var);
-  set_expr_insert_location(init_node, &insert_location);
-  /* Generate code for the initialization or destruction. */
-  set_var_indirect_init_pos_descr(temp_var, &ipd);
-  /* See whether we have a "new" case or a "delete" case.  When the thing being
-     allocated or freed is an array, the dynamic init points to an
-     aggregate constant, and one must look under that constant to find the
-     operation being done. */
-  delete_case = FALSE;
-  if (dip->destructor != NULL) {
-    delete_case = TRUE;
-  } else if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    /* Initialization/destruction for an array.  Change the type of thing
-       pointed to to an array of unknown size. */
-    array_type = alloc_type((a_type_kind)tk_array);
-    array_type->variant.array.element_type = ipd.base_type;
-    ipd.base_type = array_type;
-    /* See if the dynamic init entry for the array elements indicates
-       destruction. */
-    if (elem_dynamic_init(dip)->destructor != NULL) delete_case = TRUE;
-  }  /* if */
-  if (!delete_case) {
-    /* "new" case. */
-    lower_dynamic_init(dip, &ipd,
-                       /*first_time_test_var=*/(a_variable_ptr)NULL,
-                       /*is_expr_temporary=*/FALSE,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL,
-                       &insert_location, &keep_dynamic_init);
-#if CHECKING
-    if (keep_dynamic_init) {
-      internal_error("lower_new_init: keep_dynamic_init unexpected");
-    }  /* if */
-#endif /* CHECKING */
-  } else {
-    /* "delete" case. */
-    if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-      /* Odd case: destructor for an array.  The top level looks like an
-         initialization; lower down we will find dynamic init entries for
-         the destruction. */
-#if CHECKING
-      keep_constant = FALSE;
-#endif /* CHECKING */
-      lower_dynamic_init_aggregate_constant(dip->variant.constant,
-                                            &ipd, (a_variable_ptr)NULL,
-                                            /*dtor_case=*/TRUE,
-                                            (a_constructor_init_ptr)NULL,
-                                            &insert_location,
-                                            &keep_constant);
-#if CHECKING
-      if (keep_constant) {
-        internal_error("lower_new_init: keep_constant unexpected");
-      }  /* if */
-#endif /* CHECKING */
+    /* Lower "arg" even though it is ignored.  This is necessary to get the
+       IL walk flags flipped in the expressions.  Note that it is not
+       necessary to lower this as an argument list because it will not
+       be used. */
+    lower_expr_list(ndsp->arg, 0, FALSE);
+    /* Pass a NULL for the "this" parameter to tell the constructor to
+       do the allocation. */
+    make_zero_of_proper_type(make_pointer_type(base_type), &null_constant);
+    null_node = alloc_node_for_constant(&null_constant);
+    /* Add any implicit arguments for the constructor. */
+    make_ctor_implied_arg_list(ctor_routine, &implied_arg_list,
+                               &end_implied_arg_list);
+    if (implied_arg_list != NULL) {
+      null_node->next = implied_arg_list;
     } else {
-      /* Normal case; generate the code to do the destruction. */
-      add_destructor_call(dip, var_rvalue_expr(temp_var),
-                          /*have_complete_object=*/TRUE,
-                          /*honor_virtual=*/TRUE,
-                          &insert_location);
+      end_implied_arg_list = null_node;
     }  /* if */
+    /* Preserve any additional parameters from the constructor call. */
+    if (dip->variant.constructor.args != NULL) {
+      lower_arg_expr_list(dip->variant.constructor.args,
+                          ctor_routine->type);
+      end_implied_arg_list->next = dip->variant.constructor.args;
+    }  /* if */
+    /* Make the constructor call. */
+    call_node = make_call_node(ctor_routine, null_node);
+    /* The constructor call returns a pointer to the object initialized.
+       Cast the pointer to the right type if necessary. */
+    call_node = add_cast_if_necessary(call_node, expr->type);
+    /* Overwrite the enk_new_delete node with the call/cast. */
+    overwrite_node(expr, call_node);
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+  } else {
+    /* Non-array case, or array case that does not require special handling. */
+    /* Create a call of the "new" routine. */
+    lower_arg_expr_list(ndsp->arg, ndsp->routine->type);
+    call_node = make_call_node(ndsp->routine, ndsp->arg);
+    /* Note that the type of the "new" call might be unrelated to the type
+       we are allocating, e.g., it might be "void *"; a cast is done later. */
+    if (dip != NULL) {
+      /* Initialization is required.  It must be done only if the allocation
+         succeeds, so build an expression like
+           ((temp = (type *)new-call(...)) != NULL) ?
+                                     (initialization, temp) : NULL
+      */
+      /* Allocate the temporary. */
+      ptr_base_type = make_pointer_type(base_type);
+      temp_var = make_temporary(ptr_base_type);
+      temp_var_node = var_lvalue_expr(temp_var);
+      /* Assign the entity address expression to the temporary. */
+      temp_var_node->next = add_cast_if_necessary(call_node, ptr_base_type);
+      assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
+                                       ptr_base_type, temp_var_node);
+      /* Compare the assignment node to a NULL constant of the right type. */
+      make_zero_of_proper_type(ptr_base_type, &null_constant);
+      null_node = alloc_node_for_constant(&null_constant);
+      assign_node->next = null_node;
+      compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                        integer_type((an_integer_kind)ik_int),
+                                        assign_node);
+      /* Start the initialization code as just the value of the temporary.
+         Additional code will be inserted by putting comma operators on
+         top of this node. */
+      init_node = var_rvalue_expr(temp_var);
+      set_expr_insert_location(init_node, &insert_location);
+      /* Build a description of the entity to be initialized.  Adjust the
+         type so that it is an array if necessary. */
+      set_var_indirect_init_pos_descr(temp_var, &ipd);
+      ipd.base_type = ndsp->type;
+      /* Generate code for the initialization. */
+      lower_dynamic_init(dip, &ipd,
+                         /*first_time_test_var=*/(a_variable_ptr)NULL,
+                         /*is_expr_temporary=*/FALSE,
+                         (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                         (a_constructor_init_ptr)NULL,
+                         &insert_location, &keep_dynamic_init);
+      check_assertion(!keep_dynamic_init);
+      /* Build the ?: operation.  Its first argument is the comparison of
+         the temp pointer against NULL; its second is the initialization code;
+         and its third is another NULL constant of the right type. */
+      make_zero_of_proper_type(ptr_base_type, &null_constant);
+      null_node = alloc_node_for_constant(&null_constant);
+      compare_node->next = init_node;
+      init_node->next = null_node;
+      call_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                     ptr_base_type, compare_node);
+    }  /* if */
+    /* Turn the original enk_new_delete node into a cast to the right
+       pointer type. */
+    change_to_cast(expr, call_node, expr->type);
   }  /* if */
-  /* Build the ?: operation.  Its first argument is the comparison of
-     the temp pointer against NULL; its second is the initialization code;
-     and its third is another NULL constant of the right type.  Overwrite
-     the original enk_new_init node with the "?" node. */
-  make_zero_of_proper_type(expr->type, &null_constant);
-  null_node = alloc_node_for_constant(&null_constant);
-  set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-  set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                    expr->type, compare_node);
-  compare_node->next = init_node;
-  init_node->next = null_node;
-node_processed:;
-}  /* lower_new_init */
+}  /* lower_new */
 
 
-static a_boolean is_simple_delete_with_dtor_call(
-                                              an_expr_node_ptr   expr,
-                                              a_routine_ptr      *dtor_routine,
-                                              an_expr_node_ptr   *dtor_this)
+static void lower_delete(an_expr_node_ptr expr)
 /*
-Return TRUE if the indicated expression (an eok_call node) is a call
-of a delete routine whose argument is a destructor call.  Such a call
-can be rewritten as just a destructor call.  When TRUE is returned,
-*dtor_routine is set to the destructor routine and *dtor_this to its
-"this" argument.
+Do IL lowering of an enk_new_delete expression node for a "delete".
+The subtree of the node has not yet been lowered.
 */
 {
-  a_boolean          is_simple_delete = FALSE;
-  an_expr_node_ptr   operand_node = expr->variant.operation.operands;
-  a_routine_ptr      rout;
-  a_dynamic_init_ptr dip;
-  a_type_ptr         dtor_class;
-  an_expr_node_ptr   this_node;
+  a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+  a_dynamic_init_ptr          dip = ndsp->dynamic_init;
+  a_type_ptr                  base_type;
+  a_constant                  null_constant;
+  an_expr_node_ptr            ptr_node = ndsp->arg, ptr_node_copy, call_node;
+  an_expr_node_ptr            operand_node, compare_node;
 
-  *dtor_routine = NULL;
-  *dtor_this = NULL;
-  if (operand_node->kind == (an_expr_node_kind)enk_routine_address) {
-    rout = operand_node->variant.routine;
-    if (rout->special_kind == (a_special_function_kind)sfk_operator &&
-        rout->opname_kind == (an_opname_kind)onk_delete &&
-        !expr->variant.operation.new_or_delete_call_for_array) {
-      /* The routine being called is a delete routine, and not for an array.
-         See if this is a simple class delete, and if so, rewrite it to call
-         the destructor with a special flag.  The destructor will do the
-         delete call. */
-      this_node = operand_node->next;
-      /* Look for an enk_new_init with a cast above it. */
-      if (is_operation_node(this_node) &&
-          this_node->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_cast) {
-        this_node = this_node->variant.operation.operands;
-        if (this_node->kind == (an_expr_node_kind)enk_new_init) {
-          dip = this_node->variant.init.dynamic_init;
-          *dtor_routine = dip->destructor;
-          if (*dtor_routine != NULL) {
-            dtor_class =
-                       (*dtor_routine)->source_corresp.class_of_which_a_member;
-            if (dtor_class->variant.class_struct_union.extra_info->
-                                       assoc_operator_delete_routine == rout) {
-              /* The expression is a call of a delete routine with a destructor
-                 call specifying the address. */
-              *dtor_this = this_node->variant.init.expr;
-              is_simple_delete = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_simple_delete;
-}  /* is_simple_delete_with_dtor_call */
+  /* Lower the pointer to the object to be deleted. */
+  lower_normal_expr(ptr_node);
+  base_type = new_delete_base_type_from_operation_type(ndsp->type);
+  if (is_array_type(ndsp->type) &&
+      new_or_delete_type_requires_array_handling(base_type)) {
+    /* An array "delete". */
+    lower_array_delete(expr);
+#if !DELETE_CAN_BE_FOLDED_INTO_DTOR
+/* IL lowering requires that it be possible to fold the delete call into
+   a destructor.  Without that, it has no way of getting the right size
+   on a delete of a pointer to a class with a virtual destructor. */
+??=error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
+#endif /* !DELETE_CAN_BE_FOLDED_INTO_DTOR */
+  } else if (ndsp->routine == NULL) {
+    /* The "delete" call has been folded into the destructor call. */
+    a_routine_ptr dtor_routine = dip->destructor;
 
-
-static void lower_simple_delete(an_expr_node_ptr expr,
-                                a_routine_ptr    dtor_routine,
-                                an_expr_node_ptr dtor_this)
-/*
-Rewrite a simple delete with destructor call as just a destructor call.
-expr points to the eok_call node for the delete call.  dtor_routine points
-to the destructor routine and dtor_this is the "this" argument for the
-destructor, which is a subtree somewhere inside expr.  Neither expr nor
-dtor_this has been lowered.
-*/
-{
-  an_expr_node_ptr operand_node = expr->variant.operation.operands;
-  an_expr_node_ptr dtor_this_copy, compare_node;
-  a_constant       null_constant;
-
-  /* Lower the pointer to the object to be deleted.  Note that "expr"
-     itself is not lowered; the parts outside of dtor_this (a subtree)
-     are replaced. */
-  lower_normal_expr(dtor_this);
-  /* We have a call of a delete routine for which the "this" pointer is run
-     through a destructor.  We can rewrite this call to call the destructor
-     with a flag bit that asks the destructor to do the delete call. */
-  operand_node->variant.routine = dtor_routine;
-  operand_node->next = dtor_this;
-  /* 0x3 is 0x2 (whole object) + 0x1 (free storage). */
-  dtor_this->next = node_for_integer_constant(3L, (an_integer_kind)ik_int);
-  if (dtor_routine->is_virtual) {
-    /* The destructor is virtual, so rewrite the call. */
-    expr->variant.operation.kind = (an_expr_operator_kind)eok_virtual_call;
-    /* Make a copy of the "this" argument so it can be used twice. */
-    dtor_this_copy = make_reusable_copy(dtor_this);
-    /* Put the copy under the original destructor call; the original gets
-       tested for NULL. */
-    dtor_this_copy->next = dtor_this->next;
-    operand_node->next = dtor_this_copy;
-    /* Rewrite the virtual call as a normal call. */
-    lower_virtual_function_call(expr);
-    /* Also ... if the pointer to be deleted is NULL, one can't use it to
-       look up a virtual function, and therefore the destructor cannot
-       be the one to do the NULL pointer test.  We must add the test here
-       above the destructor call.  The test inside the destructor is still
-       needed for those cases where the routine is called non-virtually. */
-    /* Make "dtor_this != NULL". */
-    make_zero_of_proper_type(dtor_this->type, &null_constant);
-    dtor_this->next = alloc_node_for_constant(&null_constant);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
-                                      integer_type((an_integer_kind)ik_int),
-                                      dtor_this);
-    /* Make "(dtor_this != NULL) ? dtor(...) : (void)0".  Make a copy of the
-       call node so that we can reuse the original node as the "?". */
-    compare_node->next = copy_node(expr);
-    compare_node->next->next =
+    check_assertion(dtor_routine != NULL);
+    /* Add an implicit parameter to the destructor call to indicate
+       deallocation: 0x3 is 0x2 (whole object) + 0x1 (free storage). */
+    ptr_node->next = node_for_integer_constant(3L, (an_integer_kind)ik_int);
+    /* Make a call of the destructor. */
+    call_node = make_call_node(dtor_routine, ptr_node);
+    if (dtor_routine->is_virtual) {
+      /* The destructor is virtual, so rewrite the call. */
+      call_node->variant.operation.kind =
+                                       (an_expr_operator_kind)eok_virtual_call;
+      /* Make a copy of the "this" argument so it can be used twice. */
+      ptr_node_copy = make_reusable_copy(ptr_node);
+      /* Put the copy under the original destructor call; the original gets
+         tested for NULL. */
+      operand_node = call_node->variant.operation.operands;
+      ptr_node_copy->next = ptr_node->next;
+      operand_node->next = ptr_node_copy;
+      /* Rewrite the virtual call as a normal call. */
+      lower_virtual_function_call(call_node);
+      /* Also ... if the pointer to be deleted is NULL, one can't use it to
+         look up a virtual function, and therefore the destructor cannot
+         be the one to do the NULL pointer test.  We must add the test here
+         above the destructor call.  The test inside the destructor is still
+         needed for those cases where the routine is called non-virtually. */
+      /* Make "ptr_node != NULL". */
+      make_zero_of_proper_type(ptr_node->type, &null_constant);
+      ptr_node->next = alloc_node_for_constant(&null_constant);
+      compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                        integer_type((an_integer_kind)ik_int),
+                                        ptr_node);
+      /* Make "(ptr_node != NULL) ? dtor(...) : (void)0". */
+      compare_node->next = call_node;
+      compare_node->next->next =
                add_cast(node_for_integer_constant(0L, (an_integer_kind)ik_int),
                         void_type());
-    set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                      compare_node->next->type, compare_node);
+      /* Overwrite the enk_new_delete node with the "?". */
+      set_node_operator(expr, (an_expr_operator_kind)eok_question,
+                        compare_node->next->type, compare_node);
+    } else {
+      /* Non-virtual case. */
+      /* Overwrite the enk_new_delete node with the call. */
+      overwrite_node(expr, call_node);
+    }  /* if */
+  } else {
+    /* Non-array case, or array case that does not require special handling,
+       i.e., a simple "delete" call. */
+    /* No cases that involve destructors get here either, because the
+       delete would be folded into the destructor call.  Those cases are
+       handled earlier in this routine. */
+    check_assertion(ndsp->dynamic_init == NULL);
+    /* Make the "delete" call.  It is not necessary to test for non-NULL;
+       the delete routine does that. */
+    call_node = make_call_node(ndsp->routine, ptr_node);
+    /* Overwrite the enk_new_delete node with the call. */
+    overwrite_node(expr, call_node);
   }  /* if */
-}  /* lower_simple_delete */
+}  /* lower_delete */
+
+
+static void lower_new_delete(an_expr_node_ptr expr)
+/*
+Do IL lowering of an enk_new_delete expression node, used for a "new" or
+"delete".  The subtree of the node has not yet been lowered.
+*/
+{
+  if (expr->variant.new_delete->is_new) {
+    /* "new" case. */
+    lower_new(expr);
+  } else {
+    /* "delete" case. */
+    lower_delete(expr);
+  }  /* if */
+}  /* lower_new_delete */
 
 
 static void lower_expr(an_expr_node_ptr expr,
@@ -9559,8 +9335,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
   a_boolean             is_conditional_operator, is_call;
-  a_routine_ptr         dtor_routine;
-  an_expr_node_ptr      dtor_this;
 
   lower_os_type(expr->type);
   switch (expr->kind) {
@@ -9615,32 +9389,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Cast of pointer-to-member to base or derived class is rewritten.
            This call also lowers any subtree. */
         lower_pm_related_class_cast(expr, is_lvalue);
-      } else if (op == (an_expr_operator_kind)eok_call &&
-                 is_simple_delete_with_dtor_call(expr, &dtor_routine,
-                                                 &dtor_this)) {
-        /* Rewrite a simple delete with destructor call as just a destructor
-           call. */
-        lower_simple_delete(expr, dtor_routine, dtor_this);
-      } else if (expr->variant.operation.new_or_delete_call_for_array &&
-                 delete_call_requires_array_handling(expr)) {
-#if CHECKING
-        /* A "new" call encountered here means we somehow missed the cast
-           over this new.  Since this new is allocating something of type
-           array, there should be a cast on top of the call. */
-#endif /* CHECKING */
-        /* A call of an operator delete routine for an array. */
-        lower_array_delete(expr);
-      } else if (op == (an_expr_operator_kind)eok_cast &&
-                 is_operation_node(operand_node) &&
-                 operand_node->variant.operation.new_or_delete_call_for_array&&
-                 is_pointer_type(expr->type) &&
-                 array_new_or_delete_call_is_new_call(operand_node) &&
-                 new_call_requires_array_handling(operand_node, expr)) {
-        /* A cast to a pointer type over an array new call.  Handle
-           the cast as part of the new.  The call has no associated
-           dynamic initialization, or we would have found it higher up
-           in the tree. */
-        lower_array_new(operand_node, (a_dynamic_init_ptr)NULL, expr);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has conditional operands. */
@@ -9744,9 +9492,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  implied arguments. */
               add_implied_args_to_call(expr, rout);
             }  /* if */
-            /* If the call was for an array new or delete, it's not being
-               handled as a special array case, so clear the flag now. */
-            expr->variant.operation.new_or_delete_call_for_array = FALSE;
             break;
           case eok_cast:
             /* A cast from one pointer-to-member type to another does nothing.
@@ -9879,8 +9624,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
          the operand node. */
       overwrite_node(expr, operand_node);
       break;
-    case enk_new_init:
-      lower_new_init(expr);
+    case enk_new_delete:
+      lower_new_delete(expr);
       break;
 #if CHECKING
     default:
@@ -11020,14 +10765,16 @@ constructor scope.
 */
 {
   an_insert_location insert_location;
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
 
-  /* Add the wrapper code at the start of the routine.  If there is an
-     assignment to "this" in the body of the constructor, do not issue
-     the wrapper code here; it will be issued after each assignment to
-     "this". */
+  /* Add the wrapper code at the start of the routine. */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  /* If there is an assignment to "this" in the body of the constructor,
+     do not issue the wrapper code here; it will be issued after each
+     assignment to "this". */
   if (!ctor_routine->assignment_to_this_done) {
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     /* Start off with code to allocate storage if "this" is NULL:
          if (this != NULL || (this = new-rout(size)) != NULL)
        The entire rest of the routine (both wrapper code and user code)
@@ -11075,14 +10822,16 @@ constructor scope.
     /* Make "if (this != NULL || (this = new-rout(size)) != NULL)". */
     enclose_routine_in_if(scope, if_node, &block_stmt, this_param_var);
     set_block_start_insert_location(block_stmt, &insert_location);
-#else /* !ASSIGNMENT_TO_THIS_ALLOWED */
+#else /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
     set_block_start_insert_location(scope->assoc_block, &insert_location);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
     /* Add the wrapper code. */
     add_constructor_wrapper_code(scope, &insert_location);
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
 #if ASSIGNMENT_TO_THIS_ALLOWED
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 }  /* lower_constructor_code */
 
 
@@ -11186,7 +10935,7 @@ destructor scope.
      are tests and loops done in the processing in this routine; other
      lines are the code added to the destructor routine.
 
-     [If assignment to "this" is allowed:]
+     [If a delete can be folded into the destructor:]
        If this != NULL test around entire routine.
      [endif]
      [If the current class has any virtual functions:]
@@ -11457,7 +11206,10 @@ destructor scope.
     an_expr_node_ptr this_param_node, null_constant_node, if_node;
     a_constant       null_constant;
 
-    /* Make and add "if (this != NULL)" around the entire routine body. */
+    /* Make and add "if (this != NULL)" around the entire routine body.
+       This is needed when the delete call can be folded into the
+       destructor call, and is handy to avoid a test before the call
+       even when that is not allowed. */
     this_param_node = var_rvalue_expr(this_param_var);
     make_zero_of_proper_type(this_param_var->type, &null_constant);
     null_constant_node = alloc_node_for_constant(&null_constant);
