@@ -3603,6 +3603,8 @@ specification allow a variable-sized array as the top type.
          that the variable-size type does not escape from the front end. */
       unqual_new_type->variant.array.is_variable_size_array = FALSE;
       unqual_new_type->variant.array.variant.number_of_elements = 0;
+      unqual_new_type->size = 0;
+      set_type_size(unqual_new_type);
     }  /* if */
   }  /* if */
   ptr_new_type = make_pointer_type(base_new_type);
