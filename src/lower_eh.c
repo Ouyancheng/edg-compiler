@@ -108,7 +108,7 @@ static a_variable_ptr make_typeinfo_var(a_type_ptr type)
 /*
 Make a typeinfo variable for the indicated type (if it does not exist
 already) and return a pointer to it.  The variable points to runtime
-type information.
+type information.  It is always allocated in the file scope memory region.
 */
 {
   a_variable_ptr  typeinfo_var;
@@ -262,17 +262,19 @@ scope (which might be a block scope).
   a_variable_ptr var;
   a_constant_ptr aggr_con;
 
-  /* The current region is already the file scope memory region when
-     this routine is called. */
-  check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
   /* Make the variable with an array type. */
   var = make_unnamed_local_static_array_var(elem_type, in_function_scope);
   /* The initial value is an aggregate constant pointing to a list of
      aggregate constants. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   /* Attach the aggregate constant as the initial value of the variable. */
-  var->init_kind = (an_init_kind)initk_static;
-  var->initializer.constant = aggr_con;
+  /* Use a local-static-variable-init entry to indicate the initialization. */
+  (void)alloc_local_static_variable_init(var, 
+                                         in_function_scope ?
+                                              nearest_function_scope :
+                                              curr_context->scope,
+                                         (an_init_kind)initk_static,
+                                         aggr_con, (a_dynamic_init_ptr)NULL);
   return var;
 }  /* make_init_unnamed_local_static_array_var */
 
@@ -390,7 +392,8 @@ static a_variable_ptr make_base_class_array_var(a_type_ptr type)
 /*
 type is a class type that has base classes.  Make a variable initialized
 with an array of base_class_spec entries for the base classes of the type.
-This is used as part of the typeinfo information.
+This is used as part of the typeinfo information.  The variable is always
+allocated in the file scope memory region.
 */
 {
   a_type_ptr       array_type;
@@ -1401,8 +1404,6 @@ associated variable if necessary) and return its index number.
 {
   a_targ_size_t entry_number;
 
-  /* Note that the current memory region must not have been forced to the
-     file scope memory region at this point. */
   /* Make the variable if it has not yet been made. */
   if (object_addr_table_var == NULL) {
     /* The variable is an array whose elements have type "void *". */
@@ -1438,21 +1439,14 @@ the size is not available in the region description entry).
 {
   a_targ_size_t    object_addr_index, entry_number;
   long             elem_count;
-  a_memory_region_number
-                   region_to_switch_back_to;
   a_constant_ptr   index_con, elem_size_con, size_con, aggr_con;
   a_type_ptr       elem_type;
 
-  /* Note that the current memory region must not have been forced to the
-     file scope memory region at this point. */
   /* Allocate the proper entry in the object address table. */
   check_assertion(is_object_cleanup_action(cap));
   object_addr_index = object_addr_table_index();
   init_object_addr_table_entry(&cap->variant.object.init_pos_descr,
                                object_addr_index, insert_location);
-  /* Switch to the file scope memory region so the variable and initialization
-     constants will be allocated there. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Make the variable if it has not yet been made. */
   if (array_table_var == NULL) {
     /* The variable is an array whose elements have type array_descr. */
@@ -1493,9 +1487,6 @@ the size is not available in the region description entry).
   aggr_con->variant.aggregate.last_constant = size_con;
   /* Add the aggregate as an element of the object address table array. */
   entry_number = add_elem_to_array_var(array_table_var, aggr_con);
-  /* Return to the memory region that was current when this routine was
-     entered. */
-  switch_back_to_original_region(region_to_switch_back_to);
   return entry_number;
 }  /* array_table_entry */
 
@@ -1763,7 +1754,6 @@ value of region_table_var.  Return the address of the aggregate constant.
   a_constant_ptr dtor_con, handle_con, prev_con, flags_con, aggr_con;
   a_type_ptr     ptr_func_type;
 
-  /* The current memory region should be the file scope memory region. */
   /* Make the aggregate constant for the entry in the region description
      table.  It has a structure as follows:
        struct region_descr {
@@ -1827,8 +1817,6 @@ pointer can be examined.
 {
   a_boolean        need_array_info;
   a_targ_size_t    handle_number, conditional_handle_number;
-  a_memory_region_number
-                   region_to_switch_back_to;
   unsigned long    flags_value = 0;
   a_cleanup_action_ptr
                    next_cleanup, prev_cleanup;
@@ -1836,8 +1824,6 @@ pointer can be examined.
   a_cleanup_region_number
                    region_number_to_set;
 
-  /* Note that the current memory region must not have been forced to the
-     file scope memory region at this point. */
   check_assertion(is_object_cleanup_action(cap));
   /* See if we need array information on the entity. */
   need_array_info = FALSE;
@@ -1879,9 +1865,6 @@ pointer can be examined.
        by init_conditional_flag_var. */
     flags_value |= RDF_CONDITIONAL_FLAG;
   }  /* if */
-  /* Switch to the file scope memory region so the variable and initialization
-     constants will be allocated there. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Make the variable if it has not yet been made. */
   if (region_table_var == NULL) {
     /* The variable is an array whose elements have type array_descr. */
@@ -1979,9 +1962,6 @@ pointer can be examined.
                                  conditional_handle_number,
                                  (unsigned long)0);
   }  /* if */
-  /* Return to the memory region that was current when this routine was
-     entered. */
-  switch_back_to_original_region(region_to_switch_back_to);
   /* Insert an assignment statement that sets the global variable
      __eh_curr_region to the region number for this entry.  Don't do
      this in destructor wrappers (the assignment gets done explicitly
@@ -2002,7 +1982,6 @@ the aggregate constant for the clone.
 {
   a_constant_ptr con_list, end_con_list, source_con, copy_con, clone_aggr_con;
 
-  /* The current IL memory region is already the file scope at this point. */
   /* Copy the list of constants. */
   con_list = end_con_list = NULL;
   for (source_con = aggr_con->variant.aggregate.first_constant;
@@ -2079,14 +2058,7 @@ remove_cleanup_action).
        list.  They are still active, but they cannot point to this
        region any longer.  Therefore, those entries are cloned in
        versions that no longer link through the removed entry. */
-    a_memory_region_number region_to_switch_back_to;
-    /* Switch to the file scope memory region so the constants will be
-       allocated there. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
     clone_cleanup_action(curr_context->exception_cleanup_actions, cap);
-    /* Return to the memory region that was current when this routine was
-       entered. */
-    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* remove_from_exception_cleanup_list */
 
@@ -2099,8 +2071,6 @@ specification entries, and return a pointer to the variable.
 {
   a_variable_ptr var;
 
-  /* The current region is already the file scope memory region when
-     this routine is called. */
   /* Make a variable that is an array of exception type specification
      entries. */
   var = make_init_unnamed_local_static_array_var(
@@ -2122,8 +2092,6 @@ If type is NULL, add an ellipsis entry.
   unsigned long  flags_value;
   a_constant_ptr typeinfo_con, flags_con, aggr_con;
 
-  /* The current region is already the file scope memory region when
-     this routine is called. */
   /* Each element of the array is an exception_type_spec struct
      containing a pointer to the typeinfo information and a flags byte.
      The flags byte indicates the cases where the type indicated is a
@@ -2268,7 +2236,6 @@ throw specification indicates that no types may be thrown.
 */
 {
   a_variable_ptr                       var;
-  a_memory_region_number               region_to_switch_back_to;
   an_exception_specification_type_ptr  espt;
 
   espt = throw_spec->exception_specification_type_list;
@@ -2278,9 +2245,6 @@ throw specification indicates that no types may be thrown.
   } else {
     /* There are some types on the throw list, so an array of those will
        have to be built. */
-    /* Switch to the file scope memory region so that initial values will
-       be allocated there. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make the variable. */
     var = make_exception_type_spec_array_var();
     /* Fill the array with entries for the types that can be thrown. */
@@ -2291,9 +2255,6 @@ throw specification indicates that no types may be thrown.
     }  /* for */
     /* Finish off the array. */
     finish_exception_type_spec_array(var);
-    /* Return to the memory region that was current when this routine was
-       entered. */
-    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   return var;
 }  /* exception_type_spec_array_from_throw_spec */
@@ -2475,12 +2436,7 @@ catch clauses on the indicated list.  Return a pointer to the variable.
 {
   a_variable_ptr var;
   a_handler_ptr  handler;
-  a_memory_region_number
-                 region_to_switch_back_to;
 
-  /* Switch to the file scope memory region so that initial values will
-     be allocated there. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Make the variable. */
   var = make_exception_type_spec_array_var();
   /* Fill the array with entries for the catch clause types. */
@@ -2498,9 +2454,6 @@ catch clauses on the indicated list.  Return a pointer to the variable.
   }  /* for */
   /* Finish off the array. */
   finish_exception_type_spec_array(var);
-  /* Return to the memory region that was current when this routine was
-     entered. */
-  switch_back_to_original_region(region_to_switch_back_to);
   return var;
 }  /* make_catch_array_var */
 

@@ -3329,7 +3329,11 @@ If this assignment is the first one, put out anything that must precede it.
          with an explicit initk_zero initialization (there won't be any
          assignments following the zeroing in that case). */
       if (!has_static_storage_duration(variable->storage_class)) {
-        if (variable->init_kind == (an_init_kind)initk_zero ||
+        an_init_kind       init_kind;
+        an_initializer_ptr initializer;
+        get_variable_initializer(variable, curr_scope, &init_kind,
+                                 &initializer);
+        if (init_kind == (an_init_kind)initk_zero ||
             variable->is_partially_initialized) {
           zero_variable(variable);
         }  /* if */
@@ -3750,26 +3754,31 @@ it will be rendered as executable code.
 }  /* dump_initializer */
 
 
-static a_constant_ptr constant_initializer(a_variable_ptr variable)
+static a_constant_ptr constant_initializer(a_variable_ptr variable,
+                                           an_init_kind   *init_kind)
 /*
 If variable has a constant initializer return a pointer to the constant value.
-Otherwise, return NULL.
+Otherwise, return NULL.  Return *init_kind set to the initialization kind
+for the variable.
 */
 {
-  a_constant_ptr init_con = NULL;
+  an_initializer_ptr initializer;
+  a_constant_ptr     init_con = NULL;
 
-  if (variable->init_kind == (an_init_kind)initk_static) {
+  get_variable_initializer(variable, curr_scope, init_kind, &initializer);
+  if (*init_kind == (an_init_kind)initk_static) {
     /* The variable has a constant static initializer. */
-    init_con = variable->initializer.constant;
-  } else if (variable->init_kind == (an_init_kind)initk_dynamic) {
-    a_dynamic_init_ptr dip = variable->initializer.dynamic;
+    init_con = initializer->constant;
+  } else if (*init_kind == (an_init_kind)initk_dynamic) {
+    a_dynamic_init_ptr dip;
+    dip = initializer->dynamic;
     if (dip->kind == (a_dynamic_init_kind)dik_constant) {
       /* The variable has a constant dynamic initializer. */
       if (dip->follows_an_exec_statement) {
         /* C++ case -- the initialization is in the middle of a block and
            should not be treated as a constant initialization. */
       } else {
-        init_con = variable->initializer.dynamic->variant.constant;
+        init_con = dip->variant.constant;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3791,13 +3800,14 @@ parameters.
   a_type_ptr     var_type = variable->type;
   a_boolean      is_link, suppress_const = FALSE;
   char           *name;
+  an_init_kind   init_kind;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean      forced_static;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
   /* Determine whether or not the variable has a constant initializer.
      Non-constant initializers are handled by dump_dynamic_init. */
-  init_con = constant_initializer(variable);
+  init_con = constant_initializer(variable, &init_kind);
   /* See if this is the special __link variable generated for "patch".
      It gets special handling. */
   name = variable->source_corresp.name;
@@ -3856,8 +3866,7 @@ parameters.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if C_GEN_BE_GENERATES_ANSI_C
       if (variable->initialization_rewritten_as_assignment ||
-          (variable->init_kind == (an_init_kind)initk_dynamic &&
-           init_con == NULL)) {
+          (init_kind == (an_init_kind)initk_dynamic && init_con == NULL)) {
         /* When generating ANSI C, "const" will be put out.  However, if
            the variable's initialization was turned into executable code
            (either here or in IL lowering), the initialization code is
@@ -3885,7 +3894,7 @@ parameters.
       /* Don't initialize static arrays to zero, because it blows up
          the size of the executable. */
       if ((dump_initializers && init_con != NULL) ||
-          (variable->init_kind == (an_init_kind)initk_zero &&
+          (init_kind == (an_init_kind)initk_zero &&
            (!has_static_storage_duration(variable->storage_class) ||
             !is_array_type(variable->type)))) {
         dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
@@ -4251,10 +4260,11 @@ This is used for stmk_init statements.
 {
   a_variable_ptr whole_variable = dip->variable;
   a_boolean      init_already_done = FALSE;
+  an_init_kind   init_kind;
 
   /* If the initial value is a constant, the initialization was
      done in dump_variable and should not be done here. */
-  if (constant_initializer(whole_variable) != NULL) {
+  if (constant_initializer(whole_variable, &init_kind) != NULL) {
     init_already_done = TRUE;
   } else if (dip->kind == (a_dynamic_init_kind)dik_none) {
     /* No initialization to be done. */

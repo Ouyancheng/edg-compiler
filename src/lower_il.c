@@ -1333,9 +1333,8 @@ instead of the current context (which might be a block scope).
   check_assertion_str(curr_context != NULL,
                    "make_unnamed_local_static_variable: curr_context is NULL");
   return make_temporary_in_scope(type,
-                                 in_function_scope ?
-                                              nearest_function_context->scope :
-                                              curr_context->scope,
+                                 in_function_scope ? nearest_function_scope :
+                                                     curr_context->scope,
                                  /*force_static=*/TRUE);
 }  /* make_unnamed_local_static_variable */
 
@@ -2536,7 +2535,6 @@ the constant.
     if (constant->assoc_var_assigned) {
       assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
     } else {
-      a_constant_ptr init_constant = constant;
       /* The variable must be allocated. */
       (void)make_mptr_type();
       if (in_file_scope((char *)constant)) {
@@ -2546,24 +2544,27 @@ the constant.
            will end up being used only in the initialization of the
            variable (and therefore unshared). */
         assoc_var = make_file_scope_temporary(mptr_type);
+        /* Make the constant the initial value of the variable. */
+        assoc_var->init_kind = (an_init_kind)initk_static;
+        assoc_var->initializer.constant = constant;
       } else {
-        /* The constant is in the function scope, so a copy must be made so
-           it can be used as the initial value of a static variable. */
-        a_memory_region_number region_to_switch_back_to = NULL_region_number;
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        init_constant = copy_unshared_constant(init_constant);
-        switch_back_to_original_region(region_to_switch_back_to);
-        /* Use a function-local static variable. */
+        /* The constant is in the function scope, so use a function-local
+           static variable. */
         assoc_var = make_unnamed_local_static_variable(mptr_type,
                                                    /*in_function_scope=*/TRUE);
+        /* To initialize a local static variable to an aggregate we use
+           a local-static-variable-init entry (to avoid memory region
+           problems). */
+        (void)alloc_local_static_variable_init(assoc_var, 
+                                               nearest_function_scope,
+                                               (an_init_kind)initk_static,
+                                               constant,
+                                               (a_dynamic_init_ptr)NULL);
       }  /* if */
       /* Save the pointer in the assoc_info field so the variable can be
          reused. */
       constant->source_corresp.assoc_info = (char *)assoc_var;
       constant->assoc_var_assigned = TRUE;
-      /* Make the ck_aggregate constant the initial value of the variable. */
-      assoc_var->init_kind = (an_init_kind)initk_static;
-      assoc_var->initializer.constant = init_constant;
     }  /* if */
   }  /* if */
   *temp_var = assoc_var;
@@ -2676,7 +2677,7 @@ Create the variable to contain the virtual function table for base class bcp
 when it appears in a complete object of type class_type.  If bcp is NULL,
 create the variable for the virtual function table for the class_type itself.
 The variable is an array of structs, each of which describes one virtual
-function.  At this point, the variable is created an an extern variable.
+function.  At this point, the variable is created as an extern variable.
 It might be changed later to add a definition.
 */
 {
@@ -4038,6 +4039,42 @@ Do IL lowering of the indicated list of variables and everything under it.
 }  /* lower_variable_list */
 
 
+static void lower_initializer(an_init_kind       init_kind,
+                              an_initializer_ptr initializer)
+/*
+Lower an initializer, which might be in a variable or a
+local-variable-static-init entry.
+*/
+{
+  switch (init_kind) {
+    case initk_none:
+    case initk_zero:
+      break;
+    case initk_static:
+      lower_constant(initializer->constant);
+      break;
+    case initk_dynamic:
+      /* The dynamic init entry is either pointed to from a stmk_init
+         entry or appears on the file-scope dynamic inits list.  Handle
+         it when seen in one of those places. */
+      break;
+    case initk_function_local:
+      /* Initialization of a local static variable that is described
+         remotely by a local-static-variable-init.  Do nothing here;
+         the initialization is lowered from the function or block scope,
+         by scanning the local_static_variable_inits list.
+         That's necessary because the local static variable will be lowered
+         as part of the file scope, and the initialization (in the function
+         scope memory region) is gone by then. */
+      break;
+#if CHECKING
+    default:
+      internal_error("lower_initializer: bad kind");
+#endif /* CHECKING */
+  }  /* switch */
+}  /* lower_initializer */
+
+
 static void lower_variable(a_variable_ptr variable)
 /*
 Do IL lowering of the indicated variable and everything under it.
@@ -4069,23 +4106,8 @@ Do IL lowering of the indicated variable and everything under it.
       variable->source_corresp.referenced = FALSE;
       variable->init_kind = (an_init_kind)initk_none;
     }  /* if */
-    switch (variable->init_kind) {
-      case initk_none:
-      case initk_zero:
-        break;
-      case initk_static:
-        lower_constant(variable->initializer.constant);
-        break;
-      case initk_dynamic:
-        /* The dynamic init entry is either pointed to from a stmk_init
-           entry or appears on the file-scope dynamic inits list.  Handle
-           it when seen in one of those places. */
-        break;
-#if CHECKING
-      default:
-        internal_error("lower_variable: bad kind");
-#endif /* CHECKING */
-    }  /* switch */
+    /* Lower the initializer if any. */
+    lower_initializer(variable->init_kind, &variable->initializer);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode &&
         variable->source_corresp.class_of_which_a_member != NULL) {
@@ -4106,6 +4128,22 @@ Do IL lowering of the indicated variable and everything under it.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 }  /* lower_variable */
+
+
+static void lower_local_static_variable_init_list(
+                                        a_local_static_variable_init_ptr lsvip)
+/*
+Lower a list of local static variable initialization descriptions.  These
+are used to represent (in the function scope memory region) initialization
+of local static variables (which are in the file scope memory region
+and therefore cannot point at the initialization in the function scope
+memory region).
+*/
+{
+  for (; lsvip != NULL; lsvip = lsvip->next) {
+    lower_initializer(lsvip->init_kind, &lsvip->initializer);
+  }  /* for */
+}  /* lower_local_static_variable_init_list */
 
 
 static void lower_field_list(a_field_ptr field_list)
@@ -6045,7 +6083,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       break;
     case enk_object_lifetime:
 #if 0
-#else
+#else /* 0 */
       lower_expr(expr->variant.object_lifetime.expr, is_lvalue);
       overwrite_node(expr, expr->variant.object_lifetime.expr);
 #endif /* 0 */
@@ -7429,8 +7467,11 @@ by things that will be in the file scope.
        complicated, a routine is generated to contain the destruction
        code. */
     for (var = scope->variables; var != NULL; var = var->next) {
-      if (var->init_kind == (an_init_kind)initk_dynamic) {
-        dip = var->initializer.dynamic;
+      an_init_kind       init_kind;
+      an_initializer_ptr initializer;
+      get_variable_initializer(var, scope, &init_kind, &initializer);
+      if (init_kind == (an_init_kind)initk_dynamic) {
+        dip = initializer->dynamic;
         if (dip->destructor != NULL ||
             dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
           /* The initialization has a destructor, or it's an aggregate that
@@ -7874,6 +7915,7 @@ Do IL lowering of the indicated scope and everything under it.
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
+  lower_local_static_variable_init_list(scope->local_static_variable_inits);
   lower_label_list(scope->labels);
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);

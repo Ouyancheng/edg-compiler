@@ -2034,7 +2034,7 @@ Make the code that will ensure that the file-scope initialization routine
                                      struct_type, (a_storage_class)sc_static);
     /* Give the __link variable the initial value
          {NULL, __sti__module_id, NULL}
-       If either routine does not exist, use a NULL instead. */
+       If the initialization routine does not exist, use a NULL instead. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     link_var->init_kind = (an_init_kind)initk_static;
     link_var->initializer.constant = aggr_con;
@@ -2675,7 +2675,6 @@ and update *insert_location accordingly.
   a_constant_ptr         aggr_con, next_con, object_con, dtor_con;
   a_boolean              complex_cleanup, complex_address;
   a_routine_ptr          dtor_routine;
-  a_memory_region_number region_to_switch_back_to = NULL_region_number;
   an_init_pos_descr_ptr  ipdp;
   an_expr_node_ptr       call_node;
   a_statement_ptr        call_stmt;
@@ -2704,14 +2703,15 @@ and update *insert_location accordingly.
      the address) if it is more than a simple variable. */
   complex_address = ipdp->indirect_through_variable ||
                     ipdp->modifiers != NULL;
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Make an unnamed static variable for the descriptive structure. */
   var = make_unnamed_local_static_variable(make_needed_destruction_type(),
                                            /*in_function_scope=*/FALSE);
   /* Make the top-level aggregate constant that will be its initial value. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  var->init_kind = (an_init_kind)initk_static;
-  var->initializer.constant = aggr_con;
+  /* Use a local-static-variable-init entry to indicate the initialization. */
+  (void)alloc_local_static_variable_init(var, curr_context->scope,
+                                         (an_init_kind)initk_static,
+                                         aggr_con, (a_dynamic_init_ptr)NULL);
   /* Make the constants under the aggregate constant. */
   next_con = alloc_constant((a_constant_repr_kind)ck_address);
   make_zero_of_proper_type(make_pointer_type(var->type), next_con);
@@ -2744,7 +2744,6 @@ and update *insert_location accordingly.
   next_con->next = object_con;
   object_con->next = dtor_con;
   aggr_con->variant.aggregate.last_constant = dtor_con;
-  switch_back_to_original_region(region_to_switch_back_to);
   if (!complex_cleanup && complex_address) {
     /* For simple cleanup with a complex address, compute the object address
        in code and store it in the object field of the struct. */
@@ -2825,7 +2824,9 @@ be kept, FALSE if it should be deleted.
   a_type_ptr        ctor_routine_type;
   a_type_ptr        this_param_type;
   a_param_type_ptr  param;
-  a_boolean         static_var_init, expr_copy_needed;
+  a_boolean         static_var_init;
+  a_local_static_variable_init_ptr
+                    lsvip = NULL;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2848,6 +2849,11 @@ be kept, FALSE if it should be deleted.
     /* Let the back end know that some initialization code was
        rewritten as executable code. */
     variable->initialization_rewritten_as_assignment = TRUE;
+    /* If the variable is a function-local static variable, find the
+       local-static-variable-init entry that describes the initialization. */
+    if (variable->init_kind == (an_init_kind)initk_function_local) {
+      lsvip = find_local_static_variable_init(variable, curr_context->scope);
+    }  /* if */
   }  /* if */
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
@@ -2856,9 +2862,7 @@ be kept, FALSE if it should be deleted.
      an expression from the file scope that must be used in the function
      scope of the initialization routine, so it must be copied.  Otherwise
      we have a difficult job keeping track of the nodes that are in
-     the file scope and those that are in the function scope.
-     Similar reasoning applies to local static variables. */
-  expr_copy_needed = (static_var_init || processing_file_scope_init_routine);
+     the file scope and those that are in the function scope. */
   switch (dip->kind) {
     case dik_none:
       break;
@@ -2884,7 +2888,7 @@ be kept, FALSE if it should be deleted.
       goto do_assignment;
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
-      if (expr_copy_needed) {
+      if (processing_file_scope_init_routine) {
         /* Copy a file-scope expression into the current (function scope)
            memory region. */
         dip->variant.expression = copy_expr_tree(dip->variant.expression);
@@ -2904,7 +2908,7 @@ do_assignment:;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
          via a copy constructor. */
-      if (expr_copy_needed) {
+      if (processing_file_scope_init_routine) {
         /* Copy a file-scope expression into the current (function scope)
            memory region. */
         dip->variant.expression = copy_expr_tree(dip->variant.expression);
@@ -2919,7 +2923,7 @@ do_assignment:;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
       /* The routine does not need to be lowered from here. */
-      if (expr_copy_needed) {
+      if (processing_file_scope_init_routine) {
         /* Copy a file-scope expression into the current (function scope)
            memory region. */
         dip->variant.constructor.args =
@@ -3096,12 +3100,20 @@ do_assignment:;
      the variable (it points to the dynamic init entry). */
   if (variable != NULL) {
     if (simple_constant_init) {
-      /* Initialization to a simple constant. */
+      /* Initialization to a simple constant, including a fully-constant
+         aggregate. */
       if (static_var_init) {
         /* Initialization of a static variable to a constant.  Can be
            done as a static initialization. */
-        variable->init_kind = (an_init_kind)initk_static;
-        variable->initializer.constant = simple_constant;
+        if (lsvip == NULL) {
+          variable->init_kind = (an_init_kind)initk_static;
+          variable->initializer.constant = simple_constant;
+        } else {
+          /* The variable is a function-local static variable and uses
+             a local-static-variable-init entry. */
+          lsvip->init_kind = (an_init_kind)initk_static;
+          lsvip->initializer.constant = simple_constant;
+        }  /* if */
       } else {
         /* Initialization of an automatic variable to a constant.  Can be done
            by keeping the dynamic init entry. */

@@ -5091,6 +5091,7 @@ is in the function scope).
        by an entry of type a_local_static_variable_init. */
     a_local_static_variable_init_ptr lsvip =
                           find_local_static_variable_init(variable, var_scope);
+    *init_kind = lsvip->init_kind;
     *initializer = &lsvip->initializer;
   }  /* if */
 }  /* get_variable_initializer */

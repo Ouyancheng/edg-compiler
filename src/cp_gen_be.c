@@ -4569,20 +4569,24 @@ Output the initializer, if any, for the indicated variable.
 {
   a_boolean          parenthesized_init;
   a_dynamic_init_ptr dip;
+  an_init_kind       init_kind;
+  an_initializer_ptr initializer;
 
   /* Push the name context class(es) for a class member. */
   push_class_name_context_if_member(&var->source_corresp);
-  switch (var->init_kind) {
+  get_variable_initializer(var, curr_name_context->assoc_scope,
+                           &init_kind, &initializer);
+  switch (init_kind) {
     case initk_none:
       /* No initializer. */
       break;
     case initk_static:
       write_tok_str(" = ");
-      gen_initializer_constant(var->initializer.constant, var->type);
+      gen_initializer_constant(initializer->constant, var->type);
       break;
     case initk_dynamic:
       /* Dynamic initialization. */
-      dip = var->initializer.dynamic;
+      dip = initializer->dynamic;
       if (dip->kind == (a_dynamic_init_kind)dik_none) {
         /* No initialization at all.  (The dynamic init is here because
            there is a destructor, but it's implicit.) */
