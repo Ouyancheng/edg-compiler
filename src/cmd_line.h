@@ -1404,8 +1404,10 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		long_long_promotion_allowed /* = FALSE*/;
-			/* TRUE if a value should promote to long long
-			   instead of promoting to unsigned long. */
+			/* TRUE if a value that is larger than a signed long
+			   should promote to long long instead of promoting
+			   to unsigned long.  This is usually FALSE except in
+			   C99 and gcc modes. */
 
 EXTERN a_boolean
 		hex_floating_point_constants_allowed /* = FALSE*/;
