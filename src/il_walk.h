@@ -83,6 +83,15 @@ EXTERN a_remap_function_ptr
 			   from an old value to a new value.  NULL if no
 			   remapping is to be done. */
 EXTERN a_boolean
+		walking_file_scope;
+			/* TRUE if walking the file-scope IL, FALSE if
+			   walking the IL for a function scope. */
+EXTERN unsigned int
+		flag_value_meaning_visited;
+			/* Value to be placed in the il_walk_flag field
+			   to indicate that an entry has been visited.
+			   The value alternates between 0 and 1. */
+EXTERN a_boolean
 		clear_fe_pointers_during_walk;
 			/* If TRUE, pointers to front end information should
 			   be cleared during the IL walk. */

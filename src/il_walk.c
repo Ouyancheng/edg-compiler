@@ -49,15 +49,6 @@ static a_walk_termination_test_function_ptr
 			   of the IL walk at a given entry, or NULL if the
 			   default pruning algorithm (using il_walk_flag)
 			   should be used. */
-static a_boolean
-		walking_file_scope;
-			/* TRUE if walking the file-scope IL, FALSE if
-			   walking the IL for a function scope. */
-static unsigned int
-		flag_value_meaning_visited;
-			/* Value to be placed in the il_walk_flag field
-			   to indicate that an entry has been visited.
-			   The value alternates between 0 and 1. */
 typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   remap_ptr or walk_ptr. */
@@ -1784,6 +1775,8 @@ of the front end.
 {
   /* Variables in il_walk.h: */
   walk_remap_func = NULL;
+  walking_file_scope = FALSE;
+  flag_value_meaning_visited = 0;
   clear_fe_pointers_during_walk = FALSE;
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
   end_of_file_scope_needed_flags_phase = FALSE;
@@ -1792,8 +1785,6 @@ of the front end.
   entry_process_func = NULL;
   string_entry_process_func = NULL;
   walk_termination_test_func = NULL;
-  walking_file_scope = FALSE;
-  flag_value_meaning_visited = 0;
 }  /* il_walk_init */
 
 #endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS */
