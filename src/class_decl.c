@@ -1786,51 +1786,46 @@ subobject (e.g., C).
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
-#if 0
-a_boolean is_surrogate_direct_base_class(a_base_class_ptr  bcp)
-/*
-bcp is a direct virtual base class.  Return TRUE if it has been marked
-direct because there is an entry on its list of duplicate entries that
-is actually the direct base class.
-*/
-{
-  a_boolean  found = FALSE;
-
-  check_assertion(bcp->direct && bcp->is_virtual);
-  for (bcp = bcp->duplicate_entries; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct) {
-      found = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return found;
-}  /* is_surrogate_direct_base_class */
-#endif /* if 0 */
 
 static a_derivation_step_ptr update_base_class_derivation(
                                          a_base_class_ptr       base_class,
                                          a_derivation_step_ptr  path,
                                          an_access_specifier    access)
 /*
+base_class is a direct base class declared explicitly (in which case path is
+NULL) or an indirect base class implied by the declaration of a direct base
+class (in which case path is non-NULL).  access is the access to be applied
+for this derivation, which for indirect base classes corresponds to the access
+of the last step on the path.  This routine allocates a base-class-derivation
+entry for the derivation and supplies it with the appropriate derivation
+path and access.
 */
 {
   a_base_class_derivation_ptr  bcdp, new_bcdp;
   a_derivation_step_ptr        step;
 
+  /* Allocate the entry and make a step entry. */
   new_bcdp = alloc_base_class_derivation();
   step = make_derivation_step(base_class, (a_derivation_step_ptr)NULL);
   if (path == NULL) {
+    /* A direct base class. */
     new_bcdp->direct = TRUE;
     new_bcdp->path = step;
   } else {
+    /* An indirect base class. */
     new_bcdp->path = copy_and_extend_path(path, step);
   }  /* if */
   new_bcdp->access = access;
   if (!base_class->is_virtual) {
+    /* In the case of a nonvirtual base class, there is only one derivation,
+       so it is marked as "preferred" by default. */
     new_bcdp->preferred = TRUE;
     base_class->derivation = new_bcdp;
     path = new_bcdp->path;
   } else {
+    /* For virtual base classes, this may be one derivation among several.
+       Add it to the end of the linked list of base-class-derivation
+       entries. */
     bcdp = base_class->derivation;
     if (bcdp == NULL) {
       base_class->derivation = new_bcdp;
@@ -1838,17 +1833,28 @@ static a_derivation_step_ptr update_base_class_derivation(
       while (bcdp->next != NULL) bcdp = bcdp->next;
       bcdp->next = new_bcdp;
     }  /* if */
+    /* Note that the preferred flag is set later. */
+    /* Set the pointer-base-class (the nonvirtual base class in which a
+       pointer to this virtual base class may be found) if appropriate. */
     if (path != NULL) {
       if (base_class->pointer_base_class == NULL) {
         set_pointer_base_class(base_class, new_bcdp->path);
       }  /* if */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
+      /* In cfront mode set the data section base class, which is where the
+         data section of this virtual base class may be embedded. */
       if (base_class->data_section_base_class == NULL) {
         set_data_section_base_class(base_class, new_bcdp->path);
       }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
+    /* Return a different path than the one stored in the base-class-
+       derivation entry.  This is because each virtual base class is the
+       start of a new segment. */
+#if 0
     path = make_derivation_step(base_class, (a_derivation_step_ptr)NULL);
+#endif
+    path = step;
   }  /* if */
   return path;
 }  /* update_base_class_derivation */
