@@ -1780,7 +1780,7 @@ corresponding entry is removed from the registry.
   }  /* for */
   if (orep == NULL) {
     /* No matching entry was found in the registry.  Only if there is more
-       than one virtual function in the overload set so we need a partial-
+       than one virtual function in the overload set do we need a partial-
        override entry. */
     orep = alloc_override_registry_entry();
     orep->overridden_sym = overridden_sym;
@@ -2029,9 +2029,8 @@ routine entry and return TRUE; otherwise return FALSE.
                  consistent (either both must be absent or both must be
                  present and qualified identically). */
               if (rp->is_virtual &&
-                  param_types_are_compatible(
-                                  rout->type, rp->type,
-                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+                  param_types_are_compatible(rout->type, rp->type,
+                                             TCF_NO_FLAGS)) {
                 /* If rp is virtual, it must be non-static and therefore must
                    have a this parameter. */
                 check_assertion(skip_typerefs(rp->type)->
