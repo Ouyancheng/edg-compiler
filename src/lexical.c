@@ -6865,9 +6865,10 @@ check_start_of_pp_directive:
 	if (in_pp_if_expression) {
 	  /* Scan the #name(tokens) and create a 1 (TRUE) or 0 (FALSE) constant
 	     value accordingly. */
-	  ctoken = make_pp_int_constant(scan_assert_predicate_reference() ?
-					                              1L : 0L);
-	  goto end_of_token_scan;
+          scan_assert_predicate_reference(&rescan);
+          if (rescan) goto rescan_token;
+          ctoken = tok_error;
+          goto end_of_token_scan;
 	} /* if */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 	if (in_preprocessing_directive && !caching_pragma_tokens) {

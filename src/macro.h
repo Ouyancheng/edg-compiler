@@ -67,7 +67,7 @@ extern void enter_assert_predicate(char *value,
                                    char *name);
 
 /* Scan a reference to an #assert predicate */
-extern a_boolean scan_assert_predicate_reference(void);
+extern void scan_assert_predicate_reference(a_boolean *rescan);
 
 extern a_symbol_ptr enter_predef_macro(char      *repl_text,
 			               char      *macro_name,

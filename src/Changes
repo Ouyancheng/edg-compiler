@@ -1,5 +1,16 @@
 Version 2.44
 
+12/10/99 AT&T #assert processing with pcc mode or Microsoft mode
+
+The AT&T preprocessing extension that allows testing of values set
+by #assert predicates did not work correctly in conjunction with
+pcc-style preprocessing or Microsoft-mode preprocessing, if the
+tested value came from a macro expansion.  Now fixed.
+
+  #define __sparc_conditional #machine(sparc) || defined(__sparc)
+  #if __sparc_conditional  // Got error
+  #endif
+
 12/10/99 Microsoft compatibility: default arguments on class template
          member declarations
 

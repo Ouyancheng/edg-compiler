@@ -3602,15 +3602,19 @@ to it.  If there is no such value, return NULL.
 }  /* next_matching_assert_value */
 
 
-a_boolean scan_assert_predicate_reference(void)
+void scan_assert_predicate_reference(a_boolean *rescan)
 /*
 Scan a reference to an #assert predicate in a preprocessing #if.  Its form
 is
 
   #name(token-sequence)
 
-Return TRUE if token-sequence exists as a value for the #assert predicate
-indicated by "name", FALSE if not.
+The current character position is after the "#".  start_of_curr_token
+points to the "#".  On return, either *rescan == TRUE and the input has
+been replaced with "0" or "1" to indicate whether the token-sequence
+exists as a value for the #assert predicate, and the current token
+should be rescanned; or an error has been issued and *rescan == FALSE,
+and processing should continue in sequence.
 */
 {
   a_boolean               result = FALSE;
@@ -3621,14 +3625,18 @@ indicated by "name", FALSE if not.
   sizeof_t                matched_len;
   char                    *after_matched_str;
   unsigned long           paren_count;
+  a_boolean               err = FALSE;
 
   db_enter(4, "scan_assert_predicate_reference");
+  *rescan = FALSE;
+  check_assertion(delete_source_from_loc == NULL);
+  delete_source_from_loc = start_of_curr_token;
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
   if (get_token() != tok_identifier) {
     /* Error -- expected an identifier. */
     error(ec_exp_identifier);
-    some_error_in_curr_directive = TRUE;
+    err = some_error_in_curr_directive = TRUE;
   } else {
     /* Look up the predicate name. */
     app = find_predicate_entry(start_of_curr_token, len_of_curr_token,
@@ -3637,7 +3645,7 @@ indicated by "name", FALSE if not.
     if (get_token() != tok_lparen) {
       /* Error -- expected a left parenthesis. */
       error(ec_exp_lparen);
-      some_error_in_curr_directive = TRUE;
+      err = some_error_in_curr_directive = TRUE;
     } else {
       /* Scan the token sequence.  We don't actually build the token string;
          instead, we keep track of the string matched in a value string
@@ -3696,7 +3704,7 @@ try_match_again:
          don't want to advance to the next token after the ")". */
       if (curr_token != tok_rparen) {
         error(ec_exp_rparen);
-        some_error_in_curr_directive = TRUE;
+        err = some_error_in_curr_directive = TRUE;
         matched_value = NULL;
       }  /* if */
       /* See whether the assert value we've matched so far ends at this
@@ -3723,8 +3731,24 @@ try_match_again:
   }  /* if */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
+  if (!err) {
+    /* Delete the assertion predicate, replacing it by "0" or "1". */
+    a_source_line_modif_ptr slmp;
+    slmp = add_source_line_modif(delete_source_from_loc,
+                                 (sizeof_t)(curr_char_loc -
+                                                       delete_source_from_loc),
+                                 (char *)NULL, (char *)NULL);
+    /* Put the replacement string in the source line modification's inboard
+       inserted_chars array. */
+    slmp->inserted_chars[0] = result ? '1' : '0';
+    slmp->inserted_chars[1] = LE_ESCAPE;
+    slmp->inserted_chars[2] = LE_END_OF_INSERTION;
+    slmp->inserted_text = curr_char_loc = slmp->inserted_chars;
+    slmp->end_inserted_text = slmp->inserted_chars+1;
+    *rescan = TRUE;
+  }  /* if */
+  delete_source_from_loc = NULL;
   db_exit();
-  return result;
 }  /* scan_assert_predicate_reference */
 
 
