@@ -5534,11 +5534,7 @@ for the cfront compatibility case.
       /* The parameter's type matches the class of which the assignment
          operator is a member. */
       found = TRUE;
-    } else if (!strict_ansi_mode) {
-      /* What is referred to in the header comment as a cfront compatibility
-         feature is not part of the current language.  However, many compilers
-         support this use, and the ATT/USL iostream library depends on it.
-         Pending resolution one way or another, we allow it in default mode. */
+    } else if (allow_copy_assignment_op_with_base_class_param) {
       if (find_base_class_of(sym->parent.class_type, tp) != NULL) {
         /* The parameter's type matches a base class of the class of which the
            assignment operator is a member. */

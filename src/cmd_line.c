@@ -1120,6 +1120,7 @@ common_cfront_mode_settings:
 #endif /* !RUNTIME_USES_TYPENAME */
         implicit_typename_enabled = TRUE;
         use_nonstandard_for_init_scope = TRUE;
+        allow_copy_assignment_op_with_base_class_param = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1709,6 +1710,7 @@ common_cfront_mode_settings:
       /* Set optional features to standard settings for strict C++ mode. */
       /* Enable recognition of operator keywords and digraphs. */
       alternative_tokens_allowed = TRUE;
+      allow_copy_assignment_op_with_base_class_param = FALSE;
       if (!(option_kind_used[(int)optk_wchar_t_is_keyword])) {
         /* If wchar_t_is_keyword was not explicitly set by a command line
            option, set it now. */
@@ -1779,6 +1781,7 @@ common_cfront_mode_settings:
     /* Set features implied by Microsoft compatibility. */
     targ_enum_types_can_be_smaller_than_int = FALSE;
     stack_referenced_include_directories = TRUE;
+    allow_copy_assignment_op_with_base_class_param = FALSE;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     allow_nonstandard_anonymous_unions = TRUE;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */

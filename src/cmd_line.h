@@ -755,6 +755,19 @@ EXTERN a_boolean
 			   hidden (by the for-init declaration itself) with
 			   the old rules. */
 
+EXTERN a_boolean
+		allow_copy_assignment_op_with_base_class_param
+#if VAR_INITIALIZERS
+                    = DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* TRUE if, in default mode, an assignment operator
+			   for class A with parameter of type "B", "B&", or
+			   "const B&" should be viewed as a copy assignment
+			   operator when B is a base class of A. (Whatever its
+			   initial value, this variable will always be FALSE
+			   in strict-ANSI and microsoft-compatibility modes
+			   and always TRUE in cfront-compatibility mode.) */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
