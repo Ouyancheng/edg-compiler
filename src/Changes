@@ -1,5 +1,17 @@
 Version 2.29
 
+5/16/95  Template argument deduction; references to arrays and functions
+
+In template argument deduction, a parameter will now not be deduced to
+be a reference to an array or a reference to function it it isn't that
+already.  For example, a parameter of type "const T&" matched up with
+an argument that is a character string will be deduced as "char *&"
+instead of "char (&)[n]".  On the other hand, if the parameter were
+"T (&)[n]", "char (&)[n]" would be deduced.  This doesn't match the
+WP precisely (in fact it's wrong according to the WP), but it makes
+sense (since references to arrays and functions are pretty unusual)
+and is exploited by one of the tests ObjectScape provides for STL.
+
 5/13/95  Dead expressions under conditional operators are retained
 
 Dead expressions under the conditional operators &&, ||, and ? are

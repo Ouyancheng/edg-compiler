@@ -1952,6 +1952,62 @@ type qualifiers are added in the conversion from *arg_type to *param_type
 }  /* check_template_arg_type_qualifiers */
 
 
+static a_boolean array_transformation_needed_on_template_reference_init(
+                                         a_type_ptr           arg_type,
+                                         a_type_ptr           param_type,
+                                         a_template_param_ptr templ_param_list)
+                                              
+/*
+A parameter of a function template, with type param_type (a reference type),
+is being matched against an argument with type arg_type (an array type).
+Return TRUE if the array --> pointer transformation should be done.
+templ_param_list is the template parameter list.
+*/
+{
+  a_boolean  transform_needed = TRUE;
+  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
+
+  /* The array --> pointer transformation is done except if the template
+     parameter is explicitly a reference to an array and it it can be
+     made to match. */
+  if (is_array_type(base_param_type) &&
+      member_of_overload_set_matches_template_type(arg_type,
+                                                   base_param_type,
+                                                   templ_param_list)) {
+    transform_needed = FALSE;
+  }  /* if */
+  return transform_needed;
+}  /* array_transformation_needed_on_template_reference_init */
+
+
+static a_boolean function_transformation_needed_on_template_reference_init(
+                                         a_type_ptr           arg_type,
+                                         a_type_ptr           param_type,
+                                         a_template_param_ptr templ_param_list)
+                                              
+/*
+A parameter of a function template, with type param_type (a reference type),
+is being matched against an argument with type arg_type (a function type).
+Return TRUE if the function --> pointer transformation should be done.
+templ_param_list is the template parameter list.
+*/
+{
+  a_boolean  transform_needed = TRUE;
+  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
+
+  /* The function --> pointer transformation is done except if the template
+     parameter is explicitly a reference to a function and it it can be
+     made to match. */
+  if (is_function_type(base_param_type) &&
+      member_of_overload_set_matches_template_type(arg_type,
+                                                   base_param_type,
+                                                   templ_param_list)) {
+    transform_needed = FALSE;
+  }  /* if */
+  return transform_needed;
+}  /* function_transformation_needed_on_template_reference_init */
+
+
 static a_boolean function_template_matches_operand_list(
                                                   a_candidate_function_ptr cfp)
 /*
@@ -2046,14 +2102,18 @@ evaluated (but not checked to see if the match is good enough).
          be done. */
       if (is_array_type(arg_type) &&
           (!param_is_reference ||
-           array_transformation_needed_on_reference_init(arg_type,
-                                                         param_type))) {
+           array_transformation_needed_on_template_reference_init(
+                                                          arg_type,
+                                                          param_type,
+                                                          tssp->parameters))) {
         /* Simulate the array --> pointer transformation.  */
         arg_type = type_after_array_to_pointer_transformation(arg_type);
       } else if (is_a_function_designator(&arg_operand->operand) &&
                  (!param_is_reference ||
-                  function_transformation_needed_on_reference_init(arg_type,
-                                                                param_type))) {
+                  function_transformation_needed_on_template_reference_init(
+                                                          arg_type,
+                                                          param_type,
+                                                          tssp->parameters))) {
         /* Simulate the function --> pointer transformation. */
         arg_type = type_after_function_to_pointer_transformation(arg_type,
                                                         &arg_operand->operand);
