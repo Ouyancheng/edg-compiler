@@ -12424,7 +12424,8 @@ required_type will be void if the expression should have void type
         /* The type is not checked in Microsoft C mode. */
       } else {
         /* Check that the expression has void type. */
-        if (!is_void_type(result.type)) {
+        if (!is_void_type(result.type) &&
+            !is_template_param_type(result.type)) {
           if (!is_error_operand(&result)) {
             error_in_operand(err_code, &result);
           }  /* if */

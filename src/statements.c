@@ -4231,7 +4231,8 @@ The return expression is also set for a return from a constructor.
     tp = skip_typerefs(rout->type)->variant.routine.return_type;
     /* A void return in a void function is okay.  In other kinds of functions,
        a diagnostic may be appropriate. */
-    if (!is_void_type(tp) && !is_error_type(tp)) {
+    if (!is_void_type(tp) && !is_error_type(tp) &&
+        !is_template_param_type(tp)) {
       /* A return without an expression in a non-void function.  Unless a
          special case applies, this case deserves a diagnostic. */
       issue_no_value_returned_diag = TRUE;
@@ -4386,7 +4387,8 @@ See also 3.6.6.4.
         /* Constructors and destructors may not return a value (ARM 6.6.3). */
         error(ec_value_returned_in_constructor);
         return_type = error_type();
-      } else if (is_void_type(return_type)) {
+      } else if (is_void_type(return_type) ||
+                 is_template_param_type(return_type)) {
         /* A void function may return a void expression in C++, but not in C.
            Microsoft C allows an expression of any type.  cfront 2.1 allows
            a void expression.  cfront 3.0 does not allow any expression. */
