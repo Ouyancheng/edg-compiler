@@ -1321,7 +1321,9 @@ static void start_stmt_clause(a_struct_stmt_stack_entry_ptr sssep)
 /*
 Start a new clause of a structured statement.  sssep points to the
 struct_stmt_stack entry for the structured statement (since it need not
-be the topmost one).
+be the topmost one).  A call of this routine implies that the current
+position in the program can be branched to from the statement that
+begins the indicated structured statement.
 */
 {
   /* The start of a clause is reachable if the start of the structured
@@ -1333,7 +1335,9 @@ be the topmost one).
 static void term_stmt_clause(a_struct_stmt_stack_entry_ptr sssep)
 /*
 end the current clause of a structured statement.  sssep points to the
-struct_stmt_stack entry for the structured statement.
+struct_stmt_stack entry for the structured statement.  A call of this
+routine implies that the current position in the program branches
+to the end of the indicated structured statement.
 */
 {
   /* If the end of the clause is reachable, then the end of the whole
