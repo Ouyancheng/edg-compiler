@@ -15608,10 +15608,11 @@ that follows.
                  function definition inside the definition of a nonlocal class
                  (a source sequence entry representing the function definition
                  will be inserted following the class definition and a
-                 secondary source sequence entry has been put out here).
-                 In fact, since this is a specialization, it must be an
-                 in-class specialization of a member function template (a
-                 Microsoft extension). */
+                 secondary source sequence entry has been put out here; the
+                 combined effect is that the definition is moved outside the
+                 enclosing class).  In fact, since this is a specialization,
+                 it must be an in-class specialization of a member function
+                 template (a Microsoft extension). */
               (void)update_src_seq_secondary_decl(
                                           (char *)rp, declared_type, name_ref,
                                           flags, &decl_pos_block);
