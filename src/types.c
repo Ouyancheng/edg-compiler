@@ -2792,9 +2792,12 @@ for exact pointer equality.
                (routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
                              (a_name_linkage_kind)rtsp2->routine_name_linkage,
-                             is_impl_conv) &&
-                (!microsoft_mode ||
-                 calling_conventions_are_compatible(type_1, type_2))))) {
+                             is_impl_conv)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                && (!microsoft_mode ||
+                    calling_conventions_are_compatible(type_1, type_2))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                       ))) {
             compat = TRUE;
           }  /* if */
           break;
