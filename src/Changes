@@ -1,5 +1,16 @@
 Version 2.26
 
+9/6/94   Conversions on template nontype arguments
+
+Recent X3J16/WG21 decisions have made it clear that conversions (other than
+user-defined conversions) are allowed on template nontype arguments.  We've
+relaxed the checking to conform.  In the process, we fixed a bug demonstrated
+by the following test case (in strict mode only):
+
+  template <class T, T x> class A { };
+  template <class T> A<T, 0> f(T p);  // Formerly, an error on this line
+
+
 9/2/94   Criteria for a "copying" assignment operator
 
 Section 12.8 of the working paper specifies that if class X has an

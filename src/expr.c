@@ -8955,10 +8955,9 @@ is incompatible with the corresponding parameter type, param_type.
 Return the constant in *constant.
 */
 {
-  an_operand           result;
-  an_expr_stack_entry  expr_stack_entry;
-  an_arg_match_summary arg_summary;
-  a_boolean            okay;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
+  a_std_conv_descr    std_conv;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
@@ -8966,33 +8965,17 @@ Return the constant in *constant.
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Check that its type is correct. */
-  determine_arg_match_level(&result, (a_type_ptr)NULL, param_type,
-                            /*try_user_conversions=*/FALSE, &arg_summary);
-  okay = FALSE;
-  /* Only an "exact match" according to the overloading resolution rules
-     (ARM 14.2) is allowed, but that does allow trivial conversions. */
-  if (arg_summary.match_level == aml_exact) {
-    okay = TRUE;
-  } else if (arg_summary.match_level == aml_promotion ||
-             arg_summary.match_level == aml_std_conversion) {
-    /* In non-strict mode, allow promotions and standard conversions
-       as an extension. */
-    if (strict_ansi_mode) {
-      if (strict_ansi_error_severity != es_error) {
-        okay = TRUE;
-        pos_ty2_warning(ec_bad_nontype_template_arg, &result.position,
-                        result.type, param_type);
-      }  /* if */
-    } else {
-      okay = TRUE;
-      pos_ty2_remark(ec_bad_nontype_template_arg, &result.position,
-                     result.type, param_type);
-    }  /* if */
-  }  /* if */
-  if (okay) {
-    /* Convert to the required type (i.e., do any required trivial
-       conversions). */
+  /* Check that its type is correct or can be converted without use
+     of user-defined conversions. */
+  if (impl_conversion_possible(result.type,
+                               is_constant_operand(&result),
+                               &result.variant.constant,
+                               param_type,
+                               /*suppress_extensions=*/FALSE,
+                               ec_bad_nontype_template_arg,
+                               &std_conv)) {
+    /* Convert to the required type.  Note that any suggested warning
+       from the above test will be re-discovered in the conversion. */
     prep_initializer_operand(&result, param_type, (a_conv_descr_ptr)NULL,
                              /*initializing_return_value=*/FALSE,
                              ec_bad_nontype_template_arg);
@@ -9012,12 +8995,8 @@ Return the constant in *constant.
     }  /* if */
   } else {
     /* Some error. */
-    if (arg_summary.match_level == aml_error || is_error_operand(&result)) {
-      /* Error already issued. */
-    } else {
-      pos_ty2_error(ec_bad_nontype_template_arg, &result.position,
-                    result.type, param_type);
-    }  /* if */
+    pos_ty2_error(ec_bad_nontype_template_arg, &result.position,
+                  result.type, param_type);
     set_error_constant(constant);
   }  /* if */
   pop_expr_stack();
