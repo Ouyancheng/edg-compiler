@@ -4555,8 +4555,9 @@ for the scope of the handler.
        runtime copy of the thrown object. */
     set_var_init_pos_descr(handler->parameter, &ipd);
     lower_dynamic_init(handler->dynamic_init, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       (a_constructor_init_ptr)NULL,
+                       (a_variable_ptr)NULL,
+                       LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, (a_boolean *)NULL,
                        (a_constant **)NULL);
@@ -5455,8 +5456,9 @@ Lower an enk_throw expression node.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Generate code to copy the thrown expression to the runtime. */
     lower_dynamic_init(dip, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, LDIO_THROW,
+                       (a_constructor_init_ptr)NULL,
+                       (a_variable_ptr)NULL,
+                       LDIO_THROW,
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, (a_boolean *)NULL,
                        (a_constant **)NULL);

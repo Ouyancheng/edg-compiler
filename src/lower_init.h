@@ -128,9 +128,8 @@ typedef int a_lower_dynamic_init_options_set;
 
 extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                an_init_pos_descr_ptr  ipdp,
-                               an_expr_node_ptr       implied_arg_list,
-                               an_expr_node_ptr       end_implied_arg_list,
                                a_constructor_init_ptr ctor_init,
+                               a_variable_ptr         construction_vtbls_var,
                                a_lower_dynamic_init_options_set
                                                       options,
                                a_boolean              others_follow_in_aggr,

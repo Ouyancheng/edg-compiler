@@ -53,6 +53,22 @@ static an_expr_node_ptr make_assignment_expr_with_subobject_fix(
                                     a_boolean             have_complete_object,
                                     an_expr_operator_kind op,
                                     an_expr_node_ptr      source_node);
+#if !IA64_ABI
+static a_variable_ptr implicit_virtual_base_parameter(
+                                                a_type_ptr     class_type,
+                                                a_type_ptr     base_class_type,
+                                                a_variable_ptr this_param_var);
+#endif /* !IA64_ABI */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+static void build_construction_vtbls_pointer_for_subobject_construction(
+                                 a_dynamic_init_ptr     dip,
+                                 a_base_class_ptr       base_class,
+                                 an_init_pos_descr      *ipdp,
+                                 a_variable_ptr         construction_vtbls_var,
+                                 an_insert_location_ptr insert_location,
+                                 an_expr_node_ptr       *implied_arg_node,
+                                 a_boolean              *just_test);
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #if IA64_ABI
 static a_routine_ptr helper_routine_to_zero_entity(
                                             a_type_ptr    type,
@@ -1567,12 +1583,17 @@ of the storage before the constructor is called.
 }  /* need_zeroing_for_value_initialization */
 
 
+#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+/*ARGSUSED*/  /* <-- construction_vtbls_var and ipdp are not used in
+                     that case. */
+#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 static void add_constructor_call(a_dynamic_init_ptr     dip,
                                  an_expr_node_ptr       entity_node,
                                  an_expr_node_ptr       source_node,
                                  a_boolean              have_complete_object,
-                                 an_expr_node_ptr       implied_arg_list,
-                                 an_expr_node_ptr       end_implied_arg_list,
+                                 an_init_pos_descr_ptr  ipdp,
+                                 a_constructor_init_ptr ctor_init,
+                                 a_variable_ptr         construction_vtbls_var,
                                  an_insert_location_ptr insert_location)
 /*
 Make a call statement that invokes a constructor as required in the dynamic
@@ -1583,15 +1604,20 @@ constructor call.  Both entity_node and source_node have already been
 cast to the proper type for the corresponding parameter to eliminate
 qualifier and type-as-subobject differences.  have_complete_object 
 is TRUE if we are constructing a complete object, FALSE for a base
-class subobject.  implied_arg_list is a list of implied extra virtual
-base class pointer arguments for the constructor, or NULL if this
-routine should generate them if required.  Insert the statement at
-*insert_location and update *insert_location.  The additional-arguments
-list given by dip->variant.constructor.args has already been lowered.
+class subobject.  ipdp describes how to address the entity to be
+initialized (it is used only in some modes, for base classes).
+If this constructor call is for a ctor-initializer, ctor_init points
+to it; otherwise, it is NULL.  construction_vtbls_var points to a
+variable for an array of construction vtables, if needed, and NULL
+otherwise.  Insert the statement at *insert_location and update
+*insert_location.  The additional-arguments list given by
+dip->variant.constructor.args has already been lowered.
 */
 {
   a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
   an_expr_node_ptr last_node;
+  an_expr_node_ptr implied_arg_node;
+  an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -1613,6 +1639,72 @@ list given by dip->variant.constructor.args has already been lowered.
                                (a_targ_size_t)0,
                                insert_location);
     entity_node = entity_node_copy;
+  }  /* if */
+  if (ctor_init != NULL &&
+      (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
+       ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)) {
+    /* Initializing a base class. */
+    a_base_class_ptr base_class = ctor_init->variant.base_class;
+    if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      /* A base class initialized by a constructor call. */
+#if !IA64_ABI
+      a_type_ptr       base_class_type = base_class->type;
+      a_variable_ptr   param_var;
+      a_base_class_ptr bcp;
+      /* Build a list of implicit virtual base class pointer arguments.
+         The required entries are expressions providing the value of the
+         associated virtual base class pointer parameter for each virtual
+         base class of the base class. */
+      for (bcp = base_class_type->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        if (bcp->is_virtual) {
+          /* Find the implicit virtual base parameter under the main class
+             that is for this same virtual base class. */
+          a_variable_ptr this_param_var =
+                          innermost_function_scope->variant.routine.parameters;
+          param_var = implicit_virtual_base_parameter(
+                                                     base_class->derived_class,
+                                                     bcp->type,
+                                                     this_param_var);
+          /* Build an expression specifying the value of the appropriate
+             virtual base class parameter, and add it to the list. */
+          implied_arg_node = var_rvalue_expr(param_var);
+          if (implied_arg_list == NULL) {
+            implied_arg_list = implied_arg_node;
+          } else {
+            end_implied_arg_list->next = implied_arg_node;
+          }  /* if */
+          end_implied_arg_list = implied_arg_node;
+        }  /* if */
+      }  /* for */
+#else /* IA64_ABI */
+      /* Use the subobject entry point. */
+      dip->variant.constructor.ptr = 
+                     alternate_entry_point(dip->variant.constructor.ptr,
+                                           (a_ctor_or_dtor_kind)cdk_subobject,
+                                           /*define_now=*/FALSE);
+#endif /* IA64_ABI */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+
+
+      /* Set up for passing an array of virtual function table pointers
+         to use during the subobject construction, if one is necessary. */
+      build_construction_vtbls_pointer_for_subobject_construction(
+                                                        dip,
+                                                        base_class,
+                                                        ipdp,
+                                                        construction_vtbls_var,
+                                                        insert_location,
+                                                        &implied_arg_node,
+                                                        (a_boolean *)NULL);
+#if IA64_ABI
+      /* The VTT pointer gets passed as an implied argument. */
+      implied_arg_list = end_implied_arg_list = implied_arg_node;
+#endif /* IA64_ABI */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+    }  /* if */
   }  /* if */
 #if IA64_ABI
   /* If no entry point has been specified yet, use the complete object 
@@ -3597,8 +3689,8 @@ will be changed to an aggregate constant for the constant parts and
   } else {
     /* Normal initialization. */
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       ctor_init, LDIO_FULL_EXPR, others_follow_in_aggr,
+                       ctor_init, (a_variable_ptr)NULL,
+                       LDIO_FULL_EXPR, others_follow_in_aggr,
                        insert_location, (a_boolean *)NULL,
                        &constant_to_keep);
   }  /* if */
@@ -5490,9 +5582,8 @@ from entity_type itself.  Insert the code for the call at *insert_location.
 
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
-                        an_expr_node_ptr       implied_arg_list,
-                        an_expr_node_ptr       end_implied_arg_list,
                         a_constructor_init_ptr ctor_init,
+                        a_variable_ptr         construction_vtbls_var,
                         a_lower_dynamic_init_options_set
                                                options,
                         a_boolean              others_follow_in_aggr,
@@ -5507,12 +5598,10 @@ when the entry is pointed to by an stmk_init statement or when it appears
 on a file-scope dynamic_inits list).  ipdp can, however, indicate a part of
 an aggregate.
 
-If implied_arg_list and end_implied_arg_list are non-NULL, they point to
-the beginning and end of a list of implied arguments for a constructor
-call (for implicit virtual base class arguments).
-
 If the dynamic initialization is part of a constructor initializer,
-ctor_init points to the constructor-init entry.
+ctor_init points to the constructor-init entry.  In that case,
+construction_vtbls_var provides the variable for a array of
+construction virtual function tables, if needed, or NULL otherwise.
 
 If the dynamic initialization is a full expression (e.g., in an
 stmk_init), (options & LDIO_FULL_EXPR) is set.
@@ -5910,11 +5999,6 @@ do_assignment:;
       }  /* if */
       if (ipdp->array_element_sequence) {
         /* Construct a sequence of array elements. */
-#if CHECKING
-        if (implied_arg_list != NULL) {
-          internal_error("lower_dynamic_init: implied arg list for array");
-        }  /* if */
-#endif /* CHECKING */
         /* Note that dip->variant.constructor.args has not been lowered,
            which is what the subroutine requires. */
         add_array_constructor_call(dip, entity_node, source_node,
@@ -5949,8 +6033,8 @@ do_assignment:;
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
         /* Generate the constructor call. */
         add_constructor_call(dip, entity_node, source_node,
-                             have_complete_object,
-                             implied_arg_list, end_implied_arg_list,
+                             have_complete_object, ipdp, ctor_init,
+                             construction_vtbls_var,
                              eff_insert_location);
       }  /* if */
       break;
@@ -7052,8 +7136,9 @@ The subtree of the node has not yet been lowered.
         set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
         /* Generate code for the initialization. */
         lower_dynamic_init(dip, &ipd,
-                           (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                           (a_constructor_init_ptr)NULL, LDIO_NONE,
+                           (a_constructor_init_ptr)NULL,
+                           (a_variable_ptr)NULL,
+                           LDIO_NONE,
                            /*others_follow_in_aggr=*/FALSE,
                            &insert_location, (a_boolean *)NULL,
                            (a_constant **)NULL);
@@ -7389,8 +7474,9 @@ Do IL lowering of an enk_temp_init expression node.
       lower_designated_initializers(dip->variant.constant);
     }  /* if */
     lower_dynamic_init(dip, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, LDIO_NONE,
+                       (a_constructor_init_ptr)NULL,
+                       (a_variable_ptr)NULL,
+                       LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, eff_keep_dynamic_init,
                        (a_constant **)NULL);
@@ -7650,8 +7736,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
       set_var_init_pos_descr(var, &ipd);
     }  /* if */
     lower_dynamic_init(dip, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       (a_constructor_init_ptr)NULL,
+                       (a_variable_ptr)NULL,
+                       LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, &keep_dynamic_init,
                        (a_constant **)NULL);
@@ -7763,8 +7850,9 @@ init_stmt is the stmk_init statement.
     set_var_init_pos_descr(vp, &ipd);
     set_insert_location(init_stmt, &insert_location);
     lower_dynamic_init(vp->initializer.dynamic, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                       (a_constructor_init_ptr)NULL,
+                       (a_variable_ptr)NULL,
+                       LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, &keep_dynamic_init,
                        (a_constant **)NULL);
@@ -9261,16 +9349,12 @@ this_param_var is the "this" parameter variable for the overall object
 being initialized.  Implicit parameters for virtual base classes, if any,
 follow the this_param_var (Cfront-like ABI only).  If base_of_complete_object
 is TRUE, the entity being initialized is a virtual base class and its
-derived class is known to be a complete object.  If this initialization
-is for a base class whose constructor needs to be passed an array of
-special virtual function table addresses, generate code to do that;
-construction_vtbls_var provides the variable for the complete class
-array if necessary.  The statement(s) created are inserted at
+derived class is known to be a complete object.  construction_vtbls_var
+points to a variable for an array of construction vtables, if needed,
+and NULL otherwise.  The statement(s) created are inserted at
 *insert_location, and *insert_location is updated.
 */
 {
-  an_expr_node_ptr     implied_arg_node;
-  an_expr_node_ptr     implied_arg_list = NULL, end_implied_arg_list = NULL;
   a_dynamic_init_ptr   dip;
   an_init_pos_descr    ipd;
   an_init_pos_modifier ipm;
@@ -9279,70 +9363,9 @@ array if necessary.  The statement(s) created are inserted at
   /* Develop a position description for the entity to initialize. */
   develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   if (base_of_complete_object) ipd.base_of_complete_object = TRUE;
-  if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
-      ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class) {
-    /* Initializing a base class. */
-    a_base_class_ptr base_class = ctor_init->variant.base_class;
-    if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-      /* A base class initialized by a constructor call. */
-#if !IA64_ABI
-      a_type_ptr       base_class_type = base_class->type;
-      a_variable_ptr   param_var;
-      a_base_class_ptr bcp;
-      /* Build a list of implicit virtual base class pointer arguments.
-         The required entries are expressions providing the value of the
-         associated virtual base class pointer parameter for each virtual
-         base class of the base class. */
-      for (bcp = base_class_type->variant.class_struct_union.extra_info->
-                                                                  base_classes;
-           bcp != NULL;
-           bcp = bcp->next) {
-        if (bcp->is_virtual) {
-          /* Find the implicit virtual base parameter under the main class
-             that is for this same virtual base class. */
-          param_var = implicit_virtual_base_parameter(
-                                                     base_class->derived_class,
-                                                     bcp->type,
-                                                     this_param_var);
-          /* Build an expression specifying the value of the appropriate
-             virtual base class parameter, and add it to the list. */
-          implied_arg_node = var_rvalue_expr(param_var);
-          if (implied_arg_list == NULL) {
-            implied_arg_list = implied_arg_node;
-          } else {
-            end_implied_arg_list->next = implied_arg_node;
-          }  /* if */
-          end_implied_arg_list = implied_arg_node;
-        }  /* if */
-      }  /* for */
-#else /* IA64_ABI */
-      /* Use the subobject entry point. */
-      dip->variant.constructor.ptr = 
-                     alternate_entry_point(dip->variant.constructor.ptr,
-                                           (a_ctor_or_dtor_kind)cdk_subobject,
-                                           /*define_now=*/FALSE);
-#endif /* IA64_ABI */
-#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-      /* Set up for passing an array of virtual function table pointers
-         to use during the subobject construction, if one is necessary. */
-      build_construction_vtbls_pointer_for_subobject_construction(
-                                                        dip,
-                                                        base_class,
-                                                        &ipd,
-                                                        construction_vtbls_var,
-                                                        insert_location,
-                                                        &implied_arg_node,
-                                                        (a_boolean *)NULL);
-#if IA64_ABI
-      /* The VTT pointer gets passed as an implied argument. */
-      implied_arg_list = end_implied_arg_list = implied_arg_node;
-#endif /* IA64_ABI */
-#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-    }  /* if */
-  }  /* if */
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
-                     implied_arg_list, end_implied_arg_list, ctor_init,
+                     ctor_init, construction_vtbls_var,
                      LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
                      insert_location, (a_boolean *)NULL,
                      (a_constant **)NULL);
@@ -11280,8 +11303,9 @@ instantiations have been generated.
       dip->next = NULL;
       set_var_init_pos_descr(dip->variable, &ipd);
       lower_dynamic_init(dip, &ipd,
-                         (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                         (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
+                         (a_constructor_init_ptr)NULL,
+                         (a_variable_ptr)NULL,
+                         LDIO_FULL_EXPR,
                          /*others_follow_in_aggr=*/FALSE,
                          eff_insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
