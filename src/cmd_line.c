@@ -1406,7 +1406,8 @@ by a command line option.
     if (!option_kind_used[(int)optk_late_tiebreaker]) {
       do_late_ovl_res_tiebreaker = microsoft_bugs;
     }  /* if */
-    single_ref_qual_ovl_res_tiebreaker = microsoft_bugs;
+    single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
+                                          microsoft_version < 1300);
     allow_nonconst_ref_anachronism = TRUE;
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
     flexible_array_members_allowed = TRUE;
