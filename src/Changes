@@ -38,7 +38,7 @@ analyze parameterized types.  For example:
 To avoid these problems, and in the interest of compilation performance,
 the front end no longer performs a complete layout for prototype
 instantiations of class templates.  (Instead, such class types are given
-size one.)
+the same size as an empty class type.)
 
 4/22/03  Error on branch into GNU statement expression
 
