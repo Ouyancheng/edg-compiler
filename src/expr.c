@@ -8965,10 +8965,11 @@ bad_start_of_primary:
 }  /* scan_expr_full */
 
 
-an_expr_node_ptr scan_integer_expression(void)
+an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr)
 /*
 Scan an integral expression, e.g., the selector expression for a switch
-statement, and return a pointer to the expression tree.
+statement, and return a pointer to the expression tree.  is_switch_expr
+is TRUE if this is the expression in a switch statement.
 */
 {
   an_expr_node_ptr    expression;
@@ -8996,6 +8997,20 @@ statement, and return a pointer to the expression tree.
     /* Non-class (i.e., normal) case. */
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
     (void)check_integral_operand(&result);
+  }  /* if */
+  if (is_switch_expr) {
+    /* A switch expression gets special processing. */
+    if (C_dialect != C_dialect_pcc) {
+      /* ANSI C or C++: the normal integral promotions are done. */
+      /* Note that for the C++ condition declaration case the promotion
+         is done elsewhere as part of the condition processing. */
+      promote_operand(&result);
+    } else {
+      /* pcc treats all switch expressions as int.  This differs from
+         ANSI C in that even long is cast to int. */
+      cast_operand(integer_type((an_integer_kind)ik_int), &result,
+                   /*is_implicit_cast=*/TRUE);
+    }  /* if */
   }  /* if */
   expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);

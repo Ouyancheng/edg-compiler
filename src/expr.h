@@ -76,7 +76,7 @@ extern void scan_expr_full(struct an_operand        *result,
   scan_expr_full((result), (an_operand *)NULL, (prec_level),          \
                  (local_options))
 
-extern an_expr_node_ptr scan_integer_expression(void);
+extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop);
 
