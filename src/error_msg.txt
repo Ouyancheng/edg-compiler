@@ -899,6 +899,7 @@ ec_expr_not_arithmetic_or_enum;;"expression must have arithmetic or enum type"
 ec_expr_not_arithmetic_or_enum_or_pointer;;"expression must have arithmetic, enum, or pointer type"
 ec_cast_not_integral_or_enum;;"type of cast must be integral or enum"
 ec_cast_not_arithmetic_or_enum_or_pointer;;"type of cast must be arithmetic, enum, or pointer"
+ec_expr_not_object_pointer;;"expression must be a pointer to a complete object type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
