@@ -1,5 +1,19 @@
 Version 2.21
 
+11/13/93 Static data members with incomplete types
+
+In the following, the static data member was changed to an external
+definition because of the anachronism that allows a static member
+never to be defined.  That resulted in bad generated code.
+
+  struct X;
+  struct Y {
+  	static X x;
+  };
+
+The anachronism transformation is now suppressed when the static data
+member has an incomplete type.
+
 -------------------------------------------------------------------------------
 Version 2.20, November 4, 1993
 

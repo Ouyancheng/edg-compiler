@@ -7210,7 +7210,9 @@ Do IL lowering of the indicated scope and everything under it.
           /* Don't do this for static data members of template classes. */
         } else {
           for (; var != NULL; var = var->next) {
-            if (var->storage_class == (a_storage_class)sc_extern) {
+            /* Don't do this for static data members with incomplete types. */
+            if (var->storage_class == (a_storage_class)sc_extern &&
+                !is_incomplete_type(var->type)) {
               var->storage_class = (a_storage_class)sc_unspecified;
               var->source_corresp.referenced = TRUE;
             }  /* if */
