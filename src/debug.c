@@ -30,9 +30,20 @@ extern int atoi(char *);
 #include "debug.h"
 #include "error.h"
 #include "mem_manage.h"
-#if !STANDALONE_UTILITY_PROGRAM
+
+/*
+The stop token checksum test is only done when CHECKING code is included
+and not in a standalone utility program.
+*/
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
+#define STOP_TOKEN_CHECKSUM_TEST_NEEDED TRUE
+#else /* !(CHECKING && !STANDALONE_UTILITY_PROGRAM) */
+#define STOP_TOKEN_CHECKSUM_TEST_NEEDED FALSE
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
+
+#if STOP_TOKEN_CHECKSUM_TEST_NEEDED
 #include "lexical.h"
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 
 /*
 The structure defining the linked list of routines from which debug information
@@ -81,12 +92,12 @@ typedef struct a_debug_stack_entry {
 			   changed on entry to this function. */
   a_boolean     msg_was_printed;
 	                /* Was a message printed on entry to this function? */
-#if !STANDALONE_UTILITY_PROGRAM
+#if STOP_TOKEN_CHECKSUM_TEST_NEEDED
   unsigned	stop_token_checksum;
 			/* Checksum of stop_token_array, stored on entry and
-			   checked on exit, to stop cases where the stop
+			   checked on exit, to catch cases where the stop
 			   tokens are not being correctly maintained. */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 } a_debug_stack_entry;
 
 #define DEBUG_STACK_SIZE 150
@@ -273,7 +284,6 @@ what was done in the stack entry.
 {
   register a_debug_request_ptr request_ptr;
   register a_debug_stack_entry *stack_ptr;
-  register int                 i;
 
   if (depth_debug_stack >= DEBUG_STACK_SIZE - 1) {
     /* We have run out of stack space, abort. */
@@ -285,17 +295,18 @@ what was done in the stack entry.
   stack_ptr->name = function_name;
   /* Remember the current debug level in case it changes. */
   stack_ptr->old_debug_level = debug_level;
-#if !STANDALONE_UTILITY_PROGRAM
+#if STOP_TOKEN_CHECKSUM_TEST_NEEDED
   /* Store the checksum of stop_token_array, for checking at exit.
      The values in stop_token_array are supposed to be the same on
      exit from a routine as they were on entry. */
   stack_ptr->stop_token_checksum = 0;
   if (debug_level > 0) {
+    register int i;
     for (i = 0; i <= (int)tok_last; i++) {
       stack_ptr->stop_token_checksum += stop_token_array[i];
     }  /* for */
   }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 
   /* Run through the list of debug requests and see if this function
      appears. */
@@ -342,8 +353,6 @@ was printed on entry.  Remove the entry from the stack.
 */
 {
   a_debug_stack_entry *stack_ptr;
-  register unsigned   test_checksum;
-  register int        i;
 
   if (depth_debug_stack <= 0) {
     /* We have run off the beginning of the stack; abort. */
@@ -366,10 +375,11 @@ was printed on entry.  Remove the entry from the stack.
   }  /* if */
   /* Restore debug level in case it was changed. */
   debug_level = stack_ptr->old_debug_level;
-#if !STANDALONE_UTILITY_PROGRAM
+#if STOP_TOKEN_CHECKSUM_TEST_NEEDED
   /* Check the stop_token_array checksum if one was computed on entry. */
   if (debug_level > 0) {
-    test_checksum = 0;
+    register int      i;
+    register unsigned test_checksum = 0;
     for (i = 0; i <= (int)tok_last; i++) {
       test_checksum += stop_token_array[i];
     }  /* for */
@@ -380,7 +390,7 @@ was printed on entry.  Remove the entry from the stack.
       internal_error("debug_exit: stop tokens set checksum is incorrect");
     }  /* if */
   }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 }  /* debug_exit */
 
 #endif /* DEBUG */
