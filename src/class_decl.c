@@ -5812,6 +5812,7 @@ to indicate whether the class/struct/union is actually defined.
   a_boolean               any_friend_decls = FALSE;
   a_boolean               is_class_definition;
   a_routine_fixup_ptr     saved_routine_fixup;
+  a_boolean               any_const_or_ref_fields = FALSE;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -6537,6 +6538,11 @@ to indicate whether the class/struct/union is actually defined.
                   }  /* if */
                 }  /* if */
               }  /* if */
+              if (!any_const_or_ref_fields &&
+                  (is_reference_type(local_type) ||
+                   type_or_element_type_is_const_qualified(local_type))) {
+                any_const_or_ref_fields = TRUE;
+              }  /* if */
               is_first_field = FALSE;
             }  /* if */
             if (C_dialect == C_dialect_cplusplus) {
@@ -6636,6 +6642,25 @@ next_declaration:
          "aggregate" objects (ARM 8.4.1). */
       if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
         cssp->is_class_aggregate = TRUE;
+      }  /* if */
+      /* Issue a warning on a class with no constructor and with one or more
+         members with reference or const type. */
+      if (any_const_or_ref_fields && cssp->constructor == NULL) {
+        sym_warning(ec_no_ctor_but_const_or_ref_member, tag_sym);
+#if 0
+        /* List each of the uninitialized const or ref member. */
+        a_symbol_ptr  sym;
+        for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+          if (sym->kind == (a_symbol_kind)sk_field) {
+            a_type_ptr  tp = sym->variant.field.ptr->type;
+            if (is_reference_type(tp)) {
+              sym_add_diag_info(ec_reference_member, sym);
+            } else if (type_or_element_type_is_const_qualified(tp)) {
+              sym_add_diag_info(ec_const_member, sym);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+#endif /* if 0 */
       }  /* if */
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
