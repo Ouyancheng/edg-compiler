@@ -80,7 +80,7 @@ pointed to by trace_corresp_ptr is modified.
 }  /* alloc_intercept */
 
 #define trace_corresp_check(ptr)                                       \
-  if ((ptr) == trace_corresp_ptr) { corresp_intercept(); }
+  if ((void*)(ptr) == trace_corresp_ptr) { corresp_intercept(); }
 
 void db_corresp(void *ptr)
 /*
@@ -565,7 +565,8 @@ associated symbols are listed under the same header).
        table (which is TRUE of template instances). */
     match = !strncmp(sh1->identifier, sh2->identifier,
                      (sh1->identifier_length < sh2->identifier_length) ?
-                       sh1->identifier_length : sh2->identifier_length);
+                                             (size_t)sh1->identifier_length :
+                                             (size_t)sh2->identifier_length);
   }  /* if */
   return match;
 }  /* f_same_name */
@@ -678,7 +679,7 @@ is in fact valid.
 
   if (has_correspondence(routine)) {
     a_routine_ptr  corresp_routine =
-                                  (a_routine_ptr)canonical_il_entry_of(routine);
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
     a_source_correspondence_ptr
                    scp = &routine->source_corresp,
                    corresp_scp = &corresp_routine->source_corresp;
@@ -698,9 +699,9 @@ is in fact valid.
          routine->fp_contract != corresp_routine->fp_contract ||
          routine->fenv_access != corresp_routine->fenv_access ||
          routine->cx_limited_range != corresp_routine->cx_limited_range ||
-  #if DECL_MODIFIERS_IN_USE
+#if DECL_MODIFIERS_IN_USE
          routine->decl_modifiers != corresp_routine->decl_modifiers ||
-  #endif /* DECL_MODIFIERS_IN_USE */
+#endif /* DECL_MODIFIERS_IN_USE */
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
@@ -728,9 +729,9 @@ is in fact valid.
     if (match &&
         (!types_are_redecl_compatible(var->type, corresp_var->type) ||
          var->is_specialized != corresp_var->is_specialized ||
-  #if DECL_MODIFIERS_IN_USE
+#if DECL_MODIFIERS_IN_USE
          var->decl_modifiers != corresp_var->decl_modifiers ||
-  #endif /* DECL_MODIFIERS_IN_USE */
+#endif /* DECL_MODIFIERS_IN_USE */
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
@@ -781,7 +782,7 @@ type is in fact valid.
 
   if (match) {
     for (; enumerator != NULL; enumerator = enumerator->next) {
-      void  *corresp_entity = trans_unit_corresp_pointer_of(enumerator);
+      char  *corresp_entity = trans_unit_corresp_pointer_of(enumerator);
       if (!same_name(enumerator, corresp_entity)) {
         /* The error should be issued on the enum type since there is not
            much in common between the enumerators if even their names don't
