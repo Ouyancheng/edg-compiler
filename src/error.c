@@ -1090,6 +1090,10 @@ error code.
     case ec_incompatible_linkage_specifier:
       m = "linkage specification is incompatible with previous declaration";
       break;
+    case ec_overloaded_function_linkage:
+      m =
+      "more than one instance of overloaded function \"%s\" has \"C\" linkage";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

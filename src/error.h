@@ -384,7 +384,8 @@ typedef enum /*an_error_code*/ {
   ec_no_suitable_copy_constructor,
   ec_linkage_specifier_not_allowed,
   ec_bad_linkage_specifier,
-  ec_incompatible_linkage_specifier
+  ec_incompatible_linkage_specifier,
+  ec_overloaded_function_linkage
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
