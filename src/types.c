@@ -2778,9 +2778,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         if (strict_ansi_mode) {
           std_conv->warning_suggested = default_warning_code;
         }  /* if */
-      } else if (C_dialect == C_dialect_pcc) {
-        /* In pcc mode, allow conversion between incompatible pointer types,
-           with a warning. */
+      } else if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
+        /* In pcc mode and in SVR4 C compatibility mode, allow conversion
+	   between incompatible pointer types, with a warning. */
         okay = TRUE;
         std_conv->warning_suggested = default_warning_code;
       } else if (qualification_conversion_possible(dest_type_pointed_to,
@@ -2855,10 +2855,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
-  } else if (C_dialect == C_dialect_pcc && is_integral(source_type)) {
-    /* In pcc mode, allow integer --> pointer with a warning.  The null
-       pointer constant --> pointer case has been handled above and does
-       not come here. */
+  } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+	     is_integral(source_type)) {
+    /* In pcc mode and SVR4 C compatibility mode, allow integer --> pointer
+       with a warning.  The null pointer constant --> pointer case has been
+       handled above and does not come here. */
     okay = TRUE;
     std_conv->warning_suggested = default_warning_code;
   } else if (is_error(source_type)) {
