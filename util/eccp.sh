@@ -559,6 +559,8 @@ do
          --no_bool | \
          --array_new_and_delete | \
          --no_array_new_and_delete | \
+         --explicit | \
+         --no_explicit | \
          --namespaces | \
          --no_namespaces | \
          --using_std | \
