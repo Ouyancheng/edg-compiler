@@ -1,5 +1,12 @@
 Version 2.09
 
+9/15/92  Recording the scope depth in IL entities
+
+The front end can be configured to track the scope depth at which IL
+entities are declared.  The field, conditionally incorportated in
+a_source_correspondence, is scope_depth, and the flag that controls its
+presence is RECORD_SCOPE_DEPTH_IN_IL in host_envir.h.
+
 9/15/92  Error recovery on pcc mode macro recursion
 
 The error recover on the following program compiler in pcc mode has been
