@@ -1300,9 +1300,8 @@ void check_for_stmk_init_in_statement_list(a_statement_ptr    start_stmt,
                             find_parent_statement_for_block(end_block);
   }  /* if */
   for (sp = first_stmt_to_check_in_curr_block; sp != NULL; sp = sp->next) {
-    if (sp == last_stmt_to_check_in_curr_block ||
-        (sp->kind == (a_statement_kind)stmk_label &&
-         sp->variant.label == label)) {
+    if (sp->kind == (a_statement_kind)stmk_label &&
+        sp->variant.label == label) {
       break;
     }  /* if */
     vp = NULL;
@@ -1324,6 +1323,7 @@ void check_for_stmk_init_in_statement_list(a_statement_ptr    start_stmt,
       sym_add_diag_info(ec_name_at_decl_position,
                         (a_symbol_ptr)vp->source_corresp.assoc_info);
     }  /* if */
+    if (sp == last_stmt_to_check_in_curr_block) break;
   }  /* for */
 }  /* check_for_stmk_init_in_statement_list */
 
