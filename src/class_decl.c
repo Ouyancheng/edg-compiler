@@ -6852,7 +6852,11 @@ Scan the body of a class definition, including the base classes list.
                 a_template_symbol_supplement_ptr  tssp;
                 tssp = rout_sym->variant.routine.instance_ptr->template_info;
                 check_assertion(tssp != NULL);
-                tssp->token_sequence_number = curr_token_sequence_number;
+                if (tssp->token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER) {
+                  /* Only set this if not already set (which could occur in
+		     error cases). */
+                  tssp->token_sequence_number = curr_token_sequence_number;
+                }  /* if */
               } else if (corresp_prototype_tag_sym != NULL) {
                 /* The class must be the instantiation of a class template
                    (or a class nested within such an instantiation). Bind

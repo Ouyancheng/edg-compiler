@@ -1,5 +1,18 @@
 Version 2.29
 
+5/10/95  Internal error instantiating a template with duplicate definitions
+
+An internal error would result if a set of overloaded functions in a
+class template contained a function that was erroneously redeclared.
+This has been fixed.
+
+  template <class T> struct A {
+    void f(T);
+    void f(char);
+    void f(T);
+  };
+  A<int> a1;
+
 5/9/95   Partially-lowered EH code: set cleanup position at unreachable ends
          of blocks
 
