@@ -3477,10 +3477,10 @@ entry is pushed on the scope stack.
     if (tag_resolution) {
       /* This is the resolution of a previously incomplete template
          declaration; it there were any incomplete instantiations that were
-         involved in array declarations, the instantiations need to be done
-         and the arrays need to be fixed up at this time.  Here's an example:
+         involved in array type declarations, the instantiations need to be
+         done and the arrays fixed up at this time.  For example:
            template <class T> class X;
-           X<int> arr;                // non-standard -- allowed by extension
+           typedef X<int> arr[10];
            template <class T> class X { ... };
          Now that template X has been defined, X<int> can be instantiated and
          the size of arr can be computed. */

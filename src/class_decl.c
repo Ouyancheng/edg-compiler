@@ -6850,10 +6850,12 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    /* If this is the resolution of a previously incomplete tag, and there
-       is a list of array types to be resolved, look to see if any of them
-       are arrays whose element type is this struct/union type.  (This
-       handles an infrequently-used extension.) */
+    /* If entities dependent on this class were declared before the class
+       was defined, they will have been recorded on a fixup list.  Now
+       go through the fixup list and complete the declarations.  (Note that
+       this must be done before inline function bodies are scanned, since
+       return code may be affected by how the routine calling method flag
+       is set.) */
     check_dependent_type_fixup_list(class_type);
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
