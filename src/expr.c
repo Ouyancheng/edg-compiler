@@ -1213,7 +1213,7 @@ static void cast_pointer_for_field_selection(
                                    an_operand         *operand_1,
                                    a_type_ptr         *class_struct_union_type,
                                    a_boolean          *is_arrow_operator,
-                                   a_symbol_ptr       member_sym,
+                                   a_symbol_locator   *member_locator,
                                    an_expression_kind expression_kind,
                                    an_error_code      err_code,
                                    a_source_position  *err_pos)
@@ -1225,17 +1225,25 @@ left-operand class, and downward casts are needed.  operand_1 is the left
 operand; *class_struct_union_type is its type (which is updated if casts
 are added); *is_arrow_operator is TRUE for "->", FALSE for "." (it will
 be set to TRUE on return if the operation is normalized into "->" form);
-member_sym points to the member symbol (possibly a projection symbol).
-expression_kind is the current expression kind.  It is possible that the
-member symbol is not related to the left operand class; in that case,
-issue the error err_code at position *err_pos (the member symbol position).
+member_locator is a locator for the member symbol (possibly a projection
+symbol).  expression_kind is the current expression kind.  It is possible
+that the member symbol is not related to the left operand class; in that
+case, issue the error err_code at position *err_pos (the member symbol
+position).
 */
 {
+  a_symbol_ptr     member_sym = member_locator->specific_symbol;
   a_type_ptr       desired_class = member_sym->class_of_which_a_member;
   a_base_class_ptr bcp;
 
   /* Drop any typedefs on the class type. */
   *class_struct_union_type = skip_typerefs(*class_struct_union_type);
+  /* If the member is protected, it can only be accessed through an object
+     or pointer of a type to which we have member access (ARM 11.5). */
+  if (!member_locator->access_control_error_reported) {
+    check_protected_member_access(member_sym, *class_struct_union_type,
+                                  &member_locator->source_position);
+  }  /* if */
   /* Do nothing if the type is already okay (which it almost always
      will be). */
   if (*class_struct_union_type != desired_class) {
@@ -1296,21 +1304,20 @@ is called only in C++ mode.
 }  /* variable_this_exists */
 
 
-static void make_this_pointer_operand(a_symbol_ptr       member_sym,
-                                      a_source_position  *position,
-                                      an_operand         *result,
-                                      an_expression_kind expression_kind)
+static void make_this_pointer_operand(a_symbol_locator   *member_locator,
+                                      an_expression_kind expression_kind,
+                                      an_operand         *result)
 /*
 Make an operand for the "this" pointer of a C++ nonstatic member function.
-The operand made is an rvalue for the value of the pointer, with the
-source position given by *position.  If we are not currently in a
-nonstatic member function, issue an error and return an error operand.
-Also check that member_sym is a member of the class "this" points to
-(member_sym may be a projection symbol); if it isn't, issue an error and
-return an error operand.  If it is, adjust the "this" pointer so it
-points to the class of which member_sym is a direct member.
-expression_kind indicates the current expression kind.  This routine is
-called only in C++ mode.
+The operand made is an rvalue for the value of the pointer.  If we are not
+currently in a nonstatic member function, issue an error and return an
+error operand.  member_locator is a symbol locator for the member for
+which the "this" pointer is being built.  Check that the member symbol is
+a member of the class "this" points to (the member symbol may be a
+projection symbol); if it isn't, issue an error and return an error
+operand.  If it is, adjust the "this" pointer so it points to the class of
+which the member symbol is a direct member.  expression_kind indicates the
+current expression kind.  This routine is called only in C++ mode.
 */
 {
   a_variable_ptr this_var;
@@ -1333,9 +1340,10 @@ called only in C++ mode.
        is a member. */
     cast_pointer_for_field_selection(result, &class_struct_union_type,
                                      &is_arrow_operator,
-                                     member_sym, expression_kind,
+                                     member_locator,
+                                     expression_kind,
                                      ec_member_ref_requires_object,
-                                     position);
+                                     &member_locator->source_position);
   }  /* if */
 }  /* make_this_pointer_operand */
 
@@ -2005,8 +2013,9 @@ bound with the function in *bound_function_selector.
              the qualified name case was checked for above. */
           cast_pointer_for_field_selection(operand_1, &class_struct_union_type,
                                            &is_arrow_operator,
-                                           projection_member_sym,
-                                           expression_kind, ec_no_error,
+                                           &locator_for_curr_id,
+                                           expression_kind, 
+                                           ec_no_error,
                                            &qualified_member_position);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
                                        is_arrow_operator, expression_kind,
@@ -2044,8 +2053,9 @@ nonstatic_member_function:
               cast_pointer_for_field_selection(operand_1,
                                                &class_struct_union_type,
                                                &is_arrow_operator,
-                                               projection_member_sym,
-                                               expression_kind, ec_no_error,
+                                               &locator_for_curr_id,
+                                               expression_kind, 
+                                               ec_no_error,
                                                &qualified_member_position);
               /* Make an operand for the function with the selector bound
                  to it. */
@@ -6068,10 +6078,8 @@ normal_function:
                                                  result);
             } else {
               /* Make an operand for the "this" pointer. */
-              make_this_pointer_operand(projection_sym_ptr,
-                                        &locator_for_curr_id.source_position,
-                                        &this_pointer_operand,
-                                        expression_kind);
+              make_this_pointer_operand(&locator_for_curr_id, expression_kind,
+                                        &this_pointer_operand);
               if (is_error_operand(&this_pointer_operand)) {
                 /* There was some problem in constructing the "this"
                    operand. */
@@ -6109,9 +6117,8 @@ normal_function:
                selector expression. */
 nonstatic_member_function:
             /* Make an operand for the "this" pointer. */
-            make_this_pointer_operand(projection_sym_ptr,
-                                      &locator_for_curr_id.source_position,
-                                      &this_pointer_operand, expression_kind);
+            make_this_pointer_operand(&locator_for_curr_id, expression_kind,
+                                      &this_pointer_operand);
             if (is_error_operand(&this_pointer_operand)) {
               /* There was some problem in constructing the "this" operand. */
               make_error_operand(result);
