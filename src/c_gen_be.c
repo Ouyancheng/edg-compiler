@@ -2823,8 +2823,11 @@ final semicolon if output_final_semi is TRUE.
           write_unsigned_num((a_host_large_unsigned)field->bit_size);
           write_tok_ch(';');
           dump_bit_field_padding(field);
-          write_str(" } _");
+          write_tok_str(" } ");
+          disable_line_wrapping();
+          write_tok_ch('_');
           dump_temp_name((char *)field);
+          enable_line_wrapping();
           write_tok_ch(';');
         }  /* if */
       }  /* for */
