@@ -1360,7 +1360,7 @@ error code.
       m = "implicitly generated constructor for class %t cannot initialize %n";
       break;
     case ec_no_ctor_but_const_or_ref_member:
-      m = "%n defines no constructor to initialize:";
+      m = "%n defines no constructor to initialize the following:";
       break;
     case ec_var_with_uninitialized_field:
       if (C_dialect == C_dialect_cplusplus) {
