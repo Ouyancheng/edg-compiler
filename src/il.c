@@ -170,7 +170,11 @@ Dump a list of template arguments, enclosed by angle brackets.
     fputs("<", f_debug);
     do {
       if (tap->is_type) {
-        db_abbreviated_type(tap->variant.type);
+        if (tap->variant.type->source_corresp.name == NULL) {
+          db_abbreviated_type(tap->variant.type);
+        } else {
+          db_type_name(tap->variant.type);
+        }  /* if */
       } else {
         db_constant(tap->variant.constant);
       }  /* if */
@@ -208,17 +212,15 @@ Dump the name from a source correspondence (if any).
   if (sc->is_class_member) {
     db_type_name(sc->parent.class_type);
     fputs("::", f_debug);
+    name = unmangled_name_of(sc);
+    if (name == NULL) name = sc->name;
   } else if (sc->parent.namespace_ptr != NULL) {
     db_name(&sc->parent.namespace_ptr->source_corresp);
     fputs("::", f_debug);
-  }  /* if */
-  if (sc->name == NULL) {
-    name = NULL;
-  } else {
     name = unmangled_name_of(sc);
-    /* Note that some mangled names (e.g., names of virtual function tables)
-       have no unmangled version, so we dump whatever is in the name field. */
     if (name == NULL) name = sc->name;
+  } else {
+    name = sc->name;
   }  /* if */
   if (name != NULL) {
     fputs(name, f_debug);
@@ -256,11 +258,15 @@ objects of their own type.
         goto print_name;
       case tk_union:
         fputs("union ", f_debug);
-print_name:
-        db_type_name(tp);
-        break;
+        goto print_name;
       default:
-        db_type(tp);
+        if (has_name(tp)) {
+          if (is_immediate_enum_type(tp)) fputs("enum ", f_debug);
+print_name:
+          db_type_name(tp);
+        } else {
+          db_type(tp);
+        }  /* if */
         break;
     }  /* switch */
   }  /* if */
@@ -9129,7 +9135,7 @@ entry into one representing a nondefining declaration.
 {
   db_enter(4, "turn_class_definition_into_declaration");
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
     fputs("Removing definition of ", f_debug);
     db_abbreviated_type(class_type);
     fputc('\n', f_debug);
@@ -9363,7 +9369,7 @@ dependent on it.  The routine entry itself is dealt with later.
         rp = sp->variant.routine.ptr;
         /* An unneeded routine definition. */
 #if DEBUG
-        if (debug_level >= 3) {
+        if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
           fprintf(f_debug, "Removing function body for ");
           db_name(&rp->source_corresp);
           fputc('\n', f_debug);
@@ -9469,7 +9475,7 @@ static void eliminate_unneeded_scope_orphaned_list_entries(void)
       for (vp = solhp->orphaned_variables; vp != NULL; vp = next_vp) {
         next_vp = vp->next;
 #if DEBUG
-        if (debug_level >= 3) {
+        if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
           fprintf(f_debug, "%semoving orphaned variable ",
                   il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
           db_name(&vp->source_corresp);
@@ -9493,7 +9499,7 @@ static void eliminate_unneeded_scope_orphaned_list_entries(void)
       for (tp = solhp->orphaned_types; tp != NULL; tp = next_tp) {
         next_tp = tp->next;
 #if DEBUG
-        if (debug_level >= 3) {
+        if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
           fprintf(f_debug, "%semoving orphaned type ",
                   il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
           db_abbreviated_type(tp);
@@ -9597,7 +9603,7 @@ eliminated, if appropriate.
   for (vp = scope->variables; vp != NULL; vp = next_vp) {
     next_vp = vp->next;
 #if DEBUG
-    if (debug_level >= 3) {
+    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
       fprintf(f_debug, "%semoving variable ",
               il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
       db_name(&vp->source_corresp);
@@ -9620,7 +9626,7 @@ eliminated, if appropriate.
   for (tp = scope->types; tp != NULL; tp = next_tp) {
     next_tp = tp->next;
 #if DEBUG
-    if (debug_level >= 3) {
+    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
       fprintf(f_debug, "%semoving ",
               il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
       db_abbreviated_type(tp);
@@ -9659,7 +9665,7 @@ eliminated, if appropriate.
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
 #if DEBUG
-    if (debug_level >= 3) {
+    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
       fprintf(f_debug, "%semoving routine ",
               il_entry_prefix_of(rp).keep_in_il ? "Not r" : "R");
       db_name(&rp->source_corresp);
@@ -9687,7 +9693,7 @@ eliminated, if appropriate.
   for (hnp = scope->hidden_names; hnp != NULL; hnp = next_hnp) {
     next_hnp = hnp->next;
 #if DEBUG
-    if (debug_level >= 3) {
+    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
       fprintf(f_debug, "%semoving hidden name entry for ",
               il_entry_prefix_of(hnp->entity.ptr).keep_in_il ? "Not r" : "R");
       if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
@@ -9780,7 +9786,12 @@ eliminated, if appropriate.
     if (db_active) {
       /* Display source sequence lists for debug purposes. */
       if (scope->source_sequence_list != NULL) {
-        dump_ss(scope, "after elimination of unneeded entries, ");
+        if (db_flag_is_set("dump_elim")) {
+          fputs("after elimination of unneeded entries, ", f_debug);
+          db_ss_list_for_scope(scope);
+        } else {
+          dump_ss(scope, "after elimination of unneeded entries, ");
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
