@@ -15184,6 +15184,43 @@ part of the lowering of the file scope memory region.
 }  /* promote_local_entities_to_file_scope */
 
 
+static void unlink_pointless_local_static_variable_inits(a_scope_ptr scope)
+/*
+Remove any local static variable initialization entries on the given
+scope that no longer do anything useful after lowering has been done.
+*/
+{
+  a_local_static_variable_init_ptr lsvip, prev_lsvip;
+
+  for (prev_lsvip = NULL, lsvip = scope->local_static_variable_inits;
+       lsvip != NULL;
+       lsvip = lsvip->next) {
+    a_boolean keep = TRUE;
+    if (lsvip->init_kind == (an_init_kind)initk_static) {
+      /* keep = TRUE; -- Already set. */
+    } else if (lsvip->init_kind == (an_init_kind)initk_dynamic) {
+      keep = FALSE;
+      check_assertion(lsvip->initializer.dynamic->kind ==
+                                                (a_dynamic_init_kind)dik_none);
+    } else {
+      unexpected_condition_str(
+                        "lower_scope: bad init kind in local static var init");
+    }  /* if */
+    if (!keep) {
+      /* Unlink the entry. */
+      if (prev_lsvip == NULL) {
+        scope->local_static_variable_inits = lsvip->next;
+      } else {
+        prev_lsvip->next = lsvip->next;
+      }  /* if */
+    } else {
+      /* Keep the entry. */
+      prev_lsvip = lsvip;
+    }  /* if */
+  }  /* for */
+}  /* unlink_pointless_local_static_variable_inits */
+
+
 static void do_namespace_member_promotion(a_namespace_ptr nsp)
 /*
 Promote the members out of the indicated namespace, except for types, which
@@ -15843,6 +15880,9 @@ Do IL lowering of the indicated scope and everything under it.
       create_alternate_entry_points(routine, /*define_now=*/TRUE);
     }  /* if */
 #endif /* IA64_ABI */
+    /* Unlink any local static variable initialization entries that
+       no longer do anything. */
+    unlink_pointless_local_static_variable_inits(scope);
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
   innermost_function_scope = saved_innermost_function_scope;

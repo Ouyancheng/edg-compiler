@@ -1,5 +1,13 @@
 Version 3.5
 
+7/5/04   IL lowering: elimination of now-pointless local static variable
+         init entries
+
+IL lowering now eliminates some local static variable init entries
+that are pointless after lowering, specifically those that point
+to a dynamic-init entry whose kind has been changed to dik_none
+after lowering.  Those were harmless but also unnecessary.
+
 7/3/04   Microsoft compatibility: call returning incomplete class type
 
 MSVC++ allows calls of functions returning incomplete class types in
