@@ -37,9 +37,9 @@ and parsing of them into tokens.
 #include "statements.h"
 #include "symbol_ref.h"
 #include "templates.h"
-#if ASM_FUNCTION_ALLOWED
-#include "asm_func.h"
-#endif /* ASM_FUNCTION_ALLOWED */
+#if ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+#include "func_def.h"
+#endif /* ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
 
 
 /*
@@ -3725,6 +3725,14 @@ white_space_loop:
         /* Advance to the end of line. */
         do {} while (*(++curr_char_loc) != '\n');
         if (NEED_TO_DELETE_COMMENT) {
+#if ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+          /* Before deleting the comment, see if it's part of an asm function
+             body -- if so, make a copy of it. */
+          if (in_asm_function_body && !in_preprocessing_directive) {
+            copy_from_source_to_asm_func_buffer(comment_start_loc,
+                                                curr_char_loc);
+          }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
           /* Delete the comment entirely. */
           add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
@@ -3830,6 +3838,18 @@ normal_comment:
             /* Determine the source position for the start of the comment
                now, before we lose the current source line. */
             determine_comment_pos_if_not_yet_done();
+#if ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+            if (in_asm_function_body && !in_preprocessing_directive) {
+              /* Don't change the comment text if it's going into an asm
+                 function body. */
+              if (ch == '\n') {
+                curr_char_loc++;
+                ch = '\0';
+              }  /* if */
+              copy_from_source_to_asm_func_buffer(comment_start_loc,
+                                                  curr_char_loc);
+            }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
             /* We are supposed to delete the characters of the source line
                from delete_source_from_loc on, if it is non-NULL.  This would
                be, for example, because we are scanning a macro invocation. */
@@ -3899,6 +3919,14 @@ normal_comment:
            white space. */
         curr_char_loc += 2;
         if (NEED_TO_DELETE_COMMENT && delete_source_from_loc == NULL) {
+#if ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+          /* Before deleting the comment, see if it's part of an asm function
+             body -- if so, make a copy of it. */
+          if (in_asm_function_body && !in_preprocessing_directive) {
+            copy_from_source_to_asm_func_buffer(comment_start_loc,
+                                                curr_char_loc);
+          }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
           /* Delete the characters of the comment if writing preprocessor
              output with the comments deleted.  Under ANSI rules, the comment
              must be replaced by one space if there is no other white space
@@ -3906,8 +3934,14 @@ normal_comment:
              Under pcc rules, the comment is always deleted entirely.
              The deletion here is suppressed if we are deleting everything 
              up to this point anyway (delete_source_from_loc != NULL). */
-          if (pcc_preprocessing_mode) {
+          if (pcc_preprocessing_mode
             /* pcc mode; delete the comment entirely. */
+#if ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
+              || (in_asm_function_body && !in_preprocessing_directive)
+            /* Entire comment was copied into into the asm function body --
+               don't add a space. */
+#endif /* ASM_FUNCTION_ALLOWED && INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
+                                                                      ) {
             add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
                                            /*for_comment=*/TRUE);
