@@ -4462,7 +4462,7 @@ nonidentical.
                     cp1->source_corresp.member_of_unknown_base ==
                     cp2->source_corresp.member_of_unknown_base &&
                     (cp1->source_corresp.is_class_member ?
-                      corresponding_types(
+                      identical_types(
                                       cp1->source_corresp.parent.class_type,
                                       cp2->source_corresp.parent.class_type) :
                       corresponding_namespaces(
