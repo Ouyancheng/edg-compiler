@@ -912,7 +912,12 @@ format string (they are updated on return).
         eff_argument_type = type_pointed_to(eff_argument_type);
         eff_required_type = type_pointed_to(eff_required_type);
       }  /* if */
-      if (!interchangeable_types(eff_required_type, eff_argument_type)) {
+      if (types_are_compatible(eff_required_type, eff_argument_type)) {
+        /* The types are exactly the same. */
+      } else if (interchangeable_types(eff_required_type, eff_argument_type)) {
+        /* The types are not exactly the same, but they are interchangeable. */
+        pos_remark(ec_printf_arg_mismatch, &argument_operand->position);
+      } else {
         /* The argument type does not match the required type. */
 mismatch:
         if (!is_error_type(eff_argument_type)) {
