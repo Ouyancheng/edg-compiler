@@ -2549,6 +2549,24 @@ Display the indicated class type supplement entry.
                      (unsigned long)ptr->virtual_function_count);
   disp_unsigned_long("virtual_function_info_offset",
                      (unsigned long)ptr->virtual_function_info_offset);
+  disp_name("anonymous_union_kind");
+  switch (ptr->anonymous_union_kind) {
+    auk_none:
+      (void)printf("auk_none\n");
+      break;
+    auk_variable:
+      (void)printf("auk_variable\n");
+      disp_ptr("variable", (char *)ptr->anonymous_union.variable,
+               iek_variable);
+      break;
+    auk_field:
+      (void)printf("auk_field\n");
+      disp_ptr("field", (char *)ptr->anonymous_union.field,
+               iek_field);
+      break;
+    default:
+      (void)printf("**BAD ANONYMOUS UNION KIND**\n");
+  }  /* switch */
   if (ptr->access_adjustments != NULL) {
     disp_ptr("access_adjustments", (char *)ptr->access_adjustments,
              iek_access_adjustment);

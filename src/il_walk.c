@@ -1255,6 +1255,23 @@ and the entry pointer is to an entry in the file scope, just return
           a_class_type_supplement_ptr ptr =
                           (a_class_type_supplement_ptr)entry_ptr;
           walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
+          switch (ptr->anonymous_union_kind) {
+            auk_none:
+              break;
+            auk_variable:
+              remap_ptr(ptr->anonymous_union.variable, a_variable_ptr,
+                        iek_variable);
+              break;
+            auk_field:
+              remap_ptr(ptr->anonymous_union.field, a_field_ptr,
+                        iek_field);
+              break;
+#if CHECKING
+            default:
+              internal_error(
+                  "walk_entry_and_subtree: bad anonymous union kind");
+#endif /* CHECKING */
+          } /* switch */
           walk_list(ptr->access_adjustments, an_access_adjustment_ptr,
                     iek_access_adjustment);
           walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
