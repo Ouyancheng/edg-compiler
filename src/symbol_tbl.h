@@ -1029,14 +1029,6 @@ typedef struct a_symbol {
 			   this symbol.  The numbers are assigned sequentially,
 			   so that a symbol with a higher decl_seq value was
 			   declared after one with a lower number. */
-#if 0
-#else
-			/* For the time being the assignment of declaration
-			   sequence numbers to symbols is only incompletely
-			   implemented: except for labels, defined variables,
-			   and named types, symbols should not be assumed to
-			   have valid values in the decl_seq field. */
-#endif /* if 0 */
   a_source_position
 		decl_position;
 			/* Source position of the declaration of this
@@ -1587,17 +1579,6 @@ typedef struct a_scope_stack_entry {
                         /* When kind == sck_template_instantiation, contains
 			   a pointer to the template parameter list. */
   a_decl_sequence_number
-		decl_seq;
-			/* When kind == sck_file, sck_function,
-			   sck_function_prototype, sck_class_struct_union, or
-			   sck_template_declaration: the last declaration
-			   sequence number assigned in the current scope;
-			   otherwise undefined.  For each declaration, the
-			   decl_seq value is incremented and stored in the
-			   symbol.  Note that for declarations within an
-			   sck_block scope the sequence number is based on
-			   that of the nearest enclosing function scope. */
-  a_decl_sequence_number
 		last_label_decl_seq;
 			/* When kind == sck_function, the declaration sequence
 			   number of the last label defined (so far) in the
@@ -1974,7 +1955,6 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
 extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
-extern void set_decl_sequence_number(a_symbol_ptr  sym);
 /* Record use information (for cross-reference, etc.). */
 extern void mark_defined(a_symbol_ptr      sym_ptr,
                         a_source_position *source_position);
