@@ -4685,6 +4685,7 @@ label_position indicates the source position of the label.
       label = alloc_temp_label();
       if (label_directly_in_switch) {
         goto_stmt = add_statement((a_statement_kind)stmk_goto);
+        label->case_fallthrough_label = TRUE;
       } else {
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
         set_stmt_source_position(goto_stmt->position, *label_position);

@@ -1868,6 +1868,10 @@ Display the indicated label.
     disp_boolean("leave_label", (a_boolean)ptr->leave_label);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (ptr->case_fallthrough_label) {
+    disp_boolean("case_fallthrough_label",
+                 (a_boolean)ptr->case_fallthrough_label);
+  }  /* if */
 #ifdef FFE
   disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
   disp_name("kind");

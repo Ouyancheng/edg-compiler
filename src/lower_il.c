@@ -9377,15 +9377,11 @@ Generate any cleanup actions required preceding the indicated goto statement.
         if (has_name(statement->variant.label.ptr)) {
           /* Destroy temporaries on a user goto.  This would be a goto
              forward at the same level. */
-        } else if (statement->variant.label.ptr->break_label ||
-                   statement->variant.label.ptr->continue_label) {
-          /* Don't destroy temporaries on a break or continue. */
-          destroy_temps = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (statement->variant.label.ptr->leave_label) {
           /* Destroy temporaries on a __leave. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else {
+        } else if (statement->variant.label.ptr->case_fallthrough_label) {
           /* A switch clause fallthrough label. */
           /* Don't destroy temporaries if the overall switch statement does
              not have an associated lifetime, because temporaries from
@@ -9420,6 +9416,10 @@ Generate any cleanup actions required preceding the indicated goto statement.
               }  /* if */
             }  /* if */
           }  /* if */
+        } else {
+          /* Other compiler-generated gotos, e.g., for break or continue.
+             Don't destroy temporaries. */
+          destroy_temps = FALSE;
         }  /* if */
         if (destroy_temps) {
           /* Destroy temporaries. */

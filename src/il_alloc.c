@@ -1570,6 +1570,7 @@ to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   lp->leave_label = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  lp->case_fallthrough_label = FALSE;
 #if CHECKING
   lp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
