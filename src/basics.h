@@ -215,6 +215,7 @@ typedef size_t	sizeof_t;
 #define CHAR_MAX 127
 #define UCHAR_MAX 255
 #define SHRT_MAX ((short)0x7fff)
+#define USHRT_MAX ((unsigned short)0xffff)
 #define INT_MAX ((int)0x7fffffff)
 #define LONG_MAX ((long)0x7fffffffL)
 #define LONG_MIN ((long)0x80000000L)
