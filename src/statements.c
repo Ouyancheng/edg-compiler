@@ -718,20 +718,10 @@ initializing declarations.
             goto done;
           }  /* if */
           /* If the initializing declaration appears within the body of a
-             switch statement, set a flag in each block up to and including
-             that of the switch statement body to say that there is an
-             "exposed initialization" -- i.e., one that could cause an error
-             if case selection skips past it. */
-          for (cfdp = parent; cfdp != NULL; cfdp = cfdp->parent) {
-            if (cfdp->variant.block.is_switch_block) {
-              cfdp->variant.block.exposed_init_in_switch = TRUE;
-              break;
-            } else if (cfdp->variant.block.is_switch_subblock) {
-              cfdp->variant.block.exposed_init_in_switch = TRUE;
-            } else {
-              break;
-            }  /* if */
-          }  /* for */
+             switch statement, set a flag in the current block to say that
+             there is an "exposed initialization" -- i.e., one that could
+             cause an error if case selection skips past it. */
+          parent->variant.block.exposed_init_in_switch = TRUE;
           break;
         case cfdk_label:
           /* Set the any_labels flag of the parent of a new label entry (and
