@@ -760,8 +760,9 @@ continue as though "overload" had not been seen.
   a_token_kind  next_tok;
 
   if (is_overload_specifier()) {
-    /* Issue a diagnostic indicating that "overload" is ignored. */
-    warning(ec_overload_ignored);
+    /* Issue an anachronism diagnostic indicating that "overload" is
+       no longer allowed.  This can be either an error or a warning. */
+    diagnostic(anachronism_error_severity, ec_overload_ignored);
     /* Bypass "overload" */
     (void)get_token();
     if (curr_token == tok_identifier) {
