@@ -3977,7 +3977,7 @@ typedef struct a_type {
       a_bit_field
 		bool_type:1;
 			/* TRUE if this type is bool in C++ or _Bool in C99. */
-          a_bit_field
+      a_bit_field
 		originally_unnamed:1;
 			/* TRUE for enum types declared without a tag; in
 			   C++ may be TRUE even when the source-corresp name
