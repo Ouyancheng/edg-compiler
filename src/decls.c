@@ -4385,6 +4385,7 @@ to indicate whether an enumeration is actually defined.
       *declares_something = TRUE;
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       tag_sym->class_of_which_a_member = class_of_which_a_member;
+      tag_sym->variant.type = enum_type;
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
           ssep->kind != (a_scope_kind)sck_class_struct_union) {
         /* This enumeration is being declared within a function scope, and
@@ -4405,9 +4406,8 @@ to indicate whether an enumeration is actually defined.
         tp->variant.typeref.type = enum_type;
         tp->variant.typeref.is_function_scope_tag = TRUE;
         set_source_corresp(&(tp->source_corresp), tag_sym);
-        tag_sym->variant.type = tp;
-      } else {
-        tag_sym->variant.type = enum_type;
+        add_to_types_list(tp, effective_decl_level,
+                          in_old_style_param_decl_list);
       }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
@@ -4621,10 +4621,6 @@ to indicate whether an enumeration is actually defined.
     if (!prototype_tag_resolution) {
       add_to_types_list(enum_type, DEPTH_OF_FILE_SCOPE,
                         /*in_old_style_param_decl_list=*/FALSE);
-      if (tag_sym != NULL && tag_sym->variant.type != enum_type) {
-        add_to_types_list(tag_sym->variant.type, effective_decl_level,
-                          in_old_style_param_decl_list);
-      }  /* if */
     }  /* if */
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
