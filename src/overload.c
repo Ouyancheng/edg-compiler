@@ -8500,23 +8500,35 @@ cases where bitwise copying applies.
     check_assertion_str(symbol_supplement_for_class(class_type)->
                                             assignment_by_bitwise_copy_allowed,
                         "prep_assignment_operand: class not bitwise copyable");
-    /* The bitwise copy is defined in terms of a notional generated copy
-       assignment operator whose parameter is a reference to const.
-       Process the source operand as if it will be bound to such a
-       reference. */
-    param_type = make_reference_type(make_qualified_type(class_type,
-                                                         TQ_CONST));
-    prep_reference_initializer_operand(source_operand, param_type,
-                                       (a_conv_descr_ptr)NULL,
-                                       /*initializing_return_value=*/FALSE,
-                                       /*initializing_variable=*/FALSE,
-                                       /*static_lifetime=*/FALSE,
-                                       /*bitwise_assignment_param=*/TRUE,
-                                       incompatible_err);
-    /* Turn the pointer produced for the reference binding back into an
-       rvalue for a class object. */
-    conv_object_pointer_to_lvalue(source_operand);
-    conv_lvalue_to_rvalue(source_operand);    
+    if ((strict_ansi_mode
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                          || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                           ) && is_qualified_type(dest_type)) {
+      /* The bitwise copy is defined in terms of a notional generated copy
+         assignment operator which is not cv-qualified and therefore cannot
+         assign into a cv-qualified left operand. */
+      pos_ty_error(ec_no_suitable_assignment_operator,
+                   err_pos, class_type);
+    } else {
+      /* The bitwise copy is defined in terms of a notional generated copy
+         assignment operator whose parameter is a reference to const.
+         Process the source operand as if it will be bound to such a
+         reference. */
+      param_type = make_reference_type(make_qualified_type(class_type,
+                                                           TQ_CONST));
+      prep_reference_initializer_operand(source_operand, param_type,
+                                         (a_conv_descr_ptr)NULL,
+                                         /*initializing_return_value=*/FALSE,
+                                         /*initializing_variable=*/FALSE,
+                                         /*static_lifetime=*/FALSE,
+                                         /*bitwise_assignment_param=*/TRUE,
+                                         incompatible_err);
+      /* Turn the pointer produced for the reference binding back into an
+         rvalue for a class object. */
+      conv_object_pointer_to_lvalue(source_operand);
+      conv_lvalue_to_rvalue(source_operand);    
+    }  /* if */
   } else {
     /* Nonclass assignment, and C mode struct assignment. */
     /* See if the source and destination types are compatible, and convert the

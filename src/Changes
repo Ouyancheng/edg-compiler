@@ -1,5 +1,15 @@
 Version 2.35
 
+1/6/97   Checking for volatile-qualified left operand of bitwise assignment
+
+In strict mode and Microsoft mode, for a class for which no operator=
+is declared, and for which the default generated operator= does
+bitwise assignment, an error is now issued on an attempt to assign
+to a left operand of cv-qualified type.  const-qualification was
+always checked for, so from a practical point of view this change
+affects assignments to volatile-qualified operands and to operands
+qualified with nonstandard type qualifiers.
+
 1/6/97   Deduction of template conversion function with cv-qualified result
 
 Type deduction for template conversion functions did not allow cases
