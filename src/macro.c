@@ -2573,6 +2573,16 @@ Scan and process a #define directive.
     if (*curr_char_loc != '(') {
       /* Object-like macro definition (no parameters). */
       object_like = TRUE;
+      if (C_mode() && strict_ansi_mode) {
+        /* Technical Corrigendum number 1 for ISO C requires a diagnostic
+           if the first character of an object-like macro replacement list
+           is a nonstandard character (one not required by 5.2.1). */
+        if (is_nonstandard_character(*curr_char_loc)) {
+          a_source_position err_pos;
+          conv_line_loc_to_source_pos(curr_char_loc, &err_pos);
+          pos_error(ec_nonstd_character_at_start_of_macro_def, &err_pos);
+        }  /* if */
+      }  /* if */
     } else {
       /* Function-like.  Scan parameter list. */
       object_like = FALSE;

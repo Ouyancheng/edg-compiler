@@ -1,5 +1,14 @@
 Version 2.31
 
+1/12/96   Required diagnostic on nonstandard character at start of macro
+
+Technical Corrigendum 1 for ISO C adds (in 6.8 of the standard) a requirement
+for a diagnostic if the first character of the replacement list of an object-
+like macro is not one of the characters required by 5.2.1.  Therefore, the
+following now gets an error on the dollar sign in strict mode:
+
+  #define THIS$AND$THAT(a, b) ((a) + (b))
+
 1/11/96   Unreported error on case label
 
 The duplicate-case-label error on the following is now reported:
