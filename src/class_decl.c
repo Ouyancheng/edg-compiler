@@ -11054,6 +11054,18 @@ next_declaration:
   /* If there are no longer any classes in the process of being defined
      do any class fixups and template instantiations that have been
      deferred. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (pending_class_definitions == 0 &&
+      depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE) {
+    /* Clear the instantiation insert point to assure that any
+       instantiations triggered by post-processing will appear *after*
+       the end-of-construct entry, not before it. */
+    scope_stack[DEPTH_OF_FILE_SCOPE].
+                     ss_list_instantiation_insert_point = NULL;
+  }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   process_deferred_class_fixups_and_instantiations();
   db_exit();
   return !err;
