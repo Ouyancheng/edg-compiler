@@ -1409,7 +1409,7 @@ by id_linkage.
             /* Remove other_decl from the symbol table.  It will be replaced
                by the current variable declaration. */
             remove_symbol(other_decl);
-          }
+          }  /* if */
         }  /* if */
       }  /* if */
       other_decl = NULL;
