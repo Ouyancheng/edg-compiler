@@ -3696,7 +3696,7 @@ on for use in generating cross-reference output describing this declaration.
         goto skip_overloading;
       }  /* if */
     }  /* if */
-    if (template_function_specific_decl &&
+    if (template_function_specific_decl && !inside_local_class &&
         depth_innermost_function_scope == NO_SCOPE_DEPTH) {
       /* This is an explicit declaration of a template function.  Note that
          we are only interested in file- and namespace-scope declarations --
