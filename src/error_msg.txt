@@ -1242,6 +1242,8 @@ ec_cl_upc_requires_ansi_c_dialect;;"UPC mode is incompatible with C++ and K&R mo
 ec_null_char_ignored;;"null (zero) character in input line ignored"
 ec_null_char_in_string;;"null (zero) character in string or character constant"
 ec_null_char_in_header_name;;"null (zero) character in header name"
+ec_for_init_hides_declaration;;"declaration in for-initializer hides a declaration in the surrounding scope"
+ec_for_init_hidden_declaration;;"the hidden declaration is %p"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
