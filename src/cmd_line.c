@@ -3016,7 +3016,7 @@ Make sure a given file name was not specified more than once.
 
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
-static set_default_message_severities(void)
+static void set_default_message_severities(void)
 /*
 Some messages are given different severities by default.  This routine
 assigns those severities.
