@@ -7190,6 +7190,11 @@ specifier is restored.
 
 
 static a_boolean is_invalid_catch_type(a_type_ptr type, a_source_position *pos)
+/*
+Check whether the given type is a valid catch type: incomplete types, pointers
+and references to incomplete types and abstract class types are not valid.
+pos is used to mark the location that carries any diagnostic.
+*/
 {
   a_boolean result = FALSE;
   if (is_incomplete_type(type)) {
@@ -7197,6 +7202,8 @@ static a_boolean is_invalid_catch_type(a_type_ptr type, a_source_position *pos)
     result = TRUE;
   } else if (is_ptr_or_ref_type(type)) {
     type = type_pointed_to(type);
+    /* Force instantiation of template class. */
+    complete_type_is_needed(type);
     if (is_incomplete_type(type) && !is_void_type(type)) {
       pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                      ec_ptr_or_ref_to_incomplete_type, pos);
