@@ -1,5 +1,14 @@
 Version 2.16
 
+4/15/93  New IL form for returning class via copy constructor
+
+Routines that return a class value via a copy constructor no longer
+have a return_value_pointer_variable indicated in the function
+scope entry.  Instead, the return operation is described by a
+dynamic initialization entry which is attached under a new
+variant form of the stmk_return statement.  This change is
+invisible to those using IL lowering.
+
 4/15/93  Diagnostics on noninitialization of const/ref members
 
 The severity and form of diagnostics issued in connection with the
