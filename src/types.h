@@ -384,6 +384,10 @@ typedef unsigned int an_itf_flag_set;
 			   should be ignored for purposes of this
 			   comparison. */
 
+#define ITF_EXACT_NESTING_DEPTHS_REQUIRED 0x10
+			/* TRUE if the nesting depths of template parameters
+			   must match exactly. */
+
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
 #define il_identical_types(t1, t2) \

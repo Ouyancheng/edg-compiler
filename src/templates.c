@@ -4301,7 +4301,9 @@ the same constant.
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
       } else if (type1 == type2 ||
-                 f_identical_types(type1, type2, ITF_SEEK_CORRESP)) {
+                 f_identical_types(type1, type2,
+                                   ITF_SEEK_CORRESP |
+                                   ITF_EXACT_NESTING_DEPTHS_REQUIRED)) {
         /* Okay. */
       } else if (error_matches_anything &&
                  (is_error_type(type1) || is_error_type(type2))) {

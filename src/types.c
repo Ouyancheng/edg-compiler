@@ -3038,11 +3038,15 @@ for more information.
                     if their positions in the template parameter list are
                     the same, and they are associated with template
                     declarations of the same nesting level. */
-                identical = (tptsp_1->coordinates.position ==
-                             tptsp_2->coordinates.position) &&
-                          (equiv_nesting_depths(tptsp_1->coordinates.depth,
-                                                tptsp_2->coordinates.depth) ||
-                           (flags & ITF_IGNORE_NESTING_DEPTH) != 0);
+                identical =
+                    (tptsp_1->coordinates.position ==
+                                              tptsp_2->coordinates.position) &&
+                      ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0
+                        ? tptsp_1->coordinates.depth ==
+                                                   tptsp_2->coordinates.depth
+                        : ((equiv_nesting_depths(tptsp_1->coordinates.depth,
+                                                 tptsp_2->coordinates.depth) ||
+                            (flags & ITF_IGNORE_NESTING_DEPTH) != 0)));
                 break;
               case tptk_member:
                 /* Members types are the same if their names are the same

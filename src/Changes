@@ -1,5 +1,18 @@
 Version 3.3
 
+5/27/03  Problem with comparisons of nesting depths of template template
+         parameters
+
+A nonreal template class reference that makes use of a template parameter
+of a template template parameter could sometimes result in the reuse
+of a nonreal class for a template parameter that has a different nesting
+depth.  In the example below, this would result in B<U> being treated as
+B<T>.  Now fixed.
+
+  template <class T> struct B {};
+  template <class T, class U = B<T> > struct A {};
+  template<class T, template<class U, class V = B<U> > class TT> void f(TT<T>);
+
 5/24/03  Warning for nonstandard conversion between pointer to function
          and pointer to data
 
