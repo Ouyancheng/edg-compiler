@@ -75,6 +75,10 @@ case correctly:
     d = (double)0;    // Ambiguity error now issued --
   };                  //   D::operator=(const B&) or D::operator=(const D&)?
 
+The expression-processing routines were also modified to recognize the
+bitwise copy assignment operator in this case and generate an assignment for
+it instead of a call (1/24/96).
+
 -------------------------------------------------------------------------------
 Version 2.31, January 19, 1996
 

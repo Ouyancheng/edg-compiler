@@ -5118,7 +5118,6 @@ operand of "&&").  arg_match is the argument match entry for the operand.
 Adjust the operand type to match the type requirement.
 */
 {
-  char       type_code;
   a_boolean  processed;
   a_type_ptr pointer_type;
 
@@ -5136,9 +5135,6 @@ Adjust the operand type to match the type requirement.
                                      expr_stack->inside_conditional_expression;
       expr_stack->inside_conditional_expression = TRUE;
     }  /* if */
-    /* Get the type code for this operand (see
-       operand_type_pattern_for_operator). */
-    type_code = candidate_function->operand_type_pattern[operand_num-1];
     if (candidate_function->pointer_type == NULL) {
       /* Non-pointer or non-specific pointer case.  The conversion function
          result type is the right type. */
@@ -5151,6 +5147,10 @@ Adjust the operand type to match the type requirement.
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
            a detailed error message. */
+        /* Get the type code for this operand (see
+           operand_type_pattern_for_operator). */
+        char type_code =
+                       candidate_function->operand_type_pattern[operand_num-1];
         try_to_convert_class_operand_to_builtin_type(operand,
                                      builtin_type_set_for_type_code(type_code),
                                      &processed);
@@ -5421,6 +5421,9 @@ functions could still apply).
         } else {
           /* Exactly one function applies and is best. */
           proj_function_symbol = candidate_functions->function_symbol;
+          if (proj_function_symbol != NULL) {
+            function_symbol = fundamental_symbol_of(proj_function_symbol);
+          }  /* if */
           arg_match = candidate_functions->arg_matches;
           if (proj_function_symbol == NULL) {
             a_boolean op_1_inside_conditional = FALSE,
@@ -5455,6 +5458,22 @@ functions could still apply).
                                                   op_2_inside_conditional,
                                                   arg_match->next);
             }  /* if */
+          } else if (kind == (an_opname_kind)onk_assign &&
+                     function_symbol->kind ==
+                                           (a_symbol_kind)sk_member_function &&
+                     function_symbol->variant.routine.ptr->compiler_generated&&
+                     symbol_supplement_for_class(
+                                       function_symbol->parent.class_type)->
+                                          assignment_by_bitwise_copy_allowed) {
+            /* This function is the default bitwise copy assignment
+               operator, so give it the predefined meaning. Leave *processed
+               FALSE. */
+#if DEBUG
+            if (debug_level >= 4) {
+              fprintf(f_debug,
+               "check_for_operator_overloading: selected bitwise operator=\n");
+            }  /* if */
+#endif /* DEBUG */
           } else {
             /* An operator function was selected. */
 #if DEBUG
@@ -5464,7 +5483,6 @@ functions could still apply).
             }  /* if */
 #endif /* DEBUG */
             *processed = TRUE;
-            function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
             arg_operand = arg_operand_list;
             bound_function_selector = NULL;
