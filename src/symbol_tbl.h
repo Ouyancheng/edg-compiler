@@ -641,6 +641,10 @@ typedef struct a_func_info_block {
 			/* List of entries giving parameter names, NULL if
 			   there were none.  Used for both old-style and
 			   new-style parameter names. */
+  an_exception_specification_ptr
+		exception_specifications;
+			/* List of exception specification entries (C++
+			   only). */
   a_scope_number
 		scope_number;
 			/* The scope number used for the function prototype

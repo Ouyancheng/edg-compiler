@@ -258,7 +258,8 @@ putting line-feeds at more or less the right places.
       case tk_typeref:
         if (!tp->variant.typeref.is_const &&
             !tp->variant.typeref.is_volatile) {
-          (void)sprintf(&buffer[strlen(buffer)], "typeref ");
+          (void)str_qualified_name(&buffer[strlen(buffer)],
+                                  (a_symbol_ptr)tp->source_corresp.assoc_info);
         } else {
           if (tp->variant.typeref.is_const) {
             (void)sprintf(&buffer[strlen(buffer)], "const ");
@@ -266,8 +267,8 @@ putting line-feeds at more or less the right places.
           if (tp->variant.typeref.is_volatile) {
             (void)sprintf(&buffer[strlen(buffer)], "volatile ");
           }  /* if */
+          (void)str_type(&buffer[strlen(buffer)], tp->variant.typeref.type);
         }  /* if */
-        (void)str_type(&buffer[strlen(buffer)], tp->variant.typeref.type);
         break;
       case tk_ptr_to_member:
         /* Should be fixed. */
@@ -619,6 +620,24 @@ and indentation is the indentation desired.
         put_string(buffer);
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
+        if (C_dialect == C_dialect_cplusplus && !rp->compiler_generated) {
+          an_exception_specification_ptr  esp = rp->exception_specifications;
+          if (esp == NULL) {
+            put_string("throws any");
+          } else if (esp->type == NULL && esp->next == NULL) {
+            put_string("throws none");
+          } else {
+            (void)sprintf(buffer, "throws (");
+            (void)str_type(&buffer[strlen(buffer)], esp->type);
+            for (esp = esp->next; esp != NULL; esp = esp->next) {
+              put_string(buffer);
+              buffer[0] = 0;
+              (void)str_type(buffer, esp->type);
+            }  /* for */
+            (void)sprintf(&buffer[strlen(buffer)], ")");
+            put_string(buffer);
+          }  /* if */
+        }  /* if */
         type = rp->type;
       }  /* if */
       break;
@@ -2992,8 +3011,9 @@ the compiler-generated flag should be cleared.
   /* Create the symbol and routine entry.  Note that the routine entry
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
-  decl_var_or_routine(&locator, (a_storage_class)sc_extern,
-                      rout_type, /*is_implicit_function=*/FALSE,
+  decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
+                      (an_exception_specification_ptr)NULL,
+                      /*is_implicit_function=*/FALSE,
                       /*if_function_def_with_body=*/FALSE,
                       /*is_inline=*/FALSE, /*is_main_function=*/FALSE, &sym,
                       &linkage, &old_type, &ext_sym);
@@ -7266,6 +7286,7 @@ Clear the fields of a function information block to default values.
 {
   func_info->prototype_scope_symbols     = NULL;
   func_info->param_id_list               = NULL;
+  func_info->exception_specifications    = NULL;
   func_info->scope_number                = NO_SCOPE_NUMBER;
   func_info->any_prototype_names_omitted = FALSE;
 }  /* clear_func_info */
