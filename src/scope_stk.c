@@ -3442,9 +3442,10 @@ NULL.
         } else if (rout_ptr->is_inline &&
                    !routine_defined(rout_ptr)) {
           /* An extern-inline function that was referenced but not defined.
-             Note that the Microsoft compiler issues no diagnostic on this
-             (though the linker may). */
-          pos_sy_diagnostic(microsoft_mode ? es_warning : es_error,
+             Note that the Microsoft and GNU compilers issue no diagnostic on
+             this (though linker errors may result from this). */
+          pos_sy_diagnostic((microsoft_mode || gnu_mode) ? es_warning
+                                                         : es_error,
                             ec_extern_inline_never_defined,
                             &sym->decl_position, sym);
         }  /* if */

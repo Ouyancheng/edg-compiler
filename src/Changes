@@ -1,5 +1,12 @@
 Version 3.1
 
+10/17/02 GNU compatibility mode: Undefined inline functions
+
+In GNU C and C++ modes, the front end now issues a warning (instead of an
+error) for extern inline functions that are referenced but not defined.
+(The same behavior was already implemented in Microsoft mode, see the Changes
+of 12/3/98.)
+
 10/17/02 C++-generating back end, Microsoft compatibility: Out-of-class
          definitions of nested classes
 
