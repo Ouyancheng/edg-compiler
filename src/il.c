@@ -1041,7 +1041,7 @@ Dump the contents of the indicated expression node for debug purposes.
     case enk_temp_init:
       fprintf(f_debug, "temp init (%s of temporary): ",
               node->variant.init.result_is_addr ? "addr" : "value");
-      db_dynamic_initializer(node->variant.init.dynamic_init, level);
+      db_dynamic_initializer(node->variant.init.dynamic_init, level+2);
       break;
     case enk_new_delete:
       ndsp = node->variant.new_delete;
@@ -1175,7 +1175,7 @@ dik_constructor.
   } else {
     fputs(", args =\n", f_debug);
     for (; arg != NULL; arg = arg->next) {
-      db_expr_node(arg, level + 2);
+      db_expr_node(arg, level);
     }  /* if */
     if (dip->destructor != NULL) {
       int a;
