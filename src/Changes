@@ -1,5 +1,24 @@
 Version 2.38
 
+11/3/97   Destructions in dead code in conditional expressions
+
+When ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS is TRUE (not the
+default), expressions under conditional operators that are known not
+to be evaluated are removed.  This removal does not work correctly
+when the removed expression contains a destructible temporary.  The
+failure to process the destruction properly caused an abort later.
+To avoid the problem, the removal is now suppressed in such cases
+(i.e., dead code that requires a destruction is left in the expression).
+
+  struct A {
+    A();
+    ~A();
+  };
+  int main () {
+    0 && (A(), 0);
+    1 ? 1 : (A(), 0);
+  }
+
 11/1/97   Builtin processing for <stdarg.h>
 
 When the front end is generating C or C++ code as output, the <stdarg.h>
