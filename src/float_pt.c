@@ -58,7 +58,7 @@ is cleared.
 static void init_strtod(void)
 {
   int temp[200]; /* Magic numbers. */
-  temp[56] = 0;
+  temp[55] = 0;
 }  /* init_strtod */
 #endif /* ifdef SUNOS_STRTOD_BUG */
 
