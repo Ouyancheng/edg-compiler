@@ -1009,7 +1009,7 @@ variable, and return a pointer to that null-terminated string.
   } else if (kind == (a_float_kind)fk_double) {
     (void)sprintf(str, "%.18Le", temp);
   } else {
-    (void)sprintf(str, "%.*Le", LDBL_DIG, temp);
+    (void)sprintf(str, "%.*Le", LDBL_DIG + 1, temp);
   }  /* if */
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   if (kind == (a_float_kind)fk_float) {

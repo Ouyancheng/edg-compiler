@@ -1,5 +1,12 @@
 Version 2.46
 
+2/9/01   Long double requires additional digit for full precision
+
+When emitting a long double value as a string in the C or C++ generating
+back ends, the resulting string did not contain enough digits to
+guarantee that all of the bits of the value were represented (it needed
+one additional digit).  This has been fixed.
+
 2/8/01   Checking of template-dependent switch case values
 
 Spurious errors about duplicated values were sometimes issued for
