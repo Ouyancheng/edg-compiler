@@ -1,5 +1,35 @@
 Version 2.13
 
+12/15/92  Implicit type specifier on function
+
+In C++ mode the diagnostic issued on functions with an implicit return
+type is now a remark instead of a warning.  This matches the behavior in
+C mode.
+
+12/14/92  Dependencies in scanning member function default arg expressions
+
+In delayed_scan_fixup_for_class all default argument expression are now
+scanned first, and only then are the inline function bodies scanned.
+This assures that calls within the inline functions bodies are handled
+no matter what the order of declaration.  For example:
+
+  class A {
+    int f() { return g(); }        // Error no longer issued on calling g
+                                   //   without no arguments
+    int g(int i = 1) { return i; }
+  };
+
+Note that the ARM does not address this sort of order dependency;
+however, the new behavior is consistent with that of cfront for this
+program.  On the other hand, dependencies within default argument
+expressions remains problematic.  For example, this still produces an
+error:
+
+  class A {
+    static int f(int i = g()) { return i; }
+    static int g(int i = 1) { return i; }
+  };
+
 12/14/92  Integral promotions on enum types
 
 When they undergo integral promotions, C++ enum types now lose their
