@@ -1155,6 +1155,10 @@ encoding, return NULL.
     s = "[]";
   } else if (start_of_id_is("qs", ptr, dctl)) {
     s = "?";
+  } else if (start_of_id_is("mn", ptr, dctl)) {
+    s = "<?";
+  } else if (start_of_id_is("mx", ptr, dctl)) {
+    s = ">?";
   } else if (start_of_id_is("cs", ptr, dctl)) {
     s = "cast";
     *takes_type = TRUE;
@@ -3666,22 +3670,24 @@ a type.  The syntax is:
 
 static char *get_operator_name(char                       *ptr,
                                int                        *num_operands,
+                               int                        *length,
                                char                       **close_str,
                                a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <operator-name> and return the demangled form.
 Return NULL if the operator is invalid.  An <operator-name> encodes
-an operator in an expression or operator function name.  The names
-are two characters long.  *num_operands is set to the number of
-operands expected by the operator.  *close_str is set to a string
-that closes the operator, if necessary, e.g., "]" for subscripting;
-it is set to "" if not needed.
+an operator in an expression or operator function name.
+*num_operands is set to the number of operands expected by the operator.
+*length is set to the mangled name length (2 except for vendor extended
+operators).  *close_str is set to a string that closes the operator,
+if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
 */
 {
   char *str = NULL;
 
   *num_operands = 2;
   *close_str = "";
+  *length = 0;
   if (*ptr == '\0') {
     bad_mangled_name(dctl);
   } else {
@@ -3849,9 +3855,48 @@ it is set to "" if not needed.
           *num_operands = 1;
         }  /* if */
         break;
+      case 'v':
+        /* Vendor extended operators. */
+        if (start_of_id_is("v18alignofe", ptr)) {
+          /* __alignof__(expr) */
+          str = "__alignof__(";
+          *close_str = ")";
+          *num_operands = 1;
+          *length = 11;
+        } else if (start_of_id_is("v17alignof", ptr)) {
+          /* __alignof__(type) */
+          str = "__alignof__(";
+          *close_str = ")";
+          *num_operands = 0;
+          *length = 10;
+        } else if (start_of_id_is("v19__uuidofe", ptr)) {
+          /* __uuidof(expr) */
+          str = "__uuidof(";
+          *close_str = ")";
+          *num_operands = 1;
+          *length = 12;
+        } else if (start_of_id_is("v18__uuidof", ptr)) {
+          /* __uuidof(type) */
+          str = "__uuidof(";
+          *close_str = ")";
+          *num_operands = 0;
+          *length = 11;
+        } else if (start_of_id_is("v23min", ptr)) {
+          /* GNU "<?" */
+          str = "<?";
+          *length = 6;
+          *num_operands = 2;
+        } else if (start_of_id_is("v23max", ptr)) {
+          /* GNU ">?" */
+          str = ">?";
+          *length = 6;
+          *num_operands = 2;
+        }  /* if */
+        break;
       default:
         break;
     }  /* switch */
+    if (*length == 0) *length = 2;
   }  /* if */
   return str;
 }  /* get_operator_name */
@@ -3974,15 +4019,16 @@ caller does not need the value.
       ptr = demangle_type(ptr+2, dctl);
     } else {
       /* Other operator function (not conversion function). */
-      int  num_operands;
+      int  num_operands, length;
       char *op_str, *close_str;
-      op_str = get_operator_name(ptr, &num_operands, &close_str, dctl);
+      op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
+                                 dctl);
       if (op_str == NULL) {
         bad_mangled_name(dctl);
       } else {
         write_id_str(op_str, dctl);
         write_id_str(close_str, dctl);
-        ptr += 2;
+        ptr += length;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4210,44 +4256,14 @@ The syntax is:
     /* A template parameter. */
     ptr = demangle_template_param(ptr, dctl);
   } else {
-    int  num_operands;
-    char *op_str = NULL, *close_str = "";
+    int  num_operands, length;
+    char *op_str, *close_str;
     /* An expression beginning with an operator name. */
-    if (*ptr == 'v') {
-      /* Vendor extended operator, used for alignof. */
-      if (start_of_id_is("v18alignofe", ptr)) {
-        /* __alignof__(expr) */
-        op_str = "__alignof__(";
-        close_str = ")";
-        num_operands = 1;
-        ptr += 11;
-      } else if (start_of_id_is("v17alignof", ptr)) {
-        /* __alignof__(type) */
-        op_str = "__alignof__(";
-        close_str = ")";
-        num_operands = 0;
-        ptr += 10;
-      } else if (start_of_id_is("v19__uuidofe", ptr)) {
-        /* __uuidof(expr) */
-        op_str = "__uuidof(";
-        close_str = ")";
-        num_operands = 1;
-        ptr += 12;
-      } else if (start_of_id_is("v18__uuidof", ptr)) {
-        /* __uuidof(type) */
-        op_str = "__uuidof(";
-        close_str = ")";
-        num_operands = 0;
-        ptr += 11;
-      }  /* if */
-    } else {
-      /* Not an extended operator. */
-      op_str = get_operator_name(ptr, &num_operands, &close_str, dctl);
-      if (op_str != NULL) ptr += 2;
-    }  /* if */
+    op_str = get_operator_name(ptr, &num_operands, &length, &close_str, dctl);
     if (op_str == NULL) {
       bad_mangled_name(dctl);
     } else {
+      ptr += length;
       write_id_ch('(', dctl);
       if (num_operands == 1) {
         /* Unary operations. */
@@ -4322,12 +4338,12 @@ The syntax is:
           if (emulate_gnu_abi_bugs) {
             /* g++ 3.2 puts out the parameter types following the name
                of a function. */
-            int  num_operands;
+            int  num_operands, length;
             char *close_str;
             if (*ptr == 'E' || *ptr == '_') {
               /* No expression or parameter list next. */
             } else if (*ptr == 'L' ||
-                       get_operator_name(ptr, &num_operands,
+                       get_operator_name(ptr, &num_operands, &length,
                                          &close_str, dctl) != NULL) {
               /* Another expression is next, so no parameter list. */
             } else {

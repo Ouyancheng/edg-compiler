@@ -1,5 +1,23 @@
 Version 3.4
 
+8/16/03 Demangling of GNU min/max operators
+
+The GNU min/max operators "<?" and ">?" were added in version 3.2, but
+we forgot to update the demangler to handle them in mangled names.
+That is now done, both for the IA-64 ABI:
+
+  _ZN1Zv23maxERS_
+  _ZN1Zv23minERS_
+  _Z1gILi1EEv1AIXv23minT_Li2EEE
+  _Z2g2ILi1EEv1AIXv23maxT_Li2EEE
+
+and for the Cfront-like ABI:
+
+  __mx__1ZFR1Z
+  __mn__1ZFR1Z
+  g__tm__9_XCiL_1_1__F26A__tm__17_XOmn2Z1ZCiL_1_2O_v
+  g2__tm__9_XCiL_1_1__F26A__tm__17_XOmx2Z1ZCiL_1_2O_v
+
 8/11/03 Demangling of virtual function table names, Cfront-like ABI
 
 A change made in version 3.2 (see Changes entry of 7/10/03) broke
