@@ -3350,59 +3350,129 @@ a_symbol_ptr select_overloaded_function(
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
                            an_arg_operand_ptr       arg_operand_list,
+                           a_boolean                do_arg_dep_lookup,
                            an_error_code            err_none_applies,
                            an_error_code            err_ambiguous,
                            a_source_position        *call_position,
                            an_arg_match_summary_ptr *arg_match_list)
 /*
-Determine which of the functions under overloaded_function_symbol should
-be called given an argument list arg_operand_list.  The symbol may be an
-overloaded function, a simple member or nonmember function, or a projection
-symbol for one of those.  is_template_id is TRUE if the symbol has an
-associated explicit template argument list; if so, template_arg_list
-gives the list of arguments.  If have_selector is TRUE,
-*bound_function_selector is a selector object.  Note that, for
+Determine which of the functions under overloaded_function_symbol
+should be called given an argument list arg_operand_list.  The symbol
+may be an overloaded function, a simple member or nonmember function,
+or a projection symbol for one of those.  is_template_id is TRUE if
+the symbol has an associated explicit template argument list; if so,
+template_arg_list gives the list of arguments.  If have_selector is
+TRUE, *bound_function_selector is a selector object.  Note that, for
 constructor calls, bound_function_selector can be NULL when
 have_selector is TRUE; we have a selector, but it's not available.
 That's okay for constructors, because they cannot be const- or
 volatile-qualified, and the selector expression is only needed for
-that discrimination.  call_position is the source position of the
-call.  If an error of some sort is detected, issue an error at that
-position and return NULL.  err_none_applies is the error code to use
-when no function applies, and err_ambiguous is the error code to use
-when more than one function applies.  If there is no error, an
-argument match list is returned in *arg_match_list (the caller must
-free this) and the symbol selected is returned.  This routine is
-called only in C++ mode.
+that discrimination.  do_arg_dep_lookup is TRUE if argument-dependent
+lookup should be done; if it is TRUE, overloaded_function_symbol may
+be an sk_undefined symbol, indicating that nothing was found on a
+normal id lookup of the function name.  call_position is the source
+position of the call.  If an error of some sort is detected, issue an
+error at that position and return NULL.  err_none_applies is the error
+code to use when no function applies, and err_ambiguous is the error
+code to use when more than one function applies.  If there is no
+error, an argument match list is returned in *arg_match_list (the
+caller must free this) and the symbol selected is returned.  This
+routine is called only in C++ mode.
 */
 {
   a_candidate_function_ptr candidate_functions;
   a_symbol_ptr             function_symbol;
   a_boolean                matched_except_for_missing_selector = FALSE;
-  a_boolean                undecidable_because_of_error;
+  a_boolean                undecidable_because_of_error = FALSE;
+  a_boolean                ambiguous = FALSE;
+  a_boolean                sym_is_undefined;
 
   db_enter(4, "select_overloaded_function");
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
-  /* Evaluate all matches in the function set. */
-  try_overloaded_function_match(overloaded_function_symbol,
-                                is_template_id,
-                                template_arg_list,
-                                arg_operand_list,
-                                have_selector,
-                                bound_function_selector,
-                                /*selector_is_object_pointer=*/TRUE,
-                                /*ctor_conversion_case=*/FALSE,
-                                /*effects_copy_initialization=*/FALSE,
-                                &candidate_functions,
-                                &matched_except_for_missing_selector);
+  sym_is_undefined = (overloaded_function_symbol->kind ==
+                                                  (a_symbol_kind)sk_undefined);
+  if (do_arg_dep_lookup && !sym_is_undefined &&
+      (overloaded_function_symbol->is_class_member ||
+       is_local_symbol(overloaded_function_symbol))) {
+    /* If the function found is a block extern or a member function, suppress
+       argument-dependent lookup.  The member function part of that is
+       in the standard.  The block extern part is not, but was strongly
+       supported as a change at the Nov. 98 standards committee meeting. */
+    do_arg_dep_lookup = FALSE;
+  }  /* if */
+  if (!do_arg_dep_lookup) {
+    /* No argument-dependent lookup.  Use only the function symbol provided. */
+    /* Evaluate all matches in the function set. */
+    try_overloaded_function_match(overloaded_function_symbol,
+                                  is_template_id,
+                                  template_arg_list,
+                                  arg_operand_list,
+                                  have_selector,
+                                  bound_function_selector,
+                                  /*selector_is_object_pointer=*/TRUE,
+                                  /*ctor_conversion_case=*/FALSE,
+                                  /*effects_copy_initialization=*/FALSE,
+                                  &candidate_functions,
+                                  &matched_except_for_missing_selector);
+  } else {
+    /* Do argument-dependent lookup, which may add additional functions
+       from the classes and namespaces associated with the argument
+       types. */
+    a_type_list_entry_ptr   type_list = NULL;
+    a_symbol_locator        locator;
+    an_arg_operand_ptr      arg_operand;
+    a_symbol_list_entry_ptr symbol_list, slep;
+
+    /* Accumulate the types used in the arguments. */
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      add_to_arg_dependent_lookup_list(arg_operand->operand.type, &type_list);
+    }  /* for */
+    /* Do argument-dependent lookup, producing a list of symbols to
+       be considered as candidate functions. */
+    make_locator_for_symbol(overloaded_function_symbol, &locator);
+    function_symbol = sym_is_undefined ? NULL : overloaded_function_symbol;
+    symbol_list = argument_dependent_lookup(function_symbol, &locator,
+                                            &type_list);
+    /* Try each function symbol on the symbol list. */
+    for (slep = symbol_list; slep != NULL; slep = slep->next) {
+      function_symbol = slep->symbol;
+      if (is_ambiguous_by_inheritance(function_symbol)) {
+        /* The symbol is ambiguous, and as such is an arbitrary
+           representative of a set of functions that collided due
+           to namespace inheritance.  There's no point in seeing
+           if the function indicated matches up, since there might
+           be another function that isn't represented that would
+           match better. */
+        pos_sy_error(ec_ambiguous_name, call_position, function_symbol);
+        ambiguous = TRUE;
+      } else {
+        try_overloaded_function_match(function_symbol,
+                                      is_template_id,
+                                      template_arg_list,
+                                      arg_operand_list,
+                                      have_selector,
+                                      bound_function_selector,
+                                      /*selector_is_object_pointer=*/TRUE,
+                                      /*ctor_conversion_case=*/FALSE,
+                                      /*effects_copy_initialization=*/FALSE,
+                                      &candidate_functions,
+                                      &matched_except_for_missing_selector);
+      }  /* if */
+    }  /* for */
+    free_list_of_symbol_list_entries(symbol_list);
+  }  /* if */
   /* The candidate_functions list now contains all the viable functions.
      Find the best one(s). */
-  select_best_candidate_functions(&candidate_functions, call_position,
-                                  &undecidable_because_of_error);
+  if (!ambiguous) {
+    select_best_candidate_functions(&candidate_functions, call_position,
+                                    &undecidable_because_of_error);
+  }  /* if */
   function_symbol = NULL;
   *arg_match_list = NULL;
-  if (undecidable_because_of_error) {
+  if (undecidable_because_of_error || ambiguous) {
     /* There was some previous error, so do not put out an error message. */
   } else if (candidate_functions == NULL) {
     /* None of the functions applies. */
@@ -4320,6 +4390,7 @@ a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
                            an_arg_operand_ptr       arg_operand_list,
+                           a_boolean                do_arg_dep_lookup,
                            a_boolean                is_qualified_name,
                            an_error_code            err_none_applies,
                            an_error_code            err_ambiguous,
@@ -4329,12 +4400,12 @@ a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            an_operand               *function_operand,
                            an_expr_node_ptr         *arg_expr_list)
 /*
-Determine which of the functions under overloaded_function_symbol should
-be called given an argument list arg_operand_list.  The symbol may be an
-overloaded function, a simple member or nonmember function, or a projection
-symbol for one of those.  is_template_id is TRUE if the symbol has an
-associated explicit template argument list; if so, template_arg_list
-gives the argument list.  If have_selector is TRUE,
+Determine which of the functions under overloaded_function_symbol
+should be called given an argument list arg_operand_list.  The symbol
+may be an overloaded function, a simple member or nonmember function,
+or a projection symbol for one of those.  is_template_id is TRUE if
+the symbol has an associated explicit template argument list; if so,
+template_arg_list gives the argument list.  If have_selector is TRUE,
 *bound_function_selector is a selector object.  Note that, for
 constructor calls, bound_function_selector can be NULL when
 have_selector is TRUE; we have a selector, but it's not available.
@@ -4342,22 +4413,25 @@ That's okay for constructors, because they cannot be const- or
 volatile-qualified, and the selector expression is only needed for
 that discrimination.  If have_selector is FALSE,
 bound_function_selector must still point at an operand that can be
-filled in if an implicit selector is generated is_qualified_name is
-TRUE if a qualified name was used to name the function (that
-suppresses the virtual-ness of the function).  arg_operand_list is
-freed by this routine.  call_position is the source position of the
-call.  If an error of some sort is detected, issue an error at that
-position and return NULL.  err_none_applies is the error code to use
-when no function applies, and err_ambiguous is the error code to use
-when more than one function applies.  If there is no error, an operand
-for the function is built in *function_operand, an expression-form
-argument list is built and returned in *arg_expr_list (with the
-arguments cast to the proper types), and the symbol selected is
-returned.  (The symbol returned is never a projection symbol.)
-function_position is the position of the function name or equivalent
-in the call, usually the same as call_position.  id_position is
-the source position of the function name identifier in the
-call.  This routine is called only in C++ mode.
+filled in if an implicit selector is generated.  do_arg_dep_lookup is
+TRUE if argument-dependent lookup should be done; if it is TRUE,
+overloaded_function_symbol may be an sk_undefined symbol, indicating
+that nothing was found on a normal id lookup of the function name.
+is_qualified_name is TRUE if a qualified name was used to name the
+function (that suppresses the virtual-ness of the function).
+arg_operand_list is freed by this routine.  call_position is the
+source position of the call.  If an error of some sort is detected,
+issue an error at that position and return NULL.  err_none_applies is
+the error code to use when no function applies, and err_ambiguous is
+the error code to use when more than one function applies.  If there
+is no error, an operand for the function is built in
+*function_operand, an expression-form argument list is built and
+returned in *arg_expr_list (with the arguments cast to the proper
+types), and the symbol selected is returned.  (The symbol returned is
+never a projection symbol.)  function_position is the position of the
+function name or equivalent in the call, usually the same as
+call_position.  id_position is the source position of the function
+name identifier in the call.  This routine is called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -4371,6 +4445,7 @@ call.  This routine is called only in C++ mode.
                                                have_selector,
                                                bound_function_selector,
                                                arg_operand_list,
+                                               do_arg_dep_lookup,
                                                err_none_applies,
                                                err_ambiguous,
                                                call_position,

@@ -1504,6 +1504,7 @@ is after the closing parenthesis of the argument list.
                                                  /*have_selector=*/TRUE,
                                                  (an_operand *)NULL,
                                                  arg_operand_list,
+                                                 /*do_arg_dep_lookup=*/FALSE,
                                                  ec_no_matching_constructor,
                                                  ec_ambiguous_constructor,
                                                  &start_position,
@@ -1553,6 +1554,19 @@ a pointer to its routine entry.  Otherwise, return NULL.
   }  /* if */
   return routine;
 }  /* routine_from_function_operand */
+
+
+static void enter_undefined_symbol(a_symbol_ptr sym)
+/*
+The indicated symbol is an sk_undefined symbol created because of an
+undefined identifier.  It is now known that this is an error.  Enter
+the symbol into the symbol table so it can be found on subsequent
+uses of the name.
+*/
+{
+  reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
+  sym->is_error = TRUE;
+}  /* enter_undefined_symbol */
 
 
 static void scan_function_call(an_operand *operand,
@@ -1688,29 +1702,39 @@ Syntax:
       if (microsoft_mode) options |= TOPT_ADDR_OF_CTOR_ALLOWED;
       do_operand_transformations(operand, options);
     }
-    /* Function designator must be an expression or an undefined symbol. */
     if (is_undefined_symbol_operand(operand)) {
-      /* If the function designator was an undefined symbol, implicitly
-         declare it now as a function. */
+      /* The function designator is an undefined symbol. */
       a_symbol_ptr func_sym = operand->variant.symbol;
-      decl_default_function(func_sym);
-      /* Issue a low-severity diagnostic, not usually displayed.  In C++,
-         issue an error (implicit declaration of functions is not allowed). */
-      if (C_dialect == C_dialect_cplusplus) {
-        pos_st_error(ec_undefined_identifier, &operand->position,
-                     func_sym->header->identifier);
+      /* In C++, it's an error, but not yet if argument-dependent lookup
+         is enabled -- in that case, a function might be found in a
+         argument-dependent class or namespace, and no error is issued. */
+      if (!C_mode() && arg_dependent_lookup_enabled) {
+        overloaded_function_case = TRUE;
+        overloaded_function_symbol = func_sym;
+        /* routine_type = NULL;  -- already set. */
       } else {
-        pos_remark(ec_implicit_func_decl, &operand->position);
+        /* Implicitly declare the symbol as a function. */
+        enter_undefined_symbol(func_sym);
+        decl_default_function(func_sym);
+        /* Issue a low-severity diagnostic, not usually displayed.  In C++,
+           issue an error (implicit declaration of functions is not
+           allowed). */
+        if (C_dialect == C_dialect_cplusplus) {
+          pos_st_error(ec_undefined_identifier, &operand->position,
+                       func_sym->header->identifier);
+        } else {
+          pos_remark(ec_implicit_func_decl, &operand->position);
+        }  /* if */
+        make_function_designator_operand(func_sym,
+                                         /*is_qualified_name=*/FALSE,
+                                         &func_sym->decl_position,
+                                         operand->ref_entries_list,
+                                         operand);
+        conv_function_designator_to_ptr_to_function(operand,
+                                                    /*allow_ctor=*/FALSE);
+        routine = func_sym->variant.routine.ptr;
+        routine_type = routine_symbol_type(func_sym);
       }  /* if */
-      make_function_designator_operand(func_sym,
-                                       /*is_qualified_name=*/FALSE,
-                                       &func_sym->decl_position,
-                                       operand->ref_entries_list,
-                                       operand);
-      conv_function_designator_to_ptr_to_function(operand,
-                                                  /*allow_ctor=*/FALSE);
-      routine = func_sym->variant.routine.ptr;
-      routine_type = routine_symbol_type(func_sym);
     } else if (is_indefinite_function_operand(operand)) {
       /* Overloaded function.  That means the routine type is not known yet. */
       overloaded_function_case = TRUE;
@@ -1760,7 +1784,8 @@ Syntax:
     a_source_position end_function_position;
     end_function_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    check_assertion(is_indefinite_function_operand(operand));
+    check_assertion(is_indefinite_function_operand(operand) ||
+                    is_undefined_symbol_operand(operand));
     id_position = operand->id_position;
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
@@ -1771,6 +1796,7 @@ Syntax:
                                             (a_boolean)operand->bound_function,
                                             bound_function_selector,
                                             arg_operand_list,
+                                            arg_dependent_lookup_enabled,
                                          (a_boolean)operand->is_qualified_name,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
@@ -5629,6 +5655,7 @@ specification allow a variable-sized array as the top type.
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
                                               arg_operand_list,
+                                              /*do_arg_dep_lookup=*/FALSE,
                                               ec_no_matching_new_function,
                                               ec_ambiguous_overloaded_function,
                                               &new_position,
@@ -10505,31 +10532,37 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
                    locator_for_curr_id.specific_symbol);
   }  /* if */
   if (sym_ptr == NULL) {
-    /* The symbol was not in the symbol table; enter it now in case its use
-       later is as a function call, and to get proper cross-reference
-       output. */
-    sym_ptr = enter_symbol((a_symbol_kind)sk_undefined, &locator_for_curr_id,
-                           decl_scope_level, /*suppress_error=*/TRUE);
     if (is_error_locator(locator_for_curr_id)) {
       /* An error was already issued. */
       make_error_operand(result);
-    } else if (curr_expr_kind_is_const()) {
-      /* In a constant expression, an undefined identifier is still
-         flagged as "undefined" -- it makes the error message clearer. */
-      str_error(ec_undefined_identifier,
-                locator_for_curr_id.symbol_header->identifier);
-      record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
-                                                        SRK_ERROR),
-                              sym_ptr, &locator_for_curr_id.source_position,
-                              /*update_il_entry=*/FALSE);
-      make_error_operand(result);
     } else {
-      /* Make a transient undefined symbol operand that will be either turned
-         into an implicitly declared function or diagnosed as an error. */
-      clear_operand((an_operand_kind)ok_undefined_symbol, result);
-      result->type = unknown_type();
-      result->variant.symbol = sym_ptr;
-      result->ref_entries_list = ref_entry(sym_ptr, &pos_curr_token);
+      /* The symbol was not in the symbol table; create an sk_undefined
+         symbol.  It is not entered into the symbol table at this time. */
+      sym_ptr = alloc_symbol((a_symbol_kind)sk_undefined,
+                             locator_for_curr_id.symbol_header,
+                             &locator_for_curr_id.source_position);
+      if (curr_expr_kind_is_const()) {
+        /* In a constant expression, an undefined identifier is still
+           flagged as "undefined" -- it makes the error message clearer. */
+        enter_undefined_symbol(sym_ptr);
+        str_error(ec_undefined_identifier,
+                  locator_for_curr_id.symbol_header->identifier);
+        record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
+                                                          SRK_ERROR),
+                                sym_ptr, &locator_for_curr_id.source_position,
+                                /*update_il_entry=*/FALSE);
+        make_error_operand(result);
+      } else {
+        /* Make a transient undefined symbol operand that will be either
+           turned into an implicitly declared function (in C) or ignored
+           (in C++, with argument-dependent lookup), or diagnosed as an
+           error. */
+        clear_operand((an_operand_kind)ok_undefined_symbol, result);
+        result->type = unknown_type();
+        result->variant.symbol = sym_ptr;
+        result->ref_entries_list = ref_entry(sym_ptr, &pos_curr_token);
+        result->id_position = locator_for_curr_id.source_position;
+      }  /* if */
     }  /* if */
   } else {
     /* The symbol is defined. */
@@ -11387,6 +11420,7 @@ bad_start_of_primary:
       } else {
         /* The undefined symbol is about to be the operand of some
            operation other than a call, so it's truly undefined. */
+        enter_undefined_symbol(local_result.variant.symbol);
         str_error(ec_undefined_identifier,
                   local_result.variant.symbol->header->identifier);
         make_error_operand(&local_result);
@@ -11543,6 +11577,7 @@ bad_start_of_primary:
        Note that "(f)()" will not be treated as an implicit function
        declaration -- it will yield an error.  The standard says
        "expression ... consists solely of an identifier" (3.3.2.2). */
+    enter_undefined_symbol(local_result.variant.symbol);
     str_error(ec_undefined_identifier,
               local_result.variant.symbol->header->identifier);
     make_error_operand(&local_result);

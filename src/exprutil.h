@@ -269,10 +269,10 @@ typedef struct an_operand {
   a_source_position
   		id_position;
 			/* Extra source position for an identifier, used
-			   for ok_indefinite_function.  If the name is
-			   "X::f", this gives the position of "f", where
-			   the field position above gives the position
-			   of the "X". */
+			   for ok_indefinite_function and ok_undefined_symbol.
+			   If the name is "X::f", this gives the position of
+			   "f", where the field position above gives the
+			   position of the "X". */
   union {
     /* When kind == ok_error, no variant fields. */
     /* When kind == ok_expression: */
