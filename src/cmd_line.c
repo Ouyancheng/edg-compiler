@@ -917,6 +917,16 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* ENABLE_TRANS_UNIT_TEST_MODE */
+#if GNU_EXTENSIONS_ALLOWED
+  add_option_description(optk_gcc_mode,
+                         "gcc",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_gcc_mode,
+                         "no_gcc",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -1900,6 +1910,26 @@ an otherwise implicitly enabled C99 mode.
 }  /* exclude_c99_mode */
 
 
+static void exclude_gcc_mode(an_error_code  error_code)
+/*
+GNU C mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off
+an otherwise implicitly enabled GNU C mode.
+*/
+{
+  if (gcc_mode) {
+    if (option_kind_used[(int)optk_gcc_mode]) {
+      /* GNU C mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* GNU C mode was enabled by default.  Silently disable it since an
+         explicit mode setting on the command line overrides it. */
+      gcc_mode = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_gcc_mode */
+
+
 static void check_and_set_ansi_mode_options(void)
 /*
 Both for strict ANSI C and C++ modes, check that no command-line setting
@@ -2183,6 +2213,55 @@ checked again here.)
 }  /* check_and_set_sun_mode_options */
 
 
+static void check_and_set_gcc_mode_options(void)
+/*
+Set the options needed to emulate GNU C compilers, and check that no other
+modes conflict with this one.  (The processing of some modes, like ANSI,
+exclude the GNU C mode already.  Hence those are not checked again here.)
+*/
+{
+#if VLA_ALLOWED
+  if (!(option_kind_used[(int)optk_vla])) {
+    /* Support for VLAs is turned on by default in gcc mode. */
+    vla_enabled = TRUE;
+  }  /* if */
+#endif /* VLA_ALLOWED */
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+  if (!(option_kind_used[(int)optk_extended_designators])) {
+    /* If extended designators were not enabled or disabled on the command
+       line, enable them now. */
+    extended_designators_allowed = TRUE;
+  }  /* if */
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#if COMPOUND_LITERAL_ENABLING_POSSIBLE
+  if (!(option_kind_used[(int)optk_compound_literals])) {
+    /* If compound literals were not enabled or disabled on the command line,
+       enable them now. */
+    compound_literals_allowed = TRUE;
+  }  /* if */
+#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
+  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
+    /* If extended variadic macros were not enabled or disabled on the command
+       line, enable them now. */
+    extended_variadic_macros_allowed = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_allow_dollar_in_id_chars])) {
+    /* If identifiers with dollar signs were not enabled or disabled on the
+       command line, enable them now. */
+    allow_dollar_in_id_chars = TRUE;
+  }  /* if */
+  /* Enable // comments. */
+  end_of_line_comments_allowed = TRUE;
+  /* Enable recognition of digraphs. */
+  alternative_tokens_allowed = TRUE;
+  /* Treat "long long" as a standard feature. */
+  long_long_is_standard = TRUE;
+  /* Hexadecimal floating point constants are permitted. */
+  hex_floating_point_constants_allowed = TRUE;
+
+}  /* check_and_set_gcc_mode_options */
+
+
 static void check_dialect_and_language_modes(void)
 /*
 Check for consistent specification of dialects and language modes.  Dialect
@@ -2206,6 +2285,7 @@ command line switches.
         strict          strict_ansi_mode                 -A, -a, etc.
       "normal"            
         strict          strict_ansi_mode                 -A, -a, etc.
+      GNU C             gcc_mode                         --gcc
 
   C++                   C_dialect == C_dialect_cplusplus --c++, -p
     cfront mode
@@ -2244,6 +2324,7 @@ order of development of this front end, and is inconsistent and strange.
        when the dialect is ANSI C. */
     exclude_SVR4_C_mode(ec_cl_SVR4_C_option_only_in_ansi_C);
     exclude_c99_mode(ec_cl_incompatible_language_modes);
+    exclude_gcc_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (C_dialect != C_dialect_cplusplus) {
     /* Issue an error for specifying a language mode that is valid only
@@ -2266,6 +2347,7 @@ order of development of this front end, and is inconsistent and strange.
     exclude_microsoft_mode(ec_cl_strict_ansi_incompatible_with_microsoft);
     exclude_sun_mode(ec_cl_strict_ansi_incompatible_with_sun);
     exclude_SVR4_C_mode(ec_cl_strict_ansi_incompatible_with_SVR4);
+    exclude_gcc_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (any_cfront_mode()) {
     /* Issue an error for specifying any other language mode.  Strict mode
@@ -2279,6 +2361,7 @@ order of development of this front end, and is inconsistent and strange.
        K&R mode, and cfront mode have already been checked for. */
     exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
     exclude_sun_mode(ec_cl_sun_incompatible_with_microsoft);
+    exclude_gcc_mode(ec_cl_incompatible_language_modes);
   }  /* if */
 }  /* check_dialect_and_language_modes */
 
@@ -3147,6 +3230,14 @@ enable_microsoft_mode:
         trans_unit_test_mode = opt_value;
         break;
 #endif /* ENABLE_TRANS_UNIT_TEST_MODE */
+      case optk_gcc_mode:
+        /* GNU C mode should or should not be used.  This option implies
+           ANSI C mode, even in the "--no_gcc" form. In other words,
+           --[no_]gcc is short for --c --[no_]gcc.  See --svr4, --c99 and
+           --sun for similar behavior. */
+        gcc_mode = opt_value;
+        C_dialect = C_dialect_ANSI;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -3258,6 +3349,9 @@ enable_microsoft_mode:
   }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();
+  }  /* if */
+  if (gcc_mode) {
+    check_and_set_gcc_mode_options();
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {

@@ -583,6 +583,17 @@ are not enabled, and thus stays zero on all calls).
       case 'b':
         targ_ch = (unsigned char)TARG_BACKSPACE_CHAR;
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case 'e':
+        if (gcc_mode) {
+          /* GNU C mode \e stands for the ASCII "ESC" character. */
+          targ_ch = (unsigned char)TARG_ESC_CHAR;
+        } else {
+          /* Most modes do not recognize this escape sequence. */
+          unrecognized = TRUE;
+        }  /* if */
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case 'f':
         targ_ch = (unsigned char)TARG_FORM_FEED_CHAR;
         break;

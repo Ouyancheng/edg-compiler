@@ -265,14 +265,15 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_infinity, "__INFINITY__");
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   }  /* if */
-  /* __ALIGNOF__(type) returns the alignment requirement for a type.
-     __INTADDR__(addr_expr) scans its argument as an initializer
-     expression and converts it to integer.  It is used in the
-     definition of offsetof. */
-  enter_keyword((a_token_kind)tok_alignof,   "__ALIGNOF__");
-  enter_keyword((a_token_kind)tok_intaddr,   "__INTADDR__");
+  /* __ALIGNOF__(type) returns the alignment requirement for a type (the
+     lower case spelling __alignof__ is also accepted).
+     __INTADDR__(addr_expr) scans its argument as an initializer expression
+     and converts it to integer.  It is used in the definition of offsetof. */
+  enter_keyword((a_token_kind)tok_alignof, "__ALIGNOF__");
+  enter_keyword((a_token_kind)tok_alignof, "__alignof__");
+  enter_keyword((a_token_kind)tok_intaddr, "__INTADDR__");
   if (restrict_enabled) {
-    enter_keyword((a_token_kind)tok_restrict,  "restrict");
+    enter_keyword((a_token_kind)tok_restrict, "restrict");
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -315,6 +316,18 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_decorated_function_name, "__FUNCDNAME__");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (gcc_mode) {
+    enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
+    enter_keyword((a_token_kind)tok_decorated_function_name,
+                  "__PRETTY_FUNCTION__");
+    enter_keyword((a_token_kind)tok_inline, "inline");
+    enter_keyword((a_token_kind)tok_typeof, "typeof");
+    enter_keyword((a_token_kind)tok_extension, "__extension__");
+    /* Enable alternative token spellings. */
+    enter_keyword((a_token_kind)tok_inline, "__inline__");
+    enter_keyword((a_token_kind)tok_typeof, "__typeof__");
+    enter_keyword((a_token_kind)tok_asm, "__asm__");
+  }  /* if */
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_enabled()) {
     /* Enter "near" and "far" keywords. */

@@ -9678,6 +9678,11 @@ of local variables (and types, etc.) of functions and in blocks.
 
   db_enter(3, "declaration");
 
+  if (gcc_mode && curr_token == tok_extension) {
+    /* Ignore the GNU C __extension__ annotation. */
+    (void)get_token();
+    /* FIXME: should we record that we've seen this? In a SSE? */
+  }  /* if */
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

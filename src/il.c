@@ -1079,6 +1079,11 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (tp->variant.typeref.is_placeholder_for_nested_class_def) {
             fputs("nested-class-def-PH ", f_debug);
           }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+          if (tp->variant.typeref.is_typeof) {
+            fputs("__typeof__ ", f_debug);
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
         db_abbreviated_type(tp->variant.typeref.type);
         break;

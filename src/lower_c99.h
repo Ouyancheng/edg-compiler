@@ -22,7 +22,7 @@ lower_c99.h -- Declarations related to lower_c99.c.
 #if DO_C99_IL_LOWERING
 
 #define c99_il_lowering_needed()                                             \
-  (c99_mode && !suppress_il_lowering && total_errors == 0)
+  ((c99_mode || gcc_mode) && !suppress_il_lowering && total_errors == 0)
 
 extern void lower_c99_constant(a_constant_ptr constant);
 

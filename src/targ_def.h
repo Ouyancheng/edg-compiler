@@ -245,6 +245,9 @@ Special characters:
 #ifndef TARG_VERT_TAB_CHAR
 #define TARG_VERT_TAB_CHAR    '\013'
 #endif /* ifndef TARG_VERT_TAB_CHAR */
+#ifndef TARG_ESC_CHAR
+#define TARG_ESC_CHAR         '\033'
+#endif /* ifndef TARG_ESC_CHAR */
 
 /*
 Ordering of bytes in char constants:

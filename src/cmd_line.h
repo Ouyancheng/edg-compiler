@@ -198,6 +198,7 @@ typedef enum /*an_option_kind*/ {
 #if ENABLE_TRANS_UNIT_TEST_MODE
   optk_trans_unit_test_mode,
 #endif /* ENABLE_TRANS_UNIT_TEST_MODE */
+  optk_gcc_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -216,6 +217,15 @@ EXTERN a_boolean
                                                     ;
                         /*  accept language features supported
                             by Sun CC release 5.0. */
+
+EXTERN a_boolean
+                gcc_mode
+#if VAR_INITIALIZERS
+                         = DEFAULT_GCC_COMPATIBILITY
+#endif /* VAR_INITIALIZERS */
+                                                    ;
+                        /*  accept C language features supported by GNU C
+                            compilers. */
 
 EXTERN a_boolean
                 cfront_2_1_mode /* = FALSE */;

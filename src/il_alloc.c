@@ -1218,6 +1218,9 @@ to default values.
       pte->variant.typeref.surrounding_name_linkage_state
                                        = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GNU_EXTENSIONS_ALLOWED
+      pte->variant.typeref.is_typeof = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

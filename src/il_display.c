@@ -1407,6 +1407,10 @@ do_struct_union:
                                               surrounding_name_linkage_state);
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+      if (ptr->variant.typeref.is_typeof) {
+        disp_boolean("is_typeof",
+                     (a_boolean)ptr->variant.typeref.is_typeof);
+      }  /* if */
       break;
     case tk_ptr_to_member:
       (void)printf("tk_ptr_to_member\n");

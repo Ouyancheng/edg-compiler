@@ -380,6 +380,15 @@ sun_mode and can be overridden by the command-line options --sun and --no_sun.
 #endif /* DEFAULT_SUN_COMPATIBILITY */
 
 /*
+Flag that is TRUE if GNU C compatibility features should be allowed by
+default.  It is the default initial value of the associated global variable
+gcc_mode and can be overridden by the command-line options --gcc and --no_gcc.
+*/
+#ifndef DEFAULT_GCC_COMPATIBILITY
+#define DEFAULT_GCC_COMPATIBILITY FALSE
+#endif /* DEFAULT_GCC_COMPATIBILITY */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

@@ -1078,10 +1078,20 @@ by octl.
       form_tag_reference(type, octl);
       break;
     case tk_typeref:
-      /* A typeref here should be a typedef. */
-      check_assertion_str(typeref_is_typedef(type),
-                          "form_type_specifier: typeref is not typedef");
-      form_name(&type->source_corresp, iek_type, octl);
+      /* A typeref here should be a typedef or a typeof operator. */
+#if GNU_EXTENSIONS_ALLOWED
+      if (type->variant.typeref.is_typeof) {
+        octl->output_str("__typeof__(");
+        form_type(type->variant.typeref.type, octl);
+        octl->output_str(")");
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        check_assertion_str(typeref_is_typedef(type),
+                            "form_type_specifier: typeref is not typedef");
+        form_name(&type->source_corresp, iek_type, octl);
+      }  /* if */
       break;
     case tk_template_param:
       {
@@ -1293,6 +1303,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     if (typeref_is_typedef(type)) {
       /* Typedef.  Stop unless it's invisible. */
       if (!typedef_is_invisible(type, suppress_const, octl)) break;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (type->variant.typeref.is_typeof) {
+      /* GNU C typeof operator: behaves much like a typedef. */
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */
       qualifiers |= type->variant.typeref.qualifiers;

@@ -4386,6 +4386,12 @@ typedef struct a_type {
 			/* Name linkage in effect when this typedef
 			   appeared. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GNU_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_typeof:1;
+			/* The type was created by a typeof operator
+                           (a GNU C extension). */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */

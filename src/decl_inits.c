@@ -1587,10 +1587,10 @@ subaggregate.  The function returns a pointer to an IL a_constant entity.
     a_type_ptr  required_type = context->type;
     if (!C_mode()) {
       nonconst_allowed = TRUE;
-    } else if (c99_mode || microsoft_mode) {
-      /* A C99 feature and Microsoft extension permits a nonconstant
-         initializer in the aggregate initialization of an automatic
-         variable in C mode. */
+    } else if (c99_mode || microsoft_mode || gcc_mode) {
+      /* A C99 permits a nonconstant initializer in the aggregate
+         initialization of an automatic variable.  This is also accepted
+         by GNU and Microsoft compilers. */
       nonconst_allowed = !init_info->static_lifetime;
     } else {
       nonconst_allowed = FALSE;
@@ -3048,8 +3048,8 @@ returned set to TRUE.
          IL representation for this involves a dik_nonconstant_aggregate
          dynamic init entry.  Normally, such entries only appear in unlowered
          C++ IL.  Lower it to C if configured that way. */
-      /* Note that the equivalent C99 feature is not lowered here; that's
-         done in the normal C99 lowering phase. */
+      /* Note that the equivalent C99 and GNU C feature is not lowered here;
+         that's done in the normal C99 lowering phase. */
       if (microsoft_mode && C_mode() &&
           init_dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         lower_microsoft_C_mode_nonconstant_aggregate_init(vp, init_stmt);

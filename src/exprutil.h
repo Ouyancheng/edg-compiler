@@ -105,8 +105,10 @@ enum an_expression_kind_tag {
 			   3.4).  Limited use in C++. */
   /* Non-constant expression kinds: */
   ek_normal,		/* Normal expression, no restrictions. */
-  ek_sizeof		/* The operand of sizeof.  This is almost the same
+  ek_sizeof,		/* The operand of sizeof.  This is almost the same
 			   as a normal expression. */
+  ek_typeof = ek_sizeof /* The operand of typeof (a GNU C extension); for
+                           practical purposes this is the same as sizeof. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expression_kind;

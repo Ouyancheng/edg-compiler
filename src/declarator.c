@@ -1295,6 +1295,11 @@ declaration.
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
+        if (gcc_mode && curr_token == tok_extension) {
+          /* Ignore the GNU C __extension__ annotation. */
+          (void)get_token();
+          /* FIXME: should we record that we've seen this? In a SSE? */
+        }  /* if */
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
@@ -2094,7 +2099,7 @@ declaration.
             num_of_elements =
                         unsigned_value_of_integer_constant(&constant, &err);
             if (err) error(ec_array_size_too_large);
-          } else if (microsoft_mode && top_level_field_decl &&
+          } else if (((microsoft_mode && top_level_field_decl) || gcc_mode) &&
                      sign_of_integer_constant(&constant) == 0) {
             /* In Microsoft C mode a field may be a zero-sized array type if
                it is the last field of the struct.  Thus
@@ -2102,7 +2107,11 @@ declaration.
                is allowed, and "c[0]" has the same semantics as "c[]".  Also
                allowed in Microsoft C++ mode, as long as the class is an
                "aggregate".  Note: last-field restriction and the aggregate
-               restriction in C++ are enforced in scan_class_definition. */
+               restriction in C++ are enforced in scan_class_definition.
+               GNU C also allows zero-sized array types: they have the same
+               semantics as the "[]" notation for the last field of a
+               struct, but different semantics in other contexts.  Our
+               emulation currently just treats it identically to "[]". */
             num_of_elements = 0;
           } else {
             error(ec_array_size_must_be_positive);

@@ -4208,8 +4208,8 @@ Scan the __ALIGNOF__ operator.  This is an extension that is similar
 to sizeof, but returns the alignment requirement rather than the size.
 
 Syntax:
-        __ALIGNOF__ ( type-name )
-        __ALIGNOF__ ( expression )
+        __ALIGNOF__ ( type-name )    or   __alignof__ ( type-name )
+        __ALIGNOF__ ( expression )   or   __alignof__ ( expression )
 
 The parentheses are required, unlike for sizeof.  Fewer error checks
 are done.  A warning about the use of this nonstandard feature would
@@ -4289,6 +4289,68 @@ be inappropriate, because the feature is probably used to implement
 
   db_exit();
 }  /* scan_alignof_operator */
+
+#if GNU_EXTENSIONS_ALLOWED
+
+a_type_ptr scan_typeof_operator(void)
+/*
+Scan the typeof operator.  This is a GNU C extension that is similar
+to sizeof, but returns the type rather than the size.
+
+Syntax:
+        typeof ( type-name )    or   __typeof__ ( type-name )
+        typeof ( expression )   or   __typeof__ ( expression )
+
+The parentheses are required, unlike for sizeof.
+*/
+{
+  a_type_ptr           result;
+  an_expr_stack_entry  expr_stack_entry;
+  an_operand           operand;
+
+  /* Skip the typeof or __typeof__ token. */
+  check_assertion(gcc_mode && curr_token == tok_typeof);
+  (void)get_token();
+  /* Prepare for the possibility of having to scan an expression. */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* Typeof not possible for preprocessing expressions. */
+    internal_error("scan_typeof_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  /* Distinguish between the type-name and expression case. */
+  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                       DFS_SINGLE_TYPE_REQUIRED)) {
+    /* Scan a type name. */
+    type_name(&result);
+  } else {
+    /* Scan an expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    result = operand.type;
+  }  /* if */
+  if (!is_error_type(result)) {
+    a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
+    typeof_type->variant.typeref.type = result;
+    typeof_type->variant.typeref.is_typeof = TRUE;
+    add_to_types_list(typeof_type, decl_scope_level);
+    result = typeof_type;
+  }  /* if */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  pop_expr_stack();
+  return result;
+}  /* scan_typeof_operator */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 
 static a_type_ptr scan_type_generic_expression_and_return_type(void)
@@ -12355,7 +12417,7 @@ returned instead of the unqualified function name.
   a_variable_ptr           name_var = NULL;
   a_scope_stack_entry_ptr  ssep;
 
-  check_assertion(microsoft_mode || (c99_mode && !decorated_name));
+  check_assertion(microsoft_mode || gcc_mode || (c99_mode && !decorated_name));
   check_assertion(depth_innermost_function_scope != 0);
   ssep = &scope_stack[depth_innermost_function_scope];
   /* Check if this scope already has an associated generated entity block. */
@@ -12459,6 +12521,12 @@ see expr.h).
   }  /* if */
 #endif /* DEBUG */
 
+  if (gcc_mode && curr_token == tok_extension) {
+    /* Ignore the GNU C __extension__ annotation. */
+    (void)get_token();
+    /* FIXME: should we record that we've seen this? In a SSE? */
+  }  /* if */
+
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
 
@@ -12527,10 +12595,10 @@ see expr.h).
     case tok_function_name:
     case tok_decorated_function_name:
       /* A magic identifier that expands to a string literal containing the
-         name of the current function in C99 and Microsoft modes.
-         (The "decorated" variant is recognized in Microsoft mode only and
-         expands to the mangled name.) */
-      check_assertion(microsoft_mode ||
+         name of the current function in C99, GNU C and Microsoft modes.
+         (The "decorated" variant is recognized in Microsoft and GNU C modes
+         only and in Microsoft mode it expands to the mangled name.) */
+      check_assertion(microsoft_mode || gcc_mode ||
                       (c99_mode && curr_token == tok_function_name));
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
         /* We're not inside a function. */

@@ -66,7 +66,7 @@ extern void check_closing_paren_after_expr_list(void);
 
 extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
 
-a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
+extern a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
 
 extern a_boolean is_expr_start_token(a_token_kind tok);
 
@@ -152,6 +152,8 @@ extern void scan_dependent_type_parenthesized_initializer(
                                       a_dynamic_init_ptr *dip);
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
+
+extern a_type_ptr scan_typeof_operator(void);
 
 extern an_expr_node_ptr make_condition_value_expression(
                                                 a_variable_ptr var,

@@ -5325,6 +5325,13 @@ process_class_specifier:
         diagnostic(anachronism_error_severity, ec_overload_anachronism);
         decl_specifiers_seen |= DS_OVERLOAD;
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case tok_typeof:
+        basic_type = bt_typedef;
+        decl_specifiers_seen |= DS_TYPE;
+        *type_ptr = scan_typeof_operator();
+        goto no_get_token;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
         if (C_dialect == C_dialect_cplusplus) {
@@ -5434,7 +5441,7 @@ process_class_specifier:
               (!(decl_specifiers_seen &
                  ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC |
                    DS_MICROSOFT_INLINE | DS_FORCEINLINE)))) {
-            /* This identifier appears specify a constructor. */
+            /* This identifier appears to specify a constructor. */
             a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
             a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;
 

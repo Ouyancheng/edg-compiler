@@ -130,7 +130,7 @@ specifier (except for the typedef and friend cases).  (3.5.2)
  (is_type_keyword(curr_token) ||                                      \
   curr_token == tok_struct   || curr_token == tok_union    ||         \
   curr_token == tok_enum     || curr_token == tok_class    ||         \
-  curr_token == tok_typename)
+  curr_token == tok_typename || curr_token == tok_typeof)
 
 /*
 Macro that is TRUE if the current token is the start of a type qualifier
