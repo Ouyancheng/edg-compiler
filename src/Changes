@@ -12,6 +12,9 @@ lines in the cross-reference output file.  Now fixed.
     f(1);  // Two references to "f" were put out
   }
 
+Extra lines were also produced for non-dependent calls in prototype
+instantiations.  Also fixed now.
+
 4/19/01  Internal error in default argument processing when doing nonclass
          prototype instantiations
 

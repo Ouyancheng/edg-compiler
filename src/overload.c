@@ -4400,11 +4400,6 @@ have_function:
        resolved in the real instantiation. */
     check_assertion(paren_tok_seq_number != 0);
     record_nondependent_call(function_symbol, paren_tok_seq_number);
-    if (function_symbol != NULL) {
-      record_symbol_reference(SRK_REFERENCE,
-                              fundamental_symbol_of(function_symbol),
-                              call_position, /*update_il_entry=*/TRUE);
-    }  /* if */
   }  /* if */
   db_exit();
   return function_symbol;
