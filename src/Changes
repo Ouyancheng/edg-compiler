@@ -1,5 +1,14 @@
 Version 3.6
 
+11/17/04 Gnu compatibility: Numeric register names
+
+When GNU_X86_ASM_EXTENSIONS_ALLOWED is set, the front end now accepts numeric
+register names in GNU modes.  For example:
+
+  int main() {
+    asm("movd %0, %%mm2\n" :  : "m" : "31"); // "31" is a GNU-specific numeric
+  }                                          // representation of register mm2.
+
 11/17/04 Performance improvement in memory allocation when using PCH
 
 When generating and/or using precompiled header files, an optimization

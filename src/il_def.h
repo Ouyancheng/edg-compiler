@@ -2830,6 +2830,10 @@ enum a_named_register_tag {
   anr_f8,  anr_f9,  anr_f10, anr_f11, /* x86-64 extra SSE registers */
   anr_f12, anr_f13, anr_f14, anr_f15,
   anr_flags, anr_fpsr, anr_dirflag,   /* control registers */
+  anr_16, anr_17, anr_18, anr_19,
+  anr_20,                             /* used to represent numeric register
+                                         names that do not map on actual
+                                         registers. */
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
   anr_unrecognized,		      /* used to represent an unrecognized
@@ -2900,6 +2904,11 @@ EXTERN char *named_register_names[(int)anr_last + 1]
   /* anr_flags */   "flags",
   /* anr_fpsr */    "fpsr",
   /* anr_dirflag */ "dirflag",
+  /* anr_16 */      "16",
+  /* anr_17 */      "17",
+  /* anr_18 */      "18",
+  /* anr_19 */      "19",
+  /* anr_20 */      "20",
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
   /* anr_unrecognized */
