@@ -20040,7 +20040,8 @@ instantiation.
   a_storage_class               storage_class;
   a_type_ptr                    type;
   a_symbol_locator              locator;
-  a_decl_flag_set               do_flags, dso_flags, di_flags;
+  a_decl_flag_set               do_flags = DO_NO_OUTPUT_FLAGS;
+  a_decl_flag_set               dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifiers_block        decl_modifiers;
   a_symbol_ptr                  new_sym;

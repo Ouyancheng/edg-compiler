@@ -2,6 +2,16 @@ Version 3.3, July 31, 2003
 
 7/31/03  IL version number changed to 3.3
 
+7/31/03  Unset variable in instantiation_directive
+
+In certain error cases, the do_flags variable in instantiation_directive
+was used without having been set.  This has been fixed.
+
+  struct A {
+    template <class T> struct B {};
+  };
+  template union A::B<int>;
+
 7/30/03  C++-generating back end: Nonstandard friend class declarations
 
 The C++-generating back end used to not render (nonstandard) friend class
