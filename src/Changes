@@ -1,5 +1,12 @@
 Version 2.31
 
+12/20/95  C++-generating back end: class qualifier on suppressed-virtual call
+
+When a virtual function is called with a qualified name to suppress
+its virtualness, the C++-generating back end now determines the naming
+class rather than just using the class of which the function is a member.
+This allows some cases with ambiguity or strange accessibility to work.
+
 12/20/95  IL CHANGE: add generated_default_arg to an_expr_node
 
 A flag, generated_default_arg, has been added to an_expr_node to mark a
