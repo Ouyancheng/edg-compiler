@@ -3664,7 +3664,9 @@ Returns TRUE if there is an error in the specifiers.
             default:
               unexpected_condition();
           }  /* switch */
-          if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
+          if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED) &&
+              (!is_declspec ||
+               !(input_flags & DSI_IS_EXPLICIT_INSTANTIATION))) {
             pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
             err = TRUE;
           } else if (input_flags & DSI_IS_CONDITION_DECL) {

@@ -13139,6 +13139,14 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         update_instantiation_flags(new_sym, kind, start_pos,
                                    /*is_class_instantiation=*/FALSE,
                                    is_pragma);
+#if DECL_MODIFIERS_IN_USE
+        /* In Microsoft mode __declspec(...) modifiers are accepted -- e.g.,
+           dllimport on an "extern template" declaration. */
+        update_routine_decl_modifiers(
+                             new_sym->variant.routine.ptr, &decl_modifiers,
+                             &locator.source_position, /*is_redecl=*/FALSE,
+                             (kind != (a_pragma_kind)pk_do_not_instantiate));
+#endif /* DECL_MODIFIERS_IN_USE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
           make_instantiation_directive(kind, new_sym, ssep,
