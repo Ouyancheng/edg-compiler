@@ -154,6 +154,15 @@ preprocessor.  Also suppresses definition of __STDC__.
 #define OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE FALSE
 #endif /* ifndef OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
 
+/*
+Flag that is TRUE if the address of a bit field may be taken as long
+as the bit field has a size and alignment that match some integral type.
+A warning is issued.
+*/
+#ifndef ADDR_OF_BIT_FIELD_ALLOWED
+#define ADDR_OF_BIT_FIELD_ALLOWED TRUE
+#endif /* ifndef ADDR_OF_BIT_FIELD_ALLOWED */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
