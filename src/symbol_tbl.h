@@ -2006,6 +2006,12 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if is_try_block is TRUE or if this scope is
 			   an sck_block scope nested within a scope for which
 			   is_try_block is set. */
+  a_bit_field	using_directives_apply:1;
+			/* One or more using directives are present in this
+			   scope or a scope nested within this scope for which
+			   the symbols made visible by the using directive
+			   are to be visible when the lookup reaches this
+			   scope. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be

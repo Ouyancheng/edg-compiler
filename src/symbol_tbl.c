@@ -1701,6 +1701,10 @@ on the list for the scope, a new entry is not added.
     audp->next = ssep->active_using_directives;
     audp->scope_depth_at_which_using_directive_applies = new_depth;
     ssep->active_using_directives = audp;
+    /* Set a flag in the scope at which this using directive applies that
+       indicates that the using directive processing must be done for
+       that scope. */
+    scope_stack[new_depth].using_directives_apply = TRUE;
     /* Add active using directives for the namespaces that should be
        visible because of the transitivity of using directives. */
     add_active_using_directives_for_namespace(nsp, ssep);
@@ -7632,7 +7636,8 @@ C and C++.
           }  /* if */
           /* If this is a namespace scope, also look for any symbols that
              are visible because of using directives. */
-          if (kind == (a_scope_kind)sck_namespace_extension) {
+          if (kind == (a_scope_kind)sck_namespace_extension &&
+              ssep->using_directives_apply) {
             sym = do_using_directive_lookup(ssep, sym, locator, options);
           }  /* if */
           if (sym != NULL) goto end_lookup;
@@ -7681,8 +7686,9 @@ C and C++.
           }  /* for */
           /* If this is a namespace scope or the file scope, also look for
              any symbols that are visible because of using directives. */
-          if (kind == (a_scope_kind)sck_file ||
-              kind == (a_scope_kind)sck_namespace) {
+          if ((kind == (a_scope_kind)sck_file ||
+              kind == (a_scope_kind)sck_namespace) &&
+              ssep->using_directives_apply) {
             sym = do_using_directive_lookup(ssep, sym, locator, options);
           }  /* if */
           if (sym != NULL) goto end_lookup;
@@ -8668,6 +8674,11 @@ type, that type is ignored by this routine.
         a_symbol_list_entry_ptr	slep;
         /* See if this symbol is already on the list. */
         for (slep = symbol_list; slep != NULL; slep = slep->next) {
+          /* The same routine should not appear on the list twice.
+             First see if the symbol pointers are the same.  If the
+             symbol pointers are different, see if one of the routines
+             pointed to by the by the symbol on the list matches the
+             new symbol. */
           if (slep->symbol == sym) break;
         }  /* for */
         if (slep == NULL) {
@@ -8789,10 +8800,17 @@ starting_depth is the innermost scope to be processed.
         if (curr_depth > nssp->depth_innermost_active_using_directive) {
           nssp->depth_innermost_active_using_directive = curr_depth;
         }  /* if */
+        /* Set the flag in the scope entry for which this using directive
+           applies. */
+        scope_stack[new_depth].using_directives_apply = TRUE;
       } else {
         nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
       }  /* if */
     }  /* for */
+    /* If we are clearing the flags, clear the flag for this scope that
+       indicates that there are using directives that must be processed
+       when this scope is reached. */
+    if (!set_value) ssep->using_directives_apply = FALSE;
     /* Determine the next scope to be processed.  If this is an
        instantiation scope (but not a nested instantiation) skip
        directly to the file scope. */
