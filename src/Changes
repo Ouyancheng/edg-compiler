@@ -1,5 +1,16 @@
 Version 3.6
 
+12/8/04  Linkage of local class defined in a typedef declaration
+
+The front end erroneously attribute C or C++ name linkage to local classes
+defined in local typedefs.  For example:
+
+  void f() {
+    typedef struct {} L;  // Name linkage should be "nlk_none", but previously
+  }                       // (erroneously) set to "nlk_cplusplus".
+
+This is now fixed.
+
 12/8/04  C++-generating back end: Infinite loop on member specialization
 
 When TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE, the

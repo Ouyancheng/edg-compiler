@@ -1667,9 +1667,9 @@ Set the name_linkage field of the class or enum type pointed to by tp.
   a_source_correspondence  *scp = &tp->source_corresp;
 
   check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
-  if (!has_name(tp)) {
-    /* Name linkage requires a name.  (Note that this can change if the type
-       acquires a name through a typedef declaration.) */
+  if (!has_name(tp) || scp->is_local_to_function) {
+    /* Name linkage requires a nonlocal name.  (Note that this can change if
+       the type acquires a name through a typedef declaration.) */
     scp->name_linkage = (a_name_linkage_kind)nlk_none;
   } else if (scp->is_class_member) {
     /* A nested class or enum has the same linkage as the class of which it
