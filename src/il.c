@@ -31,6 +31,7 @@ il.c -- Construction of intermediate language trees.
 #include "il_file.h"
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
+#if !STANDALONE_UTILITY_PROGRAM
 /*
 Pointers to shared types.  These are cleared by il_init.
 */
@@ -43,7 +44,9 @@ static a_type_ptr il_signed_int_type;
 static a_type_ptr il_error_type;
 static a_type_ptr il_void_type;
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
+#if !STANDALONE_UTILITY_PROGRAM
 /*
 Counts of tables allocated, to track total use of memory.
 */
@@ -71,16 +74,21 @@ static unsigned long
                 num_constructor_inits_allocated,
 		num_scopes_allocated,
 		string_literal_text_space_allocated;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if ALTERNATE_IL_FILE_FORMAT
 static unsigned long
 		num_il_entry_numbers_allocated;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
+#if !STANDALONE_UTILITY_PROGRAM
+
 /*
 Number of times the based_types lists of types are searched for related types.
 */
 static unsigned long
 		num_get_based_type_calls;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
+#if !STANDALONE_UTILITY_PROGRAM
 
 /*
 Hash table containing shareable constants (i.e., constants that can be
@@ -1010,6 +1018,7 @@ void db_initializer(a_variable_ptr  var,
 }  /* db_initializer */
 #endif /* DEBUG */
 
+#endif /* if !STANDALONE_UTILITY_PROGRAM */
 
 #if ALTERNATE_IL_FILE_FORMAT
 /*
@@ -1052,6 +1061,7 @@ Allocate and return "size" bytes of storage in the file scope memory region.
   return (ptr);
 }  /* alloc_il */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 char *alloc_cil(sizeof_t size)
 /*
@@ -1263,6 +1273,7 @@ by recording that the last sequence number contained therein is seq_number.
   db_exit();
 }  /* record_end_of_source_file */
 
+#endif /* if !STANDALONE_UTILITY_PROGRAM */
 
 static a_source_file_ptr source_file_for_seq(a_seq_number  seq_number,
                                              a_line_number *line_number,
@@ -1382,6 +1393,7 @@ the line number to 0.
   db_exit();
 }  /* conv_seq_to_file_and_line */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean seq_is_in_include_file(a_seq_number seq_number)
 /*
@@ -4330,6 +4342,7 @@ of the front end.
 #endif /* DEBUG */
 }  /* il_init */
 
+#endif /* if !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
