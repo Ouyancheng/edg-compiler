@@ -9462,14 +9462,16 @@ the list.
 {
   a_source_sequence_entry_ptr     next_ssep = ssep->next;
   a_src_seq_end_of_construct_ptr  sseocp;
-  a_type_ptr                      tp;
+  a_type_ptr                      tag_type, tp;
   a_src_seq_secondary_decl_ptr    sssdp;
 
   check_assertion(ss_entry_kind(ssep) ==
                            (an_il_entry_kind)iek_src_seq_end_of_construct);
   sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
   check_assertion(sseocp->entity.kind == (a_byte_il_entry_kind)iek_type);
-  if (!((a_type_ptr)sseocp->entity.ptr)->autonomous_primary_tag_decl) {
+  tag_type = (a_type_ptr)sseocp->entity.ptr;
+  if (!tag_type->autonomous_primary_tag_decl &&
+      !tag_type->declared_in_function_prototype) {
     /* This is a nonautonomous tag definition.  The tag must be kept in the
        IL -- but what if the entity to whose declaration it belongs is
        eliminated?  We need special handling for cases like this:
@@ -9523,7 +9525,7 @@ the list.
             tp = NULL;
         }  /* switch */
         if (tp == NULL ||
-            find_bottom_of_type(tp) != (a_type_ptr)sseocp->entity.ptr) {
+            find_bottom_of_type(tp) != tag_type) {
           /* This is not an entity that was declared with the tag; the tag
              should be marked as autonomous.  Sometimes this will not be quite
              right -- some weird cases in C mode, such as
@@ -9547,9 +9549,7 @@ the list.
         }  /* if */
       }  /* if */
     }  /* for */        
-    if (make_autonomous) {
-      ((a_type_ptr)sseocp->entity.ptr)->autonomous_primary_tag_decl = TRUE;
-    }  /* if */
+    if (make_autonomous) tag_type->autonomous_primary_tag_decl = TRUE;
   }  /* if */
   return next_ssep;
 }  /* src_seq_check_for_non_autonomous_tag */
@@ -9838,7 +9838,6 @@ eliminated, if appropriate.
     /* Remove unneeded source-sequence entries. */
     a_source_sequence_entry_ptr     ssep, next_ssep;
     a_src_seq_secondary_decl_ptr    sssdp;
-    a_src_seq_end_of_construct_ptr  sseocp;
 
     for (ssep = scope->source_sequence_list; ssep != NULL; ssep = next_ssep) {
       /* The processing whereby the keep_in_il flag is set guarantees that
