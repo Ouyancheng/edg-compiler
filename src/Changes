@@ -1,5 +1,12 @@
 Version 2.24
 
+6/24/94 IL CHANGE: rout_src_seq_entry_for_default_arg_decl removed
+
+This field, added in version 2.23 to a_param_type (and used only when
+GENERATE_SOURCE_SEQUENCE_LISTS was set), is no longer needed.  The
+information it provided is now available with the declared_type fields of
+a_routine and a_src_seq_secondary_decl.
+
 6/24/94 Obsolete source files removed
 
 A number of files that are no longer used have been removed from the
