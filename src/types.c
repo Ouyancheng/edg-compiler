@@ -919,55 +919,6 @@ array_type.
 }  /* set_array_type_size */
 
 
-void get_integer_size_and_alignment(an_integer_kind  ikind,
-                                    a_targ_size_t    *p_size,
-                                    a_targ_alignment *p_alignment)
-/*
-Determine and return the size and alignment of the target integer type
-of the indicated kind.
-*/
-{
-  a_targ_size_t    size;
-  a_targ_alignment alignment;
-
-  switch (ikind) {
-    case ik_char:
-    case ik_signed_char:
-    case ik_unsigned_char:
-      size = 1;
-      alignment = 1;
-      break;
-    case ik_short:
-    case ik_unsigned_short:
-      size = TARG_SIZEOF_SHORT;
-      alignment = TARG_ALIGNOF_SHORT;
-      break;
-    case ik_int:
-    case ik_unsigned_int:
-      size = TARG_SIZEOF_INT;
-      alignment = TARG_ALIGNOF_INT;
-      break;
-    case ik_long:
-    case ik_unsigned_long:
-      size = TARG_SIZEOF_LONG;
-      alignment = TARG_ALIGNOF_LONG;
-      break;
-#if LONG_LONG_ALLOWED
-    case ik_long_long:
-    case ik_unsigned_long_long:
-      size = TARG_SIZEOF_LONG_LONG;
-      alignment = TARG_ALIGNOF_LONG_LONG;
-      break;
-#endif /* LONG_LONG_ALLOWED */
-#if CHECKING
-    default:
-      internal_error("get_integer_size_and_alignment: bad integer kind");
-#endif /* CHECKING */
-  }  /* switch */
-  *p_size = size;
-  *p_alignment = alignment;
-}  /* get_integer_size_and_alignment */
-
 
 void set_type_size(a_type_ptr type_ptr)
 /*

@@ -128,6 +128,10 @@ extern void remainder_integer_values(an_integer_value *op_1,
 				     an_integer_value *op_2,
 				     a_boolean	      is_signed);
 
+extern void get_integer_size_and_alignment(an_integer_kind  ikind,
+                                           a_targ_size_t    *p_size,
+                                           a_targ_alignment *p_alignment);
+
 #if DEBUG
 extern char* db_format_integer_value(an_integer_value  *value);
 

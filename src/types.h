@@ -131,9 +131,6 @@ set *bcp to point to the base class entry that shows the relationship.
 
 extern void check_fixup_list_for_array_types(void);
 extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
-extern void get_integer_size_and_alignment(an_integer_kind  ikind,
-                                           a_targ_size_t    *p_size,
-                                           a_targ_alignment *p_alignment);
 extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
