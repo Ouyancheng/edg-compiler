@@ -1364,6 +1364,65 @@ token.
 }  /* array_declarator */
 
 
+#if 0
+static void nonconstant_array_declarator(a_type_ptr   *new_type_ptr,
+                                         an_expr_node *dimension_expr)
+/*
+Scan an array declarator (3.5.4.2), or an array declarator in an
+abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
+appropriate array type.  The initial opening bracket is the current
+token.
+*/
+{
+  long              num_of_elements;
+  a_constant        constant;
+  a_boolean         err = FALSE;
+  a_source_position start_pos;
+
+  db_enter(3, "nonconstant_array_declarator");
+  copy_source_position(pos_curr_token, start_pos);
+  /* Pass over the initial left bracket. */
+  (void)get_token();
+  add_stop_token(tok_rbracket);
+  if (curr_token == tok_rbracket) {
+    /* Empty brackets, indicating an incomplete array type. */
+    num_of_elements = 0;
+  } else {
+    /* Scan the array size. */
+    scan_integral_constant_expression(&constant);
+    if (is_error_constant(&constant)) {
+      err = TRUE;
+    } else {
+#if CHECKING
+      if (constant.kind != (a_constant_repr_kind)ck_integer) {
+        internal_error("nonconstant_array_declarator: array size not int");
+      }  /* if */
+#endif /* CHECKING */
+      num_of_elements = constant.variant.integer_value;
+      if (num_of_elements <= 0) {
+        error(ec_array_size_must_be_positive);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) {
+    *new_type_ptr = error_type();
+  } else {
+    *new_type_ptr = alloc_type((a_type_kind)tk_array);
+    /* Store the array size. */
+    (*new_type_ptr)->variant.array.number_of_elements = num_of_elements;
+    /* The size of the array (in bytes) is updated in 
+       add_to_derived_type_list. */
+  }  /* if */
+  /* Check for closing right bracket. */
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+  remove_stop_token(tok_rbracket);
+  copy_source_position(start_pos, error_position);
+  db_exit();
+}  /* nonconstant_array_declarator */
+#endif /* if 0 */
+
+
 a_routine_ptr make_routine(a_type_ptr      type_ptr,
                            a_storage_class storage_class,
                            a_boolean       at_file_scope)
@@ -3472,22 +3531,15 @@ otherwise it is NULL.  The syntax is:
       if (locator->is_operator_name) {
         /* Enforce some restrictions on the declarations of overloaded
            operator functions. */
-#if 0
-/*
-        if (locator->variant.opname == (an_opname_kind)onk_new ||
-            locator->variant.opname == (an_opname_kind)onk_delete) {
-          if (member_parent_type != NULL &&
-              (input_flags & DI_NONSTATIC_MEMBER)) {
-            pos_st_error(ec_nonstatic_member_operator_not_allowed,
-                         &locator->source_position,
-                         (locator->variant.opname == (an_opname_kind)onk_new) ?
-                            " new" : " delete");
+        if (member_parent_type != NULL) {
+          if (!(input_flags & DI_NONSTATIC_MEMBER) &&
+              locator->variant.opname != (an_opname_kind)onk_new &&
+              locator->variant.opname != (an_opname_kind)onk_delete) {
+            pos_error(ec_static_member_operator_not_allowed,
+                      &locator->source_position);
             set_to_error_locator(*locator);
           }  /* if */
-        } else if (member_parent_type == NULL) {
-*/
-#endif /* if 0 */
-        if (member_parent_type == NULL) {
+        } else {
           char *s = NULL;
           switch (locator->variant.opname) {
             case onk_assign:         s = "=";       break;
@@ -5188,7 +5240,8 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
 }  /* type_name */
 
 
-void new_type_name(a_type_ptr  *type_ptr)
+void new_type_name(a_type_ptr        *type_ptr,
+                   an_expr_node_ptr  *dimension_expr)
 {
   a_type_ptr            specifiers_type, complete_type, new_type_ptr;
   a_type_ptr            derived_type, bottom_derived_type = NULL;
@@ -5200,6 +5253,7 @@ void new_type_name(a_type_ptr  *type_ptr)
   db_enter(3, "type_name");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
+  *dimension_expr = NULL;
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
 			&storage_class, &specifiers_type, &dummy_linkage);
   if (C_dialect == C_dialect_cplusplus && dso_flags & DSO_DEFINES_SOMETHING) {
@@ -5218,7 +5272,7 @@ void new_type_name(a_type_ptr  *type_ptr)
   add_stop_token(tok_lbracket);
   if (curr_token == tok_lbracket) {
 #if 0
-    non_constant_array_declarator(&new_type_ptr);
+    nonconstant_array_declarator(&new_type_ptr, dimension_expr);
     add_to_derived_type_list(new_type_ptr,
                              &derived_type, &bottom_derived_type);
 #endif /* if 0 */
