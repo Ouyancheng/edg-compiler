@@ -976,8 +976,12 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_object_lifetime:
       {
         an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
+#if !NEEDED_FLAG_WALK
+        /* Avoid recursion loop by not following the pointer back to the
+           associated entity. */
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
+#endif /* !NEEDED_FLAG_WALK */
         /* The destructors list is linked on the field
            "next_in_destruction_list" because the usual "next" is used for
            a different list. */
@@ -1311,7 +1315,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_dynamic_init_ptr, iek_dynamic_init);
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
+#if !NEEDED_FLAG_WALK
+        /* Avoid recursion loops by not walking the lifetime pointer. */
         remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
         remap_next_ptr(ptr->next_in_destruction_list, a_dynamic_init_ptr,
                        iek_dynamic_init);
         remap_ptr(ptr->init_expr_lifetime, an_object_lifetime_ptr,
