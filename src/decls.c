@@ -3353,7 +3353,31 @@ skip_overloading:;
     }  /* if */
   } else {
     /* The entity being declared is a routine. */
-    if (routine_ptr == NULL) {
+    if (template_function_specific_decl && sym != linked_symbol) {
+#if CHECKING
+      if (linked_symbol == NULL ||
+          effective_decl_level == DEPTH_OF_FILE_SCOPE ||
+          (routine_ptr != NULL &&
+           routine_ptr != linked_symbol->variant.routine.ptr)) {
+        internal_error("decl_var_or_routine: bad template function rout");
+      }  /* if */
+#endif /* CHECKING */
+      /* This is a declaration of a template function at the local scope.
+         A function instantiation entry with an associated symbol and routine
+         entry aleady exist.  Be sure this local symbol is properly bound
+         to the file-scope entities to which it corresponds. */
+      sym->variant.routine.instance_ptr =
+                                  linked_symbol->variant.routine.instance_ptr;
+      routine_ptr = linked_symbol->variant.routine.ptr;
+      sym->variant.routine.ptr = routine_ptr;
+      *old_type = routine_ptr->type;
+#if 0
+      /* Is a call to reconcile routine types appropriate here? */
+#endif /* if 0 */
+      reconcile_routine_types(routine_ptr, type_ptr,
+                              /*preserve_rout_type=*/TRUE,
+                              /*preserve_type_ptr=*/FALSE);
+    } else if (routine_ptr == NULL) {
       /* There is no IL entry, so create one now, and add it to the routine
          list of the file scope. */
       routine_ptr = make_routine(type_ptr, storage_class,
@@ -3409,7 +3433,7 @@ skip_overloading:;
         if (routine_ptr->compiler_generated) {
 #if CHECKING
           if (routine_ptr->special_kind !=
-                              (a_special_function_kind)sfk_operator ||
+                                (a_special_function_kind)sfk_operator ||
               (routine_ptr->opname_kind != (an_opname_kind)onk_new &&
                routine_ptr->opname_kind != (an_opname_kind)onk_delete)) {
             internal_error(
