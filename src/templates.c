@@ -3753,8 +3753,20 @@ the function instantiation entry and set all the pointers.
   if (tssp != NULL) {
     if (rout_sym->defined) {
       /* User-defined, so no instantiation is required. */
-      rout_sym->variant.routine.ptr->is_specialized = TRUE;
-      rout_sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;
+      if (!old_specializations_allowed) {
+        /* Old-style template specialization is not allowed. */
+        pos_sy_error(ec_old_specialization_not_allowed,
+                     &rout_sym->decl_position, rout_sym);
+      } else {
+        if (strict_ansi_mode) {
+          /* Old-style template specialization is nonstandard. */
+          pos_sy_diagnostic(strict_ansi_error_severity,
+                            ec_nonstd_old_specialization,
+                            &rout_sym->decl_position, rout_sym);
+        }  /* if */
+        rout_sym->variant.routine.ptr->is_specialized = TRUE;
+        rout_sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;
+      }  /* if */
     } else {
       /* Not defined by the user, so still a candidate for instantiation
          based on the template. */

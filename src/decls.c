@@ -3824,8 +3824,22 @@ on for use in generating cross-reference output describing this declaration.
       }  /* if */
       if (is_function_def) {
         /* The current declaration is a definition. */
-        if (!old_decl_has_body) {
+        if (!old_specializations_allowed) {
+          /* Old-style template specialization is not allowed. */
+          pos_sy_error(ec_old_specialization_not_allowed,
+                       &locator->source_position, sym);
+          linked_redecl_error = TRUE;
+          template_function_specific_decl = FALSE;
+          redecl_error_already_issued = TRUE;
+          set_to_named_error_locator(*locator);
+        } else if (!old_decl_has_body) {
           /* Okay. */
+          if (strict_ansi_mode) {
+            /* Old-style template specialization is nonstandard. */
+            pos_sy_diagnostic(strict_ansi_error_severity,
+                              ec_nonstd_old_specialization,
+                              &locator->source_position, sym);
+          }  /* if */
           /* Update the linkage information in the routine to reflect
              this declaration instead of the information inherited from
              the template. */
@@ -4689,6 +4703,12 @@ the symbol and its linkage (which is always "none").
          enclose the scope in which the parent class was defined. */
       sym_error(ec_bad_scope_for_definition, sym);
       err = TRUE;
+    } else if (!old_specializations_allowed &&
+               sym->variant.static_data_member.instance_ptr != NULL) {
+      /* Old-style template specialization is not allowed. */
+      pos_sy_error(ec_old_specialization_not_allowed,
+                   &locator->source_position, sym);
+      err = TRUE;
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Since this is the defining declaration of the static data member,
@@ -4712,6 +4732,12 @@ the symbol and its linkage (which is always "none").
       /* If this is a member of an instantiation of a class
          template, set the supress_instantiation field of the variable. */
       if (sym->variant.static_data_member.instance_ptr != NULL) {
+        if (strict_ansi_mode) {
+          /* Old-style template specialization is nonstandard. */
+          pos_sy_diagnostic(strict_ansi_error_severity,
+                            ec_nonstd_old_specialization,
+                            &locator->source_position, sym);
+        }  /* if */
         var->is_specialized = TRUE;
         var->specialized_with_old_syntax = TRUE;
       }  /* if */
@@ -7614,8 +7640,8 @@ continue_with_declaration:
             is_template_instance = has_matching_template_instance(
                                                       tmp_sym, local_type_ptr);
             if (!is_member_redecl && is_template_instance) {
-              pos_error(ec_old_specialization_of_member_template,
-                        &locator.source_position);
+              pos_sy_error(ec_old_specialization_not_allowed,
+                           &locator.source_position, tmp_sym);
             } else {
               pos_sy_error(ec_member_function_redecl_outside_class,
                            &declarator_pos, locator.specific_symbol);

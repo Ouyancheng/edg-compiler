@@ -910,8 +910,8 @@ on a prior declaration.
          then this is probably an attempt to define a function using
          the old specialization syntax.  Issue an error to that effect. */
       if (has_matching_template_instance(orig_sym, type_ptr)) {
-        pos_error(ec_old_specialization_of_member_template,
-                  &locator->source_position);
+        pos_sy_error(ec_old_specialization_not_allowed,
+                     &locator->source_position, orig_sym);
       } else {
         pos_sy_error(locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_overloaded_function ?
@@ -931,6 +931,12 @@ on a prior declaration.
         sym->variant.routine.ptr->compiler_generated = FALSE;
         sym->variant.routine.ptr->is_inline = FALSE;
       }  /* if */
+    } else if (!old_specializations_allowed &&
+               sym->variant.static_data_member.instance_ptr != NULL) {
+      /* Old-style template specialization is not allowed. */
+      pos_sy_error(ec_old_specialization_not_allowed,
+                   &locator->source_position, sym);
+      sym = NULL;
     }  /* if */
   }  /* if */
   if (sym == NULL || sym->defined) {
@@ -1018,6 +1024,12 @@ on a prior declaration.
        template, mark this as a specialization.  However, since the newer
        template<> syntax was not used, mark it as using the old syntax. */
     if (sym->variant.routine.instance_ptr != NULL) {
+      if (strict_ansi_mode) {
+        /* Old-style template specialization is nonstandard. */
+        pos_sy_diagnostic(strict_ansi_error_severity,
+                          ec_nonstd_old_specialization,
+                          &locator->source_position, sym);
+      }  /* if */
       sym->variant.routine.ptr->is_specialized = TRUE;
       sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
