@@ -6609,7 +6609,18 @@ within a function scope.
   a_scope_ptr              sp;
   a_boolean                function_scope_entry_needed = FALSE;
 
-  if (!force_to_fs) {
+  if (C_mode() && ssep->entity.kind == (an_il_entry_kind)iek_field) {
+    /* In C mode source sequence entries for fields go out to file scope,
+       with no proxies even if they are fields of local structs. */
+    check_assertion(in_file_scope(ssep));
+    force_to_fs = FALSE;
+    /* Add to the file scope list anyway. */
+    scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  } else if (force_to_fs) {
+    /* Use the file scope. */
+    scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    check_assertion(in_file_scope(ssep));
+  } else {
     scope_stack_ptr = &scope_stack[depth_scope_stack];
     if (scope_stack_ptr->kind == (a_scope_kind)sck_file ||
         scope_stack_ptr->kind == (a_scope_kind)sck_function ||
@@ -6629,11 +6640,7 @@ within a function scope.
       function_scope_entry_needed = TRUE;
       scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
     }  /* if */
-  } else {
-    /* Use the file scope. */
-    scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
-    check_assertion(in_file_scope(ssep));
-  }  /* if */  
+  }  /* if */
   if (force_to_fs || function_scope_entry_needed) {
     /* This source sequence entry is supposed to be placed on the list of
        a function but refers to an entity that has been allocated in the
