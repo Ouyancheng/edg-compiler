@@ -1,5 +1,29 @@
 Version 2.23
 
+3/26/94  C-mode extension for last field of a struct
+
+In C-mode the last field of a struct is allowed to be an array of unknown
+size.  There was a bug that permitted an array of incomplete element type
+as well, but that is now fixed.  For example:
+
+  struct A {
+    int x;
+    struct A a[1];    // Error now in C mode.
+  };
+
+3/26/94  Name lookup error on declarator in member function
+
+A spurious error is no longer issued on declarators in a member function
+that redeclare a member name, as in the following:
+
+  struct A {
+    void f();
+    void g();
+  };
+  void A::f(void) {
+    enum { e1, e2 } g;     // Spurious error no longer issued on g
+  }
+
 3/24/94  IL change: 2 fields pointing to source sequence entries eliminated
 
 Two fields, recently added, have been eliminated: last_declaration, a
