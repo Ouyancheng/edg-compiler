@@ -132,6 +132,13 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
   db_enter(3, "instantiate_template_function");
   rout_sym = fiep->routine_sym;
   rout_ptr = rout_sym->variant.routine.ptr;
+#if 0
+#else
+  /* TEMPORARY -- all template functions are put out as static for now -- to
+     avoid problems with their being declared in multiple files. */
+  rout_ptr->storage_class = (a_storage_class)sc_static;
+  rout_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+#endif /* if 0 */
   rout_type = rout_ptr->type;
   rtsp = rout_type->variant.routine.extra_info;
   tssp = fiep->template_sym->variant.template.extra_info;
