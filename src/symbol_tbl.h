@@ -2047,6 +2047,11 @@ extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 extern void issue_access_error(a_symbol_ptr       sym,
                                a_source_position  *err_pos);
 
+extern void issue_qualifier_access_errors(an_access_error_descr_ptr *adep);
+
+extern void do_not_issue_qualifier_access_errors
+					(an_access_error_descr_ptr *adep);
+
 extern void member_check_ambiguity_verify_access_and_return_error_descr
 			(a_symbol_locator		*loc,
 			 an_access_error_descr_ptr	*aedp_ptr);

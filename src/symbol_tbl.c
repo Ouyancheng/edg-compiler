@@ -81,7 +81,8 @@ static unsigned long
 		num_searches_for_symbols,
 		num_compares_for_symbols,
 		num_fast_id_lookups,
-		num_slow_id_lookups;
+		num_slow_id_lookups,
+		num_access_error_descrs_allocated;
 #endif /* DEBUG */
 
 /*
@@ -131,6 +132,12 @@ static a_dependent_type_fixup_ptr
 		avail_dependent_type_fixups;
 			/* List of dependent type fixup entries freed and
 			   available for reuse. */
+
+static an_access_error_descr_ptr
+		avail_access_error_descrs;
+			/* List of access error description  entries (allocated
+                           in front end storage) freed and available for
+                           reuse. */
 
 static a_decl_sequence_number
 		decl_seq_counter;
@@ -4272,6 +4279,72 @@ Issue the appropriate error on the inaccessibility of sym.
   }  /* if */
   pos_sy_diagnostic(error_severity, error_code, err_pos, sym);
 }  /* issue_access_error */
+
+
+static an_access_error_descr_ptr alloc_access_error_descr(void)
+/*
+Allocate an access error description entry.  Reuse a freed entry if possible.
+*/
+{
+  an_access_error_descr_ptr aedp;
+
+  if (avail_access_error_descrs != NULL) {
+    /* Reuse a freed entry. */
+    aedp = avail_access_error_descrs;
+    avail_access_error_descrs = avail_access_error_descrs->next;
+  } else {
+    /* Allocate a new entry. */
+    aedp = (an_access_error_descr_ptr)alloc_fe(sizeof(an_access_error_descr));
+#if DEBUG
+    num_access_error_descrs_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  aedp->next = NULL;
+  aedp->sym = NULL;
+  aedp->position = pos_curr_token;
+  return aedp;
+}  /* alloc_access_error_descr */
+	
+
+void issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
+/*
+Loop through the list of access errors, pointed to by *aedp,
+that were detected while scanning the class qualifier.  Issue the
+errors, free the list, and clear the pointer.
+*/
+{
+  an_access_error_descr_ptr	aedp = *aedp_ptr;
+
+  while (aedp != NULL) {
+    issue_access_error(aedp->sym, &aedp->position);
+    aedp = aedp->next;
+  }  /* while */
+  /* This frees the list of access errors and sets the pointer in
+     The name may seem a odd, but in all other instances, one calls either
+     issue_qualifier_access_error or do_not_issue_qualifier_access_error,
+     so we make do with an odd looking call here. */
+  do_not_issue_qualifier_access_errors(aedp_ptr);
+}  /* issue_qualifier_access_errors */
+
+
+void do_not_issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
+/*
+Free the access error description entries pointed to by aedp_ptr and
+clear the pointer in aedp.  Put the freed entries on the available
+list to be reused.
+*/
+{
+  an_access_error_descr_ptr	last_ptr = *aedp_ptr;
+  an_access_error_descr_ptr	next;
+  /* Find the last element of the list.  The available list will be linked
+     onto the end of the list passed by the caller. */
+  if (last_ptr != NULL) {
+    while ((next = last_ptr->next) != NULL) last_ptr = next;
+    last_ptr->next = avail_access_error_descrs;
+    avail_access_error_descrs = *aedp_ptr;
+    *aedp_ptr = NULL;
+  }  /* if */
+}  /* do_not_issue_qualifier_access_errors */
 
 
 void member_check_ambiguity_verify_access_and_return_error_descr
@@ -8770,6 +8843,8 @@ for space tracking purposes.
                 a_conversion_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
                 a_projection_descr);
+  db_space_used_lost("access error descr", avail_access_error_descrs,
+                     num_access_error_descrs_allocated, an_access_error_descr);
   grand_total = db_show_routine_fixups_used(grand_total);
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
 
@@ -8947,6 +9022,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_compares_for_symbols                     = 0;
   num_fast_id_lookups                          = 0;
   num_slow_id_lookups                          = 0;
+  num_access_error_descrs_allocated            = 0;
 #endif /* DEBUG */
 #if CHECKING
   /* Check that the table of symbol kind names is correctly initialized.

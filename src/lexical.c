@@ -276,11 +276,10 @@ static unsigned long
 		num_cached_constants_allocated,
 		num_reusable_cache_entries_allocated,
 		num_pending_pragmas_allocated,
-                num_pragma_descriptions_allocated,
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
                 num_file_suffixes_allocated,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-		num_access_error_descrs_allocated;
+                num_pragma_descriptions_allocated;
 #endif /* DEBUG */
 
 
@@ -5939,73 +5938,6 @@ skip_processing:
 }  /* coalesce_template_class_reference */
 
 
-an_access_error_descr_ptr alloc_access_error_descr(void)
-/*
-Allocate an access error description entry.  Reuse a freed entry if possible.
-*/
-{
-  an_access_error_descr_ptr aedp;
-
-  if (avail_access_error_descrs != NULL) {
-    /* Reuse a freed entry. */
-    aedp = avail_access_error_descrs;
-    avail_access_error_descrs = avail_access_error_descrs->next;
-  } else {
-    /* Allocate a new entry. */
-    aedp = (an_access_error_descr_ptr)alloc_fe(sizeof(an_access_error_descr));
-#if DEBUG
-    num_access_error_descrs_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  aedp->next = NULL;
-  aedp->sym = NULL;
-  aedp->position = pos_curr_token;
-  return aedp;
-}  /* alloc_access_error_descr */
-	
-
-void do_not_issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
-/*
-Free the access error description entries pointed to by aedp_ptr and
-clear the pointer in aedp.  Put the freed entries on the available
-list to be reused.
-*/
-{
-  an_access_error_descr_ptr	last_ptr = *aedp_ptr;
-  an_access_error_descr_ptr	next;
-  /* Find the last element of the list.  The available list will be linked
-     onto the end of the list passed by the caller. */
-  if (last_ptr != NULL) {
-    while ((next = last_ptr->next) != NULL) last_ptr = next;
-    last_ptr->next = avail_access_error_descrs;
-    avail_access_error_descrs = *aedp_ptr;
-    *aedp_ptr = NULL;
-  }  /* if */
-}  /* do_not_issue_qualifier_access_errors */
-
-
-void issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
-/*
-Loop through the list of access errors, pointed to by *aedp,
-that were detected while scanning the class qualifier.  Issue the
-errors, free the list, and clear the pointer.
-*/
-{
-  an_access_error_descr_ptr	aedp = *aedp_ptr;
-
-  while (aedp != NULL) {
-    issue_access_error(aedp->sym, &aedp->position);
-    aedp = aedp->next;
-  }  /* while */
-  /* This frees the list of access errors and sets the pointer in
-     The name may seem a odd, but in all other instances, one calls either
-     issue_qualifier_access_error or do_not_issue_qualifier_access_error,
-     so we make do with an odd looking call here. */
-  do_not_issue_qualifier_access_errors(aedp_ptr);
-}  /* issue_qualifier_access_errors */
-
-
-
 a_boolean f_check_for_generalized_identifier_errors
 		(an_identifier_options_set options,
                  a_source_position         *pos)
@@ -7463,8 +7395,6 @@ Display and return the amount of space used for various lexical tables.
                      a_pending_pragma);
   db_space_used("pragam descriptions", num_pragma_descriptions_allocated,
                 a_pragma_description);
-  db_space_used_lost("access error descr", avail_access_error_descrs,
-                     num_access_error_descrs_allocated, an_access_error_descr);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   db_space_used("file suffixes", num_file_suffixes_allocated,
                 a_file_suffix);
@@ -7540,7 +7470,6 @@ of the front end.
   num_reusable_cache_entries_allocated = 0;
   num_pending_pragmas_allocated = 0;
   num_pragma_descriptions_allocated = 0;
-  num_access_error_descrs_allocated = 0;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   num_file_suffixes_allocated = 0;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */

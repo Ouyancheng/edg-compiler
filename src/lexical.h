@@ -1029,12 +1029,6 @@ EXTERN an_error_code
 			   case. */
 
 
-EXTERN an_access_error_descr_ptr
-		avail_access_error_descrs;
-			/* List of access error description  entries (allocated
-                           in front end storage) freed and available for
-                           reuse. */
-
 /*
 The stop token array: If a syntactic error occurs, flush_tokens
 will be called.  It will throw away tokens until it finds one for which
@@ -1278,13 +1272,6 @@ extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
 extern void select_pragmas_bound_to_curr_decl_or_stmt(a_boolean	is_decl);
 
 extern void wrapup_pragmas_bound_to_curr_decl_or_stmt(void);
-
-extern an_access_error_descr_ptr alloc_access_error_descr(void);
-
-extern void issue_qualifier_access_errors(an_access_error_descr_ptr *adep);
-
-extern void do_not_issue_qualifier_access_errors
-					(an_access_error_descr_ptr *adep);
 
 /* Macro to check prevent calling the error checking function unless some
    error flags have been specified. */
