@@ -241,6 +241,8 @@ length of the string).
 
   /* The object to be initialized is an array (possibly incomplete) of
      char or wchar_t -- i.e., a string or wide string. */
+  check_assertion(is_char_array_type(*var_type) ||
+                  is_wchar_t_array_type(*var_type));
   /* The constant and the array should have the same underlying character
      element type -- e.g., it's a mismatch if one is a wide string
      and the other a normal string. */
