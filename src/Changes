@@ -1,5 +1,25 @@
 Version 2.24
 
+6/22/94 Internal error on class_decl.c checking code fixed
+
+A piece of checking code in class_decl.c was missing a skip_typerefs,
+which could cause an internal error on some strange template cases.
+Now fixed.
+
+  template <class T> struct A {
+      typedef T* p;
+  };
+  template <class T> struct V {
+      typedef A<T> V_A;
+      typedef V_A::p I;
+      I a;
+  };
+  main()
+  {
+  	V<int> v1;
+  }
+
+
 6/20/94 C/C++-generating back end output of small integer constants
 
 The C/C++-generating back ends now output integer constants with types
