@@ -1926,9 +1926,12 @@ pointer can be examined.
   /* Determine how this new region should be linked into the list of
      cleanup actions in exception cleanup order. */
   prev_cleanup = NULL;
-  if (cap->destructor_wrapper_cleanup) {
-    /* This entry is for a destructor wrapper.  The entry goes at the end of
-       the list.  Find the end of the list. */
+  if (cap->destructor_wrapper_cleanup ||
+      (cap->constructor_wrapper_cleanup &&
+       cap->kind == (a_cleanup_action_kind)cak_new_allocation)) {
+    /* This entry is for a destructor wrapper, or it's the new-allocation
+       entry for the allocation of "this" within a constructor.  The entry
+       goes at the end of the list.  Find the end of the list. */
     prev_cleanup = curr_context->exception_cleanup_actions;
     if (prev_cleanup != NULL) {
       for (; prev_cleanup->next_exception_cleanup != NULL;
