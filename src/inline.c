@@ -1056,6 +1056,12 @@ If not, *failed is set.
     stmt_expr = statement->expr;
     if (stmt_expr != NULL) stmt_expr = copy_expr_tree_for_inlining(stmt_expr);
     switch (statement->kind) {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+      case stmk_empty:
+        /* An empty statement has no side effects: copy it over as is. */
+        (void)copy_inlined_statement(statement , insert_location);
+        break;
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
       case stmk_expr:
         if (is_expr_insert_location(insert_location)) {
           /* An expression statement is copied as an expression. */
