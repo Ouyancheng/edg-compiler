@@ -10320,7 +10320,7 @@ declaration following this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
     if (!microsoft_dialect_is_generated_code_target &&
-        (variable->decl_modifiers & DM_THREAD)) {
+        (var->decl_modifiers & DM_THREAD)) {
       /* Non-Microsoft dialects usually include a "__thread" keyword to
          indicate thread-local storage.  (The Microsoft syntax will have
          been emitted by the call to gen_microsoft_decl_modifiers.) */
