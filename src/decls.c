@@ -2330,6 +2330,24 @@ scope is that of a class definition.
         if (is_void_type(param_type_ptr)) {
           pos_error(ec_void_param_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
+        } else if (!C_mode() && !any_cfront_mode()) {
+          /* In C++ (except in cfront compatibility mode) disallow pointer or
+             reference to array of unspecified size. */
+          if (is_ptr_or_ref_type(param_type_ptr)) {
+            a_type_ptr  tp = skip_typerefs(type_pointed_to(param_type_ptr));
+            if (is_array_type(tp)) {
+              if (!tp->variant.array.is_variable_size_array &&
+                  tp->variant.array.variant.number_of_elements == 0) {
+                an_error_code  error_code;
+
+                error_code = is_reference_type(param_type_ptr) ?
+                                 ec_param_type_ref_array_of_unknown_size :
+                                 ec_param_type_ptr_to_array_of_unknown_size;
+                pos_error(error_code, &param_type_pos);
+                param_type_ptr = error_type();
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
         /* See if any type qualifiers were specified, and if they are
            okay. */

@@ -655,6 +655,8 @@ ec_partial_override;;"overloaded virtual function %no1 is only partially overrid
 ec_specialization_of_called_inline_template_function;;"specific definition of inline template function must precede its first use"
 ec_cl_invalid_error_tag;;"invalid error tag: "
 ec_cl_invalid_error_number;;"invalid error number: "
+ec_param_type_ptr_to_array_of_unknown_size;;"pointer to array of unknown size is not allowed as a parameter type"
+ec_param_type_ref_array_of_unknown_size;;"reference to array of unknown size is not allowed as a parameter type"
 
 ###############################################################################
 #                                                             \  ___  /       #
