@@ -9750,7 +9750,7 @@ continue_with_declaration:
              level.  Be sure to check this after the initializer is scanned,
              so that "int x = x;" can be caught. */
           mark_variable_value_set(symbol_ptr);
-       }  /* if */
+        }  /* if */
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
