@@ -6232,6 +6232,7 @@ void prep_initializer_operand(an_operand    *source_operand,
                               a_type_ptr    dest_type,
                               a_conv_descr  *conversion,
                               a_boolean     initializing_return_value,
+                              a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
                               a_boolean     try_user_conversions,
                               an_error_code incompatible_err)
@@ -6240,14 +6241,17 @@ Check the operand for initializer compatibility against the type supplied.
 Cast the operand if required to make it the right type.  Convert the
 operand from an lvalue to an rvalue if necessary (it usually is).
 initializing_return_value is TRUE if the initialization is being done
-to return a value in a return statement.  Try user-defined conversions
-only if try_user_conversions is TRUE.  If the operand and type are
-incompatible, issue the error incompatible_err.  This routine is used for
-initialization, function call arguments, and return expressions, i.e.,
-for "="-type initializations.  It is not used when copy constructor
-elision is possible; see prep_elision_initializer_operand.
-If conversion is non-NULL, the initializer has previously been
-found to be acceptable, and *conversion describes it.
+to return a value in a return statement.  initializing_variable is
+TRUE if this initialization is for a variable.  In that case,
+static_lifetime is TRUE if the variable is static.  user-defined
+conversions are tried only if try_user_conversions is TRUE.  If the
+operand and type are incompatible, the error incompatible_err is issued.
+This routine is used for initialization, function call arguments, and
+return expressions, i.e., for "="-type initializations.  It is not
+used when copy constructor elision is possible; see
+prep_elision_initializer_operand.  If conversion is non-NULL, the
+initializer has previously been found to be acceptable, and
+*conversion describes it.
 */
 {
   a_type_ptr base_dest_type, base_source_type;
@@ -6460,10 +6464,12 @@ found to be acceptable, and *conversion describes it.
         }  /* if */
       }  /* if */
     }  /* if */
-    /* If the top thing in the initializer is a temporary, make sure the
-       temporary has a lifetime as long as the reference. */
-    adjust_top_temporary_for_binding_to_reference(source_operand,
-                                                  static_lifetime);
+    if (initializing_variable) {
+      /* If the top thing in the initializer is a temporary, make sure the
+         temporary has a lifetime as long as the reference. */
+      adjust_top_temporary_for_binding_to_reference(source_operand,
+                                                    static_lifetime);
+    }  /* if */
   } else {
     /* Normal case (not initializing a reference). */
     prep_conversion_operand(source_operand, dest_type, conversion,
@@ -6518,6 +6524,7 @@ to be acceptable, and *conversion describes it.
     prep_initializer_operand(source_operand, formal_param->type,
                              conversion,
                              /*initializing_return_value=*/FALSE,
+                             /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
                              /*try_user_conversions=*/TRUE,
                              err_code);

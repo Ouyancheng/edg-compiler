@@ -392,6 +392,7 @@ extern void prep_initializer_operand(
                                   a_type_ptr    dest_type,
                                   a_conv_descr  *conversion,
                                   a_boolean     initializing_return_value,
+                                  a_boolean     initializing_variable,
                                   a_boolean     static_lifetime,
                                   a_boolean     try_user_conversions,
                                   an_error_code incompatible_err);
