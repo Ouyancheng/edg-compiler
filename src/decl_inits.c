@@ -1035,7 +1035,7 @@ In C99 mode, the processing is similar to that in C++.
     if (!err) {
       if (levels_down == 0) {
         /* The initialization applies at the current level. */
-        (*init_constant)->type = context->type;
+        (*init_constant)->type = rvalue_type(context->type);
         if (!is_constant) {
           context->any_dynamic_initialization = TRUE;
           if (exceptions_enabled) {
@@ -1555,6 +1555,8 @@ subaggregate.  The function returns a pointer to an IL a_constant entity.
     if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
       dip = constant->variant.dynamic_init;
       check_assertion(dip != NULL);
+    } else {
+      constant->type = rvalue_type(constant->type);
     }  /* if */
     context->pending_init_con = NULL;
   } else {

@@ -1,5 +1,18 @@
 Version 2.46
 
+2/11/01  C99 aggregate initialization: abort ("bad type on eok_comma")
+
+In some complex cases involving C99 nonconstant aggregate initialization,
+elided braces, and use of designated initializers to re-initialize
+a member already initialized, an abort could occur.  Now fixed.
+
+  struct A { const int i; };
+  struct B { struct A a; };
+  int f();
+  int main () {
+    struct B b[] = { { f() , .a = 1 } };  // Formerly aborted
+  }
+
 2/11/01  C99 aggregate initialization: incorrect processing for
          const struct member initialized from non-const expression
 
