@@ -984,7 +984,7 @@ Object file name, usually derived from the primary source file name.
 Really used only in generating makefile dependency information.
 The string is allocated in general storage, not IL storage.
 */
-EXTERN char	*object_file_name;
+EXTERN char	*object_file_name /* = NULL*/;
 
 EXTERN char	*current_directory_name /* = NULL */;
 			/* String containing the current directory name. */
