@@ -7530,7 +7530,7 @@ Put the freed entry on the available list to be reused.
 
 
 void f_check_ambiguity_and_verify_access(a_symbol_locator *locator,
-					 a_boolean	  is_template_context)
+					 a_boolean	  is_templ_context)
 /*
 Verify that the indicated symbol is not ambiguous and that we have
 access to it.  In case of an ambiguity, the locator is set to an error
@@ -7556,7 +7556,7 @@ class of the member being defined.  For friend functions, access to the
 return type and parameter types of the function cannot be checked until
 we have scanned the entire function declarator.
 
-is_template_context is TRUE if the token following the identifier is a
+is_templ_context is TRUE if the token following the identifier is a
 "<" token and an unambiguous injected class template symbol should be
 accepted even though the injected class symbol is ambiguous.
 */
@@ -7569,7 +7569,7 @@ accepted even though the injected class symbol is ambiguous.
      either as a result of using directives or as a result of inheritance.
      Ambiguity checking must precede access control (ARM, 10.1.1). */
   if (sym->ambiguous &&
-      !(is_template_context && sym->kind == (a_symbol_kind)sk_projection &&
+      !(is_templ_context && sym->kind == (a_symbol_kind)sk_projection &&
         sym->variant.projection.injected_class_template_name_is_unambiguous)) {
 
     pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);

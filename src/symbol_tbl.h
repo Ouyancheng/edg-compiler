@@ -3123,7 +3123,7 @@ extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
 extern void f_check_ambiguity_and_verify_access
 				(a_symbol_locator	*loc,
-				 a_boolean		is_template_context);
+				 a_boolean		is_templ_context);
 
 extern void perform_deferred_access_checks(void);
 
