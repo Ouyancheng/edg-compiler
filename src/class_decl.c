@@ -4386,8 +4386,9 @@ Determine the operator new() function to be used for the indicated class
 and record it in the class's assoc_operator_new_routine field.
 */
 {
-  a_symbol_ptr                new_function_symbol;
+  a_symbol_ptr                new_function_symbol, sym;
   a_class_type_supplement_ptr ctsp;
+  a_symbol_locator            locator;
 
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -4405,8 +4406,27 @@ and record it in the class's assoc_operator_new_routine field.
       /* There is a class-specific operator new() (or several).  See if
          there is a default (one-argument) version.  If not, use the global
          operator new(). */
-      new_function_symbol =
-                         extract_default_operator_new_sym(new_function_symbol);
+#if 0
+      /* Isn't use of the global default operator new when the member operator
+         new takes more than one argument tantamount to overloading across
+         scopes?  Is that permitted in this case? */
+#endif /* if 0 */
+      sym = extract_default_operator_new_sym(new_function_symbol);
+      if (sym != NULL &&
+          new_function_symbol->kind == (a_symbol_kind)sk_projection) {
+        /* The operator new function is inherited.  Check for ambiguity and
+           accessibility. */
+        if (fundamental_symbol_of(new_function_symbol)->kind ==
+                                     (a_symbol_kind)sk_overloaded_function) {
+          make_locator_for_symbol(sym, &locator);
+          overload_check_ambiguity_and_verify_access(&locator,
+                                                     new_function_symbol);
+        } else {
+          make_locator_for_symbol(new_function_symbol, &locator);
+          member_check_ambiguity_and_verify_access(&locator);
+        }  /* if */
+      }  /* if */
+      new_function_symbol = sym;
     }  /* if */
     if (new_function_symbol == NULL) {
       /* Look for a global operator new(). */
@@ -4472,6 +4492,7 @@ and record it in the class's assoc_operator_delete_routine field.
 {
   a_symbol_ptr                delete_function_symbol;
   a_class_type_supplement_ptr ctsp;
+  a_symbol_locator            locator;
 
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -4485,11 +4506,17 @@ and record it in the class's assoc_operator_delete_routine field.
     delete_function_symbol = opname_member_function_symbol(
                                                     (an_opname_kind)onk_delete,
                                                     class_type);
-    if (delete_function_symbol == NULL) {
+    if (delete_function_symbol != NULL) {
+      /* If a member delete is found, check its accessibility and
+         ambiguity. */
+      if (delete_function_symbol->kind == (a_symbol_kind)sk_projection) {
+        make_locator_for_symbol(delete_function_symbol, &locator);
+        member_check_ambiguity_and_verify_access(&locator);
+        reduce_projection_symbol_to_fundamental_symbol(delete_function_symbol);
+      }  /* if */
+    } else {
       delete_function_symbol = 
                            opname_function_symbol((an_opname_kind)onk_delete);
-    } else {
-      reduce_projection_symbol_to_fundamental_symbol(delete_function_symbol);
     }  /* if */
     
     ctsp->assoc_operator_delete_routine =
