@@ -7413,8 +7413,10 @@ by things that will be in the file scope.
   if (scope->kind == (a_scope_kind)sck_function ||
       scope->kind == (a_scope_kind)sck_block) {
     /* Function or block scope. */
-    /* Look for a local static variable with a destructor.  That would force
-       the variable to be at the file scope. */
+    /* Look for a local static variable with a destructor.  That might force
+       the variable to be at the file scope, because if the destruction is
+       complicated, a routine is generated to contain the destruction
+       code. */
     for (var = scope->variables; var != NULL; var = var->next) {
       if (var->init_kind == (an_init_kind)initk_dynamic) {
         dip = var->initializer.dynamic;
