@@ -283,17 +283,7 @@ corresponding entry in the primary file IL.
        this walk, but we don't have any way of identifying those. */
     copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/FALSE);
     /* Fetch the copy address assigned by copy_address_setup. */
-    corresp = trans_unit_copy_address_of(ptr);
-    check_assertion(corresp != NULL);
-    if (in_secondary_trans_unit(corresp)) {
-      /* This entry is getting merged, so the copy address points to the
-         space for the copy in the secondary translation unit IL.  The
-         copy address pointer of that entry points to the primary IL
-         address. */
-      corresp = checked_trans_unit_copy_address_of(corresp);
-      check_assertion(corresp != NULL);
-    }  /* if */
-    check_assertion(!in_secondary_trans_unit(corresp));
+    corresp = transitive_copy_address_of(ptr);
   }  /* if */
   return corresp;
 }  /* remap_secondary_ptr_to_primary */
@@ -2754,7 +2744,7 @@ primary IL.
   } else if (in_secondary_trans_unit(old_ptr)) {
     check_assertion_str(in_file_scope(old_ptr),
                         "remap_secondary_pointer: not in file scope");
-    if (trans_unit_corresp_of_unknown_entry(old_ptr) != NULL) {
+    if (trans_unit_copy_address_of(old_ptr) != NULL) {
       /* The entry already has a copy address assigned. */
       new_ptr = transitive_copy_address_of(old_ptr);
     } else {
@@ -2777,9 +2767,11 @@ primary IL.
         if (source_corresp_for_il_entry(old_ptr, kind) != NULL &&
             (tucp = trans_unit_corresp_of_unknown_entry(old_ptr),
              tucp != NULL)) {
-          check_assertion (tucp->canonical != old_ptr &&
-                           checked_trans_unit_copy_address_of(
-                                                     tucp->canonical) != NULL);
+          check_assertion_str(tucp->canonical != old_ptr &&
+                              (!in_secondary_trans_unit(tucp->canonical) ||
+                               checked_trans_unit_copy_address_of(
+                                                    tucp->canonical) != NULL),
+                  "remap_secondary_pointer: canonical copy addr not assigned");
         } else {
           /* Entity does not have a linkage correspondence. */
           switch (kind) {
