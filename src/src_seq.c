@@ -1115,6 +1115,11 @@ with: It considers all active scopes if needed.
 {
   a_scope_depth  depth = NO_SCOPE_DEPTH, d;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  /* An active scope stack entry may be pointing to the given source
+     sequence entry to indicate where source sequence entries for
+     new instantiations should be inserted.  Update any such scope
+     stack entries to point to the next source sequence entry (or
+     NULL if ssep was the last one on the list). */ 
   for (d = depth_scope_stack; d >= DEPTH_OF_FILE_SCOPE; --d) {
     if (scope_stack[d].ss_list_instantiation_insert_point == ssep) {
       scope_stack[d].ss_list_instantiation_insert_point = ssep->next;
@@ -1133,7 +1138,7 @@ with: It considers all active scopes if needed.
        be a scope that is on the current scope stack, or it is the list
        associated with the file scope IL entry. */
     if (ssep->prev == NULL) {
-      /* ssep if the first entry on a list. */
+      /* ssep is the first entry on a list. */
       for (d = depth_scope_stack; d >= DEPTH_OF_FILE_SCOPE; --d) {
         if (scope_stack[d].source_sequence_list == ssep) {
           depth = d;
@@ -1141,7 +1146,7 @@ with: It considers all active scopes if needed.
         }  /* if */
       }  /* for */
     } else {
-      /* ssep if the last entry on a list. */
+      /* ssep is the last entry on a list. */
       for (d = depth_scope_stack; d >= DEPTH_OF_FILE_SCOPE; --d) {
         if (scope_stack[d].end_of_source_sequence_list == ssep) {
           depth = d;
@@ -2217,13 +2222,9 @@ the source sequence entry that follows the entry or entries removed.
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
       (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
        is_immediate_enum_type((a_type_ptr)ssep->entity.ptr))) {
-#if MAINTAIN_NEEDED_FLAGS
     /* It's a class or enum definition.  Remove everything from here through
        to the end-of-construct entry. */
     next_ssep = drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
-#else /* !MAINTAIN_NEEDED_FLAGS */
-    unexpected_condition();
-#endif /* MAINTAIN_NEEDED_FLAGS */
   } else {
     /* Link around ssep and return its successor in the list. */
     file_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
