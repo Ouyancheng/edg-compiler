@@ -1054,8 +1054,7 @@ entity is unnamed, generate a name.
 
   if (name == NULL ||
       (scp->copied_from_secondary_trans_unit && 
-       scp->name_linkage != (a_name_linkage_kind)nlk_external &&
-       !scp->is_local_to_function)) {
+       scp->name_linkage != (a_name_linkage_kind)nlk_external)) {
     /* For entities without names, create a name. */
     /* For non-external entities copied from a secondary translation unit,
        use a temporary name for the entity to avoid name conflicts with
