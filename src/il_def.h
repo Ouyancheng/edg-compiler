@@ -2189,6 +2189,11 @@ typedef struct an_exception_specification {
 		decl_position;
 			/* Source position of the declaration of this
 			   exception specification. */
+  a_byte_boolean
+		redundant;
+			/* TRUE when another exception of the same type
+			   already appears in the list of exception
+                           specifications. */
 } an_exception_specification;
 #endif /* ifdef CIL */
 

@@ -4652,6 +4652,7 @@ region.
   esp->type = NULL;
   esp->decl_position.seq = 0;
   esp->decl_position.column = SP_COL_UNKNOWN;
+  esp->redundant = FALSE;
   return esp;
 }  /* alloc_exception_specification */
 
