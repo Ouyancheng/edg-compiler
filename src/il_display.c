@@ -3358,6 +3358,7 @@ Display the IL for the file scope in human-readable form.
   disp_name("source language");
   disp_source_language_name(il_header.source_language);
 #ifdef CFE
+  disp_name("pcc compatibility mode");
   disp_boolean("pcc_compatibility_mode",
                (a_boolean)il_header.pcc_compatibility_mode);
 #endif /* ifdef CFE */
