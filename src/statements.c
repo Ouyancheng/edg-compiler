@@ -6047,7 +6047,7 @@ Each has the form
   add_stop_token(tok_semicolon);
   sp->expr = NULL;
   if (curr_token != tok_semicolon) {
-    /* Scan the notification condition expression */
+    /* Scan the notification condition expression. */
     sp->expr = scan_integer_expression(/*is_switch_expr=*/FALSE);
   }  /* if */
   /* Check for and ignore the final semicolon. */
