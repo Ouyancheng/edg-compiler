@@ -1938,7 +1938,7 @@ the template.
              followed by a semicolon, then it is not a redeclaration. */
           check_nested_class_redeclaration(
              tag_sym, &tag_position, is_class_definition, is_friend_decl,
-             locator.is_qualified_name, declares_something);
+             (a_boolean)locator.is_qualified_name, declares_something);
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
