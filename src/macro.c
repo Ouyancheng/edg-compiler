@@ -1445,7 +1445,7 @@ end_loop:
     cat_last_char = pp_lexical_category[last_char_of_expansion-CHAR_MIN];
     cat_next_char = pp_lexical_category[*loc_following_insertion-CHAR_MIN];
     if (last_token_of_expansion == tok_error ||
-        cat_last_char != PLC_SINGLETON && cat_last_char == cat_next_char) {
+        (cat_last_char != PLC_SINGLETON && cat_last_char == cat_next_char)) {
       /* The categories indicate that token pasting might be possible.
          Tack the rest of the primary source line onto the end of the expansion
          buffer so that the macro and what follows have a chance to be pasted
