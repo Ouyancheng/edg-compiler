@@ -1,5 +1,19 @@
 Version 2.35
 
+1/13/97 Conversion for direct reference binding should be done only on lvalue
+
+On a reference binding, a conversion function that returns a reference
+type can be called to produce an lvalue to which the reference is
+directly bound.  However, this should be considered only if the
+original expression is an lvalue.  That's now the case.
+
+  struct A {};
+  struct B {
+    operator A&();
+  };
+  B f();
+  A &r = f(); // Error, original expression is an rvalue
+
 1/12/97 Abort on type conversion of enumerator with invalid expression
 
 The front end would abort (after a correct error message) if a type

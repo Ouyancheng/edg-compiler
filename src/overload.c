@@ -8049,6 +8049,7 @@ to be acceptable, and *conversion describes it.
                                                     &dropping_qualifiers,
                                                     &function_symbol);
     if (!direct_binding_possible && !curr_expr_kind_is_const() &&
+        is_an_lvalue(source_operand) &&
         is_class_struct_union_type(source_operand->type)) {
       /* It might be possible to convert the source operand to an lvalue
          via a conversion function, and then bind the reference directly to
