@@ -104,6 +104,13 @@ Flags to be set when using the KAI inliner.
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
+#ifdef INTEL
+/* Intel Solaris version. */
+#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_HAS_SIGNED_CHARS TRUE
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_JMP_BUF_NUM_ELEMENTS 10
+#endif /* ifdef INTEL */
 #endif /* ifdef SOLARIS */
 
 #ifdef OPTIMIZED_VERSION
