@@ -262,6 +262,13 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       unexpected_condition_str("node_has_side_effects: bad node kind");
   }  /* switch */
 
+  if (is_template_param_type(node->type)) {
+    /* A node with a template parameter type is considered to have
+       side effects.  This is because it's possible that when the type
+       is actually known an overloaded operator function would be chosen,
+       which would mean a function call. */
+    has_side_effects = TRUE;
+  }  /* if */
   if (suppress_warning != NULL) *suppress_warning = suppress;
   return has_side_effects;
 }  /* node_has_side_effects */
@@ -587,6 +594,15 @@ Syntax:
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
+  } else if (is_template_param_type(operand_1->type) ||
+             is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    template_binary_operation((an_expr_operator_kind)eok_padd_subsc,
+                              operand_1, &operand_2,
+                              result, &operator_position);
+    result->state = (an_operand_state)os_lvalue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              is_property_ref_operand(operand_1)) {
@@ -2351,6 +2367,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   a_base_class_ptr  bcp;
   an_expr_node_ptr  select_node, object_node, pm_node;
   a_boolean         rvalue_selection;
+  an_expr_operator_kind
+                    op;
 
   db_enter(4, "scan_ptr_to_member_operator");
 
@@ -2382,6 +2400,17 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
+  } else if (is_template_param_type(operand_1->type) ||
+             is_template_param_type(operand_2.type)) {
+    /* If either operand has a template parameter type, we cannot
+       check the operand types.  Just produce an expression with
+       a generic operator. */
+    op = is_arrow_operator ? (an_expr_operator_kind)eok_pm_arrow_field :
+                             (an_expr_operator_kind)eok_pm_dot_field;
+    template_binary_operation(op, operand_1, &operand_2,
+                              result, &operator_position);
+    result->state = (an_operand_state)os_lvalue;
+    processed = TRUE;
   } else {
     if (is_arrow_operator &&
         (is_overloadable_type_operand(operand_1) ||
@@ -2679,6 +2708,14 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     pos_error(ec_bad_constant_operator, &operator_position);
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
+  } else if (is_template_param_type(operand->type)) {
+    /* The operand has a template parameter type, so we cannot
+       check its type.  Just produce an expression with a generic
+       operator. */
+    op = is_increment ? (an_expr_operator_kind)eok_post_incr :
+                        (an_expr_operator_kind)eok_post_decr;
+    template_unary_operation(op, curr_token, operand,
+                             result, &operator_position);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(operand);
@@ -2933,6 +2970,14 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     /* Operator not allowed in this kind of expression. */
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
+  } else if (is_template_param_type(operand.type)) {
+    /* The operand has a template parameter type, so we cannot
+       check its type.  Just produce an expression with a generic
+       operator. */
+    op = is_increment ? (an_expr_operator_kind)eok_pre_incr :
+                        (an_expr_operator_kind)eok_pre_decr;
+    template_unary_operation(op, save_token, &operand,
+                             result, &start_position);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(&operand);
