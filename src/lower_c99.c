@@ -864,6 +864,7 @@ Otherwise, do nothing.
       lower_c99_jmultiply(expr);
       break;
     case eok_cast:
+    case eok_bool_cast:
       lower_c99_cast(expr);
       break;
     default:
