@@ -8884,6 +8884,13 @@ continue_with_declaration:
         param_id->type = local_type_ptr;
         copy_source_position(decl_start_pos, param_id->type_pos);
         param_id->storage_class = local_storage_class;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        /* Update extra source position information in the param-id entry so
+           that it can be transferred to the variable entry later. */
+        param_id->specifiers_range = decl_pos_block.specifiers_range;
+        param_id->declarator_range = decl_pos_block.declarator_range;
+        param_id->identifier_range = decl_pos_block.identifier_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Note that the creation of the parameter variable, etc., is done
            in decl_parameter, called when the function body is scanned. */
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
