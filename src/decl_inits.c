@@ -1226,13 +1226,12 @@ class.
     } else {
       nonconst_allowed = FALSE;
     }  /* if */
-    init_con = scan_initializer_of_simple_object(nonconst_allowed,
-                                                 init_info->static_lifetime,
-                                                 /*force_object_lifetime=*/
-                                                                      FALSE,
-                                                 /*is_copy_initialization=*/
-                                                                      TRUE,
-                                                 local_type, &dip);
+    init_con = scan_initializer_of_simple_object(
+                                       nonconst_allowed,
+                                       (a_boolean)init_info->static_lifetime,
+                                       /*force_object_lifetime=*/FALSE,
+                                       /*is_copy_initialization=*/TRUE,
+                                       local_type, &dip);
     if (init_con == NULL) {
       /* Returning NULL means a nonconstant expression was scanned, and so
          a dynamic init entry was allocated and returned.  Create a dynamic
@@ -1245,7 +1244,8 @@ class.
          that will not be "on top" when gen_dynamic_initialization is called,
          record the destruction, if needed, with the appropriate
          object-lifetime entry. */
-      record_end_of_lifetime_destruction(dip, init_info->static_lifetime,
+      record_end_of_lifetime_destruction(dip,
+                                         (a_boolean)init_info->static_lifetime,
                                          /*block_lifetime=*/TRUE);
     }  /* if */
     /* If there was an initial opening brace, check for and skip the
