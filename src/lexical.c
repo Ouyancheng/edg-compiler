@@ -10058,6 +10058,46 @@ If the entry is already on the list the new entry is ignored.
 }  /* add_to_instantiation_file_suffix_list */
 
 
+static void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list)
+/*
+Add the members of a colon separated list of file suffixes to the
+instantiation file suffix list.
+*/
+{
+  char	*ptr = list;
+  char	*start;
+  char	*end;
+
+  while (*ptr) {
+    /* Skip of any spaces. */
+    while (*ptr == ' ') ptr++;
+    /* See if we've reached the end of the string. */
+    if (!*ptr) break;
+    /* Check for a null string entry. */
+    if (*ptr == ':') {
+      ptr++;
+      continue;
+    }  /* if */
+    start = ptr;
+    /* Find the ending delimiter. */
+    ptr = strchr(start, ':');
+    if (ptr == NULL) {
+      /* If there is no ending delimiter use the end of the string. */
+      ptr = start + strlen(start);
+    }  /* if */
+    /* Get a pointer to the last character of the string. */
+    end = ptr - 1;
+    /* Move back past any trailing spaces. */
+    while (*end == ' ') end--;
+    add_to_instantiation_file_suffix_list(start, (int)(end - start + 1));
+    /* If we haven't reached the end of the string, move the pointer past
+       the delimiter. */
+    if (*ptr) ptr++;
+  }  /* while */
+}   /* add_list_of_suffixes_to_instantiation_file_suffix_list */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+
 static void cache_to_compound_stmt(a_token_cache	*p_token_cache,
 				   a_token_set_array	stop_tokens)
 /*
@@ -10206,46 +10246,6 @@ not be returned.
   db_exit();
   return result;
 }  /* cache_function_body */
-
-
-static void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list)
-/*
-Add the members of a colon separated list of file suffixes to the
-instantiation file suffix list.
-*/
-{
-  char	*ptr = list;
-  char	*start;
-  char	*end;
-
-  while (*ptr) {
-    /* Skip of any spaces. */
-    while (*ptr == ' ') ptr++;
-    /* See if we've reached the end of the string. */
-    if (!*ptr) break;
-    /* Check for a null string entry. */
-    if (*ptr == ':') {
-      ptr++;
-      continue;
-    }  /* if */
-    start = ptr;
-    /* Find the ending delimiter. */
-    ptr = strchr(start, ':');
-    if (ptr == NULL) {
-      /* If there is no ending delimiter use the end of the string. */
-      ptr = start + strlen(start);
-    }  /* if */
-    /* Get a pointer to the last character of the string. */
-    end = ptr - 1;
-    /* Move back past any trailing spaces. */
-    while (*end == ' ') end--;
-    add_to_instantiation_file_suffix_list(start, (int)(end - start + 1));
-    /* If we haven't reached the end of the string, move the pointer past
-       the delimiter. */
-    if (*ptr) ptr++;
-  }  /* while */
-}   /* add_list_of_suffixes_to_instantiation_file_suffix_list */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
 void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp)
