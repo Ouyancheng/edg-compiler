@@ -12995,8 +12995,8 @@ in the class designated by tag_sym.
             /* There is no operator delete that "corresponds" to this
                operator new (i.e., whose parameter types after the first
                match). */
-            pos_stsy_warning(ec_no_corresponding_delete, &sym->decl_position,
-                             (char *)(array_pass ? "[]" : ""), sym);
+            pos_stsy_remark(ec_no_corresponding_delete, &sym->decl_position,
+                            (char *)(array_pass ? "[]" : ""), sym);
           }  /* if */
         }  /* for */
       }  /* if */

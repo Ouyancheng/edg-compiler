@@ -6722,6 +6722,19 @@ lifetime list in the right place).
 }  /* make_dyn_init_for_deletion_for_throw */
 
 
+/*
+Macro to issue a warning about a missing operator delete corresponding to a
+new-expression that might throw an exception.  The warning is only issued if
+the operator is missing and the given boolean flag is TRUE).
+*/
+#define warn_about_missing_delete_if(cond)                                  \
+{ if (delete_routine == NULL && (cond)) {                                   \
+    pos_stsy_warning(ec_no_corresponding_delete, &new_position,             \
+                     (char *)(array_new ? "[]" : ""), function_symbol);     \
+  }  /* if */                                                               \
+}  /* warn_about_missing_delete_if */
+
+
 static void scan_new_operator(an_operand *result)
 /*
 Scan the C++ new operator.  See 5.3.3 in the ARM.
@@ -7226,6 +7239,7 @@ specification allow a variable-sized array as the top type.
                                                               param_type_list);
           do_const_test = TRUE;
           is_generated_ctor = ctor_routine->compiler_generated;
+          warn_about_missing_delete_if(TRUE);
         }  /* if */
       } else if (reference_to_trivial_default_constructor(base_new_type,
                                                           &type_position)) {
@@ -7282,6 +7296,7 @@ specification allow a variable-sized array as the top type.
       scan_ctor_arguments(ctor_sym, &init_arg_expr_list, &ctor_routine,
                           &unknown_dependent_ctor,
                           &lparen_pos, base_new_type);
+      warn_about_missing_delete_if(TRUE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -7314,6 +7329,8 @@ specification allow a variable-sized array as the top type.
                                                       err ? error_type() :
                                                             new_type,
                                                       ec_bad_initializer_type);
+        warn_about_missing_delete_if(node_has_side_effects(init_val_node,
+                                                           (a_boolean*)NULL));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
