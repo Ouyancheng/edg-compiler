@@ -1,9 +1,16 @@
 Version 2.09
 
+9/15/92  IL version number changed to 2.02
+
+The IL is different from the last release, but only in a very minor
+way -- field constructor_or_destructor in a_type has been deleted.
+Also: under a non-default configuration option, the field scope_depth
+has been added to a_source_correspondence.
+
 9/15/92  Recording the scope depth in IL entities
 
 The front end can be configured to track the scope depth at which IL
-entities are declared.  The field, conditionally incorportated in
+entities are declared.  The field, conditionally incorporated in
 a_source_correspondence, is scope_depth, and the flag that controls its
 presence is RECORD_SCOPE_DEPTH_IN_IL in host_envir.h.
 
@@ -271,7 +278,7 @@ definition of virtual function tables (-V) are now only allowed in C++ mode.
 
 8/19/92  CFRONT_OBJECT_CODE_COMPATIBILITY
 
-This flag replaces CFRONT_CLASS_LAYOUT_COMPATIBILTY.  Defined in
+This flag replaces CFRONT_CLASS_LAYOUT_COMPATIBILITY.  Defined in
 target.h, it controls whether the front end puts out IL for object code
 in an environment where cfront compatibility is required.  When this
 flag is FALSE the resulting object code may be somewhat more compact.
@@ -488,7 +495,7 @@ The type formatting in error.c was corrected to display "const" or
 Support was added to print source lines that are not in the current logical
 source line as part of diagnostics.  To facility easy recovery of previous
 source lines, an index of file positions is built as the source file is
-orginally read (read_logical_source_line() in lexical.c).
+originally read (read_logical_source_line() in lexical.c).
 
 7/10/92  Functions return class objects like cfront
 
@@ -727,7 +734,7 @@ When a function body is present, sk_parameter symbols from the function
 prototype scope are turned into sk_variable symbols in the function
 scope.
 
-6/12/92  Symbol names are not available when STANDALONE_UTILITY_PROGRM.
+6/12/92  Symbol names are not available when STANDALONE_UTILITY_PROGRAM.
 
 Conditional compilation added to suppress symbol name expansion when
 error.c is part of a utility program.
@@ -853,7 +860,7 @@ declarations (as per ARM 8.2.6).
          delete() member functions in constructor and destructor wrappers
 
 These checks are required only when support for the assignment-to-this
-ananchronism is activated.  For example:
+anachronism is activated.  For example:
 
   class A {
     void* operator new(size_t);   // private operator new()
