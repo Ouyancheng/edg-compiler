@@ -8609,6 +8609,18 @@ the insertion.
              it placed back on the file-scope types list and get its
              members promoted out. */
           a_type_ptr type_as_subobject = type->next;
+#if CHECKING
+          /* Make sure the type and its type-as-subobject have already been
+             removed from the types list. */
+          { a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+            check_assertion_str2(type_as_subobject->next == NULL &&
+                                 ctsp != NULL &&
+                                 ctsp->type_as_subobject == type_as_subobject,
+                                 "promote_type_list: placeholder for class",
+                              "instantiation encountered before class itself");
+          }
+#endif /* CHECKING */
           type_as_subobject->next = next_type;
           next_type = type_as_subobject;
         }  /* if */
