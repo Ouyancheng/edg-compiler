@@ -399,49 +399,46 @@ hidden names in C, so there's no point in maintaining this information).
   a_hidden_name_ptr hnp;
 
   for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
-    a_boolean fixup_created = FALSE;
-    if (hnp->qualification_needed) {
+    a_boolean               fixup_created = FALSE;
+    a_source_correspondence *scp= (a_source_correspondence *)(hnp->entity.ptr);
+    /* See if the new values of the flags are the same as the present ones.
+       If not, change them and create a fixup entry that will cause the
+       flags to be reset to their former values at the end of the current
+       name context. */
+    /* Note that a hidden name entry can cause a flag to be turned off
+       if an inner scope can use an unqualified name and an outer scope
+       needed to use a qualified name, e.g., for an injected class name. */
+    if (hnp->qualification_needed != scp->qualification_needed) {
       /* The entity must be referred to with a qualified name (e.g., "A::x"
          or "::y") in the inner scopes. */
-      a_source_correspondence *scp =
-                                  (a_source_correspondence *)(hnp->entity.ptr);
-      if (!scp->qualification_needed) {
-        /* The qualification_needed flag needs to be set.  Also arrange for
-           it to be reset at the end of the current name context. */
-        alloc_hidden_name_fixup(hnp->entity);
-        fixup_created = TRUE;
-        scp->qualification_needed = TRUE;
-      }  /* if */
+      alloc_hidden_name_fixup(hnp->entity);
+      fixup_created = TRUE;
+      scp->qualification_needed = hnp->qualification_needed;
     }  /* if */
-    if (hnp->partially_hidden_by_microsoft_injected_class_name) {
+    if (hnp->partially_hidden_by_microsoft_injected_class_name !=
+        scp->partially_hidden_by_microsoft_injected_class_name) {
       /* The entity is partially hidden in Microsoft mode.  It can be
          referred to without qualification as a qualifier on another name,
          but otherwise it must be referred to as a qualified name. */
-      a_source_correspondence *scp =
-                                  (a_source_correspondence *)(hnp->entity.ptr);
-      if (!scp->partially_hidden_by_microsoft_injected_class_name) {
-        /* The partially_hidden... flag needs to be set.  Also arrange for
-           it to be reset at the end of the current name context. */
-        if (!fixup_created) {
-          alloc_hidden_name_fixup(hnp->entity);
-          fixup_created = TRUE;
-        }  /* if */
-        scp->partially_hidden_by_microsoft_injected_class_name = TRUE;
+      if (!fixup_created) {
+        alloc_hidden_name_fixup(hnp->entity);
+        fixup_created = TRUE;
       }  /* if */
+      scp->partially_hidden_by_microsoft_injected_class_name =
+                        hnp->partially_hidden_by_microsoft_injected_class_name;
     }  /* if */
-    if (hnp->elaborated_type_specifier_needed) {
-      /* The entity must be referenced via an elaborated type specifier
-         (e.g., "class X" rather than just "X") in the inner scopes. */
+    if ((an_il_entry_kind)hnp->entity.kind == iek_type) {
       a_type_ptr type = (a_type_ptr)(hnp->entity.ptr);
-      if (!type->elaborated_type_specifier_needed) {
-        /* The elaborated_type_specifier_needed flag needs to be
-           set.  Also arrange for it to be reset at the end of the current
-           name context. */
+      if (hnp->elaborated_type_specifier_needed !=
+          type->elaborated_type_specifier_needed) {
+        /* The entity must be referenced via an elaborated type specifier
+           (e.g., "class X" rather than just "X") in the inner scopes. */
         if (!fixup_created) {
           alloc_hidden_name_fixup(hnp->entity);
           fixup_created = TRUE;
         }  /* if */
-        type->elaborated_type_specifier_needed = TRUE;
+        type->elaborated_type_specifier_needed =
+                                         hnp->elaborated_type_specifier_needed;
       }  /* if */
     }  /* if */
   }  /* for */
