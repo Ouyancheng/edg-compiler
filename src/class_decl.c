@@ -6346,12 +6346,6 @@ Scan the body of a class definition, including the base classes list.
             } /* if */
           }  /* if */
 #endif /* CHECKING */
-          /* Mark the IL entry for the nested class or enum as referenced. */
-#if 0
-          /* This is premature, since it isn't really referenced at this
-             point. */
-#endif /* if 0 */
-          tp->source_corresp.referenced = TRUE;
           if (access != (an_access_specifier)as_public) {
             /* Strictly speaking, any nonpublic member prevents a class from
                being an aggregate -- keep track. */
@@ -6396,6 +6390,12 @@ Scan the body of a class definition, including the base classes list.
                visible as though they were fields of the current class. */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
             is_anonymous_union = TRUE;
+            /* Set the IL referenced flag for the anonymous union type. */
+#if 0
+            /* It would probably be better to set it when an anonymous union
+               member is actually referenced. */
+#endif /* if 0 */
+            member_type->source_corresp.referenced = TRUE;
           } else if (!C_mode()) {
             /* C++ mode. */
             if (friend_specified) {
