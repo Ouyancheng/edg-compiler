@@ -54,6 +54,7 @@ Cache the tokens that comprise an initializer of the form
   clear_token_set_array(stop_token_array);
   incr_token_set_array_element(stop_token_array, tok_comma);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
+  incr_token_set_array_element(stop_token_array, tok_rparen);
   cache_token_stream(token_cache_ptr, stop_token_array);
 }  /* prescan_initializer */
 
