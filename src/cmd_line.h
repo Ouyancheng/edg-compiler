@@ -215,8 +215,8 @@ EXTERN a_boolean
                          = DEFAULT_SUN_COMPATIBILITY
 #endif /* VAR_INITIALIZERS */
                                                     ;
-                        /*  accept language features supported
-                            by Sun CC release 5.0. */
+                        /* Accept language features supported
+                           by Sun CC release 5.0. */
 
 EXTERN a_boolean
                 gcc_mode
@@ -224,22 +224,22 @@ EXTERN a_boolean
                          = DEFAULT_GCC_COMPATIBILITY
 #endif /* VAR_INITIALIZERS */
                                                     ;
-                        /*  accept C language features supported by GNU C
-                            compilers. */
+                        /* Accept C language features supported by GNU C
+                           compilers. */
 
 EXTERN a_boolean
                 cfront_2_1_mode /* = FALSE */;
-                        /*  accept language features supported
-                            by cfront release 2.1. */
+                        /* Accept language features supported
+                           by cfront release 2.1. */
 EXTERN a_boolean
                 cfront_3_0_mode /* = FALSE */;
-                        /*  accept language features supported
-                            by cfront release 3.0. */
+                        /* Accept language features supported
+                           by cfront release 3.0. */
 
 EXTERN a_boolean
                 trans_unit_test_mode /* = FALSE */;
-                        /*  enable mode to test compilation of multiple
-                            (possibly identical) translation units. */
+                        /* Enable mode to test compilation of multiple
+                           (possibly identical) translation units. */
 
 /*
 Macro that is TRUE if any cfront mode has been selected.
