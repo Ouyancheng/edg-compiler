@@ -1,5 +1,28 @@
 Version 2.30
 
+6/13/95  Use of a_scope_pointers_block in a_scope_stack_entry
+
+Since namespace scopes, unlike other scopes, can be closed and then
+reopened, some of the information that is normally kept in a scope stack
+entry must now persist even after the scope is popped.  Such fields are now
+part of a_scope_pointers_block, which is a substructure not only of
+a_scope_stack_entry but also of a_namespace_symbol_supplement; macro
+assoc_pointers_block_of has been provided to select the proper pointers
+block for a given scope stack entry (either the embedded one or the one in
+an associated namespace symbol supplement).  For instance, code like this
+
+  var = scope_stack[depth].last_variable;
+
+has been rewritten to use the macro:
+
+  var = assoc_pointers_block_of(&scope_stack[depth])->last_variable;
+
+6/12/95  IL CHANGE: added a_namespace, sck_namespace
+
+A new IL entry, a_namespace, has been added to represent either a namespace
+definition or, when the is_namespace_alias flag is TRUE, a namespace alias.
+The scope associated with a namespace definition is of kind sck_namespace.
+
 6/7/95   bitfield_to_avoid_codecenter_warnings
 
 In 2.29 a change was made so that these bitfields would not be
