@@ -2343,7 +2343,7 @@ Return TRUE if the two constants are identical.
       case ck_string:
         if (cp1->variant.string.length == cp2->variant.string.length) {
           eq = (memcmp(cp1->variant.string.value, cp2->variant.string.value,
-                       (int)cp1->variant.string.length) == 0);
+                       size_t_arg(cp1->variant.string.length)) == 0);
         }  /* if */
         break;
       case ck_float:
