@@ -174,6 +174,15 @@ extern void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr);
 extern void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list);
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+extern void sym_update_source_sequence_list(
+                                  a_symbol_ptr                 sym,
+                                  a_source_position            *pos,
+                                  a_boolean                    is_primary_decl,
+                                  a_source_sequence_entry_ptr  old_ssep);
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /* This macro is just a stub.  It can be replaced in implementations that
    need to track uses that require a complete class type.  (Note: the type

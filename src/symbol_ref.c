@@ -638,7 +638,7 @@ hiding.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void sym_update_source_sequence_list(
+void sym_update_source_sequence_list(
                                   a_symbol_ptr                 sym,
                                   a_source_position            *pos,
                                   a_boolean                    is_primary_decl,
