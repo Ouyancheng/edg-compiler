@@ -4442,23 +4442,20 @@ a diagnostic should be issued by the caller.
        this_param_types_correspond(tp1, tp2, /*check_as_conversion=*/FALSE,
                                    /*check_as_operands=*/FALSE))) {
     /* They are compatible so far. */
-    if (is_class_member && using_sym->variant.routine.ptr->is_virtual) {
-      /* This is a case of virtual function overriding.  Don't issue a
-         diagnostic. */
+    if (is_class_member) {
+      /* No diagnostic for class members. */
+#if 0
+      /* This is based on an interpretation that WP 7.3.3 para 13 applies to
+         all member functions (as the example suggests), not only to virtual
+         functions (as the text currently indicates). */
+#endif /* if 0 */
       compat = TRUE;
     } else if (types_are_strictly_compatible(
                                          tp1->variant.routine.return_type,
                                          tp2->variant.routine.return_type)) {
-      /* Not a virtual function case.  The return types are also compatible.
-         A diagnostic will be issued by the caller. */
-      compat = TRUE;
-#if 0
-#else /* if !0 */
-      /* It is unclear whether 7.3.3 para 13 applies to all member functions
-         (as the example suggests) or only to virtual functions (as the text
-         indicates).  For now we'll go with the example. */
-      if (!is_class_member) *err = TRUE;
-#endif /* if 0 */
+      /* The return types are also compatible.  Set *err so that an error
+         will be issued by the caller. */
+      *err = compat = TRUE;
     }  /* if */
   }  /* if */
   return compat;
@@ -4530,8 +4527,8 @@ using *pos as the error position.
         /* Ignore function template symbols in the overload set. */
       } else if (types_of_decl_and_using_decl_conflict(decl_sym,
                                                        using_sym, &err)) {
-        /* Unless using_sym is a virtual function being overridden by
-           decl_sym, an error is issued. */
+        /* Unless using_sym is a member function being hidden and/or
+           overridden by decl_sym, an error is issued. */
         if (err) {
           pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
                         using_sym);
@@ -4794,11 +4791,32 @@ as the error position.
            function (sym) and the type for which a projection symbol is about
            to be created (using_sym). */
         if (types_of_decl_and_using_decl_conflict(sym, using_sym, &err)) {
-          /* Unless using_sym is a virtual function being overridden by
-             the previous declaration, an error is issued. */
+          /* Unless using_sym is a member function being hidden and/or
+             overridden by the previous declaration, an error is issued. */
           if (err) {
             pos_sy2_error(ec_using_decl_conflicts_with_prev_decl, pos,
                           using_sym, sym);
+          }  /* if */
+          conflicts = TRUE;
+          break;
+        }  /* if */
+      } else if (is_class_member_using_decl_symbol(sym)) {
+        if (fundamental_symbol_of(sym) == using_sym) {
+          /* A prior using declaration refers to the very same base class
+             member.  Issue a diagnostic if appropriate and return TRUE to
+             assure that the new one isn't added to the overload set, too. */
+          if (sym->variant.projection.access !=
+                      scope_stack[decl_scope_level].current_access) {
+            /* Two using-declarations give different access to the same
+               inherited member. */
+            pos_sy_error(ec_cannot_change_access, pos,
+                         fundamental_symbol_of(sym));
+          } else if (strict_ansi_mode) {
+            /* WP 7.3.3 para 7 currently requires an error, but we believe
+               this restriction will (or at least should) be removed -- issue
+               a warning in strict mode. */
+            pos_sy_warning(ec_member_function_redeclaration, pos,
+                           fundamental_symbol_of(sym));
           }  /* if */
           conflicts = TRUE;
           break;
@@ -7691,26 +7709,6 @@ or implicit) controlling the declaration.
             pos_st_error(ec_id_already_declared, &decl_pos,
                          locator_for_curr_id.symbol_header->identifier);
             err = TRUE;
-          } else {
-            /* The name appearing in the using declaration and the name that
-               has already been declared in this class both represent
-               member functions.  They can be merged into an overload set,
-               unless this is a duplicate using declaration. */
-            sym = fundamental_symbol_of(locator.specific_symbol);
-            is_overloaded = FALSE;
-            if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-              is_overloaded = TRUE;
-              sym = sym->variant.overloaded_function.symbols;
-            }  /* if */
-            for (; sym != NULL; sym = sym->next) {
-              if (sym->parent.class_type == bcp->type) {
-                pos_sy_error(ec_member_function_redeclaration, &decl_pos,
-                             declared_sym);
-                err = TRUE;
-                break;
-              }  /* if */
-              if (!is_overloaded) break;
-            }  /* for */
           }  /* if */
         }  /* if */
       }  /* if */
