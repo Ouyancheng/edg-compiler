@@ -1545,13 +1545,19 @@ Actually, only one calling convention may be specified, but it the
 same value may appear more than once.
 */
 {
-  a_calling_convention	call_conv = cc_default;
+  a_calling_convention	call_conv = (a_calling_convention)cc_default;
   while (is_microsoft_calling_convention()) {
     a_calling_convention	new_call_conv;
     switch (curr_token) {
-      case tok_cdecl:    new_call_conv = cc_cdecl;    break;
-      case tok_fastcall: new_call_conv = cc_fastcall; break;
-      case tok_stdcall:  new_call_conv = cc_stdcall;  break;
+      case tok_cdecl:
+        new_call_conv = (a_calling_convention)cc_cdecl;
+        break;
+      case tok_fastcall:
+        new_call_conv = (a_calling_convention)cc_fastcall;
+        break;
+      case tok_stdcall:
+        new_call_conv = (a_calling_convention)cc_stdcall;
+        break;
       default: unexpected_condition(); break;
     }  /* switch */
     if (call_conv != (a_calling_convention)cc_default &&
@@ -1568,7 +1574,7 @@ same value may appear more than once.
 
 
 static
-void update_calling_convention(a_type_ptr	     type,
+void update_calling_convention(a_type_ptr	     *type,
 			       a_call_conv_descr_ptr p_calling_convention,
                                a_source_position    *decl_pos)
 /*
@@ -1582,18 +1588,16 @@ information should be ignored or if an error should be issued.
   a_boolean		discard = FALSE;
 
   calling_convention = p_calling_convention->call_conv;
-  if (type == NULL) {
+  if (*type == NULL) {
     /* Null type -- the calling convention will be discarded. */
     discard = TRUE;
-  } else if (calling_convention != cc_default) {
+  } else if (calling_convention != (a_calling_convention)cc_default) {
     a_boolean		ignore = FALSE;
     a_boolean		invalid_type = FALSE;
-    a_type_ptr		type_to_update = NULL;
 
-    if (is_function_type(type)) {
+    if (is_function_type(*type)) {
       /* A calling convention of a function type is valid. */
-      type_to_update = type;
-    } else if (is_reference_type(type) || is_pointer_type(type)) {
+    } else if (is_reference_type(*type) || is_pointer_type(*type)) {
       /* A calling convention on a pointer or reference type is invalid. */
       invalid_type = TRUE;
     } else {
@@ -1605,8 +1609,19 @@ information should be ignored or if an error should be issued.
       pos_error(ec_calling_convention_not_allowed_for_type, decl_pos);
     } else if (ignore) {
       pos_remark(ec_calling_convention_ignored_for_type, decl_pos);
-    } else if (type_to_update != NULL) {
-      a_type_ptr	tp = skip_typerefs(type_to_update);
+    } else {
+      a_type_ptr	tp = *type;
+      a_boolean         any_typedefs = FALSE;
+      /* Skip past any typerefs.  See if any of them are typedefs. */
+      while (tp->kind == (a_type_kind)tk_typeref) {
+        any_typedefs |= typeref_is_typedef(tp);
+        tp = tp->variant.typeref.type;
+      }  /* while */
+      if (any_typedefs) {
+        /* The type contains typedefs.  Make a copy that can be updated. */
+        *type = copy_routine_type_with_param_types(*type);
+        tp = skip_typerefs(*type);
+      }  /* if */
       check_assertion(tp->kind == (a_type_kind)tk_routine);
       tp->variant.routine.extra_info->calling_convention = calling_convention;
     }  /* if */
@@ -1618,7 +1633,7 @@ information should be ignored or if an error should be issued.
   }  /* if */
   /* Whether or not we were able to apply the calling convention,
      reset it so that the caller does not attempt to reuse it later. */
-  p_calling_convention->call_conv = cc_default;
+  p_calling_convention->call_conv = (a_calling_convention)cc_default;
 }  /* update_calling_convention */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
@@ -1695,8 +1710,8 @@ are NULL.
   a_boolean			last_operator_is_call_conv;
   a_boolean			ptr_operator_seen = FALSE;
 
-  unbound_call_conv.call_conv = cc_default;
-  first_call_conv.call_conv = cc_default;
+  unbound_call_conv.call_conv = (a_calling_convention)cc_default;
+  first_call_conv.call_conv = (a_calling_convention)cc_default;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
   db_enter(3, "pointer_declarator");
@@ -1730,7 +1745,7 @@ are NULL.
       /* A previous calling convention has been seen and is being
          discarded.  This occurs when a calling convention is seen
          between two pointer operators. */
-      update_calling_convention(complete_type, &unbound_call_conv,
+      update_calling_convention(&complete_type, &unbound_call_conv,
                                 &unbound_call_conv.position);
     }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
@@ -1811,7 +1826,8 @@ are NULL.
       /* A Microsoft qualifier that may appear in a nonstandard place such
          as "int (_cdecl * fp)()". */
       a_calling_convention	new_call_conv;
-      a_source_position		start_pos = pos_curr_token;
+      a_source_position		start_pos;
+      start_pos = pos_curr_token;
       is_call_conv = TRUE;
       new_call_conv = scan_microsoft_qualifiers();
       /* Check for an calling convention used where none is allowed. */
@@ -1908,7 +1924,7 @@ are NULL.
          the unbound calling convention.  And the other calling convention
          is set to cc_default (indicating none was scanned). */
       *p_unbound_calling_convention = first_call_conv;
-      p_calling_convention->call_conv = cc_default;
+      p_calling_convention->call_conv = (a_calling_convention)cc_default;
       p_calling_convention->position = null_source_position;
     } else {
       /* A pointer operator was seen.  Return the first calling convention,
@@ -1917,7 +1933,7 @@ are NULL.
       if (specifiers_type != NULL) {
         /* If a specifiers type was present, the calling convention may
            be applied immediately. */
-        update_calling_convention(specifiers_type, &first_call_conv,
+        update_calling_convention(&specifiers_type, &first_call_conv,
                                   &first_call_conv.position);
       }  /* if */
       *p_unbound_calling_convention = unbound_call_conv;
@@ -2596,7 +2612,7 @@ function_lparen:
     if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
       /* There is an unbound calling convention.  Attempt to bind it
          to the array or function declarator just scanned. */
-      update_calling_convention(new_type_ptr, &unbound_call_conv,
+      update_calling_convention(&new_type_ptr, &unbound_call_conv,
                                 &locator->source_position);
     }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
@@ -2647,7 +2663,7 @@ function_lparen:
        the complete type (if one exists).  If none exits, return the unbound
        type to the caller. */
     if (complete_type != NULL) {
-      update_calling_convention(complete_type, &unbound_call_conv,
+      update_calling_convention(&complete_type, &unbound_call_conv,
                                 &locator->source_position);
     } else {
       /* The complete type is NULL.  Note that this means that there
