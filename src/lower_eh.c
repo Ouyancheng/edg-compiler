@@ -3754,6 +3754,51 @@ location in the program) to cleanup_state, and generate code at
 }  /* set_curr_cleanup_state */
 
 
+void save_eh_lowering_context(an_eh_lowering_context *ehcontext)
+/*
+Save the current state of exception handling lowering, as reflected in
+global variables, in *ehcontext, for later restoration by
+restore_eh_lowering_context.
+*/
+{
+  if (exceptions_enabled) {
+#if DO_FULL_PORTABLE_EH_LOWERING
+    ehcontext->object_addr_table_var = object_addr_table_var;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
+    ehcontext->array_table_var = array_table_var;
+    ehcontext->array_table_aggr_con = array_table_aggr_con;
+    ehcontext->region_table_var = region_table_var;
+    ehcontext->region_table_aggr_con = region_table_aggr_con;
+    ehcontext->next_avail_region_number = next_avail_region_number;
+#endif /* GENERATE_EH_TABLES */
+  }  /* if */
+  ehcontext->curr_cleanup_state = curr_cleanup_state;
+}  /* save_eh_lowering_context */
+
+
+void restore_eh_lowering_context(an_eh_lowering_context *ehcontext)
+/*
+Restore the current state of exception handling lowering, as reflected in
+global variables, from *ehcontext.
+*/
+{
+  if (exceptions_enabled) {
+#if DO_FULL_PORTABLE_EH_LOWERING
+    object_addr_table_var = ehcontext->object_addr_table_var;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
+    array_table_var = ehcontext->array_table_var;
+    array_table_aggr_con = ehcontext->array_table_aggr_con;
+    region_table_var = ehcontext->region_table_var;
+    region_table_aggr_con = ehcontext->region_table_aggr_con;
+    next_avail_region_number = ehcontext->next_avail_region_number;
+#endif /* GENERATE_EH_TABLES */
+  }  /* if */
+  curr_cleanup_state = ehcontext->curr_cleanup_state;
+}  /* restore_eh_lowering_context */
+
+
 void eh_function_lower_init(void)
 /*
 Initialize static variables needed on a per-function basis for

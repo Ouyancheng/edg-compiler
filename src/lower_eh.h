@@ -95,6 +95,36 @@ extern void lower_throw(an_expr_node_ptr expr);
 extern void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
                                    an_insert_location *insert_location);
 
+
+/*
+Data structure used to save state information for lowering of exception
+handling.
+*/
+typedef struct an_eh_lowering_context {
+#if DO_FULL_PORTABLE_EH_LOWERING
+  a_variable_ptr
+		object_addr_table_var;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
+  a_variable_ptr
+		array_table_var;
+  a_constant_ptr
+		array_table_aggr_con;
+  a_variable_ptr
+		region_table_var;
+  a_constant_ptr
+		region_table_aggr_con;
+  a_cleanup_region_number
+		next_avail_region_number;
+#endif /* GENERATE_EH_TABLES */
+  a_dynamic_init_ptr
+		curr_cleanup_state;
+} an_eh_lowering_context;
+
+extern void save_eh_lowering_context(an_eh_lowering_context *ehcontext);
+
+extern void restore_eh_lowering_context(an_eh_lowering_context *ehcontext);
+
 extern void eh_function_lower_init(void);
 
 extern void eh_lower_one_time_init(void);
