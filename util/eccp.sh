@@ -466,6 +466,7 @@ check_abbreviation()
 --diag_warning
 --display_error_number
 --distinct_template_signatures
+--dollar
 --driver_debug
 --early_tiebreaker
 --embedded_c++
@@ -906,6 +907,7 @@ process_option()
     -# | --timing | \
          --c++ | \
          --display_error_number | \
+         --dollar | \
 	 --old_line_commands | \
 	 --microsoft | \
 	 --no_microsoft | \
