@@ -96,10 +96,17 @@ and before the back end (if any) is executed.
   }
 #endif /* CHECKING */
 
-  if (C_dialect == C_dialect_cplusplus && any_cfront_mode()) {
-    /* Determine whether any classes defined in this file require external
-       linkage, and if so do the appropriate fixup. */
-    check_class_linkage();
+  if (C_dialect == C_dialect_cplusplus) {
+    if (any_cfront_mode()) {
+      /* Determine whether any classes defined in this file require external
+         linkage, and if so do the appropriate fixup.  No such fixup is
+         required in non-cfront mode, since the initial linkage settings
+         are already external, when appropriate. */
+      check_class_linkage();
+    }  /* if */
+    /* Go through the classes in the file scope and each namespace scope
+       and generate bodies for virtual destructors, as required. */
+    generate_required_virtual_destructor_bodies();
   }  /* if */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
