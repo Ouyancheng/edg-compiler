@@ -1371,6 +1371,41 @@ Dump a statement kind, for debug purposes.
 }  /* db_statement_kind */
 
 
+static void db_expr_summary(an_expr_node_ptr  node)
+/*
+Dump some summary information about an expression node.  Called by routines
+dumping other structures to which the node belongs.
+*/
+{
+  if (node != NULL) {
+    if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+      /* For an object lifetime expression, display the underlying
+         expression. */
+       node = node->variant.object_lifetime.expr;
+    }  /* if */
+    switch (node->kind) {
+      case enk_operation:
+        fprintf(f_debug, " (operator %s)",
+                db_operator_names[node->variant.operation.kind]);
+        break;
+      case enk_throw:
+        fprintf(f_debug, " (throw)");
+        break;
+      case enk_new_delete:
+        fprintf(f_debug, " (%s)",
+                node->variant.new_delete->is_new ? "new" : "delete");
+        break;
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+      case enk_lowered_eh_construct:
+        fprintf(f_debug, " (lowered eh construct)");
+        break;
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+       default:;
+   }  /* switch */
+  }  /* if */
+}  /* db_expr_summary */
+
+
 void db_statement(a_statement_ptr  sp)
 /*
 Dump a statement, for debug purposes.
@@ -1388,33 +1423,7 @@ Dump a statement, for debug purposes.
         }  /* if */
         break;
       case stmk_expr:
-        if (sp->expr != NULL) {
-          an_expr_node_ptr node = sp->expr;
-          if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
-            /* For an object lifetime expression, display the underlying
-               expression. */
-             node = node->variant.object_lifetime.expr;
-          }  /* if */
-          switch (node->kind) {
-            case enk_operation:
-              fprintf(f_debug, " (operator %s)",
-                      db_operator_names[node->variant.operation.kind]);
-              break;
-            case enk_throw:
-              fprintf(f_debug, " (throw)");
-              break;
-            case enk_new_delete:
-              fprintf(f_debug, " (%s)",
-                      node->variant.new_delete->is_new ? "new" : "delete");
-              break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-            case enk_lowered_eh_construct:
-              fprintf(f_debug, " (lowered eh construct)");
-              break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-            default:;
-          }  /* switch */
-        }  /* if */
+        db_expr_summary(sp->expr);
         break;
       case stmk_label:
       case stmk_goto:
@@ -7110,30 +7119,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       } else {
         db_statement_kind((a_statement_kind)sp->kind);
       }  /* if */
-      if (sp->kind == (a_statement_kind)stmk_expr) {
-        if (sp->expr != NULL) {
-          an_expr_node_ptr node = sp->expr;
-          if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
-            /* For an object lifetime expression, display the underlying
-               expression. */
-            node = node->variant.object_lifetime.expr;
-          }  /* if */
-          switch (node->kind) {
-            case enk_operation:
-              fprintf(f_debug, " (operator %s)",
-                      db_operator_names[node->variant.operation.kind]);
-              break;
-            case enk_throw:
-              fprintf(f_debug, " (throw)");
-              break;
-            case enk_new_delete:
-              fprintf(f_debug, " (%s)",
-                      node->variant.new_delete->is_new ? "new" : "delete");
-              break;
-            default:;
-          }  /* switch */
-        }  /* if */
-      }  /* if */
+      if (sp->kind == (a_statement_kind)stmk_expr) db_expr_summary(sp->expr);
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     } else if (kind == (an_il_entry_kind)iek_comment) {
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
