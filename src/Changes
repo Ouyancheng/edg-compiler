@@ -1,5 +1,10 @@
 Version 2.37
 
+7/10/97   C++-generating back end: "this->" suppressed on function calls
+
+"this->" on a member function call, unnecessary because it's implied,
+is now suppressed.  This works around a bug in MSVC++ 4.2.
+
 7/8/97    C++-generating back end: representation of partial instantiations
 
 The C++-generating back end now puts out an explicit specialization to

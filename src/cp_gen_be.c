@@ -4064,8 +4064,14 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     /* Use a pointer and "->".  Don't do it when there's an implicit
        reference indirection on the object, because that will add a "&"
        that may mean the wrong thing if operator& is overloaded. */
-    gen_expr_with_parens(object_expr);
-    write_tok_str("->");
+    if (is_variable_node(object_expr) &&
+        object_expr->variant.variable->is_this_parameter) {
+      /* Suppress "this->", as it's implied.  This is necessary to avoid
+         a bug in MSVC++ 4.2. */
+    } else {
+      gen_expr_with_parens(object_expr);
+      write_tok_str("->");
+    }  /* if */
   } else {
     /* Use an lvalue and ".". */
     gen_lvalue(object_expr);
