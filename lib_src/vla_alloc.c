@@ -315,12 +315,12 @@ ptr points to a pointer variable.  Deallocate the storage pointed to by *ptr.
 
 #if DEBUG
 
-long __vla_number_of_active_allocations(void)
+EXTERN_C long __vla_number_of_active_allocations(void)
 /*
 Return the number of active allocations (useful for complex tests).
 */
 {
-  return curr_vla_pool->last_allocation+1;
+  return curr_vla_pool == NULL ? 0 : curr_vla_pool->last_allocation+1;
 }  /* __vla_number_of_active_allocations */
 
 #endif /* DEBUG */
