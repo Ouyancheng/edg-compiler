@@ -66,7 +66,7 @@ extern a_boolean proc_debug_option(char *debug_option);
   unsigned long count = 0;                                            \
   for (ptr = avail_list; ptr != NULL; ptr = ptr->next) count++;       \
   if (count != counter) {                                             \
-    fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", counter-count); \
+    fprintf(f_debug, "%25s %8lu %8s %8s lost\n", "", counter-count, "", ""); \
   }  /* if */                                                         \
 }  /* db_space_lost */
 
