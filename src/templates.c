@@ -8080,7 +8080,7 @@ specified template argument list was provided.
 }  /* has_matching_template_function */
 
 
-a_boolean explicit_arg_list_identifies_specialization(
+a_type_ptr explicit_arg_list_identifies_specialization(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	templ_arg_list,
 				a_template_arg_ptr	*new_arg_list,
@@ -8090,31 +8090,33 @@ This routine is used when a template is referenced using just the template
 name and an explicit argument list but without a desired destination routine
 type, for example "f<int>".  This routine determines whether the argument list
 is sufficient to identify a unique specialization of template_sym.  If so,
-TRUE is returned, otherwise FALSE.
+the type of the matching routine is returned, NULL otherwise.
 
 templ_arg_list is the explicitly specified argument list.  templ_param_list
 is the associated template parameter list.  If the template matches, a new
 argument list is returned in *new_arg_list.
 */
 {
-  a_boolean	result;
+  a_type_ptr	result_type;
 
   *new_arg_list = NULL;
-  if (substitute_template_arguments(template_sym, templ_arg_list, new_arg_list,
-                                    templ_param_list)) {
+  result_type = substitute_template_arguments(template_sym, templ_arg_list,
+                                              new_arg_list, templ_param_list);
+  if (result_type != NULL) {
     /* The template argument list matches the template and the substitution
        of arguments was successful.  If all of the template parameters have
        values, then we have a match. */
-    if (all_templ_params_have_values(*new_arg_list, templ_param_list)) {
-      result = TRUE;
+    if (!all_templ_params_have_values(*new_arg_list, templ_param_list)) {
+      /* Some parameters do not have values -- no match. */
+      result_type = NULL;
     }  /* if */
   }  /* if */
   /* If there was no match, free the new template argument list, if any. */
-  if (!result && *new_arg_list != NULL) {
+  if (result_type != NULL && *new_arg_list != NULL) {
     free_template_arg_list(*new_arg_list);
     *new_arg_list = NULL;
   }  /* if */
-  return result;
+  return result_type;
 }  /* explicit_arg_list_identifies_specialization */
 
 

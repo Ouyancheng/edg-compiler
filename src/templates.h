@@ -258,7 +258,7 @@ a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,
 					 a_template_arg_ptr explicit_arg_list,
                                          a_boolean          is_decl_context);
 
-extern a_boolean explicit_arg_list_identifies_specialization(
+extern a_type_ptr explicit_arg_list_identifies_specialization(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	templ_arg_list,
 				a_template_arg_ptr	*new_arg_list,
