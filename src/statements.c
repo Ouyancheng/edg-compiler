@@ -535,7 +535,7 @@ If an error is found, issue the diagnostic and return TRUE.
 
 
 static void report_switch_past_init(a_control_flow_descr_ptr  block,
-                                    a_boolean                 *err)
+                                    an_error_severity         *prev_severity)
 /*
 This routine traverses the portion of the control_flow_descr_list associated
 with "block", which is a switch block or a block contained within a switch
@@ -550,6 +550,9 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
   a_control_flow_descr_ptr  cfdp, next_cfdp, parent;
   a_variable_ptr            vp;
   a_boolean                 done;
+  an_error_severity         severity;
+  a_type_ptr                tp;
+
 
   db_enter(4, "report_switch_past_init");
 #if DEBUG
@@ -568,7 +571,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
            contained or in a subblock) search for initializations. */
         next_cfdp = cfdp->variant.block.end_of_block->next;
         if (cfdp->variant.block.last_case_label != NULL) {
-          report_switch_past_init(cfdp, err);
+          report_switch_past_init(cfdp, prev_severity);
           /* All case labels will have been removed.  Is there any reason to
              keep this block around? */
           check_assertion(cfdp->variant.block.last_case_label == NULL)
@@ -636,10 +639,22 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
            found, since we stop searching the block once its last case
            label has been seen. */
         vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
-        if (!*err) {
+        severity = es_warning;
+        if (!C_mode() && !cfront_compatibility_mode) {
+          tp = vp->type;
+          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+          tp = skip_typerefs(tp);
+          if (is_class_struct_union_type(tp) &&
+              symbol_supplement_for_class(tp)->destructor != NULL) {
+            severity = es_error;
+          } else if (strict_ansi_mode) {
+            severity = strict_ansi_error_severity;
+          }  /* if */
+        }  /* if */
+        if (severity != *prev_severity) {
+          if (*prev_severity != es_none) end_error();
           /* This is the first initializing declaration seen.  Issue the
              header diagnostic. */
-          *err = TRUE;
           /* We need the switch block itself for the error position. */
           parent = cfdp->parent;
           while (parent->variant.block.is_switch_subblock) {
@@ -648,11 +663,9 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           check_assertion(parent->variant.block.is_switch_block);
           /* Issue a warning in C mode or for compatibility with cfront 2.1.
              Otherwise, issue an error. */
-          pos_start_diagnostic((C_dialect != C_dialect_cplusplus ||
-                                cfront_compatibility_mode) ?
-                                              es_warning : es_error,
-                               ec_branch_past_initialization,
+          pos_start_diagnostic(severity, ec_branch_past_initialization,
                                &parent->source_pos);
+          *prev_severity = severity;
         }  /* if */
         /* Issue the diagnostic addendum that identifies this particular
            variable. */
@@ -734,13 +747,13 @@ initializing declarations.
       if (new_cfdp->variant.start_of_block->variant.block.is_switch_block &&
           new_cfdp->variant.start_of_block->
                                       variant.block.last_case_label != NULL) {
-        a_boolean  err = FALSE;
+        an_error_severity  severity = es_none;
 
         /* Check for and report switch-over errors.  There should be at
            least one. */
-        report_switch_past_init(new_cfdp->variant.start_of_block, &err);
-        check_assertion(err);
-        if (err) end_error();
+        report_switch_past_init(new_cfdp->variant.start_of_block, &severity);
+        check_assertion(severity != es_none);
+        if (severity != es_none) end_error();
       }  /* if */
       /* Remove all init entries in the block that trail the last label or
          case label in the block; if there is no label or case label *all*
@@ -2148,20 +2161,19 @@ either an expression statement or a declaration statement.
 }  /* for_statement */
 
 
-static a_boolean report_goto_past_init(a_control_flow_descr_ptr  start_cfdp,
-                                       a_control_flow_descr_ptr  end_cfdp,
-                                       a_source_position         *error_pos)
+static void report_goto_past_init(a_control_flow_descr_ptr  start_cfdp,
+                                  a_control_flow_descr_ptr  end_cfdp,
+                                  a_source_position         *error_pos,
+                                  an_error_severity         *prev_severity)
 /*
 This routine moves from entry start_cfdp to entry end_cfdp on the
 control_flow_descr_list looking for init entries, which point to stmk_init
 statements and represent initializing declarations.  For any that are found,
-issue a diagnostic (an error in C++, a warning otherwise) complaining about
-skipping over an initialization.  Return TRUE is a diagnostic is issued.
+issue a diagnostic complaining about skipping over an initialization.
 */
 {
   a_control_flow_descr_ptr  cfdp;
   a_variable_ptr            vp;
-  a_boolean                 err = FALSE;
 
   db_enter(4, "report_goto_past_init");
 #if DEBUG
@@ -2173,7 +2185,8 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
   }  /* if */
 #endif /* DEBUG */
   if (end_cfdp->parent != start_cfdp->parent) {
-    err = report_goto_past_init(start_cfdp, end_cfdp->parent->prev, error_pos);
+    report_goto_past_init(start_cfdp, end_cfdp->parent->prev, error_pos,
+                          prev_severity);
     start_cfdp = end_cfdp->parent->next;
   }  /* if */
   cfdp = start_cfdp;
@@ -2193,14 +2206,28 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
 #endif /* CHECKING */
 #endif /* DEBUG */
     if (cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
+      an_error_severity  severity = es_warning;
+      a_type_ptr         tp;
+
       vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
-      if (!err) {
+      if (!C_mode()) {
+        tp = vp->type;
+        if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+        tp = skip_typerefs(tp);
+        if (is_class_struct_union_type(tp) &&
+            symbol_supplement_for_class(tp)->destructor != NULL) {
+          severity = es_error;
+        } else if (strict_ansi_mode) {
+          severity = strict_ansi_error_severity;
+        }  /* if */
+      }  /* if */
+      if (severity != *prev_severity) {
+        if (*prev_severity != es_none) end_error();
         /* This is the first initializing declaration seen.  Issue the
            header diagnostic. */
-        err = TRUE;
-        pos_start_diagnostic(C_dialect == C_dialect_cplusplus ?
-                                            es_error : es_warning,
-                             ec_branch_past_initialization, error_pos);
+        pos_start_diagnostic(severity, ec_branch_past_initialization,
+                             error_pos);
+        *prev_severity = severity;
       }  /* if */
       /* Issue the diagnostic addendum that identifies this particular
          variable. */
@@ -2220,7 +2247,6 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
     }  /* if */
   }  /* for */
   db_exit();
-  return err;
 }  /* report_goto_past_init */
 
 
@@ -2238,6 +2264,7 @@ diagnose the condition.
 */
 {
   a_control_flow_descr_ptr  cfdp, start_cfdp, common_parent;
+  an_error_severity         severity;
 
   db_enter(4, "check_goto_and_label");
   if (is_forwards && goto_cfdp->variant.goto_statement.prev_goto != NULL) {
@@ -2392,12 +2419,12 @@ diagnose the condition.
     }  /* if */
     /* Now do the search for an initializing declaration.  On the path
        between the starting entry, as determined above, and the entry for the
-       label.  The routine will return TRUE if a diagnostic was issued, in
+       label.  Check the error severity to see if a diagnostic was issued, in
        which case terminate the multi-line message. */
-    if (report_goto_past_init(start_cfdp, label_cfdp,
-                              &goto_cfdp->source_pos)) {
-      end_error();
-    }  /* if */
+    severity = es_none;
+    report_goto_past_init(start_cfdp, label_cfdp,
+                          &goto_cfdp->source_pos, &severity);
+    if (severity != es_none) end_error();
   }  /* if */
   if (is_forwards) {
     /* The goto entry for a forwards declaration is no longer needed, so it
