@@ -1,5 +1,23 @@
 Version 2.46
 
+1/11/01  Microsoft compatibility: name lookup in templates defined outside
+         of their namespace
+
+In Microsoft bugs mode, names used in the declaration of a template
+declared in a namespace (or in a class in a namespace) but defined outside
+of the namespace were not looked up properly.  This could result in
+spurious errors or other incorrect behavior.  This problem was introduced
+in version 2.43 and is now fixed.
+
+  namespace N {
+    template <class T> struct A {
+      A(const A&s);
+    };
+  }
+
+template <class T> N::A<T>::A(const A<T>&s){}
+
+
 1/11/01  Error issued on types declared as members of anonymous unions
 
 The front end now emits an error when a type is declared as a member of 

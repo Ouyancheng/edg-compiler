@@ -915,7 +915,15 @@ extern void pop_template_instantiation_scope(void);
 extern void pop_scope(void);
 extern void push_namespace_extension_scope(a_namespace_ptr nsp);
 extern void pop_namespace_extension_scope(void);
-extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);
+extern void f_push_namespace_reactivation_scope(
+				a_namespace_ptr		nsp,
+				a_boolean		force_new_entry);
+
+/* Macro that calls f_push_namespace_reactivation_scope and supplies a default
+   value for the force_new_entry parameter. */
+#define push_namespace_reactivation_scope(nsp)				\
+  f_push_namespace_reactivation_scope(nsp, /*force_new_entry=*/FALSE)
+
 extern void pop_namespace_reactivation_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr   class_type,
                                           a_boolean    extend_namespace);

@@ -4891,12 +4891,17 @@ the stack.
 }  /* reset_template_decl_lookup_sequence */
 
 
-void push_namespace_reactivation_scope(a_namespace_ptr nsp)
+void f_push_namespace_reactivation_scope(
+				a_namespace_ptr		nsp,
+				a_boolean		force_new_entry)
 /*
 Push one or more scopes that will reactivate the indicated namespace.
 This is used in contexts where the names from a namespace need to be
 visible, but new members cannot be added to the namespace.
 This routine is called only in C++.
+
+If force_new_entry is TRUE, a new reactivation is pushed even if the
+current scope is already a reactivation of the requested scope.
 */
 {
   a_namespace_ptr		parent_nsp;
@@ -4925,7 +4930,7 @@ This routine is called only in C++.
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     curr_nsp = ssep->il_scope->variant.assoc_namespace;
   }  /* if */
-  if (curr_nsp == nsp) {
+  if (curr_nsp == nsp && !force_new_entry) {
     /* The scope is already on the stack. */
     ssep->num_of_extra_times_pushed++;
   } else {
@@ -5085,6 +5090,13 @@ the class symbol supplement points to the partial specialization).
       a_type_ptr	parent_class;
       parent_class = class_type->source_corresp.parent.class_type;
       push_class_reactivation_scope(parent_class, /*entend_namespace=*/FALSE);
+    } else if (class_type->source_corresp.parent.namespace_ptr != NULL) {
+      /* Reactivate the parent namespace.  A new entry is forced because we
+         later must be able to pop back to the previous scope state based
+         only on the scope depth. */
+      f_push_namespace_reactivation_scope(
+                             class_type->source_corresp.parent.namespace_ptr,
+                             /*force_new_entry=*/TRUE);
     }  /* if */
     push_simple_instantiation_scope(decl_info, class_type,
                                     (a_routine_ptr)NULL, class_sym,
