@@ -2772,10 +2772,17 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DO_IL_LOWERING */
 #if MAINTAIN_NEEDED_FLAGS
     if (kind == (a_scope_kind)sck_function) {
+      /* This is a function scope.  If the function is really needed (i.e.,
+         if it is referenced by code that is itself really needed or if it
+         is globally visible and presumably needed by code in another
+         translation unit) set the "needed" flag not only on the function
+         but on everything referenced within the function body. */
       a_routine_ptr  rp = il_scope->variant.routine.ptr;
 
       if (rp->storage_class == (a_storage_class)sc_unspecified ||
           rp->source_corresp.needed) {
+        /* Clear the needed flag if it was already set.  Otherwise the
+           subroutine will assume the function body has already been walked. */
         rp->source_corresp.needed = FALSE;
         mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
       }  /* if */
