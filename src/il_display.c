@@ -1200,7 +1200,6 @@ Display the indicated based type list.
         case btk_const:          kind_str = "  const";                   break;
         case btk_volatile:       kind_str = "  volatile";                break;
         case btk_const_volatile: kind_str = "  const volatile";          break;
-        case btk_file_scope_copy:kind_str = "  file scope copy";         break;
         case btk_reference:      kind_str = "  reference";               break;
 #endif /* ifdef CFE */
         case btk_pointer:        kind_str = "  pointer";                 break;

@@ -1148,7 +1148,6 @@ enum a_based_type_kind_tag {
   btk_volatile,			/* Volatile-qualified version of the type. */
   btk_const_volatile,		/* Const-volatile-qualified version of the
 				   type. */
-  btk_file_scope_copy,		/* Copy of the type at the file scope. */
   btk_reference,		/* Reference to the type. */
 #endif /* ifdef CIL */
   btk_pointer			/* Pointer to the type. */
