@@ -4609,7 +4609,8 @@ otherwise it is NULL.  The syntax is:
         if (member_parent_type == NULL ||
             (locator->specific_symbol == NULL &&
              !(input_flags & DI_NONSTATIC_MEMBER))) {
-          pos_error(ec_bad_conversion_function, &locator->source_position);
+          pos_error(ec_bad_conversion_function_decl,
+                    &locator->source_position);
           set_to_error_locator(*locator);
         }  /* if */
       }  /* if */
