@@ -2588,7 +2588,7 @@ though neither constructors nor initialization is involved here.)
   cip_list = NULL;
   for (;;) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      /* On the first past, select out virtual base classes; on the second
+      /* On the first pass select out virtual base classes; on the second
          pass select out dirct non-virtual base classes. */
       if (is_virtual_pass ? bcp->is_virtual :
                             (bcp->direct && !bcp->is_virtual)) {
