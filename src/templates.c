@@ -168,6 +168,15 @@ Macro that is TRUE if template instantiation flags should be generated.
 #define instantiation_flags_needed()					\
   (automatic_instantiation_mode && !suppress_instantiation_flags)
 
+/*
+Macro that is TRUE if there are any template instantiations needed for
+this compilation.  This is TRUE whether or not the instantiations are
+provided by this file.  This is used to determine whether to create a
+tempalte information file.
+*/
+#define any_instantiations_required()					\
+  (instantiations_required != NULL || inline_function_list != NULL)
+
 
 #define INSTANCE_LOOKUP_TABLE_SIZE 10007
 			/* The number of buckets in the instance lookup table.
@@ -201,14 +210,6 @@ static a_template_lookup_entry_ptr
 			   hash table performance that results.  Prime
 			   values are likely to work better than
 			   non-prime values. */
-
-static a_boolean
-		any_instantiations_required;
-			/* TRUE if there are any template instantiations
-			   needed for this compilation.  This is TRUE
-			   whether or not the instantiations are provided
-			   by this file.  This is used to determine whether
-			   to create an instantiation request file. */
 
 static char	*instantiation_request_file_name;
                         /* The name of a file containing a list of names
@@ -874,7 +875,7 @@ already exists.
       str_catastrophe(ec_file_write_error, "template information file");
     }  /* if */
   }  /* if */
-  if (!any_instantiations_required || total_errors != 0) {
+  if (!any_instantiations_required() || total_errors != 0) {
     /* If there were no instantiations, delete any old version of the
        template information file.  The file is also deleted if any
        errors occurred during this compilation. */
@@ -15145,7 +15146,7 @@ if one already exists.
        that the file will have been closed after all input was read so
        it must be reopened now. */
     f_ii_file = fopen(instantiation_request_file_name, "r");
-    if (any_instantiations_required) {
+    if (any_instantiations_required()) {
       if (!use_template_info_file) {
         /* If the file does not exist, create it.  The file is only
            created when not using a template information file, because
@@ -16217,9 +16218,6 @@ specific definition that made it unnecessary.
      if no template entities exist. */
   generate_template_file_names();
   if (automatic_instantiation_mode) {
-    /* Set the flag that indicates that this compilation includes
-       external template entities. */
-    if (instantiations_required != NULL) any_instantiations_required = TRUE;
     /* Read in the list of entities to be automatically instantiated.  We
        also need to do automatic instantiation checking when a definition
        list was supplied.  In automatic instantiation mode, when a definition
@@ -16241,7 +16239,7 @@ specific definition that made it unnecessary.
       check_if_entity_should_be_automatically_instantiated(tip);
     }  /* for */
   }  /* if */
-  if (any_instantiations_required && use_template_info_file &&
+  if (any_instantiations_required() && use_template_info_file &&
       generate_template_files()) {
     /* Make sure the template information file has been created. */
     if (f_template_info == NULL) open_template_info_file();
@@ -16365,15 +16363,12 @@ are instantiated using a mechanism like the template instantiation mechanism.
     a_routine_list_entry_ptr	rlep;
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    /* Set the flag that indicates that this translation unit contains
-       instantiatable entities. */
-    if (inline_function_list != NULL) any_instantiations_required = TRUE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
       set_body_needed_flag_for_inline_function(rlep->routine);
     }  /* for */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (any_instantiations_required && use_template_info_file &&
+    if (any_instantiations_required() && use_template_info_file &&
         generate_template_files()) {
       /* Make sure the template information file has been created. */
       if (f_template_info == NULL) open_template_info_file();
@@ -17536,7 +17531,6 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(entries_updated_during_instantiation_wrapup);
   register_trans_unit_variable(can_instantiate_list);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  register_trans_unit_variable(any_instantiations_required);
   register_trans_unit_variable(request_file_check_needed);
   register_trans_unit_variable(instantiation_request_file_name);
   register_trans_unit_variable(f_instantiation_request);
@@ -17579,7 +17573,6 @@ given translation unit.
   type_of_unknown_templ_param_nontype->variant.template_param.kind = 
                                       (a_template_param_type_kind)tptk_unknown;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  any_instantiations_required = FALSE;
   request_file_check_needed = FALSE;
   instantiation_request_file_name = NULL;
   f_instantiation_request = NULL;
