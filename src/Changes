@@ -1,5 +1,18 @@
 Version 2.40
 
+9/29/98   Spurious error on nonreal union member
+
+A spurious "union has a disallowed member function" error was issued
+if a union contained a field whose type was a nonreal class.  This
+has been fixed.
+
+  template<class T> class A {
+    union X {
+      typename T::template X<T> x;
+      int i;
+    };
+  };
+
 9/29/98   Constructor initializer lookup
 
 Pending full support for "class name injection", a change in the lookup
