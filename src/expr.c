@@ -3697,8 +3697,9 @@ representation.  If not, an error is issued and the constant is changed
 to an error constant.  The constant is returned in *operand.  If
 allow_comma is TRUE, a top-level comma is allowed in the expression.
 prec_level is the precedence level to be used in scanning the expression.
-This routine exists mainly to allow the sorts of constant expressions used
-in the implementation of offsetof.
+The constant returned might be an error constant or a template parameter
+constant.  This routine exists mainly to allow the sorts of constant
+expressions used in the implementation of offsetof.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -3714,7 +3715,8 @@ in the implementation of offsetof.
   extract_constant_from_operand(operand, &con);
   /* Check that the constant is represented as an integer. */
   if (!is_error_constant(&con) &&
-      con.kind != (a_constant_repr_kind)ck_integer) {
+      con.kind != (a_constant_repr_kind)ck_integer &&
+      con.kind != (a_constant_repr_kind)ck_template_param) {
     /* The expression doesn't reduce to a value that is represented as
        an integer. */
     error_in_operand(ec_expr_not_integral_constant, operand);
