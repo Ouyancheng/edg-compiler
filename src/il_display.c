@@ -1601,8 +1601,9 @@ Display the indicated routine.
   disp_boolean("is_inline", (a_boolean)ptr->is_inline);
   disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  if (ptr->asignment_to_this) {
-    disp_boolean("assignment_to_this", (a_boolean)ptr->assignment_to_this);
+  if (ptr->assignment_to_this_done) {
+    disp_boolean("assignment_to_this_done",
+                 (a_boolean)ptr->assignment_to_this_done);
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   disp_class_list("befriending_classes", ptr->befriending_classes);
