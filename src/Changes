@@ -1,5 +1,16 @@
 Version 2.41
 
+1/18/99   Name linkage for "main"
+
+The name linkage for "main" is now extern "C++" (instead of extern "C").
+This change will not be noticed by implementations using IL lowering.
+
+(The previous state of affairs was inconsistent: the name-linkage of
+"main" used to be extern "C", whereas the routine-name-linkage recorded in
+the associated routine type was extern "C++".  Now both are extern "C++",
+and IL lowering has been changed to avoid mangling "main" whatever the
+linkage.)
+
 1/18/99   String types > 80 characters now recorded on orphan lists
 
 String and wide string types with length greater than 80 (actually,
