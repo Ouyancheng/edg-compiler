@@ -6091,6 +6091,11 @@ to indicate whether the class/struct/union is actually defined.
         }  /* if */
         /* Scan a member declaration. */
         add_stop_token(tok_semicolon);
+        if (curr_token == tok_asm) {
+          /* An asm declaration is not allowed in a class definition, but
+             scan it anyway (after issuing the error). */
+          (void)asm_declaration(/*asm_decl_allowed=*/FALSE);
+        }  /* if */
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
           if (check_for_overload_anachronism()) goto next_declaration;
