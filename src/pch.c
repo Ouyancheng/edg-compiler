@@ -229,9 +229,9 @@ We're about to write a precompiled header file.  Make any needed updates to
 the data structures that will be written out.
 */
 {
-  /* The data structures that help speed up the management of the namespace
-     scope routines lists live in general memory and are hence not saved in
-     the precompiled header file. */
+  /* To avoid any surprises, we ensure that the routines list is up-to-date by
+     performing all scheduled moves prior to writing the precompiled header
+     file. */
   perform_scheduled_routine_moves();
 }  /* prepare_to_write_precompiled_header_file */
 
