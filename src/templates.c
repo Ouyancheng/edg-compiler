@@ -14697,10 +14697,10 @@ void set_instance_required(a_symbol_ptr	sym,
 /*
 Updates the instantiation required flag in the template instance and/or
 the inline_instance_required field in the routine entry associated with sym.
-The symbol passed in can be of any type; if it is not a template instance
-or a routine nothing will be done.  "value" is the value to
-which the field(s) are to be set.  defer_inline is passed to
-update_instantiation_required_flag.
+The symbol passed in must be for a function or a static data member,
+but it need not be for a template entity or an inline function.
+"value" is the value to which the field(s) are to be set.  defer_inline
+is passed to update_instantiation_required_flag.
 */
 {
   a_template_instance_ptr	tip;

@@ -6364,7 +6364,13 @@ function).
 {
   a_symbol_ptr sym = (a_symbol_ptr)(scp->assoc_info);
 
-  if (sym != NULL) set_instance_required(sym, TRUE, /*defer_inline=*/FALSE);
+  if (sym != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_static_data_member ||
+        sym->kind == (a_symbol_kind)sk_member_function ||
+        sym->kind == (a_symbol_kind)sk_routine) {
+      set_instance_required(sym, TRUE, /*defer_inline=*/FALSE);
+    }  /* if */
+  }  /* if */
 }  /* instantiate_il_entity */
 
 
