@@ -1,5 +1,10 @@
 Version 2.35
 
+1/3/97   Abort in name mangling with partial specialization of class
+
+A null-pointer-dereference abort could result in some cases when
+name mangling was attempted for partially-specialized classes.  Now fixed.
+
 12/22/96 Maintaining "needed" flags: virtual functions with covariant
          return types
 

@@ -1231,12 +1231,16 @@ and an indication of that fact should be put out.
            template <class T> struct A<T *> { ... };
                                        ^^^this argument list
       */
-      a_symbol_ptr proto_sym =
-                      symbol_supplement_for_class(type)->corresp_prototype_sym;
-      a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
-      a_class_type_supplement_ptr
-                   proto_ctsp =
-                             proto_type->variant.class_struct_union.extra_info;
+      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+      a_class_type_supplement_ptr   proto_ctsp;
+
+      if (cssp->is_prototype_instantiation) {
+        proto_ctsp = ctsp;
+      } else {
+        a_symbol_ptr proto_sym = cssp->corresp_prototype_sym;
+        a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
+        proto_ctsp = proto_type->variant.class_struct_union.extra_info;
+      }  /* if */
       section_length = mangled_template_arguments(proto_ctsp->
                                                              template_arg_list,
                                                   /*partial_spec=*/TRUE,
