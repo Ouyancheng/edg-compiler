@@ -1,5 +1,18 @@
 Version 3.6
 
+11/11/04 Microsoft compatibility: __declspec(align(...)) ignored on fields
+
+In Microsoft mode the object layout algorithm incorrectly ignored the
+__declspec(align(...)) construct when it appeared on field declarations,
+unless the front end was also configured with GNU_EXTENSIONS_ALLOWED set
+to TRUE.  For example:
+
+  struct S {
+    __declspec(align(16)) char x;
+  };  // sizeof(S) did not reflect explicit alignment of S::x.
+
+This is now fixed.  (See also Changes entry of 11/3/04.)
+
 11/10/04 GNU C++ compatibility: "friend" specifier on nested classes
 
 In GNU C++ mode, with gnu_version < 30400, the front end now ignores (with a

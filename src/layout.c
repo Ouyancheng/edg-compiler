@@ -2435,10 +2435,11 @@ there's no overflow TRUE is returned.
       }  /* if */
       field_alignment = field_alignment_for(field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       /* If the alignment of this field was explicitly specified,
          honor that. */
       if (field->alignment != 0) {
+#if GNU_EXTENSIONS_ALLOWED
         if (gnu_mode && field->alignment < field_alignment &&
             !(field->is_packed ||
               class_type->variant.class_struct_union.is_packed)) {
@@ -2447,11 +2448,13 @@ there's no overflow TRUE is returned.
           pos_warning(ec_alignment_reduction_ignored,
                       &field->source_corresp.decl_position);
           field->alignment = field_alignment;
-        } else {
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        {
           field_alignment = field->alignment;
         }  /* if */
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
         /* Adjust the field's alignment for packing, if required. */
