@@ -777,9 +777,7 @@ Display the indicated based type list.
     for (; ptr != NULL; ptr = ptr->next) {
       switch (ptr->kind) {
 #ifdef CFE
-        case btk_const:          kind_str = "  const";                   break;
-        case btk_volatile:       kind_str = "  volatile";                break;
-        case btk_const_volatile: kind_str = "  const volatile";          break;
+        case btk_qualified:      kind_str = "  qualified";               break;
         case btk_reference:      kind_str = "  reference";               break;
         case btk_ptr_to_member:  kind_str = "  pointer to member";       break;
 #endif /* ifdef CFE */
@@ -949,14 +947,14 @@ do_struct_union:
       } else if (ptr->variant.typeref.qualifier != TQ_NONE) {
         disp_name("qualifier");
         if (ptr->variant.typeref.qualifier & TQ_CONST) {
-          if (ptr->variant.typeref.qualifier & TQ_VOLATILE) {
-            (void)printf("%s\n", "const volatile");
-          } else {
-            (void)printf("%s\n", "const");
-          }  /* if */
-        } else if (ptr->variant.typeref.qualifier & TQ_VOLATILE) {
-          (void)printf("%s\n", "volatile");
+          (void)printf("%s", "const ");
         }  /* if */
+        if (ptr->variant.typeref.qualifier & TQ_VOLATILE) {
+          (void)printf("%s", "volatile ");
+        }  /* if */
+        /* Additional implementation-defined qualifiers, if any, may be put
+           out here. */
+        (void)printf("\n");
       }  /* if */
       break;
     case tk_ptr_to_member:

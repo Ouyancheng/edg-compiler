@@ -4188,20 +4188,22 @@ Make or find a type entry for a void type, and return a pointer to it.
 }  /* void_type */
 
 
-static a_type_ptr get_based_type(a_type_ptr        base_type,
-                                 a_based_type_kind kind,
-                                 a_type_ptr        class_type)
+static a_type_ptr get_based_type(a_type_ptr            base_type,
+                                 a_based_type_kind     kind,
+                                 a_type_qualifier_set  qualifiers,
+                                 a_type_ptr            class_type)
 /*
 Search the based_types list of base_type to see if it contains a based type
-of the kind indicated by "kind".  If the kind is "btk_ptr_to_member", the
-specified "class_type" must also match "class_of_which_a_member" of that
-based type. Return a pointer to the type if such an entry exists, or NULL
-if no such entry exists.  The based_types list is used to hold pointers to
-types based on the base type, so that only one copy of pointer-to that type,
-reference-to that type, etc., is allocated.  As a simple optimization to
-based type lookup, move the desired based type, if found, to the front of
-the list.  This will tend to keep frequently asked for based types at the
-front of the list.
+of the kind indicated by "kind".  If the kind is "btk_qualified", the
+"qualifiers" parameter must match the "qualifiers" field of the based type.
+If the kind is "btk_ptr_to_member", the specified "class_type" must also
+match "class_of_which_a_member" of that based type.  Return a pointer to
+the type if such an entry exists, or NULL if no such entry exists.  The
+based_types list is used to hold pointers to types based on the base type,
+so that only one copy of pointer-to that type, reference-to that type,
+etc., is allocated.  As a simple optimization to based type lookup, move
+the desired based type, if found, to the front of the list.  This will tend
+to keep frequently asked for based types at the front of the list.
 */
 {
   register a_type_ptr                   ptr = NULL;
@@ -4216,9 +4218,16 @@ front of the list.
        btlmp != NULL;
        prev_btlmp = btlmp, btlmp = btlmp->next) {
     if (btlmp->kind == kind) {
-      if (kind != (a_based_type_kind)btk_ptr_to_member ||
+      if (kind == (a_based_type_kind)btk_ptr_to_member &&
           btlmp->based_type->variant.ptr_to_member.class_of_which_a_member
-                                                        == class_type) {
+                                                        != class_type) {
+        /* Pointer-to-member parent class does not match class type -- keep
+           looking. */
+      } else if (kind == (a_based_type_kind)btk_qualified &&
+                 btlmp->based_type->variant.typeref.qualifiers != qualifiers) {
+        /* Qualifiers do not match -- keep looking. */
+      } else {
+        /* This is a match. */
         ptr = btlmp->based_type;
         /* Move the found based type list member to the front of the list. */
         if (prev_btlmp != NULL) {
@@ -4281,7 +4290,7 @@ existing type entry.
        stored in the based_types list of the member type, and the pointer
        can be reused. */
     tp = get_based_type(member_type, (a_based_type_kind)btk_ptr_to_member,
-                        class_type);
+                        (a_type_qualifier_set)TQ_NONE, class_type);
   }  /* if */
   if (member_type == NULL || tp == NULL) {
     /* No member type (as of yet) or no previously allocated entry, need
@@ -4380,6 +4389,7 @@ an existing entry if possible.
      If one was allocated, a pointer to it is stored in the based_types list
      for the base type, and the pointer type can be reused. */
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer,
+                       (a_type_qualifier_set)TQ_NONE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
@@ -4409,6 +4419,7 @@ an existing entry if possible.
      based_types list for the base type, and the reference type can be
      reused. */
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference,
+                       (a_type_qualifier_set)TQ_NONE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
@@ -4530,32 +4541,19 @@ they are not already present.
         base_type = base_type->variant.typeref.type;
       }  /* while */
     }  /* if */
-    /* Determine the based type kind. */
-    if (qualifiers_to_add & TQ_CONST) {
-      if (qualifiers_to_add & TQ_VOLATILE) {
-        kind = (a_based_type_kind)btk_const_volatile;
-      } else {
-        kind = (a_based_type_kind)btk_const;
-      }  /* if */
-    } else {
-      kind = (a_based_type_kind)btk_volatile;
-    }  /* if */
     /* See if the properly qualified version of base_type already exists.
        If so, a pointer to it is stored in the based_types for base_type. */
-    ptr = get_based_type(base_type, kind, /*class_type=*/(a_type_ptr)NULL);
+    ptr = get_based_type(base_type, (a_based_type_kind)btk_qualified,
+                         qualifiers_to_add, /*class_type=*/(a_type_ptr)NULL);
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type = base_type;
-      if (qualifiers_to_add & TQ_CONST) {
-        ptr->variant.typeref.qualifiers |= TQ_CONST;
-      }  /* if */
-      if (qualifiers_to_add & TQ_VOLATILE) {
-        ptr->variant.typeref.qualifiers |= TQ_VOLATILE;
-      }  /* if */
+      ptr->variant.typeref.qualifiers = qualifiers_to_add;
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
-      add_based_type_list_member(base_type, kind, ptr);
+      add_based_type_list_member(base_type, (a_based_type_kind)btk_qualified,
+                                 ptr);
     }  /* if */
     if (is_array) {
       /* For the strange array case, the array type entries must be

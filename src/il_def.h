@@ -2295,10 +2295,8 @@ enum a_based_type_kind_tag {
   /* Indication of the relationship between the based type and the base
      type. */
 #ifdef CIL
-  btk_const,			/* Const-qualified version of the type. */
-  btk_volatile,			/* Volatile-qualified version of the type. */
-  btk_const_volatile,		/* Const-volatile-qualified version of the
-				   type. */
+  btk_qualified,		/* A (const, volatile, const-volatile, etc.)
+				   qualified version of the type. */
   btk_reference,		/* Reference to the type. */
   btk_ptr_to_member,		/* Pointer to member type (C++ only). */
 #endif /* ifdef CIL */
