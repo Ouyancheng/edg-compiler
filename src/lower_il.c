@@ -3369,6 +3369,11 @@ or contain a pointer to data member, which must be initialized to -1.
                          targ_ptr_to_data_member_int_kind);
     con = alloc_unshared_constant(&zero_con);
   } else {
+    if (is_or_was_ptr_to_member_function_type(type)) {
+      /* Use the implementation aggregate type for a pointer to member
+         function. */
+      type = make_mptr_type();
+    }  /* if */
     type = skip_typerefs(type);
     switch (type->kind) {
       case tk_integer:
