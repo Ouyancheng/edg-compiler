@@ -4734,7 +4734,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_source_position               start_position;
   a_source_position               locator_pos;
   a_template_param_ptr            param_ptr;
-  a_template_param_ptr            first_param_ptr;
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
   a_symbol_ptr                    new_sym = NULL;
@@ -4793,7 +4792,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
      because we can use the type of the formal parameter to make this
      selection. */
   param_ptr = template_symbol->variant.template_info->parameters;
-  first_param_ptr = param_ptr;
   do {
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list. */

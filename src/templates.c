@@ -2485,13 +2485,15 @@ to represent the template parameters.
       sym->variant.constant->type = param_type_ptr;
       sym->variant.constant->variant.list_position = template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
+      const_type_involves_template_param = 
+				is_or_contains_template_param(param_type_ptr);
+
       if (curr_token == tok_assign) {
         /* Scan the default value. */
 	has_default_arg = TRUE;
 	/* Skip past the equals sign. */
         (void)get_token();
-        if (is_or_contains_template_param(param_type_ptr)) {
-	  const_type_involves_template_param = TRUE;
+        if (const_type_involves_template_param) {
 	  /* The type of the constant parameter involve a template parameter
 	     type so we can't scan the expression now.  Cache the tokens
 	     that comprise the default argument. */
@@ -2532,12 +2534,14 @@ to represent the template parameters.
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym);
+    if (const_type_involves_template_param) {
+      template_param->
+	    variant.param_constant.type_involves_template_param = TRUE;
+    }  /* if */
     if (has_default_arg) {
       /* Update the default argument information in the template parameter. */
       template_param->variant.param_constant.has_default_arg = TRUE;
       if (const_type_involves_template_param) {
-        template_param->
-	    variant.param_constant.type_involves_template_param = TRUE;
         template_param->
 	    variant.param_constant.default_arg.token_cache = token_cache;
       } else {
