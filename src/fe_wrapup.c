@@ -172,6 +172,13 @@ It's a static entity that may be referenced from exported templates.
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  /* Such functions are instantiatable and get added to the inline function
+     list. */
+  if (!is_variable && instantiate_extern_inline &&
+      !(rout->is_template_function && !rout->is_specialized) &&
+      !rout->on_inline_function_list) {
+    add_to_inline_function_list(rout);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   mark_as_needed((char *)scp, kind);
 #endif /* MAINTAIN_NEEDED_FLAGS */
