@@ -1351,17 +1351,16 @@ void relink_unnamed_class_symbol(a_symbol_ptr      sym,
                                  a_symbol_locator  *locator)
 /*
 A name is belatedly specified for a class, and so the tag symbol originally
-created for it most be modified to bear the new name.  Unlink it from the
-symbol table, give it the name, and relink it into the symbol table under
-the new header.
+created for it most be modified to bear the new name.  Give the symbol
+the new name and relink it into the symbol table under the new header.
 */
 {
   db_enter(4, "relink_unnamed_class_symbol");
 #if CHECKING
   /* The symbol should not have been linked onto the symbol list for its
      header. */
-  if (sym->header->symbol != NULL) {
-    internal_error("relink_unnamed_class_symbol: non-NULL header symbol list");
+  if (sym->header != unnamed_class_symbol_header) {
+    internal_error("relink_unnamed_class_symbol: unexpected symbol header");
   }  /* if */
   /* The declaration scope should not be changed. */
   if (scope_stack[decl_scope_level].number != sym->decl_scope) {
@@ -1371,9 +1370,8 @@ the new header.
   /* Replace the special symbol header for unnamed class symbols with the
      header associated with its new name. */
   sym->header = locator->symbol_header;
-  /* Add the symbol back into the symbol table. */
-  link_symbol_into_symbol_table(sym, decl_scope_level,
-                                /*suppress_error=*/FALSE);
+  /* Add the symbol to the symbol table. */
+  reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
   db_exit();
 }  /* relink_unnamed_class_symbol */
 
