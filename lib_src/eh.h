@@ -41,7 +41,7 @@ typedef int	a_conditional_flag;
 			/* Type of a flag used for conditional region
 			   entries. */
 
-typedef unsigned short an_object_handle;
+typedef __EDG_VAR_HANDLE_TYPE an_object_handle;
 			/* An offset into the object address array. */
 
 typedef void *an_object_ptr;

@@ -1,5 +1,13 @@
 Version 2.35
 
+2/21/97  Type of an_object_handle configured automatically
+
+The type of "an_object_handle" is now passed from the front end to
+the runtime by the predefined macro __EDG_VAR_HANDLE_TYPE.  The runtime
+should work properly when __EDG_VAR_HANDLE_TYPE is an integral type.
+If some other kind of type is used as an object handle, the runtime
+will need to be modified to work properly with that type.
+
 2/14/97  New runtime routine __internal_rethrow
 
 A new runtime routine named __internal_rethrow has been added.  This routine
