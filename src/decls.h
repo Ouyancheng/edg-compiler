@@ -141,7 +141,7 @@ extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
 extern a_label_ptr scan_label(a_boolean is_definition);
 
-extern void opt_declaration_list(void);
+extern void local_declaration(void);
 
 extern void translation_unit(void);
 
