@@ -1154,7 +1154,7 @@ operator kinds.  Issue a diagnostic if an error is found.
         if (!is_error_type(tp)) {
           if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
             pos_error(ec_bad_first_arg_type_for_operator_delete, pos);
-            ptp->type == error_type();
+            ptp->type = error_type();
           }  /* if */
         }  /* if */
         ptp = ptp->next;
@@ -2629,17 +2629,11 @@ new declaration are given by *linkage and *storage_class.  Issue a diagnostic
                           (*old_storage_class == (a_storage_class)sc_static)) {
     /* External versus internal linkage conflict. */
     if (!suppress_diagnostic) {
-      if (C_dialect == C_dialect_cplusplus) {
-        /* This is explicitly an error (ARM 7.1.1).  This also catches the case
-           in which a nonmember function declared "extern" is then redeclared
-           "inline", which, though permitted by cfront 2.1, is explicitly
-           prohibited (ARM 7.1.2, annotation). */
-        pos_error(ec_linkage_conflict, position);
-      } else {
-        /* This is just a warning in C.  This allows for pcc behavior, and ANSI
-           C leaves the case undefined. */
-        pos_warning(ec_linkage_conflict, position);
-      }  /* if */
+      /* There is a conflict between a prior declaration and the current one.
+         This is clearly an error in C++ (ARM 7.1.1, 7.1.2), but because of
+         prevailing practice we only issue a warning.  The same is done in
+         C mode, partly because it is common practice in pcc. */
+      pos_warning(ec_linkage_conflict, position);
     }  /* if */
     /* If either declaration has unspecified storage class (i.e., it's an
        external definition), that takes precedence, and the entity should
