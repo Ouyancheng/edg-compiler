@@ -2224,6 +2224,9 @@ entry is pushed on the scope stack.
     /* The declaration was successfully scanned as a class template
        declaration. */
   } else if (function_template_declaration(&sym)) {
+    tssp = sym->variant.template.extra_info;
+    tssp->parameters = template_param_list;
+    tssp->declaration_scope = scope_stack[decl_scope_level].number;
     if (sym->class_of_which_a_member != NULL) {
       /* Out-of-line definition of a member function of a class template.
          Don't impose requirements on the use of template parameters in the
@@ -2231,9 +2234,6 @@ entry is pushed on the scope stack.
     } else {
       /* Go back through the template params and be sure there are only type
          args.  The other kind is allowed only for class templates. */
-      tssp = sym->variant.template.extra_info;
-      tssp->parameters = template_param_list;
-      tssp->declaration_scope = scope_stack[decl_scope_level].number;
       rout_type = tssp->variant.function.routine->type;
       for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
         param_sym = tpp->param_symbol;
