@@ -23,18 +23,18 @@ Prelink utility for template instantiation.
 /* Get bsearch and qsort definitions. */
 #include <stdlib.h>
 #else /* __ANSIC__ */
-EXTERN_C void *bsearch(const a_generic_ptr *key,
-                       const a_generic_ptr *base,
-                       sizeof_t            nmemb,
-                       sizeof_t            size,
-                       int(*compar)(const a_generic_ptr *,
-                                    const a_generic_ptr *));
+EXTERN_C a_void_ptr bsearch(const a_void_ptr key,
+                            const a_void_ptr base,
+                            sizeof_t         nmemb,
+                            sizeof_t         size,
+                            int(*compar)(const a_void_ptr,
+                                         const a_void_ptr));
 
-EXTERN_C void *qsort(const a_generic_ptr *base,
-                     sizeof_t            nmemb,
-                     sizeof_t            size,
-                     int(*compar)(const a_generic_ptr *,
-                                  const a_generic_ptr *));
+EXTERN_C a_void_ptr qsort(const a_void_ptr *base,
+                          sizeof_t            nmemb,
+                          sizeof_t            size,
+                          int(*compar)(const a_void_ptr *,
+                                       const a_void_ptr *));
 #endif /* __ANSIC__ */
 
 
@@ -88,15 +88,15 @@ a %s, insertion_string must not be NULL.
 }  /* me_error */
 
 
-static char *me_malloc_with_check(sizeof_t size)
+static a_void_ptr me_malloc_with_check(sizeof_t size)
 /*
 Interface to malloc that allocates "size" bytes.  Checks for failure of 
 allocation and generates a catastrophic error.
 */
 {
-  char *ptr;
+  a_void_ptr ptr;
 
-  if ((ptr = (char *)malloc(size)) == NULL) {
+  if ((ptr = (a_void_ptr)malloc(size)) == NULL) {
     me_error("out of memory", (char *)NULL);
   } /* if */
   return (ptr);
