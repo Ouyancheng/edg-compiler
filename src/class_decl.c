@@ -6836,6 +6836,7 @@ to indicate whether the class/struct/union is actually defined.
   a_scope_depth           effective_decl_level = decl_scope_level;
   a_boolean               is_class_definition;
   a_source_position       decl_start_pos;
+  a_scope_stack_entry_ptr ssep;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -6843,8 +6844,8 @@ to indicate whether the class/struct/union is actually defined.
   decl_start_pos = pos_curr_token;
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
-  if (scope_stack[depth_scope_stack].kind ==
-                               (a_scope_kind)sck_template_instantiation) {
+  ssep = &scope_stack[depth_scope_stack];
+  if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
     is_template_class_instantiation = TRUE;
     class_type = scope_stack[depth_scope_stack].assoc_type;
     tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
@@ -6988,6 +6989,22 @@ skip_tag_scan:
           } else {
             cssp->is_specific_template_def = TRUE;
           }  /* if */
+        }  /* if */
+      } else if (is_class_definition) {
+        if (tag_sym->class_of_which_a_member != NULL &&
+            (ssep->kind != (a_scope_kind)sck_class_struct_union ||
+             tag_sym->class_of_which_a_member != ssep->assoc_type)) {
+          /* A definition of a nested class that appears in the scope other
+             than that of its parent class. */
+          pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+          tag_sym = NULL;
+          set_to_error_locator(locator);
+#if 0
+        } else if (tag_sym->defined) {
+          pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
+          tag_sym = NULL;
+          set_to_error_locator(locator);
+#endif /* if 0 */
         }  /* if */
       }  /* if */
     }  /* if */
