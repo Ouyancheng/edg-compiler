@@ -572,7 +572,6 @@ If the indicated class type is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__C%lu", (unsigned long)unnamed_class_name_seed);
     type->source_corresp.name = name;
-    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_class_a_name */
 
@@ -605,7 +604,6 @@ If the indicated namespace is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__N%lu", (unsigned long)unnamed_namespace_name_seed);
     nsp->source_corresp.name = name;
-    nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_namespace_a_name */
 
@@ -637,7 +635,6 @@ If the indicated enum type is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__E%lu", (unsigned long)unnamed_enum_name_seed);
     type->source_corresp.name = name;
-    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_enum_a_name */
 
@@ -668,7 +665,6 @@ If the indicated member variable is unnamed, give it a name.
     (void)sprintf(name, "__V%lu",
                   (unsigned long)unnamed_member_variable_name_seed);
     nsp->source_corresp.name = name;
-    nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_member_variable_a_name */
 
@@ -2008,9 +2004,10 @@ other name mangling that might use the name is done.
   char     *mangled_name;
 
   error_position = type->source_corresp.decl_position;
-  if (type_needs_parent_qualifier(type) &&
-      has_name(type) &&
-      !type->source_corresp.name_has_been_mangled) {
+  if (type_needs_parent_qualifier(type) && has_name(type)) {
+    /* No check for !type->source_corresp.name_has_been_mangled here because
+       if the class is a nested template class, its template argument
+       mangling has already been done. */
     /* Nested type names must be mangled (because they exist in a scope
        that does not exist in the generated C code).  The mangled form
        is something like
