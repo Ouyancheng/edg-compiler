@@ -236,16 +236,15 @@ Clear the fields of the indicated argument match summary entry to default
 values.
 */
 {
-  amsp->next                     = NULL;
-  amsp->match_level              = aml_none;
-  amsp->less_desirable_exact_match
-                                 = FALSE;
-  amsp->downward_cast_derivation = NULL;
-  amsp->reversed_derivation      = FALSE;
-  amsp->const_anachronism        = FALSE;
-  amsp->param_type               = NULL;
+  amsp->next                       = NULL;
+  amsp->match_level                = aml_none;
+  amsp->less_desirable_exact_match = FALSE;
+  amsp->cast_base_class            = NULL;
+  amsp->reversed_cast              = FALSE;
+  amsp->const_anachronism          = FALSE;
+  amsp->param_type                 = NULL;
   clear_user_conv_descr(&amsp->user_conversion);
-  amsp->warning_suggested        = ec_no_error;
+  amsp->warning_suggested          = ec_no_error;
 }  /* clear_arg_match_summary */
 
 
@@ -295,9 +294,8 @@ static void db_arg_match_summary(an_arg_match_summary_ptr amsp)
 Print an argument match summary for debug purposes.
 */
 {
-  char                  *str;
-  a_derivation_step_ptr dsp;
-  unsigned long         step_count;
+  char             *str;
+  a_base_class_ptr bcp;
 
   switch (amsp->match_level) {
     case aml_exact:             str = "exact";               break;
@@ -319,12 +317,10 @@ Print an argument match summary for debug purposes.
   if (amsp->user_conversion.std_conversion_needed) {
     fprintf(f_debug, " (std conversion)");
   }  /* if */
-  dsp = amsp->downward_cast_derivation;
-  if (dsp != NULL) {
-    /* Count derivation steps and print the count. */
-    for (step_count = 0; dsp != NULL; dsp = dsp->next, step_count++) {}
-    fprintf(f_debug, " (%lu step%s)", step_count,
-                     (step_count != 1) ? "s" : "");
+  bcp = amsp->cast_base_class;
+  if (bcp != NULL) {
+    fprintf(f_debug, ", base class %s (in %s)", bcp->type->source_corresp.name,
+                     bcp->derived_class->source_corresp.name);
   }  /* if */
   fprintf(f_debug, "\n");
 }  /* db_arg_match_summary */
@@ -624,36 +620,29 @@ built-in operators.  The start_error or equivalent has already been done.
 }  /* diagnose_overload_ambiguity */
 
 
-static void determine_downward_cast_derivation(
-                                             a_type_ptr           source_type,
-                                             a_type_ptr           dest_type,
-                                             an_arg_match_summary *arg_summary)
+static void determine_cast_base_class(a_type_ptr           source_type,
+                                      a_type_ptr           dest_type,
+                                      an_arg_match_summary *arg_summary)
 /*
 source_type --> dest_type is a standard conversion.  If it is a cast to
-a related class, fill in downward_cast_derivation in *arg_summary.
+a related class, fill in cast_base_class in *arg_summary.
 */
 {
-  a_boolean        downward_cast;
+  a_boolean        baseward_cast;
   a_base_class_ptr bcp;
 
-  if (related_class_pointers(source_type, dest_type, &downward_cast, &bcp)) {
-    /* Cast to base class (no need to check downward_cast; downward
+  if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp)) {
+    /* Cast to base class (no need to check baseward_cast; baseward
        is the only direction allowed as an implicit conversion). */
-#if 0
-    /* Should consider all derivations. */
-#endif /* 0 */
-    arg_summary->downward_cast_derivation = preferred_derivation_of(bcp)->path;
-  } else if (related_member_pointers(source_type, dest_type, &downward_cast,
+    arg_summary->cast_base_class = bcp;
+  } else if (related_member_pointers(source_type, dest_type, &baseward_cast,
                                      &bcp)) {
     /* Likewise for casts of pointers-to-members; note, however, that
        implicit casts there are from base to derived. */
-#if 0
-    /* Should consider all derivations. */
-#endif /* 0 */
-    arg_summary->downward_cast_derivation = preferred_derivation_of(bcp)->path;
-    arg_summary->reversed_derivation = TRUE;
+    arg_summary->cast_base_class = bcp;
+    arg_summary->reversed_cast = TRUE;
   }  /* if */
-}  /* determine_downward_cast_derivation */
+}  /* determine_cast_base_class */
 
 
 static void set_arg_summary_for_user_conversion(
@@ -688,9 +677,8 @@ entire conversion (or NULL if not known, e.g., for a builtin operator),
         }  /* if */
       }  /* if */
       /* If the standard conversion is a cast between related classes,
-         set downward_cast_derivation. */
-      determine_downward_cast_derivation(conversion_type, dest_type,
-                                         arg_summary);
+         set cast_base_class. */
+      determine_cast_base_class(conversion_type, dest_type, arg_summary);
     }  /* if */
   }  /* if */
 }  /* set_arg_summary_for_user_conversion */
@@ -1038,10 +1026,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     arg_summary->match_level = aml_std_conversion;
     arg_summary->warning_suggested = warning_suggested;
     /* If the cast is from a pointer to a derived class to a pointer to a
-       base class, set downward_cast_derivation. */
-    determine_downward_cast_derivation(arg_type, param_type, arg_summary);
+       base class, set cast_base_class. */
+    determine_cast_base_class(arg_type, param_type, arg_summary);
     if (cfront_compatibility_mode && param_is_reference &&
-        arg_summary->downward_cast_derivation == NULL) {
+        arg_summary->cast_base_class == NULL) {
       /* cfront 2.1 has a bug: when a reference parameter is initialized
          with something that requires a standard conversion that isn't
          class-related, the cost is considered to be a user-defined
@@ -1061,10 +1049,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* The argument is a derived class and the parameter is a base class,
        so the conversion can be done. */
     arg_summary->match_level = aml_std_conversion;
-#if 0
-    /* Should consider all derivations. */
-#endif /* 0 */
-    arg_summary->downward_cast_derivation = preferred_derivation_of(bcp)->path;
+    arg_summary->cast_base_class = bcp;
     if (param_is_reference) {
       /* This case falls under the reference standard conversions (ARM 4.7). */
       /* The operand need not be forced to an rvalue. */
@@ -1519,30 +1504,6 @@ next_function:;
 }  /* try_overloaded_function_match */
 
 
-static a_derivation_step_ptr prev_derivation(
-                                            a_derivation_step_ptr derivation,
-                                            an_arg_match_summary  *arg_summary)
-/*
-Find the derivation entry on the downward_cast_derivation list of arg_summary
-that precedes "derivation" and return a pointer to it.  Return NULL if there
-is no previous entry.
-*/
-{
-  a_derivation_step_ptr prev;
-
-  prev = arg_summary->downward_cast_derivation;
-  if (prev == derivation) {
-    /* The derivation is the first on the list, so there's no previous
-       entry. */
-    prev = NULL;
-  } else {
-    /* Find the previous entry. */
-    for (; prev->next != derivation; prev = prev->next) {}
-  }  /* if */
-  return prev;
-}  /* prev_derivation */
-
-
 static int compare_arg_match_levels(an_arg_match_summary *arg_match1,
                                     an_arg_match_summary *arg_match2)
 /*
@@ -1554,11 +1515,10 @@ Compare two argument match summary entries and return
 
 */
 {
-  int                   cmp;
-  a_derivation_step_ptr derivation_1, derivation_2;
-  a_boolean             reversed_derivation;
-  a_type_ptr            param_type1, param_type2;
-  a_type_ptr            under_type1, under_type2;
+  int              cmp;
+  a_base_class_ptr bcp_1, bcp_2;
+  a_type_ptr       param_type1, param_type2;
+  a_type_ptr       under_type1, under_type2;
 
   if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
     /* arg_match1 is better. */
@@ -1624,65 +1584,49 @@ Compare two argument match summary entries and return
           (arg_match2->user_conversion.std_conversion_needed ||
            arg_match2->match_level == (an_arg_match_level)aml_std_conversion)){
         /* Both matches involve a standard conversion. */
-        derivation_1 = arg_match1->downward_cast_derivation;
-        derivation_2 = arg_match2->downward_cast_derivation;
-        if (derivation_1 != NULL && derivation_2 != NULL) {
-          /* Both entries have downward casts, so they can be compared.  If one
-             is a subsequence of the other, the shorter derivation is
+        bcp_1 = arg_match1->cast_base_class;
+        bcp_2 = arg_match2->cast_base_class;
+        if (bcp_1 != NULL && bcp_2 != NULL &&
+            arg_match1->reversed_cast == arg_match2->reversed_cast) {
+          /* Both entries have related-class casts, so they can be compared.
+             If one is a subsequence of the other, the shorter derivation is
              preferable. */
-          reversed_derivation = arg_match1->reversed_derivation;
-          if (reversed_derivation) {
-            /* For pointers to members, the derivation given is in reverse
-               order.  We still want the shorter derivation, but extra steps
-               on the longer derivation are at the beginning of the list
-               rather than the end. */
-            /* Find the last entry on each list so we can start there. */
-            while (derivation_1->next != NULL) {
-              derivation_1 = derivation_1->next;
-            }  /* while */
-            while (derivation_2->next != NULL) {
-              derivation_2 = derivation_2->next;
-            }  /* while */
-          }  /* if */
-          /* Loop comparing entries as long as they match. */
-          do {
-            /* Note that the "->type" part in the following comparison is not
-               needed for the non-reversed case, but it IS needed in the
-               reversed case. */
-            if (derivation_1->base_class->type !=
-                                              derivation_2->base_class->type) {
-              /* The derivations go different ways, so they cannot be compared
-                 and are considered equal in terms of argument match level. */
-              goto end_subsequence_check;
+          if (!arg_match1->reversed_cast) {
+            /* Normal case: derived --> base cast. */
+            if (is_on_any_derivation_of(bcp_1, bcp_2)) {
+              /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
+              cmp = 1;
+              goto have_cmp;
+            } else if (is_on_any_derivation_of(bcp_2, bcp_1)) {
+              /* bcp_2 is a subsequence of bcp_1 and thus preferable. */
+              cmp = -1;
+              goto have_cmp;
             }  /* if */
-            /* Advance to the next entries.  For the reversed case, this means
-               backing up. */
-            if (!reversed_derivation) {
-              derivation_1 = derivation_1->next;
-              derivation_2 = derivation_2->next;
-            } else {
-              derivation_1 = prev_derivation(derivation_1, arg_match1);
-              derivation_2 = prev_derivation(derivation_2, arg_match2);
+          } else {
+            /* Base --> derived case (used for pointers to members). */
+            if (find_base_class_of(bcp_2->derived_class,
+                                   bcp_1->derived_class) != NULL) {
+              /* bcp_1's type is a base class of bcp_2's type, so it's a
+                 subsequence and thus preferable. */
+              cmp = 1;
+              goto have_cmp;
+            } else if (find_base_class_of(bcp_1->derived_class,
+                                          bcp_2->derived_class) != NULL) {
+              /* bcp_2's type is a base class of bcp_1's type, so it's a
+                 subsequence and thus preferable. */
+              cmp = -1;
+              goto have_cmp;
             }  /* if */
-          } while (derivation_1 != NULL && derivation_2 != NULL);
-          /* See if the two lists (equal so far) ended together. */
-          if (derivation_2 != NULL) {
-            /* derivation_1 is shorter and thus preferable. */
-            cmp = 1;
-            goto have_cmp;
-          } else if (derivation_1 != NULL) {
-            /* derivation_2 is shorter and thus preferable. */
-            cmp = -1;
-            goto have_cmp;
           }  /* if */
-        } else if (derivation_1 != NULL) {
-          /* derivation_1 != NULL, derivation_2 == NULL.  A base class cast is
+          goto end_subsequence_check;
+        } else if (bcp_1 != NULL) {
+          /* bcp_1 != NULL, bcp_2 == NULL.  A base class cast is
              preferable to another kind of cast (e.g., a cast to "void *"),
              so arg_match1 is better. */
           cmp = 1;
           goto have_cmp;
-        } else if (derivation_2 != NULL) {
-          /* derivation_1 == NULL, derivation_2 != NULL.  A base class cast is
+        } else if (bcp_2 != NULL) {
+          /* bcp_1 == NULL, bcp_2 != NULL.  A base class cast is
              preferable to another kind of cast (e.g., a cast to "void *"),
              so arg_match2 is better. */
           cmp = -1;
@@ -1870,7 +1814,7 @@ evaluated (but not checked to see if the match is good enough).
         /* Error match.  Okay. */
       } else if (!strict_ansi_mode &&
                  arg_match->match_level == aml_std_conversion &&
-                 arg_match->downward_cast_derivation != NULL) {
+                 arg_match->cast_base_class != NULL) {
         /* A cast to a base class.  Okay as an extension. */
       } else {
         /* Other match: the template cannot be used. */
@@ -1969,11 +1913,7 @@ evaluated (but not checked to see if the match is good enough).
         /* The extension allowing a standard conversion of a derived class to
            a base class was used. */
         arg_match->match_level = aml_std_conversion;
-#if 0
-        /* Should consider all derivations. */
-#endif /* 0 */
-        arg_match->downward_cast_derivation =
-                         preferred_derivation_of(base_class_conv_needed)->path;
+        arg_match->cast_base_class = base_class_conv_needed;
         /* Save information needed to check whether or not a copy
            constructor is needed. */
         class_copy_case = TRUE;

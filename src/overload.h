@@ -134,15 +134,15 @@ typedef struct an_arg_match_summary {
 			/* TRUE if the match is one of the exact match cases
 			   indicated as "less desirable", i.e., those that
 			   add type qualifiers under references or pointers. */
-  a_derivation_step_ptr
-		downward_cast_derivation;
+  a_base_class_ptr
+		cast_base_class;
 			/* If the match involves a standard conversion that
-			   is a downward cast, this is the derivation.
-			   Otherwise, NULL. */
+			   is a related-class cast, this is the base class
+			   entry for it.  Otherwise, NULL. */
   a_byte_boolean
-		reversed_derivation;
-			/* If TRUE, the downward_cast_derivation describes
-			   the reverse of the cast performed.  Used for
+		reversed_cast;
+			/* If TRUE, the cast_base_class describes the
+			   reverse of the cast performed.  Used for
 			   implicit conversions of pointers to members to
 			   pointers to members of derived classes. */
   a_byte_boolean
