@@ -2439,7 +2439,15 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
        This test is done early because a null pointer constant may be
        an integer (0) or a pointer ((void *)0). */
     okay = TRUE;
-    *pointer_normalization_needed = TRUE;
+    if (C_mode() && is_pointer(source_type) &&
+        types_are_compatible(source_type, dest_type)) {
+      /* In C mode, one can get the case of (void *)0 --> void *.
+         That's fine, but it doesn't really require a pointer normalization,
+         so don't set the flag. */
+    } else {
+      /* Normal case. */
+      *pointer_normalization_needed = TRUE;
+    }  /* if */
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
     /* Get the type pointed to and drop type qualifiers and typedefs. */
