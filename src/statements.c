@@ -477,7 +477,7 @@ algorithmic limit on the number of levels of nesting supported.
 {
   /* Expand the structured statement stack if necessary. */
   ensure_struct_stmt_stack_space();
-  *saved_container_pos = struct_stmt_stack_container - struct_stmt_stack;
+  *saved_container_pos = struct_stmt_stack - struct_stmt_stack_container;
   *saved_depth_stmt_stack = depth_stmt_stack;
   struct_stmt_stack = &struct_stmt_stack[depth_stmt_stack+1];
   depth_stmt_stack = -1;
