@@ -741,6 +741,8 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 
 extern a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp);
 
+extern a_boolean is_member_of_unnamed_namespace(a_source_correspondence *scp);
+
 /*
 Given a namespace pointer, return a pointer to the actual namespace,
 skipping any namespace aliases that might be present.

@@ -2269,6 +2269,7 @@ and do the same processing.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
 
+
 void add_to_namespaces_list(a_namespace_ptr  nsp)
 /*
 Add the given namespace entry to the namespaces list for the current scope,
@@ -8343,6 +8344,29 @@ is a namespace alias, a pointer to the real namespace is returned.
   }  /* while */
   return nsp;
 }  /* skip_namespace_aliases */
+
+
+a_boolean is_member_of_unnamed_namespace(a_source_correspondence  *scp)
+/*
+Return TRUE if the entity with the specified source-correspondence is a
+direct or indirect member of an unnamed namespace.
+*/
+{
+  a_boolean        found = FALSE;
+  a_namespace_ptr  nsp;
+
+  if (scp->is_class_member) {
+    scp = &scp->parent.class_type->source_corresp;
+    found = is_member_of_unnamed_namespace(scp);
+  } else if ((nsp = scp->parent.namespace_ptr) != NULL) {
+    if (nsp->source_corresp.name == NULL) {
+      found = TRUE;
+    } else {
+      found = is_member_of_unnamed_namespace(&nsp->source_corresp);
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* is_member_of_unnamed_namespace */
 
 
 #if DEBUG
