@@ -4307,6 +4307,9 @@ may an overload symbol instead.
 next_delete_symbol:;
       }  /* for */
       if (any_template_seen) {
+        a_partial_order_candidate_ptr	candidate_list = NULL;
+        a_symbol_ptr			template_sym;
+        a_template_arg_ptr		templ_arg_list;
         /* The overload set included at least one function template. */
         if (corresp_op_delete_sym == NULL && !(*ambiguous)) {
           /* There was no match among the ordinary functions, so see if the
@@ -4328,36 +4331,35 @@ next_delete_symbol:;
           for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
             fund_sym = fundamental_symbol_of(sym);
             if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
-              if (template_okay || corresp_op_delete_sym != NULL) {
-                /* If a template can be returned, avoid actually doing the
-                   partial instantiation if there's a match; otherwise, if
-                   an instance has already been generated, there's no need
-                   to create a second one. */
-                if (has_matching_template_function(fund_sym, tp,
-                                                   /*is_decl_context=*/TRUE)) {
-                  /* The type matches the template. */
-                  if (template_okay) {
-                    /* Return the symbol for the function template. */
-                    corresp_op_delete_sym = sym;
-                  } else {
-                    /* Another match had already been found, so return NULL
-                       and set the ambiguous flag. */
-                    corresp_op_delete_sym = NULL;
-                    *ambiguous = TRUE;
-                  }  /* if */
-                  /* In either case there's no need to continue looping. */
-                  break;
-                }  /* if */
+              if (has_matching_template_function(fund_sym, tp,
+                                                 /*is_decl_context=*/TRUE)) {
+                /* We have a match.  Add the matching template to a list of
+                   matching candidates.  Any poorer matches will be removed
+                   by this process. */
+                add_to_partial_order_candidates_list(&candidate_list, sym,
+                                                     (a_template_arg_ptr)NULL);
+              }  /* if */
+            }  /* if */
+          }  /* for */
+          if (candidate_list != NULL) {
+            /* If any of the templates matched, select the best one using
+               the partial ordering rules. */
+            select_best_partial_order_candidate(
+                           candidate_list, (a_symbol_ptr)NULL, &template_sym,
+                           &templ_arg_list, ambiguous);
+            if (!*ambiguous) {
+              if (template_okay) {
+                /* A template can be returned to the caller. */
+                corresp_op_delete_sym = template_sym;
               } else {
                 /* Do a partial instantiation if a match is found so that the
                    template instance can be returned. */
                 corresp_op_delete_sym =
-                         matching_template_function(fund_sym, tp,
+                         matching_template_function(template_sym, tp,
                                                     /*is_decl_context=*/TRUE);
-                /* Continue looping, since there could be an ambiguity. */
               }  /* if */
             }  /* if */
-          }  /* for */
+          }  /* if */
           /* Restore the function type for the operator new. */
           tp->variant.routine.return_type = saved_return_type;
           op_new_param_type_list->type = saved_first_param_type;

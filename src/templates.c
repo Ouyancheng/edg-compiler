@@ -1134,7 +1134,7 @@ list associated with new_sym.
   } else {
     /* If we are not adding the entry to the list, free the template
        argument list. */
-    free_template_arg_list(templ_arg_list);
+    if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   }  /* if */
 }  /* add_to_partial_order_candidates_list */
 
