@@ -1,5 +1,16 @@
 Version 2.35
 
+2/25/97  Nontype template arguments whose type depends on a template parameter
+
+A nontype template argument can have a type that depends on a template
+parameter, as is the case for the constant "1" in the declaration of
+function template f in the example below.  The template matching routines
+did not work properly for such cases.  This has been fixed.
+
+  template <class T, T t> struct A { };
+  template <class T> void f(A<T,1>);
+  void (*fp)(A<int, 1>) = f;
+
 2/25/97  Name mangling: new-form length for class template nontype arguments
 
 In the name mangling change for templates (see Changes entry of 5/10/96),

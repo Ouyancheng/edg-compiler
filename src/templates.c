@@ -26,6 +26,7 @@ templates.c -- Support for C++ templates.
 
 /* Additional header files. */
 #include "disambig.h"
+#include "folding.h"
 #include "statements.h"
 #if NEED_NAME_MANGLING
 #include "lower_name.h"
@@ -2829,6 +2830,47 @@ list of a template function.  Returns TRUE if a match is found.
                match = FALSE;
             }  /* if */
           }  /* if */
+        }  /* if */
+      }  /* if */
+    } else {
+      /* A template parameter constant in an expression context.  Check
+         for the special case of a constant cast to a template parameter
+         type.  This is needed, for examples such as this:
+
+		template <class T, T t> struct A { };
+		template <class T> void f(A<T,1>);
+		void (*fp)(A<int, 1>) = f;
+ 
+         In this case, the "1" in A<T,1> in the template declaration is
+         cast to type T, so we have to be able to match up a "1" of type
+	 "int" with a (T)1.  This is done by calling matches_template_type
+         so ensure that T has type "int".  After this is done, a copy of the
+         constant is made, and the constant is converted to the type of
+         the constant (int in this case).  The conversion is needed for
+         cases where the constant in the template declaration may have a
+         different intrinsic type (e.g., if it were specified as '\001').
+         Finally, matches_template_constant is called on the converted
+         constant. */
+      if (templ_constant->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_cast) {
+        if (matches_template_type(constant->type, templ_constant->type,
+                                  templ_arg_list, templ_param_list,
+                                  MTT_NO_FLAGS, (a_base_class_ptr*)NULL)) {
+          a_constant	new_templ_constant;
+          a_boolean	did_not_fold;
+          copy_constant(templ_constant->
+                               variant.template_param.variant.constant,
+                        &new_templ_constant);
+          type_change_constant(&new_templ_constant, constant->type,
+                               /*is_implicit_cast=*/FALSE,
+                               /*constant_context=*/TRUE,
+                               /*evaluated_context=*/TRUE,
+                               /*fold_constant_addr_exprs=*/FALSE,
+                               /*is_reinterpret_cast=*/FALSE,
+                               &did_not_fold, &error_position);
+          match = !did_not_fold &&
+                   matches_template_constant(constant, &new_templ_constant,
+                                             templ_arg_list, templ_param_list);
         }  /* if */
       }  /* if */
     }  /* if */
