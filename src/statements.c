@@ -4639,7 +4639,8 @@ rescan_statement:
 expr_statement:
       /* An expression statement. */
       if (C_dialect == C_dialect_cplusplus &&
-          is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
+          (curr_token == tok_using ||
+           is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) {
         /* Scan a declaration (C++ only). */
         is_declaration = TRUE;
         decl_statement();
