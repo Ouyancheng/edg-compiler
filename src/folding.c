@@ -1581,7 +1581,7 @@ Do the "!" (not) operation on all types of scalars.
   }  /* if */
 #if DEBUG
   if (*did_not_fold) {
-    fprintf(f_debug, "! did not fold\n");
+    if (debug_level >= 5) fprintf(f_debug, "! did not fold\n");
   } else {
     db_unary_operation("!", constant, result, ec_no_error);
   }  /* if */
@@ -2143,7 +2143,7 @@ Do the logical "and" (&&) operation on integers, floats, and pointers.
   }  /* if */
 #if DEBUG
   if (*did_not_fold) {
-    fprintf(f_debug, "&& did not fold\n");
+    if (debug_level >= 5) fprintf(f_debug, "&& did not fold\n");
   } else {
     db_binary_operation("&&", constant_1, constant_2, result, ec_no_error);
   }  /* if */
@@ -2181,7 +2181,7 @@ Do the logical "or" (||) operation on integers, floats, and pointers.
   }  /* if */
 #if DEBUG
   if (*did_not_fold) {
-    fprintf(f_debug, "|| did not fold\n");
+    if (debug_level >= 5) fprintf(f_debug, "|| did not fold\n");
   } else {
     db_binary_operation("||", constant_1, constant_2, result, ec_no_error);
   }  /* if */
