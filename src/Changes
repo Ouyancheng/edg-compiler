@@ -1,5 +1,12 @@
 Version 2.46
 
+3/22/01  Abort on class or enum declaration in template argument when
+         source sequence are enabled
+
+Under relatively rare circumstances, the front end would sometimes abort with
+an internal error when a class or enum type was first declared in a template
+argument (e.g., "vector<class X>").  This is now fixed.
+
 3/22/01  Error checking on non-positive VLA size after inlining
 
 An error is now issued for a non-positive constant variable-length
