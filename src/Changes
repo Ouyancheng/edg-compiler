@@ -1,5 +1,20 @@
 Version 2.39
 
+6/25/98   C++-generating back end: casts to cv-qualified class type
+
+A previous change (see Changes entry of 12/2/97) made the C++-generating
+back end put out old-style casts when constructing cv-qualified class
+temporaries.  This has been improved for cases where the constructor
+call doesn't take exactly one argument, by using an unqualified
+functional-notation type conversion inside the old-style cast, e.g.,
+((const X)X(1, 2)).  This may modify the semantics of the program,
+because it creates an extra temporary, but that's probably harmless,
+and there are no good alternatives.  This comes up on functional-notation
+casts to template parameter types, where the deduced type is cv-qualified
+and instantiations are put out.  The instantiation has no name for
+the cv-qualified type, whereas the original template source can use
+the name of the template parameter.
+
 6/24/98   bool_is_keyword was TRUE in Microsoft C mode
 
 bool_is_keyword, which should be FALSE in C mode, was inadvertently
