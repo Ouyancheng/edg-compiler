@@ -37,6 +37,7 @@ operation overflows.
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 
 
+#if 0 /* Not used yet */
 static void make_cast_constant(a_constant  *cp,
                                a_type_ptr  new_type)
 /*
@@ -50,6 +51,7 @@ source constant of the cast is the original constant pointed to by cp.
   cp->variant.source_constant = old_cp;
   cp->type = new_type;
 }  /* make_cast_constant */
+#endif /* 0 */
 
 
 void implicit_cast(a_constant_ptr cp,
