@@ -4270,8 +4270,12 @@ is not a template declaration scope.
   is_friend_decl = effective_decl_level != orig_decl_level;
   if (locator->is_qualified_name && locator->is_class_member &&
       locator->specific_symbol != NULL) {
+    a_type_ptr		parent_class;
+    a_symbol_ptr	parent_class_sym;
     /* Member function template. */
     sym = locator->specific_symbol;
+    parent_class = sym->parent.class_type;
+    parent_class_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* A member of a base class. */
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
@@ -4290,6 +4294,20 @@ is not a template declaration scope.
       /* Look for a member function symbol of this type in the symbol table.
          It is an error if it is  not already there. */
       sym = member_function_redecl_sym(sym, type_ptr);
+      if (sym != NULL) {
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          /* This is the symbol for a member template function.  Use
+             this symbol. */
+        } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
+          /* This is a member function symbol of a prototype instantiation.
+             Get the associated function template. */
+          sym = get_member_function_template_symbol(sym);
+        } else {
+          /* Not a template or a member of a prototype instantiation --
+             this must be an error. */
+          sym = NULL;
+        }  /* if */
+      }  /* if */
       if (sym == NULL) {
         /* No member function with a matching type was found.  Issue an
            error. */
@@ -4299,13 +4317,6 @@ is not a template declaration scope.
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
         set_to_error_locator(*locator);
-      } else if (sym->kind == (a_symbol_kind)sk_function_template) {
-        /* This is the symbol for a member template function.  Use
-           this symbol. */
-      } else {
-        /* This is a member function symbol of a prototype instantiation.
-           Get the associated function template. */
-        sym = get_member_function_template_symbol(sym);
       }  /* if */
     }  /* if */
   } else if (!is_error_locator(*locator)) {
