@@ -557,6 +557,12 @@ do
   then
     echo $cfile: 1>$2
   fi
+  if [ $keep_int_file -eq 1 ] ; then
+    gen_c_file_name=$basefile.int.c
+  else
+    gen_c_file_name=$TMPDIR/$basefile.int.c
+    feoptions=$feoptions" "--gen_c_file_name=$gen_c_file_name
+  fi
   command=${CPFE}" "$feoptions" "$cfile
   if [ $driver_debug -ne 0 ] ; then
     echo $command
@@ -606,10 +612,10 @@ do
 #
       if [ $strip_line_dirs -eq 1 ] ; then
         # Replace the #line directives with blank lines.
-        sed -e "s/#line.*//" $basefile.int.c >/tmp/$$sld
-        mv -f /tmp/$$sld $basefile.int.c
+        sed -e "s/#line.*//" $gen_c_file_name >/tmp/$$sld
+        mv -f /tmp/$$sld $gen_c_file_name
       fi
-      command="$cc_command $c_to_obj_options -c $basefile.int.c"
+      command="$cc_command $c_to_obj_options -c $gen_c_file_name"
       if [ $driver_debug -ne 0 ] ; then
         echo $command
       fi
@@ -643,7 +649,7 @@ do
 	rofiles=$rofiles" "$basefile.o
 	if [ $keep_int_file -eq 0 ]
 	then
-          rm -f $basefile.int.c
+          rm -f $gen_c_file_name
 	fi
       fi
     fi
