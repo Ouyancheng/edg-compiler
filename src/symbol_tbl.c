@@ -7745,11 +7745,10 @@ created if a projected symbol cannot be found in any of the real bases.
        base classes.  This class has nonreal base classes, so we will
        assume that the name being looked up is a member of one of the
        nonreal base classes. */
-    a_symbol_ptr	sym;
-    sym = create_nonreal_progenitor_symbol(class_ptr, options, locator, &path);
+    progenitor_sym = create_nonreal_progenitor_symbol(class_ptr, options,
+                                                      locator, &path);
     /* Assume that the member is publicly accessible. */
     access = (an_access_specifier)as_public;
-    progenitor_sym = sym;
     fund_sym_is_nonreal_member = TRUE;
   }  /* if */
   if (progenitor_sym == NULL) {
@@ -7757,8 +7756,8 @@ created if a projected symbol cannot be found in any of the real bases.
     found = FALSE;
   } else {
     /* A symbol was found. */
-    a_symbol_ptr	fund_progenitor_sym;
-    fund_progenitor_sym = fundamental_symbol_of(progenitor_sym);
+    a_symbol_ptr	fund_progenitor_sym =
+                                fundamental_symbol_of(progenitor_sym);
     found = TRUE;
     if (hidden_name_lookup) {
       /* We are doing a lookup as part of hidden name processing.  Don't
@@ -7784,7 +7783,6 @@ created if a projected symbol cannot be found in any of the real bases.
       new_sym->variant.projection.any_intervening_using_decl = any_using_decl;
       new_sym->variant.projection.fund_sym_is_nonreal_member =
                                                    fund_sym_is_nonreal_member;
-      free_derivation_step(path);
       /* Add the symbol to the symbol table. */
       if (add_to_active_list) {
         /* Insert the symbol into the active list. */
@@ -7829,6 +7827,8 @@ created if a projected symbol cannot be found in any of the real bases.
       if (debug_level >= 4) db_symbol(new_sym, "symbol created: ", 2);
 #endif /* DEBUG */
     }  /* if */
+    check_assertion(path != NULL);
+    free_derivation_step(path);
   }  /* if */
   *projected_symbol = new_sym;
 
