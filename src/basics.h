@@ -15,6 +15,13 @@ This should be included first in every compilation unit.
 
 */
 
+/*
+Include the header file that supplies the default configuration
+parameters for this version.
+*/
+   
+#include "defines.h"
+
 #ifndef CFE
 /*
 Set the conditional compilation switch indicating that this is the
@@ -232,18 +239,18 @@ EXTERN_C int bzero(char *, int);
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 /* Note that size_t_arg may evaluate its argument more than once. */
 typedef size_t	true_size_t;
-#if !__MSC__
+#if !__MSDOS__
 typedef size_t	sizeof_t;
 #define size_t_arg(arg) ((size_t)(arg))
-#else /* __MSC__ */
-/* Microsoft C has a 16-bit size_t, so use unsigned long. */
+#else /* __MSDOS__ */
+/* Most MS-DOS C compilers have a 16-bit size_t, so use unsigned long. */
 typedef unsigned long sizeof_t;
 /* size_t_arg checks for truncation. */
 #define size_t_arg(arg) \
   ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (true_size_t)(arg))
 #define NEED_SIZE_T_ARG_ERROR 1
 extern true_size_t size_t_arg_error(void);
-#endif /* !__MSC__ */
+#endif /* !__MSDOS__ */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef ptrdiff_t a_ptrdiff;
@@ -251,6 +258,9 @@ typedef ptrdiff_t a_ptrdiff;
 /* Turbo C does not define CHAR_MIN correctly for signed characters.
    It defines it as 0x80, which is not a negative number in int context.
    It should be defined as -128. */
+#ifdef CHAR_MAX
+#undef CHAR_MAX
+#endif /* !defined(CHAR_MAX) */
 #define CHAR_MIN (-128)
 #endif /* __TURBOC__ */
 #if __MSC__
