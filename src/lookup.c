@@ -1958,26 +1958,17 @@ C and C++.
        stack in turn, and looks for a symbol in that scope. */
     active_symbol_list = symbol_list_from_locator(*locator);
     inactive_symbol_list = inactive_symbol_list_from_locator(*locator);
-    /* If there are no classes, no class reactivations, and no instantiations
-       on the scope stack, or if the symbol cannot be a member symbol, the
-       fast algorithm can be used.  This is always the case in C. The
-       more complicated (and slower) algorithm must be used to look up
-       the name in the symbol (1) if there are symbols on the inactive
-       list for the name in question -- i.e., symbols that will not be
-       found with the fast algorithm; (2) if the present scope stack
-       is such that currently visible symbols might be on an inactive
-       list; and (3) if there are scopes on the scope stack for which
-       active symbols must be excluded from the lookup (such as pragma
-       and template instantiation scopes).  Only symbols for members
-       of classes that go out of scope appear on the inactive list.
-       Such symbols become visible in only two ways -- they belong to
-       a base class of a class that is currently in scope or they
-       belong to a class that has been reactivated (e.g., for the
-       definition of a member or friend function or the initialization
-       of a static data member).  Note that the slow algorithm is not
-       required for member symbols on the active list because they are
-       found properly on the search of the active list in the fast
-       algorithm.  We don't need to check skip_curr_function_scope
+    /* The slow lookup mechanism is used:
+
+	- in C mode if a pragma scope is active
+	- if a template instantiation scope is active
+	- if symbols from the inactive list may be visible, which is true
+	  if a template instantiation, class reactivation, namespace
+	  reactivation, namespace extension, or class scope for a class
+	  with base classes is active.  It is also true for scopes containing
+          using-directives.
+
+       Note: We don't need to check skip_curr_function_scope
        when deciding whether to use the fast or slow algorithm because
        there will always be a class reactivation scope on the stack
        which will force the slow lookup.  */
