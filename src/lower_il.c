@@ -4451,6 +4451,17 @@ Do IL lowering of the indicated variable and everything under it.
          indicate that this variable is "really" defined. */
       variable->init_kind = (an_init_kind)initk_zero;
     }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+    if (building_runtime &&
+        variable->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal &&
+        strcmp(variable->source_corresp.name, "__link") == 0) {
+      /* A user written variable with the name __link is marked as needed.
+         This is used in the runtime to define a variable that is noted by
+         the patch/munch process. */
+      mark_as_needed((char *)variable, iek_variable);
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
     if (var_is_return_value_variable(variable)) {
       /* The variable is the return value optimization variable for the
          function.  All references to it will be rewritten to refer instead
