@@ -63,7 +63,7 @@ static a_source_position
 
 static a_boolean
 		is_header_stop_dir;
-			/* TRUE when the directive being scanned in the
+			/* TRUE when the directive being scanned is the
 			   header stop directive after which a precompiled
 			   header file should be generated. */
 
@@ -1350,7 +1350,7 @@ execute the preprocessor directive.
      /* We are done skipping the file prefix when making use of a PCH. */
      pch_fixup_part_2();
   }  /* if */
-  /* See if this directive is marks the header stop position.  If so,
+  /* See if this directive marks the header stop position.  If so,
      after processing the directive, we need to call
      generate_precompiled_header. */
   local_is_header_stop_dir =is_header_stop_position(start_of_dir_position);
