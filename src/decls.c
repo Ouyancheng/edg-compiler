@@ -1312,11 +1312,24 @@ new fields are set properly.
       } else {
         tp = ptp->type;
         if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-          if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
-            pos_error(ec_bad_first_arg_type_for_operator_delete,
-                      &locator->source_position);
-            ptp->type = error_type();
-            err = TRUE;
+          /* Check for "void *" -- notice that is_void_type is not called
+             on the type-pointed-to: that is to catch "const void *". */
+          if (!is_pointer_type(tp) ||
+              skip_typedefs(type_pointed_to(tp))->kind !=
+                                                   (a_type_kind)tk_void) {
+            if (cfront_compatibility_mode && is_pointer_type(tp) &&
+                is_void_type(type_pointed_to(tp))) {
+              /* Cfront 2.1 allows "const void *" parameter.  Issue a
+                 warning and change the type to "void *". */
+              pos_warning(ec_bad_first_arg_type_for_operator_delete,
+                          &locator->source_position);
+              ptp->type = make_pointer_type(void_type());
+            } else {
+              pos_error(ec_bad_first_arg_type_for_operator_delete,
+                        &locator->source_position);
+              ptp->type = error_type();
+              err = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         ptp = ptp->next;
