@@ -1149,6 +1149,13 @@ Syntax:
     first_arg_position = pos_curr_token;
     already_after_left_paren = TRUE;
   } else if (!C_mode() &&
+             is_template_dependent_context() &&
+             is_template_dependent_type(operand->type)) {
+    /* A call of a template-dependent expression in a prototype
+       instantiation. */
+    /* routine_type = NULL;  -- already set. */
+    prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+  } else if (!C_mode() &&
              is_class_struct_union_type(operand->type)) {
     /* The "called function" is a class object.  Look for operator() and
        surrogate functions. */
@@ -1231,7 +1238,7 @@ Syntax:
       /* The function designator is an undefined symbol. */
       a_symbol_ptr func_sym = operand->variant.symbol;
       /* In C++, it's an error, but not yet if argument-dependent lookup
-         is enabled -- in that case, a function might be found in a
+         is enabled -- in that case, a function might be found in an
          argument-dependent class or namespace, and no error is issued. */
       if (!C_mode() && arg_dependent_lookup_enabled) {
         overloaded_function_case = TRUE;
@@ -1265,12 +1272,6 @@ Syntax:
       overloaded_function_case = TRUE;
       overloaded_function_symbol = operand->variant.symbol;
       /* routine_type = NULL;  -- already set. */
-    } else if (!C_mode() &&
-               is_template_dependent_context() &&
-               is_template_dependent_type(operand->type)) {
-      /* A call in a prototype instantiation. */
-      routine_type = NULL;
-      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
     } else {
       /* Normal function, or call using pointer-to-member-function. */
       /* Convert to rvalue.  This conversion is needed particularly for the
