@@ -2531,7 +2531,9 @@ options indicates a set of special options, as a bit set.  For example,
 if IDL_MUST_BE_CLASS_OR_NAMESPACE is TRUE, the symbol found must be a class
 name (or a typedef to a class name) or a namespace.  Only symbols in the
 nsk_other name space are considered.  This routine is used for the unary
-"::" qualifier and may only be used in C++ mode.  If the name is not
+"::" qualifier and other cases in which it is necessary to determine
+whether a given symbol exists in the file scope.  It is used in both
+C and C++ (in C it is used for identifier linkage).  If the name is not
 found in the file scope, and this is not a linkage lookup, the lookup
 will also look in any namespaces used in using directives in the
 file scope.
@@ -2547,9 +2549,12 @@ file scope.
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
-   class template, namespace, or template type parameter. */
+   class template, namespace, or template type parameter.  The name
+   space test is needed when searching the file scope so that macro symbols
+   are not found. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
+   (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&      \
    (!must_be_tag || is_tag_symbol(fund_sym)))
