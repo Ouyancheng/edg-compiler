@@ -1198,7 +1198,7 @@ Initialize the pragma description table.
 		 /*processing_C_code_in_pragma=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 es_error);
-#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+#if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
 		 (a_next_construct_pragma_function_ptr)NULL,
