@@ -5106,7 +5106,7 @@ caller should have rewritten that case).
 */
 {
   a_boolean                okay = FALSE, ambiguous;
-  a_type_ptr               source_type;
+  a_type_ptr               source_type, diag_dest_type = dest_type;
   an_error_code            err_code;
   a_candidate_function_ptr ambiguity_list;
 
@@ -5147,6 +5147,10 @@ caller should have rewritten that case).
            so the message should indicate that constructors were considered. */
         err_code = ambiguous ? ec_ambiguous_constructor_for_conversion :
                                ec_no_constructor_for_conversion;
+        /* Drop type qualifiers on the destination type because a constructor
+           conversion is really to the unqualified type.  Having "const"
+           in the diagnostic because of a copy constructor can be confusing. */
+        diag_dest_type = skip_typerefs(dest_type);
       }  /* if */
     }  /* if */
   } else if (is_class_struct_union_type(source_type)) {
@@ -5177,12 +5181,12 @@ caller should have rewritten that case).
         /* Conversion to an incomplete type is not possible (in this
            case, anyway).  Use a different message for clarity. */
         pos_ty_error(ec_converting_to_incomplete_class,
-                     &source_operand->position, dest_type);
+                     &source_operand->position, diag_dest_type);
       } else {
         /* Put out the usual message (which has already been chosen to
            describe the problem). */
         type2_error_in_operand(err_code, source_operand,
-                               source_type, dest_type);
+                               source_type, diag_dest_type);
       }  /* if */
     } else {
       /* More than one conversion applies (ambiguity). */
@@ -5190,7 +5194,7 @@ caller should have rewritten that case).
          of an error (no additional error is needed). */
       if (ambiguity_list != NULL) {
         pos_ty2_start_error(err_code, &source_operand->position,
-                            source_type, dest_type);
+                            source_type, diag_dest_type);
         diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
         free_candidate_function_list(ambiguity_list);
       }  /* if */
