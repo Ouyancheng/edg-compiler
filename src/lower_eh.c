@@ -1774,17 +1774,28 @@ unit.
       /* The typeinfo variable is defined if and only if the virtual
          function table is defined, and it is static if and only if the
          virtual function table is static. */
+#if IA64_ABI
+      /* We have to do the full test because we can't differentiate
+         a virtual function table that shouldn't be defined here from
+         one that could be defined here but was optional and was not
+         defined because it is not referenced. */
+      { a_routine_ptr first_virtual;
+        definition_needed = virtual_function_table_should_be_defined_here(
+                                                               type,
+                                                               &force_static,
+                                                               &first_virtual);
+        use_comdat = !force_static;
+      }
+#else /* !IA64_ABI */
       force_static = (vtbl_var->storage_class == (a_storage_class)sc_static);
       definition_needed = (vtbl_var->init_kind != (an_init_kind)initk_none);
+#endif /* IA64_ABI */
       /* If the typeinfo is static, it has to be defined; no one else
          is going to do it.  Virtual function tables are sometimes not
          defined if they're not used, but typeinfo variables are created
          only if they're needed, so if one exists, it must be defined,
          even if the virtual function table is not defined. */
       if (force_static) definition_needed = TRUE;
-#if IA64_ABI
-      use_comdat = (vtbl_var->comdat_group != NULL);
-#endif /* IA64_ABI */
     } else {
       /* The class has no virtual function table (i.e., it's not
          polymorphic), so its typeinfo variable must be defined and must

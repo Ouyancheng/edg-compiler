@@ -4575,7 +4575,7 @@ have one yet.
 }  /* vtbl_decider_function_for_class */
 
 
-static a_boolean virtual_function_table_should_be_defined_here(
+a_boolean virtual_function_table_should_be_defined_here(
                                                   a_type_ptr    class_type,
                                                   a_boolean     *force_static,
                                                   a_routine_ptr *first_virtual)

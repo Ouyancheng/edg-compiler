@@ -830,6 +830,11 @@ extern a_variable_ptr make_var_for_virtual_function_table(
                                                    a_base_class_ptr bcp,
                                                    a_base_class_ptr ctor_bcp);
 
+extern a_boolean virtual_function_table_should_be_defined_here(
+                                                 a_type_ptr    class_type,
+                                                 a_boolean     *force_static,
+                                                 a_routine_ptr *first_virtual);
+
 extern a_boolean inline_virtual_function_definitions_needed(
                                                         a_type_ptr class_type);
 
