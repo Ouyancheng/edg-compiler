@@ -210,6 +210,10 @@ typedef struct a_name_context {
 			/* TRUE if this context is not visible to cfront
 			   (due to a bug), and should not be used to remove
 			   class qualifiers from name references. */
+  a_byte_boolean
+		field_selection_context;
+			/* TRUE if this context was pushed for the right
+			   operand of a field selection. */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -499,6 +503,7 @@ This routine is called for both C and C++.
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
+  ncp->field_selection_context = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -1871,6 +1876,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   if (il_header.source_language == sl_Cplusplus) {
     if (scp->is_class_member) {
       a_type_ptr class_type = scp->parent.class_type;
+      a_boolean  used_qualified_name = FALSE;
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
@@ -1904,15 +1910,18 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         gen_class_qualifier(class_type,
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
+        used_qualified_name = TRUE;
       }  /* if */
-      if (class_type->variant.class_struct_union.is_nonreal_class &&
-          (template_arguments_for_name(scp, entry_kind,
-                                       /*insert_space=*/NULL) != NULL ||
-           (options & GN_TEMPLATE))) {
-        /* Issue the "template" keyword in a "X<T>::template Y<int>" name
-           or in a "X<T>::template Y" default template argument for a
-           template template parameter. */
-        write_tok_str("template ");
+      if (used_qualified_name || curr_name_context->field_selection_context) {
+        if (class_type->variant.class_struct_union.is_nonreal_class &&
+            (template_arguments_for_name(scp, entry_kind,
+                                         /*insert_space=*/NULL) != NULL ||
+             (options & GN_TEMPLATE))) {
+          /* Issue the "template" keyword in a "X<T>::template Y<int>" name
+             or in a "X<T>::template Y" default template argument for a
+             template template parameter. */
+          write_tok_str("template ");
+        }  /* if */
       }  /* if */
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
@@ -4355,6 +4364,7 @@ this selection.
       /* Push a name context so that the qualifier will be properly
          qualified. */
       push_class_name_context(selection_class);
+      curr_name_context->field_selection_context = TRUE;
       need_context_pop = TRUE;
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
@@ -4562,6 +4572,7 @@ with the operator indicated by opstr.
     /* Don't push a scope when the operator has been changed to ",". */
     if (!use_comma) {
       push_class_name_context(operand_1_type);
+      curr_name_context->field_selection_context = TRUE;
       need_context_pop = TRUE;
     }  /* if */
   }  /* if */
@@ -5356,6 +5367,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
          for the context.  Don't do this if there is no selector. */
       if (!suppress_this) {
         push_class_name_context(selection_class);
+        curr_name_context->field_selection_context = TRUE;
       }  /* if */
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
       if (!suppress_this) pop_name_context();
