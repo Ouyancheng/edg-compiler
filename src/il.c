@@ -5397,15 +5397,15 @@ assigns the rvalue "source" to the lvalue "dest".  Return a pointer to
 the statement.  May not be used for array types.
 */
 {
-  a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
+  a_statement_ptr  stmt;
   an_expr_node_ptr node;
 
   /* Make the assignment node. */
+  dest->next = source;
   node = make_operator_node(which_binary_operator(tok_assign, source->type),
                             source->type, dest);
-  dest->next = source;
-  /* Put the assignment node under the statement. */
-  stmt->expr = node;
+  /* Allocate the statement. */
+  stmt = alloc_expr_statement(node);
   return stmt;
 }  /* make_assignment_statement */
 
@@ -5419,15 +5419,15 @@ the statement.  This doesn't come up directly in programs, but does
 in IL lowering and in generated routines (like assignment operator functions).
 */
 {
-  a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
+  a_statement_ptr  stmt;
   an_expr_node_ptr node;
 
   /* Make the assignment node. */
+  dest->next = source;
   node = make_operator_node((an_expr_operator_kind)eok_bassign,
                             type_pointed_to(dest->type), dest);
-  dest->next = source;
-  /* Put the assignment node under the statement. */
-  stmt->expr = node;
+  /* Allocate the statement. */
+  stmt = alloc_expr_statement(node);
   return stmt;
 }  /* make_array_assignment_statement */
 
@@ -5443,7 +5443,7 @@ a pointer to the statement.  *err_pos is a source position to be used
 for errors (e.g., the function has an invalid return type).
 */
 {
-  a_statement_ptr  stmt = alloc_statement((a_statement_kind)stmk_expr);
+  a_statement_ptr  stmt;
   an_expr_node_ptr node, func_addr_node;
 
   /* Make a node for the address of the function. */
@@ -5456,8 +5456,8 @@ for errors (e.g., the function has an invalid return type).
                         (a_boolean)rout->is_virtual, /*evaluated=*/TRUE,
                         /*in_return_by_cctor_expression=*/FALSE,
                         err_pos);
-  /* Put the call node under the statement. */
-  stmt->expr = node;
+  /* Allocate the statement. */
+  stmt = alloc_expr_statement(node);
   return stmt;
 }  /* make_call_assignment_statement */
 
@@ -5562,6 +5562,20 @@ to it.  The statement kind is set as indicated.
   db_exit();
   return sp;
 }  /* alloc_statement */
+
+
+a_statement_ptr alloc_expr_statement(an_expr_node_ptr node)
+/*
+Allocate an stmk_expr statement pointing to the indicated expression
+and return a pointer to it.
+*/
+{
+  a_statement_ptr stmt = alloc_statement((a_statement_kind)stmk_expr);
+
+  stmt->expr = node;
+  set_expr_result_not_used(node);
+  return stmt;
+}  /* alloc_expr_statement */
 
 
 a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind)

@@ -437,6 +437,8 @@ extern a_switch_clause_ptr alloc_switch_clause(void);
 extern void set_statement_kind(a_statement_ptr  sp,
                                a_statement_kind kind);
 
+extern a_statement_ptr alloc_expr_statement(an_expr_node_ptr node);
+
 extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
 extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
