@@ -21,6 +21,7 @@ error.c -- Error reporting routines.
 #include "float_pt.h"
 #include "const_ints.h"
 #include "il.h"
+#include "types.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "symbol_tbl.h"
 #include "lexical.h"
