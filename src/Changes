@@ -1,5 +1,25 @@
 Version 2.06
 
+5/19/92  Fixed bug with compiler-generated virtual destructors.
+
+The body for a compiler-generated virtual destructor is now created at the
+point of declaration of the class of which it is a member.  Since virtual
+destructors are not necessarily referenced directly (but rather through
+the virtual function table) and since compiler-generated functions are
+typically created "on demand" at the first point of reference, the bodies
+of compiler-generated virtual destructors were sometimes not generated at
+all; this led to linker errors.
+
+5/19/92  Fixed some bugs and filled some holes in compiler-generated
+         assignment operators.
+
+Assignment by bitwise copy is no longer allowed for classes with ref or
+const fields.  Also, an error is now issued if the compiler is called upon
+to generate an assignment operator for a class with ref or const fields,
+since (in accord with ARM 12.8) a user defined assignment operator is
+required.  However, the function is generated anyway so the error appears
+only at the first point of use.
+
 5/19/92  Fixed handling of access adjustments in access control
 
 have_proj_access_to_symbol in symbol_tbl.c became
