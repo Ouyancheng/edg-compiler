@@ -3709,6 +3709,78 @@ Do IL lowering of the indicated list of types and everything under it.
 }  /* lower_type_list */
 
 
+static void lower_constructor_routine_type(a_type_ptr routine_type)
+/*
+Do IL lowering of a constructor routine type.  The lowering applicable to
+all routine types has already been done.  The routine body (if any) is
+not lowered at this time (see lower_constructor_code).
+*/
+{
+  a_type_ptr       class_type, subobject_type;
+  a_param_type_ptr first_param, added_param, prev_param;
+  a_base_class_ptr bcp;
+
+  /* Get the "this" parameter entry.  The routine type has already been
+     lowered, so it's the first on the list. */
+  first_param = routine_type->variant.routine.extra_info->param_type_list;
+  /* Get the class type from the "this" parameter type. */
+  class_type = type_pointed_to(first_param->type);
+  class_type = skip_typerefs(class_type);
+  prelower_class_type(class_type);
+  /* Add a parameter for each virtual base class.  See the ARM, top of
+     p. 296.  add_constructor_params does the similar processing for param
+     variables. */
+  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+    prev_param = first_param;
+    for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->is_virtual) {
+        /* Use the type of the base class when used as a subobject. */
+        subobject_type = bcp->type->variant.class_struct_union.extra_info->
+                                                             type_as_subobject;
+        added_param = alloc_param_type(make_pointer_type(subobject_type));
+        /* Note that the original parameter entries have already been lowered,
+           so it is not necessary to clear il_lowering_flag to ensure that the
+           whole list will be visited. */
+        added_param->next = prev_param->next;
+        prev_param->next = added_param;
+        prev_param = added_param;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* lower_constructor_routine_type */
+
+
+static void lower_destructor_routine_type(a_type_ptr routine_type)
+/*
+Do IL lowering of a destructor routine type.  The lowering applicable to
+all routine types has already been done.  The routine body (if any) is
+not lowered at this time (see lower_destructor_code).
+*/
+{
+  a_type_ptr       class_type;
+  a_param_type_ptr first_param, added_param;
+
+  /* Get the "this" parameter entry.  The routine type has already been
+     lowered, so it's the first on the list. */
+  first_param = routine_type->variant.routine.extra_info->param_type_list;
+  /* Get the class type from the "this" parameter type. */
+  class_type = type_pointed_to(first_param->type);
+  class_type = skip_typerefs(class_type);
+  prelower_class_type(class_type);
+  /* Add an int parameter that will indicate whether or not we have a
+     complete object and whether or not the storage should be freed.
+     add_destructor_params does the similar processing for param variables. */
+  added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
+  /* Note that the original parameter entries have already been lowered,
+     so it is not necessary to set il_lowering_flag to ensure that the
+     whole list will be visited. */
+  added_param->next = first_param->next;
+  first_param->next = added_param;
+}  /* lower_destructor_routine_type */
+
+
 static void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
@@ -3841,6 +3913,12 @@ Do IL lowering of the indicated type and everything under it.
           }  /* for */
           if (rtsp->prototype_scope != NULL) {
             lower_scope(rtsp->prototype_scope);
+          }  /* if */
+          /* Do special lowering for constructors and destructors. */
+          if (rtsp->assoc_routine_is_ctor) {
+            lower_constructor_routine_type(type);
+          } else if (rtsp->assoc_routine_is_dtor) {
+            lower_destructor_routine_type(type);
           }  /* if */
         }
         break;
@@ -3999,77 +4077,6 @@ Do IL lowering of the indicated list of routines and everything under it.
 }  /* lower_routine_list */
 
 
-static void lower_constructor_routine(a_routine_ptr routine)
-/*
-Do IL lowering of a constructor routine.  This is lowering of the routine
-entry and the type, not of the routine body if any
-(see lower_constructor_code).
-*/
-{
-  a_type_ptr       class_type, subobject_type;
-  a_param_type_ptr first_param, added_param, prev_param;
-  a_base_class_ptr bcp;
-
-  /* Get the "this" parameter entry.  The routine type has already been
-     lowered, so it's the first on the list. */
-  first_param = routine->type->variant.routine.extra_info->param_type_list;
-  /* Get the class type from the "this" parameter type. */
-  class_type = type_pointed_to(first_param->type);
-  class_type = skip_typerefs(class_type);
-  prelower_class_type(class_type);
-  /* Add a parameter for each virtual base class.  See the ARM, top of
-     p. 296.  add_constructor_params does the similar processing for param
-     variables. */
-  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-    prev_param = first_param;
-    for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-         bcp != NULL;
-         bcp = bcp->next) {
-      if (bcp->is_virtual) {
-        /* Use the type of the base class when used as a subobject. */
-        subobject_type = bcp->type->variant.class_struct_union.extra_info->
-                                                             type_as_subobject;
-        added_param = alloc_param_type(make_pointer_type(subobject_type));
-        /* Note that the original parameter entries have already been lowered,
-           so it is not necessary to clear il_lowering_flag to ensure that the
-           whole list will be visited. */
-        added_param->next = prev_param->next;
-        prev_param->next = added_param;
-        prev_param = added_param;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* lower_constructor_routine */
-
-
-static void lower_destructor_routine(a_routine_ptr routine)
-/*
-Do IL lowering of a destructor routine.  This is lowering of the routine
-entry and the type, not of the routine body if any (see lower_destructor_code).
-*/
-{
-  a_type_ptr       class_type;
-  a_param_type_ptr first_param, added_param;
-
-  /* Get the "this" parameter entry.  The routine type has already been
-     lowered, so it's the first on the list. */
-  first_param = routine->type->variant.routine.extra_info->param_type_list;
-  /* Get the class type from the "this" parameter type. */
-  class_type = type_pointed_to(first_param->type);
-  class_type = skip_typerefs(class_type);
-  prelower_class_type(class_type);
-  /* Add an int parameter that will indicate whether or not we have a
-     complete object and whether or not the storage should be freed.
-     add_destructor_params does the similar processing for param variables. */
-  added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
-  /* Note that the original parameter entries have already been lowered,
-     so it is not necessary to set il_lowering_flag to ensure that the
-     whole list will be visited. */
-  added_param->next = first_param->next;
-  first_param->next = added_param;
-}  /* lower_destructor_routine */
-
-
 static void lower_routine(a_routine_ptr routine)
 /*
 Do IL lowering of the indicated routine and everything under it.
@@ -4081,14 +4088,6 @@ Do IL lowering of the indicated routine and everything under it.
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
     lower_type(routine->type);
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
-      /* Special additional processing for constructors. */
-      lower_constructor_routine(routine);
-    } else if (routine->special_kind ==
-                                     (a_special_function_kind)sfk_destructor) {
-      /* Special additional processing for destructors. */
-      lower_destructor_routine(routine);
-    }  /* if */
     /* Clear the befriending classes field to make the routine entry legal
        C IL. */
     routine->befriending_classes = NULL;
