@@ -155,6 +155,8 @@ extern a_boolean is_type_start(void);
 /* Test whether or not the current token is the start of a declaration. */
 extern a_boolean is_decl_start(void);
 
+extern a_boolean check_for_overload_anachronism(void);
+
 extern a_boolean is_declaration_not_expression(void);
 
 extern void type_name(a_type_ptr *type_ptr);
