@@ -2075,17 +2075,12 @@ the file scope if at_file_scope == TRUE.
   ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_expr = NULL;
+  /* Note that passed_via_copy_constructor could be set approximately based
+     on the parameter type, but sometimes the parameter type is incomplete
+     at the point of declaration of the function and is completed by the
+     point of call, so the processing is done by
+     set_routine_calling_method_flags rather than here. */
   ptp->passed_via_copy_constructor = FALSE;
-  /* A parameter of a class type that requires a copy constructor is
-     passed in a special way. */
-  if (is_class_struct_union_type(type)) {
-    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-    if (cssp != NULL) {
-      if (cssp->has_copy_constructor) {
-        ptp->passed_via_copy_constructor = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
   db_exit();
   return ptp;
 }  /* alloc_param_type */
