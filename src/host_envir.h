@@ -444,7 +444,7 @@ input file to get the instantiation list file name.
 The suffixes to be used when searching for an instantiation source file
 that is associated with a given instantiation header file.
 */
-#define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX"
+#define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX:cc"
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
