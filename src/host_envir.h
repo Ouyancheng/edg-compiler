@@ -729,10 +729,12 @@ may be overridden by a command line option.
 The minimum number of declarations required in header files that qualify
 for precompilation.  In other words, if the header files preceding the
 header stop have fewer than PCH_DECL_SEQ_THRESHOLD declarations, creation
-of a precompiled header file will be suppressed.
+of a precompiled header file will be suppressed.  By default it is set to
+a very low value, to give the user maximum control (using command line
+options and #pragmas).
 */
 #ifndef PCH_DECL_SEQ_THRESHOLD
-#define PCH_DECL_SEQ_THRESHOLD 300
+#define PCH_DECL_SEQ_THRESHOLD 1
 #endif /* ifndef PCH_DECL_SEQ_THRESHOLD */
 
 /*
