@@ -165,17 +165,40 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 
 #if RECORD_HIDDEN_NAMES_IN_IL
 
+static a_boolean symbols_are_equivalent(a_symbol_ptr  sym1,
+                                        a_symbol_ptr  sym2)
+/*
+Return TRUE if sym1 and sym2 point to the same IL entries.
+*/
+{
+  an_il_entry_kind  kind;
+  a_boolean         equiv = (sym1 == sym2);
+
+  if (!equiv) {
+    if (sym1->kind == sym2->kind &&
+        il_entry_for_symbol(sym1, &kind) ==
+                  il_entry_for_symbol(sym2, &kind)) {
+      equiv = TRUE;
+    }  /* if */
+  }  /* if */
+  return equiv;
+}  /* symbols_are_equivalent */
+
+
 static void record_defeatable_name_hiding(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
                               a_boolean     hidden_class_or_namespace_member,
-                              a_scope_ptr   sp)
+                              a_scope_ptr   sp,
+                              a_symbol_ptr  hidden_by)
 /*
 hidden_sym is a symbol for an entity that is hidden by another declaration
 of the same name -- but the hiding can be "defeated" by using an
 elaborated type specifier or global qualification (preceding "::") when
 referring to the hidden name.  Create the hidden-name entity to represent
-this case and add it to the list for the current scope.
+this case and add it to the list for the current scope.  If hidden_by is
+non-NULL, it points to the symbol that does the hiding; when hidden_sym
+and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 */
 {
   a_hidden_name_ptr        hnp;
@@ -185,153 +208,163 @@ this case and add it to the list for the current scope.
   a_symbol_ptr             sym;
   a_template_instance_ptr  tip;
 
-  switch (hidden_sym->kind) {
-    case sk_label:
-    case sk_keyword:
-    case sk_macro:
-    case sk_undefined:
-    case sk_extern_variable:
-    case sk_extern_routine:
-      /* Not in the same name space. */
-      break;
-    case sk_overloaded_function:
-      /* Enter members of an overload set separately. */
-      for (sym = hidden_sym->variant.overloaded_function.symbols;
-           sym != NULL;
-           sym = sym->next) {
-        record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                      hidden_class_or_namespace_member, sp);
-      }  /* for */
-      break;
-    case sk_projection:
-      if (!hidden_sym->synthesized_namespace_projection) {
-        /* Ignore most projection symbols. */
+  if (hidden_by != NULL && symbols_are_equivalent(hidden_sym, hidden_by)) {
+    /* A symbol does not hide itself. */
+  } else {
+    switch (hidden_sym->kind) {
+      case sk_label:
+      case sk_keyword:
+      case sk_macro:
+      case sk_undefined:
+      case sk_extern_variable:
+      case sk_extern_routine:
+        /* Not in the same name space. */
         break;
-      }  /* if */
-      /* FALLTHROUGH */
-    case sk_namespace_projection:
-      /* Enter the fundamental symbol of a namespace projection. */
-      record_defeatable_name_hiding(fundamental_symbol_of(hidden_sym),
-                                    tag_hidden_by_nontag,
-                                    hidden_class_or_namespace_member, sp);
-      break;
-    case sk_class_template:
-      /* Enter each instance of a class template. */
-      for (sym = hidden_sym->variant.template_info->
-                                variant.class_template.instantiations;
-           sym != NULL;
-           sym = next_instance_sym(sym)) {
-        if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+      case sk_overloaded_function:
+        /* Enter members of an overload set separately. */
+        for (sym = hidden_sym->variant.overloaded_function.symbols;
+             sym != NULL;
+             sym = sym->next) {
           record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member, sp);
-        }  /* if */
-      }  /* for */
-      break;
-    case sk_function_template:
-      /* Enter each instance of a function template. */
-      for (tip = hidden_sym->variant.template_info->
-                                variant.function.instantiations;
-           tip != NULL;
-           tip = tip->next) {
-        if (tip->is_guiding_decl) {
-          /* Ignore guiding declarations -- they will have been picked up
-             elsewhere. */
-        } else {
-          record_defeatable_name_hiding(tip->instance_sym,
-                                        tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member, sp);
-        }  /* if */
-      }  /* for */
-      break;
-    default:
-      /* The normal case.  First find the entity associated with the
-         symbol. */
-      entity = il_entry_for_symbol(hidden_sym, &kind);
-      if (entity != NULL) {
-        if (sp == NULL) {
-          /* Get pointer to current scope entry. */
-          ssep = &scope_stack[decl_scope_level];
-          if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
-          while (ssep->kind == (a_scope_kind)sck_template_declaration) --ssep;
-          /* Create the IL scope if necessary (for block scopes). */
-          sp = ensure_il_scope_exists(ssep);
-          check_assertion_str(sp != NULL,
-                             "record_defeatable_name_hiding: NULL IL scope");
-        }  /* if */
-        /* If there is already a hidden name entry for this entity in this
-           scope, reuse it. */
-        for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
-          if (hnp->entity.ptr == entity) break;
+                                        hidden_class_or_namespace_member, sp,
+                                        hidden_by);
         }  /* for */
-#if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-          if (hnp == NULL ||
-              ((tag_hidden_by_nontag &&
-                !hnp->elaborated_type_specifier_needed) ||
-               (hidden_class_or_namespace_member &&
-                !hnp->qualification_needed))) {
-            a_source_correspondence  *scp =
-                                 source_corresp_for_il_entry(entity, kind);
-            fputs("  in ", f_debug);
-            db_scope(sp);
-            fputs(": use", f_debug);
-            if (hidden_class_or_namespace_member) {
-              fputs(" qualifier", f_debug);
-              if (tag_hidden_by_nontag) fputs(" and", f_debug);
-            }  /* if */
-            if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
-            fputs(" for \"", f_debug);
-            if (kind == (an_il_entry_kind)iek_type) {
-              db_abbreviated_type((a_type_ptr)entity);
-            } else {
-              if (scp != NULL) {
-                db_name(scp);
-                if (kind == (an_il_entry_kind)iek_routine) {
-                  db_function_param_list(((a_routine_ptr)entity)->type);
-                }  /* if */
-              } else {
-                fprintf(f_debug, "\?\?\?");
-              }  /* if */
-            }  /* if */
-            fprintf(f_debug, "\"%s", hnp == NULL ? "" : " [modif]");
-            fprintf(f_debug, "\n");
-          }  /* if */
+        break;
+      case sk_projection:
+        if (!hidden_sym->synthesized_namespace_projection) {
+          /* Ignore most projection symbols. */
+          break;
         }  /* if */
-#endif /* DEBUG */
-        if (hnp == NULL) {
-          /* No existing entry.  Allocate a new one. */
-          a_scope_depth           scope_depth;
-          a_memory_region_number  region_to_switch_back_to;
-
-          /* Get the scope depth from which to determine the appropriate
-             memory region in which to allocate the hidden-name entry. */
-          if (in_file_scope(sp)) {
-            scope_depth = DEPTH_OF_FILE_SCOPE;
+        /* FALLTHROUGH */
+      case sk_namespace_projection:
+        /* Enter the fundamental symbol of a namespace projection. */
+        record_defeatable_name_hiding(fundamental_symbol_of(hidden_sym),
+                                      tag_hidden_by_nontag,
+                                      hidden_class_or_namespace_member, sp,
+                                      hidden_by);
+        break;
+      case sk_class_template:
+        /* Enter each instance of a class template. */
+        for (sym = hidden_sym->variant.template_info->
+                                  variant.class_template.instantiations;
+             sym != NULL;
+             sym = next_instance_sym(sym)) {
+          if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+            record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
+                                          hidden_class_or_namespace_member, sp,
+                                          hidden_by);
+          }  /* if */
+        }  /* for */
+        break;
+      case sk_function_template:
+        /* Enter each instance of a function template. */
+        for (tip = hidden_sym->variant.template_info->
+                                  variant.function.instantiations;
+             tip != NULL;
+             tip = tip->next) {
+          if (tip->is_guiding_decl) {
+            /* Ignore guiding declarations -- they will have been picked up
+               elsewhere. */
           } else {
-            scope_depth = sp->depth_in_scope_stack;
-            check_assertion(scope_depth != NO_SCOPE_DEPTH);
+            record_defeatable_name_hiding(tip->instance_sym,
+                                          tag_hidden_by_nontag,
+                                          hidden_class_or_namespace_member, sp,
+                                          hidden_by);
           }  /* if */
-          switch_to_scope_region(scope_depth, &region_to_switch_back_to);
-          hnp = alloc_hidden_name();
-          switch_back_to_original_region(region_to_switch_back_to);
-          hnp->entity.ptr = entity;
-          hnp->entity.kind = (a_byte_il_entry_kind)kind;
-          /* Add it to the start of the hiden_names list for the current
-             scope. */
-          hnp->next = sp->hidden_names;
-          sp->hidden_names = hnp;
+        }  /* for */
+        break;
+      default:
+        /* The normal case.  First find the entity associated with the
+           symbol. */
+        entity = il_entry_for_symbol(hidden_sym, &kind);
+        if (entity != NULL) {
+          if (sp == NULL) {
+            /* Get pointer to current scope entry. */
+            ssep = &scope_stack[decl_scope_level];
+            if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
+            while (ssep->kind == (a_scope_kind)sck_template_declaration) {
+              --ssep;
+            }  /* while */
+            /* Create the IL scope if necessary (for block scopes). */
+            sp = ensure_il_scope_exists(ssep);
+            check_assertion_str(sp != NULL,
+                               "record_defeatable_name_hiding: NULL IL scope");
+          }  /* if */
+          /* If there is already a hidden name entry for this entity in this
+             scope, reuse it. */
+          for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
+            if (hnp->entity.ptr == entity) break;
+          }  /* for */
+  #if DEBUG
+          if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+            if (hnp == NULL ||
+                ((tag_hidden_by_nontag &&
+                  !hnp->elaborated_type_specifier_needed) ||
+                 (hidden_class_or_namespace_member &&
+                  !hnp->qualification_needed))) {
+              a_source_correspondence  *scp =
+                                   source_corresp_for_il_entry(entity, kind);
+              fputs("  in ", f_debug);
+              db_scope(sp);
+              fputs(": use", f_debug);
+              if (hidden_class_or_namespace_member) {
+                fputs(" qualifier", f_debug);
+                if (tag_hidden_by_nontag) fputs(" and", f_debug);
+              }  /* if */
+              if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
+              fputs(" for \"", f_debug);
+              if (kind == (an_il_entry_kind)iek_type) {
+                db_abbreviated_type((a_type_ptr)entity);
+              } else {
+                if (scp != NULL) {
+                  db_name(scp);
+                  if (kind == (an_il_entry_kind)iek_routine) {
+                    db_function_param_list(((a_routine_ptr)entity)->type);
+                  }  /* if */
+                } else {
+                  fprintf(f_debug, "\?\?\?");
+                }  /* if */
+              }  /* if */
+              fprintf(f_debug, "\"%s", hnp == NULL ? "" : " [modif]");
+              fprintf(f_debug, "\n");
+            }  /* if */
+          }  /* if */
+  #endif /* DEBUG */
+          if (hnp == NULL) {
+            /* No existing entry.  Allocate a new one. */
+            a_scope_depth           scope_depth;
+            a_memory_region_number  region_to_switch_back_to;
+
+            /* Get the scope depth from which to determine the appropriate
+               memory region in which to allocate the hidden-name entry. */
+            if (in_file_scope(sp)) {
+              scope_depth = DEPTH_OF_FILE_SCOPE;
+            } else {
+              scope_depth = sp->depth_in_scope_stack;
+              check_assertion(scope_depth != NO_SCOPE_DEPTH);
+            }  /* if */
+            switch_to_scope_region(scope_depth, &region_to_switch_back_to);
+            hnp = alloc_hidden_name();
+            switch_back_to_original_region(region_to_switch_back_to);
+            hnp->entity.ptr = entity;
+            hnp->entity.kind = (a_byte_il_entry_kind)kind;
+            /* Add it to the start of the hiden_names list for the current
+               scope. */
+            hnp->next = sp->hidden_names;
+            sp->hidden_names = hnp;
+          }  /* if */
+          /* Set the appropriate flag. */
+          if (tag_hidden_by_nontag) {
+            check_assertion(kind == (an_il_entry_kind)iek_type);
+            hnp->elaborated_type_specifier_needed = TRUE;
+          }  /* if */
+          if (hidden_class_or_namespace_member) {
+            check_assertion(in_file_scope(entity));
+            hnp->qualification_needed = TRUE;
+          }  /* if */
         }  /* if */
-        /* Set the appropriate flag. */
-        if (tag_hidden_by_nontag) {
-          check_assertion(kind == (an_il_entry_kind)iek_type);
-          hnp->elaborated_type_specifier_needed = TRUE;
-        }  /* if */
-        if (hidden_class_or_namespace_member) {
-          check_assertion(in_file_scope(entity));
-          hnp->qualification_needed = TRUE;
-        }  /* if */
-      }  /* if */
-  }  /* switch */
+    }  /* switch */
+  }  /* if */
 }  /* record_defeatable_name_hiding */
 
 
@@ -393,19 +426,6 @@ then free the list.
 }  /* check_hidden_name_fixup_list */
 
 
-static a_boolean il_entries_are_identical(a_symbol_ptr  sym1,
-                                          a_symbol_ptr  sym2)
-/*
-Return TRUE if sym1 and sym2 point to the same IL entries.
-*/
-{
-  an_il_entry_kind  kind;
-
-  return (il_entry_for_symbol(sym1, &kind) ==
-                    il_entry_for_symbol(sym2, &kind));
-}  /* il_entries_are_identical */
-
-
 static a_boolean matches_member_of_overload_set(a_symbol_ptr  sym_ptr,
                                                 a_symbol_ptr  overload_sym)
 /*
@@ -428,16 +448,15 @@ set pointed to by overload_sym.
     other_sym = overload_sym;
   }  /* if */
   for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
-    if (other_sym == sym_ptr ||
-        il_entries_are_identical(sym_ptr, other_sym)) {
+    if (symbols_are_equivalent(sym_ptr, other_sym)) {
       found = TRUE;
       break;
-    } else if (other_sym->kind == (a_symbol_kind)sk_function_template &&
-               (sym_ptr->kind == (a_symbol_kind)sk_routine ||
-                sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
-               sym_ptr->variant.routine.instance_ptr != NULL &&
-               sym_ptr->variant.routine.instance_ptr->template_sym ==
-                                                                   other_sym) {
+    }  /* if */
+    if (other_sym->kind == (a_symbol_kind)sk_function_template &&
+        (sym_ptr->kind == (a_symbol_kind)sk_routine ||
+         sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
+        sym_ptr->variant.routine.instance_ptr != NULL &&
+        sym_ptr->variant.routine.instance_ptr->template_sym == other_sym) {
       /* The function is an instance of the template specified by other_sym. */
       found = TRUE;
       break;
@@ -648,7 +667,7 @@ hiding.
           hidden_class_or_namespace_member = FALSE;
           record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                         hidden_class_or_namespace_member,
-                                        (a_scope_ptr)NULL);
+                                        (a_scope_ptr)NULL, sym_ptr);
         }  /* if */
       }  /* if */
     } else {
@@ -670,7 +689,7 @@ hiding.
         hidden_class_or_namespace_member = FALSE;
         record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                       hidden_class_or_namespace_member,
-                                      (a_scope_ptr)NULL);
+                                      (a_scope_ptr)NULL, old_sym_ptr);
       }  /* if */
     }  /* if */
     /* Now check for hiding that can be resolved by using a qualified name. */
@@ -712,7 +731,7 @@ hiding.
         tag_hidden_by_nontag = FALSE;
         record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                       hidden_class_or_namespace_member,
-                                      (a_scope_ptr)NULL);
+                                      (a_scope_ptr)NULL, old_sym_ptr);
       }  /* if */
     } else {
       /* Not a friend declaration.  Unless it is a declaration at file scope,
@@ -722,10 +741,27 @@ hiding.
       if ((sym_ptr->kind == (a_symbol_kind)sk_routine ||
            sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
            sym_ptr->variant.routine.instance_ptr != NULL &&
-           !sym_ptr->variant.routine.instance_ptr->is_guiding_decl) {
+           !sym_ptr->variant.routine.instance_ptr->is_guiding_decl &&
+           sym_ptr == (a_symbol_ptr)sym_ptr->
+                         variant.routine.ptr->source_corresp.assoc_info) {
         /* Ignore function template instances; the references that trigger
            their creation are not declarations that can hide other
            declarations. */
+        if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+            sym_ptr->kind == (a_symbol_kind)sk_routine) {
+          old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
+          if (old_sym_ptr != NULL) {
+            if (old_sym_ptr == sym_ptr ||
+                matches_member_of_overload_set(sym_ptr, old_sym_ptr)) {
+            } else {
+              tag_hidden_by_nontag = FALSE;
+              hidden_class_or_namespace_member = TRUE;
+              record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
+                                            hidden_class_or_namespace_member,
+                                            (a_scope_ptr)NULL, old_sym_ptr);
+            }  /* if */
+          }  /* if */
+        }  /* if */
       } else if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
                  (!sym_ptr->is_class_member &&
                   (nsp = sym_ptr->parent.namespace_ptr) != NULL &&
@@ -740,25 +776,16 @@ hiding.
                   IDL_SKIP_TEMPLATE_DECL_SCOPES;
         old_sym_ptr = normal_id_lookup(&locator, options);
         if (old_sym_ptr != NULL) {
-          an_il_entry_kind  il_kind;
-          if (old_sym_ptr == sym_ptr) {
-            /* This can happen when the scope to which sym_ptr belongs is an
-               unnamed namespace. */
-          } else if (old_sym_ptr->kind == sym_ptr->kind &&
-                     (il_entry_for_symbol(sym_ptr, &il_kind) ==
-                        il_entry_for_symbol(old_sym_ptr, &il_kind))) {
-            /* Symbols refer to the same entity -- e.g., block-extern
-               declarations. */
-          } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-                     old_sym_ptr->is_class_member ||
-                     old_sym_ptr->parent.namespace_ptr != NULL ||
-                     old_sym_ptr->synthesized_namespace_projection) {
+          if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+              old_sym_ptr->is_class_member ||
+              old_sym_ptr->parent.namespace_ptr != NULL ||
+              old_sym_ptr->synthesized_namespace_projection) {
             /* A qualifiable name. */
             tag_hidden_by_nontag = FALSE;
             hidden_class_or_namespace_member = TRUE;
             record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                           hidden_class_or_namespace_member,
-                                          (a_scope_ptr)NULL);
+                                          (a_scope_ptr)NULL, sym_ptr);
           }  /* if */
           /* Do a similar check for tag names in containing scopes. */
           if (!is_tag_symbol(old_sym_ptr) &&
@@ -782,7 +809,7 @@ hiding.
                                               old_sym_ptr,
                                               tag_hidden_by_nontag,
                                               hidden_class_or_namespace_member,
-                                              (a_scope_ptr)NULL);
+                                              (a_scope_ptr)NULL, sym_ptr);
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -921,7 +948,7 @@ hiding.
             if (hidden_class_or_namespace_member) {
               record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                             hidden_class_or_namespace_member,
-                                            sp);
+                                            sp, (a_symbol_ptr)NULL);
             }  /* if */
           }  /* if */
         }  /* for */
