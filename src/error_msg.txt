@@ -580,7 +580,7 @@ ec_bad_templ_arg_expr_operator;;"this operator is not allowed in a template argu
 ec_missing_handler;;"try block requires at least one handler"
 ec_missing_exception_declaration;;"handler requires an exception declaration"
 ec_masked_by_default_handler;;"handler is masked by default handler"
-ec_masked_by_handler;;"handler is masked by previous handler for type %t"
+ec_masked_by_handler;;"handler is potentially masked by previous handler for type %t"
 ec_local_type_used_in_exception;;"use of a local type to specify an exception"
 ec_redundant_exception_specification_type;;"redundant type in exception specification"
 ec_incompatible_exception_specification;;"exception specification is incompatible with that of previous %nd%s\=':'"
