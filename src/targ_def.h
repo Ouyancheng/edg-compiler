@@ -445,6 +445,8 @@ match the target machine behavior on integer operations in C.
    means "use the alignment of the base type given in the declaration". */
 #ifndef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
+/* This feature CAN be changed when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT 0
@@ -863,6 +865,8 @@ If TRUE, enumerated types can be allocated in integral types smaller than int.
 */
 #ifndef TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
+/* This feature CAN be changed when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #define TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE /* cfront compat. */
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE  /* Can be changed. */
@@ -1004,6 +1008,8 @@ This may seem like a language feature, but it's an ABI issue, because the
 parameter type ends up in the mangled name of the function.
 */
 #ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
 #define REMOVE_QUALIFIERS_FROM_PARAM_TYPES FALSE
 #else /* ABI_COMPATIBILITY_VERSION > 228 && !CFRONT_... */
@@ -1018,6 +1024,8 @@ in the "std" namespace.  It is also used by the standard header files
 for the same purpose.
 */
 #ifndef RUNTIME_USES_NAMESPACES
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION < 230 || CFRONT_OBJECT_CODE_COMPATIBILITY
 #define RUNTIME_USES_NAMESPACES FALSE
 #else /* !(ABI_COMPATIBILITY_VERSION < 230 || CFRONT_...) */
@@ -1331,6 +1339,8 @@ The typeinfo generated in that case is adequate for exception
 handling but not for RTTI.
 */
 #ifndef ABI_CHANGES_FOR_RTTI
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
 #define ABI_CHANGES_FOR_RTTI FALSE /* Versions up to 2.28. */
 #else /* ABI_COMPATIBILITY_VERSION > 228  && !CFRONT_... */
@@ -1352,6 +1362,8 @@ compatibility with versions up to 2.28 is preserved, but the
 array new and delete language features are turned off.
 */
 #ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
 #define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE FALSE /* Versions up to 2.28. */
 #else /* ABI_COMPATIBILITY_VERSION > 228 && !CFRONT_... */
