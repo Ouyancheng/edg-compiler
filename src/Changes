@@ -1,5 +1,13 @@
 Version 3.2
 
+5/7/03   Unreachable code removed after constructor function try block
+
+Some code that pops the top entry off the exception handling stack
+at the end of the code for a constructor with a function try block
+as the top statement is no longer emitted by IL lowering.  It was
+unreachable, because the try block itself ends with a return and
+each catch clause end with a rethrow.
+
 5/7/03   K&R/pcc mode: Visibility of block-extern declarations
 
 In K&R/pcc mode, block extern declarations are treated as if they appeared in
