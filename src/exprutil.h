@@ -379,6 +379,7 @@ extern void check_for_operator_overloading(
                                     an_opname_kind     kind,
                                     a_boolean          unary_operator,
                                     a_boolean          must_be_member_function,
+                                    a_boolean          try_conversions,
                                     a_boolean          has_predef_meaning,
                                     an_operand         *operand_1,
                                     an_operand         *operand_2,

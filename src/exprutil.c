@@ -6751,6 +6751,7 @@ expression_kind indicates the current expression kind.
 void check_for_operator_overloading(an_opname_kind     kind,
                                     a_boolean          unary_operator,
                                     a_boolean          must_be_member_function,
+                                    a_boolean          try_conversions,
                                     a_boolean          has_predef_meaning,
                                     an_operand         *operand_1,
                                     an_operand         *operand_2,
@@ -6763,23 +6764,24 @@ operand_1 and operand_2 are the operands of an operator indicated by kind.
 If unary_operator is TRUE, the operation has only one operand, which is
 given by operand_1.  If must_be_member_function is TRUE, this operator
 is one where the operator function must be a member function (=, [], (), ->).
-has_predef_meaning is TRUE if the operator has a predefined meaning for
-classes (comma, ->, =, and unary &).  It's also used for calls where
-we don't want an error if no function matches, because we want to try
-something else (e.g., the anachronism that allows a one-argument function
-for postfix "++" and "--").  Check to see if there is an operator
-function that can be invoked for the arguments.  If so, create an
-operand for the call in *result and return *processed TRUE.  Also
-return *processed TRUE if the operation is an ambiguous overloaded
-function call.  Otherwise, return *processed FALSE, which means the
-caller should try the built-in meaning of the operator.  In that case,
-also look for conversion functions that can convert the operands to
-built-in types that are acceptable for the built-in version of the
-operator, and convert the operands.  In cases where none of the
-operands has a class type, the operands are returned unchanged.
-Note that this routine is called for operator "?", with unary_operator FALSE;
-the two operands are the second and third operands of the "?" ("?" cannot
-be overloaded, but conversion functions could still apply).
+try_conversions is TRUE if we should look for conversion functions that
+can convert the operands to built-in types that are acceptable for the
+built-in version of the operator.  has_predef_meaning is TRUE if the
+operator has a predefined meaning for classes (comma, ->, =, and unary &).
+It's also used for calls where we don't want an error if no function
+matches, because we want to try something else (e.g., the anachronism that
+allows a one-argument function for postfix "++" and "--").  Check to see
+if there is an operator function that can be invoked for the arguments.
+If so, create an operand for the call in *result and return *processed
+TRUE.  Also return *processed TRUE if the operation is an ambiguous
+overloaded function call.  Otherwise, return *processed FALSE, which means
+the caller should try the built-in meaning of the operator.  In that case,
+conversion functions will have been applied to the operands if that's
+appropriate.  In cases where none of the operands has a class type, the
+operands are returned unchanged.  Note that this routine is called for
+operator "?", with unary_operator FALSE; the two operands are the second
+and third operands of the "?" ("?" cannot be overloaded, but conversion
+functions could still apply).
 */
 {
   an_arg_operand_ptr       arg_operand_list, arg_operand_list2, arg_operand;
@@ -6796,7 +6798,6 @@ be overloaded, but conversion functions could still apply).
   an_expr_node_ptr         arg;
   a_type_ptr               routine_type;
   a_param_type_ptr         param;
-  a_boolean                try_builtin;
   an_operand               *bound_function_selector;
   a_boolean                undecidable_because_of_error;
 
@@ -6884,20 +6885,7 @@ be overloaded, but conversion functions could still apply).
         /* See if the built-in meaning of the operator can apply if we convert
            the class operand(s) to a built-in type through use of a conversion
            function. */
-        try_builtin = TRUE;
-        if (has_predef_meaning || kind == (an_opname_kind)onk_assign ||
-            kind == (an_opname_kind)onk_arrow_star) {
-          /* The operator has a built-in meaning for classes, so do not try
-             conversion functions. */
-          /* Never try conversions for assignment.  The left operand shouldn't
-             be converted, and the right operand will get converted as part
-             of the processing for the built-in operator, if there is one. */
-          /* Never try conversions for "->*".  It's not clear whether the
-             ARM allows these or not, but cfront 2.1 doesn't, and the
-             low-level routines here won't handle it. */
-          try_builtin = FALSE;
-        }  /* if */
-        if (try_builtin) {
+        if (try_conversions) {
           /* See if we can find user-defined conversions to built-in types that
              will make the built-in operator feasible.  The argument matches
              are compared to the best match so far from the above searches. */
