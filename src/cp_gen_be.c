@@ -1885,6 +1885,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
       if (!force_qualified_name && 
           (!scp->qualification_needed ||
+           (options & GN_DECLARATION) ||
            (scp->partially_hidden_by_microsoft_injected_class_name &&
             !(options & GN_QUALIFIER))) &&
           (scp->visible_as_unqualified_name ||

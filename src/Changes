@@ -1,5 +1,21 @@
 Version 2.46
 
+6/29/01  C++-generating back end: spurious qualifier in anachronisms mode
+
+In anachronisms mode, the C++-generating back end used to generate a
+spurious qualifier for nested type declarations if another type with
+the same name was inherited from a base class declared in another
+namespace.  For example:
+
+  namespace N {
+    struct A { enum E {}; };
+  }
+  struct B: N::A {
+    enum E {};  // Used to be rendered as "enum B::E {};" with --anachronisms
+  };
+
+This is now fixed.
+
 6/29/01  Requirement for object pointer for builtin operator forces
          instantiation
 
