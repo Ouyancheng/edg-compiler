@@ -358,10 +358,10 @@ Initialize the option information table.
                          pchek_command_line);
   add_option_description(optk_restrict, "restrict",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_none);
+                         pchek_command_line);
   add_option_description(optk_restrict, "no_restrict",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_none);
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
