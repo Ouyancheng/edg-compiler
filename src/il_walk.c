@@ -1168,22 +1168,24 @@ declaration.
        care of calling this again later when the routine is defined
        if it is not defined now. */
     if (rout->defined && rout->assoc_scope != NULL_region_number) {
-      a_scope_ptr saved_innermost_function_scope;
       a_scope_ptr scope;
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
                       "set_routine_keep_definition_in_il: memory region gone");
       scope = il_header.region_scope_entry[rout->assoc_scope];
-      /* Set the innermost function scope.  This is needed for finding the
-         variable associated with anonymous union types. */
-      saved_innermost_function_scope = innermost_function_scope;
-      innermost_function_scope = scope;
-      /* walk_tree_and_set_keep_in_il is not used here so that this routine can
-         be callable from outside of the keep_in_il flag walk. */
-      mark_to_keep_in_il((char *)scope, iek_scope);
-      /* Make sure the definitions of virtual functions of local classes
-         are kept. */
-      keep_definitions_of_virtual_functions_in_scope(scope);
-      innermost_function_scope = saved_innermost_function_scope;
+      /* Don't walk the body if it hasn't been lowered yet. */
+      if (scope->function_body_processing_finished) {
+        /* Set the innermost function scope.  This is needed for finding the
+           variable associated with anonymous union types. */
+        a_scope_ptr saved_innermost_function_scope = innermost_function_scope;
+        innermost_function_scope = scope;
+        /* walk_tree_and_set_keep_in_il is not used here so that this
+           routine can be callable from outside of the keep_in_il flag walk. */
+        mark_to_keep_in_il((char *)scope, iek_scope);
+        /* Make sure the definitions of virtual functions of local classes
+           are kept. */
+        keep_definitions_of_virtual_functions_in_scope(scope);
+        innermost_function_scope = saved_innermost_function_scope;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_routine_keep_definition_in_il */
