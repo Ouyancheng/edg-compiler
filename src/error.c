@@ -32,6 +32,9 @@ error.c -- Error reporting routines.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
+#define is_pointer_or_reference_type(tp) \
+	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
+
 #define BASE_MSG_SEGMENT_SIZE 100
 				/* The starting length of a formatted
 				   message segment. */
@@ -83,7 +86,7 @@ typedef struct msg_segment {
     /* When kind == msk_user_string:
 				   The pointer to the user string is in
 				   error_msg_strings[]. */
-    struct string_tag {
+    struct {
       a_byte_boolean
 		quoted;		/* True if the user specified string is to
 				   be outputted in double quotes.  When TRUE,
@@ -95,7 +98,7 @@ typedef struct msg_segment {
 				   error_msg_types[]. */
     /* When kind == msk_symbol:    The pointer to the symbol is in
 				   error_msg_syms[]. */
-    struct symbol_tag {
+    struct {
       a_byte_boolean
 		full_type;	/* True if the symbol should be expanded
 				   into an object (type and name). */
@@ -1609,14 +1612,12 @@ Add the type specifier to the type string being formed.
     case tk_float:
       form_float_kind_name(type->variant.float_kind, seg_ptr);
       break;
-    case tk_class:
-      s = "class ";
-      goto do_tag_name;
     case tk_struct:
-      s = "struct ";
+      if (C_dialect != C_dialect_cplusplus) s = "struct ";
       goto do_tag_name;
     case tk_union:
-      s = "union ";
+      if (C_dialect != C_dialect_cplusplus) s = "union ";
+    case tk_class:
 do_tag_name:
       add_string_to_segment(s, seg_ptr);
       if (type->source_corresp.name != NULL) {
@@ -1644,7 +1645,7 @@ typeref_done:
       /* Note that certain type kinds are handled by form_type_first_part
          and form_type_second_part and shouldn't get here. */
     default:
-      s = "**BAD TYPE SPECIFIER KIND**";
+      internal_error("form_type_specifier: bad type specifier kind");
   }  /* switch */
   if (s != NULL) add_string_to_segment(s, seg_ptr);
 }  /* form_type_specifier */
@@ -1683,7 +1684,7 @@ Add the first of possibly two parts of a type reference.
 
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
-  if (is_pointer_type(type)) {
+  if (is_pointer_or_reference_type(type)) {
     local_type = skip_typerefs(type)->variant.pointer.type;
     /* Recursive call to print out any lower indirections. */
     form_type_first_part(local_type, /*need_parens=*/FALSE, seg_ptr);
@@ -1731,7 +1732,7 @@ array, print out the dimension information.
 
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
-  if (is_pointer_type(type)) {
+  if (is_pointer_or_reference_type(type)) {
     local_type = skip_typerefs(type);
     if (need_parens) {
       add_string_to_segment(")", seg_ptr);
@@ -1850,11 +1851,45 @@ segment described by seg_ptr.  The generated format is:
       (void)sprintf(buffer, "%ld", (unsigned long)line_number);
       add_string_to_segment(&buffer[0], seg_ptr);
       add_string_to_segment(" of \"", seg_ptr);
+      add_string_to_segment(file_name, seg_ptr);
+      add_string_to_segment("\")", seg_ptr);
     }  /* if */
-    add_string_to_segment(file_name, seg_ptr);
-    add_string_to_segment("\")", seg_ptr);
   }  /* if */
 }  /* form_decl_position */
+
+
+static a_boolean is_overloaded_function(a_symbol_ptr sym)
+/*
+*/
+{
+  a_boolean	is_overloaded = TRUE;	/* Assume and try to disprove. */
+  a_symbol_ptr	wrk_sym;
+
+  /* Check through the current list of symbols. */
+  for (wrk_sym = sym->header->symbol;
+       wrk_sym != NULL;
+       wrk_sym = wrk_sym->next) {
+    if (wrk_sym == sym) {
+      /* The symbol is in the header's linked list of symbols and therefore
+         is not an overloaded function. */
+      is_overloaded = FALSE;
+      goto return_point;
+    }  /* if */
+  }  /* for */
+  /* Check through the inactive symbol list. */
+  for (wrk_sym = sym->header->inactive_symbols;
+       wrk_sym != NULL;
+       wrk_sym = wrk_sym->next) {
+    if (wrk_sym == sym) {
+      /* The symbol is in the header's linked list of inactive symbols and
+         therefore is not an overloaded function. */
+      is_overloaded = FALSE;
+      goto return_point;
+    }  /* if */
+  }  /* for */
+return_point:
+  return is_overloaded;
+}  /* is_overloaded_function */
 
 
 static void form_symbol_name(a_symbol_ptr    sym,
@@ -1937,7 +1972,9 @@ function_name:
       }  /* if */
       form_class_name(sym->class_of_which_a_member, seg_ptr);
       add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (seg_ptr->variant.symbol.full_type && type != NULL) {
+      if (type != NULL &&
+          (seg_ptr->variant.symbol.full_type ||
+           is_overloaded_function(sym)) ) {
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
       } else if (! seg_ptr->variant.symbol.name_only) {
         add_string_to_segment("()", seg_ptr);
