@@ -1,6 +1,11 @@
 Version 2.21
 
-12/16/93 Conditional flags in IL lowering
+12/17/93 C-generating back end output of types
+
+The C-generating back end now outputs typedefs instead of the underlying
+type for typedefs of pointer and routine types.
+
+12/17/93 Conditional flags in IL lowering
 
 Three bugs related to generation of conditional flags in IL lowering have
 been fixed:
