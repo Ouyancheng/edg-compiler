@@ -2523,8 +2523,9 @@ been completed.
   /* Check for classes defined in the current scope. */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp)) {
-      /* If the has been marked to indicate that a definition is needed, then
-         we need to walk the subtree of the class; if not, we can ignore it. */
+      /* If the class has been marked to indicate that a definition is needed,
+         then we need to walk the subtree of the class; if not, we can ignore
+         it. */
       if (tp->source_corresp.needed) {
         if (tp->variant.class_struct_union.definition_needed) {
           /* Walk the class subtree.  Clear the needed flag first, else the
@@ -2549,7 +2550,7 @@ been completed.
         vp->init_kind == (an_init_kind)initk_dynamic) {
       /* This is an externally linked variable that has been defined or
          (whatever its linkage) has been marked as "needed" (typically
-         because it has not been referenced in a function that is needed).
+         because it has been referenced in a function that is needed).
          Or else it is a variable local to this translation unit but with
          dynamic initialization, in which case it is treated as "needed"
          because the initialization may have side effects.  Mark it as
