@@ -3745,12 +3745,15 @@ class_type if any are needed and if they have not already been generated.
 
 
 static a_boolean virtual_function_table_should_be_defined_here(
-                                                         a_type_ptr class_type)
+                                                      a_type_ptr class_type,
+                                                      a_boolean  *force_static)
 /*
 Return TRUE if the virtual function tables for the class type class_type should
 be defined (i.e., initialized) in this compilation.  Note that this should not
 be called until the end of the file scope, as its value depends on whether
-or not some function in the class has been defined.
+or not some function in the class has been defined.  If the virtual function
+table should be forced to be local to this compilation, *force_static
+is returned TRUE.
 */
 {
   a_boolean                   defined_here;
@@ -3758,6 +3761,7 @@ or not some function in the class has been defined.
   a_scope_ptr                 scope;
   a_routine_ptr               routine;
 
+  *force_static = FALSE;
   /* The virtual function tables for a class are defined in the compilation
      that contains the definition of the lexically first non-inline, virtual,
      non-pure member function of the class.  See ARM 10.8.1c and "New Virtual
@@ -3803,6 +3807,7 @@ or not some function in the class has been defined.
          table.  Define the virtual function table here unless suppressed
          by user command line option. */
       defined_here = !suppress_virtual_function_table_definition;
+      if (defined_here) *force_static = TRUE;
     }  /* if */
   }  /* if */
 have_defined_here:;
@@ -3878,12 +3883,14 @@ in that case, a NULL pointer is put out for the function.
 
 
 static void define_one_virtual_function_table(a_type_ptr       class_type,
-                                              a_base_class_ptr bcp)
+                                              a_base_class_ptr bcp,
+                                              a_boolean        force_static)
 /*
 Make the definition for the virtual function table for the base class
 indicated by bcp when it appears within a complete object of the class type
 class_type.  If bcp == NULL, make the virtual function table for the class
-itself.
+itself.  If force_static is TRUE, the virtual function table is forced to
+be local the the current compilation even if the class is externally linked.
 */
 {
   an_overriding_virtual_function_ptr override_list;
@@ -3920,7 +3927,8 @@ itself.
                                               ctsp->virtual_function_count + 1;
   set_type_size(vtbl_var->type);
   if (class_type->source_corresp.name_linkage ==
-                                 (a_name_linkage_kind)nlk_cplusplus_external) {
+                                 (a_name_linkage_kind)nlk_cplusplus_external &&
+      !force_static) {
     /* For an externally-linked class, change the variable to an external
        definition. */
     vtbl_var->storage_class = (a_storage_class)sc_unspecified;
@@ -4011,7 +4019,7 @@ class_type if any are needed.
   a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
   a_boolean                   need_determined = FALSE;
-  a_boolean                   definition_needed;
+  a_boolean                   definition_needed, force_static;
 
   /* Make sure the class type has been pre-lowered. */
   prelower_class_type(class_type);
@@ -4021,11 +4029,13 @@ class_type if any are needed.
       /* The class has a virtual function table.  Generate the definition
          if it is supposed to be generated in the present compilation. */
       definition_needed = 
-                     virtual_function_table_should_be_defined_here(class_type);
+                  virtual_function_table_should_be_defined_here(class_type,
+                                                                &force_static);
       need_determined = TRUE;
       if (definition_needed) {
         /* Generate the virtual function table for the class itself. */
-        define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL);
+        define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
+                                          force_static);
       }  /* if */
       /* The vtbl variable is referenced if the class is referenced. */
       ctsp->virtual_function_table_var->source_corresp.referenced =
@@ -4037,11 +4047,12 @@ class_type if any are needed.
       if (bcp->virtual_function_table_var != NULL) {
         if (!need_determined) {
           definition_needed = 
-                     virtual_function_table_should_be_defined_here(class_type);
+                  virtual_function_table_should_be_defined_here(class_type,
+                                                                &force_static);
           need_determined = TRUE;
         }  /* if */
         if (definition_needed) {
-          define_one_virtual_function_table(class_type, bcp);
+          define_one_virtual_function_table(class_type, bcp, force_static);
         }  /* if */
         /* The vtbl variable is referenced if the class is referenced. */
         bcp->virtual_function_table_var->source_corresp.referenced =
