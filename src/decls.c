@@ -7973,42 +7973,13 @@ continue_with_declaration:
                    class declarations that contain nonstatic const or reference
                    members and no constructor, but this seems to introduce an
                    unnecessary incompatibility with C. */
-#if 0
                 tp = skip_typerefs(tp);
-                if (C_dialect == C_dialect_cplusplus) {
-                  next_bcp = tp->variant.class_struct_union.
-                                                   extra_info->base_classes;
+                if (tp->variant.class_struct_union.any_const_member ||
+                    (C_dialect == C_dialect_cplusplus &&
+                     symbol_supplement_for_class(tp)->any_ref_member)) {
+                  pos_sy_warning(ec_var_with_uninitialized_field,
+                                 &declarator_pos, symbol_ptr);
                 }  /* if */
-                for (;;) {
-                  if (tp->variant.class_struct_union.any_const_member ||
-                      (C_dialect == C_dialect_cplusplus &&
-                       symbol_supplement_for_class(tp)->any_ref_member)) {
-                    /* Issue a warning on each uninitialized const or ref
-                       member. */
-                    a_symbol_ptr  field_sym;
-                    a_field_ptr   fp;
-
-                    for (fp = tp->variant.class_struct_union.field_list;
-                         fp != NULL;
-                         fp = fp->next) {
-                      field_sym = (a_symbol_ptr)fp->source_corresp.assoc_info;
-                      if (field_sym != NULL) {
-                        if (type_or_element_type_is_const_qualified(
-                                                                  fp->type)) {
-                          pos_sy_warning(ec_uninitialized_const_member,
-                                         &declarator_pos, field_sym);
-                        } else if (is_reference_type(fp->type)) {
-                          pos_sy_warning(ec_uninitialized_ref_member,
-                                         &declarator_pos, field_sym);
-                        }  /* if */
-                      }  /* if */
-                    }  /* for */
-                  }  /* if */
-                  if (next_bcp == NULL) break;
-                  tp = next_bcp->type;
-                  next_bcp = next_bcp->next;
-                }  /* for */
-#endif /* if 0 */
               }  /* if */
             }  /* if */
           }  /* if */
