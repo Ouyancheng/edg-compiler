@@ -5695,8 +5695,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       /* Note that integral promotions are NOT done on the integer in
          "pointer + integer" and "pointer - integer".  This is as
          the standard wants it. */
-      if (both_operands_are_arithmetic) {
-        change_binary_operand_types(result_type, operand_1, &operand_2);
+      if (both_operands_are_arithmetic || pointer_difference) {
+        change_binary_operand_types(operation_type, operand_1, &operand_2);
       }  /* if */
       /* Determine the expression operator for this case. */
       if (pointer_difference) {

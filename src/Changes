@@ -1,5 +1,17 @@
 Version 2.28
 
+1/4/95  Missing IL casts in pointer difference
+
+A cast is now generated, if necessary, to bring the two operands of
+a pointer difference to a common type.
+
+  struct B {};
+  struct D : public B {};
+  int f(B *pB, D *pD)
+  {
+      return pD-pB;  // Cast of pD to B* now generated
+  }
+
 -------------------------------------------------------------------------------
 Version 2.27, December 22, 1994
 
