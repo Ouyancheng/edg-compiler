@@ -3860,13 +3860,12 @@ indicated by template_sym.  The symbol of the new instance is returned.
                                            templ_arg_list, depth, source_pos,
                                            copy_error);
     } else {
-#if CHECKING
-      if (tap->variant.constant->kind ==
-                            (a_constant_repr_kind)ck_template_param) {
-        internal_error("copy_type_with_subst: bad const in templ arg");
-      }  /* if */
-#endif /* CHECKING */
-      new_tap->variant.constant = tap->variant.constant;
+      new_tap->variant.constant =
+         copy_template_param_con_with_substitution(tap->variant.constant,
+                                                   templ_arg_list,
+                                                   depth,
+                                                   source_pos,
+                                                   copy_error);
     }  /* if */
     if (new_list == NULL) {
       new_list = new_tap;
@@ -4222,13 +4221,13 @@ make_new_type:
                                                    templ_arg_list, depth,
 						   source_pos, copy_error);
             } else {
-#if CHECKING
-              if (tap->variant.constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param) {
-                internal_error("copy_type_with_subst: bad const in templ arg");
-              }  /* if */
-#endif /* CHECKING */
-              new_tap->variant.constant = tap->variant.constant;
+              new_tap->variant.constant =
+                copy_template_param_con_with_substitution(
+                                                   tap->variant.constant,
+                                                   templ_arg_list,
+                                                   depth,
+                                                   source_pos,
+                                                   copy_error);
             }  /* if */
             if (new_list == NULL) {
               new_list = new_tap;
