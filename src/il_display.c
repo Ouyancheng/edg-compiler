@@ -3823,6 +3823,15 @@ where file.cil specifies the IL file.  Output is to stdout.
   /* Read the file-scope IL. */
   il_read(f_il_input);
   primary_source_file_name = il_header.primary_source_file->file_name;
+#ifdef CFE
+  /* Set global variable default_routine_name_linkage, used in displaying
+     function types in C and C++. */
+  if (il_header.source_language == (a_source_language)sl_C) {
+    default_routine_name_linkage = (a_name_linkage_kind)nlk_external;
+  } else if (il_header.source_language == (a_source_language)sl_Cplusplus) {
+    default_routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
+#endif /* ifdef CFE */
   (void)printf(
           "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
           file_name, primary_source_file_name);
