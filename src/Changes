@@ -23,6 +23,14 @@ they see "old_style_params_scanned" set to TRUE.  This simplifies some code
     f((char *)0);          // an error is now issued on this
   }
 
+2/25/96  Friend information in source sequence lists
+
+When source sequence entries are being generated, friend declarations are
+now identified in either of two ways: when the friend declaration is a
+primary declaration, defined_in_friend_decl, a new field in a_routine, will
+be set; otherwise, friend_decl, a new field in a_src_seq_secondary_decl,
+will be set.
+
 2/25/95  IL lowering: type-as-subobject prefix changed to "__SO__"
 
 When a class has virtual base classes, IL lowering creates a version
