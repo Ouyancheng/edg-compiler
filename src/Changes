@@ -1,5 +1,16 @@
 Version 3.4
 
+9/8/03   Spurious error on destructor name using injected template name
+
+A spurious error would result if an explicit destructor call used the
+injected class name of a class template in cases where the template itself
+was not visible to a normal lookup.  Now fixed.
+
+  namespace N { template <class> struct S { }; }
+  void f (N::S<int> *s) {
+    s->~S<int>();
+  } 
+
 9/5/03   Falling off end of file when looking for "(" after macro name
 
 Preprocessing now stops at the end of a file when looking for the

@@ -8975,8 +8975,9 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
 {
   /* Skip past the "~", check for an identifier. */
   (void)get_token();
-  if (!is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
-				       GID_DISALLOW_OPERATOR_NAME)) {
+  if (!f_is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
+				         GID_DISALLOW_OPERATOR_NAME,
+                                         field_sel_type)) {
     /* syntax_error is deliberately not called. */
     error(ec_exp_identifier);
     /* Put back the current token and make a fake error identifier. */
