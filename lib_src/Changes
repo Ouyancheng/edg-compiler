@@ -1,3 +1,7 @@
+Version 2.37
+
+6/23/97  Exception not considered caught when terminate() is entered
+-------------------------------------------------------------------------------
 Version 2.36, June 17, 1997
 
 6/5/97   Incorrect exception rethrown during processing of nested throw

@@ -983,7 +983,14 @@ a try block with a catch that matches the type of the object thrown.
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_processing_marker) {
       /* This entry is put on the stack before object cleanup begins.  If
          we find this marker it means that a destructor threw an
-         exception that was not handled within the destructor. */
+         exception that was not handled within the destructor.  The EH
+         stack entry should point to the throw processing marker when
+         exception_caught is called. */
+      __curr_eh_stack_entry = ehsep;
+      /* Indicate that the current thrown object is now in a handler.  This
+         makes the object eligible for a rethrow. */
+      curr_throw_stack_entry->in_handler = TRUE;
+      __exception_caught();
       __call_terminate();
     } else {
       unexpected_condition();
@@ -993,6 +1000,10 @@ a try block with a catch that matches the type of the object thrown.
 #if !UNWIND_STACK_BEFORE_CALLING_TERMINATE
   /* If no matching (non-internal) handler was found, call terminate. */
   if (non_internal_destination_ehsep == NULL) {
+      /* Indicate that the current thrown object is now in a handler.  This
+         makes the object eligible for a rethrow. */
+      curr_throw_stack_entry->in_handler = TRUE;
+    __exception_caught();
     __call_terminate();
   }  /* if */
 #endif /* !UNWIND_STACK_BEFORE_CALLING_TERMINATE */
@@ -1046,6 +1057,10 @@ a try block with a catch that matches the type of the object thrown.
      found.  When the internal try block does its rethrow, the rethrow will
      result in a call to terminate() when no matching handler is found. */
   if (destination_ehsep == NULL) {
+    /* Indicate that the current thrown object is now in a handler.  This
+       makes the object eligible for a rethrow. */
+    curr_throw_stack_entry->in_handler = TRUE;
+    __exception_caught();
     __call_terminate();
   }  /* if */
 #endif /* UNWIND_STACK_BEFORE_CALLING_TERMINATE */
