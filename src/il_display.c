@@ -3761,6 +3761,9 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->is_partial_instantiation) {
     disp_boolean("is_partial_instantiation", TRUE);
   }  /* if */
+  if (sssdp->compiler_generated_forward_decl) {
+    disp_boolean("compiler_generated_forward_decl", TRUE);
+  }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 }  /* disp_src_seq_secondary_decl */
 

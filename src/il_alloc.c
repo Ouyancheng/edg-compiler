@@ -2471,6 +2471,7 @@ and return a pointer to it.
   sssdp->first_declaration           = FALSE;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   sssdp->is_partial_instantiation    = FALSE;
+  sssdp->compiler_generated_forward_decl = FALSE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
