@@ -1,5 +1,16 @@
 Version 2.45
 
+8/4/00  Microsoft compatibility: inherited members can be named as friends
+
+In Microsoft mode, the front end now allows friend declarations to refer to
+an inherited member of another class.  For example:
+
+  struct B { void f(); };
+  struct D: B {};
+  struct X {
+    friend void D::f();  // Accepted in Microsoft mode only
+  };
+
 8/3/00  C++-generating back end: output of static extern "C" function in
         Sun mode
 
