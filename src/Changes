@@ -31,6 +31,31 @@ accordingly.  The old mangling is available through the command-line
 option --no_distinct_template_signatures, or by setting
 ABI_COMPATIBILITY_VERSION to something preceding 232.
 
+A few new encodings have been added to the name mangling scheme to
+represent new possibilities:
+
+  -- "ZnZ" represents the first-level template parameter at position n
+     (type or nontype).  "Zn_mZ" represents the template parameter at
+     position n and nesting depth m (for member templates nested inside
+     templates).
+  -- Expressions involving constants and nontype template parameters are
+     encoded as follows:
+       Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
+                 ^---- "O" to end the operation encoding.
+              ^^^----- Second operand.
+           ^^^-------- First operand.
+          ^----------- Count of operands.
+        ^^------------ Operation, using same encoding as for operator
+                       function names.
+       ^-------------- "O" for operation.
+  -- Arrays whose counts of elements are an expression involving constants
+     and nontype template parameters are encoded as
+       A_Opl2Z1ZZ2ZO_i <-- array[Z1 + Z2] of int
+                     ^---- Element type.
+         ^^^^^^^^^^^------ Encoded expression.
+       ^^----------------- "A" indicates array, "_" indicates expression
+                           for number of elements.
+
 5/10/96 IL CHANGE: new flags in a_routine, a_variable, a_type
 
 New flags related to explicit template specialization have been added to
