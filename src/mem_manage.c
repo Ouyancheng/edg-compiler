@@ -389,12 +389,16 @@ special "front end" memory region.
     /* Add enough entries to cover a pretty large compilation (each function
        compiled uses one entry). */
     old_size = size_of_mem_region_table;
-    size_of_mem_region_table  += 500;
+    size_of_mem_region_table = region_number + 500;
     mem_region_table = (a_mem_block_header_ptr *)realloc_with_check(
                           (char *)mem_region_table,
                           (sizeof_t)(old_size*sizeof(a_mem_block_header_ptr)),
                           (sizeof_t)(size_of_mem_region_table*
                                               sizeof(a_mem_block_header_ptr)));
+    /* Depending on NULL represented as zero bits here. */
+    memzero((char *)&mem_region_table[old_size],
+            size_t_arg((size_of_mem_region_table-old_size)*
+                       sizeof(a_mem_block_header_ptr)));
     /* region_scope_entry is a parallel array to mem_region_table, and must
        be similarly expanded. */
     il_header.region_scope_entry = (a_scope_ptr *)realloc_with_check(
@@ -402,6 +406,10 @@ special "front end" memory region.
                           (sizeof_t)(old_size*sizeof(a_scope_ptr)),
                           (sizeof_t)(size_of_mem_region_table*
                                                          sizeof(a_scope_ptr)));
+    /* Depending on NULL represented as zero bits here. */
+    memzero((char *)&il_header.region_scope_entry[old_size],
+            size_t_arg((size_of_mem_region_table-old_size)*
+                       sizeof(a_scope_ptr)));
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     /* ... and also index_for_il_file. */
     index_for_il_file = (a_file_position *)realloc_with_check(
@@ -409,6 +417,10 @@ special "front end" memory region.
                           (sizeof_t)(old_size*sizeof(a_file_position)),
                           (sizeof_t)(size_of_mem_region_table*
                                                     sizeof(a_file_position))); 
+    /* Depending on NULL represented as zero bits here. */
+    memzero((char *)&index_for_il_file[old_size],
+            size_t_arg((size_of_mem_region_table-old_size)*
+                       sizeof(a_file_position)));
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
 #if DEBUG
@@ -424,20 +436,13 @@ special "front end" memory region.
                           (sizeof_t)(size_of_mem_region_table*
                                                        sizeof(unsigned long)));
     /* Zero the new entries. */
-    { a_memory_region_number num;
-      for (num = size_of_allocated_in_region;
-           num < size_of_mem_region_table;
-           num++) {
-        allocated_in_region[num] = 0;
-      }  /* for */
-    }
+    memzero((char *)&allocated_in_region[size_of_allocated_in_region],
+            size_t_arg((size_of_mem_region_table-size_of_allocated_in_region)*
+                       sizeof(unsigned long)));
     size_of_allocated_in_region = size_of_mem_region_table;
   }  /* if */
 #endif /* DEBUG */
   mem_region_table[region_number] = NULL;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  index_for_il_file[region_number] = 0;
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Allocate the initial memory block. */
   (void)alloc_mem_block(region_number, min_size);
   /* Keep track of the highest memory region number used. */

@@ -885,16 +885,14 @@ build the in-memory version.
                                                      sizeof(a_file_position)));
     size_of_mem_region_table = new_size_of_mem_region_table;
   }  /* if */
-#if CHECKING
-  /* Set the undefined entries to NULL to improve checking for a bad
-     IL file. */
-  { a_memory_region_number i;
-    for (i = 0; i < size_of_mem_region_table; i++) {
-      mem_region_table[i] = NULL;
-      il_header.region_scope_entry[i] = NULL;
-    }  /* for */
-  }
-#endif /* CHECKING */
+  /* Clear the index tables. */
+  /* Depending on NULL represented as zero bits here. */
+  memzero((char *)mem_region_table,
+          size_t_arg(size_of_mem_region_table*sizeof(a_mem_block_header_ptr)));
+  memzero((char *)il_header.region_scope_entry,
+          size_t_arg(size_of_mem_region_table*sizeof(a_scope_ptr)));
+  memzero((char *)index_for_il_file,
+          size_t_arg(size_of_mem_region_table*sizeof(a_file_position)));
   /* Read the file index. */
   if (fseek(f_il_input, index_pos, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
