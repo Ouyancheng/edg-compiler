@@ -1,5 +1,10 @@
 Version 3.2
 
+3/19/03  Compilation of mk_errinfo.c on MacOS X 10.2.x
+
+MacOS X 10.2.x places malloc.h in a "sys" subdirectory.  mk_errinfo.c was
+updated to compile correctly on that platform.
+
 2/20/03  Demangling of non-nested type names with template arguments,
          Cfront-like ABI
 

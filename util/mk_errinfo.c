@@ -40,7 +40,11 @@ EXTERN_C void exit(int status);
 #if __BSD__
 EXTERN_C char *malloc(unsigned size);
 #else /* !__BSD__ */
+#if defined(__APPLE__)
+#include <sys/malloc.h>
+#else /* !defined(__APPLE__) */
 #include <malloc.h>
+#endif /* defined(__APPLE__) */
 #endif /* __BSD__ */
 #endif /* !STDLIB_H_INCLUDED */
 
