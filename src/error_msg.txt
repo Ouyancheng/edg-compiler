@@ -533,9 +533,9 @@ ec_no_access_to_type_cfront_mode;;"%n is an inaccessible type (allowed for cfron
 ec_return_type_not_allowed;;"a return type is not allowed"
 ec_invalid_instantiation_argument;;"invalid explicit instantiation declaration"
 ec_not_instantiatable_entity;;"%nf is not an entity that can be instantiated"
-ec_compiler_generated_function_cannot_be_instantiated;;"compiler generated function %n cannot be instantiated"
-ec_inline_function_cannot_be_instantiated;;"inline function %n cannot be instantiated"
-ec_pure_virtual_function_cannot_be_instantiated;;"pure virtual function %n cannot be instantiated"
+ec_compiler_generated_function_cannot_be_instantiated;;"compiler generated %n cannot be instantiated"
+ec_inline_function_cannot_be_instantiated;;"inline %n cannot be instantiated"
+ec_pure_virtual_function_cannot_be_instantiated;;"pure virtual %n cannot be instantiated"
 ec_instantiation_requested_no_definition_supplied;;"%n cannot be instantiated -- no template definition was supplied"
 ec_instantiation_requested_and_specific_definition;;"%n cannot be instantiated -- a specific definition has been supplied"
 ec_no_constructor;;"class %t has no constructor"
@@ -813,6 +813,7 @@ ec_cl_special_subscript_cost_option_only_in_cplusplus;;"special_subscript_cost o
 ec_cl_typename_option_only_in_cplusplus;;"typename option can be used only when compiling C++"
 ec_cl_implicit_typename_option_only_in_cplusplus;;"implicit typename option can be used only when compiling C++"
 ec_nonstd_character_at_start_of_macro_def;;"nonstandard character at start of object-like macro definition"
+ec_exception_specs_override_incompat;;"exception specification for virtual %n1 must be at least as restrictive as for overridden %n2"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
