@@ -1,6 +1,11 @@
 Version 3.2
 
-2/11/03  Missing error: storage class in template static data member definition
+2/12/03  Abort in IL display utility with C99 variable-length arrays
+
+The IL display program used to abort when trying to output the type of a
+variable-length array.  This is now fixed.
+
+2/12/03  Missing error: storage class in template static data member definition
 
 The front end failed to diagnose the presence of a storage class in a
 template static data member definition.  Now fixed.
@@ -10,7 +15,7 @@ template static data member definition.  Now fixed.
   };
   template <class T> static int A<T>::i = 1;
 
-2/11/03  Missing strict-mode error on implicit "int" in template parameter
+2/12/03  Missing strict-mode error on implicit "int" in template parameter
 
 A nontype template parameter declaration that omits an explicit type
 specifier resulted in a warning instead of an error in strict mode.

@@ -1663,6 +1663,12 @@ the way described by octl.
         octl->gen_vla_array_as_asterisk_bound_array) {
       /* Array[*] case. */
       octl->output_str("*");
+    } else if (innermost_function_scope == NULL) {
+      /* find_vla_dimension requires that innermost function scope be set.
+         Since this is not the case, we just emit a placeholder.  This should
+         only happen when called from the stand-alone IL display code. */
+      check_assertion(!octl->gen_compilable_code);
+      octl->output_str("<expr>");
     } else {
       /* Variable-length array with an associated expression. */
       a_vla_dimension_ptr vlap = find_vla_dimension(type);
