@@ -1053,6 +1053,7 @@ are handled in error_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(head_of_file_index_list),
       pch_saved_var_array_elem(tail_of_file_index_list),
+      pch_saved_var_array_elem(error_position),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
