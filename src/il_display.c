@@ -1720,6 +1720,9 @@ Display the indicated variable.
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
+  if (ptr->asm_name != NULL) {
+    disp_string_ptr("asm_name", ptr->asm_name, iek_other_text, (sizeof_t)0);
+  }  /* if */
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
@@ -2391,6 +2394,9 @@ Display the indicated routine.
   if (ptr->aliased_routine != NULL) {
     disp_string_ptr("aliased_routine", ptr->aliased_routine,
                     iek_other_text, (sizeof_t)0);
+  }  /* if */
+  if (ptr->asm_name != NULL) {
+    disp_string_ptr("asm_name", ptr->asm_name, iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
