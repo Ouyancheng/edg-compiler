@@ -191,6 +191,7 @@ EXTERN_C char *strrchr(char *, int);
 EXTERN_C int strcmp(char *, char *);
 EXTERN_C int strncmp(char *, char *, int);
 EXTERN_C int strlen(char *);
+EXTERN_C int strstr(char *, char *);
 EXTERN_C char *memcpy(char *, char *, int);
 EXTERN_C char *memset(char *, int, int);
 EXTERN_C int memcmp(char *, char *, int);
