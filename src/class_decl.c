@@ -10580,17 +10580,18 @@ the new declaration.
        fundamental symbol. */
     new_sym->decl_position = decl_pos;
     if (*other_sym == NULL) {
-      a_symbol_ptr  front_sym = NULL;
+      a_symbol_ptr  front_sym = new_sym->header->symbol;
       /* If this is a using-declaration referring to a dependent base member
          (which is represented through a template parameter symbol), we want
          to ensure that any member function of the same name already in this
          class scope is found before the new using-declaration.  This is
          achieved by arranging for the existing member symbol to remain at
          the head of the list of symbols. */
-      if (is_nontype_template_param_symbol(fund_sym) &&
-          new_sym->decl_scope == new_sym->header->symbol->decl_scope) {
-        front_sym = new_sym->header->symbol;
+      if (front_sym != NULL && new_sym->decl_scope == front_sym->decl_scope &&
+          is_nontype_template_param_symbol(fund_sym)) {
         remove_symbol(front_sym);
+      } else {
+        front_sym = NULL;
       }  /* if */
       /* Just enter it, since no overloading is involved. */
       reenter_symbol(new_sym, depth_scope_stack, /*suppress_error=*/TRUE);
