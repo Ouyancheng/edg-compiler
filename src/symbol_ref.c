@@ -79,8 +79,6 @@ should only be called if cross-reference information is being generated
     /* Ignore symbols for unnamed classes and enums. */
   } else if (source_position->seq == 0) {
     /* This symbol is not associated with any particular source position. */
-  } else if (is_template_dependent_context()) {
-    /* Ignore any symbols encountered during prototype instantiations. */
   } else {
     /* The record written to the file is a text line that looks like
 
