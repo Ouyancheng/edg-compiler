@@ -1,5 +1,22 @@
 Version 2.21
 
+11/14/93 Transformations on arguments of user-defined conversions
+
+Array --> pointer-to-array and function --> pointer-to-function
+transformations were done when not appropriate in some extremely odd cases:
+
+  struct A {
+    A(int (&)[3]);
+    A(const A&);
+  };
+  void g(A);
+  void g(float);
+  main () {
+    int arr[3];
+    g(arr);      // Got error; okay now
+    return 0;
+  }
+
 11/13/93 Static data members with incomplete types
 
 In the following, the static data member was changed to an external

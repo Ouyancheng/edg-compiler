@@ -4223,14 +4223,15 @@ lvalue to rvalue) that need to be done anyway.  This routine is called
 instead of conversion_possible and does those things.
 */
 {
-  /* Convert array --> pointer and function --> pointer. */
-  do_operand_transformations(operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                             TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-  /* When there's a conversion routine to call, it might take an lvalue
-     parameter, so do not convert to an rvalue yet.  For all other cases,
-     convert to an rvalue. */
-  if (user_conversion->routine == NULL) conv_lvalue_to_rvalue(operand);
+  /* When there's a user-defined conversion routine, do not do the
+     transformations.  They are done (if needed) when processing the
+     argument of the conversion routine. */
+  if (user_conversion->routine == NULL) {
+    /* Convert lvalue --> rvalue, array --> pointer, and
+       function --> pointer. */
+    do_operand_transformations(operand,
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+  }  /* if */
 }  /* prep_for_known_possible_conversion */
 
 
