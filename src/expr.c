@@ -1929,10 +1929,17 @@ bound with the function in *bound_function_selector.
       if (!pcc_mode_integral_pointer_case) {
         if (is_template_param_type(orig_class_struct_union_type)) {
           /* For a template parameter type, switch to the corresponding
-             proxy class. */
+             proxy class.  Preserve cv-qualifiers on the type. */
+          a_type_qualifier_set qualifiers =
+                             get_type_qualifiers(orig_class_struct_union_type);
           orig_class_struct_union_type =
-                      proxy_class_for_template_param(
-                                  skip_typerefs(orig_class_struct_union_type));
+                                   skip_typerefs(orig_class_struct_union_type);
+          orig_class_struct_union_type =
+                  proxy_class_for_template_param(orig_class_struct_union_type);
+          orig_class_struct_union_type =
+                              make_qualified_type(orig_class_struct_union_type,
+                                                  qualifiers);
+
         }  /* if */
         /* Drop any qualifiers or typedefs on the class/struct/union type. */
         class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
