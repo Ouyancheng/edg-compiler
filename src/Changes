@@ -1,8 +1,14 @@
 Version 2.21
 
+12/16/93 "signed" in error diagnostic messages
+
+Explicitly signed int (e.g., "signed int" rather than just "int") is
+no longer displayed as "signed int" in error diagnostics.  It's
+just "int" now.
+
 12/16/93  __vec_new_eh called even with exceptions disabled
 
-A bug caused the runtime routine __vec_new_eh to be caled in some
+A bug caused the runtime routine __vec_new_eh to be called in some
 cases even when exceptions are disabled.  For example:
 
   struct A {
