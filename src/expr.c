@@ -61,6 +61,28 @@ static void scan_expr_full(an_operand              *result,
                  (local_options))
 
 
+a_boolean expr_list_has_side_effects(an_expr_node_ptr expr_list,
+                                     a_boolean        *suppress_warning)
+/*
+Return TRUE if the indicated expression list has side effects.  If
+suppress_warning != NULL, return *suppress_warning TRUE if a warning
+about the expression list doing nothing should be suppressed.
+*/
+{
+  a_boolean        has_side_effects = FALSE, suppress = FALSE;
+  an_expr_node_ptr expr;
+  
+  for (expr = expr_list; expr != NULL; expr = expr->next) {
+    a_boolean local_suppress;
+    has_side_effects = node_has_side_effects(expr, &local_suppress);
+    suppress |= local_suppress;
+    if (has_side_effects) break;
+  }  /* for */
+  if (suppress_warning != NULL) *suppress_warning = suppress;
+  return has_side_effects;
+}  /* expr_list_has_side_effects */
+
+
 static a_boolean operation_has_side_effects(an_expr_node_ptr node,
                                             a_boolean        *suppress_warning)
 /*
@@ -191,13 +213,13 @@ first_op_volatile_test:
 
   /* For the operations that do not cause side effects, check the operands for
      side effects. */
-  for (operand = node->variant.operation.operands;
-       operand != NULL && !has_side_effects;
-       operand = operand->next) {
+  if (!has_side_effects) {
     a_boolean local_suppress;
-    has_side_effects = node_has_side_effects(operand, &local_suppress);
+    has_side_effects = expr_list_has_side_effects(
+                                              node->variant.operation.operands,
+                                              &local_suppress);
     suppress |= local_suppress;
-  }  /* for */
+  }  /* if */
 
   *suppress_warning = suppress;
   return has_side_effects;

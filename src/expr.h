@@ -67,6 +67,9 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_NO_OPTIONS 0
 typedef int a_local_expr_options_set;
 
+extern a_boolean expr_list_has_side_effects(
+                                           an_expr_node_ptr expr_list,
+                                           a_boolean        *suppress_warning);
 
 extern a_boolean node_has_side_effects(an_expr_node_ptr node,
                                        a_boolean        *suppress_warning);
