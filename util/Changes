@@ -1,5 +1,11 @@
 Version 2.34
 
+12/13/96 Name demangling for partial specializations
+
+The name demangler now recognizes the "__ps__" marker that introduces
+the first template argument list on a partial specialization of a
+class template.
+
 12/11/96 Speed improvement on name demangling
 
 The name demangling code was agonizingly slow on demangling very large

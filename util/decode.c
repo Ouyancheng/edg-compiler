@@ -708,27 +708,31 @@ Clear the fields of the indicated template parameter block.
 
 static char *demangle_template_arguments(
                                       char                       *ptr,
+                                      a_boolean                  partial_spec,
                                       a_template_param_block_ptr temp_par_info,
                                       a_decode_control_block_ptr dctl)
 /*
 Demangle the template class arguments beginning at ptr and output the
 demangled form.  Return a pointer to the character position following what was
-demangled.  ptr points to just past the "__pt__" or "__tm__" string.  When
-temp_par_info != NULL, it points to a block that controls output of
-extra information on template parameters.
+demangled.  ptr points to just past the "__tm__", "__ps__", or "__pt__"
+string.  partial_spec is TRUE if this is a partial-specialization
+parameter list ("__ps__").  When temp_par_info != NULL, it points to a
+block that controls output of extra information on template parameters.
 */
 {
   char          *p = ptr, *arg_base;
   unsigned long nchars, position;
   a_boolean     nontype, skipped, unskipped;
 
-  if (temp_par_info != NULL) temp_par_info->nesting_level++;
+  if (temp_par_info != NULL && !partial_spec) temp_par_info->nesting_level++;
   /* A template argument list looks like
-       __pt__3_ii
+       __tm__3_ii
                ^^---- Argument types.
              ^------- Size of argument types, including the underscore.
              ^------- ptr points here.
-     For new-form mangling of templates, "__pt__" is replaced by "__tm__".
+     For the first argument list of a partial specialization, "__tm__" is
+     replaced by "__ps__".  For old-form mangling of templates, "__tm__"
+     is replaced by "__pt__".
   */
   write_id_ch('<', dctl);
   /* Scan the size. */
@@ -746,7 +750,7 @@ extra information on template parameters.
     /* "X" identifies the beginning of a nontype argument. */
     nontype = (*p == 'X');
     skipped = unskipped = FALSE;
-    if (temp_par_info != NULL &&
+    if (!partial_spec && temp_par_info != NULL &&
         !temp_par_info->use_old_form_for_template_output &&
         !temp_par_info->actual_template_args_until_final_specialization) {
       /* Doing something special: writing out the template parameter name. */
@@ -1007,7 +1011,8 @@ simple case.
 */
 {
   char      *p, *end_ptr = NULL;
-  a_boolean is_special_name = FALSE, is_pt;
+  a_boolean is_special_name = FALSE, is_pt, is_partial_spec = FALSE;
+  a_boolean partial_spec_output_suppressed = FALSE;
   char      *demangled_name;
   int       mangled_length;
 
@@ -1083,14 +1088,16 @@ simple case.
       if (ch == '_' && p != ptr &&
           char_from_name(p+1) == '_' &&
           char_from_name(p+2) != '_' &&
-          /* When the length is known, stop only on "__pt", "__tm", or "__S".
-             Double underscores can appear in the middle of some names, e.g.,
-             member names used as template arguments. */
+          /* When the length is known, stop only on "__tm", "__ps", "__pt",
+             or "__S".  Double underscores can appear in the middle of some
+             names, e.g., member names used as template arguments. */
           (nchars == 0 ||
-           (char_from_name(p+2) == 'p' &&
-            char_from_name(p+3) == 't') ||
            (char_from_name(p+2) == 't' &&
             char_from_name(p+3) == 'm') ||
+           (char_from_name(p+2) == 'p' &&
+            char_from_name(p+3) == 's') ||
+           (char_from_name(p+2) == 'p' &&
+            char_from_name(p+3) == 't') ||
            char_from_name(p+2) == 'S')) {
         break;
       }  /* if */
@@ -1102,6 +1109,25 @@ simple case.
   if (!is_special_name) {
     /* Output the characters of the base name. */
     for (p = ptr; p < end_ptr; p++) write_id_ch(*p, dctl);
+  }  /* if */
+  /* If there's a template argument list for a partial specialization
+     (beginning with "__ps__"), process it. */
+  if ((nchars == 0 || (end_ptr-ptr+6) < nchars) &&
+      start_of_id_is("__ps__", end_ptr)) {
+    /* Write the arguments.  This first argument list gives the arguments
+       that appear in the partial specialization declaration:
+         template <class T, class U> struct A { ... };
+         template <class T> struct A<T *, int> { ... };
+                                     ^^^^^^^^this argument list
+       This first argument list will be followed by another argument list
+       that gives the arguments according to the partial specialization.
+       For A<int *, int> according to the example above, the second
+       argument list is <int>.  The second argument list is scanned but
+       not put out, except when argument correspondences are output. */
+    end_ptr = demangle_template_arguments(end_ptr+6, /*partial_spec=*/TRUE,
+                                          temp_par_info, dctl);
+    note_specialization(end_ptr, temp_par_info);
+    is_partial_spec = TRUE;
   }  /* if */
   /* If there's a specialization indication ("__S"), ignore it. */
   if (char_from_name(end_ptr)   == '_' &&
@@ -1119,8 +1145,17 @@ simple case.
     if (is_pt && temp_par_info != NULL ) {
       temp_par_info->use_old_form_for_template_output = TRUE;
     }  /* if */
+    /* For the second argument list of a partial specialization,
+       process the argument list but suppress output. */
+    if (is_partial_spec && temp_par_info != NULL &&
+        !temp_par_info->output_only_correspondences) {
+      dctl->suppress_id_output++;
+      partial_spec_output_suppressed = TRUE;
+    }  /* if */
     /* Write the arguments. */
-    end_ptr = demangle_template_arguments(end_ptr+6, temp_par_info, dctl);
+    end_ptr = demangle_template_arguments(end_ptr+6, /*partial_spec=*/FALSE,
+                                          temp_par_info, dctl);
+    if (partial_spec_output_suppressed) dctl->suppress_id_output--;
     /* If there's a(nother) specialization indication ("__S"), ignore it. */
     if (char_from_name(end_ptr)   == '_' &&
         char_from_name(end_ptr+1) == '_' &&
