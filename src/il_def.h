@@ -2783,8 +2783,8 @@ typedef struct a_variable {
   unsigned int	referenced_non_locally:1;
 			/* TRUE if the variable is a local static variable
 			   that is referenced from outside of its function
-			   (i.e., from a member function of a local class
-			   or from destructor code).  TRUE only in C++. */
+			   (e.g., from a member function of a local class).
+			   TRUE only in C++. */
   unsigned int	is_template_static_data_member:1;
 			/* TRUE if this is a static data member that is a
 			   member of a class generated from a template,
