@@ -7382,12 +7382,15 @@ because they were used in declaring an external function or variable.
       if (is_candidate_for_linkage_change(tp)) {
         /* Class has internal linkage but nothing prevents it from changing
            to external linkage. */
-        external = FALSE;
         if (tp->variant.class_struct_union.extra_info->
                                               template_arg_list != NULL) {
           /* This is a template class, so it should have external linkage.
              (Template classes that should not have external linkage have been
              screened out by is_candidate_for_linkage_change. */
+          external = TRUE;
+        } else if (symbol_supplement_for_class(tp)->force_external_linkage) {
+          /* Type has been used in a context that requires it to have
+             external linkage. */
           external = TRUE;
         } else {
           external = class_members_force_external_linkage(tp);
