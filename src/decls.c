@@ -4143,7 +4143,8 @@ class template.
 {
   a_scope_depth                     effective_decl_level;
   a_symbol_ptr                      sym = NULL;
-  a_symbol_ptr                      overload_symbol = NULL, homonym_symbol;
+  a_symbol_ptr                      overload_symbol = NULL;
+  a_symbol_ptr                      homonym_symbol = NULL;
   a_symbol_ptr                      rout_sym, ext_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_routine_ptr                     rout_ptr, rp;
@@ -4261,16 +4262,21 @@ class template.
                                     &namespace_reactivated);
   }  /* if */
   if (sym == NULL) {
-    /* id_linkage will set sym to point to an existing symbol when we have
-       a redeclaration of a function template. */
-    (void)id_linkage(locator, &storage_class, effective_decl_level, type_ptr,
-                     func_info, &sym, &homonym_symbol);
-    if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
-      /* Invalid redeclaration. */
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
-      sym = NULL;
-      set_to_error_locator(*locator);
+    if (scope_stack[effective_decl_level].in_prototype_instantiation) {
+      /* Suppress lookup of friend template declarations during prototype
+         instantiation. */
+    } else {
+      /* id_linkage will set sym to point to an existing symbol when we have
+         a redeclaration of a function template. */
+      (void)id_linkage(locator, &storage_class, effective_decl_level,
+                       type_ptr, func_info, &sym, &homonym_symbol);
+      if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
+        /* Invalid redeclaration. */
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &locator->source_position, sym);
+        sym = NULL;
+        set_to_error_locator(*locator);
+      }  /* if */
     }  /* if */
     if (sym == NULL) {
       /* Not a redeclaration. */
