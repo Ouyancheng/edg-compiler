@@ -1133,7 +1133,10 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
       if (nsp != NULL) {
         nsp = skip_namespace_aliases(nsp);
         scope_depth = nsp->variant.assoc_scope->depth_in_scope_stack;
-        if (scope_depth != NO_SCOPE_DEPTH) {
+        if (scope_depth != NO_SCOPE_DEPTH &&
+            (scope_stack[scope_depth].kind == (a_scope_kind)sck_namespace ||
+             scope_stack[scope_depth].
+                                 explicitly_declared_namespace_extension)) {
           /* Found a currently active namespace scope among the namespace
              parents of class_type. */
           break;
