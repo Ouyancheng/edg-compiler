@@ -1,12 +1,21 @@
 Version 2.37
 
+9/6/97    Microsoft compatibility: mutable in a declarator
+
+In Microsoft bugs mode "mutable" is accepted and ignored when it appears in
+a declarator:
+
+  class A {
+    void * mutable p;    // Accepted with a warning in Microsoft bugs mode
+  };
+
 9/6/97    Warning on nested class or enum declaration with type qualifier
 
 Except in strict ANSI mode an error is no longer issued when a type
 qualifier appears on a nested class or enum declaration with no
 declarator.  This change is partly for consistency with the handling of
 such declarations outside a class definition, and partly for Microsoft
-compatibility.
+compatibility.  For example:
 
   struct S {
     const enum E { a,b,c };    // Warning (or error in -A mode)
