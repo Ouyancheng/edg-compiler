@@ -5348,6 +5348,9 @@ needs to be done using the template parameter as the class type.
   /* Create the type for the class. */
   type = alloc_type((a_type_kind)tk_class);
   set_source_corresp(&(type->source_corresp), sym);
+  type->source_corresp.class_of_which_a_member =
+                  sym->class_of_which_a_member = 
+                     templ_param_type->source_corresp.class_of_which_a_member;
   tptdp->class_type = type;
   /* Set the scope number. */
   cssp = symbol_supplement_for_class(type);
