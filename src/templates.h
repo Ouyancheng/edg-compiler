@@ -90,7 +90,8 @@ extern void create_or_remove_instantiation_information_file(void);
 /* If sym is a template class that was instantiated by a can_instantiate
    pragma then return TRUE otherwise return FALSE. */
 #define was_instantiated_by_can_instantiate_pragma(sym)                 \
-  ((sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||		\
+  (sym != NULL &&							\
+   (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||		\
     sym->kind == (a_symbol_kind)sk_union_tag) &&			\
    sym->variant.class_struct_union.extra_info->				\
                             instantiated_by_can_instantiate_pragma)
