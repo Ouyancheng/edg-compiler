@@ -3254,20 +3254,20 @@ have_defined_here:;
 }  /* virtual_function_table_should_be_defined_here */
 
 
-a_boolean virtual_dtor_should_be_generated_for_class(a_type_ptr class_type)
+a_boolean inline_virtual_function_definitions_needed(a_type_ptr class_type)
 /*
-Return TRUE if the virtual destructor for the indicated class should be
-implicitly generated because of some requirement imposed by IL lowering.
-Specifically, an otherwise unreferenced virtual destructor must be
-generated if the virtual function table for the class must be defined in
-this compilation, because a pointer to the destructor must be put in the
-virtual function table.  This routine is meant to be called from the
-front end proper rather than from within IL lowering.  It must be called
-at the end of the translation unit, but before IL lowering is done for
-the file scope memory region.
+Return TRUE if inline virtual definitions for the indicated class are needed
+in this translation unit because of some requirement imposed by IL lowering.
+Specifically, an otherwise unreferenced inline virtual function will be
+needed if the virtual function table for the class must be defined in this
+compilation, because a pointer to it must be put in the virtual function
+table.  This routine is called for implicitly declared virtual destructors,
+to determine whether the body should be generated.  It is also called for
+issuing diagnostics on unreferenced user-declared inline virtual functions
+that are not defined in this translation unit.
 */
 {
-  a_boolean     should_generate = FALSE, force_static;
+  a_boolean     needed = FALSE, force_static;
   a_routine_ptr first_virtual;
 
   if (il_lowering_needed()) {
@@ -3283,14 +3283,13 @@ the file scope memory region.
     if (virtual_function_table_should_be_defined_here(class_type,
                                                       &force_static,
                                                       &first_virtual)) {
-      /* The virtual function table will be defined, and it will have a
-         reference to the virtual destructor, so the virtual destructor
-         should be generated. */
-      should_generate = TRUE;
+      /* The virtual function table will be defined in this translation unit,
+         so it will need to take the addresses of inline virtual functions. */
+      needed = TRUE;
     }  /* if */
   }  /* if */
-  return should_generate;
-}  /* virtual_dtor_should_be_generated_for_class */
+  return needed;
+}  /* inline_virtual_function_definitions_needed */
 
 
 /*
