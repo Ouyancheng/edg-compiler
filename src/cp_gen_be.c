@@ -1144,15 +1144,21 @@ file.
   }  /* if */
   curr_output_seq_number = seq;
   if (new_output_file != curr_output_file) {
-    char *p;
     /* The file name is put out only if it changed. */
+    char *p;
+    a_boolean process_escapes = !il_header.pcc_compatibility_mode;
     curr_output_file = new_output_file;
-    /* Put out the file name, putting escapes on characters as necessary. */
+    /* Put out the file name, putting escapes on characters as necessary.
+       Note that in ANSI/ISO C, escapes *are* recognized in the string
+       on a #line directive; in pcc mode, we assume they are not. */
+    if (gen_old_style_line_dirs) process_escapes = FALSE;
     (void)putc(' ', f_C_output);
     (void)putc('"', f_C_output);
     for (p = curr_output_file->file_name; *p != '\0'; p++) {
       char ch = *p;
-      if (ch == '"') (void)putc('\\', f_C_output);
+      if (process_escapes) {
+        if (ch == '"' || ch == '\\') (void)putc('\\', f_C_output);
+      }  /* if */
       (void)putc(ch, f_C_output);
     }  /* for */
     (void)putc('"', f_C_output);

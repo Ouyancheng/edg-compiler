@@ -473,10 +473,10 @@ is set to the character position of the error.
 }  /* conv_float_literal */
 
 
-static void conv_single_char(char          **temp_ptr,
-                             int           *remaining_mbc_char_count,
-                             unsigned long *ch,
-                             unsigned long centity_mask)
+void conv_single_char(char          **temp_ptr,
+                      int           *remaining_mbc_char_count,
+                      unsigned long *ch,
+                      unsigned long centity_mask)
 /*
 Fetch one character of a character constant or string literal.  The current
 position in the token is *temp_ptr (it is incremented appropriately

@@ -1959,6 +1959,8 @@ The kind character is the third operand: '1' for entry into a file,
 only be called when generate_pp_output is TRUE.
 */
 {
+  char *p;
+
   if (gen_line_info_in_pp_output) {
     /* Put out a line-identifying directive.  The form is
          #line line-number "file-name"
@@ -1970,22 +1972,33 @@ only be called when generate_pp_output is TRUE.
        not it is generated. */
     if (!pcc_preprocessing_mode) {
       /* ANSI version. */
-      fprintf(f_pp_output, "#line %lu \"%s\"",
-                           (a_line_number)(curr_ise->line_number+increment),
-                           curr_ise->file_name);
+      fputs("#line", f_pp_output);
     } else {
       /* pcc version. */
-      fprintf(f_pp_output, "# %lu \"%s\"",
-                           (a_line_number)(curr_ise->line_number+increment),
-                           curr_ise->file_name);
-#if GEN_EXTRA_LINE_ID_INFO
-      if (kind != ' ') {
-        putc(' ', f_pp_output);
-        putc(kind, f_pp_output);
-      }  /* if */
-#endif /* GEN_EXTRA_LINE_ID_INFO */
+      fputc('#', f_pp_output);
     }  /* if */
-    putc('\n', f_pp_output);
+    /* Put out the line number. */
+    fprintf(f_pp_output, " %lu \"",
+                           (a_line_number)(curr_ise->line_number+increment));
+    /* Put out the file name.  For ANSI/ISO output, add escapes as
+       necessary. */
+    for (p = curr_ise->file_name; *p != '\0'; p++) {
+      char ch = *p;
+      if (!pcc_preprocessing_mode) {
+        if (ch == '"' || ch == '\\') putc('\\', f_pp_output);
+      }  /* if */
+      putc(ch, f_pp_output);
+    }  /* for */
+    fputc('"', f_pp_output);
+#if GEN_EXTRA_LINE_ID_INFO
+    if (pcc_preprocessing_mode) {
+      if (kind != ' ') {
+        fputc(' ', f_pp_output);
+        fputc(kind, f_pp_output);
+      }  /* if */
+    }  /* if */
+#endif /* GEN_EXTRA_LINE_ID_INFO */
+    fputc('\n', f_pp_output);
     next_seq_in_pp_output = curr_seq_number + increment;
   }  /* if */
 }  /* gen_pp_line_info */

@@ -33,6 +33,10 @@ extern void conv_integer_literal(int           radix,
                                  char          **err_pos);
 extern void conv_float_literal(an_error_code *err_code,
                                char          **err_pos);
+extern void conv_single_char(char          **temp_ptr,
+                             int           *remaining_mbc_char_count,
+                             unsigned long *ch,
+                             unsigned long centity_mask);
 extern void conv_char_literal(unsigned long num_chars,
                               an_error_code *err_code,
                               char          **err_pos);

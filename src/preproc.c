@@ -31,6 +31,7 @@ preproc.c -- Preprocessing directives.
 #include "pragma.h"
 #include "preproc.h"
 #include "symbol_ref.h"
+#include "literals.h"
 
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
 typedef struct a_pp_if_stack_entry {
@@ -692,9 +693,10 @@ Scan and process an #undef directive.
 }  /* proc_undef */
 
 
-static char *copy_header_name(void)
+static char *copy_header_name(a_boolean process_escapes)
 /*
 Allocate and copy the file name from the current token (a header name).
+Escapes in the string are processed only if processes_escapes is TRUE.
 There may be end-of-token markers in the string, which must be removed
 (this is because header names that result from macro expansions can be
 made up of several preprocessing tokens; see 3.8.2 and also
@@ -703,26 +705,39 @@ accum_quoted_string).
 {
   char		*name_start_pos, *in_pos, *out_pos;
   sizeof_t	name_len, i;
+  int           remaining_mbc_char_count = 0;
+  unsigned long ch;
+  unsigned long centity_mask;
 
+  /* Build a mask used to mask individual characters. */
+  centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
+  centity_mask = centity_mask | (centity_mask-1);
   name_start_pos = alloc_il((sizeof_t)(
            (name_len = len_of_curr_token - 2 /* Drop quoting characters. */)
            + 1 /* Space for null. */));
   in_pos = start_of_curr_token+1;
   out_pos = name_start_pos;
-  /* Copy the string, removing end-of-token markers.  Note that space
-     including the end-of-token markers was allocated in the output
+  /* Copy the string, removing end-of-token markers and (if appropriate)
+     processing escapes.  Note that space including the end-of-token
+     markers and unprocessed escapes was allocated in the output
      string, so there may be a bit of wasted space. */
   for (i = 1; i <= name_len; i++) {
     if (*in_pos == LE_ESCAPE) {
       check_assertion_str(in_pos[1] == LE_END_OF_TOKEN,
                           "copy_header_name: bad lexical_escape");
       /* Ignore an end-of-token marker. */
-      in_pos++;
+      in_pos += LE_ESCAPE_LEN;
       i++;
+    } else if (process_escapes) {
+      /* Process the character, considering escape characters. */
+      char *prev_pos = in_pos;
+      conv_single_char(&in_pos, &remaining_mbc_char_count, &ch, centity_mask);
+      i += (in_pos - prev_pos) - 1;
+      *out_pos++ = ch;
     } else {
-      *out_pos++ = *in_pos;
+      /* Escapes should not be considered; just copy one character. */
+      *out_pos++ = *in_pos++;
     }  /* if */
-    in_pos++;
   }  /* for */
   *out_pos = '\0';
   return(name_start_pos);
@@ -774,7 +789,9 @@ Scan and process a #include directive.
       search_path = incl_search_path;
     }  /* if */
     /* Allocate space for and copy the name. */
-    name_start_pos = copy_header_name();
+    /* Escapes are not processed.  That's an implementation choice; you
+       can change this if you'd rather have it the other way. */
+    name_start_pos = copy_header_name(/*process_escapes=*/FALSE);
     /* Move past the header name. */
     (void)get_token();
     /* Ignore trailing junk on the line.  Do this before pushing the new file,
@@ -876,8 +893,11 @@ may have extra operand at end).
     /* Check for "L" is to disallow wide string literals. */
     /* The file name is present.  Since the constant is unconverted, allocate
        space for the string, and copy it.  Note that the string can be
-       empty, which is not really a problem. */
-    temp_file = copy_header_name();
+       empty, which is not really a problem.  Also note that unlike
+       in #include, escape characters in the string must be honored
+       (see the ISO C standard -- it uses "s-char-sequence" for #line
+       and "h-char-sequence" for #include). */
+    temp_file = copy_header_name(/*process_escapes=*/!pcc_preprocessing_mode);
     /* Move past the string literal. */
     (void)get_token();
   } else {

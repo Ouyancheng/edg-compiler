@@ -1,5 +1,15 @@
 Version 2.36
 
+6/11/97   Escape sequences recognized in #line directive file name strings
+
+Escape sequences are now recognized in the string literals that indicate
+the file names in #line directives.  This is required by the ANSI/ISO C
+standard.  This contrasts with the header names in #include directives,
+where escape sequences continue not to be recognized.  (The ANSI/ISO C
+standard leaves that as an implementation choice, and ignoring escape
+sequences is what most compilers seem to do.)  The old behavior on
+#line directives is preserved when old-style preprocessing is selected.
+
 6/11/97   Overload resolution cv-qualifier tiebreakers in cfront mode
 
 In overload resolution, the tie between two equally-ranked conversions
@@ -249,13 +259,6 @@ base class constructors, and another copy is done when the constructor
 is called for a subobject, in which case the virtual base class constructors
 are not called.)  This is required by the Working Paper, [class.cdtor]
 paragraph 2.
-
-5/28/97   In generated #line file names, "\" no longer escaped
-
-When the C- or C++-generating back end generates #line directives,
-backslash characters in file names are no longer escaped, so that
-a PC-style file name like "tmp\xyz.h" no longer comes out with
-double backslashes.
 
 5/28/97   Eliminated function static to simplify making the front end
           continue after a catastrophic error
