@@ -3714,6 +3714,10 @@ normal symbol lookup.
 
   db_enter(4, "enter_extern_symbol");
   sym = alloc_symbol(sym_kind, header, &locator->source_position);
+  /* Extern symbol entries are associated with the file scope of the current
+     translation units.  This allows find_external_symbol to discard extern
+     symbols created in other file scopes. */
+  sym->decl_scope = file_scope_number;
   if (is_error_locator(*locator)) {
     sym->is_error = TRUE;
   } else {
@@ -5093,7 +5097,11 @@ the latter will be NULL for variables.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (sym->parent.namespace_ptr != nsp) {
+      if (sym->decl_scope != file_scope_number) {
+        /* Ignore symbols not associated with the current file scope.
+           These could be extern entities associated with other translation
+           units. */
+      } else if (sym->parent.namespace_ptr != nsp) {
         /* Namespaces do not match -- keep looking. */
       } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
         if (rout_type == NULL) break;
