@@ -1,5 +1,13 @@
 Version 2.15
 
+2/26/93  Redeclaring a class template as a tag
+
+An error is issued if the name of a class template is redeclared to be
+a tag name in the same scope.
+
+  template <class T> struct A {};
+  enum A {};
+
 2/25/93  Error on self-targeted conversion operator
 
 Enforcing a restriction that appears in Working Paper 12.3.2 (but not in
