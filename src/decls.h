@@ -129,6 +129,15 @@ EXTERN a_boolean
 			/* When we are inside the declaration list for
 			   old-style function parameters, this flag is TRUE. */
 
+EXTERN a_name_linkage_kind
+		def_external_linkage_kind;
+			/* When we are inside the declaration list for a C++
+			   linkage specification, this variable indicates the
+			   linkage (e.g., C++ linkage or C linkage) that
+			   obtains for the declarations.  Its initial setting
+			   is the default linkage for the compilation mode
+			   (i.e., different for C and C++ modes). */
+
 /* Test whether or not the current token is the start of a type. */
 extern a_boolean is_type_start(void);
 
@@ -177,16 +186,17 @@ extern void decl_typedef(a_symbol_locator   *locator,
 extern void inline_function_definition(a_routine_ptr     routine_ptr,
                                        a_func_info_block *func_info);
 
-extern void decl_var_or_routine(a_symbol_locator   *locator,
-                                a_storage_class    storage_class,
-                                a_type_ptr         type_ptr,
-                                a_boolean          is_implicit_function,
-                                a_boolean          is_function_def_with_body,
-                                a_boolean          inline_specified,
-                                a_symbol_ptr       *symbol_ptr,
-                                an_id_linkage_kind *linkage_ptr,
-                                a_type_ptr         *old_type,
-                                a_symbol_ptr       *ext_sym);
+extern void decl_var_or_routine(a_symbol_locator     *locator,
+                                a_storage_class      storage_class,
+                                a_type_ptr           type_ptr,
+                                a_boolean            is_implicit_function,
+                                a_boolean            is_function_def_with_body,
+                                a_boolean            inline_specified,
+                                a_name_linkage_kind  external_linkage_kind,
+                                a_symbol_ptr         *symbol_ptr,
+                                an_id_linkage_kind   *linkage_ptr,
+                                a_type_ptr           *old_type,
+                                a_symbol_ptr         *ext_sym);
 
 /* Bit vector used to pass flags into declarator and into and out of
    decl_specifiers.  Each bit represents a flag. */
@@ -257,6 +267,10 @@ typedef int a_decl_flag_set;
                            missing type specifier. */
 #define DSI_INLINE_ALLOWED 0x40
 			/* If this bit is set allow an inline specifier. */
+#define DSI_LINKAGE_SPECIFIER_ALLOWED 0x80
+			/* If this bit is set a literal string may follow the
+			   "extern" keyword to specify the form of external
+			   linkage required. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
@@ -314,6 +328,10 @@ typedef int a_decl_flag_set;
                            specifiers, if any, are consistent with those
 			   allowed on a destructor declaration), and so a type
                            of tk_void was returned. */
+#define DSO_LINKAGE_SPECIFIER_BLOCK 0x4000
+			/* If this bit is set the value returned in
+			   *linkage_specifier applies to a brace-enclosed
+			   declaration list. */
 
 extern void declarator(a_decl_flag_set   input_flags,
                        a_decl_flag_set   *output_flags,
@@ -324,10 +342,11 @@ extern void declarator(a_decl_flag_set   input_flags,
                        a_type_ptr        *p_bottom_derived_type,
                        a_func_info_block *func_info);
 
-extern a_boolean decl_specifiers(a_decl_flag_set input_flags,
-				 a_decl_flag_set *output_flags,
-				 a_storage_class *storage_class,
-				 a_type_ptr      *type_ptr);
+extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
+				 a_decl_flag_set      *output_flags,
+				 a_storage_class      *storage_class,
+				 a_type_ptr           *type_ptr,
+                                 a_name_linkage_kind  *linkage_specifier);
 
 #endif /* DECLS_H */
 
