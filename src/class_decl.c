@@ -1172,7 +1172,9 @@ routine entry and return TRUE; otherwise return FALSE.
                 param_types_are_compatible(
                                   rout->type, rp->type,
                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
-                this_param_types_correspond(rout->type, rp->type)) {
+                this_param_types_correspond(rout->type, rp->type,
+                                            /*check_as_conversion=*/FALSE,
+                                            /*check_as_operands=*/FALSE)) {
               /* Now compare the return types. */
               if (return_types_are_override_compatible(rout->type, rp->type)) {
                 /* Match */

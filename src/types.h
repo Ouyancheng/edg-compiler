@@ -163,8 +163,10 @@ extern a_boolean f_identical_types(a_type_ptr type_1,
                                    a_boolean  il_identical);
 extern a_boolean interchangeable_types(a_type_ptr type_1,
                                        a_type_ptr type_2);
-extern a_boolean this_param_types_correspond(a_type_ptr type_1,
-                                             a_type_ptr type_2);
+extern a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
+                                             a_type_ptr rout_type_2,
+                                             a_boolean  check_as_conversion,
+                                             a_boolean  check_as_operands);
 /*
 Bit flags for calls of f_types_are_compatible et al.
 */
