@@ -7704,28 +7704,6 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
   }  /* if */
 }  /* mark_variable_value_set */
 
-
-a_decl_sequence_number set_decl_sequence_info(
-                                           a_decl_seq_info_ptr  decl_seq_info,
-                                           an_il_entry_kind     kind)
-/*
-Increment the decl-sequence counter and store its value for (possible) future
-use.  Also, if kind is other than iek_none, allocate an incomplete source
-sequence entry (incomplete because it has no entity pointer), add it to
-list appropriate for the current scope, and store its pointer so that it
-and its entity may be properly bound together at a later time.
-*/
-{
-  decl_seq_info->decl_seq = ++decl_seq_counter;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (kind != (an_il_entry_kind)iek_none) {
-    decl_seq_info->source_sequence_entry =
-                                add_incomplete_source_sequence_entry(kind);
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  return decl_seq_info->decl_seq;
-}  /* set_decl_sequence_info */
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void sym_update_source_sequence_list(a_symbol_ptr       sym,
@@ -8262,8 +8240,7 @@ storage_class are the type and storage class for the parameter.
       }  /* if */
       new_param_id->symbol = sym;
       sym->variant.param_id = new_param_id;
-      sym->decl_seq = set_decl_sequence_info(&new_param_id->decl_seq_info,
-                                             (an_il_entry_kind)iek_none);
+      set_decl_sequence_number(sym);
     }  /* if */
     /* Put this entry on the end of the list of param ids. */
     if (func_info->param_id_list == NULL) {
