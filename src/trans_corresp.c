@@ -3660,6 +3660,8 @@ return FALSE.
     /* The type is already pointing to a corresponding entry in another
        translation unit.  We only need to check if type_2 is also in the
        set of corresponding entries. */
+  } else if (!same_name(type_1, type_2)) {
+    /* If the type names differ, they can certainly not correspond. */
   } else if (total_errors != 0) {
     /* If correspondence errors already occurred, an attempt to compare
        the structure of type_1 and type_2 may end up being meaningless. */

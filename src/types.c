@@ -2829,6 +2829,7 @@ for more information.
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
             }  /* if */
           } else if ((flags & ITF_SEEK_CORRESP) != 0 &&
+                     secondary_translation_unit_seen() &&
                      type_1->variant.integer.enum_type &&
                      type_2->variant.integer.enum_type) {
             /* The types are expected to be identical, but because they are
@@ -2878,7 +2879,8 @@ for more information.
              type aren't identical.  There are some exceptions with template
              classes.  Check for those. */
           if (C_mode()) {
-            if ((flags & ITF_SEEK_CORRESP) != 0) {
+            if ((flags & ITF_SEEK_CORRESP) != 0 &&
+                secondary_translation_unit_seen()) {
               /* The types are expected to be identical, but because they are
                  presumably defined in two different translation units, the
                  correspondence of their inner structure must be checked. */
