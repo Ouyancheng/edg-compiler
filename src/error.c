@@ -1139,6 +1139,18 @@ error code.
     case ec_bad_arg_type_for_operator_new:
       m = "operator new requires first argument of type \"size_t\"";
       break;
+    case ec_bad_return_type_for_operator_new:
+      m = "operator new requires return type of \"void*\"";
+      break;
+    case ec_bad_return_type_for_operator_delete:
+      m = "operator delete requires return type of \"void\"";
+      break;
+    case ec_bad_first_arg_type_for_operator_delete:
+      m = "operator delete requires first argument of type \"void*\"";
+      break;
+    case ec_bad_second_arg_type_for_operator_delete:
+      m = "second argument of operator delete must be of type \"size_t\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
