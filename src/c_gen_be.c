@@ -5702,6 +5702,7 @@ block with state information for the processing.
   } else {
     /* Initializing a union or aggregate.  Do proper setup, and call this
        routine recursively for each initial value constant. */
+    a_field_ptr  prev_field = NULL;
     /* Set the location block that indicates where we are in the
        original variable. */
     if (outer_level_pos != NULL) outer_level_pos->next = ipdp;
@@ -5731,6 +5732,15 @@ block with state information for the processing.
                                   type->variant.class_struct_union.field_list);
         if (ipdp->curr_field != NULL) {
           elem_type = ipdp->curr_field->type;
+          if (ipdp->curr_field !=
+                                 type->variant.class_struct_union.field_list) {
+            /* We're not starting with the first field.  Make sure prev_field
+               points to the preceding field. */
+            prev_field = type->variant.class_struct_union.field_list;
+            while (prev_field->next != ipdp->curr_field) {
+              prev_field = prev_field->next;
+            }  /* if */
+          }  /* if */
         } else {
           /* The struct or union contains no initializable fields, e.g.,
              "struct {int :0;}", but a dummy field will have been put out
@@ -5775,7 +5785,6 @@ block with state information for the processing.
          through the type until a non-aggregate is found, and initialize
          it to zero.  An exception is caused by initializers for zero-length
          arrays in GNU C mode (handled above). */
-      a_field_ptr  prev_field = NULL;
       for (;;) {
         if (elem_con != NULL &&
             elem_con->kind == (a_constant_repr_kind)ck_designator) {
