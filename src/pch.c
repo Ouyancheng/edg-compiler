@@ -177,6 +177,7 @@ typedef enum /* a_pch_file_section */ {
   pfs_last		/* Must be last. */
 } a_pch_file_section;
 
+#if DEBUG
 static char	*file_section_names[(int)pfs_last + 1] =
 {
   "cmd_line_events",
@@ -187,6 +188,7 @@ static char	*file_section_names[(int)pfs_last + 1] =
   "memory_regions",
   "last"
 };
+#endif /* DEBUG */
 
 
 static void write_file_section_id(a_pch_file_section section)
