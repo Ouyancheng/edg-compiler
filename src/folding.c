@@ -3755,10 +3755,11 @@ based constants are handled by converting them to integer constants, and
 then converting the result back to being THREADS-based if appropriate.
 */
 {
+  a_constant  tmp, tmp_1, tmp_2;
+
   if (constant_1->kind == (a_constant_repr_kind)ck_upc_threads &&
       constant_2->kind == (a_constant_repr_kind)ck_upc_threads) {
     /* E.g., THREADS/THREADS. */
-      a_constant  tmp_1, tmp_2;
       a_boolean   set_result_to_threads = FALSE;
       convert_upc_threads_constant_to_integer(constant_1, &tmp_1);
       convert_upc_threads_constant_to_integer(constant_2, &tmp_2);
@@ -3790,7 +3791,6 @@ then converting the result back to being THREADS-based if appropriate.
           break;
       }  /* switch */
   } else {
-    a_constant      tmp;
     a_constant_ptr  nonthread_constant;
     if (constant_2->kind == (a_constant_repr_kind)ck_upc_threads) {
       /* E.g., 3*THREADS. */
@@ -3810,9 +3810,9 @@ then converting the result back to being THREADS-based if appropriate.
         binary_operation(op, constant_1, constant_2, result_type, result, 
           	             constant_context, evaluated_context, did_not_fold, 
                          template_constant, err_pos); 
-        if (!*did_not_fold && !is_zero_constant(result)) { 
-          /* If the folded result is zero, there is no need for it to be
-             converted to 0*THREADS. */
+        if (!*did_not_fold) { 
+          /* Convert the folded result back to a multiple of THREADS (unless
+             it is zero). */
           set_integer_constant_to_upc_threads(result); 
         }  /* if */ 
         break; 
