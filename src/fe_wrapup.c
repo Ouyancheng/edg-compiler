@@ -35,6 +35,11 @@ fe_wrapup.c - End of front end processing.
 #endif /* DO_IL_LOWERING */
 #if NEED_NAME_MANGLING
 #include "lower_name.h"
+#if DO_IL_LOWERING
+#define name_mangling_needed() (il_lowering_needed())
+#else /* !DO_IL_LOWERING */
+#define name_mangling_needed() (!C_mode())
+#endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
 #if DEBUG
 #include "exprutil.h"
@@ -307,11 +312,7 @@ it needs to be executed after all templates have been instantiated.
     do_based_type_fixup();
   }  /* if */
 #if NEED_NAME_MANGLING
-#if DO_IL_LOWERING
-  if (il_lowering_needed())
-#endif /* DO_IL_LOWERING */
-  /* Do not insert code here. */
-  {
+  if (name_mangling_needed()) {
     /* Do name mangling for all entities.  This has to be done before
        the names for statics referenced from templates are externalized. */
     do_all_name_mangling();
@@ -500,11 +501,7 @@ already been copied over.
        the purpose of determining their size. */
     remove_unneeded_static_data_member_instantiations();
 #if NEED_NAME_MANGLING
-#if DO_IL_LOWERING
-    if (il_lowering_needed())
-#endif /* DO_IL_LOWERING */
-    /* Do not insert code here. */
-    {
+    if (name_mangling_needed()) {
       /* Do final name mangling, which can make names that can no longer
          be embedded in other names, and therefore must be done very late.
          In particular, it must be done after
