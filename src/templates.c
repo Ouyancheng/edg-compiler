@@ -9893,6 +9893,7 @@ if one already exists.
           str_catastrophe(ec_cannot_create_instantiation_information_file,
                           instantiation_info_file_name);
         }  /* if */
+        (void)fclose(f_ii_file);
       }  /* if */
     } else {
       /* No instantiation information needed.  Delete the file if it
@@ -9985,6 +9986,60 @@ were entered in the hash table; otherwise returns FALSE.
 }  /* read_instantiation_info_file */
 
 
+static a_boolean init_auto_instantiation_information(void)
+/*
+Determine whether there are any instantiations that should be performed
+as part of the processing associated with this translation unit.  Return
+a flag that is TRUE if there are any such instantiations.  The default
+version of this routine simply opens and reads the instantiation 
+information file.
+*/
+{
+  a_boolean	result;
+
+  result = read_instantiation_info_file();
+  return result;
+}  /* init_auto_instantiation_information */
+
+
+static a_boolean entity_should_be_automatically_instantiated(
+					a_template_instance_ptr tip)
+/*
+Return TRUE if the entity specified by tip should be instantiated as part
+of the processing of this translation unit.  The default version of this
+routine simply checks whether the specified entity was named in the
+instantiation information file.
+*/
+{
+  a_boolean	result;
+
+  result = check_if_present_in_info_file(tip);
+  return result;
+}  /* entity_should_be_automatically_instantiated */
+
+
+void wrapup_auto_instantiation_information(void)
+/*
+Do any processing that is needed to finalize the mechanism used to
+handle tracking of automatic instantiation information.  The default
+version of this routine simply creates or removes the instantiation
+information file, depending on whether or not this translation unit
+contains instantiatable entities.
+*/
+{
+  /* Create or remove the instantiation information file if necessary. */
+  if (!do_preprocessing_only &&
+      total_errors == 0 && !suppress_back_end) {
+    /* When only doing preprocessing we cannot determine whether or not the
+       instantiation information file is needed.  We also don't update
+       the instantiation file if there were errors, or if running the
+       front end only.  By not calling this routine we keep the old version
+       if one was present and don't create one if one did not already exist. */
+    create_or_remove_instantiation_information_file();
+  }  /* if */
+}  /* wrapup_auto_instantiation_information */
+
+
 static a_boolean can_be_instantiated(a_template_instance_ptr tip)
 /*
 Determines whether this compilation is capable of generating an
@@ -10049,7 +10104,7 @@ entities from the info file list that can be instantiated.
   a_template_instance_ptr	tip;
   a_template_instantiation_mode	saved_instantiation_mode;
   a_boolean			can_instantiate;
-  a_boolean			check_info_file;
+  a_boolean			check_for_auto_instantiation;
 
   db_enter(3, "automatic_instantiation");
   /* Set the instantiation mode to tim_none.  This is done to ensure that
@@ -10059,9 +10114,9 @@ entities from the info file list that can be instantiated.
      instantiations that are performed. */
   saved_instantiation_mode = instantiation_mode;
   instantiation_mode = tim_none;
-  /* Read the list of things to be instantiated from the instantiation
-     information file. */
-  check_info_file = read_instantiation_info_file();
+  /* Determine whether this translation unit is required to instantiate
+     anything. */
+  check_for_auto_instantiation = init_auto_instantiation_information();
   /* Set the flag that indicates that this compilation includes
      external template entities. */
   any_instantiations_required = instantiations_required != NULL;
@@ -10072,7 +10127,8 @@ entities from the info file list that can be instantiated.
     can_instantiate = can_be_instantiated(tip);
     /* Skip entries that do were not included in the instantiation
        information file. */
-    if (!check_info_file || !check_if_present_in_info_file(tip)) continue;
+    if (!check_for_auto_instantiation ||
+        !entity_should_be_automatically_instantiated(tip)) continue;
     /* Skip non-external function. */
     if (is_static_or_inline_template_function(tip)) continue;
     /* Skip entries that have already been instantiated. */

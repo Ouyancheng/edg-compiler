@@ -216,7 +216,7 @@ extern void templates_one_time_init(void);
 extern void templates_init(void);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-extern void create_or_remove_instantiation_information_file(void);
+extern void wrapup_auto_instantiation_information(void);
 extern void update_auto_instantiation_flags(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 

@@ -121,15 +121,10 @@ and before the back end (if any) is executed.
   }  /* if */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Create or remove the instantiation information file if necessary. */
-  if (!do_preprocessing_only && automatic_instantiation_mode &&
-      total_errors == 0 && !suppress_back_end) {
-    /* When only doing preprocessing we cannot determine whether or not the
-       instantiation information file is needed.  We also don't update
-       the instantiation file if there were errors, or if running the
-       front end only.  By not calling this routine we keep the old version
-       if one was present and don't create one if one did not already exist. */
-    create_or_remove_instantiation_information_file();
+  /* Do any special processing needed to wrapup the automatic instantiation
+     process at the end of the translation unit. */
+  if (automatic_instantiation_mode) {
+    wrapup_auto_instantiation_information();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 

@@ -1,5 +1,19 @@
 Version 2.36
 
+5/20/97   Instantiation control interface
+
+A new layer of functions has been introduced in the automatic instantiation
+processing to simplify the process of providing an additional or alternative
+means of determining whether a given entity should be instantiated in the
+current translation units.  The following new functions have been added to
+templates.c:
+
+  init_auto_instantiation_information
+  entity_should_be_automatically_instantiated
+  wrapup_auto_instantiation_information
+
+See the Templates chapter of the internals manual for more information.
+
 5/19/97   Error rather than warning on typeid before inclusion of <typeinfo>
 
 The WP was recently changed so that it is an error to use the typeid
