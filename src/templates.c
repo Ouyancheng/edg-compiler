@@ -4214,7 +4214,8 @@ the same constant.
       } else if (type1 == NULL || type2 == NULL) {
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
-      } else if (identical_types(type1, type2)) {
+      } else if (type1 == type2 ||
+                 f_identical_types(type1, type2, ITF_SEEK_CORRESP)) {
         /* Okay. */
       } else if (error_matches_anything &&
                  (is_error_type(type1) || is_error_type(type2))) {
