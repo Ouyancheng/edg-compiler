@@ -1416,34 +1416,31 @@ definition (e.g., "typedef int T; struct A { ... } T x;").
 Returns TRUE if there is an error in the specifiers.
 */
 {
-  int                num_specifiers;
-  a_symbol_ptr       curr_token_type_symbol;
-  a_boolean          err = FALSE;
-  a_boolean          bad_combination_of_type_specifiers = FALSE;
-  a_source_position  start_pos, qualifier_pos;
-  a_type_kind        kind;
-  an_integer_kind    ikind;
-  a_float_kind       fkind;
-  a_type_ptr         temp_type;
-  a_boolean          explicitly_signed;
-
-  a_boolean          is_const_qualified = FALSE;
-  a_boolean          is_volatile_qualified = FALSE;
-  a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
-  a_boolean          is_member_decl =
+  int                        num_specifiers;
+  a_symbol_ptr               curr_token_type_symbol;
+  a_boolean                  err = FALSE;
+  a_boolean                  bad_combination_of_type_specifiers = FALSE;
+  a_source_position          start_pos, qualifier_pos;
+  a_type_kind                kind;
+  an_integer_kind            ikind;
+  a_float_kind               fkind;
+  a_type_ptr                 temp_type;
+  a_boolean                  explicitly_signed;
+  a_type_qualification       qualifier = TQ_NONE;
+  a_boolean                  is_parameter = (input_flags & DSI_IS_PARAMETER);
+  a_boolean                  is_member_decl =
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
-  a_boolean          vacuous_decl_allowed;
-  a_boolean          declares_something = FALSE;
-  a_boolean          defines_something = FALSE;
-  a_boolean          void_first_specifier;
-  a_boolean          type_specifier_allowed;
-  a_boolean          dangling_type_specifier = FALSE;
-  a_boolean          is_elaborated_type_specifier = FALSE;
-  a_boolean          is_friend_decl = FALSE;
-  a_boolean          is_inline = FALSE;
-  an_error_severity  es;
-  an_identifier_options_set
-                     options;
+  a_boolean                  vacuous_decl_allowed;
+  a_boolean                  declares_something = FALSE;
+  a_boolean                  defines_something = FALSE;
+  a_boolean                  void_first_specifier;
+  a_boolean                  type_specifier_allowed;
+  a_boolean                  dangling_type_specifier = FALSE;
+  a_boolean                  is_elaborated_type_specifier = FALSE;
+  a_boolean                  is_friend_decl = FALSE;
+  a_boolean                  is_inline = FALSE;
+  an_error_severity          es;
+  an_identifier_options_set  options;
 
   enum {bt_none, bt_void, bt_char, bt_int,
         bt_float, bt_double, bt_typedef,
@@ -1553,7 +1550,7 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_const:
         /* const type qualifier (3.5.3). */
-        if (is_const_qualified) {
+        if (qualifier & TQ_CONST) {
           /* const may not appear more than once. */
           es = (C_dialect == C_dialect_cplusplus) ?
                  (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
@@ -1561,13 +1558,13 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          is_const_qualified = TRUE;
-          if (!is_volatile_qualified) qualifier_pos = pos_curr_token;
+          if (qualifier == TQ_NONE) qualifier_pos = pos_curr_token;
+          qualifier |= TQ_CONST;
         }  /* if */
         break;
       case tok_volatile:
         /* volatile type qualifier (3.5.3). */
-        if (is_volatile_qualified) {
+        if (qualifier & TQ_VOLATILE) {
           /* volatile may not appear more than once. */
           es = (C_dialect == C_dialect_cplusplus) ?
                  (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
@@ -1575,8 +1572,8 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          is_volatile_qualified = TRUE;
-          if (!is_const_qualified) qualifier_pos = pos_curr_token;
+          if (qualifier == TQ_NONE) qualifier_pos = pos_curr_token;
+          qualifier |= TQ_VOLATILE;
         }  /* if */
         break;
       case tok_friend:
@@ -2346,8 +2343,7 @@ exit_loop:
        had just one specifier, and it was "void". */
     *output_flags |= DSO_JUST_VOID;
   } else if (is_elaborated_type_specifier) {
-    if (!err && !is_const_qualified &&
-        !is_volatile_qualified && !defines_something && 
+    if (!err && qualifier == TQ_NONE && !defines_something && 
         !(*output_flags & DSO_VIRTUAL) && !(*output_flags & DSO_INLINE) &&
         *storage_class == (a_storage_class)sc_unspecified) {
       *output_flags |= DSO_ELABORATED_TYPE_SPECIFIER;
@@ -2611,7 +2607,7 @@ exit_loop:
       }  /* if */
     }  /* if */
     /* Add any type qualifiers (const or volatile) to the type. */
-    if (is_const_qualified || is_volatile_qualified) {
+    if (qualifier != TQ_NONE) {
       if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
         if (C_dialect == C_dialect_cplusplus) {
           /* In C++ adding a qualifier to a typedef name that is already
@@ -2622,7 +2618,7 @@ exit_loop:
              is not allowed.  More precisely, the qualifier is ignored.
              Issue a diagnostic. */
           if (is_reference_type(*type_ptr)) {
-            is_const_qualified = is_volatile_qualified = FALSE;
+            qualifier = TQ_NONE;
             pos_warning(ec_useless_type_qualifiers, &qualifier_pos);
           }  /* if */        
         } else {
@@ -2637,9 +2633,9 @@ exit_loop:
              to the ultimate element type.  This can only happen with typedefs,
              as in "typedef int A[2][3]; const A a;", which makes "a" an
              array of array of const int. */
-          if ((is_const_qualified &&
+          if (((qualifier == TQ_CONST) &&
                f_is_const_qualified_type(*type_ptr, /*top_level=*/FALSE)) ||
-              (is_volatile_qualified &&
+              ((qualifier == TQ_VOLATILE) &&
                f_is_volatile_qualified_type(*type_ptr, /*top_level=*/FALSE))) {
             /* Duplication of type qualifier (probably because of a typedef
                that is already qualified). */
@@ -2648,12 +2644,10 @@ exit_loop:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (is_const_qualified || is_volatile_qualified) {
+      if (qualifier != TQ_NONE) {
         /* Add the qualifiers if necessary.  make_qualified_type understands
            the strange array case too. */
-        *type_ptr = make_qualified_type(*type_ptr,
-                                        is_const_qualified,
-                                        is_volatile_qualified);
+        *type_ptr = make_qualified_type(*type_ptr, qualifier);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2661,11 +2655,13 @@ exit_loop:
      correct code should have done. */
   if (err || declares_something) *output_flags |= DSO_DECLARES_SOMETHING;
   if (defines_something) *output_flags |= DSO_DEFINES_SOMETHING;
-  /* Set the output_flags bit, for the case where only type qualifiers are
-     acceptable, and therefore there is no type entry in which to return the
-     qualifier. */
-  if (is_const_qualified) *output_flags |= DSO_CONST_QUALIFIED;
-  if (is_volatile_qualified) *output_flags |= DSO_VOLATILE_QUALIFIED;
+  if (qualifier != TQ_NONE) {
+    /* Set the output_flags bit, for the case where only type qualifiers are
+       acceptable, and therefore there is no type entry in which to return the
+       qualifier. */
+    if (qualifier & TQ_CONST) *output_flags |= DSO_CONST_QUALIFIED;
+    if (qualifier & TQ_VOLATILE) *output_flags |= DSO_VOLATILE_QUALIFIED;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     fputs("type_ptr: ", f_debug);
