@@ -479,11 +479,7 @@ issue it at *err_pos;
         if (dsp->base_class->any_virtual_steps_in_derivation) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a complete object of the derived class type. */
-          if (constant_1->kind == (a_constant_repr_kind)ck_address &&
-              constant_1->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable &&
-              offset == 0 &&
-              !constant_1->implicit_cast) {
+          if (con_complete_object_type(constant_1) != NULL) {
             /* The constant is the unmodified address of a variable.  We know
                the variable has the proper class type or we wouldn't have
                identified the cast as a base class cast.  We don't try to
