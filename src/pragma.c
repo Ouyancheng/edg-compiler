@@ -192,7 +192,7 @@ used for creating pbk_immediate pragmas.
            (kind, pbk_immediate,
             (a_generic_pragma_function_ptr)processing_function,
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
-            /*may_bind_to_expr=*/NULL, global, automatically_include_in_il,
+            /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
             make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
             ignore_in_back_end, error_severity);
 }  /* add_immediate_pragma_kind_description */
@@ -219,7 +219,7 @@ used for creating pbk_other pragmas.
            (kind, pbk_other,
             (a_generic_pragma_function_ptr)processing_function,
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
-            /*may_bind_to_expr=*/NULL, global, automatically_include_in_il,
+            /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
             make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
             ignore_in_back_end, error_severity);
 }  /* add_other_pragma_kind_description */

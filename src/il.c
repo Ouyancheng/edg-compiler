@@ -6785,7 +6785,8 @@ on the value of at_file_scope.
     sp = ensure_il_scope_exists(ssep);
   }  /* if */
   check_assertion_str(sp != NULL, "add_to_pragma_list: NULL IL scope");
-  check_assertion_str(ssep == NULL ? TRUE : (in_file_scope(pragma) ==
+  check_assertion_str(ssep == NULL ? TRUE :
+                      (((a_boolean)in_file_scope(pragma)) ==
                          (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER)),
                       "add_to_pragma_list: memory region mismatch");
   if (sp->pragmas == NULL) {
