@@ -371,6 +371,20 @@ have been adjusted to match cfront's name mangling.  For example:
 These changes apply only if CFRONT_OBJECT_CODE_COMPATIBILITY is set, and
 only with ABI_COMPATIBILITY_VERSION >= 230.
 
+7/31/95  __declspec on classes in Microsoft mode
+
+The __declspec modifier (a Microsoft extension) is now allowed in the
+form that applies to class types, in C++ mode only.  For example:
+
+  class __declspec(dllexport) A {
+    // dllexport applies to all members
+  };
+
+A decl_modifiers field was added to the IL class type supplement to
+contain the modifiers set for the class as a whole, but it should be
+noted that those modifiers are also included in the decl_modifiers
+field of member functions and static data members.
+
 7/26/95  Source sequence entry for template member function instantiation
 
 A change has been made to assure that a source sequence entry will be
