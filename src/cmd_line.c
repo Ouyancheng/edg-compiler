@@ -253,6 +253,10 @@ Initialize the option information table.
                          "suppress_instantiation_flags", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_template_info_file,
+                         "template_info_file",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   add_option_description(optk_implicit_template_inclusion,
@@ -698,10 +702,6 @@ Initialize the option information table.
                          pchek_command_line);
   add_option_description(optk_instantiation_dir,
                          "instantiation_dir",
-                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
-                         pchek_command_line);
-  add_option_description(optk_template_info_file,
-                         "template_info_file",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
