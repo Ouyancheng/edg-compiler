@@ -233,6 +233,30 @@ simple walk_list.
 #endif /* NEEDED_FLAG_WALK */
 
 /*
+Similar to walk_list, but when KEEP_IN_IL_WALK is TRUE, does a
+special walk that clears the keep_in_il flag and resets it, to
+ensure that subtrees are walked.  In NEEDED_FLAG_WALK mode, expands
+to nothing.  In other modes, expands to a simple walk_list.
+*/
+#undef walk_list_with_keep_in_il_reset
+#if NEEDED_FLAG_WALK
+#define walk_list_with_keep_in_il_reset(ptr, ptr_type, entry_kind)/* Nothing */
+#else /* !NEEDED_FLAG_WALK */
+#if KEEP_IN_IL_WALK
+#define walk_list_with_keep_in_il_reset(ptr, ptr_type, entry_kind) \
+{ ptr_type local_ptr = (ptr); \
+  for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
+    clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind); \
+    walk_ptr(local_ptr, ptr_type, (entry_kind)); \
+  }  /* for */ \
+}  /* walk_list_with_keep_in_il_reset */
+#else /* !KEEP_IN_IL_WALK */
+#define walk_list_with_keep_in_il_reset(ptr, ptr_type, entry_kind) \
+  walk_list(ptr, ptr_type, entry_kind)
+#endif /* KEEP_IN_IL_WALK */
+#endif /* NEEDED_FLAG_WALK */
+
+/*
 Set the definition_needed or keep_definition_in_il flag in a type if the
 type is a class type.  Used to indicate cases that require the full type
 of a class rather than just a declaration.
@@ -1479,7 +1503,7 @@ do_set_proper_definition_needed_flag:
           walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
                               kind);
         } else {
-          /* The local "types" and static "variables" at function scope or
+          /* The local types and static variables at function scope or
              block scope within a function are in the file scope memory region.
              They will be processed during the file scope memory region
              walk because a_scope_orphaned_list_header entry for these lists
@@ -1518,7 +1542,8 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK */
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
-        walk_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
+        walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
+                                        iek_namespace);
         walk_list_not_needed(ptr->using_decls, a_using_decl_ptr,
                              iek_using_decl);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
@@ -2420,6 +2445,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_list
 #undef walk_list_not_needed
 #undef walk_needed_on_list
+#undef walk_list_with_keep_in_il_reset
 #undef definition_needed_if_class
 #undef set_proper_definition_needed_flag
 #undef set_proper_routine_definition_needed_flag
