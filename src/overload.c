@@ -39,7 +39,6 @@ static void prep_conversion_operand(
                                  a_boolean         nontype_template_arg,
                                  an_error_code     incompatible_err,
                                  a_source_position *err_pos);
-static a_boolean operand_is_temp_init(an_operand *operand);
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
@@ -11146,9 +11145,8 @@ in that case.
     /* Bitwise copy of a class. */
     a_boolean conv_to_rvalue = !conversion->result_is_an_lvalue;
     prep_class_bitwise_copy_operand(operand, dest_type, conv_to_rvalue);
-    if (force_temp_for_class_bitwise_copy) {
+    if (force_temp_for_class_bitwise_copy && conv_to_rvalue) {
       /* Make a copy of the class object in a temporary. */
-      check_assertion(conv_to_rvalue);
       temp_init_by_bitwise_copy_from_operand(operand,
                                              /*result_is_addr=*/FALSE,
                                              is_explicit_cast);
@@ -11436,7 +11434,7 @@ mode) at *err_pos if not.
 }  /* check_access_to_elided_copy_constructor */
 
 
-static a_boolean operand_is_temp_init(an_operand *operand)
+a_boolean operand_is_temp_init(an_operand *operand)
 /*
 Return TRUE if the given operand is an expression operand for an enk_temp_init
 (which represents an expression temporary).  Whether the enk_temp_init
@@ -11824,12 +11822,15 @@ with the "=" semantics (copy-initialization).
 }  /* prep_elision_initializer_operand */
 
 
-void temp_init_from_operand(an_operand *operand)
+void temp_init_from_operand(an_operand *operand,
+                            a_boolean  result_is_addr)
 /*
 Create an enk_temp_init node that initializes a temporary to a copy of
 the indicated operand.  The source operand can be an rvalue or an
 lvalue.  On return, *operand will have been changed to an rvalue for
-the address of the temporary.  Used only in C++ mode.
+the address of the temporary if result_is_addr is TRUE, or an rvalue
+for the value of the temporary if result_is_addr is FALSE.  Used only
+in C++ mode.
 */
 {
   a_boolean          cctor_case, class_bitwise_copy;
@@ -11873,7 +11874,7 @@ the address of the temporary.  Used only in C++ mode.
         set_up_for_constructor_call(operand, cctor_routine,
                                     (a_conv_descr *)NULL, &cctor_arg);
         make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
-                                      /*result_is_addr=*/TRUE,
+                                      result_is_addr,
                                       /*is_explicit_cast=*/FALSE,
                                       /*is_value_init=*/FALSE,
                                       &orig_operand.position,
@@ -11884,7 +11885,7 @@ the address of the temporary.  Used only in C++ mode.
   if (!cctor_case) {
     /* Normal case -- use a dik_expression initialization to copy the
        operand into the temporary. */
-    temp_init_by_bitwise_copy_from_operand(operand, /*result_is_addr=*/TRUE,
+    temp_init_by_bitwise_copy_from_operand(operand, result_is_addr,
                                            /*is_explicit_cast=*/FALSE);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -11973,7 +11974,7 @@ copy-initialization.
       take_address_of_lvalue(source_operand);
     } else {
       /* Initialize a temporary with the converted value. */
-      temp_init_from_operand(source_operand);
+      temp_init_from_operand(source_operand, /*result_is_addr=*/TRUE);
     }  /* if */
     /* Handle base class casts, cv-qualifier adjustments. */
     cast_operand(make_pointer_type(dest_type), source_operand,
@@ -13312,7 +13313,8 @@ used only in C++ mode.
        of op2.  The standard defines this in terms of a notional
        conversion to "reference to op2_type". */
     conv_dest_type = make_reference_type(op2_type);
-    if (direct_reference_binding_possible(op1,
+    if (!is_an_rvalue(op1) &&
+        direct_reference_binding_possible(op1,
                                           (a_type_ptr)NULL,
                                           conv_dest_type,
                                           &ref_to_const,
@@ -13385,6 +13387,7 @@ used only in C++ mode.
         conv->std.cast_base_class = bcp;
         conv->std.nontrivial_conversion = (bcp != NULL);
         conv->class_identity_or_bitwise_copy = TRUE;
+        conv->result_is_an_lvalue = FALSE;
       }  /* if */
     } else {
       /* Not related classes.  See whether op1 can be converted to the
