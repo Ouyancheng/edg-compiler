@@ -1498,6 +1498,9 @@ variant fields to default values.
   pte->variables_are_implicitly_referenced = FALSE;
   pte->copy_with_additional_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  pte->has_microsoft_w64_specifier = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

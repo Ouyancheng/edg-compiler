@@ -582,6 +582,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Microsoft type qualifiers. */
       case tok_unaligned:
+      case tok_microsoft_w64:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
       case tok_class:
@@ -767,6 +768,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
     } else if (curr_token == tok_based) {
       /* Microsoft __based modifier. */
       prescan_based_modifier(state, flags);
+    } else if (curr_token == tok_microsoft_w64) {
+      /* Syntactically, __w64 is like a type qualifier, but semantically it
+         doesn't affect the type (which is why it is not included in
+         "is_type_qualifier_token"). */
+      cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_type_qualifier_token(curr_token) ||
                curr_token == tok_ptr_to_member

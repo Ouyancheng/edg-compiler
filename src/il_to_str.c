@@ -1444,6 +1444,14 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
       octl->output_str("*");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (type->has_microsoft_w64_specifier &&
+          !(octl->gen_compilable_code && octl->c_generating_back_end)) {
+        /* Do not propagate the "__w64" specifier to the C-generating back
+           end. */
+        octl->output_str("__w64 ");
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef CFE
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
@@ -1524,6 +1532,14 @@ handle_specifiers_type:
       }  /* if */
       form_type_specifier(type, octl);
       /* Put out a trailing space if required. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (type->has_microsoft_w64_specifier &&
+          !(octl->gen_compilable_code && octl->c_generating_back_end)) {
+        /* Do not propagate the "__w64" specifier to the C-generating back
+           end. */
+        octl->output_str(" __w64");
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (need_trailing_space) octl->output_str(" ");
     }  /* if */
   }  /* if */

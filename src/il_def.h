@@ -4813,6 +4813,15 @@ typedef struct a_type {
 			   some other type, but with additional
 			   attributes. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	has_microsoft_w64_specifier:1;
+			/* TRUE if this is a type that is the same as some
+			   other type, but declared using the Microsoft __w64
+			   specifier.  Implicit conversions between such
+			   types and their equivalent without he __w64
+			   specifier are diagnosed with a remark to help
+			   identify potential 64-bit portability issues. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;
 			/* TRUE if this type entry represents a class, struct,

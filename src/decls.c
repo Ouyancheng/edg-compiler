@@ -201,6 +201,10 @@ expression is permitted.
     /* Identifier that is a type name (a typedef name or, in C++,
        the name of a class, struct, or union). */
     is_start = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (curr_token == tok_microsoft_w64) {
+    is_start = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_identifier && locator_for_curr_id.is_error &&
              locator_for_curr_id.is_template_id) {
     /* This is an error case -- presumably, an ill-formed template-id -- but

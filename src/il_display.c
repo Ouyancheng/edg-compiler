@@ -1321,6 +1321,11 @@ Display the indicated type entry.
     disp_boolean("copy_with_additional_attributes", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->has_microsoft_w64_specifier) {
+    disp_boolean("has_microsoft_w64_specifier", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   if (ptr->use_cfront_transitional_nested_type_name_mangling) {
     disp_boolean("use_cfront_transitional_nested_type_name_mangling", TRUE);

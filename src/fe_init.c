@@ -377,6 +377,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_noop, "__noop");
       enter_keyword((a_token_kind)tok_interface, "__interface");
     }  /* if */
+    enter_underscore_keywords((a_token_kind)tok_microsoft_w64, "__w64");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (gcc_mode && !c99_mode) {

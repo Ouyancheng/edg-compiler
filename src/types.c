@@ -4832,6 +4832,30 @@ pointers to members).
   return okay;
 }  /* impl_ptr_to_member_conversion */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean ilp64_will_narrow(a_type_ptr  source_type,
+                                   a_type_ptr  dest_type)
+/*
+Return whether an ILP64-porting warning should be issued on a conversion from
+source_type to dest_type (ILP64 is a class of ABIs where int, long, and
+pointer types are 64 bits wide).  A warning should only be issued when
+dest_type is currently 4 bytes wide and source_type is marked with the
+Microsoft keyword __w64.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (source_type->has_microsoft_w64_specifier &&
+      !dest_type->has_microsoft_w64_specifier &&
+      dest_type->size == 4 && is_integral_type(dest_type)) {
+    check_assertion(source_type->size == 4);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* ilp64_will_narrow */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean impl_conversion_possible(
                           a_type_ptr           source_type,
@@ -5046,6 +5070,12 @@ See conversion_possible.
     if (is_error(source_type) || is_template_param_type(source_type)) {
       okay = TRUE;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && std_conv->warning_suggested == ec_no_error &&
+             ilp64_will_narrow(source_type, dest_type)) {
+    /* Check for potential problems when porting to an ILP64 environment. */
+    std_conv->warning_suggested = ec_ilp64_will_narrow;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
@@ -5546,6 +5576,15 @@ set to TRUE (otherwise it is set to FALSE).
            warning or with a mild warning. */
         okay = TRUE;
         *reinterpret_cast_needed = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode &&
+            reinterpret_cast_warning_suggested == ec_no_error &&
+            ilp64_will_narrow(source_type, dest_type)) {
+          /* Check for potential problems when porting to an ILP64
+             environment. */
+          reinterpret_cast_warning_suggested = ec_ilp64_will_narrow;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         *warning_suggested = reinterpret_cast_warning_suggested;
       } else if (static_cast_okay) {
         /* static_cast is okay but with a warning. */

@@ -2583,27 +2583,31 @@ Clear the pointer stored in "var" if it is used.
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- because when MICROSOFT_EXTENSIONS_ALLOWED is FALSE,
-                    call_conv, based_var, and based_pos are not used. */
+                    call_conv, based_var, based_pos, and microsoft_w64_seen
+                    are not used. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void collect_pointer_declarator_extended_qualifiers(
-                                          a_type_qualifier_set *qualifiers,
-                                          a_source_position    *qual_pos,
-                                          a_call_conv_descr    *call_conv,
-                                          a_variable_ptr       *based_var,
-                                          a_source_position    *based_pos,
-                                          a_decl_pos_block_ptr decl_pos_block)
+                                        a_type_qualifier_set *qualifiers,
+                                        a_source_position    *qual_pos,
+                                        a_call_conv_descr    *call_conv,
+                                        a_variable_ptr       *based_var,
+                                        a_source_position    *based_pos,
+                                        a_boolean            *microsoft_w64_seen,
+                                        a_decl_pos_block_ptr decl_pos_block)
 /*
 Collect a set of pointer declarator qualifiers provided as an extension
 (e.g., for Microsoft compatibility).  Aside from the standard const/volatile,
 support for near and far may be enabled (e.g., in Microsoft 16-bit mode),
 and Microsoft mode also allows other modifiers, notably __based and calling
-conventions like __cdecl.  Scan all of those, and return information about
-what was scanned in *qualifiers, *call_conv, and *based_var.  If qualifiers
-are scanned, *qual_pos is set to their starting position.  If a __based
-qualifier is scanned, *based_pos is set to its source position.  It's
+conventions like __cdecl.  Scan all of those, and return information about what
+was scanned in *qualifiers, *call_conv, *based_var, and *microsoft_w64_seen.
+If qualifiers are scanned, *qual_pos is set to their starting position.  If a
+__based qualifier is scanned, *based_pos is set to its source position.  It's
 permissible for the input to contain no qualifiers. If Microsoft extended
 decl specifiers, introduced by __declspec, are encountered, they are
-scanned and thrown away with a warning.
+scanned and thrown away with a warning.  If microsoft_w64_seen is NULL, the
+Microsoft keyword __w64 is rejected; otherwise, *microsoft_w64_seen is set
+to TRUE when __w64 is encountered.
 */
 {
   a_type_qualifier_set new_qualifiers, duplicates;
@@ -2684,6 +2688,16 @@ scanned and thrown away with a warning.
           decl_pos_block->declarator_range.end = end_pos_curr_token;
         }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        (void)get_token();
+      } else if (curr_token == tok_microsoft_w64) {
+        /* Microsoft compilers accept the __w64 keyword on pointer
+           declarators. */
+        if (microsoft_w64_seen != NULL) {
+          *microsoft_w64_seen = TRUE;
+        } else {
+          /* The "__w64" token was not expected. */
+          error(ec_invalid_type_for_w64);
+        }  /* if */
         (void)get_token();
       } else {
         /* Something else; exit the loop. */
@@ -2845,12 +2859,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     /* Scan qualifiers that precede the first pointer or reference, e.g.,
          int far *p;
     */
-    collect_pointer_declarator_extended_qualifiers(&pending_qualifiers,
-                                                   &pending_qualifiers_pos,
-                                                   &ccd,
-                                                   &based_var,
-                                                   &based_pos,
-                                                   decl_pos_block);
+    collect_pointer_declarator_extended_qualifiers(
+                                        &pending_qualifiers,
+                                        &pending_qualifiers_pos,
+                                        &ccd,
+                                        &based_var,
+                                        &based_pos,
+                                        /*microsoft_w64_seen=*/(a_boolean*)NULL,
+                                        decl_pos_block);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Loop while there are pointer declarators. */
@@ -2858,10 +2874,19 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     /* See if there is a pointer declarator. */
     a_boolean another_pointer_declarator = FALSE;
     a_boolean ptr_to_member_case = FALSE;
+    a_boolean *p_microsoft_w64_seen = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_boolean microsoft_w64_seen = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if ((curr_token == tok_star ||
          (reference_allowed && curr_token == tok_ampersand))) {
       /* A pointer "*" or reference "&". */
       another_pointer_declarator = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (curr_token == tok_star) {
+        p_microsoft_w64_seen = &microsoft_w64_seen;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (C_dialect == C_dialect_cplusplus &&
                is_ptr_to_member_declarator_start()) {
       /* A pointer-to-member "Name::*". */
@@ -3061,13 +3086,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          int * const x;
     */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  if (microsoft_mode or_near_and_far_enabled()) {
+   if (microsoft_mode or_near_and_far_enabled()) {
       /* Microsoft mode allows several kinds of qualifiers. */
       collect_pointer_declarator_extended_qualifiers(&qualifiers,
                                                      &pending_qualifiers_pos,
                                                      &ccd,
                                                      &based_var,
                                                      &based_pos,
+                                                     p_microsoft_w64_seen,
                                                      decl_pos_block);
       /* Break the qualifiers into those like const that are handled
          immediately and those like near that stay pending into the next
@@ -3076,6 +3102,11 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       pending_qualifiers = (qualifiers & (TQ_NEAR | TQ_FAR));
       qualifiers -= pending_qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_w64_seen) {
+        apply_microsoft_w64_specifier(&complete_type);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     /* Do not add code here. */

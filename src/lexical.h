@@ -183,6 +183,7 @@ typedef enum /*a_token_kind*/ {
   tok_super,
   tok_noop,
   tok_interface,
+  tok_microsoft_w64,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
   /* Special named string constants available in C99 and Microsoft modes
@@ -295,7 +296,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based",
    "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists", "__super",
-   "__noop", "__interface",
+   "__noop", "__interface", "__w64",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
@@ -662,6 +663,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_super */
    (an_opname_kind)onk_none,          /* tok_noop */
    (an_opname_kind)onk_none,          /* tok_interface */
+   (an_opname_kind)onk_none,          /* tok_microsoft_w64 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
    (an_opname_kind)onk_none,          /* tok_function_name */

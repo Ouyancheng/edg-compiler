@@ -1,5 +1,26 @@
 Version 3.3
 
+6/18/03  Microsoft compatibility: __w64 type annotation
+
+The front end now recognizes the Microsoft __w64 type annotation.  This
+new keyword is syntactically a type qualifier (like "const"), but it does
+not really modify the type to which it is applied (and hence it is not
+recorded as a type qualifier in the IL).  Instead it is an aid to transition
+to an environment where int, long, and pointer types are 64 bits wide (ILP64).
+When applied to other types, an error is issued.  When a type marked with __w64
+is converted to an integral type not so marked, the front end issues a remark
+(which can be changed to a more severe diagnostic using command-line options).
+This feature is usually used with typedef types.
+For example:
+
+  typedef int __w64 Index;
+  Index f(long);
+  int main() {
+    f(f(3));    // Remark: Potentially narrowing conversion
+    void *__w64 ptr = 0;
+    (long)ptr;  // Remark: Potentially narrowing conversion
+  }
+
 6/18/03  Abort in push_object_lifetime on g++ typeof
 
 An abort in push_object_lifetime has been eliminated.  It came

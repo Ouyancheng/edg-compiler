@@ -3492,16 +3492,17 @@ END_EXTERN_C_BLOCK
 
 a_boolean set_severity_for_error_tag(char		*tag,
 				     an_error_severity	severity,
-				     a_boolean		from_cmd_line)
+				     a_boolean		make_default)
 /*
 Given an error tag string, this routine looks up the error tag and
 updates the table used to override the error severity of diagnostic
 messages.  If the tag cannot be found return TRUE, otherwise return
-FALSE. from_cmd_line is TRUE when this is called for a value set on
-the command line.  This causes both the current and default tables to
-be updated.  For other calls, only the current table is updated.  If
-the severity is "es_default" the severity from the default table is
-used to reset the value in the current table.
+FALSE. make_default is TRUE when this is called for a value set on
+the command line or as part of the initial front end configuration.
+This causes both the current and default tables to be updated.  For
+other calls, only the current table is updated.  If the severity is
+"es_default" the severity from the default table is used to reset the
+value in the current table.
 */
 {
   an_error_tag_entry	        ete_to_find;
@@ -3519,7 +3520,7 @@ used to reset the value in the current table.
   if (etep_found != NULL) {
     error_code = etep_found->code;
     (void)set_severity_for_error_number((int)error_code,
-                                        severity, from_cmd_line);
+                                        severity, make_default);
   }  /* if */
   /* Return TRUE if the tag could not be found. */
   return etep_found == NULL;
@@ -3528,16 +3529,16 @@ used to reset the value in the current table.
 
 a_boolean set_severity_for_error_number(int		   error_number,
 				        an_error_severity  severity,
-				        a_boolean	   from_cmd_line)
+				        a_boolean	   make_default)
 /*
 Given an error number, this routine updates the table used to override
 the error severity of diagnostic messages. If the error number is out
-of range return TRUE, otherwise return FALSE.  from_cmd_line is TRUE
-when this is called for a value set on the command line.  This causes
-both the current and default tables to be updated.  For other calls,
-only the current table is updated.  If the severity is "es_default"
-the severity from the default table is used to reset the value in the
-current table.
+of range return TRUE, otherwise return FALSE.  make_default is TRUE
+when this is called for a value set on the command line or as part of
+the initial front end configuration.  This causes both the current and
+default tables to be updated.  For other calls, only the current table
+is updated.  If the severity is "es_default" the severity from the default
+table is used to reset the value in the current table.
 */
 {
   a_boolean			err;
@@ -3551,7 +3552,7 @@ current table.
                                  default_severity_for_error_code[error_number];
     } else {
       current_severity_for_error_code[error_number] = severity;
-      if (from_cmd_line) {
+      if (make_default) {
         default_severity_for_error_code[error_number] = severity;
       }  /* if */
     }  /* if */
@@ -4591,7 +4592,7 @@ where "arg" is either an error number or an error tag.
       if (!err) {
         /* The routine will return TRUE if the number is invalid. */
         err = set_severity_for_error_number((int)error_number, severity,
-                                            /*from_cmd_line=*/FALSE);
+                                            /*make_default=*/FALSE);
       }  /* if */
       if (err) {
         pos_warning(ec_invalid_error_number, &pos_curr_token);
@@ -4603,7 +4604,7 @@ where "arg" is either an error number or an error tag.
       error_tag = locator_for_curr_id.symbol_header->identifier;
       /* The routine will return TRUE if the tag is invalid. */
       err = set_severity_for_error_tag(error_tag, severity,
-                                       /*from_cmd_line=*/FALSE);
+                                       /*make_default=*/FALSE);
       if (err) {
         pos_warning(ec_invalid_error_tag, &pos_curr_token);
       }  /* if */

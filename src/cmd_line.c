@@ -1328,13 +1328,13 @@ processing routine to update the severity.
     if (isdigit((unsigned char)*opt_start)) {
       int error_number = (int)scan_opt_arg_number(opt_start);
       err = set_severity_for_error_number(error_number, severity,
-                                          /*from_cmd_line=*/TRUE);
+                                          /*make_default=*/TRUE);
       if (err) {
         str_command_line_error(ec_cl_invalid_error_number, opt_start);
       }  /* if */
     } else {
       err = set_severity_for_error_tag(opt_start, severity,
-                                       /*from_cmd_line=*/TRUE);
+                                       /*make_default=*/TRUE);
       if (err) {
         str_command_line_error(ec_cl_invalid_error_tag, opt_start);
       }  /* if */
@@ -3747,7 +3747,7 @@ enable_microsoft_mode:
        off the feature but reduce the diagnostic to a warning. */
     export_template_allowed = FALSE;
     (void)set_severity_for_error_number((int)ec_no_export_support, es_warning,
-                                        /*from_cmd_line=*/TRUE);
+                                        /*make_default=*/TRUE);
   }  /* if */
   if (!nonclass_prototype_instantiations && do_dependent_name_processing) {
     /* We're not doing nonclass prototype instantiations, but dependent
@@ -4101,6 +4101,10 @@ This is done before command line processing.
   curr_command_line_macro_def = NULL;
   gpp_dependent_name_lookup = FALSE;
   defer_friend_instantiation = TRUE;
+  /* Unless requested otherwise (using a command-line option or a pragma),
+     ILP64 porting diagnostics should be remarks. */
+  (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,
+                                      /*make_default=*/TRUE);
 }  /* cmd_line_early_init */
 
 

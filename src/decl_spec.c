@@ -576,6 +576,37 @@ indicates the source position at which the error should be put out.
   }  /* if */
 }  /* check_inheritance_kind */
 
+
+void apply_microsoft_w64_specifier(a_type_ptr  *type_ptr)
+/*
+Replace the given type with a copy that is marked as having been specified
+with the __w64 token.  Except for signedness and qualifiers the given type
+must be int, long, or a pointer type; if not, an error is issued.
+*/
+{
+  a_type_ptr       plain_type = skip_typerefs(*type_ptr);
+  an_integer_kind  ikind;
+
+  if (is_integral_type(plain_type)) {
+    ikind = plain_type->variant.integer.int_kind;
+  } else {
+    ikind = (an_integer_kind)ik_none;
+  }  /* if */
+  if (is_pointer_type(plain_type) ||
+      ikind == (an_integer_kind)ik_int ||
+      ikind == (an_integer_kind)ik_unsigned_int ||
+      ikind == (an_integer_kind)ik_long ||
+      ikind == (an_integer_kind)ik_unsigned_long) {
+    a_type_qualifier_set  qualifiers = get_type_qualifiers(*type_ptr);
+    a_type_ptr            copy = alloc_type(plain_type->kind);
+    copy_type(plain_type, copy);
+    copy->has_microsoft_w64_specifier = TRUE;
+    *type_ptr = make_qualified_type(copy, qualifiers);
+  } else {
+    error(ec_invalid_type_for_w64);
+  }  /* if */
+}  /* apply_microsoft_w64_specifier */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
   
@@ -4923,6 +4954,9 @@ Returns TRUE if there is an error in the specifiers.
   a_upc_block_size           saved_block_size;
   a_boolean                  multiple_shared_seen = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                  microsoft_w64_seen = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
  
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
@@ -5317,7 +5351,15 @@ Returns TRUE if there is an error in the specifiers.
           free_attribute_list(scan_attributes());
         }  /* if */
         goto no_get_token;
-#endif /* GNU_EXTENSIONS_ALLOWED */ 
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_microsoft_w64:
+        /* __w64 (or _w64).  Syntactically, this is like a cv-qualifier
+           except that it does not really modify the type (and Microsoft
+           allows the keyword to be repeated). */
+        microsoft_w64_seen = TRUE;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_const:
         /* const type qualifier (3.5.3). */
         if (*qualifiers & TQ_CONST) {
@@ -6540,6 +6582,10 @@ exit_loop:
                                  &non_restrict_qualifier_pos,
                                  &restrict_pos)) {
           err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_w64_seen) {
+          apply_microsoft_w64_specifier(type_ptr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
     }  /* if */
