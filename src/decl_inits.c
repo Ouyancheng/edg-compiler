@@ -372,9 +372,7 @@ for unions and aggregates at that level).
            so we don't have to check for them here. */
       } else {
 #if CHECKING
-        if (kind != (a_type_kind)tk_class &&
-            kind != (a_type_kind)tk_struct &&
-            kind != (a_type_kind)tk_union) {
+        if (!is_immediate_class_type(local_type)) {
           internal_error("get_initializer: not array or class/struct/union");
         }  /* if */
 #endif /* CHECKING */
@@ -388,9 +386,7 @@ for unions and aggregates at that level).
         /* Determine the type of the member being initialized. */
         if (kind == (a_type_kind)tk_array || kind == (a_type_kind)tk_error) {
           /* member_type was set outside the loop. */
-        } else if (kind == (a_type_kind)tk_class ||
-                   kind == (a_type_kind)tk_struct ||
-                   kind == (a_type_kind)tk_union) {
+        } else if (is_immediate_class_type(local_type)) {
           /* Get the type of the current field. */
           member_type = curr_field->type;
 #if CHECKING
