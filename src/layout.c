@@ -180,6 +180,14 @@ Clear the block used to contain information while working out class layout.
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 
+static a_targ_alignment
+		curr_max_member_alignment;
+			/* Current pack alignment, as specified by the most
+			   recent #pragma pack directive.  If it is zero, use
+			   the default pack alignment, as specified on the
+			   command line. */
+
+
 a_boolean check_pack_alignment_value(long              value,
                                      a_targ_alignment  *alignment)
 /*
@@ -198,6 +206,64 @@ Check to be sure value is a valid "pack alignment" -- that it is a power of
   }  /* if */
   return !err;
 }  /* check_pack_alignment_value */
+
+
+void pack_pragma(a_pending_pragma_ptr ppp)
+/*
+Scan and process a cached #pragma pack directive, which is used to control
+the alignment of nonstatic data members (and thereby the layout of structs).
+The syntax is:
+
+   #pragma pack(n)
+   #pragma pack()
+
+where n is a "pack alignment", the maximum alignment that may be assigned to
+any nonstatic data member (even if it is less than the normal alignment for
+the member's type).  If n is omitted, the pack alignment effectively reverts
+to the default value, if any, that was specified on the command line.  The
+current value is stored in curr_max_member_alignment and is copied into the
+type entry for a class, struct, or union when layout processing commences.
+*/
+{
+  a_stop_token_array  save_stop_tokens_array;
+  a_boolean           err = FALSE;
+  long                val;
+
+  db_enter(3, "pack_pragma");
+  /* Reset the current pack alignment value to zero, in case there's an
+     error.  Zero means, use the default pack alignment that was specified
+     on the command line. */
+  curr_max_member_alignment = 0;
+  /* Save the stop token state, push a pragma scope, etc. */
+  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  add_stop_token(tok_rparen);
+  /* Check for a left parenthesis. */
+  required_token(tok_lparen, ec_exp_lparen);
+  if (curr_token == tok_rparen) {
+    /* "()" means revert to the default (if any) specified on the command
+       line.  The variable curr_max_member_alignment was already set to zero,
+       so nothing else is needed. */
+  } else if (curr_token != tok_int_constant) {
+    /* Expected an integer constant. */
+    syntax_error(ec_exp_int_constant);
+  } else {
+    /* Get the integer constant variable and check it against allowable
+       values for a pack alignment. */
+    val = value_of_integer_constant(&const_for_curr_token, &err);
+    if (err ||
+        !check_pack_alignment_value(val, &curr_max_member_alignment)) {
+      error(ec_bad_pack_alignment);
+    }  /* if */
+    /* Advance to the right parenthesis. */
+    (void)get_token();
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  /* Check for the closing parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  /* Restore the stop token array, pop the pragma scope, etc. */
+  wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE, save_stop_tokens_array);
+  db_exit();
+} /* pack_pragma */
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
@@ -2004,6 +2070,32 @@ for handling virtual bases and functions.
   db_exit();
 }  /* do_class_layout */
 
+
+void layout_one_time_init()
+/*
+*/
+{
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Save variable needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(curr_max_member_alignment),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+}  /* layout_one_time_init */
+
+
+void layout_init()
+/*
+*/
+{
+#if USER_CONTROL_OF_STRUCT_PACKING
+  curr_max_member_alignment = 0;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+}  /* layout_init */
 
 /******************************************************************************
 *                                                             \  ___  /       *
