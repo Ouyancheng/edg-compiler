@@ -873,6 +873,9 @@ extern void scope_stk_init(void);
 extern int db_scope_kind(a_scope_kind sck);
 extern void db_scope_stack_entry(a_scope_stack_entry_ptr ssep);
 extern void db_scope_stack(void);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+extern void db_decl_pos_info(a_symbol_ptr sym);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
 
 #endif /* ifndef SCOPE_STK_H */
