@@ -1,5 +1,21 @@
 Version 3.5
 
+7/26/04  GNU compatibility: Additional built-in functions
+
+A number of new built-in functions introduced by GNU C/C++ 3.4 were added to
+the list already supported by the EDG front end.  The new functions are:
+__builtin_acosf, __builtin_acosl, __builtin_asinf, __builtin_asinl,
+__builtin_atan2f, __builtin_atan2l, __builtin_atanf, __builtin_atanl,
+__builtin_ceilf, __builtin_ceill, __builtin_coshf, __builtin_coshl,
+__builtin_floorf, __builtin_floorl, __builtin_fmodf, __builtin_fmodl,
+__builtin_frexpf, __builtin_frexpl, __builtin_ldexpf, __builtin_ldexpl,
+__builtin_log10f, __builtin_log10l, __builtin_modff, __builtin_modfl,
+__builtin_powf, __builtin_powl, __builtin_sinhf, __builtin_sinhl,
+__builtin_tanf, __builtin_tanhf, __builtin_tanhl, __builtin_tanl,
+__builtin_ctzl, __builtin_ctzll, __builtin_popcountl, and __builtin_popcountll.
+Among this list, those function expecting an argument of type long long are
+(of course) only declared if LONG_LONG_ALLOWED is TRUE.
+
 7/24/04  Warning on call of pure virtual function in derived class constructor
          or destructor
 

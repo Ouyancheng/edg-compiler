@@ -6712,6 +6712,46 @@ enum a_builtin_function_kind_tag {
   bfk_exit,                     /* "__builtin_exit" */
   bfk__exit,                    /* "__builtin__exit" */
   bfk__Exit,                    /* "__builtin__Exit" */
+  bfk_acosf,                    /* "__builtin_acosf" */
+  bfk_acosl,                    /* "__builtin_acosl" */
+  bfk_asinf,                    /* "__builtin_asinf" */
+  bfk_asinl,                    /* "__builtin_asinl" */
+  bfk_atan2f,                   /* "__builtin_atan2f" */
+  bfk_atan2l,                   /* "__builtin_atan2l" */
+  bfk_atanf,                    /* "__builtin_atanf" */
+  bfk_atanl,                    /* "__builtin_atanl" */
+  bfk_ceilf,                    /* "__builtin_ceilf" */
+  bfk_ceill,                    /* "__builtin_ceill" */
+  bfk_coshf,                    /* "__builtin_coshf" */
+  bfk_coshl,                    /* "__builtin_coshl" */
+  bfk_floorf,                   /* "__builtin_floorf" */
+  bfk_floorl,                   /* "__builtin_floorl" */
+  bfk_fmodf,                    /* "__builtin_fmodf" */
+  bfk_fmodl,                    /* "__builtin_fmodl" */
+  bfk_frexpf,                   /* "__builtin_frexpf" */
+  bfk_frexpl,                   /* "__builtin_frexpl" */
+  bfk_ldexpf,                   /* "__builtin_ldexpf" */
+  bfk_ldexpl,                   /* "__builtin_ldexpl" */
+  bfk_log10f,                   /* "__builtin_log10f" */
+  bfk_log10l,                   /* "__builtin_log10l" */
+  bfk_modff,                    /* "__builtin_modff" */
+  bfk_modfl,                    /* "__builtin_modfl" */
+  bfk_powf,                     /* "__builtin_powf" */
+  bfk_powl,                     /* "__builtin_powl" */
+  bfk_sinhf,                    /* "__builtin_sinhf" */
+  bfk_sinhl,                    /* "__builtin_sinhl" */
+  bfk_tanf,                     /* "__builtin_tanf" */
+  bfk_tanhf,                    /* "__builtin_tanhf" */
+  bfk_tanhl,                    /* "__builtin_tanhl" */
+  bfk_tanl,                     /* "__builtin_tanl" */
+  bfk_ctzl,                     /* "__builtin_ctzl" */
+#if LONG_LONG_ALLOWED
+  bfk_ctzll,                    /* "__builtin_ctzll" */
+#endif /* LONG_LONG_ALLOWED */
+  bfk_popcountl,                /* "__builtin_popcountl" */
+#if LONG_LONG_ALLOWED
+  bfk_popcountll,               /* "__builtin_popcountll" */
+#endif /* LONG_LONG_ALLOWED */
   bfk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -6854,6 +6894,46 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_exit */                     "__builtin_exit",
   /* bfk__exit */                    "__builtin__exit",
   /* bfk__Exit */                    "__builtin__Exit",
+  /* bfk_acosf */                    "__builtin_acosf",
+  /* bfk_acosl */                    "__builtin_acosl",
+  /* bfk_asinf */                    "__builtin_asinf",
+  /* bfk_asinl */                    "__builtin_asinl",
+  /* bfk_atan2f */                   "__builtin_atan2f",
+  /* bfk_atan2l */                   "__builtin_atan2l",
+  /* bfk_atanf */                    "__builtin_atanf",
+  /* bfk_atanl */                    "__builtin_atanl",
+  /* bfk_ceilf */                    "__builtin_ceilf",
+  /* bfk_ceill */                    "__builtin_ceill",
+  /* bfk_coshf */                    "__builtin_coshf",
+  /* bfk_coshl */                    "__builtin_coshl",
+  /* bfk_floorf */                   "__builtin_floorf",
+  /* bfk_floorl */                   "__builtin_floorl",
+  /* bfk_fmodf */                    "__builtin_fmodf",
+  /* bfk_fmodl */                    "__builtin_fmodl",
+  /* bfk_frexpf */                   "__builtin_frexpf",
+  /* bfk_frexpl */                   "__builtin_frexpl",
+  /* bfk_ldexpf */                   "__builtin_ldexpf",
+  /* bfk_ldexpl */                   "__builtin_ldexpl",
+  /* bfk_log10f */                   "__builtin_log10f",
+  /* bfk_log10l */                   "__builtin_log10l",
+  /* bfk_modff */                    "__builtin_modff",
+  /* bfk_modfl */                    "__builtin_modfl",
+  /* bfk_powf */                     "__builtin_powf",
+  /* bfk_powl */                     "__builtin_powl",
+  /* bfk_sinhf */                    "__builtin_sinhf",
+  /* bfk_sinhl */                    "__builtin_sinhl",
+  /* bfk_tanf */                     "__builtin_tanf",
+  /* bfk_tanhf */                    "__builtin_tanhf",
+  /* bfk_tanhl */                    "__builtin_tanhl",
+  /* bfk_tanl */                     "__builtin_tanl",
+  /* bfk_ctzl */                     "__builtin_ctzl",
+#if LONG_LONG_ALLOWED
+  /* bfk_ctzll */                    "__builtin_ctzll",
+#endif /* LONG_LONG_ALLOWED */
+  /* bfk_popcountl */                "__builtin_popcountl",
+#if LONG_LONG_ALLOWED
+  /* bfk_popcountll */               "__builtin_popcountll",
+#endif /* LONG_LONG_ALLOWED */
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }
