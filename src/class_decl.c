@@ -7808,7 +7808,9 @@ information about the current declaration and is updated if an error is found.
     error_code = ec_virtual_static_not_allowed;
   }  /* if */
   if (error_code != ec_no_error) {
-    pos_error(error_code, &decl_info->decl_start_pos);
+    pos_error(error_code, decl_info->is_first_in_declarator_list ?
+                            &decl_info->decl_start_pos :
+                            &locator->source_position);
     decl_info->invalid_virtual_specifier = TRUE;
   }  /* if */
 }  /* check_for_invalid_use_of_virtual */
@@ -8000,7 +8002,6 @@ following the member declaration.
   a_boolean            no_decl_specifiers;
   a_boolean            friend_specified;
   a_boolean            type_explicitly_specified, inline_specified;
-  a_boolean            is_destructor, is_constructor;
   a_boolean            mutable_specified;
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
@@ -8051,8 +8052,8 @@ following the member declaration.
   friend_specified = dso_flags & DSO_FRIEND;
   if (friend_specified) class_state->any_friend_decls = TRUE;
   inline_specified = (dso_flags & DSO_INLINE) != 0;
-  is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
-  is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
+  decl_info.is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
+  decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
   remove_stop_token(tok_colon);
   if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {
@@ -8104,15 +8105,15 @@ following the member declaration.
         (dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR))) {
       /* This section of code is entered when there is a comma-list of
          constructors and/or destructors. */
-      is_destructor = is_constructor = FALSE;
+      decl_info.is_destructor = decl_info.is_constructor = FALSE;
       if (curr_token == tok_compl ||
           (is_generalized_identifier_start(GID_NO_OPTIONS) &&
            locator_for_curr_id.is_destructor_name)) {
-        is_destructor = TRUE;
+        decl_info.is_destructor = TRUE;
         member_type = unknown_type();
       } else if (curr_token == tok_identifier &&
                  is_constructor_decl(class_type)) {
-        is_constructor = TRUE;
+        decl_info.is_constructor = TRUE;
         member_type = unknown_type();
       } else {
         first_declarator_diagnostics = TRUE;
@@ -8131,8 +8132,8 @@ following the member declaration.
       /* There is no declarator. */
       local_type = member_type;
       set_to_error_locator(locator);
-    } else if (no_decl_specifiers && !is_constructor &&
-               !is_destructor && !is_declarator_start()) {
+    } else if (no_decl_specifiers && !decl_info.is_constructor &&
+               !decl_info.is_destructor && !is_declarator_start()) {
       remove_stop_token(tok_comma);
       remove_stop_token(tok_colon);
       syntax_error(ec_exp_declaration);
@@ -8175,7 +8176,7 @@ following the member declaration.
         if (!type_explicitly_specified && !friend_specified) {
           di_flags |= DI_DESTRUCTOR_SPECIFIERS;
         }  /* if */
-        if (is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
+        if (decl_info.is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
         if (decl_info.storage_class == (a_storage_class)sc_typedef) {
           di_flags |= DI_IS_TYPEDEF_DECLARATION;
         } else if (decl_info.storage_class != (a_storage_class)sc_static) {
@@ -8217,7 +8218,8 @@ following the member declaration.
         pos_error(ec_mutable_not_allowed, &decl_start_pos);
       }  /* if */
       function_def_present = ((curr_token == tok_lbrace) ||
-                              (is_constructor && (curr_token == tok_colon)));
+                              (decl_info.is_constructor &&
+                               (curr_token == tok_colon)));
       if (function_def_present && !decl_info.is_first_in_declarator_list) {
         pos_error(ec_exp_semicolon, &pos_curr_token);
       }  /* if */
@@ -8225,7 +8227,8 @@ following the member declaration.
       func_info.is_inline = inline_specified || function_def_present;
       if (!type_explicitly_specified) {
         /* No type specifier. */
-        if (is_constructor || is_destructor || locator.is_conversion_name) {
+        if (decl_info.is_constructor || decl_info.is_destructor ||
+            locator.is_conversion_name) {
           /* Type specifier is not expected (nor permitted) on constructors,
              destructors, and conversion functions. */
         } else {
@@ -8279,14 +8282,14 @@ following the member declaration.
                                         &func_info, decl_modifiers);
       } else {
         /* Must be a member function declaration. */
-        if ((is_constructor || is_destructor) &&
+        if ((decl_info.is_constructor || decl_info.is_destructor) &&
             decl_info.storage_class == (a_storage_class)sc_static) {
           /* Constructors and destructors may not be declared "static"
              (ARM 12.1, 12.4). */
           pos_error(ec_static_not_allowed, &decl_start_pos);
           decl_info.storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if (is_constructor || decl_info.dso_flags & DSO_VIRTUAL) {
+        if (decl_info.is_constructor || decl_info.dso_flags & DSO_VIRTUAL) {
           /* A class with a user-defined constructor or a virtual function
              cannot be an "aggregate" (8.5.1). */
           class_state->class_aggregate_ruled_out = TRUE;
@@ -8295,8 +8298,6 @@ following the member declaration.
              being an aggregate -- keep track. */
           class_state->any_nonpublic_members = TRUE;
         }  /* if */
-        decl_info.is_constructor = is_constructor;
-        decl_info.is_destructor = is_destructor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* If decl-modifiers were declared for the class and/or for the
            member, check for consistency and use the union of the two. */
@@ -8341,7 +8342,7 @@ following the member declaration.
             find_member_function_template(rout_sym, prototype_sym);
           }  /* if */
         }  /* if */
-        if (is_constructor && (dso_flags & DSO_EXPLICIT)) {
+        if (decl_info.is_constructor && (dso_flags & DSO_EXPLICIT)) {
           rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
         }  /* if */
       }  /* if */
@@ -8452,7 +8453,7 @@ following the member declaration.
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;
-    } else if (is_destructor) {
+    } else if (decl_info.is_destructor) {
       /* Error has already been issued if it wasn't processed as a
          function. */
       discard_curr_construct_pragmas();
