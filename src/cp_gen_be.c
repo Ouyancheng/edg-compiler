@@ -3890,6 +3890,33 @@ Set the output position to match the statement position given by *spos.
 }  /* set_output_position_for_stmt */
 
 
+static a_boolean process_executable_code_interruptions(void)
+/*
+Process any surprising interruptions in the source sequence list for
+executable statements, specifically pragmas and macros.  Return TRUE if
+anything was processed.
+*/
+{
+  a_boolean anything_processed = FALSE;
+
+  while (curr_source_sequence_entry != NULL) {
+    if (ss_entry_kind(curr_source_sequence_entry) == iek_pragma) {
+      gen_pragma();
+      anything_processed = TRUE;
+#if RECORD_MACROS_IN_IL
+    } else if (ss_entry_kind(curr_source_sequence_entry) == iek_macro) {
+      /* A macro in executable code. */
+      gen_macro();
+      anything_processed = TRUE;
+#endif /* RECORD_MACROS_IN_IL */
+    } else {
+      break;
+    }  /* if */
+  }  /* while */
+  return anything_processed;
+}  /* process_executable_code_interruptions */
+
+
 static void gen_for_statement(a_statement_ptr statement)
 /*
 Generate code for the indicated "for" statement.
@@ -4172,6 +4199,8 @@ Generate code for the indicated switch statement.
          switch (i) case 1: i = 1;
        in C, make sure the switch clause gets dumped out. */
     a_switch_clause_ptr scp;
+    /* Process pragmas, macros, etc. */
+    (void)process_executable_code_interruptions();
     if (curr_source_seq_entry_is_for_switch_clause(&scp)) {
       /* gen_switch_clause is not used because we don't have a statement
          list and we don't want a "break" at the end. */
@@ -4457,14 +4486,8 @@ switch statement.
              gen_statement deal with it. */
           break;
         }  /* if */
-      } else if (ss_entry_kind(curr_source_sequence_entry) == iek_pragma) {
-        /* A pragma in executable code. */
-        gen_pragma();
-#if RECORD_MACROS_IN_IL
-      } else if (ss_entry_kind(curr_source_sequence_entry) == iek_macro) {
-        /* A macro in executable code. */
-        gen_macro();
-#endif /* RECORD_MACROS_IN_IL */
+      } else if (process_executable_code_interruptions()) {
+        /* A pragma or macro, etc.  Keep looping. */
       } else {
         /* We don't know what this next thing is.  Leave it alone and
            go on. */
@@ -4599,6 +4622,8 @@ Generate code for the indicated statement.
     goto done;
   }  /* if */
   kind = statement->kind;
+  /* Process pragmas, macros, etc. */
+  (void)process_executable_code_interruptions();
   /* Check the current source sequence entry. */
   if (kind == (a_statement_kind)stmk_init) {
     /* An stmk_init has no source sequence entry. */
@@ -4606,12 +4631,6 @@ Generate code for the indicated statement.
     /* For declarations, let the declaration processing advance past the
        source sequence entries. */
   } else {
-    while (ss_entry_kind(curr_source_sequence_entry) == iek_pragma) {
-      /* Advance past any pragmas on a dependent statement.  (There is also
-         code in statement-list processing to deal with pragmas between
-         statements in a list.) */
-      gen_pragma();
-    }  /* while */
     if (statement->source_sequence_entry == NULL) {
       /* The statement has no associated source sequence entry.  This happens
          for implicitly-generated returns and some compiler-generated
