@@ -7336,6 +7336,7 @@ Called only in long lifetime temporaries mode.
          dip = dip->next_in_destruction_list) {
       if (dip->has_temporary_lifetime &&
           !dip->is_freeing_of_storage_on_exception &&
+          !dip->destruction_is_for_partially_constructed_aggregate &&
           !dip->is_guard_var_for_local_static_var_init) {
         /* Found a destruction for a temporary.  */
         /* If this is the first one, make an insert location by rewriting
@@ -7646,13 +7647,14 @@ code.
           /* Skipping temporaries, so skip this destruction. */
         } else if (dip->is_constructor_init ||
                    dip->is_freeing_of_storage_on_exception ||
+                   dip->destruction_is_for_partially_constructed_aggregate ||
                    dip->is_guard_var_for_local_static_var_init) {
           /* Also skip entries for constructor inits (in constructors and
              destructors).  They apply for exception cleanup but not on
              exit via branch.  Ditto for freeing storage for a new-allocation,
              and for clearing the conditional flag for a local static variable
-             initialization, if an exception is thrown before the
-             initialization is completed. */
+             initialization, and for partial aggregate cleanup, if an exception
+             is thrown before the initialization is completed. */
         } else if (dip->variable == NULL &&
                    dip->destructible_entity_descr->init_pos_descr.variable ==
                                                return_value_pointer_variable) {
