@@ -1212,6 +1212,19 @@ statement).
           if (statement != NULL) {
             /* Replace the original call statement by overwriting it with
                the block statement containing the inlined code. */
+            /* Eliminate any extra unnecessary blocks that are present.
+               This happens if no parameter assignments were generated. */
+            a_statement_ptr inner_stmt;
+            for (;;) {
+              inner_stmt = block_stmt->variant.block.statements;
+              if (inner_stmt->kind == (a_statement_kind)stmk_block &&
+                  inner_stmt->next == NULL &&
+                  block_stmt->variant.block.extra_info->assoc_scope == NULL) {
+                block_stmt = inner_stmt;
+              } else {
+                break;
+              }  /* if */
+            }  /* for */
             copy_statement(block_stmt, statement);
           } else {
             an_expr_node_ptr inlined_call_expr = insert_location.variant.expr;
