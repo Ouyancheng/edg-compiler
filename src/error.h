@@ -445,7 +445,8 @@ typedef enum /*an_error_code*/ {
   ec_ref_to_nested_function_var,
   ec_single_arg_postfix_incr_decr_anachronism,
   ec_bad_access_adjustment_with_overloading,
-  ec_missing_user_defined_assignment_for_copy
+  ec_missing_user_defined_assignment_for_copy,
+  ec_nonstd_array_cast
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -3810,6 +3810,13 @@ for both C-style casts and C++ functional-notation type conversions.
                               make_pointer_type(type_pointed_to(type_cast_to));
     } else if (is_ptr_to_member_type(type_cast_to)) {
       /* In C++, a cast to a pointer-to-member type is allowed. */
+    } else if (C_dialect == C_dialect_cplusplus &&
+               is_array_type(type_cast_to)) {
+      /* In C++, treat a cast to an array type as a cast to a pointer to
+         the array element type.  This is an extension to match cfront 2.1 */
+      *p_type_cast_to = type_cast_to =
+                           make_pointer_type(array_element_type(type_cast_to));
+      warning(ec_nonstd_array_cast);
     } else {
       /* Invalid cast. */
       error(ec_cast_not_scalar_or_void);

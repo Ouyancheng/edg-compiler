@@ -1280,6 +1280,10 @@ error code.
     case ec_missing_user_defined_assignment_for_copy:
       m = "implicitly defined operator=() is not allowed for class \"%s\"";
       break;
+    case ec_nonstd_array_cast:
+      m =
+   "nonstandard cast to array type treated as cast to pointer to element type";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
