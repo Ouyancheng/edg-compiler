@@ -2623,9 +2623,10 @@ to do further checking if the ambiguous flag is set, or for class
 members in C++ (so that access checking can be done).
 */
 #define check_ambiguity_and_verify_access(locator)                    \
-{ if (((locator)->specific_symbol->is_class_member &&                 \
+{ if ((locator)->specific_symbol != NULL &&			       \
+      (((locator)->specific_symbol->is_class_member &&                 \
        C_dialect == C_dialect_cplusplus) ||			      \
-      (locator)->specific_symbol->ambiguous) {                        \
+       (locator)->specific_symbol->ambiguous)) {                        \
     f_check_ambiguity_and_verify_access(locator);                \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
@@ -2639,7 +2640,8 @@ the access checks are suppressed when an ambiguity error is detected.
 The locator is set to an error locator by f_check_ambiguity_and_verify_access.
 */
 #define check_for_ambiguity(locator)					\
-{ if ((locator)->specific_symbol->ambiguous) {				\
+{ if ((locator)->specific_symbol != NULL &&				\
+      (locator)->specific_symbol->ambiguous) {				\
     f_check_ambiguity_and_verify_access(locator);                	\
   }  /* if */                                                         	\
 }  /* check_for_ambiguity */
