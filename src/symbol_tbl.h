@@ -2104,6 +2104,7 @@ associated type kind.  If tag_kind does is not the symbol kind of a
 class/struct, union, or enum, then tk_error is returned.
 */
 #define type_kind_for_tag_kind(tag_kind)				\
+  (a_type_kind)								\
   (tag_kind == (a_symbol_kind)sk_class_or_struct_tag ? tk_struct :	\
     (tag_kind == (a_symbol_kind)sk_union_tag ? tk_union :		\
       (tag_kind == (a_symbol_kind)sk_enum_tag ? tk_enum : tk_error)))
