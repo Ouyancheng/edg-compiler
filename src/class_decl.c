@@ -2856,8 +2856,13 @@ of the function, and again overloading is a possibility.
         !is_member_function_symbol(sym)) {
       /* sym represents a member of a class, but it is not a member function.
          Issue an error. */
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
+      if (sym->kind == (a_symbol_kind)sk_projection) {
+        /* A member of a base class. */
+        pos_error(ec_inherited_member_not_allowed, &locator->source_position);
+      } else {
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &locator->source_position, sym);
+      }  /* if */
       sym = NULL;
       set_to_error_locator(*locator);
     } else if (sym == NULL || !is_member_function_symbol(sym)) {
@@ -2891,7 +2896,7 @@ of the function, and again overloading is a possibility.
       /* It's a member function of the very class that is according it
          friendship.  Issue a diagnostic. */
       diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                      ec_self_friendship);
+                 ec_self_friendship);
     } else {
       /* It's a member function.  Find the right type signature for this
          member function name.  If none can be found, NULL is returned. */
