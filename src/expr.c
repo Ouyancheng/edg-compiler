@@ -295,16 +295,12 @@ be issued.
 }  /* simplify_void_node */
 
 
-static void simplify_void_operand(an_operand *operand)
+static void do_void_operand_transformations(an_operand *operand)
 /*
-Examine the operand given by *operand, which has been scanned as a void
-expression, and simplify it if possible by removing parts that do nothing.
-Issue a warning if the operand has no effect.  Lvalue-to-rvalue
-transformations are done if appropriate (yes in C, no in C++).  Other
-transformations are done in all cases.
+Do whatever transformations are appropriate on a void expression operand,
+e.g., lvalue-to-rvalue in C, not in C++.
 */
 {
-  a_boolean                    suppress_warning;
   a_transformation_options_set options = TOPT_NO_OPTIONS;
 
   if (!C_mode()) {
@@ -315,6 +311,22 @@ transformations are done in all cases.
                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
   }  /* if */
   do_operand_transformations(operand, options);
+}  /* do_void_operand_transformations */
+
+
+static void simplify_void_operand(an_operand *operand)
+/*
+Examine the operand given by *operand, which has been scanned as a void
+expression, and simplify it if possible by removing parts that do nothing.
+Issue a warning if the operand has no effect.  Lvalue-to-rvalue
+transformations are done if appropriate (yes in C, no in C++).  Other
+transformations are done in all cases.
+*/
+{
+  a_boolean                    suppress_warning;
+
+  /* Do lvalue-to-rvalue transformations, etc. as appropriate. */
+  do_void_operand_transformations(operand);
   if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
        For error operands, assume that the original form might have had
@@ -11412,7 +11424,10 @@ required_type will be void if the expression should have void type
     if (is_void_type(required_type)) {
       /* A void expression is expected. */
       void_return_case = TRUE;
-      simplify_void_operand(&result);
+      /* We don't use simplify_void_operand here on purpose.  We don't want
+         to remove an explicit cast to void, and we don't want to issue a
+         warning on an expression with no side effects. */
+      do_void_operand_transformations(&result);
       expression = make_node_from_void_expression_operand(&result);
       if (microsoft_mode && C_mode()) {
         /* The type is not checked in Microsoft C mode. */
