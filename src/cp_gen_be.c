@@ -3069,13 +3069,13 @@ not evk_unspecified).
       /* No visibility attribute. */
       break;
     case evk_hidden:
-      write_tok_str(" __attribute__((visibility(hidden)))");
+      write_tok_str(" __attribute__((visibility(\"hidden\")))");
       break;
     case evk_protected:
-      write_tok_str(" __attribute__((visibility(protected)))");
+      write_tok_str(" __attribute__((visibility(\"protected\")))");
       break;
     case evk_internal:
-      write_tok_str(" __attribute__((visibility(internal)))");
+      write_tok_str(" __attribute__((visibility(\"internal\")))");
       break;
     default:
       unexpected_condition();
