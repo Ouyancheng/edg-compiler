@@ -5438,6 +5438,10 @@ Generate C for a statement.
       /* Statement that marks the location of declarations.  Ignored here. */
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    case stmk_set_vla_size:
+    case stmk_alloc_vla_variable:
+      /* No output. */
+      break;
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */
@@ -5563,6 +5567,8 @@ its subtree.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      case stmk_set_vla_size:
+      case stmk_alloc_vla_variable:
         /* No subtree of statements. */
         break;
       case stmk_return:

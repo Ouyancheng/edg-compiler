@@ -1589,6 +1589,9 @@ Dump a statement kind, for debug purposes.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:            s = "decl";              break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    case stmk_set_vla_size:    s = "set-vla-size";      break;
+    case stmk_alloc_vla_variable:
+                               s = "alloc-vla-variable"; break;
     default:                   s = "<bad stmt kind>"; break;
   }  /* switch */
   fputs(s, f_debug);

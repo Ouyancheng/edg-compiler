@@ -1141,6 +1141,8 @@ If not, *failed is set.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case stmk_microsoft_try:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case stmk_set_vla_size:
+      case stmk_alloc_vla_variable:
       default:
 cannot_inline_ever:
         /* This statement cannot be inlined in any context. */

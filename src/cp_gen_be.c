@@ -5650,6 +5650,10 @@ Generate code for the indicated statement.
       }  /* if */
       suppress_trailing_space = TRUE;
       break;
+    case stmk_set_vla_size:
+    case stmk_alloc_vla_variable:
+      /* No output. */
+      break;
     default:
       unexpected_condition_str("gen_statement: bad statement kind");
   }  /* switch */
