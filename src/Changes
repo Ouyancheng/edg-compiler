@@ -1,5 +1,22 @@
 Version 2.24
 
+6/17/94 Instantiation information file only created when the back end is run
+
+The front end and eccp driver script have been modified to only create
+an instantiation information (.ii) file when the back end is run.  In
+other words, the creation (or deletion) of the .ii file is suppressed
+when there are compilation errors or if one of the "front end only"
+options (e.g., --no_il_lowering (-N) or --no_code_gen (-n)) options is used.
+
+6/17/94 cfront 3.0 compatibility mode
+
+A cfront 3.0 compatibility mode is now supported in addition to the
+previously supported cfront 2.1 mode.  Cfront 3.0 mode includes a
+subset of the features supported by cfront 2.1 mode.  Cfront 3.0 mode is
+specified using the --cfront_3.0 command line option.  The External
+Interface chapter describes the features supported by each of the
+cfront modes.
+
 6/14/94 Invalid template operator function internal error
 
 If a the declaration of a template operator function contained an
