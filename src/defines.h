@@ -96,7 +96,6 @@ Flags to be set when using the KAI inliner.
 #define USE_PRAGMA_IDENT_IN_GENERATED_CODE 1
 #define STDC_ZERO_IN_NONSTRICT_MODE 1
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST"
-#define GUARD_MACRO2_FOR_VA_LIST "_SYS_VA_LIST_H"
 #ifdef sparc
 /* SPARC Solaris version. */
 #define TARG_JMP_BUF_NUM_ELEMENTS 12
