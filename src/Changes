@@ -1,5 +1,37 @@
 Version 2.20
 
+8/24/93 Ambiguity error on mem-initializer
+
+We now issue an error when the reference of a mem-initializer in a
+ctor-initializer is ambiguous.  This can occur when the type of a direct
+nonvirtual base class is the same as that of an indirect virtual base
+class, e.g.,
+
+  class A { A(int); /* ... */ };
+  class B : virtual public A { /* ... */ };
+  class C : public A, public B {
+    C() : A(0) { }                          // Which base class A?
+  };
+
+8/23/93 Local typedefs in template arguments
+
+When a template argument involves a typedef name that is defined locally
+within the scope of a function, that typedef name is now stripped from the
+type in the IL representation (wherever it appears in the type tree).
+This is because a template class has visibility outside the scope of the
+local typedef name.  This change is also manifest in diagnostics that
+display the type.  For instance:
+
+  template <class T> class A { A(int); };
+  void f() {
+    typedef int *PI;
+    A<PI> x;
+  }
+
+where the error message on the declaration of x will now complain that no
+default constructor exists for class "A<int *>".  (Nonlocal typedef names
+are not stripped off, however.)
+
 -------------------------------------------------------------------------------
 Version 2.19, August 19, 1993
 
