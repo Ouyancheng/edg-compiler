@@ -5785,7 +5785,7 @@ static void lvalue_cast(a_type_ptr type_cast_to,
                         an_operand *result)
 /*
 Cast an operand for an lvalue (result) to a new type.  This "lvalue cast" is
-only done in C mode.
+only done in C mode, and it's an extension.
 */
 {
   an_expr_node_ptr temp_node;
@@ -5869,6 +5869,9 @@ be set to the source position of the type.
       if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
         /* In C++ class rvalues can have qualifiers, so casting to a
            cv-qualified class type is okay. */
+      } else if (microsoft_bugs) {
+        /* Microsoft mode allows some lvalue casts where cv-qualifiers
+           matter, so give no warning. */
       } else {
         warning(ec_cast_to_qualified_type);
         *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
@@ -6582,10 +6585,23 @@ C-style casts and C++ functional-notation type conversions.
                                             ec_bad_cast, &warning_suggested)) {
           /* Valid explicit conversion. */
           if (microsoft_bugs && is_an_lvalue(operand) &&
-              identical_types(source_type, type_cast_to)) {
+              f_identical_types(f_skip_typerefs(source_type),
+                                f_skip_typerefs(type_cast_to),
+                                ITF_NO_FLAGS)) {
             /* In Microsoft mode, a cast of an lvalue to the same type
                is just ignored, and the operand stays an lvalue.  Note that
                this applies in C++ as well as C. */
+            /* The cast can add or drop cv-qualifiers.  If it does, we
+               have to add a cast. */
+            if (!identical_types(source_type, type_cast_to)) {
+              take_address_of_lvalue(operand);
+              cast_operand(make_pointer_type(type_cast_to),
+                           operand, /*check_cast_access=*/FALSE,
+                           /*is_implicit_cast=*/FALSE, 
+                           /*is_reinterpret_cast=*/FALSE,
+                           /*reinterpret_semantics=*/FALSE);
+              conv_object_pointer_to_lvalue(operand);
+            }  /* if */
           } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
                       (microsoft_mode && C_mode())) &&
                      is_an_lvalue(operand) &&

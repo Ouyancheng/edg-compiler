@@ -1,5 +1,19 @@
 Version 2.44
 
+1/17/00  Microsoft compatibility: lvalue cast that casts away const
+
+In Microsoft bugs mode, a cast of an lvalue to the type it already
+has is ignored (that is, the expression remains an lvalue).  It turns
+out that MSVC++ 6.0 also allows this even when the source and destination
+types differ in their top-level cv-qualifiers.  Such cases are now
+accepted.
+
+  int main () {
+    int *const q = 0;
+    (int *)q = 0;  // Accept in Microsoft bugs mode.
+    return 0;
+  }
+
 1/16/00  Microsoft compatibility: inline functions instantiated later
 
 Normally, inline functions are instantiated when first referenced.
