@@ -1,5 +1,17 @@
 Version 2.46
 
+1/28/02  Error recovery abort on invalid nested class of class template
+
+An abort could occur during the fixup processing for a member of a
+nested class of a class template if the nested class declaration was
+invalid in some way.  This has been fixed.
+
+  template <class T> struct A { 
+    struct A {  // invalid -- same name as enclosing class
+      int f() { return 0 ; } 
+    };
+  };
+
 1/26/02  C++-generating back end: calls to functions only declared as friends
 
 In Microsoft mode, functions only declared as friends are visible in the

@@ -2233,7 +2233,7 @@ new expression and should therefore not be treated as a declaration.
       }  /* if */
     }  /* if */
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-        tag_sym->is_class_member && !tag_sym->is_error) {
+        tag_sym->is_class_member) {
       /* Determine whether this is a referenced to a nested class within
          a class template.  If so, set the correspondence with the
          corresponding prototype class. */
