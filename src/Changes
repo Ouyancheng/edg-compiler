@@ -13,9 +13,8 @@ change reflects a change in the standard; we had implemented an
 earlier version that required the callability check during overload
 resolution.
 
-This change eliminates a recursion loop in the front end when a
-constructor for a type A takes a parameter of type B, and a constructor
-for type B can take a parameter of type A.
+This change also eliminates a recursion loop in the front end in some
+complicated cases involving template constructors.
           
 6/10/98   Integral promotions on bit fields in left operand of compound
           assignment
