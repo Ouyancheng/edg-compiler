@@ -93,7 +93,7 @@ Overloaded Function".
   a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
   a_type_ptr       dest_underlying_type;
-  a_symbol_ptr     sym, proj_sym, match_sym = NULL, instance_sym;
+  a_symbol_ptr     sym, proj_sym, match_sym = NULL;
   unsigned long    number_of_matches = 0;
   a_std_conv_descr std_conversion;
 
@@ -177,6 +177,7 @@ Overloaded Function".
     }  /* for */
     if (number_of_matches == 0 && any_function_templates &&
         is_function_type(dest_underlying_type)) {
+      a_partial_order_candidate_ptr	candidate_list = NULL;
       /* Try matching function templates.  Do not try if the underlying type
          is not a function type. */
       for (proj_sym = ovl_sym;
@@ -186,16 +187,32 @@ Overloaded Function".
         sym = fundamental_symbol_of(proj_sym);
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
-          instance_sym = matching_template_function(sym, dest_underlying_type,
-                                                    /*is_decl_context=*/FALSE);
-          if (instance_sym != NULL) {
-            /* Template match. */
-            match_sym = instance_sym;
-            *match_level = aml_exact;
-            number_of_matches++;
+          if (has_matching_template_function(sym, dest_underlying_type,
+                                             /*is_decl_context=*/FALSE)) {
+            /* This template can generate an instance of the appropriate
+               type.  Add the matching template to a list of matching
+               candidates. */
+            add_to_partial_order_candidates_list(&candidate_list, sym,
+                                                 (a_template_arg_ptr)NULL);
           }  /* if */
         }  /* if */
       }  /* for */
+      if (candidate_list != NULL) {
+        /* If any of the templates matched, select the best one using
+           the partial ordering rules.  If a best match cannot be selected,
+           an arbitrary member of the unordered set of templates will be
+           returned and the ambiguous flag will be set. */
+        a_boolean		ambiguous;
+        a_template_arg_ptr	templ_arg_list;
+        select_best_partial_order_candidate(
+                           candidate_list, (a_symbol_ptr)NULL, &sym,
+                           &templ_arg_list, &ambiguous);
+        /* Generate a partial instantiation of the matching instance. */
+        match_sym = matching_template_function(sym, dest_underlying_type,
+                                               /*is_decl_context=*/FALSE);
+        *match_level = aml_exact;
+        number_of_matches = ambiguous ? 2 : 1;
+      }  /* if */
     }  /* if */
     if (number_of_matches == 0 && !is_ref) {
       /* Try matches involving an implicit conversion.  This is here
