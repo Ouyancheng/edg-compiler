@@ -1857,7 +1857,8 @@ a_type_ptr pointer_declarator(
                       a_boolean   	    reference_allowed,
 		      a_boolean		    call_conv_allowed,
                       a_call_conv_descr_ptr p_calling_convention,
-                      a_call_conv_descr_ptr p_unbound_calling_convention)
+                      a_call_conv_descr_ptr p_unbound_calling_convention,
+                      a_decl_modifier       *decl_modifiers)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 
@@ -1906,6 +1907,10 @@ is immediately applied to the specifiers type.
 When pointer_declarator is called from elsewhere in the compiler
 (e.g., new_type_name), p_calling_convention and p_unbound_calling_convention
 are NULL.
+
+If any unbound near/far modifiers are scanned, they are added to whatever is
+already in *decl_modifiers.  decl_modifiers is NULL if unbound declaration
+modifiers should be discarded.
 */
 {
   a_type_ptr     		complete_type = specifiers_type;
@@ -2664,7 +2669,8 @@ The syntax is:
                                        C_dialect == C_dialect_cplusplus,
                                      /*call_conv_allowed=*/TRUE,
                                      &call_conv,
-                                     &unbound_call_conv);
+                                     &unbound_call_conv,
+                                     decl_modifiers);
   derived_type = NULL;
   bottom_derived_type = NULL;
   /* The next thing is an identifier, or a parenthesis that begins a

@@ -180,7 +180,8 @@ a_type_ptr pointer_declarator(
                       a_boolean   	    reference_allowed,
 		      a_boolean		    call_conv_allowed,
                       a_call_conv_descr_ptr p_calling_convention,
-                      a_call_conv_descr_ptr p_unbound_calling_convention);
+                      a_call_conv_descr_ptr p_unbound_calling_convention,
+                      a_decl_modifier       *decl_modifiers);
 
 extern void array_declarator(a_type_ptr *new_type_ptr,
                              a_boolean  nonconstant_dimension_allowed,

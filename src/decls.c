@@ -4954,7 +4954,8 @@ within this routine if is_parenthesized comes in FALSE.
                                        /*reference_allowed=*/FALSE,
                                        /*call_conv_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
-				       (a_call_conv_descr_ptr)NULL);
+				       (a_call_conv_descr_ptr)NULL,
+                                       (a_decl_modifier_ptr)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -5073,7 +5074,8 @@ is no parent.
                                        /*reference_allowed=*/TRUE,
                                        /*call_conv_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
-				       (a_call_conv_descr_ptr)NULL);
+				       (a_call_conv_descr_ptr)NULL,
+                                       (a_decl_modifier_ptr)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
