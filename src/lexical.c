@@ -922,8 +922,8 @@ scan the tokens in a Microsoft __asm block.
     }  /* if */
     if (!skip_this_token) {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Count paired tokens within the skip. */ /*lint !e539*/
-      if (closing_token == tok_rbrace) {
+      /* Count paired tokens within the skip. */
+      if (closing_token == tok_rbrace) { /*lint !e539*/
         /* When looking for a right brace, don't consider any other
            delimiters.  Braces can't be nested inside parens, brackets,
            etc. */
