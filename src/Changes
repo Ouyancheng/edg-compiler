@@ -387,7 +387,7 @@ this special case.
 
 5/22/96 Global qualifier on friend declaration
 
-The 9/12/95 entry describes the addition of an extension that is since
+The 9/12/95 entry describes the addition of an extension that has since
 been approved as part of the language, and so a strict mode diagnostic is
 no longer issued for a global qualifier on a friend declaration:
 
@@ -401,7 +401,8 @@ no longer issued for a global qualifier on a friend declaration:
 5/22/96 Wrap diagnostics option
 
 The options --wrap_diagnostics and --no_wrap_diagnostics enable
-and disable a mode in which the error text is not wrapped.
+and disable a mode in which the text in long diagnostics is not split
+into multiple lines of output.
 
 5/17/96 Member templates
 
