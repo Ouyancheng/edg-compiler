@@ -4544,8 +4544,8 @@ label_position indicates the source position of the label.
       char              *entity_ptr;
       an_il_entry_kind  entity_kind;
 
-      if (label == NULL) {
-        /* If we did not create a label, make the new lifetime point
+      if (label_directly_in_switch) {
+        /* When the case clause is "top level", make the new lifetime point
            to the switch clause. */
         entity_kind = (an_il_entry_kind)iek_switch_clause;
         entity_ptr = (char *)scp;
