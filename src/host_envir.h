@@ -1139,7 +1139,7 @@ extern char *make_module_id(void);
 
 extern void host_envir_one_time_init(void);
 
-extern void host_envir_startup_init(void);
+extern void host_envir_early_init(void);
 
 extern void host_envir_init(void);
 
