@@ -14111,6 +14111,26 @@ might be referenced from an exported template.
   return should_externalize;
 }  /* routine_should_be_externalized_for_exported_templates */
 
+
+a_boolean variable_should_be_externalized_for_exported_templates(
+                                                            a_variable_ptr var)
+/*
+Return TRUE if the indicated variable should be externalized because it
+might be referenced from an exported template.
+*/
+{
+  a_boolean should_externalize =
+              (any_exported_templates() &&
+               var->storage_class == (a_storage_class)sc_static
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+               && !var->source_corresp.duplicate_static_in_instantiation_slices
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                                                             );
+  return should_externalize;
+}  /* variable_should_be_externalized_for_exported_templates */
+
 #endif /* DO_IL_LOWERING */
 
 #if DEBUG

@@ -29,9 +29,6 @@ lower_name.c -- Do name mangling for IL lowering.
 
 /* Only include this code if it is needed: */
 #if NEED_NAME_MANGLING
-#if DO_IL_LOWERING
-#include "templates.h"
-#endif /* DO_IL_LOWERING */
 #include "il_walk.h"
 
 #if IA64_ABI
@@ -305,7 +302,7 @@ static char *mangled_expr_operator_name(an_expr_operator_kind op);
 static void mangled_encoding_for_expression(an_expr_node_ptr         expr,
                                             a_mangling_control_block *mctl);
 static void mangled_member_name(a_source_correspondence  *scp,
-                                a_boolean                is_specialization,
+                                an_il_entry_kind         kind,
                                 a_mangling_control_block *mctl);
 static void mangled_encoding_for_constant(a_constant_ptr           con,
                                           a_boolean                old_form,
@@ -947,7 +944,7 @@ for a local entity, for the IA-64 ABI.
                                          suppress_parent_encoding,
                                          /*force_primary_name=*/TRUE,
                                          /*base_name_offset=*/(sizeof_t *)NULL,
-                        mctl);
+                                         mctl);
   add_to_mangled_name('E', mctl);
 }  /* add_prefix_for_local_entity */
 
@@ -1716,15 +1713,15 @@ typedef struct a_routine_info_block {
 
 
 static void mangled_entity_reference(a_source_correspondence  *scp,
-                                     a_boolean                is_routine,
+                                     an_il_entry_kind         kind,
                                      a_routine_info_block     *rinfo,
                                      a_mangling_control_block *mctl)
 /*
 Add the encoding for a reference to an entity in an expression, for
 the IA-64 ABI.  scp is the source correspondence of the entity, which
-is a routine if is_routine is TRUE.  If rinfo != NULL, the entity
-is not a routine entry but it represents a routine, and rinfo points
-to the information describing it.
+has kind "kind".  If rinfo != NULL, the entity is not a routine entry
+but it represents a routine, and rinfo points to the information
+describing it.
 */
 {
   a_type_ptr parent_class = (scp->is_class_member ? scp->parent.class_type :
@@ -1739,7 +1736,7 @@ to the information describing it.
     /* First operand is the parent class type. */
     mangled_encoding_for_type(parent_class, mctl);
     /* Second operand is an unqualified name, more or less. */
-    if (is_routine) {
+    if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
       mangled_function_name(rout,
                             /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
@@ -1751,7 +1748,7 @@ to the information describing it.
       a_boolean need_nested_name_close = FALSE;
       if (emulate_gnu_abi_bugs) {
         /* g++ 3.2 puts a parent qualifier on member references. */
-        mangled_ia64_parent_qualifier(scp, iek_none,
+        mangled_ia64_parent_qualifier(scp, kind,
                                       &need_nested_name_close, mctl);
       }  /* if */
       if (rinfo != NULL) {
@@ -1782,7 +1779,7 @@ to the information describing it.
     /* Use a name as a literal instead of "sr", because the parent class
        is not dependent or the entity is not a class member. */
     add_str_to_mangled_name("L_Z", mctl);
-    if (is_routine) {
+    if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
       mangled_function_name(rout,
                             /*suppress_param_encoding=*/FALSE,
@@ -1794,7 +1791,7 @@ to the information describing it.
       /* Not a routine. */
       /* Add a parent qualifier for a member if needed. */
       a_boolean need_nested_name_close = FALSE;
-      mangled_ia64_parent_qualifier(scp, iek_none,
+      mangled_ia64_parent_qualifier(scp, kind,
                                     &need_nested_name_close, mctl);
       if (rinfo != NULL) {
         /* Not a routine entry, but it represents a routine (this might be
@@ -1826,20 +1823,20 @@ to the information describing it.
 
 
 static void mangled_address_of_entity(a_source_correspondence  *scp,
-                                      a_boolean                is_routine,
+                                      an_il_entry_kind         kind,
                                       a_routine_info_block     *rinfo,
                                       a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the address of an entity, for
 the IA-64 ABI.  scp is the source correspondence of the entity, which
-is a routine if is_routine is TRUE.  If rinfo != NULL, the entity
-is not a routine entry but it represents one, and rinfo points to the
-information describing the routine.
+has kind "kind".  If rinfo != NULL, the entity is not a routine entry
+but it represents one, and rinfo points to the information describing
+the routine.
 */
 {
   /* Unary "&" encoding "ad". */
   add_str_to_mangled_name("ad", mctl);
-  mangled_entity_reference(scp, is_routine, rinfo, mctl);
+  mangled_entity_reference(scp, kind, rinfo, mctl);
 }  /* mangled_address_of_entity */
 
 #endif /* IA64_ABI */
@@ -1963,6 +1960,7 @@ specification in the mangling for lengths of literals.
   }  /* if */
 #else /* IA64_ABI */
   a_source_correspondence *scp = NULL;
+  an_il_entry_kind        kind;
   a_routine_ptr           rout = NULL;
   a_field_ptr             field = NULL;
 
@@ -1970,16 +1968,17 @@ specification in the mangling for lengths of literals.
     rout = con->variant.ptr_to_member.variant.routine;
     if (rout != NULL) {
       scp = &rout->source_corresp;
+      kind = iek_routine;
     }  /* if */
   } else {
     field = con->variant.ptr_to_member.variant.field;
     if (field != NULL) {
       scp = &field->source_corresp;
+      kind = iek_field;
     }  /* if */
   }  /* if */
   if (scp != NULL) {
-    mangled_address_of_entity(scp, /*is_routine=*/(rout != NULL),
-                              (a_routine_info_block *)NULL, mctl);
+    mangled_address_of_entity(scp, kind, (a_routine_info_block *)NULL, mctl);
   } else {
     /* We have a NULL pointer-to-member constant.  Although not allowed by the
        standard, some compilers accept this as an extension.  The IA64 ABI
@@ -2052,7 +2051,7 @@ has an explicit template argument list, given by template_arg_list.
     if (has_template_args) {
       rinfo.template_arg_list = template_arg_list;
     }  /* if */
-    mangled_address_of_entity(&con->source_corresp, /*is_routine=*/FALSE,
+    mangled_address_of_entity(&con->source_corresp, iek_constant,
                               &rinfo, mctl);
   }
 #endif /* !IA64_ABI */
@@ -2178,14 +2177,12 @@ do_unknown_function:
 #if !IA64_ABI
           { a_length_reservation length_reservation;
             reserve_space_for_length(&length_reservation, mctl);
-            mangled_member_name(&con->source_corresp,
-                                /*is_specialization=*/FALSE,
-                                mctl);
+            mangled_member_name(&con->source_corresp, iek_constant, mctl);
             fill_in_length(&length_reservation, mctl);
           }
 #else /* IA64_ABI */
           mangled_entity_reference(&con->source_corresp,
-                                   /*is_routine=*/FALSE,
+                                   iek_constant,
                                    (a_routine_info_block *)NULL,
                                    mctl);
 #endif /* !IA64_ABI */
@@ -2202,16 +2199,13 @@ do_unknown_function:
           literal_representation(con->variant.template_param.variant.constant,
                                  old_form, mctl);
 #else /* IA64_ABI */
-          { a_source_correspondence *scp;
-            con = con->variant.template_param.variant.constant;
-            check_assertion(con->kind == 
+          con = con->variant.template_param.variant.constant;
+          check_assertion(con->kind == 
                                    (a_constant_repr_kind)ck_template_param &&
-                            con->variant.template_param.kind ==
+                          con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_member);
-            scp = &con->source_corresp;
-            mangled_address_of_entity(scp, /*is_routine=*/FALSE,
-                                      (a_routine_info_block *)NULL, mctl);
-          }
+          mangled_address_of_entity(&con->source_corresp, iek_constant,
+                                    (a_routine_info_block *)NULL, mctl);
 #endif /* IA64_ABI */
           break;
         case tpck_sizeof:
@@ -4389,7 +4383,32 @@ mangled without parameter encoding.
 
 #if DO_IL_LOWERING
 
-static void start_externalized_name(a_boolean                is_variable,
+static char *module_id_for_source_corresp(a_source_correspondence *scp)
+/*
+Return the module id for the translation unit which the given source
+correspondence is part of.  For a source correspondence with no
+associated symbol, use the current translation unit.
+*/
+{
+  a_translation_unit_ptr tup;
+  char                   *module_id;
+
+  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
+                                    curr_translation_unit;
+  module_id = *tup->module_id_ptr;
+  /* The module id must have been created previously. */
+  check_assertion(module_id != NULL);
+  return module_id;
+}  /* module_id_for_source_corresp */
+
+
+#if IA64_ABI
+/*ARGSUSED*/ /* <-- is_variable is not used in that case. */
+#else /* !IA64_ABI */
+/*ARGSUSED*/ /* <-- scp is not used in that case. */
+#endif /* IA64_ABI */
+static void start_externalized_name(a_source_correspondence  *scp,
+                                    a_boolean                is_variable,
                                     a_mangling_control_block *mctl)
 /*
 Begin the output of the externalized mangled name for the entity with
@@ -4397,6 +4416,7 @@ the indicated source correspondence.  The entity is a variable if
 is_variable is TRUE, a routine otherwise.
 */
 {
+#if !IA64_ABI
   char *prefix = (is_variable ? (char *)"__STV__" : (char *)"__STF__");
 
   /* The generated name has the form
@@ -4405,11 +4425,21 @@ is_variable is TRUE, a routine otherwise.
      Only the prefix is put out here.
   */
   add_str_to_mangled_name(prefix, mctl);
+#else  /* IA64_ABI */
+  /* The qualifier for an externalized name is
+       B <length> <module-id>
+     This is not in the ABI spec.  It's an EDG extension.  It can appear
+     as a prefix to a name. */
+  char *module_id = module_id_for_source_corresp(scp);
+  add_to_mangled_name('B', mctl);
+  mangled_name_with_length(module_id, mctl);
+#endif /* !IA64_ABI */
 }  /* start_externalized_name */
 
-#endif /* DO_IL_LOWERING */
-#if DO_IL_LOWERING
 
+#if IA64_ABI
+/*ARGSUSED*/ /* <-- scp and mctl are not used in that case. */
+#endif /* IA64_ABI */
 static void end_externalized_name(a_source_correspondence  *scp,
                                   a_mangling_control_block *mctl)
 /*
@@ -4417,24 +4447,20 @@ End the output of the externalized mangled name for the entity with
 the indicated source correspondence.
 */
 {
-  a_translation_unit_ptr tup;
-  char                   *module_id;
+#if !IA64_ABI
+  char *module_id;
 
   /* The generated name has the form
        __STV__name__module_id  (variable)
        __STF__name__module_id  (function)
      Only the part after "name" is put out here.
   */
-  /* Get the module id for the translation unit which this source
-     correspondence is part of.  For a source correspondence with no
-     associated symbol, use the current translation unit. */
-  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
-                                    curr_translation_unit;
-  module_id = *tup->module_id_ptr;
-  /* The module id must have been created previously. */
-  check_assertion(module_id != NULL);
+  module_id = module_id_for_source_corresp(scp);
   add_str_to_mangled_name("__", mctl);
   add_str_to_mangled_name(module_id, mctl);
+#else /* IA64_ABI */
+  /* No suffix required for IA-64 ABI. */
+#endif /* !IA64_ABI */
 }  /* end_externalized_name */
 
 
@@ -4454,6 +4480,11 @@ buffer, and must be copied elsewhere promptly.
   char                     buffer[50];
   a_source_correspondence  *module_scp = scp;
 
+  /* This routine is called after name mangling has been done, and
+     sometimes very late in the compilation (e.g., because of
+     the needed-flag sweep in one-instantiation-per-object mode),
+     where the entity name cannot be mangled again.  Therefore we
+     must use the existing mangled name and modify it as necessary. */
 #if CHECKING
   /* If the name needs to be mangled, the mangling should have been done
      already.  Note that that does not mean that the entity has been
@@ -4479,11 +4510,10 @@ buffer, and must be copied elsewhere promptly.
   }
 #endif /* CHECKING */
   start_mangling(&mctl);
-  /* The generated name has the form
-       __STV__name__module_id  (variable)
-       __STF__name__module_id  (function)
-  */
-  start_externalized_name(is_variable, &mctl);
+#if IA64_ABI
+  add_mangled_name_prefix(&mctl);
+#endif /* IA64_ABI */
+  start_externalized_name(scp, is_variable, &mctl);
   if (name == NULL) {
     /* Entity has no name, e.g., a generated routine.  Generate one. */
     if (is_variable) {
@@ -4517,7 +4547,19 @@ buffer, and must be copied elsewhere promptly.
       name = buffer;
     }  /* if */
   }  /* if */
+#if IA64_ABI
+  if (name[0] == '_' && name[1] == 'Z') {
+    /* The name is mangled.  Skip the "_Z" prefix. */
+    add_str_to_mangled_name(name+2, &mctl);
+  } else {
+    /* The name is not mangled (e.g., a variable).  Precede the name by
+       its length. */
+    mangled_name_with_length(name, &mctl);
+  }  /* if */
+#else /* !IA64_ABI */
+  /* Cfront-like ABI. */
   add_str_to_mangled_name(name, &mctl);
+#endif /* IA64_ABI */
   end_externalized_name(module_scp, &mctl);
   add_to_mangled_name('\0', &mctl);
   return mangling_text_buffer->buffer;
@@ -4559,7 +4601,8 @@ externalized, use the encoding for the externalized form.
                 routine->source_corresp.externalized ||
                 routine_should_be_externalized_for_exported_templates(routine);
   if (needs_to_be_externalized) {
-    start_externalized_name(/*is_variable=*/FALSE, mctl);
+    start_externalized_name(&routine->source_corresp, /*is_variable=*/FALSE,
+                            mctl);
   }  /* if */
 #endif /* DO_IL_LOWERING */
   mangled_function_name(routine,
@@ -4687,19 +4730,15 @@ a constructor or destructor, return the primary entry point name.
 #endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED ||
           MODULE_ID_NEEDED */
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- is_specialization is not used in that case. */
-#endif /* IA64_ABI */
 static void mangled_member_name(a_source_correspondence  *scp,
-                                a_boolean                is_specialization,
+                                an_il_entry_kind         kind,
                                 a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the class or
-namespace member whose source correspondence is given by scp.
-This routine must be called only for static data member variables,
-namespace member variables, and class and namespace member constants.
-is_specialization is TRUE if the variable is a template static data
-member specialization.
+namespace member whose source correspondence is given by scp and
+whose kind is given by "kind".  This routine must be called only for
+static data member variables, namespace member variables, and class
+and namespace member constants.
 */
 {
 #if !IA64_ABI
@@ -4725,6 +4764,12 @@ member specialization.
        base class.  That means the original form of reference
        was unqualified.  Don't put out the parent qualifier. */
   } else {
+    a_boolean is_specialization = FALSE;
+    if (kind == iek_variable) {
+      a_variable_ptr variable = (a_variable_ptr)scp;
+      is_specialization = (variable->is_specialized &&
+                           !variable->specialized_with_old_syntax);
+    }  /* if */
     if (distinct_template_signatures && is_specialization) {
       /* Put out an indication of the fact that a static data member is
          specialized. */
@@ -4738,7 +4783,7 @@ member specialization.
 #else /* IA64_ABI */
   a_boolean need_nested_name_close = FALSE;
   /* Add a parent qualifier for a member if needed. */
-  mangled_ia64_parent_qualifier(scp, iek_none,
+  mangled_ia64_parent_qualifier(scp, kind,
                                 &need_nested_name_close, mctl);
   /* Output the name of the member. */
   mangled_name_with_length(unmangled_name_of(scp), mctl);
@@ -4754,8 +4799,6 @@ Add to the mangled name the encoding for the name of the member variable
 "variable" (a static data member or namespace member variable).
 */
 {
-  a_boolean is_specialization;
-
   if (!has_name(variable)) {
     /* An anonymous union can cause an unnamed member of a namespace:
          namespace {
@@ -4766,9 +4809,7 @@ Add to the mangled name the encoding for the name of the member variable
                         "mangled_member_variable_name: unnamed class member");
     give_unnamed_member_variable_a_name(variable);
   }  /* if */
-  is_specialization = (variable->is_specialized &&
-                       !variable->specialized_with_old_syntax);
-  mangled_member_name(&variable->source_corresp, is_specialization, mctl);
+  mangled_member_name(&variable->source_corresp, iek_variable, mctl);
 }  /* mangled_member_variable_name */
 
 #if TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED
@@ -4787,12 +4828,9 @@ or a static data member (e.g., not a file scope variable).
   a_boolean                needs_to_be_externalized = FALSE;
 
 #if DO_IL_LOWERING
-  /* Static entities are potentially referenced from exported templates
-     and therefore get externalized, which gives them a different kind
-     of mangled name. */
+  /* See if the variable is static and needs to be made external. */
   needs_to_be_externalized =
-                      (variable->storage_class == (a_storage_class)sc_static &&
-                       any_exported_templates());
+              variable_should_be_externalized_for_exported_templates(variable);
 #endif /* DO_IL_LOWERING */
   if (variable->source_corresp.name_has_been_mangled &&
       !variable->source_corresp.final_name_mangling_pending &&
@@ -4807,7 +4845,8 @@ or a static data member (e.g., not a file scope variable).
     add_mangled_name_prefix(&mctl);
 #if DO_IL_LOWERING
     if (needs_to_be_externalized) {
-      start_externalized_name(/*is_variable=*/TRUE, &mctl);
+      start_externalized_name(&variable->source_corresp, /*is_variable=*/TRUE,
+                              &mctl);
     }  /* if */
 #endif /* DO_IL_LOWERING */
     mangled_member_variable_name(variable, &mctl);
@@ -4954,8 +4993,7 @@ extension) a declared class member constant.
        to avoid conflicts in generated C code.*/
     add_str_to_mangled_name("__", &mctl);
 #endif /* !IA64_ABI */
-    mangled_member_name(&con->source_corresp,
-                        /*is_specialization=*/FALSE, &mctl);
+    mangled_member_name(&con->source_corresp,  iek_constant, &mctl);
     (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
   }  /* if */
 }  /* mangle_member_constant_name */
@@ -5048,6 +5086,10 @@ Mangle the name of the indicated function, if necessary.
       base_name_offset = &routine->variant.ctor_dtor.base_name_offset;
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
+    /* Note that this does not request the externalized version on purpose.
+       The externalization part of the name is added later.  If we did
+       externalize the name here, we'd have to do the other things that
+       get done when a name is externalized. */
     mangled_function_name(routine,
                           suppress_param_encoding, 
                           /*suppress_parent_encoding=*/FALSE,

@@ -15081,6 +15081,10 @@ files can reference it.
   char     *name, *new_name;
   sizeof_t name_len;
 
+  check_assertion(!scp->externalized);
+  /* The entity name should have been mangled already if it needs to
+     be mangled (externalized_mangled_name checks that).  Note that
+     that does not mean the entity has been lowered yet. */
   /* Generate a mangled name to keep this entity's name unique. */
   name = externalized_mangled_name(scp, is_variable);
   name_len = strlen(name);

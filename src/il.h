@@ -1336,6 +1336,8 @@ extern a_boolean is_member_of_unnamed_namespace(a_source_correspondence *scp);
 #if DO_IL_LOWERING
 extern a_boolean routine_should_be_externalized_for_exported_templates(
                                                            a_routine_ptr rout);
+extern a_boolean variable_should_be_externalized_for_exported_templates(
+                                                           a_variable_ptr var);
 #endif /* DO_IL_LOWERING */
 
 /*

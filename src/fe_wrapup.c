@@ -242,13 +242,7 @@ scope, or a class scope.
     }  /* if */
   }  /* for */
   for (var = scope->variables; var != NULL; var = var->next) {
-    if (var->storage_class == (a_storage_class)sc_static
-#if ONE_INSTANTIATION_PER_OBJECT
-#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-        && !var->source_corresp.duplicate_static_in_instantiation_slices
-#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-                                                                        ) {
+    if (variable_should_be_externalized_for_exported_templates(var)) {
       externalize_entity_for_exported_templates(&var->source_corresp,
                                                 iek_variable);
     }  /* if */
