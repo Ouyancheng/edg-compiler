@@ -124,10 +124,6 @@ it needs to be executed after all templates have been instantiated.
   il_scope = curr_translation_unit->primary_scope;
 
   if (is_primary_translation_unit && !do_preprocessing_only) {
-    /* Do any template instantiation that may be required.  This is called
-       first because it may generate additional function bodies and class
-       definitions that need to be processed by the operations that follow. */
-    instantiation_wrapup();
     if (any_cfront_mode()) {
       /* Repeat the class linkage check that was first done during translation
          unit wrapup.  This is done again to catch any classes that may have
@@ -314,6 +310,11 @@ and before the back end (if any) is executed.
      translation unit. */
   check_assertion_str2(is_primary_translation_unit,
                        "fe_wrapup:", "bad translation unit in fe_wrapup");
+
+  /* Do any template instantiation that may be required.  This is called
+     first because it may generate additional function bodies and class
+     definitions that need to be processed by the operations that follow. */
+  instantiation_wrapup();
 
   if (C_dialect == C_dialect_cplusplus) {
     /* Go through the classes in the file scope and each namespace scope
