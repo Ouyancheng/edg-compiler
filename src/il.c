@@ -10982,8 +10982,16 @@ as well.
 {
   a_type_ptr type;
   int        n;
+  a_boolean  secondary;
 
+  if (type_list != NULL) secondary = in_secondary_trans_unit(type_list);
   for (type = type_list; type != NULL; type = type->next) {
+    /* Check for a list that switches between translation units. */
+    if (secondary != in_secondary_trans_unit(type)) {
+      for (n = 0; n < indent; n++) fputc(' ', f_debug);
+      (void)fprintf(f_debug, "***switch between translation units***\n");
+      secondary = !secondary;
+    }  /* if */
     for (n = 0; n < indent; n++) fputc(' ', f_debug);
     db_abbreviated_type(type);
     (void)fprintf(f_debug, "\n");
