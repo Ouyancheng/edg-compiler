@@ -1808,7 +1808,7 @@ lookup processing.
   }  /* if */
   if (sym == NULL &&
       (kind == (a_scope_kind)sck_class_struct_union ||
-       kind == (a_scope_kind)sck_class_reactivation)) {
+       kind == (a_scope_kind)sck_class_reactivation) && !C_mode()) {
     /* For class scopes, look for a symbol projected (inherited)
        into the class scope if a symbol was not found in the class
        itself.  Don't look in dependent base classes for classes that
@@ -1966,6 +1966,7 @@ that do normal id lookup processing.
 {
   a_symbol_ptr	sym = NULL;
 
+  check_assertion(!C_mode());
   if (find_projected_symbol(ssep->assoc_type, locator,
                             lookup_state->options,
                             lookup_state->look_in_dependent_bases,
@@ -2592,7 +2593,7 @@ C and C++.
   a_symbol_ptr            sym, inactive_symbol_list;
   a_symbol_ptr            active_symbol_list;
   a_scope_stack_entry_ptr ssep;
-  a_boolean		  force_slow_lookup = FALSE;
+  a_boolean		  use_slow_lookup = FALSE;
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -2666,13 +2667,24 @@ C and C++.
           using-directives and for the reactivation of the file scope.
     */
     ssep = &scope_stack[depth_scope_stack];
-    force_slow_lookup = lookup_state.skip_curr_scope ||
-                        lookup_state.skip_class_scopes ||
-                        lookup_state.is_linkage_lookup ||
-                        lookup_state.is_friend_lookup;
-    if (((inactive_symbol_list == NULL && !locator->is_conversion_name) ||
-         !ssep->inactive_symbols_may_be_visible) &&
-         !ssep->slow_lookup_required && !force_slow_lookup) {
+    if (ssep->slow_lookup_required) {
+      /* Certain scopes (e.g., pragma and template instantiation) require
+         slow lookups. */    
+    } else if (!C_mode() &&
+               (lookup_state.skip_curr_scope ||
+                lookup_state.skip_class_scopes ||
+                lookup_state.is_linkage_lookup ||
+                lookup_state.is_friend_lookup)) {
+      /* Certain lookup kinds require a slow lookup in C++ mode. */
+      use_slow_lookup = TRUE;
+    } else if ((ssep->inactive_symbols_may_be_visible &&
+                inactive_symbol_list != NULL) ||
+                locator->is_conversion_name) {
+      /* A slow lookup is required if we need to search the inactive list
+         or if we need to look up a conversion name. */
+      use_slow_lookup = TRUE;
+    }  /* if */
+    if (!use_slow_lookup) {
       /* Fast algorithm: just search the active symbol list. */
 #if DEBUG
       num_fast_id_lookups++;
@@ -2689,6 +2701,10 @@ C and C++.
 #if DEBUG
       num_slow_id_lookups++;
 #endif /* DEBUG */
+      /* In C mode, slow lookups should only occur when the file scope has
+         been reactivated. */
+      check_assertion(!C_mode() ||
+                      scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation);
       sym = scope_stack_lookup(locator, &lookup_state,
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
