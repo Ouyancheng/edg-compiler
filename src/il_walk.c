@@ -1011,9 +1011,11 @@ references.
     /* For an externally-linked non-inline function, mark the body as needed
        too, on the presumption that it will be referenced from other
        translation units.  The caller could reasonably be expected to do
-       this, but doing it here reduces the possibility of error. */
+       this, but doing it here reduces the possibility of error.  (In C++
+       mode, extern inline functions may be lowered to static inline
+       functions, in which case the definition may not be needed.) */
     if (rout->storage_class == (a_storage_class)sc_unspecified &&
-        !treat_as_static_inline(rout)) {
+        (C_mode() || !treat_as_static_inline(rout))) {
       set_routine_definition_needed(rout);
 #if GNU_EXTENSIONS_ALLOWED
     } else if (rout->is_initialization_routine ||
