@@ -2898,12 +2898,14 @@ and doing any required expansions, the diagnostic is written.
   int                i;
 #endif /* CHECKING */
 
+#if !STANDALONE_UTILITY_PROGRAM
   if (curr_command_line_macro_def != NULL) {
     /* An error occurred while scanning a command-line macro definition.
        Ignore the original error and issue a general error indicating
        that the macro definition is invalid. */
     str_command_line_error(ec_bad_cmd_line_macro, curr_command_line_macro_def);
   }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   if (check_severity(error_code, &error_pos, &severity, diag_kind)) {
     if (severity == es_catastrophe &&
         (diag_kind == dck_standalone || diag_kind == dck_primary)) {
