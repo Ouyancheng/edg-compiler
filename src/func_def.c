@@ -1939,14 +1939,12 @@ empty statement block.
     pop_class_reactivation_scope();
     /* Mark the symbol for this routine "defined". */
     ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
-#if CHECKING
     if (rout_ptr->is_trivial_default_constructor) {
       /* The memory region for a trivial default constructor has already
          been freed. */
       check_assertion(mem_region_table[rout_ptr->assoc_scope] == NULL);
       rout_ptr->assoc_scope = NULL_region_number;
     }  /* if */
-#endif /* CHECKING */
   }  /* if */
   db_exit();
 }  /* define_special_member_function */
