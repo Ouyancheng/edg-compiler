@@ -1,6 +1,26 @@
 Version 2.35
 
-1/17/96 Invalid pointer in il_header
+1/17/97 Microsoft compatibility: last field in class a zero-length array
+
+The cases in which the last field in a class may be a zero-length array in
+Microsoft compatibility mode have been expanded.  It used to be permitted
+only for "aggregates" (i.e., no constructor, no private fields, no base
+classes, etc.); now the only restriction is that the class have no virtual
+base classes.  Moreover, the check for "last field" has been repaired to
+allow the following:
+
+  struct S {
+    int a, b, c[];        // error is no longer issued in Microsoft mode
+    void f();
+  };
+
+In addition, an error is now issued if a class with a zero-length array
+field is declared as a base class:
+
+  class B { ... char[] s; };         // accepted in Microsoft mode
+  class D : B { ... };               // error now issued
+
+1/17/97 Invalid pointer in il_header
 
 With elimination of unneeded IL entries enabled, the main_routine pointer
 in il_header was not being cleared when main itself was removed from the
@@ -27,9 +47,10 @@ a declarator, but they are ignored (and a warning is issued).  For example:
   typedef int * PI;
   PI __declspec(dllexport) g();      // "dllexport" is applied to g
 
-This seems to match how MSVC++ handles these cases: when __declspec appears
-among decl-specifiers, the attributes specified are applied to the entity
-being declared, but otherwise it is ignored (usually with no diagnostic).
+This seems to match how MSVC++ handles these cases: it is only when
+__declspec appears among the decl-specifiers that the Microsoft compiler
+applies the specified attributes to the entity being declared; otherwise it
+parses but ignores the __declspec specifier (usually with no diagnostic).
 
 1/16/97 C and C++ function types should not be distinct in Microsoft mode
 
