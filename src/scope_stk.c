@@ -1927,6 +1927,7 @@ scopes.
      the flag that indicates whether we are within a function scope. */
   inside_local_class = FALSE;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  innermost_function_scope = NULL;
   saved_innermost_scope_that_affects_access =
                          depth_of_innermost_scope_that_affects_access_control;
   /* Determine whether the bottom-level entity is a template.  In some
