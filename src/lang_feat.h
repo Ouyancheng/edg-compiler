@@ -438,11 +438,11 @@ If Gnu extensions are enabled and we are building on an x86 system,
 this flag defaults to TRUE.
 */
 #ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED
-#if GNU_EXTENSIONS_ALLOWED && defined(__i386__)
+#if GNU_EXTENSIONS_ALLOWED && defined(__i386)
 #define GNU_X86_ASM_EXTENSIONS_ALLOWED TRUE
-#else /* !(GNU_EXTENSIONS_ALLOWED && defined(__i386__)) */
+#else /* !(GNU_EXTENSIONS_ALLOWED && defined(__i386)) */
 #define GNU_X86_ASM_EXTENSIONS_ALLOWED FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386__) */
+#endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386) */
 #endif /* ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED */
 
 /*

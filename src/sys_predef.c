@@ -48,12 +48,14 @@ Linux using the gcc/g++ header files.
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("1", "__linux__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#ifdef __i386__
-  /* Define __i386__ if the compiler being used to build the front end
-     has it defined. */
+#if defined(__i386) || defined(__i386__)
+  /* Define __i386__ and __i386 if the compiler being used to build the
+     front end has either defined. */
   (void)enter_predef_macro("1", "__i386__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#endif /* ifdef __i386__ */
+  (void)enter_predef_macro("1", "__i386", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* defined(__i386) || defined(__i386__) */
 #ifdef __i486__
   /* Define __i486__ if the compiler being used to build the front end
      has it defined. */

@@ -177,19 +177,19 @@ here.
 /* Alpha always needs 8 byte alignment. */
 #define HOST_ALIGNMENT_REQUIRED 8
 #else /* ifndef __alpha */
-#if defined(__i386__) && !defined(__CYGWIN__)
+#if defined(__i386) && !defined(__CYGWIN__)
 /* Intel architecture only required 4 byte alignment, even with long long.
    The Windows convention is 8 byte alignment, however.  Windows compilers
-   other than Cygwin do not seem to set __i386__, so the test above
+   other than Cygwin do not seem to set __i386, so the test above
    essentially checks for i386 Unix compilers. */
 #define HOST_ALIGNMENT_REQUIRED 4
-#else /* !(defined(__i386__) && !defined(__CYGWIN__)) */
+#else /* !(defined(__i386) && !defined(__CYGWIN__)) */
 #if LONG_LONG_ALLOWED
 #define HOST_ALIGNMENT_REQUIRED 8
 #else /* !LONG_LONG_ALLOWED */
 #define HOST_ALIGNMENT_REQUIRED 4
 #endif /* LONG_LONG_ALLOWED */
-#endif /* defined(__i386__) && !defined(__CYGWIN__) */
+#endif /* defined(__i386) && !defined(__CYGWIN__) */
 #endif /* ifdef __alpha */
 #endif /* ifndef HOST_ALIGNMENT_REQUIRED */
 

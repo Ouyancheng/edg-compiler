@@ -1,5 +1,13 @@
 Version 3.1
 
+6/20/02  Use of predefined macros on X86 architecture
+
+Formerly, the front end tested the __i386__ macro to determine whether
+the X86 architecture was being used.  Because certain compilers define
+only __i386 and not __i386__, we now test the __i386 macro instead.  The
+front end now, by default, defines both __i386 and __i386__ when built on
+an X86 architecture system.  Formerly, only __i386__ was defined.
+
 6/20/02  Partial ordering and cv-qualified references
 
 The partial ordering rules used by the front end have been revised
