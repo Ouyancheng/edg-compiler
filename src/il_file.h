@@ -47,6 +47,7 @@ EXTERN a_file_position
 			   region i in the file, or 0 if the region has not
 			   yet been written. */
 
+#if ALTERNATE_IL_FILE_FORMAT
 /* Array giving, for each IL entry kind, the size of the entry in bytes.
    For string type entries, 1.  This must match the order of the
    enumeration an_il_entry_kind. */
@@ -110,6 +111,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 }
 #endif /* VAR_INITIALIZERS */
 ;
+#endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if ALTERNATE_IL_FILE_FORMAT
 /*

@@ -5865,7 +5865,7 @@ of the front end.
   initial_value_for_il_lowering_flag = 0;
 #endif /* DO_IL_LOWERING */
 #if CHECKING
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
   /* Variable in il_file.h: */
   /* Check that the table of IL-entry sizes is correctly initialized, i.e.,
      that the enumeration an_il_entry_kind and the array sizeof_il_entry
@@ -5873,7 +5873,7 @@ of the front end.
   if (sizeof_il_entry[(int)iek_last] != IEK_LAST_CHECK_SIZE) {
     internal_error("il_init: bad initialization of sizeof_il_entry");
   }  /* if */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 #if DEBUG
   /* Variable in il_def.h: */
   /* Check that the table of storage class names is correctly initialized.
