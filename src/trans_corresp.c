@@ -1411,6 +1411,26 @@ also deals with the consequences of type becoming the new canonical entry.
       establish_trans_unit_correspondences_for_enum(type);
     }  /* if */
   }  /* if */
+  if (type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
+    type = skip_typerefs(type);
+    corresp_type = skip_typerefs(corresp_type);
+    if (trans_unit_corresp_of(type) != NULL) {
+      /* A correspondence is set already for the type pointed to. */
+    } if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.originally_unnamed &&
+        is_immediate_class_type(corresp_type) &&
+        corresp_type->variant.class_struct_union.originally_unnamed) {
+      /* These are unnamed class types that acquired linkage through a typedef.
+         Since the typedefs correspond, these types should too. */
+      set_type_corresp(type, corresp_type);
+    } else if (is_immediate_enum_type(type) &&
+               type->variant.integer.originally_unnamed &&
+               is_immediate_enum_type(corresp_type) &&
+               corresp_type->variant.integer.originally_unnamed) {
+      /* Same for unnamed enum types. */
+      set_type_corresp(type, corresp_type);
+    }  /* if */
+  }  /* if */
 }  /* set_type_corresp */
 
 
