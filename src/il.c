@@ -10044,26 +10044,6 @@ will go on a sublist if it was allocated in the file-scope memory region.
         }  /* if */
       }  /* if */
     }  /* if */
-#if 0
-    if (sp->source_sequence_list != NULL &&
-        ss_entry_kind(new_ssep) == (an_il_entry_kind)iek_type) {
-      a_type_ptr                    tp;
-      a_source_sequence_entry_ptr   last;
-
-      tp = ss_entry_ptr(new_ssep, a_type_ptr);
-      if (is_immediate_class_type(tp) &&
-          tp->variant.class_struct_union.is_template_class) {
-        last = scope_stack_ptr->last_source_sequence_entry;
-        if (ss_entry_kind(last) ==
-                  (an_il_entry_kind)iek_src_seq_secondary_decl &&
-            ss_entry_ptr(last, a_src_seq_secondary_decl_ptr)->
-                                                   entity.ptr == (char *)tp) {
-          a_src_seq_sublist_ptr  dummy = NULL;
-          remove_from_source_sequence_list(last, &dummy);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* if 0 */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (sp->source_sequence_list == NULL) {
       new_ssep->prev = NULL;
@@ -10733,7 +10713,7 @@ current value in the ss-insert-stack.  Also save the current value of
 last_source_sequence_entry for the file scope.  (The saved values are
 restored pop_ss_insert_stack.)  list_to_be_removed represents the source
 position *prior* to which source-sequence entries should now be added to the
-file-scope source sequence list.  If it in non-NULL, truncate of the file
+file-scope source sequence list.  If it is non-NULL, truncate of the file
 scope source-sequence list and reset last_source_sequence_entry for the file
 scope.
 */
