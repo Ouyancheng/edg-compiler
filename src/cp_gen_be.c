@@ -4124,6 +4124,68 @@ Print a set of Microsoft declaration modifiers.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void gen_base_class_list(a_class_type_supplement_ptr  ctsp)
+/*
+Put out the list of direct base classes of the class associated with ctsp
+(in declaration order).
+*/
+{
+  a_base_class_ptr              bcp = ctsp->base_classes;
+  a_base_class_sequence_number  next_base;
+
+  for (next_base = 1; ; next_base++) {
+    /* Care must be taken to traverse the direct base classes in declaration
+       order.  In particular, it is not sufficient to simply traverse the
+       base class list and act on the direct bases.  Consider the following
+       example:
+         struct V {};
+         struct B: virtual V {};
+         struct D: virtual B, virtual V {};
+       The base class list for D will first list the virtual base V because
+       it is the "leftmost" base class of B, but it is also marked "direct".
+       This for-loop therefore enumerates the direct base numbers which we
+       then search for using an additional loop.  In most cases, this will
+       only require a single traversal of the base class list, but in some
+       unusual hierarchies the cost of the nested loops could be quadratic
+       in the length of the base class list. */
+    a_base_class_ptr  start = bcp;
+    /* Look for the base with the next sequence number. */
+    while (bcp->direct_base_number != next_base) {
+      bcp = bcp->next;
+      if (bcp == NULL) {
+        bcp = ctsp->base_classes;
+      }  /* if */
+      /* If we get back to the place where we started, then there is no next
+         base.  */
+      if (bcp == start) break;
+    }  /* while */
+    /* If there was no base with the next sequence number then we have reached
+       the end of the list.  */
+    if (bcp->direct_base_number != next_base) {
+      /* We're done. */
+      break;
+    } else {
+      a_base_class_derivation_ptr bcdp = bcp->derivation;
+      /* Output the appropriate separator. */
+      if (next_base == 1) {
+        write_tok_str(": ");
+      } else {
+        write_tok_str(", ");
+      }  /* if */
+      if (bcp->is_virtual) {
+        write_tok_str("virtual ");
+        /* Find the direct derivation for a virtual base class. */
+        for (; !bcdp->direct; bcdp = bcdp->next) {}
+      }  /* if */
+      /* Display the derivation access. */
+      gen_access_specifier(bcdp->access);
+      write_space();
+      gen_type_name(bcp->type);
+    }  /* if */
+  }  /* for */
+}  /* gen_base_class_list */
+
+
 static void gen_class_definition(a_type_ptr type)
 /*
 Output the definition of the indicated class type.  This is in the form of
@@ -4196,34 +4258,11 @@ is the one associated with the definition of the class.
     write_space();
   }  /* if */
   /* Put out the class definition. */
-  if (il_header.source_language == sl_Cplusplus) {
+  if (il_header.source_language == sl_Cplusplus &&
+      ctsp->base_classes != NULL) {
     /* Put out the base class list. */
-    a_base_class_ptr bcp = ctsp->base_classes;
-    a_boolean        first_base_class = TRUE;
-    if (bcp != NULL) {
-      write_tok_str(": ");
-      for (; bcp != NULL; bcp = bcp->next) {
-        /* The list contains all base classes, but put out only the direct
-           base classes. */
-        if (bcp->direct) {
-          a_base_class_derivation_ptr bcdp = bcp->derivation;
-          /* If this is not the first base class, put a comma between the
-             base classes. */
-          if (!first_base_class) write_tok_str(", ");
-          first_base_class = FALSE;
-          if (bcp->is_virtual) {
-            write_tok_str("virtual ");
-            /* Find the direct derivation for a virtual base class. */
-            for (; !bcdp->direct; bcdp = bcdp->next) {}
-          }  /* if */
-          /* Display the derivation access. */
-          gen_access_specifier(bcdp->access);
-          write_space();
-          gen_type_name(bcp->type);
-        }  /* if */
-      }  /* for */
-      write_space();
-    }  /* if */
+    gen_base_class_list(ctsp);
+    write_space();
   }  /* if */
   write_tok_str("{ ");
   if (il_header.source_language == sl_Cplusplus) {

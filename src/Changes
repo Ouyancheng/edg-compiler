@@ -1,5 +1,17 @@
 Version 3.1
 
+12/27/02 C++-generating back end: Order of base class specifiers
+
+In some cases involving virtual base classes that are inherited from both
+directly and indirectly, the generated C++ did not render the base class
+specifiers in a correct order.  For example:
+
+  struct V {};
+  struct B: virtual V {};
+  struct D: virtual B, virtual V {};
+
+This is now fixed.
+
 12/27/02 GNU mode: improved error position on invalid asm registers
 
 The error position of an invalid register name in an asm register
