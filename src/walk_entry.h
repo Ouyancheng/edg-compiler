@@ -2372,14 +2372,8 @@ after_entry_from_class:
         remap_next_ptr(ptr->next, a_scope_orphaned_list_header_ptr,
                        iek_scope_orphaned_list_header);
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
-        /* These orphaned entities may already be marked as "keep_in_il", but
-           this could be the first time that their substructure can be walked;
-           the "with_keep_in_il_reset" variant ensures that entities on which
-           these depend also have the "keep_in_il" bit set if needed. */
-        walk_list_with_keep_in_il_reset(ptr->orphaned_types,
-                                        a_type_ptr, iek_type);
-        walk_list_with_keep_in_il_reset(ptr->orphaned_variables,
-                                        a_variable_ptr, iek_variable);
+        walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
+        walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         walk_list(ptr->orphaned_src_seq_sublists,
                   a_src_seq_sublist_ptr, iek_src_seq_sublist);
