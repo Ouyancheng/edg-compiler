@@ -50,7 +50,7 @@ function definitions.  For example:
          redeclaration
 
 In Microsoft C mode a variable can now be redeclared with a type that
-differs in "signedness" from the original type.  For example:
+differs in "signedness" from the original integral type.  For example:
 
   extern unsigned int i;
   extern signed int i;          // Okay in Microsoft C mode
