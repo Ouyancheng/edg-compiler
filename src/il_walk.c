@@ -466,7 +466,6 @@ static void clear_keep_in_il_to_allow_subtree_walk(
                                                   char             *entry_ptr,
                                                   an_il_entry_kind entry_kind);
 
-static void set_class_keep_definition_in_il(a_type_ptr type);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -526,7 +525,7 @@ the subtree is walked again if it has changed.
 }  /* clear_keep_in_il_to_allow_subtree_walk */
 
 
-static void set_class_keep_definition_in_il(a_type_ptr type)
+void set_class_keep_definition_in_il(a_type_ptr type)
 /*
 Set the keep_definition_in_il flag on the indicated class type.  This means
 the definition of the class is must be kept in the IL, and not just the
