@@ -8973,13 +8973,13 @@ otherwise the original "sym" is returned.
       type_wanted = TRUE;
     }  /* if */
     if (!type_wanted) {
-      /* Restore the template argument list from the template class. */
-      locator_for_curr_id.template_arg_list =
-                      sym->variant.class_struct_union.type->
-                      variant.class_struct_union.extra_info->template_arg_list;
+      /* Restore the template argument list from the template class.  Make a
+         copy that can be freed later when it is used. */
+      locator_for_curr_id.template_arg_list = copy_template_arg_list(
+                     sym->variant.class_struct_union.type->
+                     variant.class_struct_union.extra_info->template_arg_list);
       sym = orig_template_sym;
-      locator_for_curr_id.specific_symbol = NULL;
-      locator_for_curr_id.do_not_clear_specific_symbol = FALSE;
+      locator_for_curr_id.specific_symbol = sym;
     }  /* if */
   }  /* if */
   return sym;
@@ -10889,10 +10889,30 @@ scanned is, in fact, an identifier).
   /* If this is the symbol of a class template then this must be a reference
      to a instance of the class template.  Scan the argument list and
      get a pointer to the symbol for the specific instance of the template
-     class. */
+     class.  is_template_id will be TRUE if the template reference has already
+     been coalesced. */
   if (symbol != NULL &&
       is_class_template_or_injected_template_symbol(symbol)) {
-    symbol = coalesce_template_class_reference(symbol, options, &templ_err);
+    if (locator_for_curr_id.is_template_id) {
+      /* This is a template class reference that was changed back to a
+         template reference by ensure_correct_nonreal_instance_kind.
+         It is now being used in a way that requires a type of some kind.
+         Redo the operation that finds the specific class being named. */
+      if (ilm == ilm_tag ||
+          ilm == ilm_typename ||
+          ilm == ilm_class ||
+          ilm == ilm_using_typename ||
+          (ilm == ilm_tentative_type && implicit_typename_enabled)) {
+        a_template_arg_ptr	arg_list;
+        arg_list = locator_for_curr_id.template_arg_list;
+        check_assertion(arg_list != NULL);
+        symbol = find_template_class(symbol, &arg_list,
+                                     /*prototype_allowed=*/FALSE,
+                                     (a_symbol_ptr)NULL);
+      }  /* if */
+    } else {
+      symbol = coalesce_template_class_reference(symbol, options, &templ_err);
+    }  /* if */
   }  /* if */
   *err |= templ_err;
   /* If an error occurred while scanning the template argument list,

@@ -11176,6 +11176,18 @@ overloaded_function:
                                              result);
           }  /* if */
           break;
+        case sk_class_template:
+          /* Class template.  Returned by symbol lookup for cases like
+             A<T>::template f<N> in prototype instantiations.  A class
+             template is returned because there's only a representation
+             for the class case as a member of a nonreal class. */
+          check_assertion(locator_for_curr_id.is_template_id);
+          make_unknown_dependent_function_operand(projection_sym_ptr,
+                                                  /*is_template_id=*/TRUE,
+                                                  locator_for_curr_id.
+                                                             template_arg_list,
+                                                  result);
+          break;
         case sk_undefined:
           /* Symbol was found in the symbol table, but it is undefined.  This
              means that it was encountered earlier but was never turned into a
