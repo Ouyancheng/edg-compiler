@@ -2573,7 +2573,22 @@ aggregate, set *keep_constant to TRUE.
   for (prev_con = NULL;
        con_ptr != NULL;
        prev_con = con_ptr, con_ptr = con_ptr->next) {
-    a_boolean others_follow = (others_follow_in_aggr || con_ptr->next != NULL);
+    a_boolean others_follow;
+    if (con_ptr->kind == (a_constant_repr_kind)ck_designator) {
+      /* A designator appears (e.g., in a C99 nonconstant aggregate
+         initialization).  Update the current position. */
+      if (con_ptr->variant.designator.field != NULL) {
+        check_assertion(!array_aggr);
+        ipmp->curr_field = con_ptr->variant.designator.field;
+      } else {
+        check_assertion(array_aggr);
+        ipmp->curr_elem = con_ptr->variant.designator.array_element;
+      }  /* if */
+      con_ptr = con_ptr->next;
+      check_assertion(con_ptr != NULL &&
+                      con_ptr->kind != (a_constant_repr_kind)ck_designator);
+    }  /* if */
+    others_follow = (others_follow_in_aggr || con_ptr->next != NULL);
     if (!array_aggr) {
       check_assertion_str(ipmp->curr_field != NULL,
              "lower_dynamic_init_aggregate_constant: have constant, no field");

@@ -1,5 +1,18 @@
 Version 2.46
 
+2/1/01   Error in lowering of C99 nonconstant initialization of union
+         using designated initializers
+
+The lowering for C99 did not correctly handle lowering a nonconstant
+initialization of a member of a union other than the first or second.
+Now fixed.
+
+  union U { float x; int y; int i; };
+  int main () {
+    int i = 1;
+    union U u = { .i = i+1 };
+  }
+
 2/1/01   Spurious conversion errors in some configurations
 
 When INTEGER_VALUE_REPR_IS_A_HOST_INTEGER was configured FALSE the front end
