@@ -74,13 +74,11 @@ defined macro indicates that this is MS-DOS, define "__MSDOS__".
 
 /*
 If this is MS-DOS, as indicated by the macro "__MSDOS__", determine which
-compiler it is.  At this time only Turbo-C and Microsoft C are considered.
-Since Turbo-C defines a macro and MSC does not, there is only one way of
-figuring out which compiler it is.
+compiler it is.  Borland, Zortech, and Microsoft are supported.
 */
 #ifdef __MSDOS__
 #ifdef __TURBOC__
-/* Turbo-C's library is ANSI compatible. */
+/* Borland's (Turbo-C or C++) library is ANSI compatible. */
 #define __ANSIC__ 1
 #else /* __TURBOC__ */
 #ifdef __ZTC__
@@ -96,6 +94,9 @@ figuring out which compiler it is.
 #else /* !defined(__MSDOS__) */
 #define __MSDOS__ 0
 #endif /* ifdef __MSDOS__ */
+#ifndef __MSC__
+#define __MSC__ 0
+#endif /* ifndef __MSC__ */
 
 /*
 For MS-DOS set STAT_FIRST_PARAM_IS_CONST by default.
@@ -167,10 +168,11 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 /* Some stdio.h's do not define sprintf. */
 EXTERN_C char *sprintf(char *, const char *, ...);
 #endif /* __BSD__ */
-#if !__ANSIC__
+/* Some stdio.h's do not define SEEK_SET. */
+#ifndef SEEK_SET
 /* For fseek parameters: */
-#define SEEK_SET 0
-#endif /* !__ANSIC__ */
+#define SEEK_SET 0 /* Normal Unix value. */
+#endif /* ifndef SEEK_SET */
 /* String and block routines: */
 #if __ANSIC__
 #include <string.h>
@@ -245,7 +247,7 @@ typedef ptrdiff_t a_ptrdiff;
    It should be defined as -128. */
 #define CHAR_MIN (-128)
 #endif /* __TURBOC__ */
-#ifdef __MSC__
+#if __MSC__
 /* Microsoft C does not define the minimum signed integer values correctly.
    For example, they define SCHAR_MIN as -127 instead of -128. */
 #undef SCHAR_MIN
