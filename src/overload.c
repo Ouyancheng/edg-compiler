@@ -214,13 +214,13 @@ cast.
       if (candidate_list != NULL) {
         /* If any of the templates matched, select the best one using
            the partial ordering rules. */
-        a_boolean	   ambiguous;
+        a_boolean	   templ_ambiguous;
         a_template_arg_ptr templ_arg_list;
 
         select_best_partial_order_candidate(
                            candidate_list, (a_symbol_ptr)NULL, &sym,
-                           &templ_arg_list, &ambiguous);
-        if (ambiguous) {
+                           &templ_arg_list, &templ_ambiguous);
+        if (templ_ambiguous) {
           number_of_matches = 2;
         } else {
           /* Generate a partial instantiation of the matching instance. */
@@ -6782,7 +6782,8 @@ a reference type (the caller should have rewritten that case).
       /* Pick the right error code. */
       if (is_class_struct_union_type(source_type)) {
         /* Both the source and destination types are classes. */
-        if (types_are_compatible(class_type, f_skip_typerefs(source_type))) {
+        a_type_ptr unqual_source_type = f_skip_typerefs(source_type);
+        if (types_are_compatible(class_type, unqual_source_type)) {
           /* This is a copy constructor case. */
           err_code = ambiguous ? ec_ambiguous_copy_constructor :
                                  ec_no_suitable_copy_constructor;
@@ -6904,6 +6905,7 @@ rewritten) for use in error messages.
 {
   a_boolean          okay = FALSE, failed = FALSE, ambiguous;
   a_type_ptr         source_type;
+  a_type_ptr         unqual_dest_type = skip_typerefs(dest_type);
   a_std_conv_descr   std_conv;
   an_arg_match_level match_level;
 
@@ -6977,8 +6979,7 @@ rewritten) for use in error messages.
       }  /* if */
     } else if (C_dialect != C_dialect_cplusplus &&
                is_class_struct_union_type(dest_type) &&
-               types_are_compatible(source_type,
-                                    f_skip_typerefs(dest_type))) {
+               types_are_compatible(source_type, unqual_dest_type)) {
       /* In C, a struct or union is compatible with the same struct or union.
          Type qualifiers on the destination are ignored because they
          can be added on the conversion. */
@@ -7105,10 +7106,12 @@ is used only in C++ mode.
   /* Check for the cfront anachronism that allows a non-const function to be
      called for a const selector (see determine_selector_match_level). */
   if (cfront_2_1_mode &&
-      is_const_qualified_type(operand->type) &&
-      !is_const_qualified_type(type_pointed_to(this_param_type))) {
-    pos_warning(ec_const_function_anachronism, &operand->position);
-    /* prep_special_selector_operand (call below) will drop the const. */
+      is_const_qualified_type(operand->type)) {
+    a_type_ptr und_this_param_type = type_pointed_to(this_param_type);
+    if (!is_const_qualified_type(und_this_param_type)) {
+      pos_warning(ec_const_function_anachronism, &operand->position);
+      /* prep_special_selector_operand (call below) will drop the const. */
+    }  /* if */
   }  /* if */
   /* Make a pointer for the selector, and cast it to a base class
      if necessary. */
@@ -8920,6 +8923,7 @@ wanted.  If a bitwise copy is allowed, return NULL and
   a_class_symbol_supplement_ptr  cssp;
   a_routine_ptr                  routine;
   a_type_ptr                     routine_type, arg_type, param_type;
+  a_type_ptr                     und_param_type;
   a_routine_type_supplement_ptr  rtsp;
   a_template_arg_ptr             template_arg_list;
   a_param_type_ptr               ptp;
@@ -9007,7 +9011,8 @@ wanted.  If a bitwise copy is allowed, return NULL and
         /* This copy constructor cannot be used. */
         goto reject_function;
       }  /* if */
-      qualifiers = get_type_qualifiers(type_pointed_to(param_type));
+      und_param_type = type_pointed_to(param_type);
+      qualifiers = get_type_qualifiers(und_param_type);
       if (source_is_rvalue && 
           ((qualifiers & TQ_CONST) == 0 ||
            (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==

@@ -157,16 +157,16 @@ Perform consistency check on target configuration variables.
   /* Use variable err instead of testing directly to avoid warnings about
      testing invariant values on some compilers. */
   err = (BITS_IN_HOST_LARGE_INTEGER != sizeof(a_host_large_integer)*CHAR_BIT);
-  if (err) {
+  if (err) { /*lint !e774*/
     internal_error("check_target_config: invalid BITS_IN_HOST_LARGE_INTEGER");
   }  /* if */
   err = (SIZEOF_INT_VALUE_PART > sizeof(an_int_value_part));
-  if (err) {
+  if (err) { /*lint !e774*/
     internal_error("check_target_config: invalid SIZEOF_INT_VALUE_PART");
   }  /* if */
   err = (BITS_IN_INT_VALUE_PART != SIZEOF_INT_VALUE_PART*CHAR_BIT ||
-         2*BITS_IN_INT_VALUE_PART > BITS_IN_HOST_LARGE_INTEGER);
-  if (err) {
+         2*BITS_IN_INT_VALUE_PART > BITS_IN_HOST_LARGE_INTEGER); /*lint !e506*/
+  if (err) { /*lint !e774*/
     internal_error("check_target_config: invalid BITS_IN_INT_VALUE_PART");
   }  /* if */
   err = (BITS_IN_INT_VALUE_PART*INT_VALUE_PARTS_PER_INTEGER_VALUE !=
