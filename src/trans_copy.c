@@ -472,6 +472,7 @@ and remap the pointers in the copy by calling remap_function.
       a_routine_ptr rout = (a_routine_ptr)copy;
       rout->definition_needed = FALSE;
       rout->keep_definition_in_il = FALSE;
+      rout->on_inline_function_list = FALSE;
     }  /* if */
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -1730,16 +1731,10 @@ IL is copied on top of an existing entry in the primary IL.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #define do_saves_for_overwrite(primary_entry, entry_ptr_type) \
   entry_ptr_type saved_next = (primary_entry)->next; \
-  char *saved_assoc_info = (primary_entry)->source_corresp.assoc_info; \
   save_needed_flag_for_overwrite(primary_entry) \
   save_per_instantiation_needed_flags_for_overwrite(primary_entry)
-/* Note that the assoc_info pointer in the source of the copy is
-   set to the pointer from the destination, as a way to preserve a
-   pointer to the original associated symbol after the copy has
-   been done. */
 #define do_restores_for_overwrite(primary_entry, entry) \
   (primary_entry)->next = saved_next; \
-  (entry)->source_corresp.assoc_info = saved_assoc_info; \
   restore_needed_flag_for_overwrite(primary_entry) \
   restore_per_instantiation_needed_flags_for_overwrite(primary_entry)
 
@@ -1813,6 +1808,8 @@ the secondary translation unit IL).
                                            rout->suppress_inline_body;
   a_class_list_entry_ptr saved_befriending_classes =
                                              primary_rout->befriending_classes;
+  a_boolean saved_on_inline_function_list =
+                                         primary_rout->on_inline_function_list;
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
 #if MAINTAIN_NEEDED_FLAGS
   /* Eliminate any default argument object lifetimes associated with the
@@ -1832,6 +1829,7 @@ the secondary translation unit IL).
 #endif /* INSTANTIATE_EXTERN_INLINE */
   primary_rout->suppress_inline_body = saved_suppress_inline_body;
   primary_rout->befriending_classes = saved_befriending_classes;
+  primary_rout->on_inline_function_list = saved_on_inline_function_list;
 }  /* overwrite_primary_routine */
 
 
@@ -2375,35 +2373,25 @@ classes, where it points to the primary IL copy.  Update the
 "instantiation" lists for extern inline functions, if appropriate.
 */
 {
-  a_boolean     local_member_function = !in_secondary_trans_unit(routine);
-  a_boolean     overwrite = (!local_member_function &&
-                             entry_to_be_merged(routine));
-  a_symbol_ptr  orig_sym = NULL;
+  a_boolean local_member_function = !in_secondary_trans_unit(routine);
 
   /* This routine runs while switched to the primary translation unit. */
   check_assertion(is_primary_translation_unit &&
                   (!local_member_function ||
                    routine->source_corresp.is_local_to_function));
-  if (overwrite) {
-    /* Note that if the routine was copied on top of an original routine
-       in the primary IL the symbol pointer from the original entry was
-       saved in the assoc_info field of the intermediate copy. */
-    a_routine_ptr corresp_routine =
-                 (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
-    orig_sym = (a_symbol_ptr)(corresp_routine->source_corresp.assoc_info);
-  }  /* if */
   if (instantiate_extern_inline && routine->is_inline &&
       routine->storage_class == (a_storage_class)sc_unspecified &&
       !routine->source_corresp.static_used_by_instantiation) {
     /* extern inline functions are put on a list so they can be
        "instantiated". */
-    if (overwrite && orig_sym->defined) {
-      /* The corresponding routine already had a definition, so there is
-         already a list entry for the routine in the primary IL. */
+    a_boolean     overwrite = (!local_member_function &&
+                               entry_to_be_merged(routine));
+    a_routine_ptr primary_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
+    if (overwrite && primary_routine->on_inline_function_list) {
+      /* There is already a list entry for the routine in the primary IL. */
     } else {
       /* Add an entry for the routine. */
-      a_routine_ptr primary_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
       add_to_inline_function_list(primary_routine);
     }  /* if */
   }  /* if */
