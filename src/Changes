@@ -34,7 +34,7 @@ function was explicitly declared in the source.  This is now fixed.
                                   // recorded in the predefined IL entry for
                                   // _alloca.
 
-1/25/00   C-generating back end: startup code using the Sun C compiler
+1/25/00  C-generating back end: startup code using the Sun C compiler
 
 The Sun C compiler has a pragma that can be used to indicate initialization
 routines that must be called at program startup.  The C-generating back
