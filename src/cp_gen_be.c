@@ -9745,7 +9745,7 @@ Note that the destructor, if any, is implicit and need not be put out.
 */
 {
   a_constant_ptr con;
-  a_boolean      using_old_style_cast = FALSE, is_value_init;
+  a_boolean      might_use_old_style_cast = FALSE, is_value_init;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -9769,16 +9769,16 @@ Note that the destructor, if any, is implicit and need not be put out.
     parenthesized_init = TRUE;
     force_parens = TRUE;
     if (has_one_argument) {
-      /* Put out a cast that has one argument as an old-style cast.  This
-         avoids some ambiguities, e.g.,
+      /* We may want to put out a cast that has one argument as an old-style
+         cast.  This avoids some ambiguities, e.g.,
            int f((int)x);
          shouldn't become
            int f(int(x));
          This will also catch casts to types that aren't named, e.g.,
          (const X)y instead of the incorrect const X(y). */
-      using_old_style_cast = TRUE;
+      might_use_old_style_cast = TRUE;
     } else if (has_name_before_mangling(init_entity_type)) {
-      /* Normal case: functional notation cast, e.g., X(y). */
+      /* Normal case: functional notation cast, e.g., X(y, z). */
       gen_type_name(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
         /* This zero initialization can't be put out as an old-style cast
@@ -9789,17 +9789,20 @@ Note that the destructor, if any, is implicit and need not be put out.
     } else {
       /* Unnamed type: put out as old-style cast.  Most cases of this
          would have fallen out above; see note below. */
-      using_old_style_cast = TRUE;
+      might_use_old_style_cast = TRUE;
     }  /* if */
-    if (using_old_style_cast) {
+    if (might_use_old_style_cast) {
       write_tok_ch('(');
-      if (has_name_before_mangling(init_entity_type) &&
-          parenthesized_init) {
-        /* "(X(y))" is as unambiguous as "((X)(y))" -- the outermost
-           parentheses ensure that it can't be parsed as a declaration, only
-           as an expression -- and it avoids a Sun quirk where
-           functional-notation casts are lvalues but C-style casts are not
-           (i.e., we don't want to turn "X(y)" into "(X)(y)"). */
+      if (has_name_before_mangling(init_entity_type)) {
+        /* Generate a functional-notation cast.  We always put out an extra
+           set of parentheses around the generated code, regardless of whether
+           we use a functional cast or an old-style cast, so we don't have
+           to worry about the ambiguity of a functional cast -- "(X(y))",
+           because of the surrounding parentheses, can only be an expression,
+           unlike "X(y)", which might be either an expression or a declaration.
+           Using the functional notation also avoids a Sun quirk where
+           functional casts are lvalues but old-style casts are not  (i.e.,
+           we don't want to turn "X(y)" into "(X)(y)"). */
         gen_type_name(init_entity_type);
       } else {
         /* Put out an old-style cast, e.g., (X)y. */
@@ -9828,9 +9831,7 @@ Note that the destructor, if any, is implicit and need not be put out.
       /* Zero initialization, as in "A()" when A has no constructor. */
       check_assertion_str(parenthesized_init,
                           "gen_dynamic_init: zero init not parenthesized");
-      write_tok_str("(");
-      if (using_old_style_cast) write_tok_str("0");
-      write_tok_str(")");
+      write_tok_str("()");
       break;
     case dik_constant:
       /* Constant (simple or aggregate). */
@@ -9933,7 +9934,7 @@ Note that the destructor, if any, is implicit and need not be put out.
       unexpected_condition_str("gen_dynamic_init: bad kind");
   }  /* switch */
   /* Generate a closing parenthesis if needed for an old-style cast. */
-  if (using_old_style_cast) write_tok_ch(')');
+  if (might_use_old_style_cast) write_tok_ch(')');
 }  /* gen_dynamic_init */
 
 

@@ -68,7 +68,7 @@ possible.  For example:
     X &operator*=(double);
   };
   void f(const X &x) {
-    X(x) *= 1;   // Previous generated as ((X)((x))), now (X((x)))
+    X(x) *= 1;   // Previously generated as ((X)((x))), now (X((x)))
   }
 
 Version 3.5, November 8, 2004
