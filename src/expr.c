@@ -977,6 +977,17 @@ and return a pointer to it in *arg_operand_list.
                   /* Types are interchangeable but not compatible (e.g.,
                      unsigned int vs. int). */
                   remark(ec_old_style_incompatible_param);
+#if TARG_NULL_IS_ALL_BITS_ZERO
+                } else if (!strict_ansi_mode &&
+                           is_pointer_type(formal_type) &&
+                           is_integral_type(argument_operand.type) &&
+                           op_is_zero_constant(&argument_operand) &&
+                           skip_typerefs(formal_type)->size ==
+                                  skip_typerefs(argument_operand.type)->size) {
+                  /* An uncast zero can be passed for a pointer parameter if
+                     the architecture uses all zero bits for a NULL pointer. */
+                  remark(ec_old_style_incompatible_param);
+#endif /* TARG_NULL_IS_ALL_BITS_ZERO */
                 } else {
                   /* Types are outright incompatible. */
                   warning(ec_old_style_incompatible_param);

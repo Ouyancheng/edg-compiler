@@ -177,6 +177,8 @@ Pointer types:
 			   See set_type_size in types.c. */
 #define TARG_SIZEOF_POINTER 4
 #define TARG_ALIGNOF_POINTER 4
+/* Indication of whether NULL pointer is like integer zero. */
+#define TARG_NULL_IS_ALL_BITS_ZERO TRUE
 /* Integer type for the difference of two pointer types (ptrdiff_t).
    This type must be signed.  See 3.3.6 in the standard and the header
    file <stddef.h>. */

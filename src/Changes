@@ -1,5 +1,12 @@
 Version 2.11
 
+10/19/92 TARG_NULL_IS_ALL_BITS_ZERO
+
+The configuration flag TARG_NULL_IS_ALL_BITS_ZERO has been added to target.h.
+When it is set, the front end assumes that an integer zero of the right
+size (e.g., NULL) passed to an unprototyped parameter of pointer type
+is not a problem, and no warning is issued.
+
 10/19/92 Code reachability tracking reworked
 
 The tracking of code reachability in statements.c has been reworked to
