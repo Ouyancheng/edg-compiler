@@ -3650,11 +3650,12 @@ the error type is a member, or is NULL for a nonmember.
 }  /* create_error_routine_type */
 
 
-static
-void check_for_invalid_instantiation(a_type_ptr		*type,
-				     a_routine_ptr	templ_rout,
-				     a_boolean		suppress_diagnostic,
-				     a_type_ptr		parent_class)
+static void check_for_invalid_instantiation(
+				a_type_ptr		*type,
+				a_routine_ptr		templ_rout,
+				a_boolean		suppress_diagnostic,
+				a_type_ptr		parent_class,
+				a_template_instance_ptr	tip)
 /*
 This routine is called after a declaration of a function has been rescanned
 to create a partial instantiation.  It determines whether all of the tokens
@@ -3680,6 +3681,7 @@ the diagnostic is suppressed.
        type.  Create a function type with a suitable number of parameters
        whose types are error types. */
     *type = create_error_routine_type(templ_rout, parent_class);
+    tip->suppress_instantiation = TRUE;
   }  /* if */
 }  /* check_for_invalid_instantiation */
 
@@ -3723,19 +3725,56 @@ declarator. pos is the position to be used if a diagnostic is issued.
 }  /* check_for_declaration_errors */
 
 
-static void scan_template_declaration(a_boolean         is_initial_decl,
-                                      a_boolean         is_member_decl,
-                                      a_type_ptr	parent_class,
-				      a_boolean         decl_scope_err,
-				      a_boolean		is_specialization,
-                                      a_decl_flag_set   *dso_flags,
-                                      a_decl_flag_set   *do_flags,
-                                      a_symbol_locator  *locator,
-                                      a_type_ptr        *type,
-                                      a_func_info_block *func_info,
-                                      a_storage_class   *storage_class,
-                                      a_decl_modifier	*decl_modifiers,
-                                      a_routine_ptr     templ_rout)
+static void verify_routine_type_matches_template(
+					a_symbol_ptr		templ_sym,
+					a_routine_ptr		rout,
+					a_routine_ptr		templ_rout,
+					a_type_ptr		parent_class,
+					a_template_instance_ptr	tip)
+/*
+Verify that the routine type associated with rout is one that can be
+generated from the template represented by templ_sym.  The purpose of
+this test is to determine whether the partial instantiation of a function
+has been affected by declarations that appeared after the template was
+declared and before the partial instantiation of the function was done.
+*/
+{
+  a_type_ptr	type = rout->type;
+
+  if (!has_matching_template_function(templ_sym, type,
+                                      /*is_decl_context=*/FALSE)) {
+    if (!is_or_contains_error_type(type) &&
+        !is_or_contains_error_type(templ_rout->type)) {
+      /* If the type contains an error type it is likely that the current
+         routine type is already an error routine type produced earlier.
+         Don't issue a diagnostic in this case, but still create an
+         error routine type in case some of the parameter types were not
+         already error types. */
+      pos_ty2_error(ec_bad_type_from_instantiation, &pos_curr_token, type,
+                    templ_rout->type);
+    }  /* if */
+    type = create_error_routine_type(templ_rout, parent_class);
+    rout->type = type;
+    tip->suppress_instantiation = TRUE;
+  }  /* if */
+}  /* verify_routine_type_matches_template */
+
+
+static void scan_template_declaration(
+				a_boolean         	is_initial_decl,
+                                a_boolean         	is_member_decl,
+                                a_type_ptr		parent_class,
+				a_boolean         	decl_scope_err,
+				a_boolean		is_specialization,
+                                a_decl_flag_set   	*dso_flags,
+                                a_decl_flag_set   	*do_flags,
+                                a_symbol_locator  	*locator,
+                                a_type_ptr        	*type,
+                                a_func_info_block	*func_info,
+                                a_storage_class		*storage_class,
+                                a_decl_modifier		*decl_modifiers,
+                                a_routine_ptr		templ_rout,
+				a_template_instance_ptr	tip)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
 a function or static data member.  is_initial_decl is TRUE if this
@@ -3743,7 +3782,8 @@ is being called to scan the original declaration and is FALSE when
 rescanning the tokens to generate a type for a specific instance
 of a function template.  templ_rout points to the routine associated
 with the original declaration of a template and is only present
-(non-NULL) when is_initial_decl is FALSE.
+(non-NULL) when is_initial_decl is FALSE.  tip points to the template
+instance and is also only present when is_initial_decl is FALSE.
 */
 {
   a_decl_flag_set              dsi_flags;
@@ -3863,19 +3903,22 @@ with the original declaration of a template and is only present
        is not a function type, issue a diagnostic. */
     check_for_invalid_instantiation(type, templ_rout,
                                     (a_boolean)is_error_locator(*locator),
-                                    (a_type_ptr)NULL);
+                                    (a_type_ptr)NULL, tip);
     flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
 
 
-static a_type_ptr scan_member_declaration(a_type_ptr	parent_class,
-                                          a_routine_ptr templ_rout)
+static a_type_ptr scan_member_declaration(
+				a_type_ptr		parent_class,
+                                a_routine_ptr 		templ_rout,
+				a_template_instance_ptr	tip)
 /*
 Calls rescan_member_template_declaration to rescan the tokens of a
 member function template to produce the type for the instance and to
 detect any errors that should be diagnosed.  templ_rout points to the
-routine associated with the original declaration of a template.
+routine associated with the original declaration of a template.  tip
+is the template instance record associated with the instance.
 */
 {
   a_type_ptr		instance_type;
@@ -3887,7 +3930,8 @@ routine associated with the original declaration of a template.
      type.  If not all of the tokens were used, or if the type created
      is not a function type, issue a diagnostic. */
   check_for_invalid_instantiation(&instance_type, templ_rout,
-                                  /*suppress_diagnostic=*/FALSE, parent_class);
+                                  /*suppress_diagnostic=*/FALSE,
+                                  parent_class, tip);
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
@@ -4022,7 +4066,7 @@ type based on the template argument list and the template parameter list
 #if MICROSOFT_EXTENSIONS_ALLOWED
       locator_position = pos_curr_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      rout_type = scan_member_declaration(parent_class, templ_rout);
+      rout_type = scan_member_declaration(parent_class, templ_rout, tip);
 #if 0
       /* We should get the locator position returned. */
 #endif
@@ -4040,7 +4084,7 @@ type based on the template argument list and the template parameter list
 				/*is_specialization=*/FALSE,
                                 &dso_flags, &do_flags, &locator,
                                 &rout_type, &func_info, &storage_class,
-                                &decl_modifiers, templ_rout);
+                                &decl_modifiers, templ_rout, tip);
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
       done_with_func_info(func_info);
@@ -4086,6 +4130,11 @@ type based on the template argument list and the template parameter list
     perform_deferred_access_checks_for_function(rp);
     end_deferral_of_access_checks();
   }
+  /* Check that the routine type created by this instance matches the
+     template.  This is used to make sure the binding of names used in
+     the declarations hasn't changed. */
+  verify_routine_type_matches_template(templ_sym, rp, templ_rout,
+                                       parent_class, tip);
   /* Make the function instantiation entry and its associated symbol
      point at each other. */
   tip->instance_sym = sym;
@@ -4212,8 +4261,10 @@ type should not be used in the matching process.
     /* We used to skip entries that represent specific declarations.
        This is no longer done because these entries must be examined this
        routine is called during instantiation pragma processing. */
-    match = TRUE;
     sym = tip->instance_sym;
+    /* Ignore symbols for which instance_sym has not yet been set.  This
+       happens when verify_routine_type_matches_template is called. */
+    if (sym == NULL) continue;
     rout_type = skip_typerefs(sym->variant.routine.ptr->type);
     if (is_decl_context) {
       /* In declaration contexts we do not yet know whether the type
@@ -8137,7 +8188,8 @@ any non-empty template parameter lists that were scanned.
                                 decl_state->is_specialization,
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers,
-                                (a_routine_ptr)NULL);
+                                (a_routine_ptr)NULL,
+			        (a_template_instance_ptr)NULL);
       /* If an error occurred scanning the declarator, set the flag to
          suppress subsequent errors. */
       if (is_error_locator(locator)) decl_state->decl_scope_err = TRUE;
@@ -9213,8 +9265,8 @@ template entities.
       specialization_defined = tip->instance_sym->defined;
       template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && !specialized && implicit_inclusion_ok &&
-          implicit_template_inclusion_mode) {
+      if (!template_def && !specialized && !tip->suppress_instantiation &&
+          implicit_inclusion_ok && implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -9233,8 +9285,8 @@ template entities.
       tssp = template_supplement_for_symbol(template_sym);
       template_def = cache_for_template(tssp)->tokens.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && !specialized && implicit_inclusion_ok &&
-          implicit_template_inclusion_mode) {
+      if (!template_def && !specialized && !tip->suppress_instantiation &&
+          implicit_inclusion_ok && implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -9244,8 +9296,9 @@ template entities.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
     /* The template should be instantiated if the entity is not specialized
-       and a template definition is available. */
-    result = !specialized && template_def;
+       and a template definition is available (and the suppress instantiation
+       flag is not set). */
+    result = !specialized && !tip->suppress_instantiation && template_def;
     if (!template_def && !specialization_defined) {
       /* A template can be declared and referenced without ever being defined.
          If, however, an instantiation was explicitly requested an error is
@@ -9749,7 +9802,8 @@ instantiation of a given template instance.
     specialized = vp->is_specialized;
     template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && !specialized && implicit_template_inclusion_mode) {
+    if (!template_def && !specialized && !tip->suppress_instantiation &&
+        implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -9767,7 +9821,8 @@ instantiation of a given template instance.
     specialized = rp->is_specialized;
     template_def = cache_for_template(tssp)->tokens.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && !specialized && implicit_template_inclusion_mode) {
+    if (!template_def && !specialized && !tip->suppress_instantiation &&
+        implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -9777,7 +9832,7 @@ instantiation of a given template instance.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
   result = template_def && !specialized && !tip->already_instantiated &&
-           !tip->explicit_do_not_instantiate;
+           !tip->suppress_instantiation && !tip->explicit_do_not_instantiate;
   return result;
 }  /* can_be_instantiated */
 

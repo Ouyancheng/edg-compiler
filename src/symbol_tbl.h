@@ -1127,6 +1127,10 @@ typedef struct a_template_instance {
 			   information file as an instantiation assigned to
 			   this compilation. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  a_bit_field	suppress_instantiation:1;
+			/* TRUE if the instantiation of this entity should be
+			   suppressed because of previous errors that occurred
+			   during the partial instantiation of the entity. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma

@@ -8045,6 +8045,7 @@ Allocate a new function instantiation entry and return a pointer to it.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   tip->in_info_file                = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  tip->suppress_instantiation      = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
   db_exit();
   return tip;

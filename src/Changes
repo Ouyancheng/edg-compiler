@@ -1,5 +1,19 @@
 Version 2.35
 
+2/24/97  Instantiations that produce unexpected function types
+
+If a name used in a function template declaration changes meaning between
+the point at which the function is declared and the point at which the
+it is instantiated an internal error could result.  Such cases are now
+detected and an error is issued.  In the future, when the new template
+name binding rules are implemented, such errors will no longer be possible.
+
+  template < class T > void f(T, const /* implicit int */ A);
+  struct A { };
+  int main() {
+    new (1234, 2345) A;
+  }
+
 2/24/97  Incorrect handling of template argument lists with operator names
 
 Template argument lists in which the last argument was an operator new were

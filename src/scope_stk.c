@@ -2263,9 +2263,13 @@ body.  Only called in C++ mode.
           sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
           if (sym != NULL) {
             tip = sym->variant.routine.instance_ptr;
-            if (tip != NULL && tip->explicit_instantiation) {
-              /* An error will already have been issued on the instantiation
-                 attempt. */
+            if (tip != NULL &&
+                (tip->explicit_instantiation || tip->suppress_instantiation)) {
+              /* A template function that has either been explicitly
+                 instantiated (in which case an error would have been issued
+                 on the explicit instantiation attempt) or for which some
+                 error that should prevent the instantiation has already been
+                 issued. */
             } else if (within_unnamed_class && rp->is_virtual) {
               /* Diagnostic has already been issued. */
             } else if (is_function_local) {

@@ -4988,6 +4988,20 @@ care about.
 }  /* ttt_is_local_type */
 
 
+static a_boolean ttt_is_error_type(a_type_ptr  type_ptr,
+                                   a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is an error type
+*/
+{
+  a_boolean  is_error = FALSE;
+
+  *force_end_of_traversal = is_error = is_error_type(type_ptr);
+  return is_error;
+}  /* ttt_is_error_type */
+
+
 /* Static variables used to pass information back to the routine
    is_or_contains_unnamed_or_local_type. */
 static a_boolean is_unnamed_type;
@@ -5408,6 +5422,24 @@ which of the conditions is true.
   *is_local = is_local_type;
   return result;
 }  /* is_or_contains_unnamed_or_local_type */
+
+
+a_boolean is_or_contains_error_type(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr is itself a error type
+or is a type tree containing such a type.
+*/
+{
+  a_boolean			  result;
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_EXCEPTION_SPECS);
+
+  result = traverse_type_tree(type_ptr, ttt_is_error_type, ttt_flags);
+  return result;
+}  /* is_or_contains_error_type */
 
 
 a_boolean is_or_contains_template_param(a_type_ptr  type_ptr)
