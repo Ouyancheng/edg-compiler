@@ -494,9 +494,13 @@ type is legal.
         }  /* if */
         if (is_qualified_type(new_type_ptr)) {
           /* Qualifier on on return type. */
-          if (!C_mode() && is_class_struct_union_type(new_type_ptr)) {
+          if (!C_mode() &&
+              (is_class_struct_union_type(new_type_ptr) ||
+               is_template_param_type(new_type_ptr))) {
             /* In C++ mode class rvalues can have type qualifiers, so allow
-               a function returning a qualified class type. */
+               a function returning a qualified class type or a qualified
+               template param type (the latter because a function template
+               could end up being instantiated with a class type). */
 #if RESTRICT_ALLOWED
           } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
             /* Exactly one type qualifier -- "restrict".  No warning. */
