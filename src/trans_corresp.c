@@ -194,19 +194,22 @@ this routine will create such a correspondence entry.
   }  /* if */
   if (*tcp2 == NULL) {
     /* Presumably, no entity corresponding to entity1 has been processed yet.
-       Therefore, entity2 should be an entry from a primary translation unit
-       and a correspondence entry should be allocated for it. */
-    check_assertion(!in_secondary_trans_unit(entity2));
+       Allocate a correspondence entry to start a correspondence set with
+       entity2. */
     *tcp2 = alloc_trans_unit_corresp();
     (*tcp2)->kind = kind;
     (*tcp2)->canonical = entity2;
-    (*tcp2)->primary = entity2;
 #if CHECKING
     ++(*tcp2)->count;
 #endif /* CHECKING */
+  }  /* if */
+  /* Is either entity coming from a primary translation unit? */
+  if (!in_secondary_trans_unit(entity2)) {
+    (*tcp2)->primary = entity2;
   } else if (!in_secondary_trans_unit(entity1)) {
     (*tcp2)->primary = entity1;
   }  /* if */
+  /* Add entity1 to the correspondence set of entity2. */
   *tcp1 = *tcp2;
 #if CHECKING
   ++(*tcp2)->count;
