@@ -1573,7 +1573,17 @@ the scope being pushed.
          sequence entries are normally not generated during a prototype
          instantiation.  (When they are, they are placed on a list that
          is not part of the IL proper.) */
-      source_sequence_entries_disallowed = !prototype_instantiations_in_il;
+      a_boolean  prototype_in_real_instance = FALSE;
+      if (assoc_type != NULL) {
+        /* Prototype instantiations inside real instantiations should not
+           generate source sequence entries. */
+        a_template_symbol_supplement_ptr tssp =
+                     template_supplement_for_symbol(
+                         (a_symbol_ptr)assoc_type->source_corresp.assoc_info);
+        prototype_in_real_instance = (tssp->prototype_template != NULL);
+      }  /* if */
+      source_sequence_entries_disallowed = !prototype_instantiations_in_il ||
+                                           prototype_in_real_instance;
     } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
                                     source_sequence_entries_disallowed) {
       check_assertion(source_sequence_entries_disallowed == TRUE);
