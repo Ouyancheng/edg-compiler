@@ -32,12 +32,19 @@ EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                             sizeof_t         size,
                             int(*compar)(a_const_void_ptr,
                                          a_const_void_ptr));
-
-EXTERN_C a_void_ptr qsort(a_void_ptr       base,
-                          sizeof_t         nmemb,
-                          sizeof_t         size,
-                          int(*compar)(a_const_void_ptr,
-                                       a_const_void_ptr));
+#if __BSD__
+EXTERN_C int qsort(a_void_ptr       base,
+                   int              nmemb,
+                   int              size,
+                   int(*compar)(a_const_void_ptr,
+                                a_const_void_ptr));
+#else /* !__BSD__ */
+EXTERN_C void qsort(a_void_ptr       base,
+                    sizeof_t         nmemb,
+                    sizeof_t         size,
+                    int(*compar)(a_const_void_ptr,
+                                 a_const_void_ptr));
+#endif /* __BSD__ */
 
 EXTERN_C void exit(int status);
 #endif /* __ANSIC__ */
