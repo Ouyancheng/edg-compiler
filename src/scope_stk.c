@@ -4379,7 +4379,8 @@ been completed.
                  variable_needed_even_if_unreferenced(vp));
     if (any_exports &&
         vp->storage_class == (a_storage_class)sc_static &&
-        !vp->source_corresp.is_local_to_function) {
+        !vp->source_corresp.is_local_to_function &&
+        !vp->promoted_local_static) {
       /* In translation units with exported templates, all statics have
          to be considered potentially referenced from a template. */
       vp->source_corresp.static_used_by_instantiation = TRUE;
