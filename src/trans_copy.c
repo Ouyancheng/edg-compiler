@@ -1923,7 +1923,7 @@ end_of_variable_list_add:;
           }  /* if */
 #endif /* DEBUG */
           merge_routine_details(corresp_routine, primary_routine);
-          if (!entry_should_overwrite_primary_entry(corresp_routine)) {
+          if (!entry_should_overwrite_primary_entry(routine)) {
             /* No overwriting is needed, so we're done.  This happens,
                for example, when the only reason for merging is to merge
                the befriending lists. */
