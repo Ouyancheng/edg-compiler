@@ -2169,24 +2169,12 @@ nonconstant_dimension_allowed.
           }  /* if */
           break;
         case ck_template_param:
-          if (constant.variant.template_param.kind ==
-                          (a_template_param_constant_kind)tpck_expression) {
-            /* The template param constant already points to an expression
-               (namely, an expression involving the name of a nontype template
-               parameter -- e.g., in
-                 template <int I> class A { int a[I+1]; };
-               the expression "I+1" is folded to a tpck_expression template
-               param constant.) */
-            dim_expr = constant.variant.template_param.variant.expr;
-          } else {
-            /* The template param constant does not point to an expression,
-               so we need to make one. */
-            switch_to_file_scope_region(&region_to_switch_back_to);
-            dim_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-            dim_expr->variant.constant = fs_constant(constant.kind);
-            copy_constant(&constant, dim_expr->variant.constant);
-            switch_back_to_original_region(region_to_switch_back_to);
-          }  /* if */
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          dim_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
+          dim_expr->variant.constant =
+                   alloc_constant((a_constant_repr_kind)ck_template_param);
+          copy_constant(&constant, dim_expr->variant.constant);
+          switch_back_to_original_region(region_to_switch_back_to);
           break;
         case ck_error:
           err = TRUE;
