@@ -2506,7 +2506,7 @@ or struct definition.  The syntax is
 {
   a_class_type_supplement_ptr   ctsp;
   a_base_class_ptr              bcp, new_bcp, end_of_base_classes_list = NULL;
-  a_base_class_ptr              new_direct_bcp;
+  a_base_class_ptr              new_direct_bcp, disambiguator;
   an_access_specifier           access;
   a_boolean                     is_virtual;
   a_boolean                     access_already_specified;
@@ -2796,8 +2796,12 @@ or struct definition.  The syntax is
               db_virtual_function_override_list(bcp);
             }  /* if */
 #endif /* DEBUG */
-            new_bcp = corresponding_base_class(bcp, type_ptr,
-                                               (a_base_class_ptr)NULL);
+            /* bcp is a base class of new_direct_bcp->type.  We need to find
+               the corresponding base class of type_ptr.  Find a disambiguator
+               in case what we are looking for is an ambiguous base class of
+               type_ptr. */
+            disambiguator = find_disambiguator(type_ptr, new_direct_bcp, bcp);
+            new_bcp = corresponding_base_class(bcp, type_ptr, disambiguator);
             /* Copy the virtual function override entries from bcp (which is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
