@@ -1,5 +1,24 @@
 Version 2.26
 
+8/29/94  Missing cross-reference entry
+
+A cross reference entry was missing in two cases:
+
+- The operator new function referenced in a new operator:
+
+  void *operator new(unsigned int p) { return 0; }
+  struct A { };
+  A *p = new A;  // Reference to operator new was missing
+
+- An overloaded member function in a context that disambiguates:
+
+  struct A {
+    void f(int);
+    void f(double);
+  };
+  void (A::*pmf)(int) = &A::f;  // Reference to A::f was missing
+
+
 9/29/94  Nonstandard pointers-to-member-functions
 
 The ARM and the Working Paper insist that the only way to write a pointer

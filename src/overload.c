@@ -2807,6 +2807,8 @@ if an access control checking error was detected.
            operand.  Mark the function as referenced.  Note that we are
            ignoring whether or not the function is virtual; we are assuming
            that the reference is to exactly that function. */
+        record_symbol_reference(SRK_REFERENCE, function_symbol, call_position,
+                                /*update_il_entry=*/FALSE);
         if_evaluating_mark_routine_referenced(function_symbol->
                                                          variant.routine.ptr);
       } else {
