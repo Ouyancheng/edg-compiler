@@ -175,15 +175,18 @@ typedef struct a_control_flow_descr {
       a_statement_ptr
 		statement;
 			/* A pointer to an stmk_init, stmk_set_vla_size, or
-			   stmk_vla_decl statement.  (In addition, in
-			   Microsoft C mode it can be an stmk_block
-			   statement, which is what's left over if a dynamic
-			   initialization is lowered in place.) */
+			   stmk_vla_decl statement.  In addition, in Microsoft
+			   C mode it can be an stmk_block statement, which is
+			   what's left over if a dynamic initialization is
+			   lowered in place.  Finally, it may also be NULL if
+			   the entry represents a trivial initialization of a
+			   non-POD variable (which requires no actual work,
+			   but which must be diagnosed if branched over). */
       a_variable_ptr
 		variable;
-			/* A pointer to the variable that is dynamically
-			   initialized.  NULL when the statement pointer
-			   refers to an stmk_set_vla_size statement. */
+			/* A pointer to the variable that is initialized.
+			   NULL when the statement pointer refers to an
+			   stmk_set_vla_size statement. */
       a_bit_field
 		is_vla_variable;
 			/* TRUE if the statement is an stmk_vla_decl
@@ -426,7 +429,7 @@ extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
 
 extern void update_init_statement_control_flow(a_statement_ptr  sp);
 
-extern void trivial_init_control_flow(a_variable_ptr  var);
+extern void record_trivial_init_control_flow(a_variable_ptr  var);
 
 extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                                    a_source_position    *pos);

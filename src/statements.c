@@ -1901,7 +1901,7 @@ declarations.
 }  /* update_init_statement_control_flow */
 
 
-void trivial_init_control_flow(a_variable_ptr  var)
+void record_trivial_init_control_flow(a_variable_ptr  var)
 /*
 Record a control flow entry for a trivial initialization of the given variable
 (corresponding to the invocation of a trivial constructor).   Such an
@@ -1915,7 +1915,7 @@ over.
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_init);
   cfdp->variant.init.variable = var;
   add_to_control_flow_descr_list(cfdp);
-}  /* trivial_init_control_flow */
+}  /* record_trivial_init_control_flow */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -4646,7 +4646,7 @@ issue a diagnostic complaining about skipping over an initialization.
             if (is_array_type(tp)) tp = underlying_array_element_type(tp);
             tp = skip_typerefs(tp);
             if (sp == NULL) {
-              /* cfdp stands for an trivial non-POD initialization.  No
+              /* cfdp stands for a trivial non-POD initialization.  No
                  statement is needed for such initializations, but a branch
                  over the initialization still must be diagnosed. */
               severity = strict_ansi_mode ? strict_ansi_error_severity

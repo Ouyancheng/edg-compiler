@@ -3561,7 +3561,7 @@ the default constructor (if one exists) is called.
         if (innermost_function_scope != NULL) {
           /* Although no init statement is needed, we still need to track
              attempts to branch past the trivial initialization. */
-          trivial_init_control_flow(var);
+          record_trivial_init_control_flow(var);
         }  /* if */
       } else {
         if (ctor != NULL) {
