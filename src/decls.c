@@ -7218,9 +7218,6 @@ continue_with_declaration:
           /* Enter the declared object as a variable rather than as a
              parameter.  */
           local_is_parameter = FALSE;
-          /* Switch back to the function scope memory region for entering
-             the variable and processing an initializer, if any. */
-          switch_to_function_scope_region(&region_to_switch_back_to);
         } else if (param_id->symbol != NULL) {
           /* The parameter has already been declared.  We don't want to leave
              the old parameter symbol in the symbol table since it is in an
@@ -7455,11 +7452,21 @@ continue_with_declaration:
         define_static_data_member(&locator, local_storage_class,
 				  local_type_ptr, &symbol_ptr, &linkage);
       } else {
+        if (is_parameter) {
+          /* We are in an old-style param declaration but a name was found
+             that was not on the param id list.  Switch (back) to the function
+             scope memory region so that the variable will be treated like
+             an ordinary automatic variable. */
+          switch_to_function_scope_region(&region_to_switch_back_to);
+        }  /* if */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             /*is_implicit_function=*/FALSE,
                             /*is_function_def_with_body=*/FALSE,
                             inline_specified, &symbol_ptr, &linkage,
                             &old_type, &ext_sym);
+        if (is_parameter) {
+          switch_back_to_original_region(region_to_switch_back_to);
+        }  /* if */
         /* Fetch the storage class again, which might have been changed if
            this is a file scope redeclaration of an extern const variable. */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
@@ -7474,8 +7481,12 @@ continue_with_declaration:
       if (has_parenthesized_initializer) {
         has_initializer = TRUE;
       } else if (curr_token == tok_assign) {
-        has_initializer = TRUE;
         (void)get_token();
+        if (is_parameter) {
+          syntax_error(ec_initializer_in_param);
+        } else {
+          has_initializer = TRUE;
+        }  /* if */
       } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
         /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
            section 17 (Anachronisms)). */
@@ -7488,9 +7499,8 @@ continue_with_declaration:
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
         initializer(symbol_ptr, &locator.source_position, linkage,
-                    has_parenthesized_initializer, local_is_parameter);
-        if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-            !local_is_parameter) {
+                    has_parenthesized_initializer, is_parameter);
+        if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {
           /* Fetch the type of the symbol again, since it might have been
              changed if it was an incomplete array and was initialized. */
           local_type_ptr = symbol_ptr->variant.variable->type;
@@ -7509,7 +7519,7 @@ continue_with_declaration:
         }  /* if */
       } else if ((symbol_ptr->kind == (a_symbol_kind)sk_variable ||
                   symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) &&
-                 !local_is_parameter && !is_error_locator(locator)) {
+                 !is_parameter && !is_error_locator(locator)) {
         a_variable_ptr  vp = symbol_ptr->variant.variable;
         if (vp->init_kind != (an_init_kind)initk_none) {
           /* Already initialized -- this must be a redeclaration. */
@@ -7580,19 +7590,12 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (is_parameter && !local_is_parameter) {
-        /* We are in an old-style param declaration but switched from the
-           file scope memory region to the function scope memory region when
-           a name was found that was not on the param id list.  Switch back
-           to the file scope region for subsequent processing. */
-         switch_back_to_original_region(region_to_switch_back_to);
-      }  /* if */
       copy_source_position(locator.source_position, error_position);
       /* If a variable has no linkage, the type must be complete here.
          A case like "void i;" at file scope is also an error, since it
          can never be completed. */
       if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-          !local_is_parameter && is_incomplete_type(local_type_ptr) &&
+          !is_parameter && is_incomplete_type(local_type_ptr) &&
           (linkage == idl_none ||
            (local_storage_class == (a_storage_class)sc_unspecified &&
             is_void_type(local_type_ptr)))) {
