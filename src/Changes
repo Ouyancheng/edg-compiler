@@ -1,5 +1,26 @@
 Version 2.42
 
+6/23/99  Microsoft compatibility: static member function overrides inherited
+         virtual member function
+
+In Microsoft bugs mode, the following is accepted an prints "bxd".
+
+  extern "C" int printf(char const*, ...);
+  struct B {
+    virtual void f() { printf("b"); }
+  };
+  struct D: B {
+    static void f() { printf("d"); } // Allow only with --microsoft_bugs
+  };
+  struct X: D {
+    void f() { printf("x"); } // Virtual overrider of B::f
+  };
+  int main() {
+    B *p1 = new D; p1->f(); // Calls B::f
+    B *p2 = new X; p2->f(); // Calls X::f
+    D *p3 = new X; p3->f(); // Calls D::f (nonvirtual)
+  }
+
 6/22/99  Abort on unprototyped definition in C mode
 
 In C mode, the front end used to abort on the following code:

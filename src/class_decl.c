@@ -2642,8 +2642,14 @@ routine entry and return TRUE; otherwise return FALSE.
             if (skip_typerefs(rout->type)->variant.routine.extra_info->
                                           implicit_this_param_type == NULL) {
               /* A static member function "redeclares" a virtual nonstatic
-                 member function from a base class. */
-              pos_error(ec_virtual_static_not_allowed, source_pos);
+                 member function from a base class.  Normally, that is not
+                 allowed, but the Microsoft compilers don't mind (and treat
+                 the function as "static" rather than "virtual"). Note that
+                 a more derived class can still override the virtual function
+                 in the original base. */
+              if (!microsoft_bugs) {
+                pos_error(ec_virtual_static_not_allowed, source_pos);
+              }
               goto done;
             }  /* if */
             /* Check whether the implicit "this" param types are
