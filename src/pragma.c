@@ -666,12 +666,15 @@ there is additional processing to be done.
         for (; !done; ssep = previous_scope_of(ssep)) {
           check_assertion(ssep != NULL);
           switch (ssep->kind) {
+            case sck_class_struct_union:
+              /* A pragma can only be added to a class scope in C++ mode. */
+              if (C_mode()) break;
+              /*FALLTHROUGH*/
             /* Scopes for which a pragma entry may be added to the IL. */
             case sck_file:
             case sck_block:
             case sck_namespace:
             case sck_namespace_extension:
-            case sck_class_struct_union:
             case sck_function:
               done = TRUE;
               /* Convert the scope stack entry back to a scope depth. */

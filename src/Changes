@@ -1,5 +1,11 @@
 Version 2.44
 
+1/3/00   Internal error in C mode when pragma appears in a struct
+
+A bug was introduced in version 2.43 that would cause an internal error
+when a pragma that is to be included in the IL is used in a struct scope
+in C mode.  This has been fixed.
+
 12/27/99 Corrupted source sequence list when
          NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
 
