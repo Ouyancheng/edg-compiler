@@ -870,7 +870,8 @@ void initializer(a_symbol_ptr       symbol_ptr,
                  a_source_position  *source_pos,
                  an_id_linkage_kind linkage,
                  a_boolean          parenthesized_initializer,
-                 a_boolean          is_parameter)
+                 a_boolean          is_parameter,
+                 a_boolean          *incomplete_type_error_reported)
 /*
 Scan an initializer (3.5.7) for the symbol pointed to by symbol_ptr
 (with linkage as given by linkage; a parameter if is_parameter is TRUE).
@@ -947,23 +948,19 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       } else if (is_array_type(vp_type) &&
                  !is_incomplete_type(array_element_type(vp_type))) {
         /* Array type.  The is_incomplete_type test disallows arrays of
-           incomplete struct/unions (which are an extension). */
+           incomplete struct/unions (which in C are possible as an
+           extension). */
       } else if (is_reference_type(vp_type)) {
         /* Reference type -- okay. */
-      } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member &&
-                 is_incomplete_type(vp_type)) {
-        /* A static data member is a special case since at the point of
-           definition (which this is) it must be initialized, either
-           explicitly or implicitly.  Therefore it doesn't make sense to say
-           it can't be initialized; rather we issue an incomplete type
-           error.  Moreover, the type in the variable entry must be updated
-           with an error type -- to be sure it's done, do it now. */
-        pos_error(ec_incomplete_type_not_allowed, source_pos);
-        err = TRUE;
-        vp_type = vp->type = error_type();
       } else {
-        /* An object of this type cannot be initialized. */
-        pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
+        if (is_incomplete_type(vp_type)) {
+          /* Incomplete type is an error. */
+          pos_error(ec_incomplete_type_not_allowed, source_pos);
+          *incomplete_type_error_reported = TRUE;
+        } else {
+          /* Catch-all error. */
+          pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
+        }  /* if */
         err = TRUE;
         /* Use an error type to avoid additional errors. */
         vp_type = NULL;
