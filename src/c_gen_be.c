@@ -245,6 +245,8 @@ sequence number if it is 0.
        error quickly. */
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
+  error_position.seq    = seq_number;
+  error_position.column = 0;
 #if INCLUDE_ANNOTATIONS
   if (annotate) {
     if (seq_number != 0) {
@@ -254,8 +256,6 @@ sequence number if it is 0.
       a_line_number line_number;
       a_boolean     end_of_file;
 
-      error_position.seq    = seq_number;
-      error_position.column = 0;
       conv_seq_to_file_and_line(seq_number, &file_name, &full_file_name,
                                 &line_number, &end_of_file);
       if (!end_of_file) {
