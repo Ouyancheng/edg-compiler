@@ -123,6 +123,12 @@ typedef struct a_source_file {
 			   even if the attempt failed (e.g., the file does not
 			   exist. */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  a_byte_boolean
+		included_by_system_include;
+			/* TRUE if this is a file that was included using
+			   the #include <file.h> notation.  FALSE for
+			   files included with the #include "file.h" notation
+			   and entries not associated with include files. */
 } a_source_file;
 
 /*
@@ -2049,7 +2055,7 @@ typedef struct a_variable {
 			   that is referenced from outside of its function
 			   (i.e., from a member function of a local class
 			   or from destructor code).  TRUE only in C++. */
-  unsigned int	is_instantiation:1;
+  unsigned int	is_template_static_data_member:1;
 			/* TRUE if this is a static data member that is a
 			   member of a class generated from a template,
 			   including both the case where the static data member
@@ -2062,7 +2068,7 @@ typedef struct a_variable {
   unsigned int  can_be_instantiated:1;
 			/* TRUE if this is a template static data member
 			   that could be instantiated by this compilation.
-			   FALSE if is_instantiation is FALSE.
+			   FALSE if is_template_static_data_member is FALSE.
 			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
@@ -2072,7 +2078,7 @@ typedef struct a_variable {
   unsigned int	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template static data member.
-			   FALSE if is_instantiation is FALSE.
+			   FALSE if is_template_static_data_member is FALSE.
 			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
@@ -2087,7 +2093,7 @@ typedef struct a_variable {
 			   another compilation unit with which this unit
 			   will be linked.  Implies that the static data
 			   member is referenced in this compilation.
-			   FALSE if is_instantiation is FALSE.
+			   FALSE if is_template_static_data_member is FALSE.
 			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
@@ -2095,6 +2101,10 @@ typedef struct a_variable {
 			   process and should not be relied upon for any
 			   other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  unsigned int  specific_def:1;
+			/* TRUE if this instance has been explicitly
+                           defined (in which case no implicit instantiation
+                           will be done). */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
@@ -2387,7 +2397,7 @@ typedef struct a_routine {
 			   was done in this function.  C++ member functions
 			   only. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  unsigned int  is_instantiation:1;
+  unsigned int  is_template_function:1;
 			/* TRUE if this routine is a member of a class
 			   generated from a template, including both the case
 			   where the function is generated from the template
@@ -2403,7 +2413,7 @@ typedef struct a_routine {
   unsigned int  can_be_instantiated:1;
 			/* TRUE if this is a template function
 			   that could be instantiated by this compilation.
-			   FALSE if is_instantiation is FALSE.
+			   FALSE if is_template_function is FALSE.
 			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
@@ -2413,7 +2423,7 @@ typedef struct a_routine {
   unsigned int	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template function.
-			   FALSE if is_instantiation is FALSE.
+			   FALSE if is_template_function is FALSE.
 			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
@@ -2428,7 +2438,7 @@ typedef struct a_routine {
 			   another compilation unit with which this unit
 			   will be linked.  Implies that the function is
 			   referenced in this compilation.  FALSE if
-			   is_instantiation is FALSE.
+			   is_template_function is FALSE.
 			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
@@ -2436,6 +2446,13 @@ typedef struct a_routine {
 			   process and should not be relied upon for any
 			   other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  unsigned int  specific_def:1;
+			/* For instances of nonmember function templates and
+			   member functions of template classes, TRUE if this
+			   instance has been explicitly defined (in which case
+			   no implicit instantiation will be done). The
+			   specific_decl flag will always be TRUE when this
+			   flag is set. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

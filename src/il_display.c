@@ -1425,6 +1425,10 @@ Display the indicated variable.
   disp_boolean("referenced_non_locally",
                (a_boolean)ptr->referenced_non_locally);
 #endif /*ifdef CFE */
+  if (ptr->is_template_static_data_member) {
+    disp_boolean("is_template_static_data_member",
+                 (a_boolean)ptr->is_template_static_data_member);
+  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
     disp_boolean("can_be_instantiated", (a_boolean)ptr->can_be_instantiated);
@@ -1436,6 +1440,9 @@ Display the indicated variable.
     disp_boolean("instance_required", (a_boolean)ptr->instance_required);
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  if (ptr->specific_def) {
+    disp_boolean("specific_def", (a_boolean)ptr->specific_def);
+  }  /* if */
   disp_name("init_kind");
   switch (ptr->init_kind) {
     case initk_none:
@@ -1721,6 +1728,9 @@ Display the indicated routine.
                  (a_boolean)ptr->assignment_to_this_done);
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  if (ptr->is_template_function) {
+    disp_boolean("is_template_function", (a_boolean)ptr->is_template_function);
+  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
     disp_boolean("can_be_instantiated", (a_boolean)ptr->can_be_instantiated);
@@ -1732,6 +1742,9 @@ Display the indicated routine.
     disp_boolean("instance_required", (a_boolean)ptr->instance_required);
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  if (ptr->specific_def) {
+    disp_boolean("specific_def", (a_boolean)ptr->specific_def);
+  }  /* if */
   disp_class_list("befriending_classes", ptr->befriending_classes);
   if (ptr->is_virtual) {
     disp_unsigned_long("virtual_function_number",

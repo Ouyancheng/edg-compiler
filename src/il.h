@@ -536,7 +536,8 @@ extern void record_start_of_source_file(a_source_file_ptr parent_file,
 				        a_line_number     line_number,
 			                char              *file_name,
 			                char              *full_name,
-			                a_source_file_ptr *new_file);
+			                a_source_file_ptr *new_file,
+					a_boolean         is_system_include);
 
 extern void record_end_of_source_file(a_source_file_ptr curr_file,
 			              a_seq_number      seq_number);
