@@ -2471,7 +2471,8 @@ inline functions, if appropriate.
     a_routine_ptr primary_routine =
                             (a_routine_ptr)transitive_copy_address_of(routine);
     if (primary_routine->is_inline &&
-        primary_routine->storage_class == (a_storage_class)sc_unspecified) {
+        (primary_routine->storage_class == (a_storage_class)sc_unspecified ||
+         primary_routine->source_corresp.static_used_by_instantiation)) {
       if (primary_routine->on_inline_function_list) {
         /* There is already a list entry for the routine in the primary IL. */
 #if DEBUG
