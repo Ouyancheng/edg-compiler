@@ -1082,6 +1082,7 @@ on a prior declaration.
                                        type_ptr->variant.routine.extra_info;
       if (rtsp->this_class != NULL) {
         rtsp->this_class = NULL;
+        rtsp->qualifiers = TQ_NONE;
         sym = member_function_redecl_sym(locator->specific_symbol, type_ptr,
                                          (a_template_param_ptr)NULL);
         if (sym != NULL) {
@@ -2098,7 +2099,7 @@ empty statement block.
     rtsp->assoc_routine = rout_ptr;
     if (rtsp->this_class != NULL) {
       scope->variant.routine.this_param_variable =
-             make_implicit_this_param_variable(skip_typerefs(rout_ptr->type));
+                            make_implicit_this_param_variable(rout_ptr->type);
     }  /* if */
     /* Enter the constructor and destructor initializers, to record possible
        implicit initializers. */
