@@ -3590,7 +3590,24 @@ in C mode as well as C++ mode.
        member functions. */
     if (is_function_type(pm_member_type(source_type)) ==
         is_function_type(pm_member_type(dest_type))) {
+#if 0
       okay = TRUE;
+#else /* 0 */
+      /* We impose the additional requirement (present in the ARM, gone in
+         the WP) that the classes involved be related in some way.  Removing
+         this restriction requires some IL changes to allow reinterpret_casts
+         for pointer-to-members and to represent pointer-to-member constants
+         subjected to reinterpret_casts. */
+      { a_type_ptr source_class, dest_class;
+        source_class = pm_class_type(source_type);
+        dest_class = pm_class_type(dest_type);
+        if (source_class == dest_class ||
+            find_base_class_of(source_class, dest_class) != NULL ||
+            find_base_class_of(dest_class, source_class) != NULL) {
+          okay = TRUE;
+        }  /* if */
+      }
+#endif /* 0 */
     }  /* if */
   }  /* if */
 #if DEBUG
