@@ -345,7 +345,7 @@ error code.
       m = "duplicate parameter name";
       break;
     case ec_id_already_declared:
-      m = "identifier \"%s\" has already been declared in the current scope";
+      m = "identifier has already been declared in the current scope";
       break;
     case ec_nonstd_forward_def_enum:
       m = "forward-defined enum type is nonstandard";
