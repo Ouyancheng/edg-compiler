@@ -4690,8 +4690,11 @@ of the function, and again overloading is a possibility.
       /* If the friend function is defined in this declaration or if it was
          specified as inline, that information should be passed on to
          decl_routine. */
-      if (strcmp(locator->symbol_header->identifier, "main") == 0) {
-        /* Friendship is being given to the main() function. */
+      if (strcmp(locator->symbol_header->identifier, "main") == 0 &&
+          (locator->is_qualified_name ?
+            locator->is_file_scope_qualified_name :
+            depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE)) {
+        /* Friendship is being given to the global main() function. */
         func_info->is_main_function = TRUE;
         if (func_info->is_inline) {
           /* But it can't be declared "inline" or defined inline. */

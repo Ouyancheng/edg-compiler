@@ -8422,11 +8422,20 @@ continue_with_declaration:
         /* Recognizing a declaration of function "main" is more than checking
            the identifier. */
         if (C_dialect == C_dialect_cplusplus) {
-          if (locator.specific_symbol == NULL ||
-              !locator.specific_symbol->is_class_member) {
-            /* Not a member function named "main". */
+          if (locator.is_qualified_name ?
+                !locator.is_file_scope_qualified_name :
+                depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+            /* A declaration that's a qualified name (except ::main), or one
+               that's unqualified but in a namespace scope, can't refer to
+               global main. */
+          } else {
+            /* Not a class or namespace member named "main". */
             a_routine_type_supplement_ptr  rtsp;
 
+            check_assertion(locator.specific_symbol == NULL ||
+                            (!locator.specific_symbol->is_class_member &&
+                             locator.specific_symbol->
+                                          parent.namespace_ptr == NULL));
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
             if (scope_stack[depth_scope_stack].name_linkage_is_explicit) {

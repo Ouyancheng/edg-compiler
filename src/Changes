@@ -1,5 +1,17 @@
 Version 2.40
 
+11/18/98  "main" declared inside a namespace
+
+An internal error could be generated if "main" was declared both in a
+namespace and in the global scope.  This has been fixed.
+
+  namespace N {
+    int main();
+  }
+  int main() {             // internal error is no longer issued
+    return 0;
+  }
+
 11/18/98  Source-sequence representation of functions defined within class
           definitions
 
