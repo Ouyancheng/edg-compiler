@@ -340,6 +340,18 @@ EXTERN a_boolean
 			   reconfigurable. */
 
 EXTERN a_boolean
+		targ_force_one_bit_bit_field_to_be_unsigned
+#if VAR_INITIALIZERS
+                                 = TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE when a "plain" int bit field of length 1 is
+			   to be treated as unsigned regardless of the
+			   setting of targ_plain_int_bit_field_is_unsigned
+			   (because a bit field consisting of only a sign
+			   is not very useful). */
+
+EXTERN a_boolean
 		targ_enum_bit_fields_are_always_unsigned
 #if VAR_INITIALIZERS
                                     = TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
@@ -1034,6 +1046,7 @@ EXTERN a_boolean
 #undef TARG_BIT_FIELD_CONTAINER_SIZE
 #undef TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #undef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
+#undef TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED
 #undef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 #undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
 #undef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
@@ -1127,6 +1140,8 @@ EXTERN a_boolean
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION targ_microsoft_bit_field_allocation
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED                            \
                         targ_plain_int_bit_field_is_unsigned
+#define TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED                     \
+                        targ_force_one_bit_bit_field_to_be_unsigned
 #define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED                        \
                         targ_enum_bit_fields_are_always_unsigned
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT                             \

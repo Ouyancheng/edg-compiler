@@ -715,6 +715,25 @@ match the target machine behavior on integer operations in C.
 			   targ_plain_int_bit_field_is_unsigned. */
 #endif /* ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
 
+/*
+Flag that indicates whether a one-bit bit field declared with a
+base type that is not explicitly signed or unsigned should be
+forced to be unsigned even if TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
+is FALSE, with the rationale that a bit field consisting of only
+a sign is not very useful.  Initial value of
+targ_force_one_bit_bit_field_to_be_unsigned.
+
+Note that cfront mode forces all bit fields to be unsigned so this
+setting is irrelevant in that case.
+*/
+#ifndef TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED
+#if IA64_ABI
+#define TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED FALSE
+#else /* !IA64_ABI */
+#define TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED TRUE
+#endif /* IA64_ABI */
+#endif /* TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED */
+
 /* Signedness for enum bit fields (an extension in C): if TRUE, enum bit fields
    are always unsigned.  If FALSE, the rules are: (a) if the enum contains
    any negative values, the field is signed; otherwise (b) if the enum

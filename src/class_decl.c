@@ -8316,12 +8316,10 @@ must be unsigned.
         use_signed = FALSE;
       } else {
         /* The signedness is not forced by the enum values, so use the 
-           target preference.  Make a one-bit field always unsigned. */
-        if (bit_field_size == 1) {
-          use_signed = FALSE;
-        } else {
-          use_signed = !targ_plain_int_bit_field_is_unsigned;
-        }  /* if */
+           target preference. */
+        /* Note that because bits_needed_largest is at least 1, we can
+           never get here for a bit field of length one. */
+        use_signed = !targ_plain_int_bit_field_is_unsigned;
       }  /* if */
       if (use_signed && sign_of_integer_constant(&largest) >= 0) {
         /* Using a signed bit field and the largest is nonnegative, so the
@@ -8505,30 +8503,28 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       /* The integral type is "plain" (i.e., plain "int", "char", "short",
          "long", or "long long") -- it's not explicitly signed or unsigned and
          it's not an enum type. */
-      if (C_dialect == C_dialect_pcc &&
-          targ_plain_int_bit_field_is_unsigned) {
-        /* In pcc mode when the environment expects plain-int bit fields to
-           be unsigned, change the underlying type to reflect that -- this
-           produces more accurate IL for expressions in which integral
-           promotion is not done. */
-        int_kind = unsigned_int_kind_of[int_kind];
-        bit_field_type = integer_type(int_kind);
+      if (any_cfront_mode()) {
+        /* cfront treats all bit fields as unsigned. */
         is_signed = FALSE;
-      } else if (bit_field_size > 1 &&
-                 !targ_plain_int_bit_field_is_unsigned &&
-                 !any_cfront_mode()) {
-        /* Keep the default signedness of the plain integral type.  Note that
-           cfront treats all bit fields as unsigned. */
-        is_signed = TRUE;
+      } else if (targ_plain_int_bit_field_is_unsigned) {
+        /* The default for plain integral types in bit fields is unsigned. */
+        is_signed = FALSE;
+        if (C_dialect == C_dialect_pcc) {
+          /* In pcc mode when the environment expects plain-int bit fields to
+             be unsigned, change the underlying type to reflect that -- this
+             produces more accurate IL for expressions in which integral
+             promotion is not done. */
+          int_kind = unsigned_int_kind_of[int_kind];
+          bit_field_type = integer_type(int_kind);
+        }  /* if */
+      } else if (bit_field_size == 1 &&
+                 targ_force_one_bit_bit_field_to_be_unsigned) {
+        /* Force a one-bit bit field to be unsigned, because a bit field
+           consisting of only a sign is not very useful. */
+        is_signed = FALSE;
       } else {
-        /* The default for plain integral types in bit fields is unsigned --
-           or else this is a one-bit bit field, for which anything but
-           unsigned may not make much sense.  However, we do not change the
-           type to an unsigned version of the same integral type, since that
-           would affect C++ overload resolution adversely; the code to do
-           integral promotion has special handling if the width of the bit
-           field is the same as the width of an integer. */
-        is_signed = FALSE;
+        /* The default for plain integral types in bit fields is signed. */
+        is_signed = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */

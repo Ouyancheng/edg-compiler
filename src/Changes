@@ -1,5 +1,18 @@
 Version 3.1
 
+8/10/02  Configuration option for signedness of one-bit bit fields
+
+Heretofore, bit fields with length one and having a base type that
+is not explicitly signed or unsigned have always been made unsigned,
+even when TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED is FALSE, with the
+rationale that a bit field consisting of only a sign bit is not
+very intuitive or useful.  However, lots of other compilers go
+ahead and make a signed one-bit field in that case.  Therefore,
+there is now a configuration option
+TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED to control that behavior.
+The default is TRUE, which retains the old behavior, except in
+IA-64 ABI mode.
+
 8/9/02   GNU compatibility: flexible array members
 
 In GNU C and C++ modes, the front end now accepts C99-style flexible array
