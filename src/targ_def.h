@@ -121,33 +121,6 @@ is prepared to accept all of the C99 IL extensions.
  #error -- C99 IL lowering cannot be done if C99 IL extensions not supported
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
 
-/* Enable support of variable-length arrays (VLAs). */
-#ifndef VLA_ALLOWED
-#if C99_IL_EXTENSIONS_SUPPORTED
-#define VLA_ALLOWED TRUE
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define VLA_ALLOWED FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* VLA_ALLOWED */
-
-/* Enable support of compound literals. */
-#ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
-#if C99_IL_EXTENSIONS_SUPPORTED
-#define COMPOUND_LITERAL_ENABLING_POSSIBLE TRUE
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
-
-/* Enable support of designated initializers. */
-#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-#if C99_IL_EXTENSIONS_SUPPORTED
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE TRUE
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-
 /* Enable long long. */
 #ifndef LONG_LONG_ALLOWED
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -2074,7 +2047,11 @@ The variable can also been controlled from the command line by --[no_]vla.
 (Whatever the default, vla_enabled is always turned off in C++ mode.)
 */
 #ifndef DEFAULT_VLA_ENABLED
-#define DEFAULT_VLA_ENABLED FALSE
+#if C99_IL_EXTENSIONS_SUPPORTED
+#define VLA_ALLOWED TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define VLA_ALLOWED FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ifndef DEFAULT_VLA_ENABLED */
 #if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
   #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
@@ -2110,7 +2087,11 @@ initializers (but that's useful only if the downstream compiler also
 handles them).
 */
 #ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#if C99_IL_EXTENSIONS_SUPPORTED
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #if !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && DEFAULT_DESIGNATORS_ALLOWED
  #error -- designated initializer enabling not allowed
@@ -2133,7 +2114,11 @@ The C-generating and C++-generating back ends can handle compound literals
 (but that's useful only if the downstream compiler also handles them).
 */
 #ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
+#if C99_IL_EXTENSIONS_SUPPORTED
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
 #if !COMPOUND_LITERAL_ENABLING_POSSIBLE && DEFAULT_COMPOUND_LITERALS_ALLOWED
  #error -- compound literal enabling not allowed
@@ -2358,6 +2343,22 @@ whole process.
 #define LOWER_MICROSOFT_NONCONSTANT_AGGREGATE TRUE
 #endif /* ifndef LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+This switch controls whether complex and imaginary types and operations
+(a C99 feature) are lowered to C89 form.  The lowered form uses
+calls to runtime routines to implement complex operations and conversions.
+*/
+#ifndef LOWER_COMPLEX
+#if DO_C99_IL_LOWERING
+#define LOWER_COMPLEX TRUE
+#else /* !DO_C99_IL_LOWERING */
+#define LOWER_COMPLEX FALSE
+#endif /* DO_C99_IL_LOWERING */
+#endif /* ifndef LOWER_COMPLEX */
+#if LOWER_COMPLEX && !DO_C99_IL_LOWERING
+ #error -- Complex cannot be lowered without doing C99 IL lowering
+#endif /* LOWER_COMPLEX && !DO_C99_IL_LOWERING */
 
 /*
 This switch controls whether designated initializers (a C99 feature)

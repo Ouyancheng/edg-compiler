@@ -41,6 +41,8 @@ static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
 static void lower_c99_cast(an_expr_node_ptr expr);
 
+#if LOWER_COMPLEX
+
 /* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float = NULL;
 static a_type_ptr lowered_complex_double = NULL;
@@ -772,21 +774,17 @@ Transform the given complex cast expression into a function call
   }  /* if */
 }  /* lower_c99_complex_cast */
 
+#endif /* LOWER_COMPLEX */
 
 static void lower_c99_cast(an_expr_node_ptr  expr)
 /*
 Transform the given cast expression into a function call (compatible with C89).
 */
 {
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-    if (is_nonreal_floating_type(expr->type) ||
-        is_nonreal_floating_type(expr->variant.operation.operands->type)) {
-      lower_c99_complex_cast(expr);
-    }  /* if */
-  } else if (expr->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_bool_cast) {
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_bool_cast) {
     /* Change a cast to bool to a "!= 0" test. */
     transform_bool_cast(expr);
+#if LOWER_COMPLEX
     if (is_operation_node(expr) &&
         expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
       /* Do further lowering for complex != 0. */
@@ -794,6 +792,14 @@ Transform the given cast expression into a function call (compatible with C89).
       lower_c99_expr(expr->variant.operation.operands->next);
       lower_c99_xne(expr);
     }  /* if */
+#endif /* LOWER_COMPLEX */
+#if LOWER_COMPLEX
+  } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+    if (is_nonreal_floating_type(expr->type) ||
+        is_nonreal_floating_type(expr->variant.operation.operands->type)) {
+      lower_c99_complex_cast(expr);
+    }  /* if */
+#endif /* LOWER_COMPLEX */
   }  /* if */
 }  /* lower_c99_cast */
 
@@ -807,6 +813,7 @@ Otherwise, do nothing.
 {
   check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
   switch (expr->variant.operation.kind) {
+#if LOWER_COMPLEX
     case eok_xnegate:
       lower_c99_xnegate(expr);
       break;
@@ -846,6 +853,7 @@ Otherwise, do nothing.
     case eok_jmultiply:
       lower_c99_jmultiply(expr);
       break;
+#endif /* LOWER_COMPLEX */
     case eok_cast:
     case eok_bool_cast:
       lower_c99_cast(expr);
@@ -856,6 +864,7 @@ Otherwise, do nothing.
   }  /* switch */
 }  /* lower_c99_operator */
 
+#if LOWER_COMPLEX
 
 static void lower_c99_complex_constant(a_constant_ptr  constant)
 /*
@@ -892,6 +901,7 @@ allocated in file scope, the lowered structure must also be placed there.)
   constant->variant.aggregate.last_constant = pair;
 }  /* lower_c99_complex_constant */
 
+#endif /* LOWER_COMPLEX */
 
 void lower_c99_constant(a_constant_ptr  constant)
 /*
@@ -901,15 +911,19 @@ replace them by a representation compatible with C89.
 {
   switch (constant->kind) {
     case ck_complex:
+#if LOWER_COMPLEX
       lower_c99_complex_constant(constant);
+#endif /* LOWER_COMPLEX */
       break;
     case ck_aggregate:
       lower_c99_constant_list(constant->variant.aggregate.first_constant);
       break;
     case ck_imaginary:
+#if LOWER_COMPLEX
       /* Represent the constant as a regular floating-point constant.
          Its type will similarly be adjusted. */
       constant->kind = (a_constant_repr_kind)ck_float;
+#endif /* LOWER_COMPLEX */
       break;
     case ck_address:
       switch (constant->variant.address.kind) {
@@ -948,12 +962,16 @@ replace them by a representation compatible with C89.
 }  /* lower_c99_constant */
 
 
+#if !LOWER_COMPLEX
+/*ARGSUSED*/  /* <-- expr is not used in that case. */
+#endif /* !LOWER_COMPLEX */
 static void lower_c99_constant_expr(an_expr_node_ptr  expr)
 /*
 Transform the given enk_constant expression to remove certain C99-specific
 constructs.
 */
 {
+#if LOWER_COMPLEX
   if (is_imaginary_type(expr->type)) {
     /* Turn the imaginary constant into a real floating point constant. */
     lower_c99_constant(expr->variant.constant);
@@ -977,6 +995,7 @@ constructs.
     }  /* if */
     overwrite_node(expr, var_rvalue_expr(tmp));
   }  /* if */
+#endif /* LOWER_COMPLEX */
 }  /* lower_c99_constant_expr */
 
 
@@ -1499,6 +1518,7 @@ Do C99 lowering for all entities in and under the given scope.
   pop_context();
 }  /* lower_c99_scope */
 
+#if LOWER_COMPLEX
 
 static void lower_c99_imaginary_type(a_float_kind  kind,
                                      char          *name)
@@ -1519,6 +1539,8 @@ The lowered type is given the name indicated by "name".
   }  /* if */
 }  /* lower_c99_imaginary_type */
 
+#endif /* LOWER_COMPLEX */
+#if LOWER_COMPLEX
 
 static void lower_c99_complex_type(a_float_kind  kind,
                                    char          *name)
@@ -1551,6 +1573,8 @@ The lowered type is given the name indicated by "name".
   }  /* if */
 }  /* lower_c99_complex_type */
 
+#endif /* LOWER_COMPLEX */
+#if LOWER_COMPLEX
 
 static void lower_c99_nonreal_float_types(void)
 /*
@@ -1566,6 +1590,7 @@ Replace the imaginary and complex C99 types by their lowered representations.
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
 }  /* lower_c99_nonreal_float_types */
 
+#endif /* LOWER_COMPLEX */
 
 static void lower_c99_bool_type(void)
 /*
@@ -1589,7 +1614,9 @@ the memory region, i.e., either the file scope or a function scope.
   il_lowering_underway = TRUE;
   lower_c99_scope(scope);
   if (scope->kind == (a_scope_kind)sck_file) {
+#if LOWER_COMPLEX
     lower_c99_nonreal_float_types();
+#endif /* LOWER_COMPLEX */
     lower_c99_bool_type();
   }  /* if */
   il_lowering_underway = FALSE;
@@ -1603,6 +1630,7 @@ Do one-time initialization of variables related to C99 IL lowering.
 are handled in lower_c99_init.)
 */
 {
+#if LOWER_COMPLEX
   /* Save variables from lower_c99.c that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
@@ -1636,6 +1664,7 @@ are handled in lower_c99_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#endif /* LOWER_COMPLEX */
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_one_time_init();
@@ -1651,6 +1680,7 @@ redone to compile more than one source file in a single invocation of the
 front end.
 */
 {
+#if LOWER_COMPLEX
   int k;
 
   for (k = 0; k < (int)fk_last; ++k) {
@@ -1683,6 +1713,7 @@ front end.
   lowered_complex_float = NULL;
   lowered_complex_double = NULL;
   lowered_complex_long_double = NULL;
+#endif /* LOWER_COMPLEX */
 
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
