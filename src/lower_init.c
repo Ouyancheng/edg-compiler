@@ -6375,7 +6375,7 @@ have already had their designated initializers lowered.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-#if CHECKING
+#if EXPENSIVE_CHECKING
   /* Check that the types of the initializer constants match the types
      of the aggregate members to be initialized. */
   { an_aggregate_position aggr_pos;
@@ -6397,14 +6397,12 @@ have already had their designated initializers lowered.
       if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
         temp_con = temp_con->variant.init_repeat.constant;
       }  /* if */
-#if CHECKING
       { a_type_ptr con_type = skip_typerefs(temp_con->type);
         a_type_ptr member_type = skip_typerefs(aggr_pos.member_type);
         check_assertion_str(
                      identical_types(con_type, member_type),
                      "lower_aggregate_designated_initializers: type mismatch");
       }
-#endif /* CHECKING */
       last_con = con_pos.ptr;
       advance_init_con_pos(&con_pos);
       if (con_pos.ptr != NULL) {
@@ -6413,7 +6411,7 @@ have already had their designated initializers lowered.
     }  /* while */
     check_assertion(aggr_con->variant.aggregate.last_constant == last_con);
   }
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
 }  /* lower_aggregate_designated_initializers */
 
 
