@@ -1154,25 +1154,26 @@ storage_class are the type and storage class for the parameter.
 
   if (func_info != NULL) {
     /* See if this identifier name already appears on the list.  If
-       so, generate an error and throw it away. */
+       so, generate an error and represent the parameter with an error
+       locator.  That means a param id is created for it. */
     if (!is_error_locator(*locator) &&
         param_id_on_list(locator, func_info->param_id_list)) {
       error(ec_dupl_param_name);
-    } else {
-      new_param_id = alloc_param_id();
-      /* Put the proper location into the parameter id entry. */
-      new_param_id->locator = *locator;
-      /* Save the type and storage class for the later declaration. */
-      new_param_id->type    = type_ptr;
-      new_param_id->storage_class = storage_class;
-      /* Put this entry on the end of the list of param ids. */
-      if (func_info->param_id_list == NULL) {
-        func_info->param_id_list = new_param_id;
-      } else {
-        (*last_param_id)->next = new_param_id;
-      }  /* if */
-      (*last_param_id) = new_param_id;
+      set_to_error_locator(*locator);
     }  /* if */
+    new_param_id = alloc_param_id();
+    /* Put the proper location into the parameter id entry. */
+    new_param_id->locator = *locator;
+    /* Save the type and storage class for the later declaration. */
+    new_param_id->type    = type_ptr;
+    new_param_id->storage_class = storage_class;
+    /* Put this entry on the end of the list of param ids. */
+    if (func_info->param_id_list == NULL) {
+      func_info->param_id_list = new_param_id;
+    } else {
+      (*last_param_id)->next = new_param_id;
+    }  /* if */
+    (*last_param_id) = new_param_id;
   }  /* if */
 }  /* add_to_param_id_list */
 
@@ -6668,7 +6669,7 @@ explicitly specified (rather than defaulted to "int").
     }  /* if */
 #if CHECKING
     if ((param_id == NULL) != (ptp == NULL)) {
-      internal_error("function_definion: param_id and ptp out of sync");
+      internal_error("function_definition: param_id and ptp out of sync");
     }  /* if */
 #endif /* CHECKING */
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
@@ -6679,7 +6680,7 @@ explicitly specified (rather than defaulted to "int").
                            param_symbol_ptr);
 #if CHECKING
       if ((param_id->next == NULL) != (ptp->next == NULL)) {
-        internal_error("function_definion: param_id and ptp out of sync");
+        internal_error("function_definition: param_id and ptp out of sync");
       }  /* if */
 #endif /* CHECKING */
     }  /* while */
