@@ -1054,6 +1054,7 @@ is enabled.
   operator_overloading_on_enums_enabled = microsoft_version >= 1000;
   do_late_ovl_res_tiebreaker = microsoft_bugs;
   single_ref_qual_ovl_res_tiebreaker = microsoft_bugs;
+  allow_dollar_in_id_chars = TRUE;
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

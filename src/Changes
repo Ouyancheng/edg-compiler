@@ -1,5 +1,10 @@
 Version 2.37
 
+9/18/97   Microsoft compatibility: "$" allowed in identifiers
+
+In Microsoft mode, the "$" character is now allowed by default in
+identifiers.
+
 9/18/97   Diagnostic on extra text at end of preprocessing directive is
           now a discretionary error
 
