@@ -172,7 +172,8 @@ extern void check_operator_arrow_return_type(a_routine_ptr      rout_ptr,
                                              a_boolean          is_expr_use,
                                              a_source_position  *error_pos);
 
-extern a_boolean is_default_operator_new_or_delete(a_symbol_locator *locator,
+extern a_boolean is_single_param_operator_new_or_delete(
+                                                   a_symbol_locator *locator,
                                                    a_type_ptr       type);
 
 extern void check_operator_function_params(a_type_ptr        rout_type,

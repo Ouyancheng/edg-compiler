@@ -5250,7 +5250,7 @@ in-class member function declarations.)
 
   db_enter(3, "decl_member_function_template");
   if (!is_error_locator(*locator)) {
-    if (is_default_operator_new_or_delete(locator, member_type)) {
+    if (is_single_param_operator_new_or_delete(locator, member_type)) {
       /* Overloading should not be allowed on the single-argument version
          of operator new(size_t) or delete(void *). */
       pos_error(is_new_operator(locator->variant.opname) ?

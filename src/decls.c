@@ -1236,8 +1236,8 @@ declaration of this symbol.
 }  /* enter_local_symbol */
 
 
-a_boolean is_default_operator_new_or_delete(a_symbol_locator *locator,
-                                            a_type_ptr       type)
+a_boolean is_single_param_operator_new_or_delete(a_symbol_locator *locator,
+                                                 a_type_ptr       type)
 /*
 Return TRUE if the locator is for an operator new or delete and the type
 indicates that it is the default version (i.e., if it has exactly one
@@ -1258,7 +1258,7 @@ parameter, which elsewhere is confirmed to have type size_t (new) or void*
     }  /* if */
   }  /* if */
   return match;
-}  /* is_default_operator_new_or_delete */
+}  /* is_single_param_operator_new_or_delete */
 
 
 static a_scope_depth compute_friend_effective_decl_level(a_scope_depth depth)
@@ -1330,7 +1330,7 @@ the appropriate scope depth.
     depth = compute_friend_effective_decl_level(depth);
 #if 0
   /* ????? */
-  } else if (is_default_operator_new(locator, type)) {
+  } else if (is_single_param_operator_new(locator, type)) {
     /* Default global operator new must always be entered at file scope. */
     depth = DEPTH_OF_FILE_SCOPE;
     is_default_global_operator_new = TRUE;
@@ -4381,7 +4381,7 @@ is not a template declaration scope.
          named "main" cannot be called (ARM 3.4). */
       pos_error(ec_function_template_named_main, &locator->source_position);
       set_to_error_locator(*locator);
-    } else if (is_default_operator_new_or_delete(locator, type_ptr)) {
+    } else if (is_single_param_operator_new_or_delete(locator, type_ptr)) {
       /* Overloading should not be allowed on the single-argument version of
          operator new(size_t) or operator delete(void *).  Though it is not
          expressly prohibited, it can be inferred from the fact that new and
