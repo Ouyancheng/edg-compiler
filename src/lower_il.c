@@ -6018,7 +6018,7 @@ created by IL lowering (presumably, it was some other kind of statement
 and it was replaced by something else; see turn_statement_into_noop).
 */
 #define is_noop_statement(statement)                                  \
-  ((statement)->kind == stmk_block &&                                 \
+  ((statement)->kind == (a_statement_kind)stmk_block &&               \
    (statement)->variant.block.statements == NULL &&                   \
    (statement)->variant.block.extra_info->parent_block == NULL)
 
