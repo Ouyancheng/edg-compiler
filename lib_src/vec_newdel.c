@@ -146,14 +146,14 @@ struct an_alloc_prefix {
 Compute the size in bytes of the prefix to be allocated.  This must
 be at least as large as an_alloc_prefix, but must also be a multiple
 of the most strict alignment. */
-const size_t	__array_new_prefix_size =
+size_t	__array_new_prefix_size =
 		  ((sizeof(an_alloc_prefix) + MOST_STRICT_ALIGNMENT - 1) /
                                MOST_STRICT_ALIGNMENT) * MOST_STRICT_ALIGNMENT;
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 /*
 No prefix is used in the alternate mode.
 */
-const size_t	__array_new_prefix_size = 0;
+size_t	__array_new_prefix_size = 0;
 #endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
 
