@@ -1852,8 +1852,7 @@ Display the indicated variable.
     disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
   }  /* if */
   if (ptr->aliased_variable != NULL) {
-    disp_string_ptr("aliased_variable", ptr->aliased_variable, 
-                    iek_other_text, (sizeof_t)0);
+    disp_ptr("aliased_variable", (char*)ptr->aliased_variable, iek_variable);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2502,8 +2501,7 @@ Display the indicated routine.
     disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
   }  /* if */
   if (ptr->aliased_routine != NULL) {
-    disp_string_ptr("aliased_routine", ptr->aliased_routine,
-                    iek_other_text, (sizeof_t)0);
+    disp_ptr("aliased_routine", ptr->aliased_routine, iek_routine);
   }  /* if */
   if (ptr->asm_name != NULL) {
     disp_string_ptr("asm_name", ptr->asm_name, iek_other_text, (sizeof_t)0);
