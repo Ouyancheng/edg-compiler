@@ -2,7 +2,7 @@ Version 3.6
 
 3/17/05  GNU C++ compatibility: Nonstandard anonymous union fields
 
-GNU C++ compiler impose the same constraints on the fields of nonstandard
+GNU C++ compilers impose the same constraints on the fields of nonstandard
 anonymous unions (which aren't really unions) as on the fields of ordinary
 (named or unnamed) unions.  The front end now imposes the same constraints
 in GNU C++ mode (but the errors are discretionary).  For example:
