@@ -1035,9 +1035,6 @@ with that partial specialization; otherwise return NULL.
                                        &ps_arg_list)) {
       add_to_candidates_list(&candidate_list, ps_sym, ps_arg_list,
                              templ_param_list);
-    } else {
-      /* If the template argument list is not being used, free it. */
-      free_template_arg_list(ps_arg_list);
     }  /* if */
   }  /* for */
   if (candidate_list != NULL) {
@@ -5637,12 +5634,6 @@ instantiation.
     }  /* if */
     is_redecl = FALSE;
   }  /* if */
-  if (tssp->variant.class_template.prototype_instantiation == NULL) {
-    /* Create the symbol for the prototype instantiation (but don't do
-       the instantiation yet). */
-    create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
-                          is_partial_specialization);
-  }  /* if */
   if (is_definition) {
     /* Save the type kind (corresponding to the class/struct/union token)
        in the class template symbol's supplement -- it will be needed when
@@ -5670,6 +5661,19 @@ instantiation.
     /* This template is a specialization of a member template.  Update the
        template information to reflect this. */
     record_specialization(decl_state, sym, tssp);
+  }  /* if */
+  if (tssp->variant.class_template.prototype_instantiation == NULL &&
+      (tssp->prototype_template == NULL ||
+       tssp->is_specific_definition || is_definition)) {
+    /* Create the symbol for the prototype instantiation (but don't do
+       the instantiation yet).  The prototype instantiation type is
+       not created for subordinate templates unless they are have been
+       specialized.  The "is_definition" test is there for error cases.
+       Subordinate templates should have had their bodies removed already,
+       but may still appear to be defined if the actual definition is
+       improperly formed. */
+    create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
+                          is_partial_specialization);
   }  /* if */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
