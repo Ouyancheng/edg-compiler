@@ -886,10 +886,10 @@ skip_tag_scan:
         if (is_class_definition ||
             (curr_token == tok_semicolon && !is_friend_decl)) {
           /* We have a specific declaration of a template class. */
-          if (decl_scope_level != depth_innermost_namespace_scope) {
+          if (tag_sym->decl_scope != ssep->number) {
             /* Specific definitions of template classes may only occur at
                file scope. */
-            pos_error(ec_specific_def_must_be_global, &tag_position);
+            pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
             error_tag_sym = tag_sym;
             tag_sym = NULL;
             set_to_named_error_locator(locator);
@@ -902,7 +902,7 @@ skip_tag_scan:
     }  /* if */
     if (tag_sym != NULL) {
       if (!tag_sym->is_class_member) {
-        if (is_class_definition && locator.is_qualified_name) {
+        if (is_class_definition) {
           /* This is a definition and a namespace-qualified name. */
           if (tag_sym->parent.namespace_ptr == NULL) {
             if (tag_sym->decl_scope != ssep->number) {
@@ -932,7 +932,7 @@ skip_tag_scan:
               push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
               namespace_extension_pushed = TRUE;
               effective_decl_level = depth_scope_stack;
-            } else {
+            } else if (locator.is_qualified_name) {
               /* A namespace-qualified name that refers to the current
                  namespace is not allowed in a definition. */
               check_assertion_str2(ssep->il_scope->kind ==
