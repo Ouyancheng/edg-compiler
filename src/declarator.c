@@ -378,7 +378,6 @@ the decl-specifier (e.g., "array [1] of NULL").
           break;
         default:
           goto done;
-          break;
       }  /* switch */
     } while (underlying_type != NULL);
 done:
@@ -428,9 +427,9 @@ property fields).
   /* Note that while derived types are being built up, the derived-type
      entries are connected to one another from the top down, which
      means that the bottom-most derived-type entry temporarily points
-     to nothing.  Each derived type is checked as the type below it
-     is attached.  This must be done carefully, because the type
-     being attached may look incomplete (its size may be zero). */
+     to nothing (a "partial type").  Each derived type is checked as the
+     type below it is attached.  This must be done carefully, because the
+     type being attached may look incomplete (its size may be zero). */
   if (*bottom_derived_type == NULL) {
     /* This is the first entry on the list.  No checking can be done yet. */
     *derived_type = new_type_ptr;
@@ -463,10 +462,7 @@ property fields).
            a partial array or pointer type (see comment above), let it
            by as long as it looks okay otherwise. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_partial_type(temp_type)) {
-          /* If the element type is a partial array or pointer type (see
-             comment above), let it by as long as it looks okay otherwise. */
-        } else if (is_object_type(temp_type)) {
+        if (is_object_type(temp_type) && !is_partial_type(temp_type)) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a member that is a zero-length
