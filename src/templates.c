@@ -15537,13 +15537,13 @@ Determine the type of "line" that was read from an exported template file.
   an_exported_template_line_type	result = etlt_none;
   an_exported_template_line_type	type;
 
-  for (type = (an_exported_template_line_type)(etlt_none + 1);
+  for (type = (an_exported_template_line_type)((int)etlt_none + 1);
        type < etlt_last; type++) {
-    char	*type_name;
-    type_name = exported_template_line_type_names[(int)type];
+    char	*line_type_name;
+    line_type_name = exported_template_line_type_names[(int)type];
     /* This routine requires that all type names be three characters. */
-    check_assertion(type_name[3] == '\0');
-    if (strncmp(type_name, line, 3) == 0) {
+    check_assertion(line_type_name[3] == '\0');
+    if (strncmp(line_type_name, line, 3) == 0) {
       check_assertion(line[3] == ':');
       result = type;
       break;

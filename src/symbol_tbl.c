@@ -1340,7 +1340,7 @@ If sym is not a routine, or is not a special function, return sfk_none.
                                         variant.function.routine->special_kind;
       break;
     default:
-      kind = sfk_none;
+      kind = (a_special_function_kind)sfk_none;
   }  /* switch */
   return kind;
 }  /* special_function_kind_for_symbol */
