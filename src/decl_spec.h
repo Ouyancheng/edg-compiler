@@ -102,7 +102,10 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 #define DSI_IS_EXPLICIT_INSTANTIATION (a_decl_flag_set)(0x20000)
 			/* If this bit is set the declaration is that of a
 			   C++ explicit template instantiation directive. */
-#define DSI_LAST DSI_IS_EXPLICIT_INSTANTIATION
+#define DSI_IS_TEMPLATE_SPECIALIZATION (a_decl_flag_set)(0x40000)
+			/* If this bit is set the declaration is that of a
+			   C++ template specialization. */
+#define DSI_LAST DSI_IS_TEMPLATE_SPECIALIZATION
 			/* Last bit in the bit vector that is in use. */
 
 /* Constants defining bits in the output bit vector returned from
