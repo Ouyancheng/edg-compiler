@@ -42,6 +42,14 @@ A new command line option (--gen_c_file_name) has been added that
 enables the driver to provide the file name to be used when
 creating a generated C file.
 
+8/2/94   IL CHANGE:  a_template, a_macro
+
+If RECORD_TEMPLATES_IN_IL is TRUE, entries of type a_template are included
+in the IL.  They contain a pointer to the textual representation of a
+template declaration.  Similarly, entries of type a_macro are put out if
+RECORD_MACROS_IN_IL is set; they point to null-terminated strings that
+represent #define preprocessor directive.
+
 8/2/94   Freeing of IL memory when multiple source files are compiled
 
 When COMPILE_MULTIPLE_SOURCE_FILES is enabled, and no IL file is
