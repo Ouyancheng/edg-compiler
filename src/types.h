@@ -617,6 +617,13 @@ extern a_boolean type_contains_specific_template_param_constant(
                                                          a_constant_ptr cp);
 extern a_boolean could_be_dependent_class_type(a_type_ptr tp);
 
+/*
+Alias for could_be_dependent_class_type, representing another view of the
+same test: template parameter type or nonreal class type.
+*/
+#define is_template_param_or_nonreal_class_type(tp) \
+  could_be_dependent_class_type(tp)
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean is_or_contains_member_of_uncompleted_class(a_type_ptr  tp);

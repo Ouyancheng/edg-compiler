@@ -1,5 +1,14 @@
 Version 2.45
 
+11/2/00  Abort in type_pointed_to when doing prototype instantiation
+         of dependent call of member function using qualified name
+
+The front end aborted with an assertion failure in type_pointed_to
+on a call of the form dependent_expression->X::f() (i.e., using
+a qualified name for the member function) when such a call was
+processed during the prototype instantiation of a function (e.g.,
+in strict mode).  Now fixed.
+
 11/1/00  Microsoft compatibility: call of non-const function on const
          object via pointer-to-member
 

@@ -6711,20 +6711,6 @@ in the type tree represented by tp.
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
 
-
-a_boolean could_be_dependent_class_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is dependent and might be a class type when
-instantiated (for a template parameter "T", this includes types such as "T",
-"T::X" and "C<T>").
-*/
-{
-  tp = skip_typerefs(tp);
-  return is_template_param(tp) ||
-         (is_class_struct_union(tp) &&
-          tp->variant.class_struct_union.is_nonreal_class);
-}  /* could_be_dependent_class_type */
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -6905,6 +6891,20 @@ typedefs referring to variably modified types.
 }  /* is_variably_modified_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_boolean could_be_dependent_class_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is dependent and might be a class type when
+instantiated (for a template parameter "T", this includes types such as "T",
+"T::X" and "C<T>").
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_template_param(tp) ||
+         (is_class_struct_union(tp) &&
+          tp->variant.class_struct_union.is_nonreal_class);
+}  /* could_be_dependent_class_type */
+
 
 a_boolean is_directly_variably_modified_type(a_type_ptr  tp)
 /*

@@ -1389,6 +1389,21 @@ Syntax:
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_REFERENCE);
   }  /* if */
+  if (is_template_dependent_context() && operand->bound_function &&
+      is_template_dependent_type(bound_function_selector->type)) {
+    /* In a prototype instantiation, a call with a dependent selector
+       is treated as a call of an unknown function.  This can come up
+       for something like dependent_expr->A::f() -- we will find A::f
+       because we have a qualified name, but we don't really know how
+       it relates to the class of dependent_expr, so we go for the
+       generic call representation. */
+    routine_type = NULL;
+    routine = NULL;
+    unknown_dependent_function = TRUE;
+    overloaded_function_case = FALSE;
+    prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+    prep_generic_operand(bound_function_selector, /*lvalue_expected=*/FALSE);
+  }  /* if */
 
   /* Scan the arguments of the call. */
   scan_call_arguments(routine_type, routine,
@@ -2061,8 +2076,10 @@ bound with the function in *bound_function_selector.
           /* In pcc mode, something like 0->x is valid. */
           pcc_mode_integral_pointer_case = TRUE;
           orig_class_struct_union_type = NULL;  /* Defensive programming. */
-        } else if (could_be_dependent_class_type(operand_1->type)) {
-          /* Allow a template parameter type in a prototype instantiation. */
+        } else if (is_template_param_or_nonreal_class_type(operand_1->type)) {
+          /* In a prototype instantiation, allow a template parameter type,
+             which might be a pointer type.  Also allow a nonreal class type,
+             which might have an operator-> function. */
           orig_class_struct_union_type = type_of_unknown_templ_param_nontype;
         } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);

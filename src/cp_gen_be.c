@@ -4421,7 +4421,7 @@ with the operator indicated by opstr.
   if (is_lvalue_1) {
     gen_lvalue(operand_1);
     /* Watch out for prototype instantiations. */
-    if (is_template_param_type(operand_1_type)) {
+    if (is_template_param_or_nonreal_class_type(operand_1_type)) {
       operand_1_type = NULL;
     } else {
       operand_1_type = type_pointed_to(operand_1_type);
@@ -4431,7 +4431,7 @@ with the operator indicated by opstr.
   }  /* if */
   if (operand_1_type != NULL && opstr[0] != '.') {
     /* Watch out for prototype instantiations. */
-    if (is_template_param_type(operand_1_type)) {
+    if (is_template_param_or_nonreal_class_type(operand_1_type)) {
       operand_1_type = NULL;
     } else {
       operand_1_type = type_pointed_to(operand_1_type);
@@ -4485,6 +4485,33 @@ with the operator indicated by opstr.
   }  /* if */
   if (need_context_pop) pop_name_context();
 }  /* gen_dot_static */
+
+
+static a_boolean is_dot_static_operation(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression is a "dot-static" operation, used
+to indicate x.y or p->y where y is a static member.
+*/
+{
+  a_boolean is_dot_static = FALSE;
+
+  /* Strip eok_lvalue or eok_rvalue nodes. */
+  while (is_operation_node(expr) &&
+      (expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue ||
+       expr->variant.operation.kind == (an_expr_operator_kind)eok_rvalue)) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  if (is_operation_node(expr) &&
+      (expr->variant.operation.kind ==
+                               (an_expr_operator_kind)eok_points_to_static ||
+       expr->variant.operation.kind ==
+                               (an_expr_operator_kind)eok_lvalue_dot_static ||
+       expr->variant.operation.kind ==
+                               (an_expr_operator_kind)eok_rvalue_dot_static)) {
+    is_dot_static = TRUE;
+  }  /* if */
+  return is_dot_static;
+}  /* is_dot_static_operation */
 
 
 static void gen_lvalue_full(an_expr_node_ptr node,
@@ -5144,54 +5171,67 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 
   check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
   rout = func_expr->variant.routine;
-  /* Remove any cast that just adjusts the type qualifiers (e.g., adds
-     const); it's implied by the context. */
-  object_expr = skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
-  /* Remove unnecessary base class casts. */
-  object_expr = optimized_expr_for_selection(object_expr, &naming_class);
-  selection_class = type_pointed_to(object_expr->type);
-  selection_class = skip_typerefs(selection_class);
-  if (is_variable_node(object_expr) &&
-      !object_expr->implicit_reference_indirection) {
-    /* Use a pointer and "->".  Don't do it when there's an implicit
-       reference indirection on the object, because that will add a "&"
-       that may mean the wrong thing if operator& is overloaded. */
-    if (is_variable_node(object_expr) &&
-        object_expr->variant.variable->is_this_parameter) {
-      /* Suppress "this->", as it's implied. */
-      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-          rout->special_kind == (a_special_function_kind)sfk_destructor) {
-        /* Don't suppress "this->" when a constructor is called explicitly
-           (a Microsoft extension), because
-             this->X::X()   and
-             X::X()
-           mean different things to the Microsoft compiler.  Also don't
-           do it for explicit destructor calls (in any mode). */
-      } else if (rout->is_virtual &&
-                 rout->source_corresp.qualification_needed &&
-                 !suppress_virtual) {
-        /* Don't suppress "this->" on a virtual function call if a
-           qualified name would be needed to refer to the function without
-           "this->" (that would suppress virtual-ness). */
-      } else {
-        suppress_this = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!msvc_is_generated_code_target || microsoft_version != 1000) {
-      /* Now that we've done all the work, suppress "this->" only in
-         Microsoft version 4.2 mode, where it's needed to get around some
-         bugs.  Otherwise, it doesn't seem to add much. */
-      suppress_this = FALSE;
-    }  /* if */
-    if (!suppress_this) {
-      /* Put out object pointer and "->". */
-      gen_expr_with_parens(object_expr);
-      write_tok_str("->");
-    }  /* if */
+  if (is_template_param_or_nonreal_class_type(object_expr->type)) {
+    /* In a prototype instantiation, the left operand can be a class type
+       that might have an operator-> function.  This can come up only
+       when the function is a member function named with a qualified name,
+       e.g., dependent_expr->A::f(). */
+    gen_expr_with_parens(object_expr);
+    write_tok_str("->");
+    force_qualified_name = TRUE;
+    check_assertion(rout->source_corresp.is_class_member);
+    naming_class = rout->source_corresp.parent.class_type;
+    selection_class = naming_class;
   } else {
-    /* Use an lvalue and ".". */
-    gen_lvalue(object_expr);
-    write_tok_ch('.');
+    /* Remove any cast that just adjusts the type qualifiers (e.g., adds
+       const); it's implied by the context. */
+    object_expr= skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
+    /* Remove unnecessary base class casts. */
+    object_expr = optimized_expr_for_selection(object_expr, &naming_class);
+    selection_class = type_pointed_to(object_expr->type);
+    selection_class = skip_typerefs(selection_class);
+    if (is_variable_node(object_expr) &&
+        !object_expr->implicit_reference_indirection) {
+      /* Use a pointer and "->".  Don't do it when there's an implicit
+         reference indirection on the object, because that will add a "&"
+         that may mean the wrong thing if operator& is overloaded. */
+      if (is_variable_node(object_expr) &&
+          object_expr->variant.variable->is_this_parameter) {
+        /* Suppress "this->", as it's implied. */
+        if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+            rout->special_kind == (a_special_function_kind)sfk_destructor) {
+          /* Don't suppress "this->" when a constructor is called explicitly
+             (a Microsoft extension), because
+               this->X::X()   and
+               X::X()
+             mean different things to the Microsoft compiler.  Also don't
+             do it for explicit destructor calls (in any mode). */
+        } else if (rout->is_virtual &&
+                   rout->source_corresp.qualification_needed &&
+                   !suppress_virtual) {
+          /* Don't suppress "this->" on a virtual function call if a
+             qualified name would be needed to refer to the function without
+             "this->" (that would suppress virtual-ness). */
+        } else {
+          suppress_this = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!msvc_is_generated_code_target || microsoft_version != 1000) {
+        /* Now that we've done all the work, suppress "this->" only in
+           Microsoft version 4.2 mode, where it's needed to get around some
+           bugs.  Otherwise, it doesn't seem to add much. */
+        suppress_this = FALSE;
+      }  /* if */
+      if (!suppress_this) {
+        /* Put out object pointer and "->". */
+        gen_expr_with_parens(object_expr);
+        write_tok_str("->");
+      }  /* if */
+    } else {
+      /* Use an lvalue and ".". */
+      gen_lvalue(object_expr);
+      write_tok_ch('.');
+    }  /* if */
   }  /* if */
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
@@ -5796,13 +5836,7 @@ finish_new_style_cast:
                represents the address of the unknown function.  Drop the "&"
                (it's implied) to make neater output. */
             form_unknown_function_constant(operand_1->variant.constant, &octl);
-          } else if (is_operation_node(operand_1) &&
-                     (operand_1->variant.operation.kind ==
-                               (an_expr_operator_kind)eok_points_to_static ||
-                      operand_1->variant.operation.kind ==
-                               (an_expr_operator_kind)eok_lvalue_dot_static ||
-                      operand_1->variant.operation.kind ==
-                               (an_expr_operator_kind)eok_rvalue_dot_static)) {
+          } else if (is_dot_static_operation(operand_1)) {
             /* Call of a static member function identified by a static
                selection, e.g., p->f().  Put out the selection without
                surrounding parentheses, to avoid problems with overloaded

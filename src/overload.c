@@ -4754,8 +4754,10 @@ member name reference.
   /* This routine is similar to make_this_pointer_operand. */
   class_struct_union_type = operand_1->type;
   if (*is_arrow_operator) {
-    if (is_template_param_type(class_struct_union_type)) {
-      /* Pointer type is unknown, in a prototype instantiation. */
+    if (is_template_param_or_nonreal_class_type(class_struct_union_type)) {
+      /* Pointer type is unknown, in a prototype instantiation.  Or, the
+         selector is a nonreal class type, which might have an operator->
+         function. */
       class_struct_union_type = type_of_unknown_templ_param_nontype;
     } else {
       /* Normal case.  Go from the pointer type to the underlying class
