@@ -1340,7 +1340,7 @@ necessary.
                                                  base_classes_of(class_type));
   a_base_class_ptr ebcp = next_empty_nonvirtual_direct_base(
                                                  base_classes_of(class_type));
-  a_base_class_ptr last_optimized_base = NULL;
+  a_base_class_ptr first_empty_base = ebcp, last_optimized_base = NULL;
   a_boolean conflict;
 
   while (ebcp != NULL) {
@@ -1359,8 +1359,7 @@ necessary.
       conflict = TRUE;
     } else {
       /* Check for conflicts with previously allocated empty bases. */
-      a_base_class_ptr prior_ebcp = next_empty_nonvirtual_direct_base(
-                                                 base_classes_of(class_type));
+      a_base_class_ptr prior_ebcp = first_empty_base;
       while (prior_ebcp && prior_ebcp != ebcp) {
         if (prior_ebcp->offset == ebcp->offset &&
             empty_base_conflict(ebcp->type, prior_ebcp->type)) {
@@ -1390,7 +1389,7 @@ necessary.
     }  /* if */
   }  /* while */
   /* Finally, check if we created a conflict with the first field. */
-  if (nbcp != NULL) {
+  if (nbcp != NULL || first_empty_base == NULL) {
     /* There are nonempty bases left after the last empty base, so there
        cannot be a conflict with the fields (since they are allocated after
        the nonempty base). */
@@ -1412,9 +1411,24 @@ necessary.
     } else {
       /* We cannot end the layout with a zero-sized empty base because
          otherwise we might end up conflicting with an adjacent object. */
-      if (!class_type->variant.class_struct_union.any_virtual_base_classes &&
-          !class_type->variant.class_struct_union.any_virtual_functions) {
-        ++lob->byte_offset;
+      if (class_type->variant.class_struct_union.
+                            any_virtual_functions_including_in_base_classes) {
+        /* Since this class inherits or declares virtual functions, it will
+           contain a virtual function info block pointer whose offset can
+           be shared by the last empty base. */
+      } else {
+        /* Check if there is a direct virtual base: if so, there will be a
+           virtual base pointer  whose offset can be shared by the last empty
+           base. */
+        a_base_class_ptr  bcp = base_classes_of(class_type);
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct && bcp->is_virtual) { break; }
+        }  /* for */
+        if (bcp == NULL) {
+          /* We did not find anything to share an offset with, so allocate a
+             byte for the last empty base. */
+          ++lob->byte_offset;
+        }
       }  /* if */
     }  /* if */
     if (last_optimized_base &&
@@ -1449,7 +1463,7 @@ function to confirm the "is_optimized_empty_base" bit.
         max_base_offset_valid = TRUE;
         max_base_offset = ebcp->offset;
         last = ebcp;
-      } else if (last != NULL && ebcp->offset ==max_base_offset) {
+      } else if (last != NULL && ebcp->offset == max_base_offset) {
         /* The are two base at the same offset: at least one was optimized and
            another base at that offset must be nonempty or not optimized. */
         last = NULL;
@@ -2680,6 +2694,10 @@ for handling virtual bases and functions.
 #if DEBUG
   if (debug_level >= 3) {
     if (C_dialect == C_dialect_cplusplus) db_base_class_list(class_type);
+  }  /* if */
+  if (db_flag_is_set("dump_layout")) {
+    db_type(class_type);
+    fputs("\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
