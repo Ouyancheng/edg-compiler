@@ -4323,7 +4323,7 @@ special function kind (e.g., constructor, destructor), if any.
         cssp->constructor = overload_sym;
       }  /* if */
       /* Determine if this is a default constructor. */
-      if (is_default_constructor(rtn)) {
+      if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
         cssp->has_default_constructor = TRUE;
       }  /* if */
       /* Determine if this is a copy constructor.  If so, set the class symbol

@@ -3838,7 +3838,8 @@ FALSE, the reference is within an unevaluated expression.
      There may be more than one.  For instance, there may be a constructor
      with no arguments and one with one argument with a default value. */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    if (is_default_constructor(sym->variant.routine.ptr)) {
+    if (is_default_constructor(sym->variant.routine.ptr,
+                               /*is_declarative_context=*/FALSE)) {
       /* sym is a default constructor. */
       if (ctor_sym != NULL) {
         /* A default constructor had already been found, so there's

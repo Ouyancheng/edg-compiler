@@ -247,7 +247,8 @@ extern void copy_type(a_type_ptr from,
 
 extern a_type_ptr copy_routine_type_with_param_types(a_type_ptr from_type);
 
-extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout);
+extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout,
+                                        a_boolean      is_declarative_context);
 
 extern a_boolean is_copy_constructor(
                                 a_routine_ptr         ctor_rout,

@@ -5053,13 +5053,16 @@ type in a function definition is based on a typedef).
 }  /* copy_routine_type_with_param_types */
 
 
-a_boolean is_default_constructor(a_routine_ptr  ctor_rout)
+a_boolean is_default_constructor(a_routine_ptr  ctor_rout,
+                                 a_boolean      is_declarative_context)
 /*
 ctor_rout points to a routine entry for a constructor.   Return TRUE if it
-points to a default constructor routine entry.
+points to a default constructor routine entry.  is_declarative_context is
+TRUE if this is a constructor declaration rather than a constructor reference.
 */
 {
   a_param_type_ptr  ptp;
+  a_boolean         is_def_ctor = FALSE;
 
   check_assertion(ctor_rout->special_kind ==
                                   (a_special_function_kind)sfk_constructor);
@@ -5068,7 +5071,34 @@ points to a default constructor routine entry.
   /* There are no parameters or if the first (and therefore its successors,
      if any) has a default argument expression, then this is a default
      constructor. */
-  return (ptp == NULL || ptp->has_default_arg);
+  if (ptp == NULL) {
+    is_def_ctor = TRUE;
+  } else if (ptp->has_default_arg) {
+    is_def_ctor = TRUE;
+    if (!is_declarative_context) {
+      /* If is_declarative_context is TRUE, the check for a default argument
+         on the first parameter is more relaxed, but when it is FALSE, only
+         return TRUE if the default argument expression has already been
+         generated.  This is to handle cases like this:
+           class X { X(X* = new X); };
+         where it is important *not* to find X(X*) when generating IL for the
+         default argument expression (lest the compiler go into a loop).  In
+         other words, the above will produce the same error as this:
+           class X { X(X*); };
+           X::X(X* = new X) { ... }
+         It's not only the first param-type entry that has to be checked,
+         since there's also this to deal with:
+           class X { X(int = 0, X* = new X); };
+      */
+      for (; ptp != NULL;ptp = ptp->next) {
+        if (ptp->default_arg_expr == NULL) {
+          is_def_ctor = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return is_def_ctor;
 }  /* is_default_constructor */
 
 
