@@ -117,14 +117,39 @@ that ordinarily this routine should not be called directly; use the macro
 of the macro to avoid multiple evaluations of the argument.
 */
 {
+#if MICROSOFT_KEYWORDS_ALLOWED && CHECKING
+  a_boolean	microsoft_qualifier_used = FALSE;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED && CHECKING */
+
   while (type_ptr->kind == (a_type_kind)tk_typeref) {
-    type_ptr = type_ptr->variant.typeref.type;
+    a_type_ptr next = type_ptr->variant.typeref.type;
+
+#if MICROSOFT_KEYWORDS_ALLOWED
 #if CHECKING
-    if (type_ptr == NULL) {
-      internal_error("f_skip_typerefs: NULL referenced type");
-    }  /* if */
+    /* See whether this typeref contains any Microsoft qualifiers. */
+    microsoft_qualifier_used |= (type_ptr->variant.typeref.qualifiers &
+                                 TQ_ALL_MICROSOFT_QUALIFIERS) != 0;
 #endif /* CHECKING */
+    if (next == NULL) break;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+    type_ptr = next;
   }  /* while */
+
+  check_assertion_str(type_ptr != NULL,
+                       "f_skip_typerefs: NULL referenced type");
+
+#if MICROSOFT_KEYWORDS_ALLOWED && CHECKING
+  /* When Microsoft keywords are allowed, it is possible for there to
+     be no underlying type.  If the underlying type is missing, make sure
+     that a Microsoft qualifier was present. */
+  if (type_ptr != NULL && type_ptr->kind == (a_type_kind)tk_typeref) {
+    if (type_ptr->variant.typeref.type != NULL || !microsoft_qualifier_used) {
+      unexpected_condition_str("f_skip_typerefs: no underlying type");
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED && CHECKING */
+
   return type_ptr;
 }  /* f_skip_typerefs */
 

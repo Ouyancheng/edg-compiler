@@ -1761,13 +1761,13 @@ recognized as cv-qualifiers.
            pointer to a pointer type or a reference to a pointer type). */
         a_type_ptr  temp_type;
 
-        temp_type = skip_typerefs_allow_null_referenced_type(complete_type);
+        temp_type = skip_typerefs(complete_type);
         if (curr_token == tok_star) {
           if (is_cfront_member_function_typedef(complete_type, &rout_type,
                                                 &class_type)) {
             complete_type = ptr_to_member_type(rout_type, class_type);
           } else {
-            if (temp_type != NULL && is_reference_type(temp_type)) {
+            if (is_reference_type(temp_type)) {
               /* Type "pointer to reference to anything" is illegal. */
               error(ec_pointer_to_reference);
               err = TRUE;
@@ -1776,11 +1776,11 @@ recognized as cv-qualifiers.
                                                     complete_type);
           }  /* if */
         } else {
-          if (temp_type != NULL && is_reference_type(temp_type)) {
+          if (is_reference_type(temp_type)) {
             /* Type "reference to reference" is illegal. */
             error(ec_reference_to_reference);
             err = TRUE;
-          } else if (temp_type != NULL && is_void_type(temp_type)) {
+          } else if (is_void_type(temp_type)) {
             /* Type "reference to void" is illegal. */
             error(ec_reference_to_void);
             err = TRUE;
@@ -1849,10 +1849,7 @@ recognized as cv-qualifiers.
     if (get_token_needed) (void)get_token();
     if (is_type_qualifier()) {
       a_type_qualifier_set  qualifiers;
-      a_type_ptr	    underlying_type;
 
-      underlying_type =
-                       skip_typerefs_allow_null_referenced_type(complete_type);
       set_err_pos_to_curr_token();
       qualifiers = collect_type_qualifiers();
 #if RESTRICT_ALLOWED
@@ -1865,7 +1862,7 @@ recognized as cv-qualifiers.
       }  /* if */
       /* Check for using qualifiers (other than restrict) with a reference
          type. */
-      if (underlying_type != NULL && is_reference_type(underlying_type) &&
+      if (is_reference_type(complete_type) &&
           (qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
         /* There is at least one qualifier besides restrict.  Clear all but
            but restrict from the qualifiers set. */
@@ -1875,7 +1872,7 @@ recognized as cv-qualifiers.
                    ec_qualified_reference_type);
       }  /* if */
 #else /* !RESTRICT_ALLOWED */
-      if (underlying_type != NULL && is_reference_type(underlying_type)) {
+      if (is_reference_type(complete_type)) {
         qualifiers = TQ_NONE;
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
@@ -2410,9 +2407,7 @@ otherwise it is NULL.  The syntax is:
            declarations. */
         a_type_ptr  tp;
 
-        tp = derived_type;
-        if (tp != NULL) tp = skip_typerefs_allow_null_referenced_type(tp);
-        if (tp == NULL) tp = complete_type;
+        tp = derived_type != NULL ? derived_type : complete_type;
         check_assertion(tp != NULL);
         if ((is_arithmetic_type(tp) || is_ptr_or_ref_type(tp) ||
              is_class_struct_union_type(tp) || is_ptr_to_member_type(tp)) &&
@@ -2472,9 +2467,6 @@ function_lparen:
           /* If the function is pointed to by a pointer-to-member type, we need
              to pass the class-of-which-a-member to function_declarator. */
           a_type_ptr tp = bottom_derived_type;
-          /* Skip any Microsoft qualifiers to see if the bottom_derived_type
-             is a pointer to member. */
-          if (tp != NULL) tp = skip_typerefs_allow_null_referenced_type(tp);
           if (tp != NULL && is_ptr_to_member_type(tp)) {
             /* Declaration of a pointer to member function. */
             member_parent_type = pm_class_type(tp);
@@ -2590,13 +2582,7 @@ function_lparen:
   } else {
     /* If there were pointer types scanned at the beginning of this routine,
        the bottom-most derived type is the bottom-most pointer type. */
-    if (bottom_pointer_derived_type != NULL &&
-#if MICROSOFT_KEYWORDS_ALLOWED
-        /* When Microsoft keywords are allowed, complete_type may be a
-           typeref with no underlying type. */
-        skip_typerefs_allow_null_referenced_type(complete_type) != NULL && 
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-        !is_error_type(complete_type)) {
+    if (bottom_pointer_derived_type != NULL && !is_error_type(complete_type)) {
       bottom_derived_type = bottom_pointer_derived_type;
     }  /* if */
   }  /* if */
