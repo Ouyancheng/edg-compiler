@@ -580,7 +580,7 @@ static a_boolean is_member_of_inactive_local_class(a_symbol_ptr  member_sym)
 /*
 Return TRUE if the symbol passed in is a member of a class local to a
 function that is no longer active.  (This is necessary because the member
-symbol remains on the inactive list even after it's class disappears from
+symbol remains on the inactive list even after its class disappears from
 the symbol table.)
 */
 {
