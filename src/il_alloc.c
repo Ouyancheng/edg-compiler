@@ -2471,35 +2471,8 @@ Display and return the amount of space used for various IL tables.
 
   db_space_used_total();
 
-#if 0
-  (void)fputc('\n', f_debug);
-  db_space_used_other("get_based_type_calls", num_get_based_type_calls, "");
-  (void)fputc('\n', f_debug);
-  db_space_used_other("num_shareable_constants", num_shareable_constants, "");
-  db_space_used_other("Percent of buckets used",
-                      (100 * num_used_shareable_constant_buckets) /
-                      SIZE_SHAREABLE_CONSTANTS_TABLE, "");
-  if (num_used_shareable_constant_buckets != 0) {
-    db_space_used_float_other("Avg non-empty bucket len",
-                             (double)num_shareable_constants /
-                             (double)num_used_shareable_constant_buckets, "");
-  }  /* if */
-  db_space_used_other("num func shareable consts",
-                      num_func_shareable_constants, "");
-  db_space_used_other("Number of searches", 
-                      num_searches_for_shareable_constants, "");
-  if (num_searches_for_shareable_constants != 0) {
-    db_space_used_float_other("Avg compares/search",
-                             (double)num_compares_for_shareable_constants /
-                             (double)num_searches_for_shareable_constants, "");
-  }  /* if */
-  (void)fputc('\n', f_debug);
-  db_space_used_general_buffer("temp text buffer",
-                               (unsigned long)size_temp_text_buffer);
-#endif /* if 0 */
-
   return grand_total;
-}  /* show_il_space_used */
+}  /* show_il_alloc_space_used */
 #endif /* DEBUG */
 
 void il_alloc_one_time_init(void)
