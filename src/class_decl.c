@@ -1190,33 +1190,6 @@ done:
 }  /* check_for_virtual_function */
 
 
-static void scan_path(a_derivation_step_ptr  step,
-                      a_derivation_step_ptr  *root,
-                      a_derivation_step_ptr  *tail)
-/*
-Scan a derivation path from start to end, saving in *tail a pointer to the
-last step in the chain and saving in *root a pointer either to the start of
-the path or, if there is one, to the derivation step most remote from the
-start (closest to the tail) that is associated with a virtual base class.
-If the derivation path consists of a single step or if its end is a virtual
-base class, *root and *tail will point to the same step.
-*/
-{
-  a_derivation_step_ptr dsp = step;
-
-  /* *root is initialized to the start of the path. */
-  *root = step;
-  for (;;) {
-    if (dsp->base_class->is_virtual) *root = dsp;
-    if (dsp->next == NULL) {
-      *tail = dsp;
-      break;
-    }  /* if */
-    dsp = dsp->next;
-  }  /* for */
-}  /* scan_path */
-
-
 /* Previously allocated derivation-step entries available for reuse. */
 static a_derivation_step_ptr avail_derivation_steps;
 
@@ -1491,22 +1464,6 @@ dsp2 are identical.
     db_path(dsp2, /*show_offset=*/FALSE);
   }  /* if */
 #endif /* DEBUG */
-#if 0
-  /* Loop through both derivation paths in tandem, comparing the corresponding
-     step entries along the way.  An incongruence is detected when two paths
-     are of different lengths, when two corresponding steps refer to different
-     classes, or when one of the steps represents a virtual derivation and
-     the other does not. */
-  congruent = TRUE;
-  for (; dsp1 != NULL || dsp2 != NULL; dsp1 = dsp1->next, dsp2 = dsp2->next) {
-    if (dsp1 == NULL || dsp2 == NULL ||
-        dsp1->base_class->type != dsp2->base_class->type ||
-        dsp1->base_class->is_virtual != dsp2->base_class->is_virtual) {
-      congruent = FALSE;
-      break;
-    }  /* if */
-  }  /* for */
-#endif /* if 0 */
   congruent = FALSE;
   /* Only the start of a derivation and the end of a derivation can be
      virtual.  Check the start. */
@@ -1544,82 +1501,6 @@ dsp2 are identical.
   db_exit();
   return congruent;
 }  /* congruent_paths */
-
-
-a_boolean equivalent_paths(a_derivation_step_ptr  path1,
-                           a_derivation_step_ptr  path2)
-/*
-Two paths are equivalent if they lead to the same object (i.e., the
-same member of the same instance of a class).  They need not be
-step-for-step identical if both classes pass through the same virtual
-base class.  Return TRUE if path1 and path2 are equivalent.  The
-algorithm assumes equivalence and then searches for indications to the
-contrary.
-*/
-{
-#if 0
-  a_derivation_step_ptr start1, start2, tail1, tail2;
-  a_boolean             equiv;
-
-  db_enter(4, "equivalent_paths");
-#if DEBUG
-  if (debug_level >= 4) {
-    fputs("comparing ", f_debug);
-    db_path(path1, /*show_offset=*/FALSE);
-    fputs(" and ", f_debug);
-    db_path(path2, /*show_offset=*/FALSE);
-    (void)fputc('\n', f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  /* Identify the start of each path and the tail.  We may assume that the
-     two starting steps are either direct or virtual base classes. */
-  start1 = path1;
-  for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next);
-  start2 = path2;
-  for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next);
-  /* If two paths have a virtual base class in common, they are equivalent
-     if everything beyond the virtual base class is the same, even if what
-     preceded it is different.  For instance,
-                     A
-                     |
-                     B
-                   /   \
-                  X     Y
-                   \   /
-                     S
-     Here there are two paths from S to A, but they are equivalent since
-     once you get to B (however you get there) there is only one A object
-     reachable from B.  Conversely, if one path has a virtual base class on
-     it and the other does not, they cannot be equivalent, e.g.,
-                     A
-                     |
-                     B       A
-                   /   \     |
-                  X     Y    B
-                   \   /     |
-                     S       T
-                       \   /
-                         Z
-       A member of A inherited by Z along the path that goes through T is a
-       different object from the one inherited through S. */
-  if (tail1->base_class->type != tail2->base_class->type) {
-    /* Different tail base class types mean different paths -- though the same
-       type doesn't guarantee that the paths are the same. */
-    equiv = FALSE;
-  } else {
-    equiv = congruent_paths(start1, start2);
-  }  /* if */
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "paths are %sequivalent\n", equiv ? "" : "not ");
-  }  /* if */
-#endif /* DEBUG */
-  db_exit()
-  return equiv;
-#else
-  return congruent_paths(path1, path2);
-#endif /* if 0 */
-}  /* equivalent_paths */
 
 
 a_boolean check_for_dominance(a_symbol_ptr          sym1,
