@@ -1207,7 +1207,7 @@ to the secondary translation unit.
         trans_unit_copy_address_of(routine->type) =
                   primary_il_entry_of((char *)corresp_routine->type, iek_type);
       }  /* if */
-      if (routine->assoc_scope != NULL) {
+      if (routine->assoc_scope != NULL_region_number) {
         /* Delete the body of this routine. */
         clear_body_for_routine(routine);
         *any_removed_function_bodies = TRUE;
