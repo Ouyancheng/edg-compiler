@@ -1174,7 +1174,7 @@ typedef struct a_symbol {
     an_extern_symbol_descr_ptr
 		extern_symbol_descr;
 			/* Information on the external symbol. */
-    /* When kind = sk_projection: */
+    /* When kind == sk_projection: */
     struct {
       a_projection_descr_ptr
 		extra_info;
