@@ -53,24 +53,46 @@ for tp is currently in progress.
 }  /* instantiation_in_progress */
 
 
-static void update_instantiation_required_for_static_data_members
+static void update_instantiation_required_for_template_class_members
 						(a_type_ptr	class_type)
 /*
-Calls update_instantiation_required_flag for all static data members
-declared in the class.  This needs to be called after the class
-instantiation is complete so that the static data member instantiation
-has access to the complete class.  Static data members are eligible
-for a compiler-generated definition only if a template definition
-appears in the source.  However, it still needs to appear on the
-instantiation-required list (because instantiation is required
-required somewhere in the program even if not in the current
-translation unit).
+Calls update_instantiation_required_flag for all member functions and
+static data members declared in the class.  This needs to be called after
+the class instantiation is complete so that the function or static data
+member instantiation has access to the complete class.
 */
 {
+  a_class_type_supplement_ptr	ctsp;
   a_variable_ptr		var;
   a_symbol_ptr			sym;
   a_template_instance_ptr	tip;
-
+  a_routine_ptr			rout;
+  
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  /* Normally, function instantiation entries are not marked for actual
+     instantiation (that is, for generation of the function body) until there
+     is an invocation of the function.  This is partly under user control,
+     however: if instantiation_mode is tim_all, mark it immediately.
+     Moreover, if the function is virtual, mark it for instantiation no
+     matter what the instantiation mode, since a virtual function table may
+     have to be put out for it. */
+  rout = ctsp->assoc_scope->routines;
+  while (rout != NULL) {
+    sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+    tip = sym->variant.routine.instance_ptr;
+    check_assertion(tip != NULL);
+    if (instantiation_mode == tim_all ||
+        sym->variant.routine.ptr->is_virtual) {
+      update_instantiation_required_flag(tip, /*value=*/TRUE);
+    }  /* if */
+    rout = rout->next;
+  }  /* while */
+  
+  /* Static data members are eligible for a compiler-generated definition
+     only if a template definition appears in the source.  However, it
+     still needs to appear on the instantiation-required list (because
+     instantiation is required required somewhere in the program even if
+     not in the current translation unit). */
   if (instantiation_mode != tim_none) {
     var = class_type->variant.class_struct_union.extra_info->
 							assoc_scope->variables;
@@ -80,9 +102,9 @@ translation unit).
       check_assertion(tip != NULL);
       update_instantiation_required_flag(tip, /*value=*/TRUE);
       var = var->next;
-    }  /* if */
+    }  /* while */
   }  /* if */
-}  /* update_instantiation_required_for_static_data_members */
+}  /* update_instantiation_required_for_template_class_members */
 
 
 void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
@@ -207,7 +229,7 @@ might not be able to if the template itself has not yet been defined.
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE,
                                   /*is_prototype_instantiation=*/FALSE);
-      update_instantiation_required_for_static_data_members(class_type);
+      update_instantiation_required_for_template_class_members(class_type);
       pop_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
@@ -486,6 +508,12 @@ Instantiate the body of the template function associated with tip.
 
 void define_template_static_data_member(a_template_instance_ptr  tip)
 /*
+Generate a definition of a static data member of a template class.  The
+definition may be based on a template definition of the static data
+member or may be a default initialization.  Checking for runaway
+instantiation is not necessary for static data members because 
+static data members are instantiated as result of class instantiations --
+and the class instantiation will detect the runaway case.
 */
 {
   a_symbol_ptr                      static_data_member_sym;
@@ -1929,17 +1957,6 @@ and create a function instantiation entry to bind the two symbols together.
      point at each other. */
   tip->instance_sym = rout_sym;
   rout_sym->variant.routine.instance_ptr = tip;
-  /* Normally, function instantiation entries are not marked for actual
-     instantiation (that is, for generation of the function body) until there
-     is an invocation of the function.  This is partly under user control,
-     however: if instantiation_mode is tim_all, mark it immediately.
-     Moreover, if the function is virtual, mark it for instantiation no
-     matter what the instantiation mode, since a virtual function table may
-     have to be put out for it. */
-  if (instantiation_mode == tim_all ||
-      rout_sym->variant.routine.ptr->is_virtual) {
-    update_instantiation_required_flag(tip, /*value=*/TRUE);
-  }  /* if */
   db_exit();
 }  /* find_member_function_template */
 
