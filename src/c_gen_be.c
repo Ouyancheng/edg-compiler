@@ -2839,6 +2839,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 {
   an_expr_operator_kind          op;
   an_expr_node_ptr               call_argument;
+  a_boolean                      is_unary;
   char                           *opstr;
   an_expr_node_ptr               operand_1, operand_2;
   a_type_ptr                     expr_type;
@@ -2865,6 +2866,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       operand_2 = operand_1->next;
       expr_type = skip_typerefs(expr->type);
       op = expr->variant.operation.kind;
+      is_unary = FALSE;
       /* Lvalue cases should have been rewritten by IL lowering.  Some "?"
          and "," cases may remain, where the semantics are the same as in
          C. */
@@ -2877,15 +2879,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         /* One-operand operators. */
         case eok_indirect:
           dump_adding_indirection(operand_1);
-          goto done_with_operation;
+          goto done_with_unary_operation;
         case eok_inegate:
         case eok_fnegate:
+          is_unary = TRUE;
           opstr = "-";
           break;
         case eok_not:
           write_tok_ch('!');
           dump_boolean_controlling_expression(operand_1);
-          goto done_with_operation;
+          goto done_with_unary_operation;
         case eok_cast:
           dump_cast(expr->type);
           if (operand_1->kind == (an_expr_node_kind)enk_variable_address &&
@@ -2912,11 +2915,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             /* Normal case. */
             dump_expr_with_parens(operand_1);
           }  /* if */
-          goto done_with_operation;
+          goto done_with_unary_operation;
         case eok_lvalue_cast:
           unexpected_condition_str(
                                   "dump_operation: eok_lvalue_cast as rvalue");
         case eok_complement:
+          is_unary = TRUE;
           opstr = "~";
           break;
         case eok_fpost_incr:
@@ -2933,7 +2937,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          goto done_with_operation;
+          goto done_with_unary_operation;
         case eok_ipre_incr:
         case eok_fpre_incr:
         case eok_ppre_incr:
@@ -2948,7 +2952,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          goto done_with_operation;
+          goto done_with_unary_operation;
         case eok_fpost_decr:
         case eok_ipost_decr:
         case eok_ppost_decr:
@@ -2963,7 +2967,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          goto done_with_operation;
+          goto done_with_unary_operation;
         case eok_ipre_decr:
         case eok_fpre_decr:
         case eok_ppre_decr:
@@ -2978,7 +2982,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          goto done_with_operation;
+          goto done_with_unary_operation;
         case eok_iadd:
         case eok_fadd:
         case eok_padd:
@@ -3002,7 +3006,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           if (expr_is_zero_constant(operand_2)) {
             dump_expr_with_parens(operand_1);
             write_tok_str(" / (0,0)");
-            goto done_with_operation;
+            goto done_with_binary_operation;
           }  /* if */
           /*FALLTHROUGH*/
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -3054,7 +3058,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           if (expr_is_zero_constant(operand_2)) {
             dump_expr_with_parens(operand_1);
             write_tok_str(" % (0,0)");
-            goto done_with_operation;
+            goto done_with_binary_operation;
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           opstr = "%";
@@ -3139,7 +3143,7 @@ process_assignment:
              truncation call started earlier. */
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_bassign:
           /* Block assignment, generated only by IL lowering of C++ code. */
           if (!is_aggregate_or_union_type(expr_type)) {
@@ -3175,20 +3179,20 @@ process_assignment:
               write_tok_ch(')');
             }
           }  /* if */
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_subscript:
           dump_expr_with_parens(operand_1);
           write_tok_ch('[');
           dump_expr_with_parens(operand_2);
           write_tok_ch(']');
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_field:
           dump_ampersand(type_pointed_to(expr_type));
           dump_lvalue_field_selection(expr);
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_value_field:
           dump_rvalue_selection(expr);
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_bit_field:
           /* This operator shouldn't get past dump_lvalue. */
           unexpected_condition_str("dump_operation: eok_bit_field as rvalue");
@@ -3219,7 +3223,7 @@ process_assignment:
             write_tok_str("))");
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_shiftl:
           opstr = "<<";
           break;
@@ -3253,14 +3257,17 @@ process_assignment:
           dump_boolean_controlling_expression(operand_1);
           write_tok_str(" && ");
           dump_boolean_controlling_expression(operand_2);
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_lor:
           dump_boolean_controlling_expression(operand_1);
           write_tok_str(" || ");
           dump_boolean_controlling_expression(operand_2);
-          goto done_with_operation;
+          goto done_with_binary_operation;
         case eok_question:
           /* Three operand operator. */
+          check_assertion_str(operand_2 != NULL && operand_2->next != NULL &&
+                              operand_2->next->next == NULL,
+                              "dump_expr: wrong # of operands for ?");
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
           if (!il_identical_types(operand_2->type, expr_type) ||
@@ -3363,7 +3370,7 @@ process_assignment:
         }  /* if */
       }  /* if */
       /* General-case processing: */
-      if (operand_2 == NULL) {
+      if (is_unary) {
         /* Unary operator; operator goes first. */
         m_write_tok_str(opstr);
       }  /* if */
@@ -3375,7 +3382,7 @@ process_assignment:
         comma_column = curr_output_column;
       }  /* if */
       dump_expr_with_parens(operand_1);
-      if (operand_2 != NULL) {
+      if (!is_unary) {
         /* Two-operand operator. */
         m_write_space();
         m_write_tok_str(opstr);
@@ -3390,6 +3397,30 @@ process_assignment:
         if (pointer_comparison) write_tok_str(pointer_comparison_cast);
         dump_expr_with_parens(operand_2);
       }  /* if */
+#if CHECKING
+      /* Check number of operands. */
+      if (is_unary) {
+#endif /* CHECKING */
+done_with_unary_operation:;
+#if CHECKING
+        if (operand_2 != NULL) {
+#if DEBUG
+          db_expression(expr);
+#endif /* DEBUG */
+          internal_error("dump_expr: unary operator has wrong # of operands");
+        }  /* if */
+      } else {
+#endif /* CHECKING */
+done_with_binary_operation:;
+#if CHECKING
+        if (operand_2->next != NULL) {
+#if DEBUG
+          db_expression(expr);
+#endif /* DEBUG */
+          internal_error("dump_expr: binary operator has wrong # of operands");
+        }  /* if */
+      }  /* if */
+#endif /* CHECKING */
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
       break;
@@ -5175,6 +5206,8 @@ Generate C for a statement.
       write_tok_ch(';');
       break;
     case stmk_return:
+      check_assertion_str(statement->variant.return_dynamic_init == NULL,
+                          "dump_statement: return with dyn init");
       write_tok_str("return");
       if (statement->expr != NULL) {
         write_space();
