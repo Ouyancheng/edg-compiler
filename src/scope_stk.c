@@ -1394,7 +1394,16 @@ the scope being pushed.
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_namespace &&
                kind != (a_scope_kind)sck_namespace_extension) {
-      ssep->in_prototype_instantiation = (ssep-1)->in_prototype_instantiation;
+      if (kind == (a_scope_kind)sck_function &&
+          assoc_routine->compiler_generated) {
+        /* If the definition of a compiler-generated routine is kicked off
+           within a prototype instantiation, the compiler generated routine
+           should not be considered to be within a prototype instantiation. */
+        ssep->in_prototype_instantiation = FALSE;
+      } else {
+        ssep->in_prototype_instantiation =
+                                          (ssep-1)->in_prototype_instantiation;
+      }  /* if */
     }  /* if */
     if (reactivate_template_params) {
       /* We want to ensure that the first declarative scope following
