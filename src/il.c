@@ -3643,6 +3643,11 @@ at file scope.
 
 a_param_type_ptr make_param_type(a_type_ptr         tp,
                                  a_source_position  *decl_pos)
+/*
+Allocate a new param type entry, setting its "type" to tp and determining
+the value for its "passed_via_copy_constructor" flag, and return a pointer
+to it.  *decl_position is used for issuing diagnostics.
+*/
 {
   a_param_type_ptr  ptp;
 
