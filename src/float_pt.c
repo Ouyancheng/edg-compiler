@@ -213,6 +213,12 @@ conversion can be done, return the result in "result".
     init_done = TRUE;
   }  /* if */
   if ((temp >= 0.0) ? temp > host_fp_flt_max : temp < -host_fp_flt_max) {
+#if __MSC__
+    /* The Microsoft compiler (VC 6.0) produces incorrect code when
+       compiling with optimization if this variable is not declared
+       volatile. */
+    volatile
+#endif /* __MSC__ */
     float float_temp = (float)temp;
     if ((temp >= 0.0) ? (float_temp == float_flt_max) :    /*lint !e777*/
                         (float_temp == -float_flt_max)) {  /*lint !e777*/
@@ -236,6 +242,12 @@ conversion can be done, return the result in "result".
     } else {
       /* FLT_MAX is not available.  Check for overflow.  This is crude,
          but it's hard to do much here that is portable. */
+#if __MSC__
+    /* The Microsoft compiler (VC 6.0) produces incorrect code when
+       compiling with optimization if this variable is not declared
+       volatile. */
+      volatile
+#endif /* __MSC__ */
       double double_temp;
       /* Convert back to double again to see if we get the same thing. */
       double_temp = (double)float_temp;

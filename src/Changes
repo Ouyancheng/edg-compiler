@@ -1,5 +1,14 @@
 Version 2.44
 
+6/13/00  Microsoft compatibility: spurious floating point range error
+
+When the front end is built using the Microsoft Visual C++ Compiler
+version 6.0 and is compiled with optimization, the code generated
+for the routine conv_host_fp_to_float in float_pt.c is incorrect
+resulting in spurious errors for floating point values that are nearly
+out of range.  A workaround has been added to this routine to prevent
+the problem.
+
 6/13/00  Microsoft compatibility: allow duplicate virtual specifier
 
 In Microsoft mode, the duplicate appearance of the "virtual" specifier in a
