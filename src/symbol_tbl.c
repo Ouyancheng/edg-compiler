@@ -62,7 +62,6 @@ static unsigned long
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
                 num_projection_descrs_allocated,
-		num_goto_entries_allocated,
 		num_used_symbol_buckets,
 		num_searches_for_symbols,
 		num_compares_for_symbols,
@@ -7756,7 +7755,6 @@ to avoid an 8-character external name clash with symbol_table.)
   num_template_symbol_supplements_allocated    = 0;
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
-  num_goto_entries_allocated                   = 0;
   num_template_instances_allocated             = 0;
   num_conversion_list_entries_allocated        = 0;
   num_extern_symbol_descrs_allocated           = 0;
