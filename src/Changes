@@ -1,5 +1,16 @@
 Version 2.34
 
+11/27/96 Exception specifications on pointer-to-member-function declarations
+
+In a follow-up to the changes recorded for 11/6/96, and specifically as
+a result of a recent clarification in the Working Paper, exception
+specifications are now recorded for the function declarators of top-level
+pointer-to-member-function and reference-to-function declarations:
+
+  class A;
+  void (A::*pmf)() throw();     // Now accepted
+  void (&rf)() throw();         // Now accepted
+
 11/26/96 Missing diagnostic on member function with invalid default argument
 
 No diagnostic was issued when a member function of a class template had
