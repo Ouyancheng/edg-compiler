@@ -2893,7 +2893,7 @@ Generate code for a block statement ("{ ... }").
   a_statement_ptr last_statement;
   a_block_ptr     bssp = statement->variant.block.extra_info;
   a_scope_ptr     scope, saved_curr_scope;
-  a_boolean       top_statement_of_switch, compiler_generated;
+  a_boolean       top_statement_of_switch;
 
   /* See if this block is the top-level statement of a switch statement.
      If so, we will look for places where switch clauses should be inserted. */
@@ -2904,10 +2904,7 @@ Generate code for a block statement ("{ ... }").
       top_statement_of_switch = TRUE;
     }  /* if */
   }  /* if */
-  /* Do not put out braces for compiler-generated blocks. */
-  compiler_generated = (bssp->parent_block == NULL &&
-                        statement != curr_function_scope->assoc_block);
-  if (!compiler_generated) write_tok_str("{ ");
+  write_tok_str("{ ");
   scope = bssp->assoc_scope;
   if (scope != NULL) {
     /* The block defines a scope. */
@@ -2922,7 +2919,7 @@ Generate code for a block statement ("{ ... }").
     curr_scope_within_function = saved_curr_scope;
   }  /* if */
   set_output_position_for_stmt(&bssp->final_position);
-  if (!compiler_generated) write_tok_str("}");
+  write_tok_str("}");
 }  /* gen_block_statement */
 
 
@@ -2948,7 +2945,7 @@ Generate code for the indicated statement.
     if (statement->source_sequence_entry == NULL) {
       /* The statement has no associated source sequence entry.  This happens
          for implicitly-generated returns and some compiler-generated
-         labels. */
+         labels and block statements. */
       if (kind == (a_statement_kind)stmk_label &&
           !has_name(statement->variant.label)) {
         /* The current statement is a compiler-generated label. */
