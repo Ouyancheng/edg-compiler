@@ -12452,81 +12452,41 @@ longer be in the tree because their parent no longer is.
 }  /* unlink_object_lifetime */
 
 
-static void unlink_expr_list_destructions(an_expr_node_ptr expr_list);
-static void unlink_dyn_init_destructions(a_dynamic_init_ptr dip);
-
-
-static void unlink_constant_destructions(a_constant_ptr constant)
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void process_dynamic_init_for_unlink_destructions(
+                                    a_dynamic_init_ptr                  dip,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Unlink any destructions in the tree of the indicated constant from
-their object lifetimes (constants like ck_dynamic_init constants
-can have associated destructions).  This is usually done because the
-constant is being discarded.
+Called by the expression traversal routines to handle unlinking for
+unlink_expr_destructions.
 */
 {
-  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
-    a_constant_ptr sub_con;
-    for (sub_con = constant->variant.aggregate.first_constant;
-         sub_con != NULL;
-         sub_con = sub_con->next) {
-      unlink_constant_destructions(sub_con);
-    }  /* for */
-  } else if (constant->kind == (a_constant_repr_kind)ck_init_repeat) {
-    unlink_constant_destructions(constant->variant.init_repeat.constant);
-  } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
-    unlink_dyn_init_destructions(constant->variant.dynamic_init);
-  }  /* if */
-}  /* unlink_constant_destructions */
-
-
-static void unlink_dyn_init_destructions(a_dynamic_init_ptr dip)
-/*
-Unlink any destructions in the tree of the indicated dynamic initialization
-from their object lifetimes.  This is usually done because the entry is
-being discarded.
-*/
-{
-  switch (dip->kind) {
-    case dik_none:
-    case dik_zero:
-    case dik_constant:
-    case dik_bitwise_copy:
-      break;
-    case dik_expression:
-    case dik_call_returning_class_via_cctor:
-      unlink_expr_destructions(dip->variant.expression);
-      break;
-    case dik_constructor:
-      unlink_expr_list_destructions(dip->variant.constructor.args);
-      break;
-    case dik_nonconstant_aggregate:
-      unlink_constant_destructions(dip->variant.constant);
-      break;
-    default:
-      unexpected_condition_str("unlink_dyn_init_destructions: bad kind");
-  }  /* switch */
   if (dip->init_expr_lifetime != NULL) {
     unlink_object_lifetime(dip->init_expr_lifetime);
   }  /* if */
   if (dip->lifetime != NULL) {
     remove_from_destruction_list(dip);
   }  /* if */
-}  /* unlink_dyn_init_destructions */
+}  /* process_dynamic_init_for_unlink_destructions */
 
 
-static void unlink_expr_list_destructions(an_expr_node_ptr expr_list)
+static void process_expr_for_unlink_destructions(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Unlink any destructions in the tree of the indicated expression list from
-their object lifetimes.  This is usually done because the expression
-list is being discarded.
+Called by the expression traversal routines to handle unlinking for
+unlink_expr_destructions.
 */
 {
-  an_expr_node_ptr expr;
-
-  for (expr = expr_list; expr != NULL; expr = expr->next) {
-    unlink_expr_destructions(expr);
-  }  /* for */
-}  /* unlink_expr_list_destructions */
+  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    unlink_object_lifetime(expr->variant.object_lifetime.ptr);
+  } else if (expr->kind == (an_expr_node_kind)enk_statement) {
+    /* Save time by not visiting the subtree for a statement expression,
+       because we've ensured that there are no destructible entities
+       therein. */
+    tblock->suppress_subtree_walk = TRUE;
+  }  /* if */
+}  /* process_expr_for_unlink_destructions */
 
 
 void unlink_expr_destructions(an_expr_node_ptr expr)
@@ -12536,81 +12496,12 @@ their object lifetimes.  This is usually done because the expression is
 being discarded.
 */
 {
-  switch (expr->kind) {
-    case enk_error:
-    case enk_variable:
-    case enk_variable_address:
-    case enk_field:
-    case enk_routine_address:
-    case enk_address_of_ellipsis:
-    case enk_constant:
-      /* Nothing more to check. */
-      break;
-    case enk_operation:
-      unlink_expr_list_destructions(expr->variant.operation.operands);
-      break;
-    case enk_temp_init:
-      unlink_dyn_init_destructions(expr->variant.init.dynamic_init);
-      break;
-    case enk_new_delete:
-      { a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
-        if (ndsp->arg != NULL) {
-          unlink_expr_list_destructions(ndsp->arg);
-        }  /* if */
-        if (ndsp->dynamic_init != NULL) {
-          unlink_dyn_init_destructions(ndsp->dynamic_init);
-        }  /* if */
-        if (ndsp->freeing_of_storage_on_exception != NULL) {
-          unlink_dyn_init_destructions(ndsp->freeing_of_storage_on_exception);
-        }  /* if */
-      }
-      break;
-    case enk_throw:
-      if (expr->variant.throw_info != NULL) {
-        unlink_dyn_init_destructions(expr->variant.throw_info->dynamic_init);
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-        if (expr->variant.throw_info->expr != NULL) {
-          unlink_expr_destructions(expr->variant.throw_info->expr);
-        }  /* if */
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-      }  /* if */
-      break;
-    case enk_condition:
-      unlink_dyn_init_destructions(expr->variant.condition->dynamic_init);
-      unlink_expr_destructions(expr->variant.condition->expr);
-      break;
-    case enk_object_lifetime:
-      unlink_expr_destructions(expr->variant.object_lifetime.expr);
-      unlink_object_lifetime(expr->variant.object_lifetime.ptr);
-      break;
-    case enk_typeid:
-      if (expr->variant.typeid_info.expr != NULL) {
-        unlink_expr_destructions(expr->variant.typeid_info.expr);
-      }  /* if */
-      break;
-    case enk_runtime_sizeof:
-      if (!expr->variant.runtime_sizeof.is_type) {
-        unlink_expr_destructions(expr->variant.runtime_sizeof.variant.expr);
-      }  /* if */
-      break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-    case enk_lowered_eh_construct:
-      /* Nothing to visit. */
-      break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    case enk_result_of_overriding_function:
-      /* Nothing to visit. */
-      break;
-#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if GNU_EXTENSIONS_ALLOWED
-    case enk_statement:
-      /* There shouldn't be any destructions under this. */
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition_str("unlink_expr_destructions: bad expr kind");
-  }  /* if */
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = process_expr_for_unlink_destructions;
+  tblock.process_dynamic_init = process_dynamic_init_for_unlink_destructions;
+  traverse_expr(expr, &tblock);
 }  /* unlink_expr_destructions */
 
 
