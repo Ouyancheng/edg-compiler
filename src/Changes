@@ -22,10 +22,11 @@ pointer-to-member type:
   MF f();                     // error
   int i = sizeof(MF);         // error
 
-1/6/94  decl_specifiers repackaging
+1/6/94  Repackaging in declaration processing
 
 Some of the code in decl_specifiers has been broken out into new
-subroutines combine_type_specifiers and add_type_qualifiers.
+subroutines combine_type_specifiers and add_type_qualifiers; similarly,
+declarator now has a new subroutine, scan_real_declarator_id.
 
 1/6/94  Signal handling on old Unix systems without job control
 
