@@ -583,8 +583,7 @@ typedef struct a_class_symbol_supplement {
 			   one or more nonstatic data members. */
   unsigned int	force_external_linkage:1;
 			/* The class was used in a way that would force
-			   external linkage (instead of internal linkage) if
-			   it has linkage at all. */
+			   external linkage (if it has linkage at all). */
 } a_class_symbol_supplement;
 
 
