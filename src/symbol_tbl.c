@@ -2046,17 +2046,23 @@ the proper insert location.
                              suppress_error)) {
               /* Error, this identifier has already been declared. */
               if (!suppress_error) {
-                /* Note that we pass the identifier string to the error routine
-                   rather than using the standard symbol name fill-in. 
-                   This is done because the variable pointer may not have been
-                   filled in at the time the symbol is entered. */
-                pos_st_error((is_type_symbol(sym_ptr) &&
-                              is_type_symbol(old_sym_ptr) &&
-                              C_dialect == C_dialect_cplusplus) ?
-                                             ec_bad_type_name_redeclaration :
-                                             ec_id_already_declared,
-                             &(sym_ptr->decl_position),
-                             sym_ptr->header->identifier);
+                if (!C_mode() && is_type_symbol(sym_ptr) &&
+                    is_type_symbol(old_sym_ptr)) {
+                  /* Typedef names can sometimes be redeclared, as long as the
+                     underlying type is the same.  That's not the case here. */
+                  pos_sy_error(ec_bad_type_name_redeclaration,
+                               &(sym_ptr->decl_position),
+                               old_sym_ptr);
+                } else {
+                  /* Note that we pass the identifier string to the error
+                     routine rather than using the standard symbol name
+                     fill-in. This is done because the variable pointer
+                     may not have been filled in at the time the symbol is
+                     entered. */
+                  pos_st_error(ec_id_already_declared,
+                               &(sym_ptr->decl_position),
+                               sym_ptr->header->identifier);
+                }  /* if */
               }  /* if */
               /* Only break out of the loop if an error occurred.  Otherwise
                  check with other symbols to make sure that this symbol
