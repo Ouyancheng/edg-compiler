@@ -366,8 +366,24 @@ extern an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 
+extern a_variable_ptr create_expr_temporary(a_type_ptr       temp_type,
+                                            a_boolean        force_temp_init,
+                                            an_expr_node_ptr *temp_init_node);
+
+extern void attach_expr_under_temp_init(an_expr_node_ptr *node,
+                                        an_expr_node_ptr temp_init_node);
+
+extern an_expr_node_ptr func_call_expr(
+                                an_expr_node_ptr function_node,
+                                a_type_ptr       function_type,
+                                a_boolean        is_virtual,
+                                a_boolean        new_or_delete_call_for_array);
+
 extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
                                                  an_expr_node_ptr source);
+
+extern a_statement_ptr make_array_assignment_statement(an_expr_node_ptr dest,
+                                                      an_expr_node_ptr source);
 
 extern a_statement_ptr make_call_assignment_statement(a_routine_ptr    rout,
                                                       an_expr_node_ptr dest,
