@@ -2494,9 +2494,8 @@ Allocate and initialize an expression node.
 
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 
-static void set_lowered_eh_construct_node_kind(
-                                              an_expr_node_ptr node,
-                                              a_lowered_eh_construct_kind kind)
+void set_lowered_eh_construct_node_kind(an_expr_node_ptr node,
+                                        a_lowered_eh_construct_kind kind)
 /*
 node is an enk_lowered_eh_construct node, used to represent a (partially)
 lowered exception handling construct after IL lowering.  Set its kind field

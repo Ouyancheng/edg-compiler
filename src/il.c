@@ -10778,10 +10778,13 @@ Allocate a copy of an expression node and return a pointer to it.
   } else if (kind == (an_expr_node_kind)enk_condition) {
     copy_condition = expr_copy->variant.condition;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-  } else if (kind == (an_expr_node_kind)enk_lowered_eh_construct &&
-             expr->variant.lowered_eh.kind ==
+  } else if (kind == (an_expr_node_kind)enk_lowered_eh_construct) {
+    set_lowered_eh_construct_node_kind(expr_copy,
+                                       expr->variant.lowered_eh.kind);
+    if (expr->variant.lowered_eh.kind ==
                          (a_lowered_eh_construct_kind)leck_function_prologue) {
-    copy_prologue_info = expr_copy->variant.lowered_eh.variant.prologue_info;
+      copy_prologue_info = expr_copy->variant.lowered_eh.variant.prologue_info;
+    }  /* if */
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
   /* Copy the node. */

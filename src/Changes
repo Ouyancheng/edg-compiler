@@ -1,5 +1,16 @@
 Version 3.4
 
+1/11/04  copy_node did not copy partially-lowered function prologue EH nodes
+         correctly
+
+In some modes, there are some expression nodes used to represent
+partially-lowered exception handling constructs.  copy_node did
+not handle copying an enk_lowered_eh_construct/leck_function_prologue
+node correctly (a copy of the prologue entry was not allocated).
+Now fixed.  It's not clear that it was possible to run into this
+problem in the standard version of the front end, but it was
+wrong anyway.
+
 1/11/04  Abort in pm_class_type, with RECORD_CONSTANT_EXPRESSIONS_IN_IL and
          IL lowering
 
