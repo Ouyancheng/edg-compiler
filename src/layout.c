@@ -325,12 +325,13 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
         if (!(*unnamed_bit_field)) {
           /* Cfront compatibility -- permit named bit fields to have zero
              size, but change the value of *unnamed_bit_field so that they
-             will not be entered into the symbol table.  (Note that it would
+             will not be entered into the symbol table.  Note that it would
              be possible for the name to be used again (though this would not
              be acceptable to cfront), but it also means the field will not
-             subject to initialization (cfront sorta allows this but may
-             generate bad C code) and cannot be referenced (again cfront
-             allows it and generates illegal C). */
+             be subject to initialization (cfront allows such fields to be
+             initialized and may generate invalid C as a result) and it means
+             the field cannot be referenced (again, cfront allows it and
+             generates invalid C). */
           pos_warning(ec_zero_length_bit_field_must_be_unnamed,
                       &locator->source_position);
           *unnamed_bit_field = TRUE;
