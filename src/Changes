@@ -8,6 +8,11 @@ class member enum types.  For example:
   struct S { enum E; };
   enum S::E { e1, e2 };  // Now accepted in Microsoft mode.
 
+11/30/04 c_plusplus macro only defined in cfront mode
+
+Formerly, the c_plusplus macro was defined in all C++ modes except strict
+mode and Microsoft mode.  Now, it is defined only in cfront mode.
+
 11/29/04 C++-generating back end: Microsoft compatibility for qualified names
          in using-declarations
 

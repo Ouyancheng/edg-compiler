@@ -5382,7 +5382,7 @@ command line -D options.
      otherwise.  In most modes, __cplusplus can be redefined as this is
      needed in some environments.  In Microsoft mode it can't be redefined
      because the Microsoft compiler actually ignores attempts to redefine
-     it.  For compatibility, c_plusplus is also defined. */
+     it.  For compatibility, c_plusplus is defined in cfront mode. */
   if (C_dialect == C_dialect_cplusplus) {
     (void)enter_predef_macro((char *)(((microsoft_mode &&
                                         microsoft_version < 1310) ||
@@ -5391,7 +5391,7 @@ command line -D options.
 			     "__cplusplus",
 			     /*cannot_be_redefined=*/microsoft_mode,
                              /*ref_suppresses_pch_file=*/FALSE);
-    if (!strict_ansi_mode && !microsoft_mode) {
+    if (any_cfront_mode()) {
       (void)enter_predef_macro("1", "c_plusplus",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
