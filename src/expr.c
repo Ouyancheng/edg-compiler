@@ -8593,6 +8593,14 @@ Syntax:
                                             &allow_rvalue_on_rewrite,
                                             &processed, &err);
     if (!processed) {
+      /* In some modes, a do-nothing cast is thrown away (and the operand
+         stays an lvalue if it is one). */
+      if ((microsoft_bugs || sun_mode) &&
+          identical_types(type_cast_to, result->type)) {
+        processed = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!processed) {
       /* No user-defined conversion applies. */
       if (!cast_to_reference && !cast_to_void) {
         /* Normal case (not a cast to reference or cast to void). */

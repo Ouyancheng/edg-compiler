@@ -1,5 +1,12 @@
 Version 3.1
 
+6/11/02  Microsoft and Sun compatibility: static_cast to same type
+         leaves lvalue
+
+In Microsoft bugs mode and Sun mode, a static_cast to the same type
+the operand already has now does nothing; in particular, it does not
+force conversion of an lvalue to an rvalue.
+
 6/11/02  gcc compatibility: "register" and "q" in asm
 
 The gcc asm support now accepts "q" as a constraint code (equivalent
