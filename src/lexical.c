@@ -8595,6 +8595,8 @@ an opening parenthesis).  Flush to the corresponding closing token.
 		    brace_count   = 0;
   unsigned long     max_lines;
   a_boolean         done = FALSE;
+  a_symbol_header_ptr
+                    prev_sym_header;
 
   db_enter(3, "flush_until_matching_token");
   /* Save the current position, to see later how much we have flushed. */
@@ -8618,7 +8620,6 @@ an opening parenthesis).  Flush to the corresponding closing token.
   while (!done && (curr_token != closing_token ||
          paren_count != 0 || bracket_count != 0 || brace_count != 0)) {
     /* Count paired tokens within the skip. */
-    a_symbol_header_ptr prev_sym_header;
     switch (curr_token) {
       case tok_lparen:                           paren_count++;   break;
       case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
