@@ -5851,6 +5851,14 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* In Microsoft mode, an operator function that is defined in a friend
+     declaration (and not declared elsewhere) is not visible when
+     referenced using operator notation. */
+  sym->is_microsoft_invisible_operator =
+                          microsoft_mode && !redeclaration && is_friend_decl &&
+                          func_info->is_definition;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   *ext_sym = NULL;
   if (linkage != idl_none && !redeclaration &&
       !microsoft_specialization_redef &&
@@ -6855,6 +6863,14 @@ is not necessarily the canonical entry for the template being declared.
       }  /* if */
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* In Microsoft mode, an operator function that is defined in a friend
+     declaration (and not declared elsewhere) is not visible when
+     referenced using operator notation. */
+  sym->is_microsoft_invisible_operator =
+                          microsoft_mode && !redeclaration &&
+                          idlb.is_friend_decl && func_info->is_definition;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
      information: type, storage class, etc.  These values may be reused

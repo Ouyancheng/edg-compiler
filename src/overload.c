@@ -2304,12 +2304,17 @@ done:;
 }  /* function_template_call_argument_deduction */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- is_overloaded_operator is only used if Microsoft
+                    extensions are allowed. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean candidate_function_is_visible(
                                       a_symbol_ptr function_symbol,
                                       a_boolean    is_template_id,
                                       a_boolean    effects_copy_initialization,
                                       a_boolean    from_arg_dep_lookup,
                                       a_boolean    dependent_call,
+                                      a_boolean    is_overloaded_operator,
                                       a_boolean    *invisible_because_explicit)
 /*
 Return TRUE if the indicated candidate function (possibly a projection
@@ -2322,7 +2327,9 @@ TRUE if this call is the user-defined conversion in a copy-initialization
 (constructors marked "explicit" are considered invisible).
 from_arg_dep_lookup is TRUE if the function was found by argument-dependent
 lookup.  dependent_call is TRUE if the call is a template-dependent
-call.  If invisible_because_explicit is non-NULL, it is returned TRUE
+call.  is_overloaded_operator is TRUE if the call is written in
+operator form, e.g., a+b rather than operator+(a, b).  If
+invisible_because_explicit is non-NULL, it is returned TRUE
 if the routine is invisible because it is an explicit constructor,
 FALSE otherwise.
 */
@@ -2338,6 +2345,16 @@ FALSE otherwise.
   if (symbol_is_invisible_friend(function_symbol)) {
     visible = FALSE;
     goto end_of_function;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_overloaded_operator &&
+             microsoft_mode && microsoft_version >= 1310 &&
+             function_symbol->is_microsoft_invisible_operator) {
+    /* As of MSVC++ 7.1, certain operators defined as friends are
+       not visible.  This is an approximation to eliminating friend
+       injection, in some limited cases. */
+    visible = FALSE;
+    goto end_of_function;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Remove projection, if any. */
   function_symbol = fundamental_symbol_of(function_symbol);
@@ -2406,6 +2423,7 @@ static void determine_function_viability(
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
+                 a_boolean                is_overloaded_operator,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector,
                  a_boolean                *matched_except_for_selector)
@@ -2446,7 +2464,9 @@ should be allowed on the argument matches.  from_arg_dep_lookup is
 TRUE if the function was found by argument-dependent lookup.
 dependent_call is TRUE if the call is a template-dependent call.
 known_to_be_visible is TRUE if the function is known to be visible and
-the visibility check should be suppressed.
+the visibility check should be suppressed.  is_overloaded_operator is
+TRUE if the call is written in operator form, e.g., a+b rather than
+operator+(a, b).
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2476,6 +2496,7 @@ the visibility check should be suppressed.
                                        effects_copy_initialization,
                                        from_arg_dep_lookup,
                                        dependent_call,
+                                       is_overloaded_operator,
                                        &invisible_because_explicit)) {
       /* The function is not visible. */
       if (microsoft_bugs && microsoft_version == 1200 &&
@@ -2831,6 +2852,7 @@ static void try_overloaded_function_match(
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
+                 a_boolean                is_overloaded_operator,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector,
                  a_boolean                *matched_except_for_selector)
@@ -2865,6 +2887,8 @@ matches.  from_arg_dep_lookup is TRUE if the function was found by
 argument-dependent lookup.  dependent_call is TRUE if the call is a
 template-dependent call.  known_to_be_visible is TRUE if the function
 is known to be visible and the visibility check should be suppressed.
+is_overloaded_operator is TRUE if the call is written in operator form,
+e.g., a+b rather than operator+(a, b).
 */
 {
   a_boolean     overloaded_function_case;
@@ -2957,6 +2981,7 @@ is known to be visible and the visibility check should be suppressed.
                                  from_arg_dep_lookup,
                                  dependent_call,
                                  known_to_be_visible,
+                                 is_overloaded_operator,
                                  candidate_functions,
                                  matched_except_for_missing_selector,
                                  matched_except_for_selector);
@@ -2997,6 +3022,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*from_arg_dep_lookup=*/FALSE,
                                 /*dependent_call=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
+                                /*is_overloaded_operator=*/FALSE,
                                 &candidate_functions,
                                 &matched_except_for_missing_selector,
                                 &matched_except_for_selector);
@@ -3090,6 +3116,7 @@ arguments of the call (given by arg_operand_list).
                                        /*from_arg_dep_lookup=*/FALSE,
                                        /*dependent_call=*/FALSE,
                                        /*known_to_be_visible=*/FALSE,
+                                       /*is_overloaded_operator=*/FALSE,
                                        candidate_functions,
                                        &matched_except_for_missing_selector,
                                        &matched_except_for_selector);
@@ -4729,6 +4756,7 @@ in_instantiation:
                                          /*effects_copy_initialization=*/FALSE,
                                            /*from_arg_dep_lookup=*/FALSE,
                                            dependent_call,
+                                           /*is_overloaded_operator=*/FALSE,
                                            (a_boolean *)NULL))) {
           *single_function = TRUE;
           function_symbol = overloaded_function_symbol;
@@ -4750,6 +4778,7 @@ in_instantiation:
                                     /*from_arg_dep_lookup=*/FALSE,
                                     dependent_call,
                                     known_to_be_visible,
+                                    /*is_overloaded_operator=*/FALSE,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector,
                                     &matched_except_for_selector);
@@ -4792,6 +4821,7 @@ in_instantiation:
                                                (symbol_list->symbol !=
                                                 normal_lookup_function_symbol),
                                           dependent_call,
+                                          /*is_overloaded_operator=*/FALSE,
                                           (a_boolean *)NULL)) {
           /* This must be either the only entry on the list, or all other
              entries on the list must be the same symbol. */
@@ -4826,6 +4856,7 @@ in_instantiation:
                                                 normal_lookup_function_symbol),
                                       dependent_call,
                                       /*known_to_be_visible=*/FALSE,
+                                      /*is_overloaded_operator=*/FALSE,
                                       &candidate_functions,
                                       &matched_except_for_missing_selector,
                                       &matched_except_for_selector);
@@ -9113,6 +9144,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          /*dependent_call=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
+                                         /*is_overloaded_operator=*/TRUE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
@@ -9152,6 +9184,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
                                          /*known_to_be_visible=*/TRUE,
+                                         /*is_overloaded_operator=*/TRUE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
@@ -9223,6 +9256,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                                   normal_sym),
                                          dependent_call,
                                          /*known_to_be_visible=*/FALSE,
+                                         /*is_overloaded_operator=*/TRUE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
@@ -9647,6 +9681,7 @@ mode.
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
+                                    /*is_overloaded_operator=*/FALSE,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector,
                                     &matched_except_for_selector);

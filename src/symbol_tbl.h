@@ -2427,6 +2427,12 @@ typedef struct a_symbol {
 			/* TRUE for projection and overloaded function
 			   symbols used to represent a Microsoft __super
 			   lookup. */
+  a_bit_field	is_microsoft_invisible_operator:1;
+			/* Used in Microsoft mode to indicate that an operator
+			   function should be treated as invisible when
+			   referenced using operator notation.  Functions
+			   defined in friend declarations (and not declared
+			   elsewhere) have this flag set. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
   union {

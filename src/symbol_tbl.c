@@ -11096,6 +11096,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_nonreal_member                 = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cleared_symbol.is_super_reference                = FALSE;
+  cleared_symbol.is_microsoft_invisible_operator   = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   /* Not needed right now -- at byte boundary.
