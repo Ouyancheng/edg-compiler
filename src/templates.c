@@ -3117,13 +3117,13 @@ A pointer to the head of the list is returned in tcsp.
   }  /* if */
 #endif /* CHECKING */
 #if GNU_EXTENSIONS_ALLOWED
-      if (tssp->attributes != NULL) {
-        /* When parsing the template, some attributes were encountered
-           between the class-key ("class", "struct", or "union") and the
-           class template name. */
-        apply_attributes_to_type(tssp->attributes, prototype_type,
-                                 /*is_typedef=*/FALSE);
-      }  /* if */
+  if (tssp->attributes != NULL) {
+    /* When parsing the template, some attributes were encountered
+       between the class-key ("class", "struct", or "union") and the
+       class template name. */
+    apply_attributes_to_type(tssp->attributes, prototype_type,
+                             /*is_typedef=*/FALSE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Scan the base specifiers list, if any, and the body of the class.
      The pending class definition counter is incremented while processing
