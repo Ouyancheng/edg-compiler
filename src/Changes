@@ -1,5 +1,13 @@
 Version 2.30
 
+8/24/95  Redundant file inclusion suppression bug
+
+A bug has been fixed that could result in the suppression of the
+inclusion of a file that had previously been included, but for
+which the include optimization cannot be done.  Certain
+preprocessing directives that precede the initial #if test of
+the guard code were incorrectly being ignored.
+
 8/24/95  Declaring a member function as a friend of its parent class
 
 An error recovery problem has been fixed when a member function is
