@@ -644,6 +644,8 @@ ec_pragma_must_precede_decl_or_stmt;;"this pragma must immediately precede a dec
 ec_pragma_may_not_be_used_here;;"this kind of pragma may not be used here"
 ec_nonoverriding_function_decl;;"%nf1 does not match %no2 -- virtual function override intended?"
 ec_partial_override;;"overloaded virtual function %no1 is only partially overridden in %n2"
+ec_specialization_of_called_inline_template_function;;"specific definition of inline template function must precede its first use"
+
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
