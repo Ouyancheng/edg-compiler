@@ -2927,7 +2927,7 @@ with a routine.
        "E" and the length for the entity name.  buffer2 will contain the
        "_" and the discriminator number. */
     (void)strcpy(buffer0, "__Z");
-    if (routine_name_length == 0) {
+    if (routine_name == NULL) {
       /* For an unnamed routine, we put out no name.  That doesn't produce
          a valid mangled name but it may be the best we can do. */
     } else if (routine_name[0] == '_' && routine_name[1] == 'Z') {
@@ -2965,7 +2965,7 @@ with a routine.
 #else /* IA64_ABI */
     (void)strcpy(mangled_name, buffer0);
     store_at = mangled_name + strlen(buffer0);
-    if (routine_name_length != 0) {
+    if (routine_name != NULL) {
       (void)strcpy(store_at, routine_name);
       store_at += routine_name_length;
     }  /* if */
