@@ -3844,7 +3844,8 @@ of assoc_field_object and assoc_var_object is defined.
         /* Unlink the symbol from the inactive list and link it back into the
            symbol table in the current scope. */
         tp = type_symbol_type(sym);
-        tp->source_corresp.class_of_which_a_member = class_type;
+        /* Set the parent class in the symbol but not in the IL entry.  The
+           symbol is promoted, but the type remains nested. */
         sym->class_of_which_a_member = class_type;
         /* The members of an anonymous union within a class take on the access
            specifier of the anonymous union itself; the members of a variable
@@ -3855,12 +3856,17 @@ of assoc_field_object and assoc_var_object is defined.
         break;
       case sk_constant:
         /* An enum constant. */
-        sym->variant.constant->source_corresp.class_of_which_a_member =
-                                  sym->class_of_which_a_member = class_type;
+        /* Set the parent class in the symbol but not in the IL entry.  The
+           symbol is promoted, but the type remains nested. */
+        sym->class_of_which_a_member = class_type;
         sym->variant.constant->source_corresp.access = assoc_object_access;
         remove_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         break;
+      case sk_static_data_member:
+        /* Must be an error, since unions cannot have static data members.
+           Ignore this symbol. */
+       break;
 #if CHECKING
       default:
         internal_error("check_anonymous_union_symbols: unexpected sym kind");
@@ -6407,17 +6413,18 @@ Scan the body of a class definition, including the base classes list.
                    names to the current scope, so some error recovery problems
                    are bound to show up. */
                 pos_error(ec_static_data_member_anon_union, &decl_start_pos);
-              } else if (is_union_type(class_type)) {
-                /* Unions are not allowed to have static data members. */
-                pos_error(ec_static_not_allowed, &decl_start_pos);
-                member_storage_class = (a_storage_class)sc_unspecified;
               } else if (is_local_class) {
                 /* Static data members are not allowed in local classes. */
                 pos_error(ec_static_not_allowed, &decl_start_pos);
-                member_storage_class = (a_storage_class)sc_unspecified;
+                /* Set the type for this invalid static member to error type.
+                   This will assure "proper" (or unobtrusive) behavior later,
+                   if a definition is encountered.  It also eliminates semi-
+                   spurious error messages if there are references to it. */
+                local_type = error_type();
+              } else if (is_union_type(class_type)) {
+                /* Unions are not allowed to have static data members. */
+                pos_error(ec_static_not_allowed, &decl_start_pos);
               }  /* if */
-            }  /* if */
-            if (member_storage_class == (a_storage_class)sc_static) {
               decl_static_data_member(&locator, class_type, local_type,
                                       access, is_anonymous_union,
                                       is_nonreal_instantiation,
