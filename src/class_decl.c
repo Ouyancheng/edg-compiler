@@ -5036,6 +5036,17 @@ and "class_type" indicates the class in which the declaration occurs.
   an_access_specifier          function_access;
 
   db_enter(4, "access_adjustment_decl");
+  if (locator_for_curr_id.specific_symbol->kind ==
+                                              (a_symbol_kind)sk_undefined) {
+    /* Not a valid member of what may or may not be a valid base class. No
+       further processing can be done. */
+#if 0
+    /* If an sk_undefined symbol had a pointer to the class_of_which_a_member
+       or if we has pseudo-tokens for the class qualifier, we could verify
+       the class before bailing out. */
+#endif /* if 0 */
+    goto done;
+  }  /* if */
 #if CHECKING
   /* In processing a qualified name the specific_symbol field of the locator
      will have been filled in. */
@@ -5059,11 +5070,6 @@ and "class_type" indicates the class in which the declaration occurs.
   } else if (bcp->ambiguous) {
     type_error(ec_ambiguous_base_class, bcp->type);
     set_to_error_locator(locator_for_curr_id);
-    goto done;
-  } else if (locator_for_curr_id.specific_symbol->kind ==
-                                              (a_symbol_kind)sk_undefined) {
-    /* Not a valid member of a valid base class.  Error has already been
-       issued. */
     goto done;
   }  /* if */
   /* Look up the name without class qualification.  This will show whether
