@@ -14,6 +14,15 @@ exception.h -- Include file for exception handling (see 18.6)
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
+  /*
+  If bool is not supported, use a typedef for bool.
+  */
+  #ifdef _BOOL
+  typedef bool _bool;
+  #else /* ifndef _BOOL */
+  typedef int _bool;
+  #endif /* ifdef _BOOL */
+
   class bad_exception : public exception {
   public:
     bad_exception() throw();
@@ -33,6 +42,8 @@ namespace std {
      It is not clear why. */
   void terminate();
   void unexpected();
+
+  extern _bool uncaught_exception();
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace */
