@@ -33,6 +33,9 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
 #endif /* BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
+#include "cp_gen_be.h"
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 
 static void display_time_used(char		*message,
