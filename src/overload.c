@@ -4855,6 +4855,9 @@ is called only in C++ mode.
 }  /* variable_this_exists */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* <-- is_implicit is not used in that case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void make_this_variable_operand(a_variable_ptr this_var,
                                 a_boolean      is_implicit,
                                 an_operand     *result)
