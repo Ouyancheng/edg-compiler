@@ -4197,7 +4197,7 @@ entities.
                    (is_tag_symbol(sym) &&
                     !type_conflicts_with_tag(type_sym))) {
           /* Tag names have their own name space. */
-        } else {
+        } else if (!C_mode()) {
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
         }  /* if */
       }  /* if */
