@@ -1,5 +1,29 @@
 Version 2.37
 
+8/14/97   Global qualifiers permitted when a namespace or class member is
+          defined outside of its namespace or class
+
+The Working Paper now permits a global qualifier to be used in any declarator
+in which a qualified name is permitted.  The front end accepted global
+qualifiers in all such declarators except when a namespace or class member
+was defined outside of its namespace or class.  This has been fixed.
+
+  namespace N {
+    void f();
+  }
+  void ::N::f(){ }
+
+8/14/97   Microsoft compatibility: redeclaration of namespace member permitted
+
+The Working Paper does not permit a namespace member to be redeclared outside
+of its namespace, but this is permitted by the Microsoft compiler.  We now
+accept such declarations in Microsoft mode.
+
+  namespace N {
+    void f();
+  }
+  void N::f();  // now permitted
+
 8/13/97   Microsoft compatibility: __declspec(dllimport) implies extern
 
 In Microsoft compatibility mode, __declspec(dllimport) now implies extern,

@@ -1337,10 +1337,9 @@ by id_linkage.
       (qualifier_namespace_ptr(*locator) != NULL ||
        locator->is_file_scope_qualified_name)) {
     /* The declarator is a namespace-qualified or a global-scope-qualified
-       name.  If the latter, it must be a friend declaration; if it's not a
-       friend declaration, it is supposed to be a definition. */
+       name.  If it's not a friend declaration, it is supposed to be a
+       definition. */
     if (!is_friend_decl) is_namespace_member_def = TRUE;
-    check_assertion(!locator->is_file_scope_qualified_name || is_friend_decl);
     other_decl = locator->specific_symbol;
     /* If the name, looked up as a member of the specified scope, turns out
        to be a namespace projection, it must have been pulled into the
@@ -3039,19 +3038,20 @@ namespace-reactivation scope and for other declarations is a
 namespace-extension scope.
 */
 {
-  a_symbol_ptr     linked_symbol, prior_decl;
+  a_symbol_ptr     linked_symbol;
+  a_symbol_ptr     prior_decl;
   a_boolean        err = FALSE;
   a_storage_class  storage_class;
   a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
   a_boolean        is_function_template_decl = FALSE;
 
   db_enter(3, "qualified_name_redecl_sym");
-  check_assertion(nsp != NULL || is_friend_decl);
-  if (!is_definition && !is_friend_decl) {
-    /* Improper use of a qualified name in a declarator (WP 8.3). */
+  if (!is_definition && !is_friend_decl && !microsoft_mode) {
+    /* Improper use of a qualified name in a declarator (WP 8.3).  This
+       is permitted in Microsoft mode. */
     sym_error(ec_bad_scope_for_redeclaration, locator->specific_symbol);
     err = TRUE;
-  } else if (is_definition && nsp != NULL &&
+  } else if (is_definition && !locator->is_class_member &&
              !namespace_is_enclosed_by_scope(locator->specific_symbol,
                                         &scope_stack[*effective_decl_level])) {
     /* This declaration appears within a namespace scope in which the name
@@ -3081,8 +3081,8 @@ namespace-extension scope.
       }  /* if */
       *namespace_reactivated = TRUE;
     } else {
-      /* Must be something like "friend ::f();" */
-      check_assertion(locator->is_file_scope_qualified_name && is_friend_decl);
+      /* Must be a file scope qualified name. */
+      check_assertion(locator->is_file_scope_qualified_name);
     }  /* if */
     /* Look up the name. */
     linked_symbol = find_linked_symbol(locator, depth_scope_stack, type_ptr,

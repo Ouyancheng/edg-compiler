@@ -2641,23 +2641,6 @@ to FALSE if the entity being declared is not initializable.
   options = GID_DTOR_RECOGNIZED;
   if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
     options |= GID_DISALLOW_QUALIFIED_NAME | GID_DISALLOW_GLOBAL_QUALIFIER;
-  } else if (input_flags & DI_IS_FRIEND_DECL) {
-    /* Note: allow global qualifier on a declarator when this is a friend
-       declaration:
-         void f();
-         namespace N {
-           void f();
-           class A { friend void ::f(); };
-         }
-       Technically, this is not allowed in the language, but it is consistent
-       with the model of friend/namespace interaction the EDG front end has
-       implemented (as of version 2.30), pending clarification of the language
-       definition.  A diagnostic is issued (later) in strict ANSI mode. */
-  } else if (is_specialization_or_instantiation) {
-    /* Global qualifier is permitted on a template reference in an explicit
-       specialization or an instantiation directive. */
-  } else {
-    options |= GID_DISALLOW_GLOBAL_QUALIFIER;
   }  /* if */
   if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
     options |= GID_IS_TEMPLATE_DECLARATION;
