@@ -6439,6 +6439,17 @@ next_declaration:
                       ec_class_with_op_delete_but_no_op_new,
                     class_type->source_corresp.name);
       }  /* if */
+      /* Issue a warning on a class with virtual functions but no virtual
+         destructor. */
+      if (class_type->variant.class_struct_union.
+                                 extra_info->virtual_function_count > 0) {
+        if (cssp->destructor == NULL ||
+            !cssp->destructor->variant.routine->is_virtual) {
+          /* Either there's no destructor or there is but it isn't virtual. */
+          str_warning(ec_class_with_virtual_func_but_no_virtual_dtor,
+                      class_type->source_corresp.name);
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
