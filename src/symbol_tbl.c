@@ -6782,6 +6782,25 @@ End a name scope by popping an entry off the scope stack.
       parent_ssep->last_scope = ssep->last_scope;
     }  /* if */
   }  /* if */
+  /* Determine and remember the current (old) memory region, to see
+     if it changes when returning to the outer scope. */
+  old_memory_region_number = ssep->il_memory_region;
+  /* If the old memory region number does not appear anywhere in the
+     remaining stack, the region is no longer needed by the front end. */
+  old_region_still_needed = FALSE;
+  for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
+    if (scope_stack[scope_depth].il_memory_region == old_memory_region_number){
+      old_region_still_needed = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+#if DO_IL_LOWERING
+  if (!old_region_still_needed) {
+    /* The old memory region is no longer needed. */
+    /* Do IL lowering (change the C++ IL into C IL). */
+    lower_il_memory_region(old_memory_region_number);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
 #if ORPHAN_PROCESSING_NEEDED
   if (kind == (a_scope_kind)sck_function ||
       kind == (a_scope_kind)sck_block) {
@@ -6795,6 +6814,17 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
+  if (!old_region_still_needed) {
+    /* The old memory region is no longer needed. */
+    done_with_memory_region(old_memory_region_number);
+    /* Clear out the shareable constants table for the file scope or a
+       function scope. */
+    if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
+      empty_shareable_constants_table();
+    } else {
+      empty_func_shareable_constants_table();
+    }  /* if */
+  }  /* if */
   /* For any entities on the extern_type_fixup_list, restore the type of the
      variable or routine to what it was earlier.  This is used for cases like
        int a[];
@@ -6813,33 +6843,6 @@ End a name scope by popping an entry off the scope stack.
       etfp->variant.variable->type = etfp->type;
     }  /* if */
   }  /* for */
-  /* Determine and remember the current (old) memory region, to see
-     if it changes when returning to the outer scope. */
-  old_memory_region_number = ssep->il_memory_region;
-  /* If the old memory region number does not appear anywhere in the
-     remaining stack, the region is no longer needed by the front end. */
-  old_region_still_needed = FALSE;
-  for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
-    if (scope_stack[scope_depth].il_memory_region == old_memory_region_number){
-      old_region_still_needed = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (!old_region_still_needed) {
-    /* The old memory region is no longer needed. */
-#if DO_IL_LOWERING
-    /* Do IL lowering (change the C++ IL into C IL). */
-    lower_il_memory_region(old_memory_region_number);
-#endif /* DO_IL_LOWERING */
-    /* Clear out the shareable constants table for the file scope or a
-       function scope. */
-    if (old_memory_region_number == FILE_SCOPE_REGION_NUMBER) {
-      empty_shareable_constants_table();
-    } else {
-      empty_func_shareable_constants_table();
-    }  /* if */
-    done_with_memory_region(old_memory_region_number);
-  }  /* if */
   /* For template instantiation scopes, restore the template parameters
      to their previous state.  Normally this just involves setting the
      parameters to point to the "resting " values assigned when the
