@@ -1861,9 +1861,15 @@ for the meaning of need_closing_paren.
 */
 {
   /* Ignore anonymous union levels. */
-  for (; class_type->variant.class_struct_union.extra_info->
-                    anonymous_union_kind == (an_anonymous_union_kind)auk_field;
-       class_type = class_type->source_corresp.parent.class_type) {}
+  while (class_type->variant.class_struct_union.extra_info
+                   ->anonymous_union_kind == (an_anonymous_union_kind)auk_field
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+         || class_type
+                   ->variant.class_struct_union.is_nonstd_anonymous_union_type
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+                                                                            ) {
+    class_type = class_type->source_corresp.parent.class_type;
+  }  /* while */
   if (class_type->variant.class_struct_union.extra_info->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */

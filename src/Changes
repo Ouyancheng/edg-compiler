@@ -1,5 +1,22 @@
 Version 3.4
 
+10/21/03 C++-generating back end: Nonstandard anonymous union class qualifiers
+
+In some situations, the C++-generating back end was emitting an invented
+temporary name to qualify members of nonstandard anonymous unions (a
+construct accepted, e.g., in Microsoft C++ mode).  For example:
+
+  struct S {
+    struct {  // Nonstandard anonymous union
+      int i;
+    };
+  };
+  void f() {
+    &S::i;  // Previously rendered as "&S::__Txxxxxxx::i".
+  }
+
+This is now fixed.
+
 10/20/03 GNU mode: #pragma pack(n) behavior
 
 Some changes were made to the behavior of the "#pragma pack(n)" construct
