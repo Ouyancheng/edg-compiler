@@ -2638,8 +2638,7 @@ overriding of which orep is a part.
       a_routine_ptr  routine = (a_routine_ptr)udecl->entity.ptr;
 
       if (((a_symbol_ptr)routine->source_corresp.assoc_info)->header ==
-                                                                     header &&
-          same_entities(orep->base_class->type, udecl->qualifier.class_type)) {
+                                                                     header) {
         result = TRUE;
         break;
       }  /* if */

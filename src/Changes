@@ -1,5 +1,29 @@
 Version 3.1
 
+7/22/02  Spurious warnings about partial overriding of virtual functions
+
+When only a few of a set of overloaded virtual member functions are
+overridden in a derived class, the front end warns about the potentially
+unintended hiding of the non-overridden functions in the base class (see 
+Changes entries of 9/23/99 and 9/30/99).  This warning was incorrectly
+emitted in some situations involving using-declarations and multiple
+levels of inheritance.  For example:
+
+  struct B {
+    virtual void f(); 
+    virtual void f(int);  
+  };
+  struct D: public B {
+    using B::f;
+    virtual void f();
+  };
+  struct X: public D {
+    using D::f;
+    virtual void f();  // Used to trigger a spurious warning
+  };
+
+This is now fixed.
+
 7/22/02  Abort in compare_constants: GNU C, RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 An abort in compare_constants ("bad constant kind") has been fixed.
