@@ -242,13 +242,19 @@ template, dump the template arguments, too.
   a_class_type_supplement_ptr ctsp;
 
   db_name(&tp->source_corresp);
-  if (is_immediate_class_type(tp)) {
-    ctsp = tp->variant.class_struct_union.extra_info;
-    if (ctsp != NULL) {
-      db_template_arg_list(ctsp->template_arg_list);
-      db_template_arg_list(ctsp->partial_spec_template_arg_list);
+#if NEED_NAME_MANGLING
+  if (!tp->source_corresp.name_has_been_mangled) {
+#endif /* NEED_NAME_MANGLING */
+    if (is_immediate_class_type(tp)) {
+      ctsp = tp->variant.class_struct_union.extra_info;
+      if (ctsp != NULL) {
+        db_template_arg_list(ctsp->template_arg_list);
+        db_template_arg_list(ctsp->partial_spec_template_arg_list);
+      }  /* if */
     }  /* if */
+#if NEED_NAME_MANGLING
   }  /* if */
+#endif /* NEED_NAME_MANGLING */
 }  /* db_type_name */
 
 
@@ -259,15 +265,23 @@ Dump the name from a source correspondence (if any).
 {
   char *name;
 
-  if (sc->is_class_member) {
-    db_type_name(sc->parent.class_type);
-    fputs("::", f_debug);
-  } else if (sc->parent.namespace_ptr != NULL) {
-    db_name(&sc->parent.namespace_ptr->source_corresp);
-    fputs("::", f_debug);
+#if NEED_NAME_MANGLING
+  if (sc->name_has_been_mangled) {
+    name = sc->name;
+  } else {
+#endif /* NEED_NAME_MANGLING */
+    if (sc->is_class_member) {
+      db_type_name(sc->parent.class_type);
+      fputs("::", f_debug);
+    } else if (sc->parent.namespace_ptr != NULL) {
+      db_name(&sc->parent.namespace_ptr->source_corresp);
+      fputs("::", f_debug);
+    }  /* if */
+    name = unmangled_name_of(sc);
+    if (name == NULL) name = sc->name;
+#if NEED_NAME_MANGLING
   }  /* if */
-  name = unmangled_name_of(sc);
-  if (name == NULL) name = sc->name;
+#endif /* NEED_NAME_MANGLING */
   if (name != NULL) {
     fputs(name, f_debug);
   } else {
