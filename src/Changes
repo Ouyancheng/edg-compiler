@@ -1,5 +1,15 @@
 Version 2.20
 
+9/3/93   Yet another IL change to support exception handling
+
+An enk_throw expression node, which represents a throw expression, now
+points to an object of type a_throw_supplement, which contains pointers
+a type and a dynamic-init entry.
+
+9/3/93   Branching into a handler
+
+We now issue an error on a branch into an exception handler.
+
 9/3/93   Generic function pointer type used by IL lowering changed
 
 The generic function pointer type used by IL lowering (for example,
@@ -21,8 +31,8 @@ char (instead of int), which saves some space in the executable program.
 
 8/29/93  Jumping past initializing declarations
 
-We now issue an error on jumping past an initializing declaration, as
-required by ARM 6.7.
+We now issue a diagnostic (an error in C++ mode, a warning in C mode) on
+jumping past an initializing declaration, as required by ARM 6.7.
 
 8/27/93  Large unsigned values for enumerations
 
@@ -41,12 +51,12 @@ Warnings are issued for suspicious cases.
 Local constant variables are now properly treated as constants when
 used in constant operations:
 
-const int MaxChunk = 8;
-main(){
-   const int MaxStep = 8;
-   const int MaxCount = MaxChunk/MaxStep;
-   float addr[MaxCount]; // No error anymore
-}
+  const int MaxChunk = 8;
+  main(){
+    const int MaxStep = 8;
+    const int MaxCount = MaxChunk/MaxStep;
+    float addr[MaxCount]; // No error anymore
+  }
 
 8/25/93 Type display in diagnostics
 
