@@ -5954,9 +5954,15 @@ file.  Return TRUE if the file was successfully opened.
 {
   f_instantiation_info = NULL;
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-    /* Only open the file if the input is coming from a file. */
-    instantiation_info_file_name =
+    /* Only open the file if the input is coming from a file.  The name of
+       the instantiation information file can be specified on the command
+       line.  If none is specified, then a default name is generated. */
+    if (ii_file_name != NULL) {
+      instantiation_info_file_name = ii_file_name;
+    } else {
+      instantiation_info_file_name =
             derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
+    }  /* if */
     f_instantiation_info = fopen(instantiation_info_file_name, "r");
   }  /* if */
   return f_instantiation_info != NULL;
@@ -5964,9 +5970,21 @@ file.  Return TRUE if the file was successfully opened.
 
 
 void create_or_remove_instantiation_information_file(void)
+/*
+If this compilation made use of any entities that could be instantiated,
+create an instantiation information file.  If this compilation did not
+make use of any entities that could be instantiated, remove the .ii file
+if one already exists.
+*/
 {
   FILE		*f_ii_file;
 
+  /* The name of the instantiation information file should have already
+     been determined when the file was opened as part of automatic
+     instantiation processing for this file. */
+  check_assertion_str2(instantiation_info_file_name != NULL,
+                       "create_or_remove_instantiation_information_file:",
+                       "file name is NULL");
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
     /* Only create the file if the input is coming from a file.  Note
        that the file will have been closed after all input was read so

@@ -240,6 +240,10 @@ Initialize the option information table.
                          "no_auto_instantiation", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ii_file_name,
+                         "ii_file", '\0',
+                         /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   add_option_description(optk_implicit_template_inclusion,
@@ -1077,6 +1081,10 @@ common_cfront_mode_settings:
       case optk_automatic_template_instantiation:
         /* Enable or disable automatic instantiation processing. */
         automatic_instantiation_mode = opt_value;
+        break;
+      case optk_ii_file_name:
+        /* The name of the instantiation information file to be used. */
+        ii_file_name = opt_arg;
         break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION

@@ -1,5 +1,14 @@
 Version 2.30
 
+9/20/95  Specifying the .ii file name on the command line
+
+The name of the instantiation information (.ii) file to be created/used
+by the front end may now be specified using the --ii_file command line
+option.  The .ii file should be associated with the generated
+object file, so this option makes it simpler to provide drivers that
+permit the name of the object file to be specified on the command
+line.
+
 9/19/95  Internal error in Microsoft C++ mode using the C generating back end
 
 Examples like the following would result in an internal error in the

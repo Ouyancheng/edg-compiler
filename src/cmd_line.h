@@ -55,6 +55,7 @@ typedef enum /*an_option_kind*/ {
   optk_template_instantiation_mode,
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   optk_automatic_template_instantiation,
+  optk_ii_file_name,
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   optk_implicit_template_inclusion,
@@ -412,6 +413,11 @@ EXTERN a_boolean
 			   performed.  This includes both the generation of
  			   the instantiation flags and the processing of the
 			   instantiation list. */
+
+EXTERN char	*ii_file_name /* = NULL */;
+			/* Name of the instantiation information file to
+			   be used, or NULL if the default file name
+			   should be used. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
