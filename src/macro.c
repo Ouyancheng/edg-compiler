@@ -2004,6 +2004,7 @@ do_argument_again:
                                        map->raw_text,
                                        map->raw_text+map->raw_len);
           slmp->is_isolated_text = TRUE;
+          slmp->source_position = start_pos;
           curr_char_loc = map->raw_text;
           expand_macros = TRUE;
           /* Suspend deletion of the characters of the macro invocation.  We

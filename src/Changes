@@ -1,5 +1,17 @@
 Version 2.43
 
+8/19/99  Token positions in macro expansions in macro argument lists
+
+The token positions for tokens in macros expanded in macro argument
+lists were sometimes the position of the token following the argument,
+which could be confusing.  Now they are the position of the beginning
+of the outer macro invocation.
+
+  #define S "abc"
+  #define strcpy(x, y) __strcpy(x, y)
+  strcpy(buf, S);  // Token position of "abc" was closing paren position
+                   // Now position of "strcpy"
+
 8/18/99  Diagnose "mutable" on anonymous unions
 
 The front end now produces a diagnostic (an error in strict ANSI C++ mode; a
