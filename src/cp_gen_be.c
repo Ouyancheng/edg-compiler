@@ -131,10 +131,9 @@ and restored by gen_function_definition to deal with the case of a
 member function nested inside another function.
 */
 static a_scope_ptr
-		curr_function_scope,
-		curr_scope_within_function;
-			/* The current function scope and scope within that
-			   function, or NULL if not inside a function. */
+		curr_function_scope;
+			/* The current function scope, or NULL if not
+			   inside a function. */
 static a_statement_ptr
 		curr_switch_statement;
 			/* The current switch statement, or NULL if not
@@ -144,6 +143,25 @@ static unsigned long
 			/* Nesting depth of switch statements currently
 			   being processed. */
 
+/*
+Entry used to record an entry which has been declared with a function-local
+"extern", which has therefore been made temporarily local, and which needs
+to be made external again at the end of the current scope.
+*/
+typedef struct a_block_extern_fixup *a_block_extern_fixup_ptr;
+typedef struct a_block_extern_fixup {
+  a_block_extern_fixup_ptr
+		next;	/* Next fixup on the list, or NULL if this is the
+			   last entry. */
+  a_source_correspondence
+		*scp;	/* Source correspondence entry of the IL entity. */
+} a_block_extern_fixup;
+
+
+static a_block_extern_fixup_ptr
+		avail_block_extern_fixups;
+			/* List of block-extern-fixup entries that have been
+			   freed and are available for reuse. */
 
 /*
 Entry used in a stack to indicate the name contexts we are currently
@@ -156,10 +174,15 @@ typedef struct a_name_context {
 		next;	/* The name context outside of this one, or NULL
 			   if there are no more. */
   a_scope_ptr	assoc_scope;
-			/* The scope that defines the name context. */
+			/* The scope that defines the name context, or
+			   NULL for a name context for a block without
+			   an associated scope. */
   an_access_specifier
 		access;	/* When putting out a class, the current default
 			   access for a member declaration. */
+  a_block_extern_fixup_ptr
+		fixups;	/* Block-extern fixups to be done at the end of the
+			   name context. */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -170,6 +193,7 @@ Return TRUE if the current name context is a class.
 */
 #define curr_name_context_is_a_class()                                \
   (curr_name_context != NULL &&                                       \
+   curr_name_context->assoc_scope != NULL &&                          \
    curr_name_context->assoc_scope->kind ==                            \
                               (a_scope_kind)sck_class_struct_union)
 
@@ -288,12 +312,47 @@ a constant that appears on the constant list of an enum type.
 }  /* is_enum_constant */
 
 
+static void alloc_block_extern_fixup(a_source_correspondence *scp)
+/*
+Allocate a block-extern fixup entry for the indicated source-correspondence
+entry and put it on the current name context fixup list.
+*/
+{
+  a_block_extern_fixup_ptr befp;
+
+  if (avail_block_extern_fixups != NULL) {
+    /* Reuse a freed entry. */
+    befp = avail_block_extern_fixups;
+    avail_block_extern_fixups = avail_block_extern_fixups->next;
+  } else {
+    /* Allocate a new entry. */
+    befp = (a_block_extern_fixup_ptr)
+                                   alloc_general(sizeof(a_block_extern_fixup));
+  }  /* if */
+  befp->scp = scp;
+  /* Put the entry on the list. */
+  befp->next = curr_name_context->fixups;
+  curr_name_context->fixups = befp;
+}  /* alloc_block_extern_fixup */
+
+
+static void free_block_extern_fixup(a_block_extern_fixup_ptr befp)
+/*
+Free the block-extern fixup entry given.
+*/
+{
+  befp->next = avail_block_extern_fixups;
+  avail_block_extern_fixups = befp;
+}  /* free_block_extern_fixup */
+
+
 static void push_name_context(a_name_context *context,
                               a_scope_ptr    scope)
 /*
 Push the context entry "context" onto the name context stack, and fill
 in that entry indicate the given scope.  The name context stack is used
 to avoid class qualifiers on names when inside those classes.
+scope is NULL for a block without an associated scope.
 */
 {
   a_name_context_ptr parent_context = curr_name_context;
@@ -301,6 +360,7 @@ to avoid class qualifiers on names when inside those classes.
   curr_name_context = context;
   curr_name_context->next = parent_context;
   curr_name_context->assoc_scope = scope;
+  curr_name_context->fixups = NULL;
 }  /* push_name_context */
 
 
@@ -309,6 +369,16 @@ static void pop_name_context(void)
 Pop the top entry off the name context stack.
 */
 {
+  a_block_extern_fixup_ptr befp, befp_next;
+
+  /* Process the block-extern fixup list. */
+  for (befp = curr_name_context->fixups; befp != NULL; befp = befp_next) {
+    befp_next = befp->next;
+    befp->next = NULL;
+    /* Clear the is_local_to_function flag in the entry. */
+    befp->scp->is_local_to_function = FALSE;
+    free_block_extern_fixup(befp);
+  }  /* for */
   curr_name_context = curr_name_context->next;
 }  /* pop_name_context */
 
@@ -4362,6 +4432,9 @@ Generate code for the indicated switch statement.
 {
   a_statement_ptr saved_switch_statement = curr_switch_statement;
   a_statement_ptr body_statement;
+  a_name_context  context;
+  a_scope_ptr     scope = NULL;
+  a_boolean       need_pop_context = FALSE;
 
   write_tok_str("switch (");
   gen_full_expression(statement->expr);
@@ -4372,6 +4445,13 @@ Generate code for the indicated switch statement.
   curr_switch_statement = statement;
   num_curr_switch_statements++;
   body_statement = statement->variant.switch_stmt.body_statement;
+  /* See if there's a scope associated with the switch. */
+  if (body_statement != NULL &&
+      body_statement->kind == (a_statement_kind)stmk_block) {
+    scope = body_statement->variant.block.extra_info->assoc_scope;
+    push_name_context(&context, scope);
+    need_pop_context = TRUE;
+  }  /* if */
   if (body_statement != NULL ||
       statement->variant.switch_stmt.clause_list == NULL) {
     gen_statement(body_statement);
@@ -4389,6 +4469,7 @@ Generate code for the indicated switch statement.
       unexpected_condition_str("gen_switch_statement: missing switch clause");
     }  /* if */
   }  /* if */
+  if (need_pop_context) pop_name_context();
   curr_switch_statement = saved_switch_statement;
   num_curr_switch_statements--;
 }  /* gen_switch_statement */
@@ -4543,8 +4624,9 @@ Generate code for a block statement ("{ ... }").
 {
   a_statement_ptr last_statement;
   a_block_ptr     block = statement->variant.block.extra_info;
-  a_scope_ptr     scope, saved_curr_scope;
+  a_scope_ptr     scope;
   a_boolean       top_statement_of_switch;
+  a_name_context  context;
 
   /* See if this block is the top-level statement of a switch statement.
      If so, we will look for places where switch clauses should be inserted. */
@@ -4556,18 +4638,13 @@ Generate code for a block statement ("{ ... }").
   }  /* if */
   write_tok_str("{ ");
   scope = block->assoc_scope;
-  if (scope != NULL) {
-    /* The block defines a scope. */
-    saved_curr_scope = curr_scope_within_function;
-    curr_scope_within_function = scope;
-  }  /* if */
+  /* The block defines a scope if scope != NULL. */
+  push_name_context(&context, scope);
   /* Generate the statements inside the block. */
   gen_statement_list(statement->variant.block.statements,
                      top_statement_of_switch, &last_statement);
-  if (scope != NULL) {
-    /* End of the scope defined by the block. */
-    curr_scope_within_function = saved_curr_scope;
-  }  /* if */
+  /* End of the scope defined by the block. */
+  pop_name_context();
   /* See if there's an end-of-construct entry for the block (compiler-generated
      blocks don't have one).  If so, advance past it. */
   if (ss_entry_kind(curr_source_sequence_entry) ==
@@ -5128,6 +5205,16 @@ sequence entry.
            !var->source_corresp.is_local_to_function)) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
+      if (storage_class == (a_storage_class)sc_extern &&
+          curr_function_scope != NULL) {
+        /* Extern within a function.  Set the is_local_to_function flag on
+           the entity to suppress leading "::" on references. */
+        if (!var->source_corresp.is_local_to_function) {
+          var->source_corresp.is_local_to_function = TRUE;
+          /* Allocate a fixup entry to get the flag switched back later. */
+          alloc_block_extern_fixup(&var->source_corresp);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
@@ -5191,21 +5278,17 @@ scope, starting with the opening brace of the top-level block.
   /* Save state variables for functions for the case where a member function
      is nested inside another function. */
   a_scope_ptr            saved_curr_function_scope = curr_function_scope;
-  a_scope_ptr            saved_curr_scope_within_function =
-                                                    curr_scope_within_function;
   a_statement_ptr        saved_curr_switch_statement = curr_switch_statement;
   unsigned long          saved_num_curr_switch_statements =
                                                     num_curr_switch_statements;
 
   curr_function_scope = scope;
-  curr_scope_within_function = scope;
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
   /* Generate the body statement. */
   gen_statement(scope->assoc_block);
   /* Restore function state variables to their states on entry. */
   curr_function_scope = saved_curr_function_scope;
-  curr_scope_within_function = saved_curr_scope_within_function;
   curr_switch_statement = saved_curr_switch_statement;
   num_curr_switch_statements = saved_num_curr_switch_statements;
 }  /* gen_function_definition */
@@ -5388,6 +5471,16 @@ declaration or definition.
           (storage_class == (a_storage_class)sc_static &&
            curr_function_scope != NULL)) {
         storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+      if (storage_class == (a_storage_class)sc_extern &&
+          curr_function_scope != NULL) {
+        /* Extern within a function.  Set the is_local_to_function flag on
+           the entity to suppress leading "::" on references. */
+        if (!rout->source_corresp.is_local_to_function) {
+          rout->source_corresp.is_local_to_function = TRUE;
+          /* Allocate a fixup entry to get the flag switched back later. */
+          alloc_block_extern_fixup(&rout->source_corresp);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5658,10 +5751,10 @@ Initialize for the C++/C-generating back end.
   curr_source_sequence_entry = NULL;
   sublist_parent_source_sequence_entry = NULL;
   curr_function_scope = NULL;
-  curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
   curr_name_context = NULL;
+  avail_block_extern_fixups = NULL;
 }  /* init_cp_gen_be */
 
 
