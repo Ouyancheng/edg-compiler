@@ -1,5 +1,14 @@
 Version 3.2
 
+5/10/03  GNU C++ init_priority attribute
+
+The init_priority attribute is now implemented in GNU C++ mode
+if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED is TRUE.  It requires
+back end and linker support, so it is not allowed by default.
+See the init_priority field in a_routine.  The C-generating back
+end implements this feature when it generates C code for gcc on
+Linux.
+
 5/10/03  USE_PATCH_INIT_STARTUP
 
 A separate configuration flag USE_PATCH_INIT_STARTUP now controls
