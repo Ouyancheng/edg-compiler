@@ -2286,12 +2286,12 @@ signed bit fields under pcc, which does not support them.
                                         (an_expr_operator_kind)eok_bit_field) {
       /* For this case, we need to truncate the result of the assignment
          because pcc does not do it.  For a signed bit field, use __sexten;
-         for an unsigned bit field, use __trunc. */
+         for an unsigned bit field, use ((i)&((1<<n)-1)). */
       dest_field = operand->variant.operation.operands->next->variant.field;
       if (dest_field->bit_field_is_signed) {
         write_tok_str("(__sexten((");
       } else {
-        write_tok_str("(__trunc((");
+        write_tok_str("((");
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2317,9 +2317,17 @@ closing parentheses needed if any code was generated there.
         operand->variant.operation.kind ==
                                         (an_expr_operator_kind)eok_bit_field) {
       dest_field = operand->variant.operation.operands->next->variant.field;
-      write_tok_str("),");
-      write_unsigned_num((unsigned long)dest_field->bit_size);
-      write_tok_str("))");
+      if (dest_field->bit_field_is_signed) {
+        /* End of __sexten call. */
+        write_tok_str("),");
+        write_unsigned_num((unsigned long)dest_field->bit_size);
+        write_tok_str("))");
+      } else {
+        /* End of truncation code: ((i)&((1<<n)-1)). */
+        write_tok_str(")&((1<<");
+        write_unsigned_num((unsigned long)dest_field->bit_size);
+        write_tok_str(")-1))");
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* end_adjust_bit_field_value */
@@ -4858,7 +4866,6 @@ definitions needed to support the generated code.
   (void)fprintf(f_C_output, "static int __sexten(i,n) int i,n;\n");
   (void)fprintf(f_C_output,
      "{int mask=(1<<(n-1))-1; if(i<0||i>mask)i=(i&mask)|~mask; return(i);}\n");
-  (void)fprintf(f_C_output, "#define __trunc(i,n) (i&((1<<n)-1))\n");
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 }  /* dump_header_code */
 
