@@ -220,9 +220,6 @@ pruned at the entry pointed to by ptr, of kind "kind".
     /* This entry is in the primary file IL, so stop and don't process
        it. */
     prune = TRUE;
-  } else if (kind == iek_based_type_list_member) {
-    /* All based type lists get removed. */
-    prune = TRUE;
   } else if (!in_file_scope(ptr)) {
     /* This entry is in a function scope memory region of a secondary
        translation unit.  Use the secondary_trans_unit flag as
@@ -341,11 +338,6 @@ and remap the pointers in the copy by calling remap_function.
     /* Copy the entry to its corresponding space and remap the pointers
        in the copy. */
     (void)memcpy(copy, ptr, size_t_arg(sizeof_il_entry[(int)kind]));
-    if (kind == iek_type) {
-      a_type_ptr type = (a_type_ptr)copy;
-      /* Based type lists don't get copied. */
-      type->based_types = NULL;
-    }  /* if */
     walk_remap_func = remap_function;
     remap_pointers_in_il_entry(copy, kind);
     walk_remap_func = saved_walk_remap_func;
@@ -1758,6 +1750,34 @@ the secondary translation unit IL).
 }  /* overwrite_primary_routine */
 
 
+static void ensure_routine_is_on_inline_list(a_routine_ptr routine)
+/*
+The indicated routine has been copied or merged from the secondary
+translation unit IL to the primary IL.  routine points to the copy in the
+secondary translation unit.  Update the "instantiation" lists for
+extern inline functions, if appropriate.
+*/
+{
+  a_routine_ptr primary_routine;
+
+  /* This routine runs while switched to the primary translation unit. */
+  check_assertion(instantiate_extern_inline &&
+                  is_primary_translation_unit &&
+                  in_secondary_trans_unit(routine));
+  primary_routine = (a_routine_ptr)transitive_copy_address_of(routine);
+  if (primary_routine->is_inline &&
+      primary_routine->storage_class == (a_storage_class)sc_unspecified &&
+      !primary_routine->source_corresp.static_used_by_instantiation) {
+    if (primary_routine->on_inline_function_list) {
+      /* There is already a list entry for the routine in the primary IL. */
+    } else {
+      /* Add an entry for the routine. */
+      add_to_inline_function_list(primary_routine);
+    }  /* if */
+  }  /* if */
+}  /* ensure_routine_is_on_inline_list */
+
+
 /*
 Change a pointer to the corresponding address in the primary IL.
 */
@@ -2005,16 +2025,6 @@ end_of_type_list_add:;
           pointers_block->last_variable = last_variable;
         }  /* if */
 end_of_variable_list_add:;
-#if MAINTAIN_NEEDED_FLAGS
-        if (corresp_variable->storage_class ==
-                                             (a_storage_class)sc_unspecified ||
-            corresp_variable->init_kind == (an_init_kind)initk_dynamic) {
-          /* Mark an externally-defined variable or one with initialization
-             side effects as "needed". */
-          mark_as_needed((char *)corresp_variable,
-                         (an_il_entry_kind)iek_variable);
-        }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* for */
     }  /* if */
     if (scope->dynamic_inits != NULL) {
@@ -2267,6 +2277,43 @@ end_of_routine_list_add:;
       update_namespace_pointers_block(scope);
     }  /* if */
   }  /* if */
+  if (instantiate_extern_inline) {
+    /* Look for routines that are inline that need to be added to the
+       inline functions list.  This can't be done in the loop above because
+       members of non-merged scopes aren't seen there. */
+    a_routine_ptr routine;
+    for (routine = scope->routines;
+         routine != NULL;
+         routine = routine->next) {
+      ensure_routine_is_on_inline_list(routine);
+    }  /* for */
+  }  /* if */
+  { a_variable_ptr variable;
+    /* Do some processing on variables that must be done for all variables,
+       even members of non-merged scopes that aren't seen in the loop above. */
+    for (variable = scope->variables;
+         variable != NULL;
+         variable = variable->next) {
+      a_variable_ptr primary_variable =
+                          (a_variable_ptr)transitive_copy_address_of(variable);
+#if ONE_INSTANTIATION_PER_OBJECT
+      if (one_instantiation_per_object && is_class_scope) {
+        /* Assign one-instantiation-per-object needed bit numbers to
+           static data members. */
+        set_variable_instantiation_needed_bit_number(primary_variable);
+      }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MAINTAIN_NEEDED_FLAGS
+      if (primary_variable->storage_class == (a_storage_class)sc_unspecified ||
+          primary_variable->init_kind == (an_init_kind)initk_dynamic) {
+        /* Mark an externally-defined variable or one with initialization
+           side effects as "needed". */
+        mark_as_needed((char *)primary_variable,
+                       (an_il_entry_kind)iek_variable);
+      }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+    }  /* for */
+  }
 }  /* finish_trans_unit_copy */
 
 
@@ -2285,172 +2332,6 @@ into the primary translation unit il_header.
         (a_routine_ptr)transitive_copy_address_of(tup->il_header.main_routine);
   }  /* if */
 }  /* merge_il_headers */
-
-
-static void copy_info_for_inline_routine(a_routine_ptr routine)
-/*
-The indicated routine has been copied from the secondary translation
-unit IL to the primary IL.  routine points to the copy in the
-secondary translation unit, except for member functions of local
-classes, where it points to the primary IL copy.  Update the
-"instantiation" lists for extern inline functions, if appropriate.
-*/
-{
-  a_boolean local_member_function = !in_secondary_trans_unit(routine);
-
-  /* This routine runs while switched to the primary translation unit. */
-  check_assertion(is_primary_translation_unit &&
-                  (!local_member_function ||
-                   routine->source_corresp.is_local_to_function));
-  if (instantiate_extern_inline && routine->is_inline &&
-      routine->storage_class == (a_storage_class)sc_unspecified &&
-      !routine->source_corresp.static_used_by_instantiation) {
-    /* extern inline functions are put on a list so they can be
-       "instantiated". */
-    a_boolean     overwrite = (!local_member_function &&
-                               entry_to_be_merged(routine));
-    a_routine_ptr primary_routine =
-                            (a_routine_ptr)transitive_copy_address_of(routine);
-    if (overwrite && primary_routine->on_inline_function_list) {
-      /* There is already a list entry for the routine in the primary IL. */
-    } else {
-      /* Add an entry for the routine. */
-      add_to_inline_function_list(primary_routine);
-    }  /* if */
-  }  /* if */
-}  /* copy_info_for_inline_routine */
-
-
-static void wrap_up_moved_function(a_routine_ptr rout)
-/*
-rout identifies a function which has been moved from a secondary
-translation unit to the primary translation unit IL.  Do final processing,
-which includes IL lowering if appropriate.  rout points to the instance
-of the routine in the secondary translation unit, except for member
-functions of local classes, where it points to the primary IL copy.
-*/
-{
-  a_routine_ptr primary_rout;
-
-  if (in_secondary_trans_unit(rout)) {
-    primary_rout = (a_routine_ptr)transitive_copy_address_of(rout);
-  } else {
-    check_assertion(rout->source_corresp.is_local_to_function);
-    primary_rout = rout;
-  }  /* if */
-  check_assertion(!in_secondary_trans_unit(primary_rout) &&
-                  primary_rout->source_corresp.
-                                             copied_from_secondary_trans_unit);
-  /* If the routine is an extern inline function, copy instantiation
-     information. */
-  copy_info_for_inline_routine(rout);
-  /* Note use of rout here instead of primary_rout. */
-  if (rout->assoc_scope != NULL_region_number) {
-    /* The routine body was moved. */
-    a_scope_ptr scope= il_header.region_scope_entry[primary_rout->assoc_scope];
-    check_assertion_str(scope != NULL, "wrap_up_moved_function: body missing");
-    finish_function_body_processing(scope, /*discard_function_body=*/FALSE);
-  }  /* if */
-}  /* wrap_up_moved_function */
-
-
-static void finish_moved_function_processing(a_scope_ptr scope,
-                                             a_boolean   do_inlines);
-
-
-static void finish_type_list_moved_function_processing(a_type_ptr type_list,
-                                                       a_boolean  do_inlines)
-/*
-Finish processing in the indicated type list and its subscopes for any
-functions whose bodies were moved from the secondary translation unit IL
-to the primary IL.
-*/
-{
-  a_type_ptr type;
-
-  if (!C_mode()) {
-    /* Look for class types and process their member functions. */
-    for (type = type_list; type != NULL; type = type->next) {
-      if (is_immediate_class_type(type)) {
-        a_scope_ptr class_scope =
-                      type->variant.class_struct_union.extra_info->assoc_scope;
-        if (class_scope != NULL) {
-          finish_moved_function_processing(class_scope, do_inlines);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* finish_type_list_moved_function_processing */
-
-
-static void finish_moved_function_processing(a_scope_ptr scope,
-                                             a_boolean   do_inlines)
-/*
-Finish processing in the indicated scope and its subscopes for any
-functions whose bodies were moved from the secondary translation unit IL
-to the primary IL.  This includes lowering if necessary.  The scope
-passed in is from the secondary translation unit except for local
-class scopes.  Inline functions are processed only if do_inlines is
-TRUE, other functions only if do_inlines is FALSE, thus allowing a
-two-pass sweep.
-*/
-{
-  a_routine_ptr   routine;
-  a_namespace_ptr nsp;
-
-  check_assertion(in_secondary_trans_unit(scope) ||
-                  (scope->kind == (a_scope_kind)sck_class_struct_union &&
-                   scope->variant.assoc_type->source_corresp.
-                                                        is_local_to_function));
-  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      finish_moved_function_processing(nsp->variant.assoc_scope, do_inlines);
-    }  /* if */
-  }  /* for */
-  finish_type_list_moved_function_processing(scope->types, do_inlines);
-  for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    a_boolean eff_inline = (routine->is_inline != 0);
-    if (routine->assoc_scope != NULL_region_number) {
-      a_scope_ptr rout_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-      if (rout_scope == NULL) {
-        /* The body might be missing if it was deleted on the first pass
-           because the routine is inline and it has no local types. */
-        check_assertion_str(!do_inlines && routine->is_inline,
-                            "finish_moved_function_processing: body missing");
-      } else {
-        /* Handle local classes (and their member functions).  Note that,
-           because the routine scope has already been moved, the types
-           list here is in the primary IL. */
-        finish_type_list_moved_function_processing(rout_scope->types,
-                                                   do_inlines);
-        /* Force a routine with local types to be done on the second pass
-           so that we do not lose its body -- and its local types list --
-           on the first pass. */
-        if (rout_scope->types != NULL) eff_inline = FALSE;
-      }  /* if */
-    }  /* if */
-    /* Process functions on the right pass (inline/noninline). */
-    if ((do_inlines != 0) == eff_inline) {
-      wrap_up_moved_function(routine);
-    }  /* if */
-  }  /* for */
-#if ONE_INSTANTIATION_PER_OBJECT
-  if (one_instantiation_per_object &&
-      scope->kind == (a_scope_kind)sck_class_struct_union &&
-      /* Do this only on the second pass. */
-      !do_inlines) {
-    /* Assign one-instantiation-per-object needed bit numbers to
-       static data members. */
-    a_variable_ptr var;
-    for (var = scope->variables; var != NULL; var = var->next) {
-      a_variable_ptr corresp_var =
-                               (a_variable_ptr)transitive_copy_address_of(var);
-      set_variable_instantiation_needed_bit_number(corresp_var);
-    }  /* for */
-  }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-}  /* finish_moved_function_processing */
 
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
@@ -2573,6 +2454,10 @@ therefore will not be copied.
     top_scope = tup->primary_scope;
     finish_trans_unit_copy(top_scope);
     merge_il_headers(tup);
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+    finish_scope_orphaned_list_processing(
+                                   tup->il_header.scope_orphaned_list_headers);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if DEBUG
     if (debug_level >= 1) {
       fprintf(f_debug, "Done wrapping up copy from sec trans unit %s:\n",
@@ -2580,36 +2465,35 @@ therefore will not be copied.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
-  /* Do lowering of moved functions, in the primary IL. */
-  /* This also runs while switched to the primary translation unit. */
-  for (tup = translation_units->next; tup != NULL; tup = tup->next) {
-#if DEBUG
-    if (debug_level >= 1) {
-      fprintf(f_debug,
-              "Finishing moved func processing for sec trans unit %s:\n",
-              curr_translation_unit->source_file->name_as_written);
-    }  /* if */
-#endif /* DEBUG */
-    /* Two passes are done.  The first lowers inline functions so that they
-       are available for inlining during the second pass. */
-    finish_moved_function_processing(tup->primary_scope, /*do_inlines=*/TRUE);
-    finish_moved_function_processing(tup->primary_scope, /*do_inlines=*/FALSE);
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    finish_scope_orphaned_list_processing(
-                                   tup->il_header.scope_orphaned_list_headers);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if DEBUG
-    if (debug_level >= 1) {
-      fprintf(f_debug,
-              "Done finishing moved func processing for sec trans unit %s:\n",
-              curr_translation_unit->source_file->name_as_written);
-    }  /* if */
-#endif /* DEBUG */
-  }  /* for */
   /* Sweep the primary translation unit IL tree and look for any
      pointers to entities in secondary translation units that it uses,
      and rewrite the pointers as the corresponding primary IL entities. */
   rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
+  /* Finish processing on function bodies moved to the primary IL,
+     including IL lowering if appropriate.  Do this also on any
+     function bodies in the primary IL whose lowering was delayed.
+     Lowering is delayed on some instantiations in the primary
+     translation unit when there are exported templates so that we
+     can rewrite any references to secondary translation unit entities
+     before the lowering is done. */
+  { a_memory_region_number n;
+    for (n = FILE_SCOPE_REGION_NUMBER + 1;
+         n <= highest_used_region_number;
+         n++) {
+      if (mem_region_table[n] == NULL) {
+        /* This memory has already been freed. */
+      } else {
+        a_scope_ptr sp = il_header.region_scope_entry[n];
+        if (sp->kind != (a_scope_kind)sck_file
+#if DO_IL_LOWERING
+            && !il_entry_prefix_of(sp).il_lowering_flag
+#endif /* DO_IL_LOWERING */
+                                                       ) {
+          finish_function_body_processing(sp, /*discard_function_body=*/FALSE);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
 
@@ -2718,7 +2602,7 @@ primary IL.)
          primary IL, and process them too. */
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
-           ++n) {
+           n++) {
         if (mem_region_is_primary_func_scope(n)) {
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
@@ -2765,6 +2649,9 @@ primary IL.
          them on the lists.  For example, the type "pointer to int"
          wouldn't necessarily have a copy address here, but A<int>
          must. */
+      /* Basically, primary_il_entry_of can do the copy, but we
+         do some extra checking here to make sure that we're not
+         copying things that should have been copied already. */
 #if CHECKING
       /* Check whether the entity is okay. */
       { a_boolean                err = FALSE;
@@ -2810,8 +2697,8 @@ primary IL.
         }  /* if */
       }
 #endif /* CHECKING */
+      new_ptr = primary_il_entry_of(old_ptr, kind);
     }  /* if */
-    new_ptr = primary_il_entry_of(old_ptr, kind);
   }  /* if */
   return new_ptr;
 }  /* remap_secondary_pointer */
@@ -2857,9 +2744,9 @@ before lowering and needed flag marking of the primary IL.
 
   db_enter(1,
            "rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary");
+  check_assertion(is_primary_translation_unit);
   if (primary_il_may_reference_other_trans_units) {
     a_boolean first_pass = TRUE;
-    switch_translation_unit(translation_units);
     /* Do two passes so that the il_walk_flag returns to its original value. */
     for (;;) {
       a_remap_function_ptr remap_func = NULL;
@@ -2873,7 +2760,7 @@ before lowering and needed flag marking of the primary IL.
          primary IL, and process them too. */
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
-           ++n) {
+           n++) {
         if (mem_region_is_primary_func_scope(n)) {
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
@@ -2886,27 +2773,6 @@ before lowering and needed flag marking of the primary IL.
       if (!first_pass) break;
       first_pass = FALSE;
     }  /* for */
-#if DO_IL_LOWERING
-    if (any_lowering_needed()) {
-      /* Do any required lowering etc. that wasn't done earlier on
-         function bodies in the primary IL.  Lowering is delayed on
-         some instantiations in the primary translation unit when
-         there are exported templates so that we can rewrite any
-         references to secondary translation unit entities before
-         the lowering is done. */
-      for (n = FILE_SCOPE_REGION_NUMBER + 1;
-           n <= highest_used_region_number;
-           ++n) {
-        if (mem_region_is_primary_func_scope(n)) {
-          a_scope_ptr sp = il_header.region_scope_entry[n];
-          if (!il_entry_prefix_of(sp).il_lowering_flag) {
-            finish_function_body_processing(sp,
-                                            /*discard_function_body=*/FALSE);
-          }  /* if */
-        }  /* if */
-      }  /* for */
-    }  /* if */
-#endif /* DO_IL_LOWERING */
   }  /* if */
   db_exit();
 }  /* rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary */
