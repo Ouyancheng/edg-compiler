@@ -15,7 +15,6 @@ and destructors.
 */
 
 #include <stddef.h>
-#include <osfcn.h>
 #include "main.h"
 #include "static_init.h"
 

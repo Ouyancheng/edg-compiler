@@ -17,7 +17,6 @@ Declarations relating to main.c -- program startup and termination.
 #define MAIN_H 1
 
 #include <stddef.h>
-#include <osfcn.h>
 
 	
 /*

@@ -15,13 +15,15 @@ static_init.c -- called by _main to handle calling of static constructors
 */
 
 #include <stddef.h>
-#include <osfcn.h>
+#include <stdlib.h>
 #include "static_init.h"
 #include "main.h"
+#include "config.h"
 
 #if DEBUG
 #include <stdio.h>
-#endif
+#endif /* DEBUG */
+
 
 /*
 Indicates whether the executable is set up to use the "patch" method
@@ -64,6 +66,34 @@ the executable has been processed using the "patch" or "munch" system.
 }  /* __call_dtors */
 
 
+#if !defined(sun) && USE_ATEXIT == 0
+/* Declare low-level routine or system call that exits a process. */
+extern "C" void _exit(int status);
+
+
+void exit(int status)
+/*
+This is used on systems that don't support an protocol such as the 
+ANSI C "atexit" or the SunOS "on_exit" functions.  This version of exit
+should be used instead of the normal OS exit routine.  Which means that
+the library containing this routine needs to be linked in ahead of
+the standard C library (such as libc.a).  Using this version of exit
+means that some processing done my special versions of exit (such as the
+profiling version) will not be done.
+*/
+{
+  __call_dtors();
+  _exit(status);
+}  /* exit */
+#endif /* !defined(sun) && USE_ATEXIT == 0 */
+
+
+#ifdef sun
+/* Used to register a function to be called by exit to do wrapup
+   processing. */
+extern "C" void on_exit(void (*)(), char *);
+#endif /* sun */
+
 
 void __call_ctors()
 /*
@@ -86,7 +116,7 @@ call the static initializer functions.
   use_patch_info = (__head != NULL);
 #if DEBUG
   fprintf(stderr, "Using patch=%d\n", use_patch_info);
-#endif
+#endif /* DEBUG */
 
   if (use_patch_info) {
     /* Walk through the linked list of constructor/destructor function
@@ -123,7 +153,11 @@ call the static initializer functions.
 
   /* Establish that the termination routines should be called when exit()
      is called or when main() returns normally. */
+#ifdef sun
   on_exit(__call_dtors, (char *)NULL);
+#elif USE_ATEXIT
+  atexit(__call_dtors);
+#endif /* sun */
 }  /* __call_ctors */
 
 

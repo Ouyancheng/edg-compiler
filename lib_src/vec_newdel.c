@@ -14,6 +14,8 @@ C++ runtime routines to provide vector new() and delete() functionality.
 */
 
 #include <stdlib.h>
+#include "main.h"
+#include "config.h"
 
 /*
 For arrays, _vec_new() and _vec_delete() will maintain a linked list of 
