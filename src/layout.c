@@ -1263,7 +1263,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
 #if IA64_ABI
       if (emulate_gnu_abi_bugs && container_alignment > container_size) {
         container_size = container_alignment;
-      }  /* *if */
+      }  /* if */
 #endif /*IA64_ABI */
     }  /* if */
   }  /* if */
