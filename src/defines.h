@@ -330,6 +330,8 @@ switches before this point.
 #endif /* ifdef IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* ABI_COMPATIBILITY_VERSION */
 
+/* Options for FlexeLint. */
+/*lint -esym(767,fread_with_check)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *
