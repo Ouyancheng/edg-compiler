@@ -1,5 +1,16 @@
 Version 3.1
 
+1/15/03  "||" or "&&" expression with dependent second operand should
+         be considered dependent
+
+A "||" or "&&" expression where the second operand is not evaluated
+because the first determines the result can still be value-dependent
+according to the standard if the second operand is value-dependent,
+e.g., if it is a template parameter.  This can have an effect if
+the expression is used in a call inside a template.  Now, such
+an expression is considered dependent.  (There's some question about
+whether this is what the standard should say, but it is clear.)
+
 1/14/03  Partial specialization fails to match template template parameter
 
 As a result of a bug in template argument deduction, partially specialized
