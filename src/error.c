@@ -921,7 +921,7 @@ error code.
       break;
     case ec_paren_initialization_not_allowed:
       m =
-        "initialization with \"(...)\" is not allowed -- no constructor exists";
+       "initialization with \"(...)\" is not allowed -- no constructor exists";
       break;
     case ec_brace_initialization_not_allowed:
       m = "initialization with \"{...}\" is not allowed for this object";
@@ -942,7 +942,16 @@ error code.
       m = "copy constructor is inaccessible";
       break;
     case ec_no_default_constructor:
-      m = "no default constructor exists for this class";
+      m = "no default constructor exists for class \"%s\"";
+      break;
+    case ec_not_a_field_or_base_class:
+      m = "not a nonstatic data member or base class of class \"%s\"";
+      break;
+    case ec_indirect_nonvirtual_base_class_not_allowed:
+      m = "indirect nonvirtual base class not allowed";
+      break;
+    case ec_no_constructor:
+      m = "no constructor exists for class \"%s\"";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
