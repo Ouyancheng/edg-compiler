@@ -1,5 +1,11 @@
 Version 2.24
 
+6/25/94 Implicit conversions between pointers to interchangeable types in C++
+
+Implicit conversions between pointers to interchangeable types (e.g.,
+"unsigned char *" --> "char *" are no longer allowed in C++ mode.  They are
+still allowed in C mode, with a warning.
+
 6/24/94 f().i is, once again, an rvalue
 
 Undoing a change of 5/4/93, f().i is once again an rvalue.  This had been
