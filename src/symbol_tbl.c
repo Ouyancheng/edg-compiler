@@ -602,7 +602,7 @@ and indentation is the indentation desired.
 }  /* db_symbol */
 
 
-static void db_scope_kind(a_scope_kind sck)
+static int db_scope_kind(a_scope_kind sck)
 /*
 Put out a scope kind name (for debugging).
 */
@@ -621,6 +621,7 @@ Put out a scope kind name (for debugging).
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);
+  return strlen(s);
 }  /* db_scope_kind */
 
 
@@ -631,20 +632,27 @@ Dump the entire scope stack (for debugging).
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_boolean                done = FALSE;
+  int                      len;
 
   do {
-    fprintf(f_debug, "%s%d ",
+    fprintf(f_debug, "%s%3d ",
             (ssep == &scope_stack[decl_scope_level]) ? "**" : "  ",
             ssep->number);
-    db_scope_kind(ssep->kind);
-    fputs(": ", f_debug);
+    len = db_scope_kind(ssep->kind);
+    fprintf(f_debug, "%-*s", 25-len, "");
     switch (ssep->kind) {
+      case sck_function:
+        if (ssep->il_scope == NULL) {
+          fprintf(f_debug, "null IL scope");
+        } else {
+          db_name(&ssep->il_scope->variant.routine.ptr->source_corresp);
+        }  /* if */
+        break;
       case sck_file:
         done = TRUE;
-      case sck_function:
       case sck_block:
-        if (ssep->il_scope != NULL) {
-          fprintf(f_debug, "%snull IL scope", ssep->il_scope ? "non" : "");
+        if (ssep->il_scope == NULL) {
+          fprintf(f_debug, "null IL scope");
         }  /* if */
         break;
       case sck_class_struct_union:
@@ -661,8 +669,7 @@ Dump the entire scope stack (for debugging).
             case sk_function_template: s = "<function-template>"; break;
             default:                   s = "<BAD SYMBOL KIND>";   break;
           }  /* switch */
-          fprintf(f_debug, "template = %s %s", s,
-                  ssep->template_sym->header->identifier);
+          fprintf(f_debug, "%s %s", s, ssep->template_sym->header->identifier);
         }  /* if */
         break;
       case sck_template_declaration:
@@ -4893,6 +4900,11 @@ must be NULL in other cases.
       is_scope_kind_that_affects_access_control(kind)) {
     depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
   }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    db_scope_stack();
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
   return sp;
 }  /* push_scope */
@@ -5371,7 +5383,7 @@ End a name scope by popping an entry off the scope stack.
         (void)fputc('"', f_debug);
       } else {
         fputs(", kind = ", f_debug);
-        db_scope_kind(kind);
+        (void)db_scope_kind(kind);
       }  /* if */
       (void)fputc('\n', f_debug);
     }  /* if */
