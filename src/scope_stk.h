@@ -565,6 +565,16 @@ typedef struct a_scope_stack_entry {
 			   of pushing the instantiation context began.
 			   This is used to determine how many scopes should
 			   be popped when the instantiation scope is popped. */
+  a_scope_depth	saved_innermost_scope_that_affects_access;
+			/* This field is used in the last scope pushed when
+			   a template instantiation scope is pushed.  It is
+			   used to store the depth of the innermost scope
+			   that affects access control when the template
+			   instantiation scope was pushed.  This is needed
+			   because the values in the scope stack that are
+			   normally used to restore this value are altered
+			   by the routines that create the instantiation
+			   context. */
   a_template_cache_segment_ptr
 		first_template_cache_segment;
 			/* Pointer to the first template cache segment entry

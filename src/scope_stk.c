@@ -940,6 +940,7 @@ to the declaration information for the template declaration scope being pushed.
   ssep->instantiation_common_depth = NO_SCOPE_DEPTH;
   ssep->saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
   ssep->orig_depth               = NO_SCOPE_DEPTH;
+  ssep->saved_innermost_scope_that_affects_access = NO_SCOPE_DEPTH;
   ssep->first_template_cache_segment = NULL;
   ssep->last_template_cache_segment = NULL;
   ssep->class_def_state          = NULL;
@@ -1867,6 +1868,7 @@ scopes.
   a_scope_depth			definition_depth;
   a_scope_depth			after_definition_depth;
   a_scope_depth			orig_depth = depth_scope_stack;
+  a_scope_depth			saved_innermost_scope_that_affects_access;
   a_namespace_ptr		reference_nsp;
   a_boolean			is_template = FALSE;
   a_template_decl_info_ptr	enclosing_tdip;
@@ -1882,6 +1884,8 @@ scopes.
      the flag that indicates whether we are within a function scope. */
   inside_local_class = FALSE;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  saved_innermost_scope_that_affects_access =
+                         depth_of_innermost_scope_that_affects_access_control;
   /* Determine whether the bottom-level entity is a template.  In some
      cases the only instantiation scopes that are pushed are ones
      that make up the context for the definition of an entity.  This
@@ -1982,9 +1986,18 @@ scopes.
        instantiation. */
     scope_stack[depth_scope_stack].nested_instantiation = TRUE;
   }  /* if */
-  /* Save the original scope depth in the last scope pushed by this
-     routine.  This will be used later when popping the stack. */
-  scope_stack[depth_scope_stack].orig_depth = orig_depth;
+  { a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
+    /* Save the original scope depth in the last scope pushed by this
+       routine.  This will be used later when popping the stack. */
+    ssep->orig_depth = orig_depth;
+    /* Save the original value of the depth of the innermost scope that affects
+       access control.  This is necessary because the scope fixup routine
+       may adjust some of the next scope that affects access control links
+       in the scope stack resulting in an incorrect value for the global
+       variable after the instantiation scopes have been popped. */
+    ssep->saved_innermost_scope_that_affects_access =
+                                    saved_innermost_scope_that_affects_access;
+  }
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
     fprintf(f_debug, "Pushed instantiation scope for: ");
@@ -2008,8 +2021,11 @@ push_template_instantiation_scope.
 */
 {
   a_scope_depth			orig_depth;
+  a_scope_depth			saved_innermost_scope_that_affects_access;
 
   orig_depth = scope_stack[depth_scope_stack].orig_depth;
+  saved_innermost_scope_that_affects_access =
+      scope_stack[depth_scope_stack].saved_innermost_scope_that_affects_access;
   check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
                        "pop_template_instantiation_scope:",
                        "invalid orig_depth");
@@ -2017,6 +2033,14 @@ push_template_instantiation_scope.
      which is the depth before any of the instantiation context scopes were
      pushed. */
   while (orig_depth < depth_scope_stack) pop_scope();
+  /* Restore the original value of the depth of the innermost scope that
+     affects access control.  This is necessary because the scope fixup
+     routine used when an instantiation scope is pushed may adjust some
+     of the next scope that affects access control links in the scope stack
+     resulting in an incorrect value for the global variable after the
+     instantiation scopes have been popped. */
+  depth_of_innermost_scope_that_affects_access_control =
+                                    saved_innermost_scope_that_affects_access;
   /* Reset the active using list flags to the values specified by
      the previous scope stack entries. */
   set_active_using_list_scope_depths(depth_scope_stack,
