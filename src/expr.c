@@ -1198,7 +1198,7 @@ remove it later, as this routine takes care of that.
     if (constructor_sym->kind != (a_symbol_kind)sk_overloaded_function) {
       internal_error("scan_ctor_arguments: sym not function");
     }  /* if */
-#endif
+#endif  /* CHECKING */
     /* Constructor is overloaded. */
     overloaded_function_case = TRUE;
     routine_type = NULL;
@@ -6892,9 +6892,14 @@ the current function.
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS);
-  /* Convert to the required type. */
-  prep_return_operand(&result, required_type,
-                      (an_expression_kind)ek_normal, err_code);
+  /* The required type can be void if we are in cfront mode.  If it is
+     void just take the expression as we found it -- don't try to
+     convert it to void. */
+  if (!is_void_type(required_type)) {
+    /* Convert to the required type. */
+    prep_return_operand(&result, required_type,
+                        (an_expression_kind)ek_normal, err_code);
+  }  /* if */
   expression = make_node_from_operand(&result);
   /* If generating cross-reference information, flush out the references
      for the current expression now.  If we are not generating such
@@ -6996,7 +7001,7 @@ C++ mode.
   /* Check that expression is integral. */
 #if 0
   /* Should conversions be allowed here? */
-#endif
+#endif  /* 0 */
   (void)check_integral_operand(&result);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;

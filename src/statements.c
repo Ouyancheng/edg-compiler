@@ -1312,19 +1312,24 @@ See also 3.6.6.4.
 */
 {
   register a_statement_ptr sp;
+  register an_expr_node_ptr
+                           return_expr = NULL;
   a_routine_ptr            rout;
   a_type_ptr               return_type, routine_type;
+  a_boolean                void_return_used = FALSE;
+  a_seq_number             return_seq;
+  a_seq_number             expr_seq;
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
-  /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_return);
   /* Ignore the initial "return". */
 #if CHECKING
   if (curr_token != tok_return) {
     internal_error("return_statement: expected return");
   }  /* if */
 #endif /* CHECKING */
+  /* Save the position of the beginning of the return statement. */
+  return_seq = pos_curr_token.seq;
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* Get a pointer to the current routine entry. */
@@ -1336,7 +1341,7 @@ See also 3.6.6.4.
     if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
       /* In a constructor the user may not specify a return value.  However,
          the IL contains code to return the "this" variable. */
-      sp->expr = this_param_value_expr();
+      return_expr = this_param_value_expr();
     }  /* if */
   } else {
     /* The expression is present. */
@@ -1349,13 +1354,39 @@ See also 3.6.6.4.
       error(ec_value_returned_in_constructor);
       return_type = error_type();
     } else if (is_void_type(return_type)) {
-      /* A void function may not return a value. */
-      error(ec_value_returned_in_void_function);
-      return_type = error_type();
+      /* A void function may not return a value.  Accept with a warning
+         in cfront compatibility mode. */
+      if (cfront_compatibility_mode) {
+        warning(ec_value_returned_in_void_function);
+        void_return_used = TRUE;
+      } else {
+        error(ec_value_returned_in_void_function);
+        return_type = error_type();
+      }  /* if */
     }  /* if */
+    /* Save the position of the start of the expression.  This is used
+       if we need to create a new statement for the expression on
+       a return in a void function in cfront mode. */
+    expr_seq = pos_curr_token.seq;
     /* Scan the return expression and convert it to the function type. */
-    sp->expr = scan_return_expression(return_type, ec_bad_return_value_type);
+    return_expr = scan_return_expression(return_type,
+                                         ec_bad_return_value_type);
   }  /* if */
+  /* If a return expression was found in a void function (which is allowed
+     in cfront mode) generate an expression statement that is output
+     before the return statement.  This is done to prevent generating
+     and return statement in the IL that has a void type and yet contains
+     a return expression. */
+  if (void_return_used && return_expr != NULL) {
+    sp = add_statement((a_statement_kind)stmk_expr);
+    sp->expr = return_expr;
+    sp->seq_number = expr_seq;
+    return_expr = NULL;
+  }  /* if */
+  /* Allocate the return statement. */
+  sp = add_statement((a_statement_kind)stmk_return);
+  sp->expr = return_expr;
+  sp->seq_number = return_seq;
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
