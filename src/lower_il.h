@@ -384,11 +384,6 @@ EXTERN a_scope_ptr
 EXTERN a_context_ptr
 		file_scope_context;
 			/* The context for the file scope. */
-EXTERN unsigned long
-		num_conditional_exprs_inside_of;
-			/* Count of conditional parts of expressions that we
-			   are inside of.  Incremented on entering conditional
-			   operands of "?:", "&&", and "||". */
 EXTERN an_expr_node_ptr
 		curr_full_expression;
 			/* If doing IL lowering inside an expression, this
