@@ -562,6 +562,7 @@ and before the back end (if any) is executed.
   clear_file_index_list();
 
   in_front_end = FALSE;
+  curr_translation_unit = NULL;
 
   db_exit();
 }  /* fe_wrapup */

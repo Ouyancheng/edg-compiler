@@ -2136,7 +2136,16 @@ Set module_id to the string.
   /* Only generate the module ID the first time that this routine is called
      for a given translation unit. */
   if (module_id == NULL) {
-    file_name = curr_translation_unit->source_file->file_name;
+    if (in_front_end) {
+      /* In the front end proper, we may be using multiple translation units.
+         In that case, it is necessary to use the source file associated
+         with the current translation unit. */
+      file_name = curr_translation_unit->source_file->file_name;
+    } else {
+      /* In the back end, there is no longer a concept of multiple translation
+         units. */
+      file_name = il_header.primary_source_file->file_name;
+    }  /* if */
     /* Find an externally visible variable or routine definition whose name
        can be used as part of the module ID. */
     for (variable = scope->variables;
