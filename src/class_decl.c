@@ -4419,7 +4419,8 @@ for the cfront compatibility case.
       }  /* if */
     }  /* if */
     if (found) {
-      /* Check the qualifiers. */
+      /* Check the qualifiers.  (Call get_top_level_type_qualifiers instead
+         of get_type_qualifiers because we know tp cannot be an array.) */
       *qualifiers = get_top_level_type_qualifiers(tp);
     }  /* if */
   }  /* if */
@@ -7489,9 +7490,8 @@ completed (C++ only).
               curr_routine_fixup->symbol = typedef_sym_ptr;
             }  /* if */
           } else if (mutable_specified &&
-                     get_type_qualifiers(local_type) == TQ_CONST) {
-            /* "mutable" and top-level const "const" are not allowed
-               together. */
+                     is_const_qualified_type(local_type)) {
+            /* "mutable" and top-level "const" are not allowed together. */
             pos_error(ec_mutable_not_allowed, &decl_start_pos);
           } else if (curr_token == tok_assign && !C_mode() &&
                      ((is_scalar_type(local_type) &&
