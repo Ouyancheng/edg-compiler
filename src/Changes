@@ -2,11 +2,11 @@ Version 3.5
 
 9/30/04  Embedded C: fixed-point rounding change
 
-If a fixed-point value falls half way between the two closest
-representable values, the front end would round it to the
-representation in which the last bit is zero.  This has been changed
-to always round up, so that values folded at compile time would match
-values computed at runtime by the Dinkumware library routines.
+If a fixed-point value falls half way between the two closest representable
+values, the front end would round it to the representation in which the
+last bit is zero.  This has been changed to always round up, so that values
+folded at compile time would match values computed at runtime by the
+Dinkumware library routines.
 
 9/30/04  C++-generating back end: typedef members of instances of class
          templates
