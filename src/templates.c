@@ -13308,9 +13308,20 @@ differs between function and nonfunction declarations.
                                            decl_state->is_template_friend;
   /* Determine the nesting depth of this template declaration.  Templates
      not enclosed within other templates are given a depth of "1".  The
-     depth is incremented for each successive template declaration. */
-  decl_state->nesting_depth =
-                decl_state->is_template_friend ? 0 : template_nesting_depth();
+     depth is incremented for each successive template declaration.  Friend
+     declarations are normally restarted at a depth of "1" (the depth set here
+     is incremented before used).  This is suppressed inside prototype
+     instantiations because the outer template parameters must be distinct
+     from those of the template when prototype instantiations are put in
+     the IL.  This special processing is okay because a friend in a prototype
+     instantiation is never matched up with an existing declaration of a 
+     template. */
+  if (decl_state->is_template_friend &&
+      !decl_state->in_prototype_instantiation) {
+    decl_state->nesting_depth = 0;
+  } else {
+    decl_state->nesting_depth = template_nesting_depth();
+  }  /* if */
 }  /* decl_level_of_template */
 
 
