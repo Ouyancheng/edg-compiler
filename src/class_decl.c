@@ -5175,7 +5175,6 @@ of the function, and again overloading is a possibility.
     /* Template dependent friend declarations should only be encountered in
        prototype instantiation scopes, but severe syntax errors can get us
        here nonetheless.  In that case we just skip the friend processing. */
-    check_assertion(total_errors > 0);
     set_to_named_error_locator(*locator);
   }  /* if */    
   if (!is_error_locator(*locator)) {
