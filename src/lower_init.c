@@ -981,7 +981,6 @@ TRUE, the entity is the destination of an initialization operation.
   an_expr_node_ptr entity_node;
 
   /* Make a node for the base address. */
-  check_assertion(ipdp->variable != NULL);
 #if !DO_FULL_PORTABLE_EH_LOWERING
   if (ipdp->thrown_object_address) {
     /* The address is the address in the runtime to which a thrown object
@@ -994,9 +993,11 @@ TRUE, the entity is the destination of an initialization operation.
   /* Do not insert code here; this is the else of the above if. */
   if (ipdp->indirect_through_variable) {
     /* Indirect through the variable. */
+    check_assertion(ipdp->variable != NULL);
     entity_node = var_rvalue_expr(ipdp->variable);
   } else {
     /* Normal case, a simple variable. */
+    check_assertion(ipdp->variable != NULL);
     entity_node = var_lvalue_expr(ipdp->variable);
     /* If we will be using this expression as an address, set the address-taken
        flag in the variable. */
