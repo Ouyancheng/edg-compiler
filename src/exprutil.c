@@ -4679,9 +4679,8 @@ be used (e.g., eok_negate, not eok_inegate).
   if (op == (an_expr_operator_kind)eok_address &&
       is_constant_operand(operand)) {
     /* "&" operator, which cannot be folded the usual way. */
-    check_assertion(is_an_lvalue(operand));
     copy_operand(operand, result);
-    take_address_of_lvalue(result);
+    if (is_an_lvalue(operand)) take_address_of_lvalue(result);
   } else {
     do_unary_operation(op, op_token, operand,
                        type_of_unknown_templ_param_nontype,
