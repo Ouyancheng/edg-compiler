@@ -1650,9 +1650,15 @@ whose offset is less than 16, and to every base class subobject of F whose
 offset is zero.
 */
 {
-  a_boolean  result = FALSE;
+  a_boolean    result = FALSE;
+  a_field_ptr  first_field = class_type->variant.class_struct_union.field_list;
 
-  if (class_type->variant.class_struct_union.field_list == field) {
+  /* Leading zero-length bit fields are not considered. */
+  while (first_field != NULL && first_field->is_bit_field &&
+         first_field->bit_size == 0) {
+    first_field = first_field->next;
+  }  /* while */
+  if (first_field == field) {
     a_base_class_ptr  bcp = base_classes_of(class_type);
     for (; bcp != NULL; bcp = bcp->next) {
       /* Examine every empty base class subobject that has no empty base class
