@@ -1894,6 +1894,10 @@ in C99 mode to represent a compound literal.
     stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
     stmk_vla_decl_stmt->variant.vla.variant.variable = var;
     add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+    /* After lowering, the type will no longer be variably-modified. */
+    var->has_variably_modified_type = FALSE;
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   }  /* if */
   if (keep_dynamic_init) {
     add_stmk_init_for_compound_literal(var, dip);
