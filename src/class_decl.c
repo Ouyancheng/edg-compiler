@@ -3324,8 +3324,11 @@ special function kind (e.g., constructor, destructor), if any.
                            (a_boolean)func_info->is_inline, is_virtual,
                            &locator->source_position);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
-                                &locator->source_position, declarator_ssep);
+    if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+        depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
+                                  &locator->source_position, declarator_ssep);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     sym->class_of_which_a_member = class_type;
@@ -4037,8 +4040,11 @@ class, struct, or union.
        entities (see sym_update_source_sequence_list, called for fields
        from mark_defined).  An exception is made for unnamed fields; call
        the subroutine directly. */
-    update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
-                                &locator->source_position, ssep);
+    if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+        depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+      update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
+                                  &locator->source_position, ssep);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (!is_anonymous_union) {
     /* Create the field symbol. */
