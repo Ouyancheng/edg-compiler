@@ -3796,14 +3796,18 @@ prototype instantiation is considered as a potential match.
     ctsp->template_arg_list = *new_list;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (prototype_instantiations_in_il) {
-      if (prototype_sym != NULL) {
-        ctsp->assoc_template = prototype_sym->variant.class_struct_union.type;
+      /* For certain classes (like X<int>::Y<T>) the prototype instantiation
+         must be fetched from the prototype template (e.g., X<T>::Y).  Hence
+         we cannot just use prototype_sym. */
+      a_symbol_ptr  proto_template = prototype_template_of(class_template_sym);
+      a_symbol_ptr  proto_instantiation =
+               proto_template->variant.template_info
+                             ->variant.class_template.prototype_instantiation;
+      if (proto_instantiation != NULL) {
+        ctsp->assoc_template = proto_instantiation
+                                            ->variant.class_struct_union.type;
       } else {
-        /* FIXME Re-examine nonerror cases with new template template parameter
-           representation. */
-        check_assertion(total_errors != 0 ||
-                        tssp->is_nonreal_member ||
-                        tssp->variant.class_template.template_template_param);
+        check_assertion(total_errors != 0);
       }  /* if */
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -10995,8 +10999,9 @@ set, and its source sequence entry, if any, has been put out.)
       if (!err && prototype_instantiations_in_il) {
         /* Make the a_template IL entry point to the prototype instantiation.
            */
+        a_symbol_ptr proto_sym = prototype_template_of(sym);
         a_template_symbol_supplement_ptr tssp =
-                                          template_supplement_for_symbol(sym);
+                                    template_supplement_for_symbol(proto_sym);
         switch (il_template_entry->kind) {
           case templk_class:
           case templk_member_class:
