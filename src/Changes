@@ -1,5 +1,23 @@
 Version 2.42
 
+6/25/99  IL lowering: promotion of class in function in class in namespace
+
+The type promotion code in IL lowering did not work correctly for
+a local class in a member function of a class that is the last type
+in a namespace.  One possible consequence of this problem is an
+abort in define_scope_class_typeinfo_vars.  Now fixed.
+
+  namespace A {
+    struct B {
+      void* f () {
+        struct C {
+          virtual void g() {}
+        };
+        return new C;
+      }
+    };
+  }
+
 6/24/99  Microsoft compatibility: multiple initializers for scalars
 
 In Microsoft bugs mode, the following is accepted and prints "f(0)123".

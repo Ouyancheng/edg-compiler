@@ -11465,7 +11465,7 @@ have been promoted out of those classes.
      a placeholder for a namespace type is encountered, move the namespace
      type to the file scope list in place of the placeholder.  Namespace
      types without associated placeholders (e.g., types promoted out of
-     classes into the namespace) as moved to the file scope list ahead of
+     classes into the namespace) are moved to the file scope list ahead of
      the next namespace type with a placeholder. */
   prev_type = NULL;
   for (type = il_header.primary_scope->types;
@@ -11480,7 +11480,7 @@ have been promoted out of those classes.
     } else {
       /* A placeholder typeref for a namespace type. */
       a_type_ptr      namespace_type = type->variant.typeref.type;
-      a_type_ptr      temp_type, temp_type_next;
+      a_type_ptr      temp_type, temp_type_next, stop_type;
       a_namespace_ptr nsp;
       a_scope_ptr     scope;
 #if DEBUG
@@ -11506,6 +11506,30 @@ have been promoted out of those classes.
            types list of the namespace is updated on each of these promotions,
            the types preceding the namespace_type should only be types without
            associated placeholders. */
+        /* Determine the type on which to stop.  Usually it is
+           namespace_type, but there may be some other types following
+           that that should be copied. */
+        stop_type = namespace_type;
+        /* If the type is followed by its type-as-subobject, move that too. */
+        if (is_immediate_class_type(namespace_type) &&
+            namespace_type->next != NULL &&
+            namespace_type->variant.class_struct_union.extra_info->
+                                   type_as_subobject == namespace_type->next) {
+          stop_type = namespace_type->next;
+        }  /* if */
+        /* If there are no more types with placeholders following this one,
+           all the types following should be copied.  This comes up with
+           local types promoted out of the last class type in a namespace. */
+        for (temp_type = stop_type->next;
+             ;
+             temp_type = temp_type->next) {
+          if (temp_type == NULL) {
+            stop_type = NULL;
+            break;
+          } else if (temp_type->referenced_by_namespace_placeholder_typeref) {
+            break;
+          }  /* if */
+        }  /* for */
         for (temp_type = scope->types;
              /* Termination test in loop. */;
              temp_type = temp_type_next) {
@@ -11533,17 +11557,17 @@ have been promoted out of those classes.
             /* Discard this placeholder typeref. */
           } else {
             /* Move this type. */
-            if (prev_type == NULL) {
 #if DEBUG
-              if (debug_level >= 4) {
-                if (temp_type != namespace_type) {
-                  fputs("Moving intervening type to file-scope types list: ",
-                        f_debug);
-                  db_abbreviated_type(temp_type);
-                  fputc('\n', f_debug);
-                }  /* if */
+            if (debug_level >= 4) {
+              if (temp_type != namespace_type) {
+                fputs("Moving intervening type to file-scope types list: ",
+                      f_debug);
+                db_abbreviated_type(temp_type);
+                fputc('\n', f_debug);
               }  /* if */
+            }  /* if */
 #endif /* DEBUG */
+            if (prev_type == NULL) {
               add_to_front_of_file_scope_types_list(temp_type);
             } else {
               temp_type->next = prev_type->next;
@@ -11553,17 +11577,7 @@ have been promoted out of those classes.
             scope->types = temp_type_next;
           }  /* if */
           /* Stop on reaching the type pointed to by the placeholder. */
-          if (temp_type == namespace_type) {
-            /* If the type is followed by its type-as-subobject, go around
-               once more to move that too. */
-            if (is_immediate_class_type(temp_type) && temp_type_next != NULL &&
-                temp_type->variant.class_struct_union.extra_info->
-                                         type_as_subobject == temp_type_next) {
-              namespace_type = temp_type_next;
-            } else {
-              break;
-            }  /* if */
-          }  /* if */
+          if (temp_type == stop_type || temp_type_next == NULL) break;
         }  /* for */
       }  /* if */
       /* Remove the placeholder type entry from the list.  It's just
