@@ -1,5 +1,14 @@
 Version 2.46
 
+9/20/01  #warning directive
+
+The front end now supports a #warning directive that is similar to #error,
+except that it generates a warning instead of a catastrophic error.
+
+  #warning Issue this warning
+
+This new directive is not recognized in strict ANSI mode.
+
 9/20/01  Abort on unlowered specialization of a member of a class template
 
 The front end used to abort when attempting to eliminate the source sequence

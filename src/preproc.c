@@ -160,6 +160,9 @@ the "#" the current token (at least logically).
     } else if (curr_id_is("error")) {
       /* #error directive. */
       kind = ppd_error;
+    } else if (!strict_ansi_mode && curr_id_is("warning")) {
+      /* #warning directive. */
+      kind = ppd_warning;
 #if IDENT_DIRECTIVE_AND_PRAGMA
     } else if (curr_id_is("ident")) {
       /* #ident directive. */
@@ -1215,6 +1218,20 @@ does not return.
 }  /* proc_error */
 
 
+static void proc_warning(void)
+/*
+Scan and process a #warning directive.  Similar to proc_error, but only a
+warning is issued.
+*/
+{
+  /* Produce a warning including the rest of the #warning directive. */
+  skip_white_space();
+  str_warning(ec_warning_directive, curr_char_loc);
+  /* Skip over the warning text. */
+  flush_to_newline();
+}  /* proc_warning */
+
+
 static void pass_directive_to_output(void)
 /*
 Scan a directive, passing it textually to the pp output file for
@@ -1974,6 +1991,9 @@ execute the preprocessor directive.
         break;
       case ppd_error:
         proc_error();
+        break;
+      case ppd_warning:
+        proc_warning();
         break;
       case ppd_pragma:
         proc_pragma(&start_of_dir_position);

@@ -1153,7 +1153,7 @@ ec_assigned_goto_requires_void_ptr;;"in \"goto *expr\", expr must have type \"vo
 ec_nonstd_assigned_goto;;"\"goto *expr\" is nonstandard"
 ec_nonstd_address_of_label;;"taking the address of a label is nonstandard"
 ec_cl_duplicate_file_name;;"file name specified more than once: "
-
+ec_warning_directive;;"#warning directive: %s"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
