@@ -3647,8 +3647,8 @@ operand for the value (result_is_addr == FALSE) or address (result_is_addr
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
   set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
-  dip->variant.constructor.routine = ctor_routine;
-  dip->variant.constructor.args = arg_expr_list;
+  dip->variant.ctor_or_routine.ptr = ctor_routine;
+  dip->variant.ctor_or_routine.args = arg_expr_list;
   if (result_is_addr) {
     /* Make a node for the address of the temporary. */
     return_value_node = var_lvalue_expr(temp_var);

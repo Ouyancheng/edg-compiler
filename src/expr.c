@@ -3747,8 +3747,8 @@ specification allow a variable-sized array as the top type.
       if (ctor_routine != NULL) {
         /* Constructor call. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.constructor.routine = ctor_routine;
-        dip->variant.constructor.args = arg_expr_list;
+        dip->variant.ctor_or_routine.ptr = ctor_routine;
+        dip->variant.ctor_or_routine.args = arg_expr_list;
         if (array_new) {
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate

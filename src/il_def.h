@@ -314,18 +314,22 @@ enum a_dynamic_init_kind_tag {
   dik_expression,	/* Initial value of a simple object is an
 			   expression. */
   dik_constructor,	/* Initial value of a simple object is established by
-			   a constructor call. */
+			   a constructor call.  C++ only. */
+  dik_routine,		/* Initial value of a simple object is established by
+			   a call of a routine that returns a class object
+			   via a copy constructor.  C++ only. */
   dik_nonconstant_aggregate,
 			/* Initial value of a nonconstant aggregate object
 			   (array or class) is represented by a list of
 			   constant entries (some of which will refer to
-			   nonconstants). */
+			   nonconstants).  C++ only. */
   dik_member_copy,	/* Initial value of an field of an object initialized
 			   by a copy constructor (bitwise copy of a field
-			   lacking a copy constructor). */
+			   lacking a copy constructor).  C++ only. */
   dik_base_class_copy	/* Initial value of an entire base class of an object
 			   initialized by a copy constructor (bitwise copy of
-			   a base class lacking a copy constructor). */
+			   a base class lacking a copy constructor).
+			   C++ only. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_dynamic_init_kind;
@@ -378,35 +382,32 @@ typedef struct a_dynamic_init {
     an_expr_node_ptr
 		expression;
 			/* The expression that gives the initial value. */
-    /* When kind == dik_constructor: */
+    /* When kind == dik_constructor or kind == dik_routine: */
     /* Used only in C++. */
     struct {
       a_routine_ptr
-		routine;
-			/* If non-NULL, the constructor routine to be invoked
-			   to initialize this object; if NULL, no constructor
-			   call is required. */
+		ptr;
+			/* The constructor or routine to be invoked to
+			   initialize this object. */
       an_expr_node_ptr
-		args;   /* The actual arguments (not including an implicit
-			   "this" parameter) with which the constructor should
-			   be called.  For default constructors this pointer is
-			   NULL.  It will also be NULL for copy constructors
-			   that are called to initialize subobjects by copying
-			   a corresponding subobject.  (In the latter case the
-			   argument is implicit; the address of the subobject
-			   to be copied may be computed just as the address
-			   corresponding to the implicit "this" parameter is
-			   computed. */
+		args;   /* The actual arguments with which the constructor or
+			   routine should be called, not including the
+			   argument for the destination, and, when
+			   is_copy_constructor_for_subobject is TRUE, also
+			   not including the argument for the source.
+			   NULL if there are no arguments other than the
+			   implicit one(s). */
       a_byte_boolean
 		is_copy_constructor_for_subobject;
-			/* The constructor is a copy constructor called to
+			/* The routine is a copy constructor called to
 			   initialize a subobject as part of a copy constructor
 			   operation for the object of which the subobject is
 			   a part.  A subobject is either a base class (virtual
 			   or nonvirtual) or a field (array or scalar).  The
 			   args pointer is NULL in such cases; the address of
-			   the subobject to be copied must be computed. */
-    } constructor;
+			   the subobject to be copied must be computed.
+			   FALSE for the dik_routine case. */
+    } ctor_or_routine;
   } variant;
 } a_dynamic_init;
 
