@@ -1,5 +1,14 @@
 Version 3.1
 
+10/10/02 Spurious error on partial specialization with template
+         template parameter
+
+A spurious "type of partial specialization template parameter depends on
+another template parameter" error could be issued on a partial specialization
+that has a template template parameter.  This occurred only under very
+unusual circumstances so there is no small example to illustrate the
+problem.  Now fixed.
+
 10/9/02  Typedef using operator name undiagnosed
 
 The front end now diagnoses attempts to diagnose a typedef name in

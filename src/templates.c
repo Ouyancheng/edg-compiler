@@ -9830,7 +9830,7 @@ list and template argument list of a partial specialization are valid.
     a_symbol_ptr	param_sym = tpp->param_symbol;
     a_boolean		param_used = FALSE;
     a_boolean		error_on_this_param = FALSE;
-    if (param_sym->kind != (a_symbol_kind)sk_type) {
+    if (param_sym->kind == (a_symbol_kind)sk_constant) {
       /* The type of a nontype parameter is not allowed to reference another
          template parameter. */
       if (tpp->variant.constant.type_involves_template_param) {
