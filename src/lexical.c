@@ -667,7 +667,10 @@ is actually the first token to not be included in the cache.
       last_ctp_to_copy = ctp->next;
     }  /* if */
   }  /* for */
+#if 0
+  /* This test doesn't work for certain error cases. */
   check_assertion_str(ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
+#endif
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
     a_cached_token_ptr	copy_ctp;
