@@ -1948,12 +1948,7 @@ scope is that of a class definition.
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
-        } else if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
-                   member_function_parent_type == NULL &&
-                   is_or_contains_local_type(param_type_ptr)) {
-          pos_error(ec_local_type_not_allowed, &param_type_pos);
-        }  /* if */
-        if (!is_error_type(param_type_ptr)) {
+        } else {
           /* Mark the type as referenced.  This is important for a
              parameter declaration like "struct s {int a;} p;" --
              the structure is referenced (because it's the type of "p")
@@ -4101,6 +4096,17 @@ skip_overloading:;
     /* No linkage -- e.g., an automatic variable. */
     check_assertion(source_corresp_ptr->name_linkage ==
                                                (a_name_linkage_kind)nlk_none);
+  }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    /* A variable or routine with linkage should not be declared in terms of
+       a local type. */
+    if (source_corresp_ptr->name_linkage != (a_name_linkage_kind)nlk_none) {
+      if (is_or_contains_local_type(type_ptr)) {
+        pos_warning(is_function ? ec_local_type_in_function :
+                                  ec_local_type_in_nonlocal_var,
+                    &locator->source_position);
+      }  /* if */
+    }  /* if */
   }  /* if */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
@@ -9262,15 +9268,6 @@ continue_with_declaration:
           }  /* if */
           /* Set the storage class to sc_static. */
           local_storage_class = (a_storage_class)sc_static;
-        } else if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-          a_type_ptr  return_type = skip_typerefs(local_type_ptr)->
-                                                  variant.routine.return_type;
-          if (is_or_contains_local_type(return_type)) {
-            /* A nonmember function is declared using a local type -- that
-               such a case is an error may be inferred from the one-definition
-               rule. */
-            pos_error(ec_function_returning_local_type, &decl_start_pos);
-          }  /* if */
         }  /* if */
       }  /* if */
       /* Check for restrictions on use of the "inline" specifier. */
@@ -9393,7 +9390,7 @@ continue_with_declaration:
                                            (a_scope_kind)sck_block) &&
               local_storage_class != (a_storage_class)sc_unspecified &&
               local_storage_class != (a_storage_class)sc_extern) {
-            /* Allow "static" in all C modes except strict ANSI. The function 
+            /* Allow "static" in all C modes except strict ANSI. The function
                will be entered at the file scope as static.  This is an
                extension to ANSI C.  Do not allow at all in C++ mode. */
             if (local_storage_class == (a_storage_class)sc_static) {
@@ -9439,17 +9436,11 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (!is_function) {
-          if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
-              local_storage_class == (a_storage_class)sc_extern &&
-              is_or_contains_local_type(local_type_ptr)) {
-            /* An extern variable declaration in a local scope may not
-               be declared in terms of local type. */
-            pos_error(ec_local_type_not_allowed, &decl_start_pos);
-          }  /* if */
-          if (C_dialect == C_dialect_cplusplus &&
-              is_illegal_abstract_class_type(local_type_ptr)) {
-            /* Abstract class objects are prohibited (ARM 10.3). */
-            error(ec_abstract_class_object_not_allowed);
+          if (C_dialect == C_dialect_cplusplus) {
+            if (is_illegal_abstract_class_type(local_type_ptr)) {
+              /* Abstract class objects are prohibited (ARM 10.3). */
+              error(ec_abstract_class_object_not_allowed);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
