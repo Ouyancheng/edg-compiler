@@ -860,6 +860,7 @@ ec_uninitialized_field_with_const_member;;"uninitialized %n has a const member"
 ec_uninitialized_base_class_with_const_member;;"uninitialized base class %t has a const member"
 ec_missing_default_constructor_on_const;;"const %n requires an initializer -- class %t has no explicitly declared default constructor"
 ec_missing_default_constructor_on_unnamed_const;;"const object requires an initializer -- class %t has no explicitly declared default constructor"
+ec_cl_impl_extern_c_conv_option_only_in_cplusplus;;"option \"implicit_extern_c_type_conversion\" can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
