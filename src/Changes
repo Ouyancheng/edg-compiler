@@ -1,5 +1,13 @@
 Version 2.23
 
+3/22/94 C-generating back end processing of local and prototype scope types
+
+The C-generating back end now promotes all local types to the file scope
+in the generated C code to avoid problems with extern declarations inside
+functions that make use of local types.  Types in nested prototype scopes
+are also being promoted to file scope (formerly, only the types in
+top-level prototype scopes were being promoted).
+
 3/21/94 an_orphan_il_list renamed a_scope_orphaned_list_header
 
 The IL entry called an_orphan_il_list has been renamed
