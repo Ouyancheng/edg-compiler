@@ -1,5 +1,22 @@
 Version 2.45
 
+10/10/00 Call of pointer-to-template-parameter-type in prototype instantiation
+
+A call of an entity of type pointer to T, where T is a template parameter
+type in a prototype instantiation, was incorrectly rejected in 2.44.
+This happened only when prototype instantiations of nonclass entities
+are being done, e.g., in strict mode.  Such a case should be accepted
+because the template parameter might have a function type.  Now, it is.
+
+  template<typename F> struct wrapper {
+    F* f;
+    wrapper(F* f) : f(f) {}
+    void operator()(F p) { f(); }  // Formerly got an error here
+  };
+  typedef void (fun)();
+  void f() {}
+  wrapper<fun> v(f);
+
 10/10/00 C99 _Bool type
 
 In C99 mode, the front end now recognizes the keyword _Bool and associates

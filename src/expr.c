@@ -1341,6 +1341,15 @@ Syntax:
              (p->*pmf)(1, 2);
         */
         routine_type = pm_member_type(operand->type);
+      } else if (!C_mode() &&
+                 is_template_dependent_context() &&
+                 is_pointer_type(operand->type) &&
+                 is_template_param_type(type_pointed_to(operand->type))) {
+        /* A pointer to a template parameter type, which might be a function
+           type. */
+        routine_type = NULL;
+        routine = NULL;
+        unknown_dependent_function = TRUE;
       } else if (check_function_pointer_operand(operand)) {
         routine_type = type_pointed_to(operand->type);
         /* If we can tell which routine is being called, set routine to
