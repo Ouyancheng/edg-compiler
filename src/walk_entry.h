@@ -2718,6 +2718,11 @@ after_entry_from_class:
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+#if RECORD_FORM_OF_NAME_REFERENCE
+        remap_ptr(ptr->name_reference, a_name_reference_ptr,
+                  iek_name_reference);
+
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
