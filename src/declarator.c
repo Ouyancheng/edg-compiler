@@ -322,8 +322,8 @@ type is legal.
             tp = skip_typerefs(tp);
             if (is_immediate_class_type(tp) && is_incomplete_type(tp)) {
               /* This is an array of array ... of incomplete class type.  A
-                 diagnostic may be issued in C mode, but only when the class is
-                 the immediate element type (see below). */
+                 diagnostic may be issued (see below), but this is done only
+                 when the class is the immediate element type. */
               array_of_incomp_struct_or_union = TRUE;
             }  /* if */
           }  /* if */
@@ -337,17 +337,19 @@ type is legal.
         } else if (is_immediate_class_type(temp_type)) {
           complete_class_type_is_needed(temp_type);
           if (is_incomplete_type(temp_type)) {
-            /* As an extension in C mode, allow an array of incomplete struct
-               or or union type.  In C++ this is apparently not an extension,
-               since the ARM imposes no restriction.  Obviously, the element
-               type has to be completed before the array is actually used.
-               Add the array type to a list of array types to be fixed up when
-               the class/struct/union declaration is completed. */
+            /* As an extension (in both C and C++ modes), allow an array of
+               incomplete class type.  Obviously, the element type has to be
+               completed before the array is actually used.  Add the array
+               type to a list of array types to be fixed up when the
+               class/struct/union declaration is completed. */
             array_of_incomp_struct_or_union = TRUE;
-            if (strict_ansi_mode && C_dialect != C_dialect_cplusplus) {
+            if (strict_ansi_mode) {
               diagnostic(strict_ansi_error_severity,
                          ec_bad_array_element_type);
             }  /* if */
+          } else if (is_abstract_class_type(temp_type)) {
+            error(ec_array_of_abstract_class);
+            err = TRUE;
           }  /* if */
         } else {
           /* Element type is not okay.  Select a specific error message. */
