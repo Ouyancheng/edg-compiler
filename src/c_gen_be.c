@@ -2597,109 +2597,6 @@ closing parentheses needed if any code was generated there.
 
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
-static void dump_assign(an_expr_node_ptr assign_node)
-/*
-Dump an assignment.  This is a special case because the left operand is
-an lvalue.
-*/
-{
-  an_expr_node_ptr      operand_1, operand_2;
-  an_expr_operator_kind op;
-#if SUNCC
-  a_boolean             remainder_special_case = FALSE;
-#endif /* SUNCC */
-  char                  *opstr;
-
-  operand_1 = assign_node->variant.operation.operands;
-  operand_2 = operand_1->next;
-  op = assign_node->variant.operation.kind;
-#if !C_GEN_BE_GENERATES_ANSI_C
-  /* If the field being assigned to is a bit field, generate code to
-     truncate/adjust the result of the assignment. */
-  adjust_bit_field_value(assign_node);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-  switch (op) {
-    case eok_iassign:
-    case eok_fassign:
-    case eok_passign:
-    case eok_sassign:
-      opstr = "=";
-      break;
-    case eok_imultiply_assign:
-    case eok_fmultiply_assign:
-      opstr = "*=";
-      break;
-    case eok_idivide_assign:
-    case eok_fdivide_assign:
-      opstr = "/=";
-      break;
-    case eok_remainder_assign:
-      opstr = "%=";
-#if SUNCC
-      if (operand_2->kind == (an_expr_node_kind)enk_constant &&
-          operand_2->variant.constant->kind ==
-                                            (a_constant_repr_kind)ck_integer &&
-          eqlit_integer_constant(operand_2->variant.constant, 1L)) {
-        /* The SUN cc compiler has a bug with "i %= 1" -- It generates no
-           code.  Generate "i %= (0, 1)" instead, which works. */
-        remainder_special_case = TRUE;
-      }  /* if */
-#endif /* SUNCC */
-      break;
-    case eok_iadd_assign:
-    case eok_fadd_assign:
-    case eok_padd_assign:
-      opstr = "+=";
-      break;
-    case eok_isubtract_assign:
-    case eok_fsubtract_assign:
-    case eok_psubtract_assign:
-      opstr = "-=";
-      break;
-    case eok_shiftl_assign:
-      opstr = "<<=";
-      break;
-    case eok_shiftr_assign:
-      opstr = ">>=";
-      break;
-    case eok_and_assign:
-      opstr = "&=";
-      break;
-    case eok_or_assign:
-      opstr = "|=";
-      break;
-    case eok_xor_assign:
-      opstr = "^=";
-      break;
-    default:
-      unexpected_condition_str("dump_assign: bad operator");
-  }  /* switch */
-  /* Write the left operand. */
-  dump_lvalue(operand_1);
-  /* Write the operation string and the right operand. */
-  write_space();
-  write_tok_str(opstr);
-  write_space();
-#if SUNCC
-  if (remainder_special_case) {
-    /* The Sun cc compiler has a bug with "i %= 1" -- It generates no
-       code.  Generate "i %= (0, 1)" instead, which works. */
-    write_tok_str("(0,");
-  }  /* if */
-#endif /* SUNCC */
-  dump_expr_with_parens(operand_2);
-#if SUNCC
-  if (remainder_special_case) {
-    write_tok_str(")");
-  }  /* if */
-#endif /* SUNCC */
-#if !C_GEN_BE_GENERATES_ANSI_C
-  /* If the destination is a bit field, finish off the sign-extend/truncation
-     call started earlier. */
-  end_adjust_bit_field_value(assign_node);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-}  /* dump_assign */
-
 
 static void dump_boolean_controlling_expression(an_expr_node_ptr node)
 /*
@@ -2764,9 +2661,12 @@ expression.  Check that its result_is_not_used flag is set correctly.
 
 #endif /* CHECKING */
 
-static void dump_operation(an_expr_node_ptr expr)
+
+static void dump_expr(an_expr_node_ptr expr,
+                      a_boolean        need_parens)
 /*
-Generate an expression operation.
+Generate code for the indicated expression.  Put parentheses around it if
+there's some possibility of precedence confusion and need_parens is TRUE.
 */
 {
   an_expr_node_ptr               call_argument;
@@ -2781,431 +2681,483 @@ Generate an expression operation.
 #if CHECKING
   a_param_type_ptr               param;
 #endif /* CHECKING */
+#if SUNCC
+  a_boolean                      remainder_special_case = FALSE;
+#endif /* SUNCC */
 
-  operand_1 = expr->variant.operation.operands;
-  operand_2 = operand_1->next;
-  expr_type = skip_typerefs(expr->type);
-
-  switch (expr->variant.operation.kind) {
-    /* One-operand operators. */
-    case eok_indirect:
-      dump_adding_indirection(operand_1);
-      goto done;
-    case eok_inegate:
-    case eok_fnegate:
-      opstr = "-";
-      break;
-    case eok_not:
-      write_tok_str("!");
-      dump_boolean_controlling_expression(operand_1);
-      goto done;
-    case eok_cast:
-      dump_cast(expr->type);
-      if (operand_1->kind == (an_expr_node_kind)enk_variable_address &&
-          is_array_type(operand_1->variant.variable->type)) {
-        /* A cast of the address of an array.  Optimize this case: the normal
-           expansion of the address of an array includes a cast (to "pointer
-           to array").  Skip that cast. */
-        if (annotate) {
-          start_comment();
-          write_tok_str("&");
-          end_comment();
-        }  /* if */
-        dump_variable_name(operand_1->variant.variable);
-      } else if (is_pointer_type(operand_1->type) &&
-                 is_integral_type(expr_type) &&
-                 expr_type->size < TARG_SIZEOF_POINTER) {
-        /* Casting from a pointer type to a smaller integral type.  Go by
-           way of unsigned long to avoid errors or warnings from the
-           underlying C compiler. */
-        write_tok_str("((unsigned long)");
-        dump_expr_with_parens(operand_1);
-        write_tok_str(")");
-      } else {
-        /* Normal case. */
-        dump_expr_with_parens(operand_1);
-      }  /* if */
-      goto done;
-    case eok_lvalue_cast:
-      unexpected_condition_str("dump_operation: eok_lvalue_cast as rvalue");
-    case eok_complement:
-      opstr = "~";
-      break;
-    case eok_fpost_incr:
-    case eok_ipost_incr:
-    case eok_ppost_incr:
-      /* Post-increment operators. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-      /* If the field being incremented is a bit field, generate code to
-         truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      dump_lvalue(operand_1);
-      write_tok_str("++");
-#if !C_GEN_BE_GENERATES_ANSI_C
-      end_adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      goto done;
-    case eok_ipre_incr:
-    case eok_fpre_incr:
-    case eok_ppre_incr:
-      /* Pre-increment operators. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-      /* If the field being incremented is a bit field, generate code to
-         truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      write_tok_str("++");
-      dump_lvalue(operand_1);
-#if !C_GEN_BE_GENERATES_ANSI_C
-      end_adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      goto done;
-    case eok_fpost_decr:
-    case eok_ipost_decr:
-    case eok_ppost_decr:
-      /* Post-decrement operators. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-      /* If the field being incremented is a bit field, generate code to
-         truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      dump_lvalue(operand_1);
-      write_tok_str("--");
-#if !C_GEN_BE_GENERATES_ANSI_C
-      end_adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      goto done;
-    case eok_ipre_decr:
-    case eok_fpre_decr:
-    case eok_ppre_decr:
-      /* Pre-decrement operators. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-      /* If the field being incremented is a bit field, generate code to
-         truncate/adjust the result of the assignment. */
-      adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      write_tok_str("--");
-      dump_lvalue(operand_1);
-#if !C_GEN_BE_GENERATES_ANSI_C
-      end_adjust_bit_field_value(expr);
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      goto done;
-    case eok_iadd:
-    case eok_fadd:
-    case eok_padd:
-    case eok_padd_subsc:
-      opstr = "+";
-      break;
-    case eok_isubtract:
-    case eok_fsubtract:
-    case eok_psubtract:
-    case eok_pdiff:
-      opstr = "-";
-      break;
-    case eok_imultiply:
-    case eok_fmultiply:
-      opstr = "*";
-      break;
-    case eok_idivide:
-    case eok_fdivide:
-      opstr = "/";
-      break;
-    case eok_peq:
-      pointer_comparison = TRUE;
-      /* Fall-through into following code. */
-    case eok_ieq:
-    case eok_feq:
-      opstr = "==";
-      break;
-    case eok_pne:
-      pointer_comparison = TRUE;
-      /* Fall-through into following code. */
-    case eok_ine:
-    case eok_fne:
-      opstr = "!=";
-      break;
-    case eok_pgt:
-      pointer_comparison = TRUE;
-      /* Fall-through into following code. */
-    case eok_igt:
-    case eok_fgt:
-      opstr = ">";
-      break;
-    case eok_plt:
-      pointer_comparison = TRUE;
-      /* Fall-through into following code. */
-    case eok_ilt:
-    case eok_flt:
-      opstr = "<";
-      break;
-    case eok_pge:
-      pointer_comparison = TRUE;
-      /* Fall-through into following code. */
-    case eok_ige:
-    case eok_fge:
-      opstr = ">=";
-      break;
-    case eok_ple:
-      pointer_comparison = TRUE;
-      /* Fall-through into following code. */
-    case eok_ile:
-    case eok_fle:
-      opstr = "<=";
-      break;
-    case eok_remainder:
-      opstr = "%";
-      break;
-    case eok_iassign:
-    case eok_fassign:
-    case eok_passign:
-    case eok_sassign:
-    case eok_imultiply_assign:
-    case eok_fmultiply_assign:
-    case eok_idivide_assign:
-    case eok_fdivide_assign:
-    case eok_remainder_assign:
-    case eok_iadd_assign:
-    case eok_fadd_assign:
-    case eok_padd_assign:
-    case eok_isubtract_assign:
-    case eok_fsubtract_assign:
-    case eok_psubtract_assign:
-    case eok_shiftl_assign:
-    case eok_shiftr_assign:
-    case eok_and_assign:
-    case eok_or_assign:
-    case eok_xor_assign:
-      dump_assign(expr);
-      goto done;
-    case eok_bassign:
-      /* Block assignment, generated only by IL lowering of C++ code. */
-      if (!is_aggregate_or_union_type(expr_type)) {
-        /* The copy can be done by an assignment.  (This case is here
-           for completeness; the front end doesn't actually generate any
-           of these.) */
-        dump_lvalue(operand_1);
-        write_tok_str(" = *");
-        dump_expr_with_parens(operand_2);
-      } else {
-        /* Use a block copy. */
-#if __BSD__
-        /* BSD UNIX -- use bcopy. */
-        write_tok_str("bcopy((char *)");
-        dump_expr_with_parens(operand_2);
-        write_tok_str(", (char *)");
-        dump_expr_with_parens(operand_1);
-#else  /* !__BSD__ */
-        /* System V or ANSI -- use memcpy. */
-        write_tok_str("memcpy((char *)");
-        dump_expr_with_parens(operand_1);
-        write_tok_str(", (char *)");
-        dump_expr_with_parens(operand_2);
-#endif /* __BSD__ */
-        /* Add the length of the move. */
-        { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
-          operand_1_type = skip_typerefs(operand_1_type);
-          write_tok_str(",");
-          /* No cast to size_t or the like is needed; in BSD and System V
-             the length is int, and in ANSI C the function is prototyped
-             so the conversion will be implicit. */
-          write_unsigned_num((unsigned long)operand_1_type->size);
-          write_tok_str(")");
-        }
-      }  /* if */
-      goto done;
-    case eok_subscript:
-      dump_expr_with_parens(operand_1);
-      write_tok_str("[");
-      dump_expr_with_parens(operand_2);
-      write_tok_str("]");
-      goto done;
-    case eok_field:
-      dump_ampersand(type_pointed_to(expr_type));
-      write_tok_str("(");
-      dump_lvalue(operand_1);
-      write_tok_str(".");
-      dump_field_from_second_operand(expr);
-      write_tok_str(")");
-      goto done;
-    case eok_value_field:
-      dump_rvalue_selection(expr);
-      goto done;
-    case eok_bit_field:
-      /* This operator shouldn't get past dump_lvalue. */
-      unexpected_condition_str("dump_operation: eok_bit_field as rvalue");
-    case eok_value_bit_field:
-    case eok_extract_bit_field:
-#if !C_GEN_BE_GENERATES_ANSI_C
-      field = operand_2->variant.field;
-      is_signed = field->bit_field_is_signed;
-      if (is_signed) {
-        /* Signed bit field.  Do sign extension on the unsigned bit field
-           provided by pcc. */
-        write_tok_str("(__sexten(");
-      }  /* if */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      if (expr->variant.operation.kind ==
-          (an_expr_operator_kind)eok_extract_bit_field) {
-        dump_lvalue(operand_1);
-        write_tok_str(".");
-        dump_field_from_second_operand(expr);
-      } else {
-        /* eok_value_bit_field, extraction from rvalue struct/union. */
-        dump_rvalue_selection(expr);
-      }  /* if */
-#if !C_GEN_BE_GENERATES_ANSI_C
-      if (is_signed) {
-        write_tok_str(",");
-        write_unsigned_num((unsigned long)field->bit_size);
-        write_tok_str("))");
-      }  /* if */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      goto done;
-    case eok_shiftl:
-      opstr = "<<";
-      break;
-    case eok_shiftr:
-      opstr = ">>";
-      break;
-    case eok_and:
-      opstr = "&";
-      break;
-    case eok_or:
-      opstr = "|";
-      break;
-    case eok_xor:
-      opstr = "^";
-      break;
-    case eok_comma:
-#if CHECKING
-      check_result_not_used_flag(operand_1);
-#endif /* CHECKING */
-      opstr = ",";
-      break;
-    case eok_land:
-      dump_boolean_controlling_expression(operand_1);
-      write_tok_str(" && ");
-      dump_boolean_controlling_expression(operand_2);
-      goto done;
-    case eok_lor:
-      dump_boolean_controlling_expression(operand_1);
-      write_tok_str(" || ");
-      dump_boolean_controlling_expression(operand_2);
-      goto done;
-    case eok_question:
-      /* Three operand operator. */
-      dump_boolean_controlling_expression(operand_1);
-      write_tok_str(" ? ");
-#if !C_GEN_BE_GENERATES_ANSI_C
-      /* pcc does not allow operands of "?" to be void expressions.  If they
-         are, enclose them in (expr,0). */
-      void_operand = is_void_type(operand_2->type);
-      if (void_operand) write_tok_str("(");
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      dump_expr_with_parens(operand_2);
-#if !C_GEN_BE_GENERATES_ANSI_C
-      if (void_operand) write_tok_str(",0)");
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      write_tok_str(" : ");
-#if !C_GEN_BE_GENERATES_ANSI_C
-      void_operand = is_void_type(operand_2->next->type);
-      if (void_operand) write_tok_str("(");
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      dump_expr_with_parens(operand_2->next);
-#if !C_GEN_BE_GENERATES_ANSI_C
-      if (void_operand) write_tok_str(",0)");
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      goto done;
-    case eok_call:
-      /* N operand operator. */
-      /* Put out the function to call. */
-      dump_lvalue(operand_1);
-      write_tok_str("(");
-#if CHECKING
-      /* Keep track of parameter types to check for arguments to old-style
-         functions that aren't widened. */
-      { a_type_ptr routine_type = type_pointed_to(operand_1->type);
-        routine_type = skip_typerefs(routine_type);
-        param = NULL;
-        if (routine_type->variant.routine.extra_info->prototyped) {
-          param = routine_type->variant.routine.extra_info->param_type_list;
-        }  /* if */
-      }
-#endif /* CHECKING */
-      /* Put out the arguments. */
-      for (call_argument = operand_2; call_argument != NULL;) {
-        dump_expr_with_parens(call_argument);
-#if CHECKING
-        /* Check for unwidened arguments to old-style functions. */
-        if (param != NULL) {
-          /* This argument is prototyped, so do not check it. */
-          param = param->next;
-        } else {
-          /* Unprototyped or ellipsis argument. */
-          a_type_ptr arg_type = skip_typerefs(call_argument->type);
-          if (is_integral_type(arg_type)) {
-            an_integer_kind ikind = arg_type->variant.integer.int_kind;
-            if ((int)ikind < (int)ik_int) {
-              internal_error("dump_operation: unwidened integer argument");
-            }  /* if */
-          } else if (is_floating_type(arg_type)) {
-            a_float_kind fkind = arg_type->variant.float_kind;
-            if (fkind == (a_float_kind)fk_float) {
-              internal_error("dump_operation: unwidened float argument");
-            }  /* if */
-          }  /* if */
-        }  /* if */
-#endif /* CHECKING */
-        call_argument = call_argument->next;
-        if (call_argument != NULL) {
-          write_tok_str(", ");
-        }  /* if */
-      }  /* for */
-      write_tok_str(")");
-      goto done;
-    default:
-      unexpected_condition_str("dump_operation: bad expression operator");
-  }  /* switch */
-  if (pointer_comparison) {
-    /* Comparisons of function pointers are not standard C, so put in casts
-       to void *. */
-    if (!is_function_type(type_pointed_to(operand_1->type))) {
-      pointer_comparison = FALSE;
-    }  /* if */
-  }  /* if */
-  /* General-case processing: */
-  if (operand_2 == NULL) {
-    /* Unary operator; operator goes first. */
-    write_tok_str(opstr);
-  }  /* if */
-  /* Generate the first operand. */
-  if (pointer_comparison) write_tok_str("(void *)");
-  dump_expr_with_parens(operand_1);
-  if (operand_2 != NULL) {
-    /* Two-operand operator. */
-    write_space();
-    write_tok_str(opstr);
-    write_space();
-    if (pointer_comparison) write_tok_str("(void *)");
-    dump_expr_with_parens(operand_2);
-  }  /* if */
-done:;
-}  /* dump_operation */
-
-
-static void dump_expr(an_expr_node_ptr expr,
-                      a_boolean        need_parens)
-/*
-Generate code for the indicated expression.  Put parentheses around it if
-there's some possibility of precedence confusion and need_parens is TRUE.
-*/
-{
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
   switch (expr->kind) {
     case enk_operation:
+      /* Expression operation. */
       if (need_parens) write_tok_str("(");
-      dump_operation(expr);
+      operand_1 = expr->variant.operation.operands;
+      operand_2 = operand_1->next;
+      expr_type = skip_typerefs(expr->type);
+      switch (expr->variant.operation.kind) {
+        /* One-operand operators. */
+        case eok_indirect:
+          dump_adding_indirection(operand_1);
+          goto done_with_operation;
+        case eok_inegate:
+        case eok_fnegate:
+          opstr = "-";
+          break;
+        case eok_not:
+          write_tok_str("!");
+          dump_boolean_controlling_expression(operand_1);
+          goto done_with_operation;
+        case eok_cast:
+          dump_cast(expr->type);
+          if (operand_1->kind == (an_expr_node_kind)enk_variable_address &&
+              is_array_type(operand_1->variant.variable->type)) {
+            /* A cast of the address of an array.  Optimize this case: the
+               normal expansion of the address of an array includes a cast
+               (to "pointer to array").  Skip that cast. */
+            if (annotate) {
+              start_comment();
+              write_tok_str("&");
+              end_comment();
+            }  /* if */
+            dump_variable_name(operand_1->variant.variable);
+          } else if (is_pointer_type(operand_1->type) &&
+                     is_integral_type(expr_type) &&
+                     expr_type->size < TARG_SIZEOF_POINTER) {
+            /* Casting from a pointer type to a smaller integral type.  Go by
+               way of unsigned long to avoid errors or warnings from the
+               underlying C compiler. */
+            write_tok_str("((unsigned long)");
+            dump_expr_with_parens(operand_1);
+            write_tok_str(")");
+          } else {
+            /* Normal case. */
+            dump_expr_with_parens(operand_1);
+          }  /* if */
+          goto done_with_operation;
+        case eok_lvalue_cast:
+          unexpected_condition_str(
+                                  "dump_operation: eok_lvalue_cast as rvalue");
+        case eok_complement:
+          opstr = "~";
+          break;
+        case eok_fpost_incr:
+        case eok_ipost_incr:
+        case eok_ppost_incr:
+          /* Post-increment operators. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the field being incremented is a bit field, generate code to
+             truncate/adjust the result of the assignment. */
+          adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          dump_lvalue(operand_1);
+          write_tok_str("++");
+#if !C_GEN_BE_GENERATES_ANSI_C
+          end_adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          goto done_with_operation;
+        case eok_ipre_incr:
+        case eok_fpre_incr:
+        case eok_ppre_incr:
+          /* Pre-increment operators. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the field being incremented is a bit field, generate code to
+             truncate/adjust the result of the assignment. */
+          adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          write_tok_str("++");
+          dump_lvalue(operand_1);
+#if !C_GEN_BE_GENERATES_ANSI_C
+          end_adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          goto done_with_operation;
+        case eok_fpost_decr:
+        case eok_ipost_decr:
+        case eok_ppost_decr:
+          /* Post-decrement operators. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the field being incremented is a bit field, generate code to
+             truncate/adjust the result of the assignment. */
+          adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          dump_lvalue(operand_1);
+          write_tok_str("--");
+#if !C_GEN_BE_GENERATES_ANSI_C
+          end_adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          goto done_with_operation;
+        case eok_ipre_decr:
+        case eok_fpre_decr:
+        case eok_ppre_decr:
+          /* Pre-decrement operators. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the field being incremented is a bit field, generate code to
+             truncate/adjust the result of the assignment. */
+          adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          write_tok_str("--");
+          dump_lvalue(operand_1);
+#if !C_GEN_BE_GENERATES_ANSI_C
+          end_adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          goto done_with_operation;
+        case eok_iadd:
+        case eok_fadd:
+        case eok_padd:
+        case eok_padd_subsc:
+          opstr = "+";
+          break;
+        case eok_isubtract:
+        case eok_fsubtract:
+        case eok_psubtract:
+        case eok_pdiff:
+          opstr = "-";
+          break;
+        case eok_imultiply:
+        case eok_fmultiply:
+          opstr = "*";
+          break;
+        case eok_idivide:
+        case eok_fdivide:
+          opstr = "/";
+          break;
+        case eok_peq:
+          pointer_comparison = TRUE;
+          /* Fall-through into following code. */
+        case eok_ieq:
+        case eok_feq:
+          opstr = "==";
+          break;
+        case eok_pne:
+          pointer_comparison = TRUE;
+          /* Fall-through into following code. */
+        case eok_ine:
+        case eok_fne:
+          opstr = "!=";
+          break;
+        case eok_pgt:
+          pointer_comparison = TRUE;
+          /* Fall-through into following code. */
+        case eok_igt:
+        case eok_fgt:
+          opstr = ">";
+          break;
+        case eok_plt:
+          pointer_comparison = TRUE;
+          /* Fall-through into following code. */
+        case eok_ilt:
+        case eok_flt:
+          opstr = "<";
+          break;
+        case eok_pge:
+          pointer_comparison = TRUE;
+          /* Fall-through into following code. */
+        case eok_ige:
+        case eok_fge:
+          opstr = ">=";
+          break;
+        case eok_ple:
+          pointer_comparison = TRUE;
+          /* Fall-through into following code. */
+        case eok_ile:
+        case eok_fle:
+          opstr = "<=";
+          break;
+        case eok_remainder:
+          opstr = "%";
+          break;
+        case eok_iassign:
+        case eok_fassign:
+        case eok_passign:
+        case eok_sassign:
+          opstr = "=";
+          goto process_assignment;
+        case eok_imultiply_assign:
+        case eok_fmultiply_assign:
+          opstr = "*=";
+          goto process_assignment;
+        case eok_idivide_assign:
+        case eok_fdivide_assign:
+          opstr = "/=";
+          goto process_assignment;
+        case eok_remainder_assign:
+          opstr = "%=";
+#if SUNCC
+          if (operand_2->kind == (an_expr_node_kind)enk_constant &&
+              operand_2->variant.constant->kind ==
+                                            (a_constant_repr_kind)ck_integer &&
+              eqlit_integer_constant(operand_2->variant.constant, 1L)) {
+            /* The SUN cc compiler has a bug with "i %= 1" -- It generates no
+               code.  Generate "i %= (0, 1)" instead, which works. */
+            remainder_special_case = TRUE;
+          }  /* if */
+#endif /* SUNCC */
+          goto process_assignment;
+        case eok_iadd_assign:
+        case eok_fadd_assign:
+        case eok_padd_assign:
+          opstr = "+=";
+          goto process_assignment;
+        case eok_isubtract_assign:
+        case eok_fsubtract_assign:
+        case eok_psubtract_assign:
+          opstr = "-=";
+          goto process_assignment;
+        case eok_shiftl_assign:
+          opstr = "<<=";
+          goto process_assignment;
+        case eok_shiftr_assign:
+          opstr = ">>=";
+          goto process_assignment;
+        case eok_and_assign:
+          opstr = "&=";
+          goto process_assignment;
+        case eok_or_assign:
+          opstr = "|=";
+          goto process_assignment;
+        case eok_xor_assign:
+          opstr = "^=";
+process_assignment:
+          /* Generate an assignment operation. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the field being assigned to is a bit field, generate code to
+             truncate/adjust the result of the assignment. */
+          adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          /* Write the left operand. */
+          dump_lvalue(operand_1);
+          /* Write the operation string and the right operand. */
+          write_space();
+          write_tok_str(opstr);
+          write_space();
+#if SUNCC
+          if (remainder_special_case) {
+            /* The Sun cc compiler has a bug with "i %= 1" -- It generates no
+               code.  Generate "i %= (0, 1)" instead, which works. */
+            write_tok_str("(0,");
+          }  /* if */
+#endif /* SUNCC */
+          dump_expr_with_parens(operand_2);
+#if SUNCC
+          if (remainder_special_case) write_tok_str(")");
+#endif /* SUNCC */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the destination is a bit field, finish off the sign-extension/
+             truncation call started earlier. */
+          end_adjust_bit_field_value(expr);
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          goto done_with_operation;
+        case eok_bassign:
+          /* Block assignment, generated only by IL lowering of C++ code. */
+          if (!is_aggregate_or_union_type(expr_type)) {
+            /* The copy can be done by an assignment.  (This case is here
+               for completeness; the front end doesn't actually generate any
+               of these.) */
+            dump_lvalue(operand_1);
+            write_tok_str(" = *");
+            dump_expr_with_parens(operand_2);
+          } else {
+            /* Use a block copy. */
+#if __BSD__
+            /* BSD UNIX -- use bcopy. */
+            write_tok_str("bcopy((char *)");
+            dump_expr_with_parens(operand_2);
+            write_tok_str(", (char *)");
+            dump_expr_with_parens(operand_1);
+#else  /* !__BSD__ */
+            /* System V or ANSI -- use memcpy. */
+            write_tok_str("memcpy((char *)");
+            dump_expr_with_parens(operand_1);
+            write_tok_str(", (char *)");
+            dump_expr_with_parens(operand_2);
+#endif /* __BSD__ */
+            /* Add the length of the move. */
+            { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
+              operand_1_type = skip_typerefs(operand_1_type);
+              write_tok_str(",");
+              /* No cast to size_t or the like is needed; in BSD and System V
+                 the length is int, and in ANSI C the function is prototyped
+                 so the conversion will be implicit. */
+              write_unsigned_num((unsigned long)operand_1_type->size);
+              write_tok_str(")");
+            }
+          }  /* if */
+          goto done_with_operation;
+        case eok_subscript:
+          dump_expr_with_parens(operand_1);
+          write_tok_str("[");
+          dump_expr_with_parens(operand_2);
+          write_tok_str("]");
+          goto done_with_operation;
+        case eok_field:
+          dump_ampersand(type_pointed_to(expr_type));
+          write_tok_str("(");
+          dump_lvalue(operand_1);
+          write_tok_str(".");
+          dump_field_from_second_operand(expr);
+          write_tok_str(")");
+          goto done_with_operation;
+        case eok_value_field:
+          dump_rvalue_selection(expr);
+          goto done_with_operation;
+        case eok_bit_field:
+          /* This operator shouldn't get past dump_lvalue. */
+          unexpected_condition_str("dump_operation: eok_bit_field as rvalue");
+        case eok_value_bit_field:
+        case eok_extract_bit_field:
+#if !C_GEN_BE_GENERATES_ANSI_C
+          field = operand_2->variant.field;
+          is_signed = field->bit_field_is_signed;
+          if (is_signed) {
+            /* Signed bit field.  Do sign extension on the unsigned bit field
+               provided by pcc. */
+            write_tok_str("(__sexten(");
+          }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          if (expr->variant.operation.kind ==
+              (an_expr_operator_kind)eok_extract_bit_field) {
+            dump_lvalue(operand_1);
+            write_tok_str(".");
+            dump_field_from_second_operand(expr);
+          } else {
+            /* eok_value_bit_field, extraction from rvalue struct/union. */
+            dump_rvalue_selection(expr);
+          }  /* if */
+#if !C_GEN_BE_GENERATES_ANSI_C
+          if (is_signed) {
+            write_tok_str(",");
+            write_unsigned_num((unsigned long)field->bit_size);
+            write_tok_str("))");
+          }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          goto done_with_operation;
+        case eok_shiftl:
+          opstr = "<<";
+          break;
+        case eok_shiftr:
+          opstr = ">>";
+          break;
+        case eok_and:
+          opstr = "&";
+          break;
+        case eok_or:
+          opstr = "|";
+          break;
+        case eok_xor:
+          opstr = "^";
+          break;
+        case eok_comma:
+#if CHECKING
+          check_result_not_used_flag(operand_1);
+#endif /* CHECKING */
+          opstr = ",";
+          break;
+        case eok_land:
+          dump_boolean_controlling_expression(operand_1);
+          write_tok_str(" && ");
+          dump_boolean_controlling_expression(operand_2);
+          goto done_with_operation;
+        case eok_lor:
+          dump_boolean_controlling_expression(operand_1);
+          write_tok_str(" || ");
+          dump_boolean_controlling_expression(operand_2);
+          goto done_with_operation;
+        case eok_question:
+          /* Three operand operator. */
+          dump_boolean_controlling_expression(operand_1);
+          write_tok_str(" ? ");
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* pcc does not allow operands of "?" to be void expressions.
+             If they are, enclose them in (expr,0). */
+          void_operand = is_void_type(operand_2->type);
+          if (void_operand) write_tok_str("(");
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          dump_expr_with_parens(operand_2);
+#if !C_GEN_BE_GENERATES_ANSI_C
+          if (void_operand) write_tok_str(",0)");
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          write_tok_str(" : ");
+#if !C_GEN_BE_GENERATES_ANSI_C
+          void_operand = is_void_type(operand_2->next->type);
+          if (void_operand) write_tok_str("(");
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          dump_expr_with_parens(operand_2->next);
+#if !C_GEN_BE_GENERATES_ANSI_C
+          if (void_operand) write_tok_str(",0)");
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          goto done_with_operation;
+        case eok_call:
+          /* N operand operator. */
+          /* Put out the function to call. */
+          dump_lvalue(operand_1);
+          write_tok_str("(");
+#if CHECKING
+          /* Keep track of parameter types to check for arguments to old-style
+             functions that aren't widened. */
+          { a_type_ptr routine_type = type_pointed_to(operand_1->type);
+            routine_type = skip_typerefs(routine_type);
+            param = NULL;
+            if (routine_type->variant.routine.extra_info->prototyped) {
+              param= routine_type->variant.routine.extra_info->param_type_list;
+            }  /* if */
+          }
+#endif /* CHECKING */
+          /* Put out the arguments. */
+          for (call_argument = operand_2; call_argument != NULL;) {
+            dump_expr_with_parens(call_argument);
+#if CHECKING
+            /* Check for unwidened arguments to old-style functions. */
+            if (param != NULL) {
+              /* This argument is prototyped, so do not check it. */
+              param = param->next;
+            } else {
+              /* Unprototyped or ellipsis argument. */
+              a_type_ptr arg_type = skip_typerefs(call_argument->type);
+              if (is_integral_type(arg_type)) {
+                an_integer_kind ikind = arg_type->variant.integer.int_kind;
+                if ((int)ikind < (int)ik_int) {
+                  internal_error("dump_operation: unwidened integer argument");
+                }  /* if */
+              } else if (is_floating_type(arg_type)) {
+                a_float_kind fkind = arg_type->variant.float_kind;
+                if (fkind == (a_float_kind)fk_float) {
+                  internal_error("dump_operation: unwidened float argument");
+                }  /* if */
+              }  /* if */
+            }  /* if */
+#endif /* CHECKING */
+            call_argument = call_argument->next;
+            if (call_argument != NULL) {
+              write_tok_str(", ");
+            }  /* if */
+          }  /* for */
+          write_tok_str(")");
+          goto done_with_operation;
+        default:
+          unexpected_condition_str("dump_operation: bad expression operator");
+      }  /* switch */
+      if (pointer_comparison) {
+        /* Comparisons of function pointers are not standard C, so put in casts
+           to void *. */
+        if (!is_function_type(type_pointed_to(operand_1->type))) {
+          pointer_comparison = FALSE;
+        }  /* if */
+      }  /* if */
+      /* General-case processing: */
+      if (operand_2 == NULL) {
+        /* Unary operator; operator goes first. */
+        write_tok_str(opstr);
+      }  /* if */
+      /* Generate the first operand. */
+      if (pointer_comparison) write_tok_str("(void *)");
+      dump_expr_with_parens(operand_1);
+      if (operand_2 != NULL) {
+        /* Two-operand operator. */
+        write_space();
+        write_tok_str(opstr);
+        write_space();
+        if (pointer_comparison) write_tok_str("(void *)");
+        dump_expr_with_parens(operand_2);
+      }  /* if */
+done_with_operation:
       if (need_parens) write_tok_str(")");
       break;
     case enk_constant:
