@@ -1916,7 +1916,8 @@ error code.
       m = "pointless friend declaration";
       break;
     case ec_period_used_as_qualifier:
-      m = "\".\" used in place of \"::\" to form a qualified name (cfront anachronism)";
+      m =
+ "\".\" used in place of \"::\" to form a qualified name (cfront anachronism)";
       break;
     case ec_const_function_anachronism:
       m = "non-const function called for const object (cfront anachronism)";

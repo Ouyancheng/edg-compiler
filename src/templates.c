@@ -4779,7 +4779,9 @@ data members within a given template class.
             list_sym = mem_sym;
             is_list = FALSE;
           }  /* if */
-          for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
+          for (;
+               list_sym != NULL;
+               list_sym = is_list ? list_sym->next : NULL) {
             /* Only set the flags for things that can be instantiated. */
             if (sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
               update_instantiation_flags(list_sym, pragma_kind, pos);
