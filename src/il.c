@@ -5199,16 +5199,9 @@ processing.  If there is no next such field, return NULL.
   for (; field != NULL; field = field->next) {
     /* Named fields are initializable. */
     if (has_name(field)) break;
-    if (!C_mode()) {
-      /* Anonymous unions are also initializable in C++. */
-      a_type_ptr field_type = field->type;
-      if (field_type->kind == (a_type_kind)tk_union) {
-        if (field_type->variant.class_struct_union.extra_info->
-                  anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    /* Anonymous unions are also initializable in C++.  An extension allows
+       anonymous parent objects in C too. */
+    if (field->is_anonymous_parent_object) break;
   }  /* for */
   return field;
 }  /* next_initializable_field */
