@@ -10759,8 +10759,8 @@ after all initialization routines for instantiations have been generated.
                          eff_insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
     }  /* for */
-    processing_file_scope_init_routine = FALSE;
     pop_generated_routine_context(scope, region_number, &grcontext);
+    processing_file_scope_init_routine = FALSE;
     /* Generate code to ensure that the initialization routine is called
        at program startup.  If a .init section will be used for
        initialization, skip this stuff. */

@@ -4285,6 +4285,20 @@ statement if necessary.
     /* The function contains destructible objects, or it contains try
        blocks, so it needs a prologue and epilogue. */
     need_function_epilogue = TRUE;
+  } else if (processing_file_scope_init_routine &&
+             il_header.primary_scope->lifetime->destructions != NULL) {
+    /* If a generated file-scope initialization routine contains
+       partial-aggregate cleanup entries, we need the prologue and epilogue. */
+    need_function_epilogue = TRUE;
+#if GENERATE_EH_TABLES
+  } else {
+    /* No function epilogue needed. */
+    check_assertion_str(region_table_var == NULL && array_table_var == NULL,
+                        "region table generated but empty lifetime on func");
+#endif /* GENERATE_EH_TABLES */
+  }  /* if */
+  if (need_function_epilogue) {
+    /* We need the prologue and epilogue. */
 #if GENERATE_EH_TABLES
     /* Finish off the various arrays. */
     if (region_table_var != NULL) {
@@ -4375,17 +4389,17 @@ statement if necessary.
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
     /* Non-portable schemes: generate an enk_lowered_eh_construct/
        leck_function_prologue expression node. */
-  { an_expr_node_ptr node = alloc_lowered_eh_construct_node(
+    { an_expr_node_ptr node = alloc_lowered_eh_construct_node(
                           (a_lowered_eh_construct_kind)leck_function_prologue);
-    an_eh_prologue_supplement_ptr psp =
+      an_eh_prologue_supplement_ptr psp =
                                 node->variant.lowered_eh.variant.prologue_info;
-    psp->routine = routine;
+      psp->routine = routine;
 #if GENERATE_EH_TABLES
-    psp->region_table = region_table_var;
-    psp->array_table = array_table_var;
+      psp->region_table = region_table_var;
+      psp->array_table = array_table_var;
 #endif /* GENERATE_EH_TABLES */
-    (void)insert_expr_statement(node, &insert_location);
-  }
+      (void)insert_expr_statement(node, &insert_location);
+    }
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
   if (need_function_epilogue
