@@ -1909,7 +1909,7 @@ base class.
                         dummy = 0;
       a_class_type_supplement_ptr
                         cts = bcp->type->variant.class_struct_union.extra_info;
-      a_targ_alignment  alignment = cts->alignment_without_virtual_base_classes;
+      a_targ_alignment  alignment=cts->alignment_without_virtual_base_classes;
       a_targ_size_t     size = cts->size_without_virtual_base_classes;
       do_alignment(&size, &dummy, alignment);
       if (field->offset < bcp->offset + size) {
