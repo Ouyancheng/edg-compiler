@@ -847,6 +847,7 @@ ec_bad_member_template_friend_decl;;"\"template<>\" syntax is required when decl
 ec_nonstd_asm_decl_within_template;;"nonstandard \"asm\" declaration is not supported inside a template"
 ec_cl_old_specializations_option_only_in_cplusplus;;"option \"old_specializations\" can be used only when compiling C++"
 ec_nonstd_old_specialization;;"specializing %n without \"template<>\" syntax is nonstandard"
+ec_bad_linkage_for_decl;;"this declaration may not have extern \"C\" linkage"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
