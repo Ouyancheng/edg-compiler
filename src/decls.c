@@ -633,25 +633,27 @@ new fields are set properly.
         error_code = ec_too_few_args_for_operator;
       } else {
         tp = ptp->type;
-        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-          /* Check for "void *" -- notice that is_void_type is not called
-             on the type-pointed-to: that is to catch "const void *". */
-          if (!is_pointer_type(tp) ||
-              skip_typedefs(type_pointed_to(tp))->kind !=
-                                                   (a_type_kind)tk_void) {
+        /* Check for "void *". */
+        if (!is_void_star_type(tp)) {
+          /* Error. */
+          if (is_error_type(tp) && is_or_contains_template_param(tp)) {
+            /* No diagnostic here. */
+          } else {
+            an_error_severity  severity;
             if (cfront_2_1_mode && is_pointer_type(tp) &&
                 is_void_type(type_pointed_to(tp))) {
-              /* Cfront 2.1 allows "const void *" parameter.  Issue a
-                 warning and change the type to "void *". */
-              pos_warning(ec_bad_first_arg_type_for_operator_delete,
-                          &locator->source_position);
+              /* In cfront 2.1 "const void *" is allowed.   Issue a warning
+                 and ignore the qualifier on the type. */
+              severity = es_warning;
               ptp->type = make_pointer_type(void_type());
             } else {
-              pos_error(ec_bad_first_arg_type_for_operator_delete,
-                        &locator->source_position);
+              /* Error case. */
+              severity = es_error;
               ptp->type = error_type();
               err = TRUE;
             }  /* if */
+            pos_diagnostic(severity, ec_bad_first_arg_type_for_operator_delete,
+                           &locator->source_position);
           }  /* if */
         }  /* if */
         ptp = ptp->next;
@@ -697,17 +699,10 @@ new fields are set properly.
       if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
         if (opname == (an_opname_kind)onk_new) {
           /* Return type must be "void *". */
-          if (!is_pointer_type(tp)) {
+          if (!is_void_star_type(tp)) {
             pos_error(ec_bad_return_type_for_op_new,
                       &locator->source_position);
             err = TRUE;
-          } else {
-            tp = type_pointed_to(tp);
-            if (!is_void_type(tp) || is_qualified_type(tp)) {
-              pos_error(ec_bad_return_type_for_op_new,
-                        &locator->source_position);
-              err = TRUE;
-            }  /* if */
           }  /* if */
         } else {
           /* Return type must be "void". */
