@@ -1079,7 +1079,7 @@ issue an error if a default argument expression is encountered.
                           extra_info;
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
-  a_boolean               default_arg_expr_allowed = FALSE;
+  a_boolean               default_arg_allowed_on_curr_param = FALSE;
   a_boolean               may_be_copy_constructor = FALSE;
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
@@ -1209,7 +1209,7 @@ issue an error if a default argument expression is encountered.
           !locator->is_template_id &&
           (!locator->is_operator_name ||
            locator->variant.opname == (an_opname_kind)onk_function_call)) {
-        default_arg_expr_allowed = TRUE;
+        default_arg_allowed_on_curr_param = TRUE;
       }  /* if */
     }  /* if */
     /* Push a function prototype scope for the parameters. */
@@ -1422,8 +1422,16 @@ issue an error if a default argument expression is encountered.
           a_boolean		invalid_default_arg = FALSE;
           a_param_type_ptr	ptp_for_scan;
 
-          if (!default_arg_expr_allowed) {
+          if (!default_arg_allowed_on_curr_param) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
+
+          } else if (strict_ansi_mode && !is_top_level_declarator) {
+            /* In strict mode default arguments are only allowed on top-level
+               function declarations (i.e., not on typedef declarations,
+               pointer-to-function or pointer-to-member-function declarations,
+               param type declarations, etc.). */
+            pos_diagnostic(strict_ansi_discretionary_severity,
+                           ec_nonstd_default_arg, &pos_curr_token);
           }  /* if */
           /* Advance past the equal sign. */
           (void)get_token();
@@ -1432,9 +1440,9 @@ issue an error if a default argument expression is encountered.
              default argument tokens and rescan them later. */
           cache_default_arg = FALSE;
           is_member_or_friend_function = FALSE;
-          ignore_default_arg_expr = !default_arg_expr_allowed;
+          ignore_default_arg_expr = !default_arg_allowed_on_curr_param;
           parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
-          if (default_arg_expr_allowed) {
+          if (default_arg_allowed_on_curr_param) {
             if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
               /* A member function of a class (normal or template) inside
                  a class declaration. */
@@ -1459,7 +1467,7 @@ issue an error if a default argument expression is encountered.
               /* A member function declaration of a template class
                  outside of the class declaration.  This is not supported. */
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-              default_arg_expr_allowed = FALSE;
+              default_arg_allowed_on_curr_param = FALSE;
               ignore_default_arg_expr = TRUE;
             }  /* if */
           }  /* if */
@@ -1506,13 +1514,12 @@ issue an error if a default argument expression is encountered.
                scan the expression and convert it to the required type. */
             scan_default_arg_expr(ptp_for_scan);
           }  /* if */
-          if (default_arg_expr_allowed) {
+          if (default_arg_allowed_on_curr_param) {
             ptp->has_default_arg = TRUE;
             func_info->any_default_args = TRUE;
           }  /* if */
         }  /* if */
-        if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed &&
-            !disallow_default_args) {
+        if (!disallow_default_args && !default_arg_allowed_on_curr_param) {
           if (last_param_type == extra_info->param_type_list) {
             /* The first parameter on the list has just been processed. */
             if (locator != NULL && locator->is_operator_name &&
@@ -1521,7 +1528,7 @@ issue an error if a default argument expression is encountered.
               /* Default argument expressions are permitted on the second and
                  subsequent parameters of an operator new and delete
                  declarations. */
-              default_arg_expr_allowed = TRUE;
+              default_arg_allowed_on_curr_param = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */

@@ -1,5 +1,15 @@
 Version 2.42
 
+3/16/99  Restrictions on function default arguments
+
+According to the C++ standard, default arguments are allowed only on the
+top-level declarator of a function declaration -- i.e., the are disallowed
+on typedef declarations, parameter type declarations, pointer-to-function
+declarations, and pointer-to-member-function declarations.  The front end
+now enforces this rule in strict mode, issuing a discretionary error or
+warning.  In default mode, however, such constructs are silently accepted
+(as they are by cfront, g++, and MSVC++).
+
 3/16/99  Demangling of compressed names
 
 In some cases, the library name demangler failed to demangle compressed
