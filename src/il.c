@@ -484,6 +484,7 @@ class_struct_union:
         a_boolean         any_virtual_base_classes = FALSE;
         a_boolean         any_indirect_base_classes = FALSE;
 
+        fputs(" {", f_debug);
         if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) {
@@ -570,7 +571,12 @@ class_struct_union:
       fputs("typeref ", f_debug);
       if (tp->variant.typeref.is_const) fputs("const ", f_debug);
       if (tp->variant.typeref.is_volatile) fputs("volatile ", f_debug);
-      db_abbreviated_type(tp->variant.typeref.type);
+      if (!tp->variant.typeref.is_function_scope_tag) {
+        db_abbreviated_type(tp->variant.typeref.type);
+      } else {
+        fputs("tag: ", f_debug);
+        db_type(tp->variant.typeref.type);
+      }  /* if */
       break;
     default:
       fputs("<bad type>", f_debug);
@@ -2186,6 +2192,7 @@ to default values.
       pte->variant.typeref.type        = NULL;
       pte->variant.typeref.is_const    = FALSE;
       pte->variant.typeref.is_volatile = FALSE;
+      pte->variant.typeref.is_function_scope_tag = FALSE;
       break;
 #if CHECKING
     default:
