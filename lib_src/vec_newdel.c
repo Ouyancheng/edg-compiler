@@ -541,8 +541,9 @@ an exception.
     (*dtor)(arr_ptr, 0x2 /*whole object = TRUE, delete = FALSE*/);
   }  /* for */
   if (aaehip->free_memory_on_cleanup) {
-    /* Call the delete routine to free the memory. */
-    operator delete(aaehip->array_ptr);
+    /* Call the routine to free the memory. */
+    size_t	size = element_size * number_of_elements;
+    free_array(array_ptr, size, aaehip->delete_routine, aaehip->is_two_arg);
   }  /* if */
 }  /* __cleanup_vec_new_or_delete */
 #endif /* EXCEPTION_HANDLING */
