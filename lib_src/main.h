@@ -16,6 +16,10 @@ Declarations relating to main.c -- program startup and termination.
 #ifndef MAIN_H
 #define MAIN_H 1
 
+#ifndef RUNTIME_H
+#include "runtime.h"
+#endif /* ifndef RUNTIME_H */
+
 #include <stddef.h>
 
 	
@@ -52,9 +56,43 @@ EXTERN struct __linkl	*__head
 The AT&T munch utility creates arrays of pointers to static constructor
 and destructor pointers.
 */
-typedef void (*func_ptr)();
-extern func_ptr _ctors[];
-extern func_ptr _dtors[];
+typedef void (*a_void_function_ptr)();
+extern a_void_function_ptr _ctors[];
+extern a_void_function_ptr _dtors[];
+
+
+/*
+Data structure used to build a list of static object destructions
+to be performed at the end of execution.  Entries are added to the
+list each time a static object is created.  New objects are added
+to the front of the list.
+*/
+typedef struct a_needed_destruction *a_needed_destruction_ptr;
+typedef struct a_needed_destruction {
+  a_needed_destruction_ptr
+		next;
+			/* Pointer to the next entry in the list. */
+  void		*object;
+			/* Pointer to the object to be destroyed if this
+			   is a "simple" destruction, or a NULL pointer
+		 	   if this is a "complex" destruction.  A simple
+			   destruction is one that can be done with
+			   a single call to the destructor passing an
+			   object pointer and a destruction flag. */
+  union {
+    /* When object != NULL */
+    a_destructor_ptr
+		simple_destruction;
+			/* For a simple destruction, this is a pointer to
+			   the destructor to be called. */
+    /* When object == NULL */
+    a_void_function_ptr    
+		complex_destruction;
+			/* For a complex destruction, this is a pointer
+                           to a function that when called, will call the
+                           necessary destructors. */
+  } variant;
+} a_needed_destruction;
 
 #endif /* MAIN_H */
 
