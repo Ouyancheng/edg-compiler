@@ -6453,6 +6453,9 @@ been completed (C++ only).
     (void)get_token();
     add_stop_token(tok_rbrace);
     if (delayed_nested_class_def) {
+      /* This is a definition of a C++ nested class that appears outside the
+         scope of the parent class definition itself.  Reactivate the
+         lexical context. */
       push_class_reactivation_scope(tag_sym->parent.class_type);
     }  /* if */
     /* Start a scope for the fields and other members.  Since the class type
@@ -7429,7 +7432,7 @@ been completed (C++ only).
                           &locator.source_position);
                 local_type = error_type();
               } else if (is_incomplete_type(local_type)) {
-                /* As a C extension (and in C++ in microsoft mode), allow an
+                /* As a C extension (and in C++ in Microsoft mode), allow an
                    array of unknown size as the last member of a struct.
                    It can't be the first member, though. */
                 if (is_array_type(local_type) &&
@@ -7882,7 +7885,22 @@ next_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
-    if (delayed_nested_class_def) pop_class_reactivation_scope();
+    if (delayed_nested_class_def) {
+      a_type_ptr  placeholder;
+      /* A nested class defined outside the parent class definition.  Restore
+         the scope stack to its original state. */
+      pop_class_reactivation_scope();
+      /* Enter a typedef entry in the current scope that points at the
+         nested class that was just defined.  It serves to indicate just
+         where (in the sequence of type declarations in the current scope)
+         the delayed nested type definition appeared. */
+      placeholder = alloc_type((a_type_kind)tk_typeref);
+      placeholder->variant.typeref.type = class_type;
+      placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;
+      class_type->variant.class_struct_union.
+                    referenced_by_nested_class_def_placeholder_typeref = TRUE;
+      add_to_types_list(placeholder, depth_scope_stack);
+    }  /* if */
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
