@@ -192,6 +192,31 @@ EXTERN a_boolean
                            a configuration parameter. */
 
 
+typedef enum /*a_template_instantiation_mode*/ {
+  /* Defines the methods of handling template instantiation.  Used to
+     determine which template functions and member functions of
+     template classes should be instantiated. */
+  tim_none,	/* No instantiation should be done. */
+  tim_all,	/* Instantiate template functions that have been
+		   referenced and all member functions of template classes
+		   that have been referenced. */ 
+  tim_used,	/* Instantiate template functions that have been referenced
+		   and only those member functions that have been used. */
+  tim_local	/* Similar to tim_used except the functions are given
+		   internal linkage so that they can be instantiated in
+		   multiple compilation units.  This is a simple mechanism
+		   that can be used to get started with templates. */
+} a_template_instantiation_mode;
+
+
+EXTERN a_template_instantiation_mode
+                instantiation_mode
+#if VAR_INITIALIZERS
+			          = tim_local
+#endif /* VAR_INITIALIZERS */
+                                             ;
+                        /* The default template instantiation mode. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

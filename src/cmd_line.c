@@ -226,6 +226,7 @@ Process the arguments on the command line that invoked the compiler.
   int       optchar;
   char      *ofile_name = NULL;
   a_boolean cannot_open, bad_name;
+  char	    *instantiation_mode_string = NULL;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -254,7 +255,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHNOabnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:"
+#define COMMAND_LIST "AEPCKMHNOabnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:t:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -343,6 +344,10 @@ Process the arguments on the command line that invoked the compiler.
       case 's':
         /* Use signed chars. */
         targ_has_signed_chars = TRUE;
+        break;
+      case 't':
+        /* Template instantiation mode. */
+        instantiation_mode_string = optarg;
         break;
       case 'u':
         /* Use unsigned chars. */
@@ -508,6 +513,10 @@ unknown_option:
       "virtual function tables can only be suppressed (-V) when compiling C++"
                          );
     }  /* if */
+    if (instantiation_mode_string != NULL) {
+      command_line_error(
+      "Instantiation mode (-t) can only be used when compiling C++");
+    }  /* if */
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
@@ -541,6 +550,20 @@ unknown_option:
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
+  /* Determine the template instantiation mode to be used. */
+  if (instantiation_mode_string != NULL) {
+    if (strcmp(instantiation_mode_string, "none") == 0) {
+      instantiation_mode = tim_none;
+    } else if (strcmp(instantiation_mode_string, "all") == 0) {
+      instantiation_mode = tim_all;
+    } else if (strcmp(instantiation_mode_string, "used") == 0) {
+      instantiation_mode = tim_all;
+    } else if (strcmp(instantiation_mode_string, "local") == 0) {
+      instantiation_mode = tim_local;
+    } else {
+      command_line_error("invalid instantiation mode");
+    }  /* if */
+  }  /* if */
   add_default_include_search_path();
   /* Set the system include search path to be the same as the user search
      path at this point (the directory of the source file will be added to the

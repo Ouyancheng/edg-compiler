@@ -4362,6 +4362,9 @@ C and C++.
             look_for_projected_symbol = TRUE;
             add_to_active_list = FALSE;
             insert_sym = NULL;
+          } else {
+            /* Not a class scope, so do not look for projected symbol. */
+            look_for_projected_symbol = FALSE;
           }  /* if */
         } else {
           /* Not a class reactivation or a template instantiation,
@@ -6446,22 +6449,37 @@ which instantiations are required.
 */
 {
   a_function_instantiation_entry_ptr fiep;
+
+  db_enter(3, "instantiation_wrapup");
   fiep = instantiations_required_head;
-  /* Instantiate any routines for which the instantiation required flag is
-     set and for which a body has been supplied. */
-  while (fiep != NULL) {
-    if (fiep->instantiation_required &&
-        fiep->template_sym->variant.template.extra_info->
-                                       body_token_cache.first_token != NULL) {
+  if (instantiation_mode == tim_none) {
+    /* No instantiations are done in this mode. */
+  } else {
+    /* If the instantiation mode is tim_all, instantiate all functions
+       that have bodies regardless of whether or not the function was used.
+       If the mode is tim_used or tim_local then instantiate any routines
+       for which the instantiation required flag is set and for which a
+       body has been supplied. */
+    a_boolean	do_all;
+    do_all = (instantiation_mode == tim_all);
+    while (fiep != NULL) {
+      a_boolean	has_body;
+      has_body = fiep->template_sym->variant.template.extra_info->
+                                         body_token_cache.first_token != NULL;
+      if (has_body) {
+        if (do_all || fiep->instantiation_required) {
 #if DEBUG
-      if (debug_level >= 4) {
-        db_symbol(fiep->routine_sym, "Instantiating:", 2);
-      }  /* if */
+          if (debug_level >= 4) {
+            db_symbol(fiep->routine_sym, "Instantiating:", 2);
+          }  /* if */
 #endif /* DEBUG */
-      instantiate_template_function(fiep);
-    }  /* if */
-    fiep = fiep->next_instantiation_required;
-  }  /* while */
+          instantiate_template_function(fiep);
+        }  /* if */
+      }  /* if */
+      fiep = fiep->next_instantiation_required;
+    }  /* while */
+  }  /* if */
+  db_exit();
 }  /* instantiation_wrapup */
 
 
