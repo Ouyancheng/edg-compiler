@@ -528,6 +528,38 @@ a pointer or a reference type.
 }  /* type_pointed_to */
 
 
+a_type_ptr pm_member_type(a_type_ptr pm_type)
+/*
+pm_type is a pointer-to-member type.  Return the member type pointed to.
+*/
+{
+  a_type_ptr tp = skip_typerefs(pm_type);
+
+#if CHECKING
+  if (tp->kind != (a_type_kind)tk_ptr_to_member) {
+    internal_error("pm_member_type: not a pointer to member type");
+  }  /* if */
+#endif /* CHECKING */
+  return tp->variant.ptr_to_member.type;
+}  /* pm_member_type */
+
+
+a_type_ptr pm_class_type(a_type_ptr pm_type)
+/*
+pm_type is a pointer-to-member type.  Return the class type pointed to.
+*/
+{
+  a_type_ptr tp = skip_typerefs(pm_type);
+
+#if CHECKING
+  if (tp->kind != (a_type_kind)tk_ptr_to_member) {
+    internal_error("pm_class_type: not a pointer to member type");
+  }  /* if */
+#endif /* CHECKING */
+  return tp->variant.ptr_to_member.class_of_which_a_member;
+}  /* pm_class_type */
+
+
 a_boolean f_is_const_qualified_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a const-qualified type (3.1.2.5).

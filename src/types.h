@@ -64,6 +64,8 @@ extern a_boolean is_illegal_abstract_class_type(a_type_ptr tp);
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
+extern a_type_ptr pm_member_type(a_type_ptr pm_type);
+extern a_type_ptr pm_class_type(a_type_ptr pm_type);
 
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
