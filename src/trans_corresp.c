@@ -3865,6 +3865,10 @@ entities.
     a_template_ptr  canon = (a_template_ptr)canonical_il_entry_of(
                                                    templ->canonical_template);
     set_trans_unit_corresp(iek_template, templ, canon);
+  } else if (templ_sym->decl_scope == NO_SCOPE_NUMBER) {
+    /* Some prototype instantiations are not associated with any scope and
+       as a result cannot have a correspondence set.  This is in particular
+       the case with dummy IL entries for friend functions. */
   } else {
     a_template_ptr  corresp_templ = NULL, candidate;
     a_boolean       class_template = is_class_template_symbol(templ_sym);
