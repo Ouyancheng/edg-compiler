@@ -8274,6 +8274,163 @@ done:
 }  /* qualifier_delimiter_does_not_follow_token */
 
 
+static a_symbol_ptr select_dual_lookup_symbol(
+					a_symbol_ptr	normal_fund_sym,
+					a_symbol_ptr	normal_sym,
+					a_symbol_ptr	class_fund_sym,
+					a_symbol_ptr	class_sym,
+					a_boolean	might_be_template)
+/*
+normal_fund_sym and class_fund_sym are the results of a normal and
+class-qualified
+ID lookup, respectively.  normal_sym and class_sym are the symbols placed
+in the specific_symbol field by those lookups, and which may point to
+projection symbols.  might_be_template is TRUE if the name being
+looked up is followed by a "<".  Reconcile the two symbols according to the
+rules for the dual lookup, issue any diagnostics that might be needed,
+and return the symbol to be used.  Set the specific symbol to the
+associated nonfundamental symbol.
+*/
+{
+  a_symbol_ptr	result_sym;
+  a_symbol_ptr	specific_symbol;
+
+  if (normal_sym != NULL && class_sym != NULL) {
+    /* When the identifier is followed by a "<", ignore nontemplates.
+       Only do this when both symbols are passed in. */
+    if (normal_sym != NULL && might_be_template &&
+        !is_template_symbol(normal_sym)) normal_sym = NULL;
+    if (class_sym != NULL && might_be_template &&
+        !is_template_symbol(class_sym)) class_sym = NULL;
+  }  /* if */
+  if (normal_sym != NULL && class_sym != NULL) {
+    /* There are two symbols -- see if they are equivalent.  If the
+       normal symbol refers to a class and the class symbol refers to the
+       constructor, they are considered equivalent. */
+    a_boolean	equiv_symbols = FALSE;
+    if (normal_fund_sym == class_fund_sym) {
+      equiv_symbols = TRUE;
+    } else if (is_constructor_symbol(class_fund_sym) &&
+               is_class_symbol(normal_fund_sym)) {
+      a_type_ptr	normal_type;
+      normal_type = type_symbol_type(normal_fund_sym);
+      if (identical_types(normal_type, class_fund_sym->parent.class_type)) {
+        equiv_symbols = TRUE;
+      }  /* if */
+    }  /* if */
+    if (equiv_symbols) {
+      /* The symbols are equivalent.  Use the normal symbol just in case
+         the class symbol refers to a constructor. */
+      result_sym = normal_fund_sym;
+      specific_symbol = normal_sym;
+    } else {
+      /* The symbols are not equivalent.  Issue a diagnostic.
+         When the name is followed by a "::" (when might_be_template
+         is FALSE) the normal lookup symbol is used to duplicate the behavior
+         that existed before the dual lookup was implemented.  When the name
+         is followed by a "<" (might_be_template is TRUE), the class symbol
+         is preferred.  This is also done for compatibility to prevent
+         something like "p->f < 1" from breaking when a global template "f"
+         is declared. */
+      an_error_severity	severity;
+      a_symbol_ptr	sym_to_use;
+      a_symbol_ptr	sym_to_ignore;
+     if (might_be_template) {
+        sym_to_use = class_fund_sym;
+        specific_symbol = class_sym;
+        sym_to_ignore = normal_fund_sym;
+        severity = es_warning;
+      } else {
+        sym_to_use = normal_fund_sym;
+        specific_symbol = normal_sym;
+        sym_to_ignore = class_sym;
+        severity = strict_ansi_error_severity;
+      }  /* if */
+      pos_sy2_diagnostic(severity, ec_dual_lookup_ambiguous_name,
+                         &error_position, sym_to_use, sym_to_ignore);
+      result_sym = sym_to_use;
+    }  /* if */
+  } else {
+    /* One or both are NULL.  If one is non-NULL, return that one, otherwise
+       return a NULL. */
+    result_sym = normal_sym != NULL ? normal_sym : class_sym;
+  }  /* if */
+  locator_for_curr_id.specific_symbol = specific_symbol;
+  return result_sym;
+}  /* select_dual_lookup_symbol */
+
+
+static a_symbol_ptr look_up_qualifier_start(
+			an_id_lookup_options_set	lookup_kind,
+			a_type_ptr			class_type,
+			a_boolean			might_be_vacuous_dtor,
+			a_boolean			*is_vacuous_dtor,
+			a_boolean			might_be_template)
+/*
+This routine does the "dual lookup" that is done in contexts such as
+the "A" in "p->A::B" and "f" in "p->f<...>...".  This involves looking
+the name up using a "normal" lookup and also looking it up in the class
+type of the left operand of the "." or "->".  might_be_template is TRUE
+if the token after the identifier is a "<".  might_be_vacuous_dtor is
+TRUE if the name being looked up is followed by "::~", and a vacuous
+destructor is valid in the current context.  *is_vacuous_dtor is set to
+TRUE if a symbol that can only be a vacuous destructor is returned.
+*/
+{
+  a_symbol_ptr	normal_sym;
+  a_symbol_ptr	class_sym;
+  a_symbol_ptr	normal_fund_sym;
+  a_symbol_ptr	class_fund_sym;
+  a_symbol_ptr	sym;
+  a_boolean	do_class_lookup;
+
+  do_class_lookup = class_type != NULL &&
+                    is_class_struct_union_type(class_type);
+  normal_fund_sym = normal_id_lookup(&locator_for_curr_id, lookup_kind);
+  normal_sym = locator_for_curr_id.specific_symbol;
+  if (do_class_lookup) {
+    clear_specific_symbol(locator_for_curr_id);
+    class_fund_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                               class_type, lookup_kind);
+    class_sym = locator_for_curr_id.specific_symbol;
+    sym = select_dual_lookup_symbol(normal_fund_sym, normal_sym, 
+                                    class_fund_sym, class_sym,
+                                    might_be_template);
+  } else {
+    sym = normal_fund_sym;
+  }  /* if */
+  if (microsoft_bugs && sym != NULL &&
+      is_enum_symbol(sym) && might_be_vacuous_dtor) {
+    /* The "must be class or namespace" lookup can return an enumeration
+       in Microsoft bugs mode.  If it does, and if we are processing what
+       might be a vacuous destructor, indicate that it is a vacuous
+       destructor. */
+    *is_vacuous_dtor = TRUE;
+  }  /* if */
+  if (sym == NULL && might_be_vacuous_dtor) {
+    /* The lookup has failed so far.  If this might be a vacuous destructor,
+       do a more general lookup to find a nonclass type that might be
+       used as a qualifier for a vacuous destructor. */
+    normal_fund_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    normal_sym = locator_for_curr_id.specific_symbol;
+    if (do_class_lookup) {
+      clear_specific_symbol(locator_for_curr_id);
+      class_fund_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                                 class_type,
+                                                 IDL_NO_OPTIONS);
+      class_sym = locator_for_curr_id.specific_symbol;
+      sym = select_dual_lookup_symbol(normal_fund_sym, normal_sym,
+                                      class_fund_sym, class_sym,
+                                      might_be_template);
+    } else {
+      sym = normal_fund_sym;
+    }  /* if */
+    *is_vacuous_dtor = TRUE;
+  }  /* if */
+  return sym;
+}  /* look_up_qualifier_start */
+
+
 /*
 Macro that calls qualifier_delimiter_does_not_follow_token to determine
 whether the next token may be one of the tokens that
@@ -8545,22 +8702,13 @@ selection operator, in which case it points to the type of the left operand.
           is_vacuous_dtor = TRUE;
         }  /* if */
       } else {
-        /* Usual case (no leading "::"). */
-        qualifier_sym = normal_id_lookup(&locator_for_curr_id,
-                                         lookup_kind);
-        if (microsoft_bugs && qualifier_sym != NULL &&
-            is_enum_symbol(qualifier_sym) && might_be_vacuous_dtor) {
-          /* The "must be class or namespace" lookup can return an enumeration
-             in Microsoft bugs mode.  If it does, and if we are processing what
-             might be a vacuous destructor, indicate that it is a vacuous
-             destructor. */
-          is_vacuous_dtor = TRUE;
-        }  /* if */
-        if (qualifier_sym == NULL && might_be_vacuous_dtor) {
-          qualifier_sym = normal_id_lookup(&locator_for_curr_id,
-                                           IDL_NO_OPTIONS);
-          is_vacuous_dtor = TRUE;
-        }  /* if */
+        /* Usual case (no leading "::").  Look up the name in both the
+           current context (i.e., a normal lookup) and in the class type
+           of the field selection operator, if any. */
+        qualifier_sym = look_up_qualifier_start(
+                                   lookup_kind, field_sel_type,
+                                   might_be_vacuous_dtor, &is_vacuous_dtor,
+				   /*might_be_template=*/next_tok == tok_lt);
         if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
