@@ -501,6 +501,8 @@ do
          --rtti | \
          --no_rtti | \
          --building_runtime | \
+         --bool | \
+         --no_bool | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
