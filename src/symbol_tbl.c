@@ -4394,6 +4394,8 @@ save_as_decl_position is TRUE, the position is saved as the decl_position
 for the symbol.
 */
 {
+  a_source_correspondence *scptr;
+
   if (f_xref_info != NULL) {
     /* If writing cross-reference information, write an entry for this
        declaration. */
@@ -4401,7 +4403,10 @@ for the symbol.
   }  /* if */
   /* Put the decl_position in the symbol. */
   if (save_as_decl_position) {
-    copy_source_position(*source_position, sym_ptr->decl_position);
+    sym_ptr->decl_position = *source_position;
+    /* Also put the decl_position in the IL entry if there is one. */
+    scptr = source_corresp_entry_for_symbol(sym_ptr);
+    if (scptr != NULL) scptr->decl_position = *source_position;
   }  /* if */
 }  /* mark_declared */
 
@@ -4468,7 +4473,7 @@ scope for the symbol must still be active.
      memory area (see find_symbol); it can therefore be used without
      copying. */
   sc->name = sp->header->identifier;
-  copy_source_position(sp->decl_position, sc->decl_position);
+  sc->decl_position = sp->decl_position;
   /* Clear the referenced flag.  It was set to TRUE in
      set_default_source_corresp, so that unassociated entities will
      all have the referenced flag set.  Here it's cleared, now that we
