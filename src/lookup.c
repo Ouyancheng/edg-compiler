@@ -2509,9 +2509,16 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    direct_class_members_only =
                                 (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0;
 
-/* Local macro that tests whether or not a symbol is acceptable. */
+/* Local macro that tests whether or not a symbol is acceptable.  An
+   injected class name symbol is only acceptable when the injected symbol
+   does not points to the class in which the lookup is being done;
+   otherwise, that symbol is rejected and (typically) the constructor
+   symbol will be returned later. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->is_class_member &&					      \
+   (!is_injected_class_symbol(sym) ||				      \
+    /* direct_class_members_only ||*/				      \
+    class_type != (sym)->variant.type.ptr) &&			      \
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(sym)) &&	     		      \
