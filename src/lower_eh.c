@@ -1809,6 +1809,8 @@ typeinfo variable in a COMDAT group.
                                  (an_integer_kind)ik_unsigned_int);
             /* Set the type of the array. */
             base_array_con->type = array_of(make_base_class_spec_type());
+            base_array_con->type->variant.array.variant.number_of_elements =
+                                                                    base_count;
             set_type_size(base_array_con->type);
             class_con->next = flags_con;
             flags_con->next = count_con;
