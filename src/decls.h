@@ -180,6 +180,8 @@ extern void decl_typedef(a_symbol_locator             *locator,
                          a_symbol_ptr                 *symbol_ptr,
                          a_source_sequence_entry_ptr  declarator_ssep);
 
+extern void set_lint_argsused_and_varargs_state(a_type_ptr  rout_type);
+
 extern void inline_function_definition(a_routine_ptr     routine_ptr,
                                        a_func_info_block *func_info);
 
