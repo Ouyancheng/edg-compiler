@@ -984,7 +984,8 @@ name table.
   if (sp->kind == (a_scope_kind)sck_class_struct_union) {
     a_type_ptr  type = sp->variant.assoc_type;
     if (is_immediate_class_type(type) &&
-        type->variant.class_struct_union.is_prototype_instantiation) {
+        type->variant.class_struct_union.is_prototype_instantiation &&
+        !type->variant.class_struct_union.is_in_class_specialization) {
       a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
       check_assertion(cssp != NULL && cssp->template_info != NULL);
       param = cssp->template_info->cache.decl_info->parameters;

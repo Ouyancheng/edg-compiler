@@ -5498,6 +5498,13 @@ typedef struct a_type {
 			/* TRUE if is_specialized is TRUE but the class was
 			   not explicitly declared with the template<>
 			   syntax. */
+      a_bit_field
+		is_in_class_specialization:1;
+			/* TRUE if this is a specialized template instance
+			   and the specialization was declared within the
+			   enclosing class using the Microsoft in-class
+			   specialization syntax.  Also true for classes
+			   nested within an in-class specialization */
 #if MAINTAIN_NEEDED_FLAGS
       a_bit_field
 		definition_needed:1;

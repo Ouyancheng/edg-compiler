@@ -1517,11 +1517,14 @@ nested class.
           }  /* if */
         } else if (is_nonreal_template_instantiation &&
                    !scope_stack[depth_scope_stack].inside_local_class &&
-                   !is_friend && !rfp->is_specialization) {
+                   !is_friend && !rfp->is_specialization &&
+                   !rfp->class_type->
+                       variant.class_struct_union.is_in_class_specialization) {
           /* Prototype instantiation -- copy the cache for member functions.
              (Note that member functions of local classes of a function
              prototype instantiation are nonreal, but they are not themselves
-             prototype instantiations.) */
+             prototype instantiations.)  In-class specializations are handled
+             by the normal fixup process below. */
           tssp = template_supplement_for_symbol(sym);
           tssp->cache.tokens = rfp->function_body_token_cache;
           clear_token_cache(&rfp->function_body_token_cache,
@@ -7360,10 +7363,13 @@ is set to NULL by this function.
                                          &locator->source_position);
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
-  if (class_type->variant.class_struct_union.is_nonreal_class) {
+  if (class_type->variant.class_struct_union.is_nonreal_class &&
+      !class_type->variant.class_struct_union.is_in_class_specialization) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
-       Set it up to look like that. */
+       Set it up to look like that.  Microsoft in-class specializations that
+       appear in class templates are prototype instantiations, but their
+       members should not be considered templates. */
     a_template_instance_ptr           tip;
     a_template_symbol_supplement_ptr  tssp;
 
@@ -12399,7 +12405,9 @@ passed via template_decl.
                              /*compiler_generated=*/FALSE, attributes,
                              asm_name, &ms_attributes);
         rout_sym = decl_info.member_sym;
-        if (class_state->is_nonreal_instantiation) {
+        if (class_state->is_nonreal_instantiation &&
+            !class_type->
+                       variant.class_struct_union.is_in_class_specialization) {
           /* During the prototype instantiation, save the token sequence
              number associated with this declaration so that it can be used
              for matching purposes during real instantiations. */
@@ -13283,8 +13291,11 @@ classes.
   class_scope_depth = depth_scope_stack;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  is_in_class_specialization = is_template_specialization &&
+  is_in_class_specialization = tag_sym->is_class_member &&
+                               is_template_specialization &&
                                !delayed_nested_class_def;
+  class_type->variant.class_struct_union.is_in_class_specialization =
+                                                    is_in_class_specialization;
   if (C_dialect == C_dialect_cplusplus) {
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this class type.  This is used
@@ -13348,6 +13359,13 @@ classes.
         expect_error();
       }  /* if */
     }  /* if */
+    /* If this class is nested in an in-class specialization, consider it
+       an in-class specialization too. */
+    if (tag_sym->is_class_member &&
+        tag_sym->parent.class_type->
+                     variant.class_struct_union.is_in_class_specialization) {
+      class_type->variant.class_struct_union.is_in_class_specialization = TRUE;
+    }  /* if */
     class_state.is_template_instantiation = is_template_instantiation;
     /* Find the prototype instantiation symbol associated with this
        real instantiation. */
@@ -13378,7 +13396,7 @@ classes.
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (use_microsoft_specialization_scope &&
-        is_template_instance_specific_def_symbol(tag_sym)) {
+        is_real_template_instance_specific_def_symbol(tag_sym)) {
       /* The Microsoft compiler permits a class specialization to reference
          template parameters of the template.  Push an instantiation scope
          if this is a specialization definition. */
@@ -13852,7 +13870,8 @@ next_declaration:
         add_to_class_fixup_list(class_type, is_template_instantiation);
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
-      if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+      if (class_type->variant.class_struct_union.is_prototype_instantiation &&
+          !class_type->variant.class_struct_union.is_specialized) {
         a_template_symbol_supplement_ptr      tssp = class_tssp;
         tssp->variant.class_template.prototype_instantiation = tag_sym;
         tssp->variant.class_template.prototype_instantiation_complete = TRUE;

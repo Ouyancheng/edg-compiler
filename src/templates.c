@@ -4586,10 +4586,9 @@ prototype instantiation is considered as a potential match.
        template. */
     sym = tssp->variant.class_template.instantiations;
     for (; sym != NULL; sym = next_instance_sym(sym)) {
-      /* Prototype instantiations should not be checked.  If they are being
-         considered, then we would have already checked them in the tests
-         above. */
-      if (is_prototype_instantiation_symbol(sym)) continue;
+      /* Note that we consider prototype instantiations at this point too.
+         This is needed to find prototype instantiations of Microsoft
+         in-class specializations. */
       /* Old list is the template argument list from a template class that has
          already been created.  See if the list passed in matches it. */
       old_list = sym->variant.class_struct_union.type->
@@ -9941,17 +9940,25 @@ and create the template symbol supplement for the class.
     class_type->variant.class_struct_union.is_nonreal_class =
                       parent_type->variant.class_struct_union.is_nonreal_class;
     class_type->variant.class_struct_union.is_template_class = TRUE;
-    /* During the prototype instantiation save the token sequence number
-       associated with this position in the class symbol supplement
-       this will be used during real instantiations to determine which
-       declaration in the real instantiation matches this one. */
-    cssp->prototype_token_sequence_number = curr_token_sequence_number;
-    tssp = alloc_template_symbol_supplement(sym->kind);
-    tssp->variant.class_template.name_linkage =
+    if (parent_type->variant.class_struct_union.is_in_class_specialization) {
+      /* This will be true for a Microsoft in-class specialization.  Such
+         classes, and classes nested within them are treated as template
+         classes, but they don't have template symbol supplements. */
+      /* Propagate the is_specialized flag to the nested class. */
+      class_type->variant.class_struct_union.is_specialized = TRUE;
+    } else {
+      /* During the prototype instantiation save the token sequence number
+         associated with this position in the class symbol supplement
+         this will be used during real instantiations to determine which
+         declaration in the real instantiation matches this one. */
+      cssp->prototype_token_sequence_number = curr_token_sequence_number;
+      tssp = alloc_template_symbol_supplement(sym->kind);
+      tssp->variant.class_template.name_linkage =
                              parent_tssp->variant.class_template.name_linkage;
-    tssp->variant.class_template.type_kind = type_kind;
-    cssp->template_info = tssp;
-    cssp->corresp_prototype_sym = sym;
+      tssp->variant.class_template.type_kind = type_kind;
+      cssp->template_info = tssp;
+      cssp->corresp_prototype_sym = sym;
+    }  /* if */
   }  /* if */
 }  /* make_nested_class_template_supplement */
 

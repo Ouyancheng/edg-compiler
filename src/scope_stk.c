@@ -2174,7 +2174,8 @@ the scope being pushed.
         a_template_symbol_supplement_ptr tssp =
                      template_supplement_for_symbol(
                          (a_symbol_ptr)assoc_type->source_corresp.assoc_info);
-        prototype_in_real_instance = (tssp->prototype_template != NULL &&
+        prototype_in_real_instance = tssp != NULL &&
+                                     (tssp->prototype_template != NULL &&
                                       !tssp->is_specific_definition);
       }  /* if */
       source_sequence_entries_disallowed = !prototype_instantiations_in_il ||
@@ -6268,68 +6269,83 @@ the class symbol supplement points to the partial specialization).
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				class_sym;
 
-  /* Get the symbol associated with the class. */
-  class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
-  /* Get a pointer to the symbol associated with the template from
-     which this class was generated. */
-  template_sym = template_symbol_for_class_symbol(class_sym);
-  template_arg_list = templ_arg_list_for_class(class_type);
-  /* Get the template declaration information associated with the class. */
-  tssp = template_supplement_for_symbol(template_sym);
-  decl_info = cache_for_template(tssp)->decl_info;
-  if (is_microsoft_specialization_scope) {
-    /* When pushing a Microsoft specialization scope, don't do the full
-       instantiation scope processing.  This is done because the
-       enclosing scopes should be visible for these cases (Microsoft
-       specialization scopes are pushed for class scopes for
-       explicitly specialized classes, and for class reactivation
-       scopes for all template classes).  This has the effect of
-       making the class's template parameters visible while possibly
-       hiding a set of template parameters that really should have
-       been used (as in the case of a definition of a member of a
-       class template).  The Microsoft compiler actually has two sets
-       of parameters visible (the incorrect ones and then the correct
-       ones).  The Sun compiler has only the wrong ones visible, but
-       we don't emulate that exactly (we do the same as in Microsoft
-       mode). */
-    a_scope_depth		orig_depth = depth_scope_stack;
-    a_scope_stack_entry_ptr	ssep;
-    a_scope_depth		saved_innermost_scope_that_affects_access;
-    saved_innermost_scope_that_affects_access =
-                         depth_of_innermost_scope_that_affects_access_control;
-    if (class_type->source_corresp.is_class_member) {
-      /* Reactivate the parent class. */
-      a_type_ptr	parent_class;
-      parent_class = class_type->source_corresp.parent.class_type;
-      push_class_reactivation_scope(parent_class, /*entend_namespace=*/FALSE);
-    } else if (class_type->source_corresp.parent.namespace_ptr != NULL) {
-      /* Reactivate the parent namespace.  A new entry is forced because we
-         later must be able to pop back to the previous scope state based
-         only on the scope depth. */
-      f_push_namespace_reactivation_scope(
-                             class_type->source_corresp.parent.namespace_ptr,
-                             /*force_new_entry=*/TRUE);
-    }  /* if */
-    push_simple_instantiation_scope(decl_info, class_type,
-                                    (a_routine_ptr)NULL, class_sym,
-                                    template_sym, template_arg_list,
-				    PS_MICROSOFT_SPECIALIZATION);
-    ssep = scope_stack_entry_for(depth_scope_stack);
-    ssep->nested_instantiation = TRUE;
-    ssep->orig_depth = orig_depth;
-    ssep->saved_innermost_scope_that_affects_access =
-                                     saved_innermost_scope_that_affects_access;
+  if (class_type->variant.class_struct_union.is_in_class_specialization) {
+    /* This is only true for Microsoft in-class specializations.
+       Such a specialization may be a declared in a class template, or
+       a nested class of a class template.  Reactive the parent class,
+       then push a normal reactivation scope for the specialized class. */
+    /* Reactivate the parent class. */
+    a_type_ptr	parent_class;
+    parent_class = class_type->source_corresp.parent.class_type;
+    push_class_and_template_reactivation_scope(
+                                            parent_class,
+                                            /*reactivate_template_param=*/TRUE,
+                                            /*entend_namespace=*/FALSE);
   } else {
-    a_push_scope_options_set		options;
-    options = PS_NO_OPTIONS;
-    if (is_prototype_instantiation_symbol(class_sym)) {
-      options |= PS_PROTOTYPE_INSTANTIATION;
-    }  /* if */
-    push_template_instantiation_scope(decl_info, class_type,
+    /* Get the symbol associated with the class. */
+    class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
+    /* Get a pointer to the symbol associated with the template from
+       which this class was generated. */
+    template_sym = template_symbol_for_class_symbol(class_sym);
+    template_arg_list = templ_arg_list_for_class(class_type);
+    /* Get the template declaration information associated with the class. */
+    tssp = template_supplement_for_symbol(template_sym);
+    decl_info = cache_for_template(tssp)->decl_info;
+    if (is_microsoft_specialization_scope) {
+      /* When pushing a Microsoft specialization scope, don't do the full
+         instantiation scope processing.  This is done because the
+         enclosing scopes should be visible for these cases (Microsoft
+         specialization scopes are pushed for class scopes for
+         explicitly specialized classes, and for class reactivation
+         scopes for all template classes).  This has the effect of
+         making the class's template parameters visible while possibly
+         hiding a set of template parameters that really should have
+         been used (as in the case of a definition of a member of a
+         class template).  The Microsoft compiler actually has two sets
+         of parameters visible (the incorrect ones and then the correct
+         ones).  The Sun compiler has only the wrong ones visible, but
+         we don't emulate that exactly (we do the same as in Microsoft
+         mode). */
+      a_scope_depth		orig_depth = depth_scope_stack;
+      a_scope_stack_entry_ptr	ssep;
+      a_scope_depth		saved_innermost_scope_that_affects_access;
+      saved_innermost_scope_that_affects_access =
+                         depth_of_innermost_scope_that_affects_access_control;
+      if (class_type->source_corresp.is_class_member) {
+        /* Reactivate the parent class. */
+        a_type_ptr	parent_class;
+        parent_class = class_type->source_corresp.parent.class_type;
+        push_class_reactivation_scope(parent_class,
+                                     /*entend_namespace=*/FALSE);
+      } else if (class_type->source_corresp.parent.namespace_ptr != NULL) {
+        /* Reactivate the parent namespace.  A new entry is forced because we
+           later must be able to pop back to the previous scope state based
+           only on the scope depth. */
+        f_push_namespace_reactivation_scope(
+                               class_type->source_corresp.parent.namespace_ptr,
+                               /*force_new_entry=*/TRUE);
+      }  /* if */
+      push_simple_instantiation_scope(decl_info, class_type,
                                       (a_routine_ptr)NULL, class_sym,
                                       template_sym, template_arg_list,
-				      /*push_stop_tokens=*/FALSE,
-				      options);
+  				    PS_MICROSOFT_SPECIALIZATION);
+      ssep = scope_stack_entry_for(depth_scope_stack);
+      ssep->nested_instantiation = TRUE;
+      ssep->orig_depth = orig_depth;
+      ssep->saved_innermost_scope_that_affects_access =
+                                     saved_innermost_scope_that_affects_access;
+    } else {
+      a_push_scope_options_set		options;
+      options = PS_NO_OPTIONS;
+      if (is_prototype_instantiation_symbol(class_sym)) {
+        options |= PS_PROTOTYPE_INSTANTIATION;
+      }  /* if */
+      push_template_instantiation_scope(decl_info, class_type,
+                                        (a_routine_ptr)NULL, class_sym,
+                                        template_sym, template_arg_list,
+  				      /*push_stop_tokens=*/FALSE,
+  				      options);
+    }  /* if */
   }  /* if */
 }  /* push_instantiation_scope_for_class */
 
@@ -6368,11 +6384,15 @@ extend_namespace).
      instances.  Normally, instantiation scopes are not pushed for
      specialized classes.  But in Microsoft mode, an instantiation scope
      is pushed because the template parameters are visible, even in
+     specializations.  Specializations are not treated as templates,
+     except for prototype instantiations of Microsoft in-class
      specializations. */
   if (is_any_template_instance_class_symbol(class_sym)) {
-    is_template = ((!is_template_instance_specific_def_symbol(class_sym) &&
-                  reactivate_template_params));
-    if (use_microsoft_specialization_scope) {
+    is_template = reactivate_template_params &&
+                  (!is_template_instance_specific_def_symbol(class_sym) ||
+                   is_prototype_instantiation_symbol(class_sym));
+    if (use_microsoft_specialization_scope &&
+        is_real_class_symbol(class_sym)) {
       /* Determine whether the instantiation scope is being pushed only
          because we are in Microsoft mode. */
       is_microsoft_specialization_scope = !is_template;

@@ -1,5 +1,20 @@
 Version 3.5
 
+8/19/04  Microsoft compatibility: abort on in-class specialization when
+         doing nonclass prototype instantiations
+
+An abort (in push_template_instantiation_scope) could occur when
+processing a Microsoft in-class specialization when doing nonclass
+prototype instantiations.  The abort would occur if the specialization
+contained a member function definition.  Now fixed.
+
+  template <class T> class A {
+    template <int I> struct B { };
+    template <> struct B<1> {
+       void f() {}
+    };
+  };
+
 8/23/04  Embedded C: Named address space qualifiers on return types
 
 When Embedded C extensions are enabled, the front end now issues an error on

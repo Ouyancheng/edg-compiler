@@ -2420,6 +2420,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 		   of the enclosing class should itself be treated as a
 		   prototype instantiation. */
                 class_type->variant.class_struct_union.is_specialized = TRUE;
+                if (is_prototype_instantiation_context()) {
+                  class_type->variant.class_struct_union.
+                                             is_prototype_instantiation = TRUE;
+                }  /* if */
               } else if (class_type_is_complete && !err) {
                 /* The class has already been instantiated and can't now
                    be specialized. */
