@@ -18,7 +18,7 @@ dtor_list.c -- destruction list processing.
 #pragma hdrstop
 #include "dtor_list.h"
 
-#if !defined(__EDG_IA64_ABI) || !defined(__linux__)
+#if !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT
 
 /*
 The list of static objects that require destruction.  An entry is
@@ -28,7 +28,7 @@ object is created.
 static a_needed_destruction_ptr
 		needed_destruction_head /* = NULL*/;
 
-#endif /* !defined(__EDG_IA64_ABI) || !defined(__linux__) */
+#endif /* !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
 
 #ifndef __EDG_IA64_ABI
 
@@ -137,7 +137,7 @@ a_link* __dummy_variable_used_to_force_definition_of__link = &__link;
 
 #else /* defined(__EDG_IA64_ABI) */
 
-#ifndef __linux__
+#if !SYSTEM_RUNTIME_HAS_IA64_SUPPORT
 /* Current versions of Linux already define these routines in the C runtime
    library, and if we attempt to redefine them here we end up with multiple
    versions of these symbols. */
@@ -208,7 +208,7 @@ when __cxa_finalize is called with a matching dso_handle parameter.
   return success;
 }  /* __cxa_atexit */
 
-#endif /* ifdef __linux__ */
+#endif /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
 
 #endif /* defined(__EDG_IA64_ABI) */
 

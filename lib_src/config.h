@@ -204,6 +204,24 @@ writing to memory that preceded the beginning of the array) may change.
            __EDG_IA64_ABI
 #endif /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO && ... */  
 
+/*
+This flag is used with the IA-64 ABI to specify that the underlying system
+runtime includes certain of the IA-64 facilities (so this runtime does not
+need to provide them).
+*/
+#ifdef __EDG_IA64_ABI
+#ifndef SYSTEM_RUNTIME_HAS_IA64_SUPPORT
+#ifdef __linux__
+#define SYSTEM_RUNTIME_HAS_IA64_SUPPORT TRUE
+#else /* ifndef __linux__ */
+#define SYSTEM_RUNTIME_HAS_IA64_SUPPORT FALSE
+#endif /* ifdef __linux__ */
+#endif /* ifndef SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
+#else /* ifndef __EDG_IA64_ABI */
+#define SYSTEM_RUNTIME_HAS_IA64_SUPPORT FALSE
+#endif /* ifdef __EDG_IA64_ABI */
+
+
 #if EXCEPTION_HANDLING
 /*
 The EH runtime allocates a static block of memory to be used for purposes

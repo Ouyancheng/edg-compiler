@@ -22,6 +22,11 @@ the release should contain no defines.
 #define _XOPEN_VERSION 0
 #define _POSIX_C_SOURCE 0
 
+#if defined(SOLARIS) && defined(__sparc)
+/* The Sparc Solaris version uses a version of gcc that has IA-64 support. */
+#define SYSTEM_RUNTIME_HAS_IA64_SUPPORT TRUE
+#endif /* defined(SOLARIS) && defined(__sparc) */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
