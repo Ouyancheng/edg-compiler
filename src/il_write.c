@@ -276,7 +276,7 @@ end_of_routine:
   if (entry_kind == centerline_entry_kind &&
       entry_number == centerline_entry_number &&
       ((centerline_memory_region_number == FILE_SCOPE_REGION_NUMBER) ?
-        is_file_scope_entry :
+        epp->file_scope :
         (centerline_region_being_written == centerline_memory_region_number))){
     centerline_stop();
   }  /* if */
