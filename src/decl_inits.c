@@ -1384,11 +1384,6 @@ issuing an error on an incomplete type.
   if (region_to_switch_back_to != NULL_region_number) {
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-  if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-    /* The initializer of a static data member was scanned with the original
-       class reactivated.  Restore the scope to what it was before. */
-    pop_class_reactivation_scope();
-  }  /* if */
   if (put_init_in_variable) {
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
@@ -1437,6 +1432,13 @@ issuing an error on an incomplete type.
       db_initializer(vp, 2);
     }  /* if */
 #endif /* DEBUG */
+  }  /* if */
+  if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+    /* The initializer of a static data member was scanned with the original
+       class reactivated.  Restore the scope to what it was before. */
+    /* Note that this call has to be after the select_destructor call in the
+       preceding section of code. */
+    pop_class_reactivation_scope();
   }  /* if */
   db_exit();
 }  /* initializer */
