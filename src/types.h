@@ -87,6 +87,14 @@ top of such a type).
 */
 #define is_immediate_error_type(type) ((type)->kind == (a_type_kind)tk_error)
 
+/*
+Return TRUE if a type is a direct enum type (i.e., not a typeref on top of
+an enum type).
+*/
+#define is_immediate_enum_type(type)                                  \
+  ((type)->kind == (a_type_kind)tk_integer &&                         \
+   (type)->variant.integer.enum_type)
+
 #define is_const_qualified_type(tp)                                   \
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_const_qualified_type(tp))
 #define is_volatile_qualified_type(tp)                                \
@@ -251,6 +259,7 @@ extern a_boolean type_contains_specific_template_param_constant(
                                                          a_type_ptr     tp,
                                                          a_constant_ptr cp);
 #endif /* if 0 */
+extern void set_force_external_linkage_flag(a_type_ptr  type_ptr);
 extern void set_used_in_exception_flag(a_type_ptr  type_ptr);
 
 
