@@ -2171,19 +2171,32 @@ routine after it has discarded the troublesome lvalue cases).
 {
   an_expr_node_ptr expr_copy, temp_node;
   a_variable_ptr   temp;
+  a_type_ptr       temp_type;
 
   if (!node_has_side_effects(expr)) {
     /* Node has no side effects, so a straight copy will work. */
     expr_copy = copy_expr_tree(expr);
   } else {
     /* Change the original expression to assign the value to a temporary. */
-    temp = make_temporary(expr->type);
+    temp_type = expr->type;
+#if CHECKING
+    /* Values of class types that have copy constructors can't be copied this
+       way.  If such things did come up, they would probably come up
+       as enk_temp_init nodes, and one could change to the address of the
+       class temporary and store that in the temporary here. */
+    if (is_class_struct_union_type(temp_type) &&
+        !symbol_supplement_for_class(temp_type)->
+                                        construction_by_bitwise_copy_allowed) {
+      internal_error("make_reusable_copy: temp of class type with cctor");
+    }  /* if */
+#endif /* CHECKING */
+    temp = make_temporary(temp_type);
     temp_node = make_variable_lvalue_node(temp);
     expr_copy = copy_node(expr);
     temp_node->next = expr_copy;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-    set_node_operator(expr, lowered_assignment_operator(temp->type),
-                      temp->type, temp_node);
+    set_node_operator(expr, lowered_assignment_operator(temp_type),
+                      temp_type, temp_node);
     /* Make a reference to the temporary as the copy. */
     expr_copy = var_rvalue_expr(temp);
   }  /* if */
