@@ -5245,6 +5245,129 @@ this routine is called.
 }  /* cast_is_valid_in_current_expression_kind */
 
 
+static void check_user_defined_conversions_for_cast(a_type_ptr type_cast_to,
+                                                    an_operand *operand,
+                                                    a_boolean  *processed,
+                                                    a_boolean  *err)
+/*
+The expression indicated by *operand is being cast to the type type_cast_to.
+This is a static_cast or old-style cast.  If the cast can be done by
+a user-defined conversion, do it and return *processed TRUE.  If the
+cast could only be done by a user-defined conversion and there was some
+error with that, set *err TRUE as well.
+*/
+{
+  a_boolean    cast_to_reference, failed;
+  a_conv_descr conversion, ctor_arg_conversion;
+
+  *processed = FALSE;
+  cast_to_reference = is_reference_type(type_cast_to);
+  /* Don't check for user-defined conversions in constant expressions. */
+  if (!curr_expr_kind_is_const()) {
+    if (cast_to_reference) {
+      /* A cast from a class to a reference type can be handled by a
+         conversion function that returns a reference.  Look for such
+         a function, but if one is not found, go on to the general case
+         of casting to a reference (below).  This is different than
+         other user-defined conversion cases, where if there is a
+         class operand and no user-defined conversion applies,
+         we know we have an error.  That's the reason that
+         user_defined_conversion_possible is not called. */
+      if (is_class_struct_union_type(operand->type)) {
+        a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
+        a_boolean  ambiguous;
+        if (conversion_from_class_possible(operand, eff_type_cast_to,
+                                           (a_builtin_type_kind_set)BTK_NONE,
+                                           /*need_lvalue_result=*/TRUE,
+                                           /*is_reference_binding=*/TRUE,
+                                           &conversion, &ambiguous,
+                                           (a_candidate_function_ptr *)NULL)) {
+          /* A user-defined conversion can be done. */
+          user_convert_operand(operand, eff_type_cast_to, &conversion,
+                               (a_conv_descr *)NULL);
+          *processed = TRUE;
+        } else if (ambiguous) {
+          /* The conversion is ambiguous.  Do the analysis again to get
+             the error message. */
+          *err = TRUE;
+          *processed = TRUE;
+          (void)user_defined_conversion_possible(operand, eff_type_cast_to,
+                                                 /*is_initialization=*/TRUE,
+                                                 /*is_explicit_cast=*/TRUE,
+                                                 /*need_lvalue_result=*/TRUE,
+                                                 /*is_reference_binding=*/TRUE,
+                                                 &conversion,
+                                                 (a_conv_descr *)NULL,
+                                                 &failed);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Normal case (not a cast to a reference type). */
+      /* Check for user-defined conversions. */
+      /* Don't check for user-defined conversions when casting to void
+         or a template parameter (unknown) type. */
+      if (!is_void_type(type_cast_to) &&
+          !is_template_param_type(type_cast_to)) {
+        if (user_defined_conversion_possible(operand, type_cast_to,
+                                             /*is_initialization=*/TRUE,
+                                             /*is_explicit_cast=*/TRUE,
+                                             /*need_lvalue_result=*/FALSE,
+                                             /*is_reference_binding=*/FALSE,
+                                             &conversion,
+                                             &ctor_arg_conversion,
+                                             &failed)) {
+          /* A user-defined conversion can be done. */
+          user_convert_operand(operand, type_cast_to, &conversion,
+                               &ctor_arg_conversion);
+          *processed = TRUE;
+        } else if (failed) {
+          /* A user-defined conversion was our only hope, and it failed.
+             The error has already been issued. */
+          *err = TRUE;
+          *processed = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_user_defined_conversions_for_cast */
+
+
+static void rewrite_cast_to_reference_as_pointer_cast(a_type_ptr *type_cast_to,
+                                                      an_operand *operand)
+/*
+Rewrite a cast to a reference as the equivalent cast to a pointer type.
+From [expr.static.cast] (similar words are in [expr.reinterpret.cast]):
+
+  An lvalue expression of type  T1 can be cast to the type reference to
+  T2 if an expression of type pointer to  T1 can be explicitly converted
+  to the type pointer to  T2 using a  static_cast.  That is, a reference
+  cast    static_cast<T&>x  has  the  same  effect  as  the  conversion
+  *static_cast<T*>&x with the built-in  & and  * operators.  The  result
+  is  an  lvalue.
+
+*operand is the expression being cast, an *type_cast_to is the reference type.
+On return, *type_cast_to has been changed to the corresponding pointer
+type.
+*/
+{
+  *type_cast_to = make_pointer_type(type_pointed_to(*type_cast_to));
+  if (is_an_lvalue(operand)) {
+    take_address_of_lvalue(operand);
+  } else if (is_a_function_designator(operand)) {
+    conv_function_designator_to_ptr_to_function(operand);
+  } else if (is_class_struct_union_type(operand->type)) {
+    /* As a transitional concession, this cast is allowed on an rvalue of
+       class type.  This is not allowed under the WP, but was arguably
+       okay under the ARM. */
+    conv_class_operand_to_object_pointer(operand);
+  } else {
+    if (!is_error_operand(operand)) {
+      error_in_operand(ec_expr_not_an_lvalue, operand);
+    }  /* if */
+  }  /* if */
+}  /* rewrite_cast_to_reference_as_pointer_cast */
+
+
 static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *operand,
                     an_operand               *bound_function_selector,
@@ -5266,11 +5389,9 @@ of the start of the cast.  This routine is called for both C-style casts
 and C++ functional-notation type conversions.
 */
 {
-  a_type_ptr       source_type, orig_type_cast_to = type_cast_to;
-  an_error_code    warning_suggested;
-  a_boolean        cast_to_reference = FALSE, processed = FALSE, failed;
-  a_conv_descr     conversion, ctor_arg_conversion;
-  an_expr_node_ptr func_ptr_node, object_node;
+  a_type_ptr    source_type, orig_type_cast_to = type_cast_to;
+  an_error_code warning_suggested;
+  a_boolean     cast_to_reference = FALSE, processed = FALSE;
 
   if (err) {
     /* There was a previous error (e.g., the type to cast to is invalid
@@ -5281,75 +5402,8 @@ and C++ functional-notation type conversions.
     if (!C_mode()) {
       /* See if we're casting to a reference type. */
       cast_to_reference = is_reference_type(type_cast_to);
-      /* Don't check for user-defined conversions in constant expressions. */
-      if (!curr_expr_kind_is_const()) {
-        if (cast_to_reference) {
-          /* A cast from a class to a reference type can be handled by a
-             conversion function that returns a reference.  Look for such
-             a function, but if one is not found, go on to the general case
-             of casting to a reference (below).  This is different than
-             other user-defined conversion cases, where if there is a
-             class operand and no user-defined conversion applies,
-             we know we have an error.  That's the reason that
-             user_defined_conversion_possible is not called. */
-          if (is_class_struct_union_type(operand->type)) {
-            a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
-            a_boolean  ambiguous;
-            if (conversion_from_class_possible(
-                                           operand, eff_type_cast_to,
-                                           (a_builtin_type_kind_set)BTK_NONE,
-                                           /*need_lvalue_result=*/TRUE,
-                                           /*is_reference_binding=*/TRUE,
-                                           &conversion, &ambiguous,
-                                           (a_candidate_function_ptr *)NULL)) {
-              /* A user-defined conversion can be done. */
-              user_convert_operand(operand, eff_type_cast_to, &conversion,
-                                   (a_conv_descr *)NULL);
-              processed = TRUE;
-            } else if (ambiguous) {
-              /* The conversion is ambiguous.  Do the analysis again to get
-                 the error message. */
-              err = TRUE;
-              processed = TRUE;
-              (void)user_defined_conversion_possible(
-                                              operand, eff_type_cast_to,
-                                              /*is_initialization=*/TRUE,
-                                              /*is_explicit_cast=*/TRUE,
-                                              /*need_lvalue_result=*/TRUE,
-                                              /*is_reference_binding=*/TRUE,
-                                              &conversion,
-                                              (a_conv_descr *)NULL,
-                                              &failed);
-            }  /* if */
-          }  /* if */
-        } else {
-          /* Normal case (not a cast to a reference type). */
-          /* Check for user-defined conversions. */
-          /* Don't check for user-defined conversions when casting to void
-             or a template parameter (unknown) type. */
-          if (!is_void_type(type_cast_to) &&
-              !is_template_param_type(type_cast_to)) {
-            if (user_defined_conversion_possible(operand, type_cast_to,
-                                                 /*is_initialization=*/TRUE,
-                                                 /*is_explicit_cast=*/TRUE,
-                                                 /*need_lvalue_result=*/FALSE,
-                                                /*is_reference_binding=*/FALSE,
-                                                 &conversion,
-                                                 &ctor_arg_conversion,
-                                                 &failed)) {
-              /* A user-defined conversion can be done. */
-              user_convert_operand(operand, type_cast_to, &conversion,
-                                   &ctor_arg_conversion);
-              processed = TRUE;
-            } else if (failed) {
-              /* A user-defined conversion was our only hope, and it failed.
-                 The error has already been issued. */
-              err = TRUE;
-              processed = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
+      check_user_defined_conversions_for_cast(type_cast_to, operand,
+                                              &processed, &err);
     }  /* if */
     if (!processed) {
       /* No user-defined conversion applies. */
@@ -5378,29 +5432,13 @@ and C++ functional-notation type conversions.
       if (err) {
         /* Some previous error. */
       } else if (cast_to_reference) {
-        /* In C++, "An object may be explicitly converted to a reference type
-           X& if a pointer to that object may be explicitly converted
-           to an X*" (ARM 5.4).  Rewrite the cast in that form. */
+        /* Rewrite a cast to a reference type as a cast to a pointer type.
+           Note that the original type_cast_to is preserved in
+           orig_type_cast_to. */
         /* Note that this is done after the check for user-defined
            conversions above, since if such a cast can be done by
            a conversion function, it should be. */
-        type_cast_to = make_pointer_type(type_pointed_to(type_cast_to));
-        /* It's not entirely clear what the ARM means about "a pointer
-           to an object".  One interpretation would be that the expression
-           must be an lvalue (that term in C++ includes function designators).
-           We broaden that slightly by allowing class rvalues to be used
-           as well. */
-        if (is_an_lvalue(operand)) {
-          take_address_of_lvalue(operand);
-        } else if (is_a_function_designator(operand)) {
-          conv_function_designator_to_ptr_to_function(operand);
-        } else if (is_class_struct_union_type(operand->type)) {
-          conv_class_operand_to_object_pointer(operand);
-        } else {
-          if (!is_error_operand(operand)) {
-            error_in_operand(ec_expr_not_an_lvalue, operand);
-          }  /* if */
-        }  /* if */
+        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, operand);
       }  /* if */
       /* Get the source type after the transformations. */
       source_type = operand->type;
@@ -5418,6 +5456,7 @@ and C++ functional-notation type conversions.
                A *p = new A;
                int (*pf)() = (int (*)())p->f;
              This is an anachronism.  See ARM 18.3.4. */
+          an_expr_node_ptr func_ptr_node, object_node;
           if (cast_to_func_ptr &&
               is_pointer_type(operand->type) &&
               is_function_type(type_pointed_to(operand->type))) {
