@@ -2532,6 +2532,20 @@ produced.
 }  /* set_error_constant */
 
 
+a_constant_ptr alloc_error_constant(void)
+/*
+Allocate and return an error constant.
+*/
+{
+  a_constant     con;
+  a_constant_ptr cp;
+
+  set_error_constant(&con);
+  cp = alloc_unshared_constant(&con);
+  return cp;
+}  /* alloc_error_constant */
+
+
 void set_routine_address_constant(a_routine_ptr routine,
                                   a_constant    *con,
                                   a_boolean     set_address_taken_flag)

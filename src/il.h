@@ -135,6 +135,8 @@ extern void put_ch_to_temp_text_buffer(char ch);
 
 extern void set_error_constant(a_constant *cp);
 
+extern a_constant_ptr alloc_error_constant();
+
 extern void set_routine_address_constant(a_routine_ptr routine,
                                          a_constant    *con,
                                          a_boolean     set_address_taken_flag);
