@@ -4891,7 +4891,7 @@ files can reference it.
   char     *module_id = make_module_id();
   char     *new_name, *ptr;
 
-  scp->name_linkage = nlk_external;
+  scp->name_linkage = (a_name_linkage_kind)nlk_external;
   check_assertion(scp->name_has_been_mangled || is_variable);
   /* The generated name has the form
        __STV__name__module_id  (variable)

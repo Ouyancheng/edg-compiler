@@ -6990,9 +6990,10 @@ associated class was declared.
   a_type_ptr     class_type = con->variant.address.variant.type;
   a_type_ptr     orig_con_type = con->type;
   a_source_correspondence
-                 orig_source_corresp = con->source_corresp;
+                 orig_source_corresp;
   a_variable_ptr uuid_var;
 
+  orig_source_corresp = con->source_corresp;
   /* Create the initialized uuid variable for the type, if it doesn't
      exist already. */
   uuid_var = uuid_variable_for_type(class_type);
