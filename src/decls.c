@@ -7102,12 +7102,14 @@ position of the first token of the current declaration.  decl_spec_err is
 TRUE if an error was reported while the decl-specifiers were scanned.
 */
 {
-  a_boolean  declarator_omitted = FALSE;
-  a_boolean  declares_something = dso_flags & DSO_DECLARES_SOMETHING;
-  a_boolean  defines_something = dso_flags & DSO_DEFINES_SOMETHING;
-  a_boolean  inline_specified = dso_flags & DSO_INLINE;
+  a_boolean          declarator_omitted = FALSE;
+  a_boolean          declares_something = dso_flags & DSO_DECLARES_SOMETHING;
+  an_error_severity  severity;
 
   if (curr_token == tok_semicolon) {
+    a_boolean  defines_something = dso_flags & DSO_DEFINES_SOMETHING;
+    a_boolean  inline_specified = dso_flags & DSO_INLINE;
+
     declarator_omitted = TRUE;
     if (decl_spec_err) {
       /* Don't issue further errors on this declaration. */
@@ -7149,8 +7151,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
     } else {
       if (storage_class == (a_storage_class)sc_typedef) {
         /* Typedef declaration with no declarator. */
-        an_error_severity  severity = es_warning;
-
+        severity = es_warning;
         if (declares_something ||
             (defines_something && is_enum_type(type_ptr))) {
           /* No error on a case like "typedef struct S { int i; };" or
@@ -7186,23 +7187,25 @@ TRUE if an error was reported while the decl-specifiers were scanned.
           /* ANSI probably thinks of this as an error, but that seems a bit
              extreme, especially since pcc allows it.  Normally we issue a
              warning, unless the -A option is selected. */
-          diagnostic(strict_ansi_mode ?
-                       strict_ansi_error_severity : es_warning,
-                     ec_useless_decl);
+          severity = strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning;
+          diagnostic(severity, ec_useless_decl);
         }  /* if */
         /* A storage class can only be specified for an object or a function
            (ARM 7.1.1). */
         if (storage_class != (a_storage_class)sc_unspecified) {
-          diagnostic((C_mode() || any_cfront_mode()) ? es_warning : es_error,
-                     ec_storage_class_not_allowed);
+          severity = (C_mode() || any_cfront_mode() || microsoft_mode) ?
+                       es_warning : es_error;
+          diagnostic(severity, ec_storage_class_not_allowed);
         }  /* if */
         /* ARM 7.1.6 implies that the absence of an object in this declaration
            makes it ill-formed.  Is the implication strong enough to justify
            an error here? */
         if (is_qualified_type(type_ptr)) {
-          pos_diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
-                           strict_ansi_error_severity : es_warning,
-                         ec_type_qualifier_not_allowed, decl_start_pos);
+          severity = (C_dialect == C_dialect_cplusplus && strict_ansi_mode) ?
+                       strict_ansi_error_severity : es_warning;
+          pos_diagnostic(severity, ec_type_qualifier_not_allowed,
+                         decl_start_pos);
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
         if (inline_specified) {
@@ -7228,7 +7231,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
     declarator_omitted = TRUE;
     if (decl_spec_err) {
       /* Don't issue further errors on this declaration. */
-    } else if (dso_flags & DSO_DECLARES_SOMETHING) {
+    } else if (declares_something) {
       if (is_old_style_param_decl) {
         /* An old style param declaration that introduces a named struct or
            enum type but has no declarator for the parameter. */
