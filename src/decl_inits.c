@@ -348,8 +348,9 @@ If *type_ptr is an incomplete type, change it to reflect the actual size of
 the string literal. (Note the extra level of indirection that allows that.)
 If there is an error, issue an error and return an error constant.
 During prototype instantiations, *type_ptr may also be an array whose
-element type is template dependent.  init_info and init_context are pointers
-to blocks of information tracking this initialization.  
+element type is template dependent.  If this is an aggregate initialization,
+init_info and init_context are pointers to blocks of information tracking this
+initialization; otherwise, these pointers are NULL.
 */
 {
   a_boolean      is_string_init = FALSE;
@@ -434,6 +435,7 @@ to blocks of information tracking this initialization.
         /* Record if any elements of the array remain uninitialized. */
         if (array_type->variant.array.variant.number_of_elements
                                                  > cp->variant.string.length) {
+          check_assertion(init_info != NULL);
           init_info->any_uninitialized_member = TRUE;
         }  /* if */
       }  /* if */
@@ -940,10 +942,11 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
+  check_assertion(!is_aggregate_or_union_type(type));
   if (process_string_constant_initializer(
                                   &type, &cp, (an_aggregate_init_info_ptr)NULL,
                                   (an_aggregate_init_context_ptr)NULL)) {
-    /* The object being initialized has type array of char or wchar_t, and
+    /* The object being initialized has type pointer to char or wchar_t, and
        is being initialized with a string. */
     is_constant = TRUE;
   } else if (nonconst_allowed) {
