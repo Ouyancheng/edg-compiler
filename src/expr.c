@@ -1632,7 +1632,7 @@ Syntax:
   operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   function_position = call_position = operand->position;
-  start_position = (bound_function_selector != NULL) ?
+  start_position = operand->bound_function ?
                                             bound_function_selector->position :
                                             call_position;
   if (curr_expr_kind_is_const()) {
