@@ -1771,6 +1771,7 @@ Also, add the instance to the definitions list for the template.
   a_type_ptr                        tp, member_type;
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
+  a_variable_ptr                    vp;
 
   db_enter(3, "find_static_data_member_template");
   /* Find a static data member symbol belonging to the prototype instantiation
@@ -1781,12 +1782,16 @@ Also, add the instance to the definitions list for the template.
       is_unnamed_class_symbol(
                   (a_symbol_ptr)member_type->source_corresp.assoc_info)) {
     /* Error case -- the static data member is an anonymous union.  Look
-       through the types list of the prototype instantiation type. */
-    tp = tp->variant.class_struct_union.extra_info->assoc_scope->types;
-    for (; tp != NULL; tp = tp->next) {
-      if (tp->kind == (a_type_kind)tk_union) {
-        sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-        if (sym != NULL && 
+       through the variables list of the prototype instantiation type. */
+    vp = tp->variant.class_struct_union.extra_info->assoc_scope->variables;
+    sym = NULL;
+    for (; vp != NULL; vp = vp->next) {
+      sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+      if (sym != NULL) {
+        tp = sym->variant.variable.ptr->type;
+        if (tp->kind == (a_type_kind)tk_union &&
+            is_unnamed_class_symbol(
+                        (a_symbol_ptr)tp->source_corresp.assoc_info) &&
             sym->decl_position.column ==
                        static_data_member_sym->decl_position.column &&
             sym->decl_position.seq ==
@@ -1796,6 +1801,8 @@ Also, add the instance to the definitions list for the template.
              declaration position. */
 #endif /* if 0 */
           break;
+        } else {
+          sym = NULL;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -1849,7 +1856,7 @@ Also, add the instance to the definitions list for the template.
     /* Enter the template instance entry onto the instantiations_required
        list.  If appropriate, the definition will be generated as part of
        instantiation_wrapup. */
-    add_to_instantiations_required_list(tip);
+    update_instantiation_required_flag(tip, /*value=*/TRUE);
   }  /* if */
   db_exit();
 }  /* find_static_data_member_template */
