@@ -4850,9 +4850,19 @@ block with state information for the processing.
       for (;;) {
         if (elem_con != NULL &&
             elem_con->kind == (a_constant_repr_kind)ck_designator) {
-          /* Put out the introduction for a designated initializer. */
-          if (!*gen_assignments) start_initializer_constants(icbp);
-          dump_designator(elem_con, &ipdp->curr_field);
+          /* Put out the introduction for a designated initializer.
+             When assignments are being generated, each value is assigned
+             to the right aggregate element, so the designator is just
+             ignored. */
+          if (!*gen_assignments) {
+            start_initializer_constants(icbp);
+            dump_designator(elem_con, &ipdp->curr_field);
+          }  /* if */
+          if (type->kind == (a_type_kind)tk_array) {
+            ipdp->curr_elem = elem_con->variant.designator.array_element;
+          } else {
+            ipdp->curr_field = elem_con->variant.designator.field;
+          }  /* if */
           elem_con = elem_con->next;
           check_assertion(elem_con != NULL &&
                           elem_con->kind!=(a_constant_repr_kind)ck_designator);

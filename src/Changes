@@ -1,5 +1,23 @@
 Version 2.46
 
+1/28/01  C-generating back end output of union initializer with
+         designator
+
+The C-generating back end put out invalid code for an initialization
+of a local union that follows an executable statement, when the
+member initialized is not the first member of the union.  The problem
+is more widespread when LOWER_DESIGNATED_INITIALIZERS is FALSE.
+
+  union U {
+    char c;
+    unsigned long long ll;
+  };
+  int main() {
+    int i;
+    i = 1;
+    union U u1 = {.c = 1, .ll = 2};  // Generated code was incorrect
+  }
+
 1/28/01  Abort on "?" operator with
          ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS set to TRUE
 
