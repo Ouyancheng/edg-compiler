@@ -2750,7 +2750,9 @@ typedef struct a_type {
 			   The flag would be set TRUE for A but not for B
 			   since the latter's definition is part of the
 			   declaration of variable b.  Also TRUE for
-			   anonymous unions. */
+			   anonymous unions.  Also TRUE for all classes
+			   produced by a template instantiation, no matter
+			   what triggers the instantiation. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES
   a_variable_ptr
