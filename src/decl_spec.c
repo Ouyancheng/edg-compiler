@@ -1035,7 +1035,14 @@ the template.
                 set_to_named_error_locator(locator);
                 err = TRUE;
               }  /* if */
-              if (class_type_is_complete && !err) {
+              if (cssp->is_nonreal_class) {
+                /* A specialization of a nonreal class.  This can only occur
+                   when a specialization appears in an invalid scope.  An
+		   error will have already been issued. */
+                tag_sym = NULL;
+                set_to_named_error_locator(locator);
+                err = TRUE;
+              } else if (class_type_is_complete && !err) {
                 /* The class has already been instantiated and can't now
                    be specialized. */
                 pos_sy_error(ec_specialization_of_referenced_entity,

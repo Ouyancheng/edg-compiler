@@ -2586,6 +2586,16 @@ included in the search.
       /* Instantiations of a nonreal member template (for example,
          T::A<int>) are created as nonreal instantiations. */
       sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+    } else if (sym->is_class_member) {
+      /* If the enclosing class is nonreal, then any instances of member
+         classes must also be nonreal. */
+      a_type_ptr			parent_class;
+      a_class_symbol_supplement_ptr	parent_cssp;
+      parent_class = sym->parent.class_type;
+      parent_cssp = symbol_supplement_for_class(parent_class);
+      if (parent_cssp->is_nonreal_class) {
+        sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+      }  /* if */
     }  /* if */
     /* If this is a "real instantiation" leave the type incomplete; it will
        become complete when it is instantiated.  However, if it is based on

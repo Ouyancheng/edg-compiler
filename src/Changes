@@ -1,5 +1,30 @@
 Version 2.35
 
+2/14/97 All instances of member class templates of prototype instantiations
+        should be considered nonreal classes
+
+It is possible for an instantiation that looks like a "real" instance
+(one for which none of its template arguments is a template parameter)
+to be created during the prototype instantiation of the enclosing class
+template.  In such cases, the class should be considered to be a nonreal
+class because the actual class used during a real instantiation could
+be a specialization, so references to that class from elsewhere in the
+class template must treat it as nonreal.
+
+Formerly, this example resulted in a spurious error during the prototype
+instantiation of class template A.  This example is now accepted.
+
+  template <class TT> struct A {
+    template <class T> struct D { };
+    struct E : D<long> {
+      typename E::EE e2;  // spurious error on this line
+    };
+  };
+  template <> template <> struct A<int>::D<long> {
+    struct EE {};
+  };
+  A<int>::E ae;
+
 2/14/97 IL CHANGE: first_declaration flag in secondary declaration source
         sequence entry; used in C++-generating back end
 
