@@ -2800,7 +2800,7 @@ be kept, FALSE if it should be deleted.
   a_type_ptr        ctor_routine_type;
   a_type_ptr        this_param_type;
   a_param_type_ptr  param;
-  a_boolean         static_var_init = FALSE;
+  a_boolean         static_var_init, expr_copy_needed;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2827,8 +2827,13 @@ be kept, FALSE if it should be deleted.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
-  check_assertion_str(static_var_init || !processing_file_scope_init_routine,
-     "lower_dynamic_init: nonstatic variable init in file-scope init routine");
+  /* When generating the file-scope initialization routine we have
+     an expression from the file scope that must be used in the function
+     scope of the initialization routine, so it must be copied.  Otherwise
+     we have a difficult job keeping track of the nodes that are in
+     the file scope and those that are in the function scope.
+     Similar reasoning applies to local static variables. */
+  expr_copy_needed = (static_var_init || processing_file_scope_init_routine);
   switch (dip->kind) {
     case dik_none:
       break;
@@ -2855,13 +2860,9 @@ be kept, FALSE if it should be deleted.
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
       lower_normal_expr(dip->variant.expression);
-      if (static_var_init) {
-        /* When generating the file-scope initialization routine we have
-           an expression from the file scope that must be used in the function
-           scope of the initialization routine, so copy it.  Otherwise
-           we have a difficult job keeping track of the nodes that are in
-           the file scope and those that are in the function scope.
-           Similar reasoning applies to local static variables. */
+      if (expr_copy_needed) {
+        /* Copy a file-scope expression into the current (function scope)
+           memory region. */
         dip->variant.expression = copy_expr_tree(dip->variant.expression);
       }  /* if */
 do_assignment:;
@@ -2878,13 +2879,9 @@ do_assignment:;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
          via a copy constructor. */
-      if (static_var_init) {
-        /* When generating the file-scope initialization routine we have
-           an expression from the file scope that must be used in the function
-           scope of the initialization routine, so copy it.  Otherwise
-           we have a difficult job keeping track of the nodes that are in
-           the file scope and those that are in the function scope.
-           Similar reasoning applies to local static variables. */
+      if (expr_copy_needed) {
+        /* Copy a file-scope expression into the current (function scope)
+           memory region. */
         dip->variant.expression = copy_expr_tree(dip->variant.expression);
       }  /* if */
       /* The address of the temporary being initialized is added as an
@@ -2897,13 +2894,9 @@ do_assignment:;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
       /* The routine does not need to be lowered from here. */
-      if (static_var_init) {
-        /* When generating the file-scope initialization routine we have
-           expressions from the file scope that must be used in the function
-           scope of the initialization routine, so copy them.  Otherwise
-           we have a difficult job keeping track of the nodes that are in
-           the file scope and those that are in the function scope.
-           Similar reasoning applies to local static variables. */
+      if (expr_copy_needed) {
+        /* Copy a file-scope expression into the current (function scope)
+           memory region. */
         dip->variant.constructor.args =
                         copy_list_of_expr_trees(dip->variant.constructor.args);
       }  /* if */
