@@ -50,6 +50,16 @@ constructor.  This check is only done in strict mode.
   };
   B bb = 1;  // Error in strict mode
 
+3/18/95  Display of qualified version of qualified array type
+
+il_to_str.c has been changed to deal correctly with the display of qualified
+versions of typedefs of qualified array types.  This is a refinement
+of a change made in 2.28.
+
+  typedef const int A[4];
+  void f(volatile A&) {}
+  int f;  // Provokes error that displays type of previous f
+
 3/18/95  Putting out ellipsis-only param list in generated C
 
 A new configuration flag, ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C, may be
