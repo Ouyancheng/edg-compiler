@@ -7170,7 +7170,7 @@ completed (C++ only).
         a_boolean            type_explicitly_specified, inline_specified;
         a_boolean            is_destructor, is_constructor;
         a_boolean            is_anonymous_union, is_nonstd_anonymous_union;
-        a_boolean            mutable_specified;
+        a_boolean            mutable_specified, explicit_specified;
 
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
@@ -7326,6 +7326,7 @@ completed (C++ only).
         if (friend_specified) any_friend_decls = TRUE;
         virtual_specified = (dso_flags & DSO_VIRTUAL) != 0;
         inline_specified = (dso_flags & DSO_INLINE) != 0;
+        explicit_specified = (dso_flags & DSO_EXPLICIT) != 0;
         is_constructor = dso_flags & DSO_CONSTRUCTOR;
         is_destructor = dso_flags & DSO_DESTRUCTOR;
         mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
@@ -7339,6 +7340,10 @@ completed (C++ only).
           error(ec_exp_semicolon);
           discard_curr_construct_pragmas();
           goto next_declaration;
+        }  /* if */
+        if (explicit_specified && !is_constructor) {
+          pos_error(ec_explicit_not_allowed, &decl_start_pos);
+          explicit_specified = FALSE;
         }  /* if */
         if (curr_token == tok_semicolon) {
           /* There's no declarator following the declaration specifier.  This
@@ -7425,6 +7430,9 @@ completed (C++ only).
               }  /* if */
               if (inline_specified) {
                 pos_error(ec_inline_not_allowed, &decl_start_pos);
+              }  /* if */
+              if (explicit_specified) {
+                pos_error(ec_explicit_not_allowed, &decl_start_pos);
               }  /* if */
               if (is_qualified_type(member_type)) {
                 pos_error(ec_useless_type_qualifiers, &decl_start_pos);
@@ -7891,6 +7899,10 @@ completed (C++ only).
                                                 corresp_prototype_tag_sym);
                 }  /* if */
               }  /* if */
+              if (explicit_specified) {
+                check_assertion(is_constructor = TRUE);
+                rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
+              }  /* if */
             }  /* if */
             if (!function_def_present) {
               if (func_info.param_id_list != NULL) {
@@ -7991,18 +8003,17 @@ completed (C++ only).
                 }  /* if */
               }  /* if */
             }  /* if */
-          } else if (friend_specified) {
-            pos_error(ec_bad_friend_decl, &decl_start_pos);
-            remove_stop_token(tok_comma);
-            discard_curr_construct_pragmas();
-            break;
-          } else if (virtual_specified) {
-            pos_error(ec_virtual_not_allowed, &decl_start_pos);
-            remove_stop_token(tok_comma);
-            discard_curr_construct_pragmas();
-            break;
-          } else if (inline_specified) {
-            pos_error(ec_inline_and_nonfunction, &decl_start_pos);
+          } else if (friend_specified || virtual_specified ||
+                     inline_specified) {
+            if (friend_specified) {
+              pos_error(ec_bad_friend_decl, &decl_start_pos);
+            }  /* if */            
+            if (virtual_specified) {
+              pos_error(ec_virtual_not_allowed, &decl_start_pos);
+            }  /* if */            
+            if (inline_specified) {
+              pos_error(ec_inline_and_nonfunction, &decl_start_pos);
+            }  /* if */            
             remove_stop_token(tok_comma);
             discard_curr_construct_pragmas();
             break;
