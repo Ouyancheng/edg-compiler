@@ -461,15 +461,15 @@ as the decl_position of the template declaration as a whole.
   tp->source_corresp.decl_position = *start_pos;
   add_to_templates_list(tp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* There's not yet a name or symbol for the template declaration, so call
-     update_source_sequence_list directly. */
-  update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
-                              (a_source_sequence_entry_ptr)NULL);
   if (depth_scope_stack == depth_innermost_namespace_scope) {
     /* Set the source-sequence insert point for instantiations to NULL -- no
        instantiations should be inserted before it. */
     scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
   }  /* if */
+  /* There's not yet a name or symbol for the template declaration, so call
+     update_source_sequence_list directly. */
+  update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
+                              (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return tp;
