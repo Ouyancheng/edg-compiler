@@ -139,7 +139,8 @@ static sizeof_t size_ident_buffer = 0;
 static char *str_access(char                *buffer,
                         an_access_specifier access)
 /*
-Write an access specifier for db_symbol.
+Construct a string in buffer that represents an access specifier -- called
+from db_symbol.
 */
 {
   char  *s;
@@ -157,7 +158,8 @@ Write an access specifier for db_symbol.
 static char *str_qualified_name(char         *buffer,
                                 a_symbol_ptr sym)
 /*
-Write a qualified name for db_symbol.
+Construct a string in buffer that represents a qualfied name -- called
+from db_symbol.
 */
 {
   if (sym->class_of_which_a_member != NULL) {
@@ -175,6 +177,10 @@ static char *str_path(char               buffer[],
                       a_derivation_step  *path,
                       char               *initial_string,
                       char               *separator)
+/*
+Construct a string in buffer that represents a derivation path -- called
+from db_symbol.
+*/
 {
   a_derivation_step  *dsp;
   a_base_class       *bcp;
@@ -199,6 +205,10 @@ static char *str_path(char               buffer[],
 
 static char *str_name_linkage(char                     *buffer,
                               a_source_correspondence  *source_corresp)
+/*
+Construct a string in buffer that represents a name linkage kind -- called
+from db_symbol.
+*/
 {
   char *str;
 
