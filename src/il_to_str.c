@@ -36,6 +36,8 @@ Clear an output control block to default values.
   octl->output_func_declarator    = NULL;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
+  octl->suppress_local_typedefs   = FALSE;
+  octl->c_generating_back_end     = FALSE;
 #if DEBUG
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
@@ -341,6 +343,13 @@ way described by octl.
 {
   char *str;
 
+  if (octl->c_generating_back_end && octl->gen_pcc_code) {
+    if (kind == (a_float_kind)fk_long_double) {
+      /* When generated K&R C from the C-generating back end, put out
+         "double" for "long double". */
+      kind = (a_float_kind)fk_double;
+    }  /* if */
+  }  /* if */
   str = float_kind_name(kind);
 #if CHECKING
   if (*str == '*'
@@ -356,26 +365,47 @@ way described by octl.
 
 #ifdef CFE
 
-void form_type_qualifier(a_type_ptr                            type,
-                         an_il_to_str_output_control_block_ptr octl)
+void form_type_qualifier(
+                     a_type_ptr                            type,
+                     a_boolean                             suppress_const,
+                     a_boolean                             need_trailing_space,
+                     an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for the type qualifier for the top type of the given type
-(i.e., just the first level).  The type must be a tk_typeref containing a
-type qualifier.  Do the output in the way described by octl.
+(i.e., just the first level).  The type must be a tk_typeref; usually, it
+will contain a qualifier, but if it doesn't nothing is put out.  If
+suppress_const is TRUE, suppress generation of top-level "const".
+If need_trailing_space is TRUE, put out a space after the type qualifier
+(if one is put out).  Do the output in the way described by octl.
 */
 {
-  a_boolean previous_qualifier = FALSE;
+  a_boolean qualifier_put_out = FALSE;
 
   check_assertion_str(type->kind == (a_type_kind)tk_typeref,
                       "form_type_qualifier: bad type kind");
   if (type->variant.typeref.is_const) {
-    octl->output_str("const");
-    previous_qualifier = TRUE;
+    if (suppress_const || octl->gen_pcc_code
+#if SUPPRESS_CONST_IN_GENERATED_C
+        || octl->c_generating_back_end
+#endif /* SUPPRESS_CONST_IN_GENERATED_C */
+                                      ) {
+      /* "const" suppressed. */
+    } else {
+      octl->output_str("const");
+      qualifier_put_out = TRUE;
+    }  /* if */
   }  /* if */
   if (type->variant.typeref.is_volatile) {
-    if (previous_qualifier) octl->output_str(" ");
-    octl->output_str("volatile");
+    if (octl->gen_pcc_code) {
+      /* "volatile" suppressed when generating K&R C. */
+    } else {
+      if (qualifier_put_out) octl->output_str(" ");
+      octl->output_str("volatile");
+      qualifier_put_out = TRUE;
+    }  /* if */
   }  /* if */
+  /* Put out trailing space if required. */
+  if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
 }  /* form_type_qualifier */
 
 #endif /* ifdef CFE */
@@ -420,12 +450,29 @@ end_of_routine:;
 }  /* form_bound */
 
 #endif /* ifdef FFE */
+#ifdef CFE
 
-static void form_type_specifier(a_type_ptr                            type,
-                                an_il_to_str_output_control_block_ptr octl)
+/*
+Return TRUE if the indicated typedef is "invisible" now because (a) it's
+local to a function and we're suppressing local typedefs, or
+(b) suppress_const is TRUE (we're suppressing top-level "const") and the
+typedef contains a const qualifier.
+*/
+#define typedef_is_invisible(type, suppress_const)                    \
+ (((type)->source_corresp.is_local_to_function &&                     \
+   octl->suppress_local_typedefs) ||                                  \
+  ((suppress_const) && is_top_level_const_qualified_type(type)))
+
+#endif /* ifdef CFE */
+
+static void form_type_specifier(
+                          a_type_ptr                            type,
+                          a_boolean                             suppress_const,
+                          an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for a type specifier.  Do the output in the way described
-by octl.  Note that derived types should be handled above this level.
+by octl.  If suppress_const is TRUE, suppress generation of top-level "const".
+Note that derived types should be handled above this level.
 */
 {
   switch (type->kind) {
@@ -438,15 +485,25 @@ by octl.  Note that derived types should be handled above this level.
       break;
     case tk_integer:
 #ifdef CFE
-      if (type->variant.integer.enum_type) {
-        /* Enum type, which is handled specially. */
+      /* Enum types are often handled specially. */
+      if (type->variant.integer.enum_type &&
+          /* Don't generate enums when generating pcc code in the C-generating
+             back end. */
+          !(octl->c_generating_back_end && octl->gen_pcc_code) &&
+          /* Empty enums (valid in C++ but not C) are put out as integers when
+             generating ANSI C from the C-generating back end. */
+          !(type->variant.integer.enum_info.constant_list == NULL &&
+            octl->c_generating_back_end)) {
+        /* Output a reference to the enum type. */
         form_tag_reference(type, octl);
       } else
 #endif /* ifdef CFE */
       {
         /* Normal integer type. */
 #ifdef CFE
-        if (type->variant.integer.explicitly_signed) {
+        if (type->variant.integer.explicitly_signed &&
+            /* "signed" is not allowed when generating pcc code. */
+            !octl->gen_pcc_code) {
           octl->output_str("signed ");
         }  /* if */
 #endif /* ifdef CFE */
@@ -471,13 +528,27 @@ by octl.  Note that derived types should be handled above this level.
       if (is_immediate_type_qualifier(type)) {
         /* The top type is a type qualifier.  Output it and move on to the
            underlying type. */
-        form_type_qualifier(type, octl);
-        octl->output_str(" ");
-        form_type_specifier(type->variant.typeref.type, octl);
-      } else if (!has_name(type)) {
-        /* This is an internally generated typeref, so just output the
-           underlying type. */
-        form_type_specifier(type->variant.typeref.type, octl);
+        if (octl->c_generating_back_end && !octl->gen_pcc_code) {
+          /* Some compilers have trouble with "const void".  Drop the const
+             in that case. */
+          if (type->variant.typeref.is_const &&
+              skip_typerefs(type->variant.typeref.type)->kind ==
+                                                        (a_type_kind)tk_void) {
+            suppress_const = TRUE;
+          }  /* if */
+        }  /* if */
+        form_type_qualifier(type, suppress_const, /*need_trailing_space=*/TRUE,
+                            octl);
+        /* "suppress_const" is right in the following if the current qualifier
+           doesn't contain const, and harmless (because there won't be
+           another const typeref) if it does. */
+        form_type_specifier(type->variant.typeref.type, suppress_const, octl);
+      } else if (!has_name(type) ||
+                 typedef_is_invisible(type, suppress_const)) {
+        /* This is an internally generated typeref, or a function-local
+           typedef that is not visible here, so just output the underlying
+           type. */
+        form_type_specifier(type->variant.typeref.type, suppress_const, octl);
       } else {
         /* A typedef; output its name. */
         form_name(&type->source_corresp, iek_type, octl);
@@ -553,22 +624,25 @@ by octl.  Note that derived types should be handled above this level.
 #ifdef CFE
 
 static void form_pointer_type_qualifiers(
-                               a_type_ptr                            qual_type,
-                               a_type_ptr                            type,
-                               a_boolean                             add_const,
-                               an_il_to_str_output_control_block_ptr octl)
+                          a_type_ptr                            qual_type,
+                          a_type_ptr                            type,
+                          a_boolean                             add_const,
+                          a_boolean                             suppress_const,
+                          an_il_to_str_output_control_block_ptr octl)
 /*
 Output type qualifiers, if any, to follow a pointer "*", reference "&",
 or pointer-to-member "name::*".  qual_type is the full pointer type,
 and type is the unqualified version of that type (e.g., the tk_pointer
-entry).  If add_const is TRUE, add an extra "const".  Do the output in
+entry).  If add_const is TRUE, add an extra "const".  If suppress_const
+is TRUE, suppress generation of top-level "const".  Do the output in
 the way described by octl.
 */
 {
   for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-    /* Put out a type qualifier. */
-    form_type_qualifier(qual_type, octl);
-    octl->output_str(" ");
+    /* Put out a type qualifier.  Note that the subroutine will just
+       ignore typedefs and do-nothing typerefs if they occur. */
+    form_type_qualifier(qual_type, suppress_const,
+                        /*need_trailing_space=*/TRUE, octl);
   }  /* for */
   if (add_const) octl->output_str("const ");
 }  /* form_pointer_type_qualifiers */
@@ -580,6 +654,7 @@ void form_type_first_part(
                     a_boolean                             under_lhs_declarator,
                     a_boolean                             need_trailing_space,
                     a_boolean                             add_const,
+                    a_boolean                             suppress_const,
                     an_il_to_str_output_control_block_ptr octl)
 /*
 For the indicated type, output the specifiers and the part of the declarator
@@ -589,7 +664,8 @@ directly under a type that uses a left-side declarator, e.g., a pointer type.
 If need_trailing_space is TRUE, put a space at the end of the specifiers
 part (needed if the declarator part is not empty, because it contains a
 name or a derived type).  If add_const is TRUE, add an extra "const" on
-top of the type.  Do the output in the way described by octl.
+top of the type.  If suppress_const is TRUE, suppress generation of
+top-level "const".  Do the output in the way described by octl.
 */
 {
   a_type_kind kind;
@@ -597,8 +673,13 @@ top of the type.  Do the output in the way described by octl.
 
   qual_type = type;
 #ifdef CFE
-  /* Remove type qualifiers but not typedefs. */
-  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+  /* Remove type qualifiers but not typedefs.  Also drop typedefs
+     that aren't visible here. */
+  while (type->kind == (a_type_kind)tk_typeref &&
+         (!has_name(type) ||
+          typedef_is_invisible(type, suppress_const))) {
+    type = type->variant.typeref.type;
+  }  /* while */
 #endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
@@ -607,6 +688,7 @@ top of the type.  Do the output in the way described by octl.
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
                          /*add_const=*/FALSE,
+                         /*suppress_const=*/FALSE,
                          octl);
     /* Output "*" or "&" for pointer or reference. */
 #ifdef CFE
@@ -618,7 +700,8 @@ top of the type.  Do the output in the way described by octl.
 #ifdef CFE
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
-    form_pointer_type_qualifiers(qual_type, type, add_const, octl);
+    form_pointer_type_qualifiers(qual_type, type, add_const, suppress_const,
+                                 octl);
 #endif /* ifdef CFE */
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
@@ -627,6 +710,7 @@ top of the type.  Do the output in the way described by octl.
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
                          /*add_const=*/FALSE,
+                         /*suppress_const=*/FALSE,
                          octl);
     /* Output Classname::*. */
     form_name(&type->variant.ptr_to_member.
@@ -634,18 +718,22 @@ top of the type.  Do the output in the way described by octl.
               iek_type, octl);
     octl->output_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
-    form_pointer_type_qualifiers(qual_type, type, add_const, octl);
+    form_pointer_type_qualifiers(qual_type, type, add_const, suppress_const,
+                                 octl);
 #endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
-       typedef. */
-    check_assertion_str(qual_type == type,
+       typedef.  When some typedefs are made invisible, though,
+       a typeref might appear and should be ignored. */
+    check_assertion_str(qual_type == type || octl->suppress_local_typedefs ||
+                        suppress_const,
                         "form_type_first_part: qualifier on function type");
     form_type_first_part(type->variant.routine.return_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
                          /*add_const=*/FALSE,
+                         /*suppress_const=*/FALSE,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -653,13 +741,17 @@ top of the type.  Do the output in the way described by octl.
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
-    /* A qualifier on an array type shouldn't be possible, period. */
-    check_assertion_str(qual_type == type,
+    /* A qualifier on an array type shouldn't be possible, period.
+       When some typedefs are made invisible, though, a typeref might
+       appear and should be ignored. */
+    check_assertion_str(qual_type == type || octl->suppress_local_typedefs ||
+                        suppress_const,
                         "form_type_first_part: qualifier on array type");
     form_type_first_part(type->variant.array.element_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
                          /*add_const=*/FALSE,
+                         /*suppress_const=*/FALSE,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -668,7 +760,7 @@ top of the type.  Do the output in the way described by octl.
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     if (add_const) octl->output_str("const ");
-    form_type_specifier(qual_type, octl);
+    form_type_specifier(qual_type, suppress_const, octl);
     if (need_trailing_space) octl->output_str(" ");
   }  /* if */
 }  /* form_type_first_part */
@@ -734,7 +826,8 @@ in the way described by octl.
       for (; is_immediate_type_qualifier(underlying_type);
            underlying_type = underlying_type->variant.typeref.type) {
         octl->output_str(" ");
-        form_type_qualifier(underlying_type, octl);
+        form_type_qualifier(underlying_type, /*suppress_const=*/FALSE,
+                            /*need_trailing_space=*/FALSE, octl);
       }  /* for */
     }  /* if */
 #endif /* ifdef CFE */
@@ -767,32 +860,41 @@ the way described by octl.
 void form_type_second_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
+                    a_boolean                             suppress_const,
                     an_il_to_str_output_control_block_ptr octl)
 /*
 Output the second part of a type reference, the part of the declarator
 that follows the name.  If under_lhs_declarator is TRUE, this type is
 directly under a type that uses a left-side declarator, e.g., a pointer type.
 (That's used to control use of parentheses around parts of the declarator.)
+If suppress_const is TRUE, suppress generation of top-level "const".
 Do the output in the way described by octl.
 */
 {
   a_type_kind kind;
 
 #ifdef CFE
-  /* Remove type qualifiers but not typedefs. */
-  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+  /* Remove type qualifiers but not typedefs.  Also drop typedefs
+     that aren't visible here. */
+  while (type->kind == (a_type_kind)tk_typeref &&
+         (!has_name(type) ||
+          typedef_is_invisible(type, suppress_const))) {
+    type = type->variant.typeref.type;
+  }  /* while */
 #endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
     form_type_second_part(type->variant.pointer.type,
                           /*under_lhs_declarator=*/TRUE,
+                          /*suppress_const=*/FALSE,
                           octl);
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*under_lhs_declarator=*/TRUE,
+                          /*suppress_const=*/FALSE,
                           octl);
 #endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
@@ -803,6 +905,7 @@ Do the output in the way described by octl.
     form_function_declarator(type, octl);
     form_type_second_part(type->variant.routine.return_type,
                           /*under_lhs_declarator=*/FALSE,
+                          /*suppress_const=*/FALSE,
                           octl);
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
@@ -813,6 +916,7 @@ Do the output in the way described by octl.
     form_array_declarator(type, octl);
     form_type_second_part(type->variant.array.element_type,
                           /*under_lhs_declarator=*/FALSE,
+                          /*suppress_const=*/FALSE,
                           octl);
 #endif /* ifdef CFE */
   }  /* if */
@@ -831,10 +935,11 @@ Output a string for a type.  Do the output in the way described by octl.
   } else {
     /* Write the specifiers and the first part of the declarator. */
     form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                        /*need_trailing_space=*/FALSE,
-                        /*add_const=*/FALSE, octl);
+                         /*need_trailing_space=*/FALSE,
+                         /*add_const=*/FALSE, /*suppress_const=*/FALSE, octl);
     /* Write the second part of the declarator. */
-    form_type_second_part(type, /*under_lhs_declarator=*/FALSE, octl);
+    form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
+                          /*suppress_const=*/FALSE, octl);
   }  /* if */
 }  /* form_type */
 
@@ -893,11 +998,12 @@ void form_integer_constant(a_constant_ptr                        constant,
                            an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for an integer constant (i.e., a constant with a ck_integer
-representation; this includes integers cast to pointer types).
-If suppress_cast is TRUE, suppress any cast of the constant to another type.
-If need_parens is TRUE, parentheses are placed around the constant
-if there's any possibility of precedence confusion.  Do the output in
-the way described by octl.
+representation).  The constant is written in integer form even if it has
+been cast to another type (e.g., a pointer type); the caller must handle
+the implicit cast for that case if appropriate.  If suppress_cast is TRUE,
+suppress any cast of the constant to another type.  If need_parens is TRUE,
+parentheses are placed around the constant if there's any possibility of
+precedence confusion.  Do the output in the way described by octl.
 */
 {
   a_boolean       need_cast_close_paren = FALSE;
@@ -925,13 +1031,15 @@ the way described by octl.
          an enum type in C mode, or an integer value cast to an enum
          type in C++ mode (note that real enumerator constants don't
          get here), ... */
-      (integer_type_constant &&
-         (con_type->variant.integer.enum_type ||
+      ((integer_type_constant && con_type->variant.integer.enum_type &&
+      /* Don't do this in the C-generating back end when generating K&R C,
+         because enum types don't appear. */
+        !(octl->c_generating_back_end && octl->gen_pcc_code)) ||
       /* ... or, it's a constant that's shorter than int, ... */
-          (int)ikind < (int)ik_int)) ||
+       (integer_type_constant && (int)ikind < (int)ik_int) ||
       /* ... or, we're generating K&R C and it's an unsigned constant
          (pcc doesn't support unsigned integral constants), ... */
-      (!signed_constant && octl->gen_pcc_code)) {
+        (!signed_constant && octl->gen_pcc_code))) {
     /* ... then prefix the constant with an explicit cast. */
     output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
     form_cast(constant->type, octl);
@@ -987,8 +1095,8 @@ the way described by octl.
 }  /* form_integer_constant */
 
 
-static void form_char(char                                  ch,
-                      an_il_to_str_output_control_block_ptr octl)
+void form_char(char                                  ch,
+               an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated character as part of a string literal or character
 constant.  Handle unprintable characters and necessary escapes.  Do the
@@ -1353,25 +1461,6 @@ in the way described by octl.
 }  /* form_address_constant */
 
 
-static a_boolean is_wide_string_constant(a_constant_ptr constant)
-/*
-Return TRUE if the indicated string is a wide string constant (L"abc").
-*/
-{
-  a_boolean  is_wide_string = FALSE;
-  a_type_ptr con_type, elem_type;
-
-  if (constant->kind == (a_constant_repr_kind)ck_string) {
-    con_type = skip_typerefs(constant->type);
-    elem_type = con_type->variant.array.element_type;
-    elem_type = skip_typerefs(elem_type);
-    /* Check for element type that is not some variety of char. */
-    is_wide_string = !is_character_type(elem_type);
-  }  /* if */
-  return is_wide_string;
-}  /* is_wide_string_constant */
-
-
 void form_constant(a_constant_ptr                        constant,
                    a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
@@ -1410,10 +1499,14 @@ confusion.  Do the output in the way described by octl.
       octl->output_str("<error-constant>");
       break;
     case ck_integer:
-      if (!octl->gen_pcc_code && is_enum_constant(constant)) {
+      if (is_enum_constant(constant) &&
+          /* Don't emit enum constants when generating K&R C from the
+             C-generating back end. */
+          !(octl->c_generating_back_end && octl->gen_pcc_code)) {
         /* An enum constant. */
         form_name(&constant->source_corresp, iek_constant, octl);
-      } else if (il_header.source_language == sl_Cplusplus &&
+      } else if (!octl->c_generating_back_end &&
+                 il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
         a_boolean       ovflo, need_char_cast_close_paren = FALSE;

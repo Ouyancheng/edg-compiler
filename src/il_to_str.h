@@ -69,6 +69,15 @@ typedef struct an_il_to_str_output_control_block {
   a_byte_boolean
 	gen_pcc_code;	/* TRUE if the generated string should be old-style
 			   pcc/K&R C.  Used by the C-generating back end. */
+  a_byte_boolean
+	suppress_local_typedefs;
+			/* Suppress function-local typedefs in type output,
+			   i.e., skip over them and don't show them in the
+			   output. */
+  a_byte_boolean
+	c_generating_back_end;
+			/* TRUE if the output is being done for the
+			   C-generating back end. */
 #if DEBUG
   a_byte_boolean
 	debug_output;	/* TRUE if the generated string is part of debug
@@ -95,8 +104,12 @@ extern char *int_kind_name(an_integer_kind kind);
 extern char *float_kind_name(a_float_kind kind);
 
 #ifdef CFE
-extern void form_type_qualifier(a_type_ptr                            type,
-                                an_il_to_str_output_control_block_ptr octl);
+extern void form_type_qualifier(
+                     a_type_ptr                            type,
+                     a_boolean                             suppress_const,
+                     a_boolean                             need_trailing_space,
+                     an_il_to_str_output_control_block_ptr octl);
+
 #endif /* ifdef CFE */
 
 extern void form_type_first_part(
@@ -104,6 +117,7 @@ extern void form_type_first_part(
                     a_boolean                             under_lhs_declarator,
                     a_boolean                             need_trailing_space,
                     a_boolean                             add_const,
+                    a_boolean                             suppress_const,
                     an_il_to_str_output_control_block_ptr octl);
 
 extern void form_function_declarator(
@@ -113,6 +127,7 @@ extern void form_function_declarator(
 extern void form_type_second_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
+                    a_boolean                             suppress_const,
                     an_il_to_str_output_control_block_ptr octl);
 
 extern void form_type(a_type_ptr                            type,
@@ -123,6 +138,9 @@ extern void form_integer_constant(
                            a_boolean                             suppress_cast,
                            a_boolean                             need_parens,
                            an_il_to_str_output_control_block_ptr octl);
+
+extern void form_char(char                                  ch,
+                      an_il_to_str_output_control_block_ptr octl);
 
 extern void form_pm_constant(
                       a_constant_ptr                        constant,
