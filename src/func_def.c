@@ -1428,7 +1428,6 @@ empty statement block.
   a_type_ptr                     class_type;
   a_routine_type_supplement_ptr  rtsp;
   a_source_position              *err_pos;
-  an_object_lifetime_ptr         saved_curr_object_lifetime;
 
   db_enter(4, "define_special_member_function");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
@@ -1436,8 +1435,6 @@ empty statement block.
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
-    /* Save the current object lifetime stack. */
-    saved_curr_object_lifetime = curr_object_lifetime;
     curr_object_lifetime = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
@@ -1481,8 +1478,6 @@ empty statement block.
     pop_scope();
     /* Terminate the class reactivation scope. */
     pop_class_reactivation_scope();
-    /* Restore the current object lifetime stack. */
-    curr_object_lifetime = saved_curr_object_lifetime;
     /* Mark the symbol for this routine "defined". */
     ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
   }  /* if */
