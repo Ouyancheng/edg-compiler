@@ -1,5 +1,17 @@
 Version 2.31
 
+11/1/95   Name of constructor of an unnamed class
+
+The "name" field in the source correspondence of a routine entry for a
+(necessarily compiler-generated) constructor of an unnamed class is
+now NULL.  Here's an example:
+
+  struct A {
+    struct {
+      virtual void f() {}
+    } y;
+  } x;
+
 11/1/95   No name mangling on extern "C" variables in namespaces
 
 extern "C" variables in a namespace were being mangled.  They shouldn't
