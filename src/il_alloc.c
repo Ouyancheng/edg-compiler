@@ -105,10 +105,10 @@ static unsigned long
 static unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
+#if RECORD_TEMPLATE_STRINGS
 static unsigned long
 		num_templates_allocated;
-#endif /* RECORD_TEMPLATES_IN_IL */
+#endif /* RECORD_TEMPLATE_STRINGS */
 #if RECORD_MACROS_IN_IL
 static unsigned long
 		num_macros_allocated;
@@ -645,10 +645,11 @@ static a_template_arg_ptr
 			   available for reuse. */
 
 
-a_template_arg_ptr alloc_template_arg(a_boolean is_type_arg)
+a_template_arg_ptr alloc_template_arg(a_templ_arg_kind kind)
 /*
 Allocate a template argument entry, initialize its fields, and return
-a pointer to it.
+a pointer to it.  "kind" is the kind of template argument to be
+allocated.
 */
 {
   a_template_arg_ptr tap;
@@ -662,19 +663,28 @@ a pointer to it.
     num_template_args_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  tap->next             = NULL;
-  tap->is_type          = is_type_arg;
+  tap->next = NULL;
+  tap->kind = kind;
   tap->is_array_bound_of_unknown_type = FALSE;
   tap->constant_is_an_arg_operand = FALSE;
   tap->explicitly_specified = FALSE;
 #if CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
-  if (is_type_arg) {
-    tap->variant.type     = NULL;
-  } else {
-    tap->variant.constant = NULL;
-  }  /* if */
+  switch (kind) {
+    case tak_type: tap->variant.type = NULL; break;
+    case tak_template: tap->variant.templ = NULL; break;
+    case tak_nontype:
+      /* It is not really necessary to initialize all of these fields, but
+         this can be important in certain debugging modes. */
+      tap->variant.constant = NULL;
+      tap->variant.integer_value = 0;
+      tap->variant.arg_operand = NULL;
+      break;
+    default:
+      unexpected_condition_str2("alloc_template_arg:", "bad kind");
+      break;
+  }  /* switch */
   return tap;
 }  /* alloc_template_arg */
 
@@ -2415,9 +2425,7 @@ points to the associated routine if the kind is sck_function.
 #if RECORD_HIDDEN_NAMES_IN_IL
   sp->hidden_names                = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
   sp->templates                   = NULL;
-#endif /* RECORD_TEMPLATES_IN_IL */
 
   db_exit();
   return sp;
@@ -2598,7 +2606,6 @@ fields, and return a pointer to it.
 }  /* alloc_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
 
 a_template_ptr alloc_template(void)
 /*
@@ -2615,7 +2622,9 @@ fields, and return a pointer to it.
   set_default_source_corresp(tp->source_corresp);
   tp->next = NULL;
   tp->kind = (a_template_kind)templk_none;
+#if RECORD_TEMPLATE_STRINGS
   tp->text = NULL;
+#endif /* RECORD_TEMPLATE_STRINGS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2623,7 +2632,6 @@ fields, and return a pointer to it.
   return tp;
 }  /* alloc_template */
 
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
 
 
@@ -2798,9 +2806,7 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
   db_space_used("templates", num_templates_allocated, a_template);
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
@@ -2972,9 +2978,7 @@ in il_init.)
 #if RECORD_HIDDEN_NAMES_IN_IL
       pch_saved_var_array_elem(num_hidden_names_allocated),
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
       pch_saved_var_array_elem(num_templates_allocated),
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
@@ -3080,9 +3084,7 @@ of the front end.
 #if RECORD_HIDDEN_NAMES_IN_IL
   num_hidden_names_allocated             = 0;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
   num_templates_allocated                = 0;
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */

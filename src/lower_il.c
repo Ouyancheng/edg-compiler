@@ -5085,11 +5085,20 @@ static void lower_template_arg(a_template_arg_ptr template_arg)
 Do IL lowering of the indicated template argument and everything under it.
 */
 {
-  if (template_arg->is_type) {
-    lower_type(template_arg->variant.type);
-  } else {
-    lower_constant(template_arg->variant.constant);
-  }  /* if */
+  switch (template_arg->kind) {
+    case tak_type:
+      lower_type(template_arg->variant.type);
+      break;
+    case tak_nontype:
+      lower_constant(template_arg->variant.constant);
+      break;
+    case tak_template:
+      /* FIXME - template template arguments. */
+      unexpected_condition_str2("lower_template_arg:",
+                                "template template arg not impl");
+      break;
+    default: unexpected_condition(); break;
+  }  /* switch */
 }  /* lower_template_arg */
 
 

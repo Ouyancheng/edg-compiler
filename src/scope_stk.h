@@ -87,12 +87,10 @@ typedef struct a_scope_pointers_block {
 			/* End of the list of hidden-name entries entered on
 			   the corresponding IL scope entry; NULL if none. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
   a_template_ptr
 		last_template;
 			/* End of the list of template entries entered on
 			   the corresponding IL scope entry; NULL if none. */
-#endif /* RECORD_TEMPLATES_IN_IL */
   a_symbol_ptr	unnamed_namespace_sym;
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace

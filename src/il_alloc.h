@@ -56,7 +56,7 @@ extern a_base_class_derivation_ptr alloc_base_class_derivation(void);
 extern an_overriding_virtual_function_ptr
                                        alloc_overriding_virtual_function(void);
 
-extern a_template_arg_ptr alloc_template_arg(a_boolean is_type_arg);
+extern a_template_arg_ptr alloc_template_arg(a_templ_arg_kind	kind);
 
 extern void free_template_arg_list(a_template_arg_ptr  tap);
 
@@ -173,9 +173,7 @@ extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
 extern a_hidden_name_ptr alloc_hidden_name(void);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
-#if RECORD_TEMPLATES_IN_IL
 extern a_template_ptr alloc_template(void);
-#endif /* RECORD_TEMPLATES_IN_IL */
 
 #if RECORD_MACROS_IN_IL
 extern a_macro_ptr alloc_macro(void);

@@ -1953,9 +1953,7 @@ and return a pointer to it.
   tssp->cache_segment = NULL;
   tssp->prototype_template = NULL;
   tssp->subordinate_templates = NULL;
-#if RECORD_TEMPLATES_IN_IL
   tssp->il_template_entry = NULL;
-#endif /* RECORD_TEMPLATES_IN_IL */
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
 #if CHECKING 
@@ -5904,13 +5902,11 @@ with an IL entry, return NULL, and return kind set to iek_none.
       entry_ptr = (char *)sym->variant.namespace_info.ptr;
       lkind = iek_namespace;
       break;
-#if RECORD_TEMPLATES_IN_IL
     case sk_function_template:
     case sk_class_template:
       entry_ptr = (char *)sym->variant.template_info->il_template_entry;
       lkind = iek_template;
       break;
-#endif /* RECORD_TEMPLATES_IN_IL */
     default:;
       /* Other cases ignored. */
   }  /* switch */

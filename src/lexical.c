@@ -8034,6 +8034,7 @@ done using the disambiguation routines.
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
   a_boolean                       is_type_param;
+  a_templ_arg_kind		  arg_kind;
   a_type_ptr                      argument_type;
   a_constant_ptr                  constant;
 
@@ -8053,7 +8054,9 @@ done using the disambiguation routines.
     is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                                      DFS_SINGLE_TYPE_REQUIRED |
                                      DFS_IS_TEMPLATE_ARGUMENT);
-    arg_ptr = alloc_template_arg(is_type_param);
+    arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
+                             : (a_templ_arg_kind)tak_nontype;
+    arg_ptr = alloc_template_arg(arg_kind);
     /* When is_nonreal is FALSE, we are scanning an explicit function
        template argument list. */
     arg_ptr->explicitly_specified = !is_nonreal;
@@ -8109,6 +8112,7 @@ this routine.  Its value is unchanged if no errors are detected.
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
   a_boolean                       is_type_param;
+  a_templ_arg_kind		  arg_kind;
 
   param_ptr = template_sym->variant.template_info->cache.decl_info->parameters;
   do {
@@ -8124,7 +8128,9 @@ this routine.  Its value is unchanged if no errors are detected.
     sym = param_ptr->param_symbol;
     /* Determine whether this argument should be a type or a constant. */
     is_type_param = (sym->kind == (a_symbol_kind)sk_type);
-    arg_ptr = alloc_template_arg(is_type_param);
+    arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
+                             : (a_templ_arg_kind)tak_nontype;
+    arg_ptr = alloc_template_arg(arg_kind);
     if (is_type_param) {
       type_name(&argument_type);
       if (is_or_contains_local_type(argument_type)) {
@@ -8177,7 +8183,9 @@ this routine.  Its value is unchanged if no errors are detected.
         sym = param_ptr->param_symbol;
         /* Determine whether this argument should be a type or a constant. */
         is_type_param = (sym->kind == (a_symbol_kind)sk_type);
-        arg_ptr = alloc_template_arg(is_type_param);
+        arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
+                                 : (a_templ_arg_kind)tak_nontype;
+        arg_ptr = alloc_template_arg(arg_kind);
 	if (is_type_param) {
           if (param_ptr->has_default_arg) {
             /* A type parameter with a default value.  The default can be

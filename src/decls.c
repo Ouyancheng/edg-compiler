@@ -8404,12 +8404,6 @@ current scope.
             if (fund_sym->kind == (a_symbol_kind)sk_undefined) {
               /* Undefined symbols have no IL entries, so don't create an
                 IL entry for this using-declaration. */
-#if !RECORD_TEMPLATES_IN_IL
-            } else if (fund_sym->kind == (a_symbol_kind)sk_class_template ||
-                fund_sym->kind == (a_symbol_kind)sk_function_template) {
-              /* When RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for
-                 the using-decl to point to, don't put out an entry. */
-#endif /* !RECORD_TEMPLATES_IN_IL */
             } else {
               /* Create a using-decl entry to represent this declaration in
                  the IL. */

@@ -825,8 +825,13 @@ values needed for the previous call.
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (tap != NULL) {
       /* A template argument exists for this parameter. */
-      if (tap->is_type) {
+      if (is_type_templ_arg(tap)) {
         param_symbol->variant.type.ptr = tap->variant.type;
+      } else if (is_template_templ_arg(tap)) {
+        /* A template template argument. */
+        /* FIXME - template template arguments. */
+        unexpected_condition_str2("update_template_param_symbols:",
+                                  "template template arg not impl");
       } else {
         param_symbol->variant.constant = tap->variant.constant;
       }  /* if */
@@ -934,9 +939,7 @@ Initialize the fields in a scope-pointers-block substructure.
 #if RECORD_HIDDEN_NAMES_IN_IL
   spbp->last_hidden_name             = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
   spbp->last_template                = NULL;
-#endif /* RECORD_TEMPLATES_IN_IL */
   spbp->unnamed_namespace_sym        = NULL;
   spbp->add_symbols_to_inactive_list = FALSE;
 #if CHECKING 

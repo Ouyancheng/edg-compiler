@@ -1767,11 +1767,11 @@ Flag that is TRUE if the routines that convert a token cache into a
 string are needed.  These routines are used for creating template strings
 and for converting token caches for Microsoft-style asm blocks into strings.
 */
-#if RECORD_TEMPLATES_IN_IL || MICROSOFT_EXTENSIONS_ALLOWED
+#if RECORD_TEMPLATE_STRINGS || MICROSOFT_EXTENSIONS_ALLOWED
 #define TOKENS_TO_STRING_NEEDED TRUE
-#else /* !(RECORD_TEMPLATES_IN_IL || MICROSOFT_EXTENSIONS_ALLOWED) */
+#else /* !(RECORD_TEMPLATE_STRINGS || MICROSOFT_EXTENSIONS_ALLOWED) */
 #define TOKENS_TO_STRING_NEEDED FALSE
-#endif /* RECORD_TEMPLATES_IN_IL || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* RECORD_TEMPLATE_STRINGS || MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if TOKENS_TO_STRING_NEEDED
 extern void add_token_cache_to_string(a_token_cache_ptr	cache);

@@ -287,7 +287,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         fprintf(f_debug, "%s: \"", (lparen_printed ? ")" : ""));
         if (type_entry_type != NULL) {
           db_type_name(type_entry_type);
-#if RECORD_TEMPLATES_IN_IL
         } else if (kind == (an_il_entry_kind)iek_template && sym != NULL) {
           /* Use the symbol name since there's more information in it. */
           an_il_to_str_output_control_block octl;
@@ -296,7 +295,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           octl.output_str = put_str_to_f_debug;
           octl.debug_output = TRUE;
           form_symbol_name(sym, &octl);
-#endif /* RECORD_TEMPLATES_IN_IL */
         } else {
           db_name(scp);
         }  /* if */
@@ -331,7 +329,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
 }  /* db_source_sequence_entry */
 
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#if RECORD_TEMPLATES_IN_IL
 
 static a_boolean is_ss_entry_for_class_template_definition(
                                        a_source_sequence_entry_ptr  ssep,
@@ -356,7 +353,6 @@ return TRUE and set *sym to point to the associated sk_class_template symbol.
   return flag;
 }  /* is_ss_entry_for_class_template_definition */
 
-#endif /* RECORD_TEMPLATES_IN_IL */
 
 static void db_ss_list_for_prototype_instantiation(
                                      a_source_sequence_entry_ptr  ssep,
@@ -371,7 +367,6 @@ source-sequence entry by "indent" spaces.
   for (; ssep != NULL; ssep = ssep->next) {
     for (i = 0; i < indent; i++) fputc(' ', f_debug);
     db_source_sequence_entry(ssep);
-#if RECORD_TEMPLATES_IN_IL
     /* If ssep represents a class template definition, put out the
        associated source sequence entries at this point. */
     if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template) {
@@ -385,7 +380,6 @@ source-sequence entry by "indent" spaces.
         db_ss_list_for_prototype_instantiation(list, indent+2);
       }  /* if */
     }  /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
   }  /* for */
 }  /* db_ss_list_for_prototype_instantiation */
 
@@ -400,7 +394,6 @@ purposes.
   for (; ssep != NULL; ssep = ssep->next) {
     fputs("  ", f_debug);
     db_source_sequence_entry(ssep);
-#if RECORD_TEMPLATES_IN_IL
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* If ssep represents a class template definition, put out the
        associated source sequence entries at this point. */
@@ -416,7 +409,6 @@ purposes.
       }  /* if */
     }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* RECORD_TEMPLATES_IN_IL */
   }  /* for */
 }  /* db_ss_list */
 
@@ -1958,11 +1950,9 @@ may do fixup on entities pointed to by source-sequence entries it removes.
 #if RECORD_MACROS_IN_IL
         || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
 #endif /* RECORD_MACROS_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
         || (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template &&
             !ss_entry_ptr(ssep, a_template_ptr)->
                                    source_corresp.is_class_member)
-#endif /* RECORD_TEMPLATES_IN_IL */
                                                                   ) {
       if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
         /* Link around a needed macro or pragma that appears inside this

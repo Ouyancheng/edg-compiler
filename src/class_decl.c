@@ -9199,27 +9199,17 @@ or implicit) controlling the declaration.
                                      new_sym, other_sym);
           }  /* if */
         }  /* if */
-#if !RECORD_TEMPLATES_IN_IL
-        if (fund_sym->kind == (a_symbol_kind)sk_class_template ||
-            fund_sym->kind == (a_symbol_kind)sk_function_template) {
-          /* When RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for the
-             class-member-using-decl to point to, don't put out an entry. */
-        } else
-#endif /* !RECORD_TEMPLATES_IN_IL */
-        /* Do not add code here. */
-        {
-          /* Create a class member using decl entry to represent this
-             declaration in the IL. */
-          udp = make_using_decl(fund_sym, &decl_pos);
-          /* Record the class that was actually specified in the qualified
-             name in the source. */
-          udp->qualifier.class_type = declared_sym->parent.class_type;
-          udp->access = access;
-          udp->is_class_member = TRUE;
-          /* Update cross-reference and source-sequence info, if required. */
-          record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
-          prev_udp = udp;
-        }  /* if */
+        /* Create a class member using decl entry to represent this
+           declaration in the IL. */
+        udp = make_using_decl(fund_sym, &decl_pos);
+        /* Record the class that was actually specified in the qualified
+           name in the source. */
+        udp->qualifier.class_type = declared_sym->parent.class_type;
+        udp->access = access;
+        udp->is_class_member = TRUE;
+        /* Update cross-reference and source-sequence info, if required. */
+        record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
+        prev_udp = udp;
       }  /* if */
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;
@@ -11609,12 +11599,14 @@ definition and marks them external as well.
        ARM, but may be inferred. */
     tap = ctsp->template_arg_list;
     for (; tap != NULL; tap = tap->next) {
-      if (tap->is_type) {
-        tp = tap->variant.type;
-      } else {
-        tp = tap->variant.constant->type;
-      }  /* if */
-      check_type_for_linkage_change(tp, count);
+      switch (tap->kind) {
+        case tak_type: tp = tap->variant.type; break;
+        case tak_nontype: tp = tap->variant.constant->type; break;
+        /* A template template parameter has no type. */
+        case tak_template: tp = NULL; break;
+        default: unexpected_condition(); break;
+      }  /* switch */
+      if (tp != NULL) check_type_for_linkage_change(tp, count);
     }  /* for */
   }  /* if */
   db_exit();

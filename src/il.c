@@ -215,12 +215,14 @@ Dump a list of template arguments, enclosed by angle brackets.
   if (tap != NULL) {
     fputs("<", f_debug);
     do {
-      if (tap->is_type) {
+      if (is_type_templ_arg(tap)) {
         if (tap->variant.type->source_corresp.name == NULL) {
           db_abbreviated_type(tap->variant.type);
         } else {
           db_type_name(tap->variant.type);
         }  /* if */
+      } else if (is_template_templ_arg(tap)) {
+        db_template_name(tap->variant.templ);
       } else if (tap->is_array_bound_of_unknown_type) {
         fprintf(f_debug, "array-bound=%lu",
                 (unsigned long)tap->variant.integer_value);
@@ -233,6 +235,15 @@ Dump a list of template arguments, enclosed by angle brackets.
     fputs(">", f_debug);
   }  /* if */
 }  /* db_template_arg_list */
+
+
+void db_template_name(a_template_ptr	tp)
+/*
+Dump the name of a template.
+*/
+{
+  db_name(&tp->source_corresp);
+}  /* db_template */
 
 
 void db_type_name(a_type_ptr  tp)
@@ -697,9 +708,7 @@ Dump information on a using-decl entry, for debug purposes.
         case iek_routine:    str = "member function";     break;
         case iek_type:       str = "member type";         break;
         case iek_constant:   str = "member constant";     break;
-#if RECORD_TEMPLATES_IN_IL
         case iek_template:   str = "template";            break;
-#endif /* RECORD_TEMPLATES_IN_IL */
         default:             str = NULL;                  break;
       }  /* switch */
     } else {
@@ -709,9 +718,7 @@ Dump information on a using-decl entry, for debug purposes.
         case iek_routine:    str = "function";     break;
         case iek_type:       str = "type";         break;
         case iek_constant:   str = "constant";     break;
-#if RECORD_TEMPLATES_IN_IL
         case iek_template:   str = "template";            break;
-#endif /* RECORD_TEMPLATES_IN_IL */
         default:             str = NULL;                  break;
       }  /* switch */
     }  /* if */
@@ -2779,9 +2786,7 @@ not.
     case iek_asm_entry:
     case iek_label:
     case iek_namespace:
-#if RECORD_TEMPLATES_IN_IL
     case iek_template:
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
     case iek_macro:
 #endif /* RECORD_MACROS_IN_IL */
@@ -3069,6 +3074,24 @@ Simple interface to copy_unshared_constant_full for the usual case.
 }  /* copy_unshared_constant */
 
 
+static a_constant_hash_value hash_name(a_source_correspondence *scp)
+/*
+Return a hash value developed from the name in the indicated source
+correspondence entry.
+*/
+{
+  a_constant_hash_value hash_value = 0;
+  char                  *cptr = scp->name;
+
+  if (cptr != NULL) {
+    for (; *cptr != '\0'; cptr++) {
+      hash_value = (hash_value << 5) + hash_value + *cptr;
+    }  /* for */
+  }  /* if */
+  return hash_value;
+}  /* hash_name */
+
+
 static a_constant_hash_value hash_type(a_type_ptr type)
 /*
 Return a hash value for the indicated type.  This is used in some cases
@@ -3112,11 +3135,18 @@ to refine the hash value developed in hash_constant.
           /* No definition for the class. */
           /* Work in the template arguments if there are any. */
           for (tap = ctsp->template_arg_list; tap != NULL; tap = tap->next) {
-            if (tap->is_type) {
-              hash_value += hash_type(tap->variant.type) + 37;
-            } else {
-              hash_value += hash_constant(tap->variant.constant) + 43;
-            }  /* if */
+            switch (tap->kind) {
+              case tak_type:
+                hash_value += hash_type(tap->variant.type) + 37;
+                break;
+              case tak_nontype:
+                hash_value += hash_constant(tap->variant.constant) + 43;
+                break;
+              case tak_template:
+                hash_value += hash_name(&tap->variant.templ->source_corresp);
+                break;
+              default: unexpected_condition(); break;
+            }  /* switch */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3129,24 +3159,6 @@ to refine the hash value developed in hash_constant.
   }  /* switch */
   return hash_value;
 }  /* hash_type */
-
-
-static a_constant_hash_value hash_name(a_source_correspondence *scp)
-/*
-Return a hash value developed from the name in the indicated source
-correspondence entry.
-*/
-{
-  a_constant_hash_value hash_value = 0;
-  char                  *cptr = scp->name;
-
-  if (cptr != NULL) {
-    for (; *cptr != '\0'; cptr++) {
-      hash_value = (hash_value << 5) + hash_value + *cptr;
-    }  /* for */
-  }  /* if */
-  return hash_value;
-}  /* hash_name */
 
 
 static a_constant_hash_value hash_constant(a_constant *cp)
@@ -5926,7 +5938,7 @@ and return a pointer to the new list.
 
   for (tap = orig_list; tap != NULL; tap = tap->next) {
     a_template_arg_ptr	new_tap;
-    new_tap = alloc_template_arg((a_boolean)tap->is_type);
+    new_tap = alloc_template_arg(tap->kind);
     *new_tap = *tap;
     new_tap->next = NULL;
     if (new_list == NULL) new_list = new_tap;
@@ -7397,7 +7409,7 @@ in doing substitution on a type), set *copy_error to TRUE.
                                             &template_arg_list,
                                             con->variant.template_param.
                                                  variant.coordinates.position);
-          check_assertion(!tap->is_type &&
+          check_assertion(is_nontype_templ_arg(tap) &&
                           !tap->is_array_bound_of_unknown_type &&
                           !tap->constant_is_an_arg_operand);
           if (tap->variant.constant != NULL) {
@@ -9957,7 +9969,6 @@ purposes.  indent indicates the indentation level.
 #endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
-#if RECORD_TEMPLATES_IN_IL
 
 void add_to_templates_list(a_template_ptr  tp,
                            a_scope_depth   scope_depth)
@@ -9982,7 +9993,6 @@ Add the IL template entry pointed to by tp to the indicated scope.
   tp->next = NULL;
 }  /* add_to_templates_list */
 
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
 
 void add_to_macros_list(a_macro_ptr  mp)

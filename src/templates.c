@@ -378,13 +378,11 @@ typedef struct a_tmpl_decl_state {
 		pragmas_bound_to_template;
 			/* A list of next-construct pragmas that appeared
 			   before this template declaration. */
-#if RECORD_TEMPLATES_IN_IL
   a_template_ptr
 		il_template_entry;
 			/* Pointer to the IL template entry created for this
 			   template declaration, or NULL if no entry has been
 			   created. */
-#endif /* RECORD_TEMPLATES_IN_IL */
   a_decl_pos_block
 		decl_pos_block;
 			/* Source range information for the template
@@ -423,9 +421,7 @@ Initialize a template declaration state block.
   clear_token_cache(&tdsp->param_list_cache, /*reusable=*/TRUE);
   clear_token_cache(&tdsp->decl_token_cache, /*reusable=*/TRUE);
   tdsp->decl_token_cache_used = FALSE;
-#if RECORD_TEMPLATES_IN_IL
   tdsp->il_template_entry = NULL;
-#endif /* RECORD_TEMPLATES_IN_IL */
   clear_decl_pos_block(&tdsp->decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdsp->definition_range = null_source_range;
@@ -490,7 +486,7 @@ list of available entries.
 }  /* free_partial_order_candidate */
 
 
-#if RECORD_TEMPLATES_IN_IL
+#if RECORD_TEMPLATE_STRINGS
 static void make_template_string(a_template_ptr  template_ptr,
                                  a_token_cache   *template_param_list_cache,
                                  a_token_cache   *template_decl_cache,
@@ -561,6 +557,7 @@ the "text" field of *template_ptr to point to it.
   db_exit();
 }  /* make_template_string */
 
+#endif /* RECORD_TEMPLATE_STRINGS */
 
 static a_template_ptr make_il_template_entry(a_source_position *start_pos)
 /*  
@@ -589,8 +586,6 @@ for sure yet, since this may be a friend template.
   db_exit();
   return tp;
 }  /* make_il_template_entry */
-
-#endif /* RECORD_TEMPLATES_IN_IL */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
@@ -1113,17 +1108,21 @@ for each parameter.
     a_boolean	arg_okay = FALSE;
     if (tap == NULL) {
       /* This argument is invalid. */
-    } else if (tap->is_type) {
+    } else if (is_type_templ_arg(tap)) {
       /* A type argument -- the argument is okay if the type has been
          filled in. */
       arg_okay = tap->variant.type != NULL;
-    } else {
+    } else if (is_nontype_templ_arg(tap)) {
       /* A nontype argument -- the argument is okay if the constant is not
          in the form of an operand, has been filled in, or if it is an array
          bound of unknown type. */
       arg_okay = !tap->constant_is_an_arg_operand &&
                  (tap->is_array_bound_of_unknown_type ||
                   tap->variant.constant != NULL);
+    } else {
+      /* A template template argument -- the argument is okay if the template
+         has been filled in. */
+      arg_okay = tap->variant.templ != NULL;
     }  /* if */
     if (!arg_okay) {
       result = FALSE;
@@ -1178,7 +1177,7 @@ values, and the handling of array bounds of unknown type.
     for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
       a_type_ptr	constant_type;
       /* Only nontype parameters need to be processed. */
-      if (tap->is_type) continue;
+      if (!is_nontype_templ_arg(tap)) continue;
       if (tpp->variant.constant.type_involves_template_param) {
         /* Rescan the tokens that make up the parameter declaration. */
         check_assertion(rout_templ_sym != NULL);
@@ -3017,13 +3016,13 @@ the same constant.
   /* Loop through both lists in step, comparing arguments. */
   while (arg1 != NULL && arg2 != NULL) {
     /* For a given class, argument lists should always have the same sequence
-       of type and constant arguments. */
-    if (arg1->is_type != arg2->is_type) {
+       of type, constant, and template arguments. */
+    if (arg1->kind != arg2->kind) {
       equiv = FALSE;
       check_assertion_str(is_nonreal_member,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
-    } else if (!arg1->is_type) {
+    } else if (is_nontype_templ_arg(arg1)) {
       /* Both are constant arguments.  If they are not identical, this is a
          mismatch. */
       a_constant_ptr con1 = arg1->variant.constant;
@@ -3051,7 +3050,7 @@ the same constant.
         equiv = FALSE;
       }  /* if */
       if (!equiv) break;
-    } else {
+    } else if (is_type_templ_arg(arg1)) {
       /* Both are type arguments.  If they are not identical, this is a
          mismatch. */
       a_type_ptr type1 = arg1->variant.type;
@@ -3081,6 +3080,11 @@ the same constant.
         }  /* if */
       }  /* if */
       if (!equiv) break;
+    } else {
+      /* A template template argument. */
+      /* FIXME - template template arguments. */
+      unexpected_condition_str2("equiv_template_arg_lists:",
+                                "template template arg not impl");
     }  /* if */
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
@@ -3108,11 +3112,15 @@ a template parameter (type or constant).
 {
   a_boolean  template_param_found;
 
-  if (tap->is_type) {
+  if (is_type_templ_arg(tap)) {
     template_param_found = is_or_contains_template_param(tap->variant.type);
-  } else {
+  } else if (is_nontype_templ_arg(tap)) {
     template_param_found = (tap->variant.constant->kind ==
                                  (a_constant_repr_kind)ck_template_param);
+  } else {
+    /* FIXME - template template arguments. */
+    unexpected_condition_str2("template_arg_involves_template_param:",
+                              "template template arg not impl");
   }  /* if */
   return template_param_found;
 }  /* template_arg_involves_template_param */
@@ -3297,7 +3305,7 @@ prototype instantiation is considered as a potential match.
         /* Local typedef names (legal if they refer to nonlocal types) should
            not be part of the type signature of the template class itself,
            which is nonlocal.  Strip them off, if there are any. */
-        if (tap->is_type) {
+        if (is_type_templ_arg(tap)) {
           tap->variant.type =
                            strip_local_and_nonreal_typedefs(tap->variant.type);
         }  /* if */
@@ -3444,7 +3452,7 @@ another template parameter.
          tpp != NULL && tap != NULL; tpp = tpp->next, tap = tap->next) {
       a_boolean			is_type_param;
       is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
-      if (is_type_param != tap->is_type) {
+      if (is_type_param != is_type_templ_arg(tap)) {
         arg_kind_mismatch = TRUE;
         break;
       }  /* if */
@@ -3466,8 +3474,11 @@ another template parameter.
            specified_tap = specified_tap == NULL
                                               ? NULL : specified_tap->next) {
       a_boolean			is_type_param;
+      a_templ_arg_kind		arg_kind;
       is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
-      tap = alloc_template_arg(is_type_param);
+      arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
+                               : (a_templ_arg_kind)tak_nontype;
+      tap = alloc_template_arg(arg_kind);
       if (specified_tap != NULL) {
         /* An argument value was supplied.  Copy it to the newly created
            template argument. */
@@ -3830,19 +3841,24 @@ partial specialization.
   a_boolean	match = FALSE;
 
   do {
-    if (tap->is_type) {
+    if (is_type_templ_arg(tap)) {
       /* A type template parameter.  See if the types match. */
       match = matches_template_type(tap->variant.type,
                                     templ_tap->variant.type,
                                     templ_arg_list,
                                     templ_param_list,
                                     MTT_NO_FLAGS);
-    } else {
+    } else if (is_nontype_templ_arg(tap)) {
       /* A nontype template parameter. */
       match = matches_template_constant(tap->variant.constant,
                                         templ_tap->variant.constant,
                                         templ_arg_list,
                                         templ_param_list);
+    } else {
+      /* A template template argument. */
+      /* FIXME - template template arguments. */
+      unexpected_condition_str2("matches_template_arg_list:",
+                                "template template arg not impl");
     }  /* if */
     tap = tap->next;
     templ_tap = templ_tap->next;
@@ -4433,13 +4449,13 @@ are looked up, if needed.  The symbol of the new instance is returned.
   prev_new_tap = new_list = NULL;
   for (; tap != NULL;
        tap = tap->next, tpp = is_nonreal_template ? NULL : tpp->next) {
-    new_tap = alloc_template_arg((a_boolean)tap->is_type);
-    if (tap->is_type) {
+    new_tap = alloc_template_arg(tap->kind);
+    if (is_type_templ_arg(tap)) {
       new_tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
                                            templ_arg_list, depth, source_pos,
                                            options, copy_error);
-    } else {
+    } else if (is_nontype_templ_arg(tap)) {
       /* Perform the substitution on the type of the constant. */
       a_type_ptr	const_type;
       a_type_ptr	new_const_type;
@@ -4458,6 +4474,11 @@ are looked up, if needed.  The symbol of the new instance is returned.
 						   new_const_type,
                                                    source_pos,
                                                    copy_error);
+    } else {
+      /* A template template argument. */
+      /* FIXME - template template arguments. */
+      unexpected_condition_str2("copy_template_class_reference_with_subst:",
+                                "template template arg not impl");
     }  /* if */
     if (new_list == NULL) {
       new_list = new_tap;
@@ -5155,10 +5176,14 @@ Do some simple consistency checking on a function template argument list.
   }  /* if */
   tpp = tssp->variant.function.decl_cache.decl_info->parameters;
   for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
-    check_assertion_str2((tap->is_type && tap->variant.type != NULL) ||
-                         (!tap->is_type && tap->variant.constant != NULL),
+    check_assertion_str2((is_type_templ_arg(tap) &&
+                          tap->variant.type != NULL) ||
+                         (is_nontype_templ_arg(tap) &&
+                          tap->variant.constant != NULL) ||
+                         (is_template_templ_arg(tap) &&
+                          tap->variant.templ != NULL),
                          "check_template_arg_list:",
-                         "missing type or constant pointer");
+                         "missing type, constant, or template  pointer");
     if (tpp == NULL) {
       internal_error("check_template_arg_list: too many template args");
     }  /* if */
@@ -6765,7 +6790,7 @@ structure.
      arguments nor may unnamed types.  Issue an error if any are found.
      Unnamed types are permitted as template arguments in Microsoft mode. */
   while (tap != NULL) {
-    if (tap->is_type) {
+    if (is_type_templ_arg(tap)) {
       a_type_ptr	type = tap->variant.type;
       a_boolean		is_unnamed;
       a_boolean		is_local;
@@ -6776,7 +6801,7 @@ structure.
           pos_error(ec_unnamed_type_in_template_arg, source_pos);
         }  /* if */
       }  /* if */
-    } else {
+    } else if (is_nontype_templ_arg(tap)) {
       if (constant_references_non_external_entity(tap->variant.constant)) {
         pos_error(ec_nonexternal_entity_in_template_arg, source_pos);
         set_error_constant(tap->variant.constant);
@@ -7513,10 +7538,10 @@ to the newly created list.
   for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
-      tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+      tap = alloc_template_arg((a_templ_arg_kind)tak_type);
       tap->variant.type = param_sym->variant.type.ptr;
     } else {
-      tap = alloc_template_arg(/*is_arg_type=*/FALSE);
+      tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
       tap->variant.constant = param_sym->variant.constant;
     }  /* if */
     if (list_head == NULL) list_head = tap;
@@ -7737,7 +7762,7 @@ list and template argument list of a partial specialization are valid.
     templ_arg_list = prototype_type->
                      variant.class_struct_union.extra_info->template_arg_list;
     for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
-      if (!tap->is_type) {
+      if (is_nontype_templ_arg(tap)) {
         a_constant_ptr	cp = tap->variant.constant;
         if (is_or_contains_template_param(cp->type)) {
           error(ec_partial_spec_arg_depends_on_templ_param);
@@ -9444,7 +9469,7 @@ the size of arr can be computed.
 }  /* fixup_types_that_refer_to_incomplete_instantiations */
 
 
-#if RECORD_TEMPLATES_IN_IL
+#if RECORD_TEMPLATE_STRINGS
 
 static void select_caches_and_make_template_string(
 				a_tmpl_decl_state_ptr	decl_state,
@@ -9494,6 +9519,7 @@ is being created.
                        p_template_body_cache);
 }  /* select_caches_and_make_template_string */
 
+#endif /* RECORD_TEMPLATE_STRINGS */
 
 static
 void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
@@ -9552,6 +9578,7 @@ set, and its source sequence entry, if any, has been put out.)
         }  /* if */
         /* Set the access. */
         il_template_entry->source_corresp.access = decl_state->access;
+#if RECORD_TEMPLATE_STRINGS
         if (p_template_body_cache != NULL) {
           a_cached_token_ptr	first_token;
           first_token = p_template_body_cache->first_token;
@@ -9585,6 +9612,7 @@ set, and its source sequence entry, if any, has been put out.)
 	/* Create the string that represents the template declaration. */
         select_caches_and_make_template_string(decl_state, sym,
                                                p_template_body_cache);
+#endif /* RECORD_TEMPLATE_STRINGS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         /* Record source range information for this template declaration. */
         il_template_entry->source_corresp.decl_pos_info =
@@ -9615,7 +9643,6 @@ set, and its source sequence entry, if any, has been put out.)
     }  /* if */
   }  /* if */
 }  /* complete_il_template_entry */
-#endif /* RECORD_TEMPLATES_IN_IL */
 
 
 static a_symbol_ptr template_static_data_member_declaration
@@ -10507,9 +10534,7 @@ any non-empty template parameter lists that were scanned.
   a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_boolean                         tag_resolution = FALSE;
-#if RECORD_TEMPLATES_IN_IL
   a_token_cache                     *p_template_body_cache = NULL;
-#endif /* RECORD_TEMPLATES_IN_IL */
   a_template_cache_segment_ptr	    class_templ_cache_segments = NULL;
   a_template_cache_segment_ptr	    function_templ_cache_segments = NULL;
   a_boolean			    prototype_okay = FALSE;
@@ -10551,12 +10576,10 @@ any non-empty template parameter lists that were scanned.
 			       &tag_resolution);
     tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
     is_class_template = TRUE;
-#if RECORD_TEMPLATES_IN_IL
     if (decl_state->defines_something && sym != NULL) {
       /* Save a pointer to the token cache for class template body. */
       p_template_body_cache = &tssp->cache.tokens;
     }  /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
   } else {
     /* Not a class template declaration.  Check for a function template
        declaration or a static data member template definition. */
@@ -10582,13 +10605,11 @@ any non-empty template parameter lists that were scanned.
       complete_function_template_decl(decl_state, sym,
                                       (a_func_info_block *)NULL,
                                       &tssp, &decl_start_pos);
-#if RECORD_TEMPLATES_IN_IL
       if (decl_state->defines_something) {
         /* Save a pointer to the token cache for function body.  tssp may
            be NULL in error cases. */
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
       } /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
     } else {
       a_type_ptr              type;
       a_symbol_locator        locator;
@@ -10631,24 +10652,20 @@ any non-empty template parameter lists that were scanned.
           locator.specific_symbol != NULL) {
         sym = template_static_data_member_declaration(
                                  decl_state, &locator, do_flags, type, &tssp);
-#if RECORD_TEMPLATES_IN_IL
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases. */
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
-#endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
         sym = function_template_declaration(
                  decl_state, &locator, &func_info, storage_class,
                  &decl_modifiers, type);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);
-#if RECORD_TEMPLATES_IN_IL
         if (decl_state->defines_something) {
           /* Save a pointer to the token cache for function body.  tssp may
              be NULL in error cases. */
           if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
         } /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
       } else {
         /* Error -- not a class template, a function template, nor a static
            data member template. */
@@ -10738,7 +10755,6 @@ any non-empty template parameter lists that were scanned.
                                                 class_templ_cache_segments,
                                                 /*keep_default_args=*/TRUE);
   } /* if */
-#if RECORD_TEMPLATES_IN_IL
   complete_il_template_entry(decl_state, sym, p_template_body_cache);
   /* If this is a template definition or the initial declaration, update
      the template symbol supplement to point to the IL entry . */
@@ -10746,7 +10762,6 @@ any non-empty template parameter lists that were scanned.
       (decl_state->defines_something || tssp->il_template_entry == NULL)) {
     tssp->il_template_entry = decl_state->il_template_entry;
   }  /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
@@ -11573,7 +11588,6 @@ are either the specialization of a template or a template declaration.
        of the processing. */
     decl_state.effective_decl_level = depth_scope_stack;
   }  /* if */
-#if RECORD_TEMPLATES_IN_IL
   if (decl_state.is_full_specialization) {
     /* No IL template entry required. */
   } else {
@@ -11585,7 +11599,6 @@ are either the specialization of a template or a template declaration.
     decl_state.il_template_entry =
                                make_il_template_entry(&decl_state.start_pos);
   }  /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
   /* Scan one or more template parameter lists.  Each template parameter
      list looks like "template < param-list >".  The param-list is
      optional (but once a parameter list has been specified, all subsequent

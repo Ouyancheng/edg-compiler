@@ -81,6 +81,7 @@ typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
+typedef struct a_template *a_template_ptr;
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
                              a_destructible_entity_descr_dummy_typedef;
@@ -432,9 +433,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_hidden_name,	/* a_hidden_name */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   iek_pragma,		/* a_pragma */
-#if RECORD_TEMPLATES_IN_IL
   iek_template,		/* a_template */
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
   iek_macro,		/* a_macro */
 #endif /* RECORD_MACROS_IN_IL */
@@ -549,9 +548,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_hidden_name */			"hidden-name",
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 /* iek_pragma */			"pragma",
-#if RECORD_TEMPLATES_IN_IL
 /* iek_template */			"template",
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
 /* iek_macro */				"macro",
 #endif /* RECORD_MACROS_IN_IL */
@@ -2701,6 +2698,22 @@ typedef struct a_routine_type_supplement {
 #endif /* ifndef CIL */
 } a_routine_type_supplement;
 
+
+/*
+A template argument may be a type, nontype, or template argument.  This
+enumeration is used to specify which variant of the template argument
+entry is being used.
+*/
+enum a_templ_arg_kind_tag {
+  tak_type,
+  tak_nontype,
+  tak_template
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_templ_arg_kind;
+
+
 typedef struct a_template_arg *a_template_arg_ptr;
 typedef struct a_template_arg {
   /* Representation of an actual argument of an instance of a template class
@@ -2708,9 +2721,10 @@ typedef struct a_template_arg {
      argument list for such an instance. */
   a_template_arg_ptr
                 next;   /* Next in a linked list template arguments. */
-  a_bit_field	is_type:1;
-                        /* TRUE if this argument is a type argument.  FALSE
-                           if it is a constant value. */
+  a_templ_arg_kind
+		kind;
+			/* Specifies whether this is a type, nontype,
+			   or template template argument. */
   a_bit_field	is_array_bound_of_unknown_type:1;
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
@@ -2740,13 +2754,13 @@ typedef struct a_template_arg {
 			   specified the argument. */
   bitfield_to_avoid_codecenter_warnings()
   union {
-    /* When is_type == TRUE. */
+    /* When kind == tak_type. */
     a_type_ptr  type;   /* The type supplied as the argument. */
-    /* When is_type == FALSE and is_array_bound_of_unknown_type == FALSE. */
+    /* When kind == tak_nontype and is_array_bound_of_unknown_type == FALSE. */
     a_constant_ptr
                 constant;
                         /* The constant supplied as the argument. */
-    /* When is_type == FALSE and is_array_bound_of_unknown_type == TRUE. */
+    /* When kind == tak_nontype and is_array_bound_of_unknown_type == TRUE. */
     a_targ_size_t
 		integer_value;
 			/* The integer value deduced from an array bound.
@@ -2755,7 +2769,7 @@ typedef struct a_template_arg {
                            parameter being deduced is known and this value
                            is converted into a normal constant parameter.
                            Contains zero if no value has been deduced yet. */
-    /* When is_type == FALSE and constant_is_an_arg_operand is TRUE. */
+    /* When kind == tak_nontype and constant_is_an_arg_operand is TRUE. */
     an_arg_operand_ptr
 		arg_operand;
 			/* The internal form of a template argument that has
@@ -2763,6 +2777,10 @@ typedef struct a_template_arg {
 			   type of the corresponding template parameter.
 			   See the comment on constant_is_an_arg_operand for
 			   more information. */
+    /* When kind == tak_template */
+    a_template_ptr
+		templ;
+			/* The template supplied as the argument. */
   } variant;
 } a_template_arg;
 
@@ -7070,7 +7088,6 @@ typedef struct a_hidden_name {
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
-#if RECORD_TEMPLATES_IN_IL
 
 /*
 The kind of template that is recorded in the IL template representation
@@ -7096,7 +7113,6 @@ An entry containing the text of a template declaration.  Ordinarily this
 information is not needed outside the front end (which maintains comparable
 information as a token cache).  (C++ only).
 */
-typedef struct a_template *a_template_ptr;
 typedef struct a_template {
   /* The source_corresp field must be first. */
   a_source_correspondence
@@ -7110,10 +7126,12 @@ typedef struct a_template {
   a_template_kind
 		kind;
 			/* The kind of template represented. */
+#if RECORD_TEMPLATE_STRINGS
   char		*text;
 			/* A null-terminated string representing the text of
 			   the template declaration, starting with the
 			   keyword "template". */
+#endif /* RECORD_TEMPLATE_STRINGS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		definition_range;
@@ -7129,7 +7147,6 @@ typedef struct a_template {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_template;
 
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
 
 /*
@@ -7633,13 +7650,10 @@ typedef struct a_scope {
 			   qualification (a preceding "::") is used.  Only
 			   used in C++. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
   a_template_ptr
 		templates;
-			/* Linked list of template entries, each containing
-			   the text representation of a template declaration.
-			   Only used in C++. */
-#endif /* RECORD_TEMPLATES_IN_IL */
+			/* Linked list of template entries. Only used
+                           in C++. */
 } a_scope;
 
 /*

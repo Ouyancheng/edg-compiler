@@ -675,10 +675,8 @@ extern void set_block_scope_handler(a_handler_ptr  handler);
 
 extern a_statement_ptr alloc_expr_statement(an_expr_node_ptr node);
 
-#if RECORD_TEMPLATES_IN_IL
 extern void add_to_templates_list(a_template_ptr  tp,
                                   a_scope_depth   scope_depth);
-#endif /* RECORD_TEMPLATES_IN_IL */
 
 #if RECORD_MACROS_IN_IL
 extern void add_to_macros_list(a_macro_ptr  mp);
@@ -827,6 +825,16 @@ Return TRUE if a constant is an error constant.
    (storage_class) == (a_storage_class)sc_unspecified)
 
 /*
+Macros used to determine the kind of a template argument.
+*/
+#define is_type_templ_arg(arg) \
+  (arg->kind == (a_templ_arg_kind)tak_type)
+#define is_nontype_templ_arg(arg) \
+  (arg->kind == (a_templ_arg_kind)tak_nontype)
+#define is_template_templ_arg(arg) \
+  (arg->kind == (a_templ_arg_kind)tak_template)
+
+/*
 Macro that returns TRUE if a constant entry is the exact address of
 a variable.
 */
@@ -890,6 +898,8 @@ extern a_derivation_step_ptr cast_virtual_derivation_path_of(
 
 #if DEBUG
 extern void db_template_arg_list(a_template_arg_ptr tap);
+
+extern void db_template_name(a_template_ptr  tp);
 
 extern void db_type_name(a_type_ptr  tp);
 

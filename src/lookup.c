@@ -3313,8 +3313,13 @@ list pointer in type_list.  *type_list should be NULL on the first call.
           tap = arg_type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
           for (; tap != NULL; tap = tap->next) {
-            if (tap->is_type) {
+            if (is_type_templ_arg(tap)) {
               add_to_arg_dependent_lookup_list(tap->variant.type, type_list);
+            } else if (is_template_templ_arg(tap)) {
+              /* A template template argument. */
+              /* FIXME - template template arguments. */
+              unexpected_condition_str2("add_to_arg_dependent_lookup_list:",
+                                        "template template arg not impl");
             } /* if */
           }  /* for */
         }  /* if */

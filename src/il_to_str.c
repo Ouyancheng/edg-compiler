@@ -126,6 +126,15 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 
 #endif /* DEBUG */
 
+static void form_template(a_template_ptr	tp,
+                          an_il_to_str_output_control_block_ptr octl)
+
+/*
+Output a string for a template.  Do the output in the way described by octl.
+*/
+{
+  form_name(&tp->source_corresp, iek_template, octl);
+}
 
 
 void form_a_template_arg(a_template_arg_ptr                    tap,
@@ -134,27 +143,39 @@ void form_a_template_arg(a_template_arg_ptr                    tap,
 Output the indicated template argument in the way described by octl.
 */
 {
-  if (tap->is_type) {
-    /* Type argument. */
-    form_type(tap->variant.type, octl);
-    if (octl->gen_compilable_code && tap->next == NULL) {
-      /* When generating compilable code, put out a space after the
-         final type and before the closing ">" to avoid the
-         possibility of getting ">>" with nested template references. */
-      octl->output_str(" ");
-    }  /* if */
-  } else {
-    /* Nontype argument. */
-    a_constant_ptr con = tap->variant.constant;
-    if (is_reference_type(con->type)) {
-      /* A reference parameter.  Display specially -- one level of
-         indirection must be removed. */
-      form_lvalue_address_constant(con, /*need_parens=*/FALSE, octl);
-    } else {
-      /* Normal (non-reference) case. */
-      form_constant(con, /*need_parens=*/FALSE, octl);
-    }  /* if */
-  }  /* if */
+  switch (tap->kind) {
+    case tak_type:
+      /* Type argument. */
+      form_type(tap->variant.type, octl);
+      if (octl->gen_compilable_code && tap->next == NULL) {
+        /* When generating compilable code, put out a space after the
+           final type and before the closing ">" to avoid the
+           possibility of getting ">>" with nested template references. */
+        octl->output_str(" ");
+      }  /* if */
+      break;
+    case tak_nontype:
+      /* Nontype argument. */
+      {
+        a_constant_ptr con = tap->variant.constant;
+        if (is_reference_type(con->type)) {
+          /* A reference parameter.  Display specially -- one level of
+             indirection must be removed. */
+          form_lvalue_address_constant(con, /*need_parens=*/FALSE, octl);
+        } else {
+          /* Normal (non-reference) case. */
+          form_constant(con, /*need_parens=*/FALSE, octl);
+        }  /* if */
+      }
+      break;
+    case tak_template:
+      /* A template template argument. */
+      form_template(tap->variant.templ, octl);
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
 }  /* form_a_template_arg */
 
 

@@ -1467,7 +1467,7 @@ do_set_proper_definition_needed_flag:
       break;
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
+#if RECORD_TEMPLATE_STRINGS
     case iek_template:
       {
         a_template_ptr ptr = (a_template_ptr)entry_ptr;
@@ -1476,7 +1476,7 @@ do_set_proper_definition_needed_flag:
         walk_string_ptr(ptr->text, iek_other_text, 0);
       }
       break;
-#endif /* RECORD_TEMPLATES_IN_IL */
+#endif /* RECORD_TEMPLATE_STRINGS */
 #if RECORD_MACROS_IN_IL
     case iek_macro:
       {
@@ -1643,9 +1643,9 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->vla_dimensions, a_vla_dimension_ptr, iek_vla_dimension);
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
-#if RECORD_TEMPLATES_IN_IL
+#if RECORD_TEMPLATE_STRINGS
         walk_list(ptr->templates, a_template_ptr, iek_template);
-#endif /* RECORD_TEMPLATES_IN_IL */
+#endif /* RECORD_TEMPLATE_STRINGS */
 #ifdef FFE
         walk_list(ptr->entries, an_entry_description_ptr,
                   iek_entry_description);
@@ -2162,10 +2162,16 @@ after_entry_from_class:
       {
         a_template_arg_ptr ptr = (a_template_arg_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_template_arg_ptr, iek_template_arg);
-        if (ptr->is_type) {
+        if (is_type_templ_arg(ptr)) {
           walk_ptr(ptr->variant.type, a_type_ptr, iek_type);
+        } else if (is_nontype_templ_arg(ptr)) {
+          if (!ptr->is_array_bound_of_unknown_type &&
+              !ptr->constant_is_an_arg_operand) {
+            walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+          }  /* if */
         } else {
-          walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+          /* A template template argument. */
+          walk_ptr(ptr->variant.templ, a_template_ptr, iek_template);
         }  /* if */
       }
       break;

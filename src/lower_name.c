@@ -1186,9 +1186,14 @@ literals.
   eff_ctl = &sctl;
   for (pass = 1; ; pass++) {
     for (tap = template_arg_list; tap != NULL; tap = tap->next) {
-      if (tap->is_type) {
+      if (is_type_templ_arg(tap)) {
         /* Type argument. */
         mangled_encoding_for_type(tap->variant.type, eff_ctl);
+      } else if (is_template_templ_arg(tap)) {
+        /* A template template argument. */
+        /* FIXME - template template arguments. */
+        unexpected_condition_str2("mangled_template_arguments:",
+                                  "template template arg not impl");
       } else {
         check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                              "mangled_template_arguments:",

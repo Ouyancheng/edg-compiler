@@ -5491,7 +5491,7 @@ based on the specified template parameter constant.
                                                          template_arg_list;
          tap != NULL;
          tap = tap->next) {
-      if (!tap->is_type) {
+      if (is_nontype_templ_arg(tap)) {
         /* A non-type argument.  See if a template parameter constant is
            used -- e.g.,
              template <class T, int I> class A { B<I> *b; . . . };
@@ -5950,12 +5950,16 @@ its parameters?).
                                                           template_arg_list;
                  tap != NULL;
                  tap = tap->next) {
-              if (tap->is_type) {
+              if (is_type_templ_arg(tap)) {
                 tp = tap->variant.type;
                 if (traverse_type_tree(tp, func, flags)) {
                   status = TRUE;
                   break;
                 }  /* if */
+              } else if (is_template_templ_arg(tap)) {
+                /* FIXME - template template arguments. */
+                unexpected_condition_str2("traverse_type_tree:",
+                                          "template template arg not impl");
               } else if (!tap->is_array_bound_of_unknown_type &&
                          !tap->constant_is_an_arg_operand) {
                 /* Nontype template argument.  Check the type of the
@@ -6244,7 +6248,7 @@ class_type itself.
   a_boolean                       result = FALSE;
 
   for (; tap != NULL; tap = tap->next) {
-    if (tap->is_type) {
+    if (is_type_templ_arg(tap)) {
       if (type_involves_specific_class_type(tap->variant.type, class_type,
                                             members_only)) {
         result = TRUE;

@@ -888,16 +888,17 @@ recorded in the IL.  Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
 
 
 /*
-Flag that is TRUE if template declarations should be recorded in the IL.
-Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
+Flag that is TRUE if a string representation of template declarations
+should be recorded in the IL.  Automatically TRUE if BACK_END_IS_CP_GEN_BE
+is TRUE.
 */
-#ifndef RECORD_TEMPLATES_IN_IL
+#ifndef RECORD_TEMPLATE_STRINGS
 #if BACK_END_IS_CP_GEN_BE
-#define RECORD_TEMPLATES_IN_IL TRUE /* Do not change this. */
+#define RECORD_TEMPLATE_STRINGS TRUE /* Do not change this. */
 #else /* !BACK_END_IS_CP_GEN_BE */
-#define RECORD_TEMPLATES_IN_IL FALSE
+#define RECORD_TEMPLATE_STRINGS FALSE
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* !defined(RECORD_TEMPLATES_IN_IL) */
+#endif /* !defined(RECORD_TEMPLATE_STRINGS) */
 
 /*
 Flag that is TRUE if macro declarations should be recorded in the IL.

@@ -63,9 +63,9 @@ a "for"] would have to be rewritten.)
 */
 #endif /* DO_IL_LOWERING */
 
-#if !RECORD_TEMPLATES_IN_IL
- #error -- The C++/C-generating back end requires RECORD_TEMPLATES_IN_IL.
-#endif /* !RECORD_TEMPLATES_IN_IL */
+#if !RECORD_TEMPLATE_STRINGS
+ #error -- The C++/C-generating back end requires RECORD_TEMPLATE_STRINGS.
+#endif /* !RECORD_TEMPLATE_STRINGS */
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -3518,7 +3518,7 @@ flags on the classes found on an earlier call.
   a_template_arg_ptr arg;
 
   for (arg = template_arg_list; arg != NULL; arg = arg->next) {
-    if (arg->is_type) {
+    if (is_type_templ_arg(arg)) {
       a_type_ptr type = arg->variant.type;
       if (type->source_corresp.is_class_member) {
         a_type_ptr type_class = type->source_corresp.parent.class_type;

@@ -142,9 +142,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_hidden_name),
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   sizeof(a_pragma),
-#if RECORD_TEMPLATES_IN_IL
   sizeof(a_template),
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
   sizeof(a_macro),
 #endif /* RECORD_MACROS_IN_IL */

@@ -1713,9 +1713,9 @@ Display the indicated name and template arg list.
     disp_name(name);
     (void)printf("\n");
     for (; ptr != NULL; ptr = ptr->next) {
-      if (ptr->is_type) {
+      if (is_type_templ_arg(ptr)) {
         disp_ptr("  type", (char *)ptr->variant.type, iek_type);
-      } else {
+      } else if (is_nontype_templ_arg(ptr)) {
         if (ptr->is_array_bound_of_unknown_type) {
           printf("Error: is_array_bound_of_unknown_type");
         } else if (ptr->constant_is_an_arg_operand) {
@@ -1723,6 +1723,9 @@ Display the indicated name and template arg list.
         } else {
           disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
         }  /* if */
+      } else {
+        /* A template template argument. */
+        disp_ptr("  template", (char *)ptr->variant.templ, iek_template);
       }  /* if */
       if (ptr->explicitly_specified) {
         disp_boolean("  explicitly_specified",
@@ -2828,7 +2831,6 @@ Display the indicated hidden-name entry.
 }  /* disp_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
 
 static void disp_template(a_template_ptr  ptr)
 /*
@@ -2863,10 +2865,11 @@ Display the indicated hidden-name entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("definition_range", &ptr->definition_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_TEMPLATE_STRINGS
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
+#endif /* RECORD_TEMPLATE_STRINGS */
 }  /* disp_template */
 
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
 
 static void disp_macro(a_macro_ptr  ptr)
@@ -3045,9 +3048,9 @@ do_assoc_type:
 #if RECORD_HIDDEN_NAMES_IN_IL
   disp_ptr("hidden_names", (char *)ptr->hidden_names, iek_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
+#if RECORD_TEMPLATE_STRINGS
   disp_ptr("templates", (char *)ptr->templates, iek_template);
-#endif /* RECORD_TEMPLATES_IN_IL */
+#endif /* RECORD_TEMPLATE_STRINGS */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,
@@ -3371,7 +3374,6 @@ Display the indicated using-directive entry.
   if (ptr->entity.kind == (a_byte_il_entry_kind)iek_routine) {
     disp_ptr("next_in_overload_set", (char *)ptr->next_in_overload_set,
              iek_using_decl);
-#if RECORD_TEMPLATES_IN_IL
   } else if (ptr->entity.kind == (a_byte_il_entry_kind)iek_template) {
     a_template_ptr  tp = (a_template_ptr)ptr->entity.ptr;
     if (tp->kind == (a_template_kind)templk_function ||
@@ -3379,7 +3381,6 @@ Display the indicated using-directive entry.
       disp_ptr("next_in_overload_set", (char *)ptr->next_in_overload_set,
                iek_using_decl);
     }  /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_using_decl */
@@ -3989,11 +3990,9 @@ This routine is called during IL walking.
           disp_hidden_name((a_hidden_name_ptr)entry_ptr);
           break;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if RECORD_TEMPLATES_IN_IL
         case iek_template:
           disp_template((a_template_ptr)entry_ptr);
           break;
-#endif /* RECORD_TEMPLATES_IN_IL */
 #if RECORD_MACROS_IN_IL
         case iek_macro:
           disp_macro((a_macro_ptr)entry_ptr);
