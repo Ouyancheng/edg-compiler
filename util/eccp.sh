@@ -482,6 +482,7 @@ check_abbreviation()
 --c
 --c99
 --c++
+--c_to_obj_lib
 --cfront_2.1
 --cfront_3.0
 --class_name_injection
@@ -776,6 +777,18 @@ process_option()
 #     Collect a list of -L options to pass to the linker.
       Loptions=$Loptions" -L"$curr_param
       used_two_params=1
+      ;;
+    --c_to_obj_lib)
+#     A library to be added to the EDG_C_TO_OBJ_LIBRARIES string
+      EDG_C_TO_OBJ_LIBRARIES=$EDG_C_TO_OBJ_LIBRARIES" -l"$curr_param
+      used_two_params=1
+      add_to_instantiation_command=0
+      ;;
+    --c_to_obj_lib=*)
+#     A library to be added to the EDG_C_TO_OBJ_LIBRARIES string
+      arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+      EDG_C_TO_OBJ_LIBRARIES=$EDG_C_TO_OBJ_LIBRARIES" -l"$arg_value
+      add_to_instantiation_command=0
       ;;
     ${library_option}*)
 #     Collect a list of -L options to pass to the linker.
