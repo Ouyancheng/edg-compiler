@@ -2859,10 +2859,18 @@ is the one associated with the definition of the class.
   }  /* if */
   write_tok_str(tag_kind(type->kind));
   /* Write the name of the class. */
-  /* Note that a name will be generated for an unnamed class.  Suppress
-     the name for an anonymous union class. */
-  if (ctsp == NULL ||
-      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
+  if (ctsp != NULL &&
+      ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+    /* The type is an anonymous union, so suppress the name. */
+  } else if (type->variant.class_struct_union.originally_unnamed &&
+             has_name(type)) {
+    /* The type was unnamed but got a name from a typedef, so suppress the
+       name here.  For example:
+         typedef struct { int A; } A;
+    */
+  } else {
+    /* Put out the name.  Note that a name will be generated for an
+       unnamed class, which can be useful for casts. */
     write_space();
     gen_decl_name(&type->source_corresp, iek_type);
   }  /* if */
