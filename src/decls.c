@@ -620,12 +620,10 @@ part of a declarator is found, may_be_decl is set to FALSE.
        We can differentiate the two cases because in the case of a nested
        declarator the next token must be a "*", "(", or "[", whereas in the
        function case it is ")", "...", or a declaration specifier. */
+    a_boolean	treat_as_expr = FALSE;
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier();
-    if (cfront_compatibility_mode &&
-        is_top_level &&
-        (curr_token == tok_rparen ||
-         (curr_token == tok_identifier && next_token() == tok_rparen))) {
+    if (cfront_compatibility_mode && is_top_level) {
       /* Cfront handles declarations like
              int a(int());
          as the declaration of an object with an initializer of int()
@@ -653,8 +651,23 @@ part of a declarator is found, may_be_decl is set to FALSE.
            A(x);
          cfront treats this as a constructor call instead of a declaration
          of an object named x. */
-      *may_be_decl = FALSE;
-      goto done;
+      if (curr_token == tok_rparen) {
+        /* Construct like "int()". */
+        treat_as_expr = TRUE;
+      } else if (curr_token == tok_identifier) {
+        a_token_kind	next_tok = next_token();
+        if (next_tok == tok_rparen) {
+          /* Construct like int(x). */
+          treat_as_expr = TRUE;
+        } else if (next_tok == tok_lbracket) {
+          /* Construct like int(i[x]). */
+          treat_as_expr = TRUE;
+        }  /* if */
+      }  /* if */
+      if (treat_as_expr) {
+        *may_be_decl = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
     if (abstract_declarator_allowed) {
       if (curr_token == tok_rparen ||
