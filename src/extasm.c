@@ -641,15 +641,16 @@ The syntax is
             first_reg = last_reg = alloc_named_register_list();
           } else {
             last_reg->next = alloc_named_register_list();
+            last_reg = last_reg->next;
           }  /* if */
           last_reg->reg = reg;
         }  /* if */
       }  /* if */
-      /* advance past string */
+      /* Advance past the string literal. */
       (void)get_token();
-      /* next must be comma or right paren */
+      /* The next token must be a comma or a right parenthesis. */
       if (curr_token == tok_comma) {
-        (void) get_token();
+        (void)get_token();
         if (curr_token != tok_string_literal) {
           syntax_error(ec_exp_asm_clobber);
         }  /* if */
@@ -657,8 +658,8 @@ The syntax is
     }  /* while */
     /* GCC treats an empty clobbers list with a colon as a syntax
        error.  We can parse it correctly, so it's semantic for us.
-       Don't issue this error if we saw anything other than colon
-       immediately followed by right paren. */
+       Don't issue this error if we saw anything other than a colon
+       immediately followed by a right parenthesis. */
     if (curr_token != tok_rparen) {
       syntax_error(ec_exp_rparen);
     } else if (nparsed == 0) {

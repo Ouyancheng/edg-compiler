@@ -1994,8 +1994,8 @@ Allocate space for an asm operand constraint and return a pointer to it.
 {
   an_asm_operand_constraint_ptr aocp;
 
-  aocp = ((an_asm_operand_constraint_ptr)
-          alloc_cil(sizeof(an_asm_operand_constraint)));
+  aocp = (an_asm_operand_constraint_ptr)
+                                 alloc_cil(sizeof(an_asm_operand_constraint));
   aocp->kind = ck;
   aocp->next = NULL;
 
@@ -2008,7 +2008,15 @@ an_asm_operand_ptr alloc_asm_operand(void)
 Allocate space for an asm operand and return a pointer to it.
 */
 {
-  return (an_asm_operand_ptr)alloc_cil(sizeof(an_asm_operand));
+  an_asm_operand_ptr  aop = (an_asm_operand_ptr)
+                                            alloc_cil(sizeof(an_asm_operand));
+
+  aop->next = NULL;
+  aop->constraints = NULL;
+  aop->modifiers = (an_asm_operand_modifier)aom_invalid;
+  aop->position = null_source_position;
+  aop->expression = NULL;
+  return aop;
 }  /* alloc_asm_operand */
 
 
@@ -2018,7 +2026,12 @@ Allocate space for an a named register list and return a pointer to
 it.
 */
 {
-  return (a_named_register_list_ptr)alloc_cil(sizeof(a_named_register_list));
+  a_named_register_list_ptr  nrl = (a_named_register_list_ptr)
+                                     alloc_cil(sizeof(a_named_register_list));
+
+  nrl->next = NULL;
+  nrl->reg = (a_named_register)anr_invalid;
+  return nrl;
 }  /* alloc_named_register_list */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
