@@ -6326,6 +6326,9 @@ to indicate whether an enumeration is actually defined.
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
       mark_defined(tag_sym, &locator.source_position);
+    } else if (curr_token == tok_semicolon) {
+      /* A useless redeclaration of an enum tag. */
+      mark_declared(tag_sym, &locator.source_position);
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
