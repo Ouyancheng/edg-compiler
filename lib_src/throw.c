@@ -579,7 +579,7 @@ if the thrown type violates the throw specification.
   a_boolean				done = FALSE;
 
   etsp = ehsep->variant.throw_specification;
-  do {
+  while (etsp != NULL && !done) {
     a_boolean	match = FALSE;
     if (etsp->flags & ETS_IS_ELLIPSIS) {
       match = TRUE;
@@ -600,7 +600,7 @@ if the thrown type violates the throw specification.
     }  /* if */
     done = etsp->flags & ETS_LAST;
     etsp++;
-  } while (!done);
+  }  /* while */
   return result;
 }  /* violates_throw_spec */
 
