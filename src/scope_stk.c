@@ -1434,11 +1434,8 @@ to the declaration information for the template declaration scope being pushed.
         /* If this is a namespace scope that affects the declarative level
            (i.e., not just a reactivation) update the information about
            the current namespace. */
-        if (assoc_namespace->source_corresp.name == NULL ||
-            scope_stack[depth_innermost_namespace_scope].
-                                              within_unnamed_namespace) {
-          ssep->within_unnamed_namespace = TRUE;
-        }  /* if */
+        ssep->within_unnamed_namespace =
+              sym->variant.namespace_info.extra_info->within_unnamed_namespace;
         /* Maintain the depth of the innermost namespace scope. */
         depth_innermost_namespace_scope =
               ssep->depth_innermost_namespace_scope = depth_scope_stack;

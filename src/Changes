@@ -1,5 +1,22 @@
 Version 2.39
 
+7/17/98   Instantiations referenced by unnamed namespaces have incorrect
+          linkage
+
+A template that whose instantiation is caused by a reference from
+within an unnamed namespace was incorrectly given internal linkage.
+For example, function "f(A<int>)" in the example below was given
+internal linkage.  This has been fixed.
+
+  namespace N {
+    template <class T> class A {
+      friend void f(A);
+    };
+  }
+  namespace {
+    N::A<int> a;
+  }
+
 7/11/98   C-generating back end: startup code, .init sections, gcc
 
 The gcc compiler has a special declarator, __attribute__((constructor)),
