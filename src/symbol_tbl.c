@@ -1018,9 +1018,10 @@ is in within a function body.
        friend declaration) it is necessary to compute the scope depth by
        running through the scope stack. */
     for (scope_depth = depth_scope_stack; ; --scope_depth) {
-      check_assertion_str(scope_depth >= DEPTH_OF_FILE_SCOPE,
-                          "scope_depth_of: bad decl_scope in symbol");
-      if (scope_stack[scope_depth].number == sym->decl_scope) {
+      if (scope_depth < DEPTH_OF_FILE_SCOPE) {
+        scope_depth = NO_SCOPE_DEPTH;
+        break;
+      } else if (scope_stack[scope_depth].number == sym->decl_scope) {
         /* This is the scope stack entry corresponding to the declaration
            scope number, where relevant characteristics of the scope are
            recorded. */
@@ -1774,7 +1775,8 @@ them up one level.
 #if RECORD_HIDDEN_NAMES_IN_IL
 
 void record_defeatable_name_hiding(a_symbol_ptr  hidden_sym,
-                                   a_boolean     tag_hidden_by_nontag)
+                                   a_boolean     tag_hidden_by_nontag,
+                                   a_scope_ptr   sp)
 /*
 hidden_sym is a symbol for an entity that is hidden by another declaration
 of the same name -- but the hiding can be "defeated" by using an
@@ -1785,7 +1787,6 @@ this case and add it to the list for the current scope.
 {
   a_hidden_name_ptr        hnp;
   a_scope_stack_entry_ptr  ssep;
-  a_scope_ptr              sp;
   char                     *entity;
   an_il_entry_kind         kind;
 
@@ -1807,20 +1808,35 @@ this case and add it to the list for the current scope.
         for (hidden_sym = hidden_sym->variant.overloaded_function.symbols;
              hidden_sym != NULL;
              hidden_sym = hidden_sym->next) {
-          record_defeatable_name_hiding(hidden_sym, tag_hidden_by_nontag);
+          record_defeatable_name_hiding(hidden_sym, tag_hidden_by_nontag, sp);
         }  /* for */
         break;
+      case sk_class_template:
+      case sk_function_template:
+        /* Template support is not yet provided. */
+        break;
+      case sk_routine:
+      case sk_member_function:
+      case sk_static_data_member:
+        if ((hidden_sym->kind == (a_symbol_kind)sk_static_data_member &&
+             hidden_sym->variant.static_data_member.instance_ptr != NULL) ||
+            hidden_sym->variant.routine.instance_ptr != NULL) {
+          /* Template support is not yet provided. */
+          break;
+        }  /* if */
       default:
         /* The normal case.  First find the entity associated with the
            symbol. */
         entity = il_entry_for_symbol(hidden_sym, &kind);
         if (entity != NULL) {
-          /* Get pointer to current scope entry. */
-          ssep = &scope_stack[decl_scope_level];
-          /* Create the IL scope if necessary (for block scopes). */
-          sp = ensure_il_scope_exists(ssep);
-          check_assertion_str(sp != NULL,
-                              "record_defeatable_name_hiding: NULL IL scope");
+          if (sp == NULL) {
+            /* Get pointer to current scope entry. */
+            ssep = &scope_stack[decl_scope_level];
+            /* Create the IL scope if necessary (for block scopes). */
+            sp = ensure_il_scope_exists(ssep);
+            check_assertion_str(sp != NULL,
+                               "record_defeatable_name_hiding: NULL IL scope");
+          }  /* if */
           /* If there is already a hidden name entry for this entity in this
              scope, reuse it. */
           for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
@@ -1831,13 +1847,10 @@ this case and add it to the list for the current scope.
             hnp = alloc_hidden_name();
             hnp->entity.ptr = entity;
             hnp->entity.kind = (a_byte_il_entry_kind)kind;
-            /* Append it to the hidden_names list of the current scope. */
-            if (sp->hidden_names == NULL) {
-              sp->hidden_names = hnp;
-            } else {
-              ssep->last_hidden_name->next = hnp;
-            }  /* if */
-            ssep->last_hidden_name = hnp;
+            /* Add it to the start of the hiden_names list for the current
+               scope. */
+            hnp->next = sp->hidden_names;
+            sp->hidden_names = hnp;
           }  /* if */
           /* Set the appropriate flag. */
           if (tag_hidden_by_nontag) {
@@ -1845,7 +1858,6 @@ this case and add it to the list for the current scope.
             hnp->elaborated_type_specifier_needed = TRUE;
           } else {
             check_assertion(in_file_scope(entity));
-            check_assertion(decl_scope_level != DEPTH_OF_FILE_SCOPE);
             hnp->global_qualification_needed = TRUE;
           }  /* if */
         }  /* if */
@@ -1901,7 +1913,8 @@ this is not allowed, an error will be issued by the caller.
 #if RECORD_HIDDEN_NAMES_IN_IL
       /* The current declaration hides a tag declaration in the current
          scope. */
-      record_defeatable_name_hiding(old_sym, /*tag_hidden_by_nontag=*/TRUE);
+      record_defeatable_name_hiding(old_sym, /*tag_hidden_by_nontag=*/TRUE,
+                                    (a_scope_ptr)NULL);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
   } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc) &&
@@ -2089,41 +2102,6 @@ the proper insert location.
       sym_ptr->next = insert_after->next;
       insert_after->next = sym_ptr;
     }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-#if 0
-/* The following can be improved (but made more fragile, with only a little
-   gain) by minimizing the number of hidden-name entries put out.  For
-   instance, we can skip to the file scope when the instantiation scope is
-   encountered.  Also, we should only mark the innermost non-file-scope tag
-   symbol as unhidable by an elaborated type specifier.  Other cases?  But
-   is it worth the trouble? */
-#endif /* if 0 */
-    /* If the current declaration hides a declaration at a containing scope,
-       record that information in the IL. */
-    if (!C_mode() && scope_depth > DEPTH_OF_FILE_SCOPE) {
-      a_scope_number  file_scope_number =
-                                   scope_stack[DEPTH_OF_FILE_SCOPE].number;
-      a_boolean       check_for_tag_sym = !is_tag_symbol(sym_ptr);
-
-      for (old_sym_ptr = sym_ptr->next;
-           old_sym_ptr != NULL;
-           old_sym_ptr = old_sym_ptr->next) {
-        if (check_for_tag_sym && is_tag_symbol(old_sym_ptr)) {
-          /* The current symbol is a nontag symbol, and the hidden symbol is
-             a tag symbol.  The latter can be unhidden by an elaborated type
-             specifier. */
-          record_defeatable_name_hiding(old_sym_ptr,
-                                        /*tag_hidden_by_nontag=*/TRUE);
-        }  /* if */
-        if (old_sym_ptr->decl_scope == file_scope_number) {
-          /* The hidden symbol is file-scope entity.  It can be unhidden by
-             global qualification ("::"). */
-          record_defeatable_name_hiding(old_sym_ptr,
-                                        /*tag_hidden_by_nontag=*/FALSE);
-        }  /* if */
-      }  /* for */
-    }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
 }  /* link_symbol_into_symbol_table */
 
@@ -8312,6 +8290,82 @@ created for this entity; otherwise, it is NULL.
     scptr = source_corresp_entry_for_symbol(sym_ptr);
     if (scptr != NULL) scptr->decl_position = *source_position;
   }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+#if 0
+/* The following can be improved (but made more fragile, with only a little
+   gain) by minimizing the number of hidden-name entries put out.  For
+   instance, we can skip to the file scope when the instantiation scope is
+   encountered.  Also, we should only mark the innermost non-file-scope tag
+   symbol as unhidable by an elaborated type specifier.  Other cases?  But
+   is it worth the trouble? */
+#endif /* if 0 */
+  if (!C_mode()) {
+    a_scope_depth   scope_depth;
+    a_boolean       check_for_tag_sym;
+    a_type_ptr      class_type;
+    a_scope_ptr     sp;
+    a_boolean       is_local_to_function = FALSE;
+    a_symbol_ptr    old_sym_ptr;
+
+    if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+        sym_ptr->class_of_which_a_member != NULL) {
+      /* Ignore member definitions outside the class definition. */
+    } else if (sym_ptr->kind == (a_symbol_kind)sk_parameter) {
+      /* Ignore parameter symbols.  The only parameters that are interesting
+         are the ones that have been turned into variables. */
+    } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
+               depth_template_declaration_scope != NO_SCOPE_DEPTH ||
+               (sym_ptr->class_of_which_a_member != NULL &&
+                is_template_class_type(sym_ptr->class_of_which_a_member))) {
+      /* We don't deal with templates yet. */
+    } else {
+      scope_depth = scope_depth_of(sym_ptr, &is_local_to_function);
+      if (scope_depth > DEPTH_OF_FILE_SCOPE) {
+        /* If the current declaration hides a declaration at a containing
+           scope, record that information in the IL. */
+        sp = NULL;
+        check_for_tag_sym = !is_tag_symbol(sym_ptr);
+        for (old_sym_ptr = sym_ptr->next;
+             old_sym_ptr != NULL;
+             old_sym_ptr = old_sym_ptr->next) {
+          if (check_for_tag_sym && is_tag_symbol(old_sym_ptr)) {
+            /* The current symbol is a nontag symbol, and the hidden symbol is
+               a tag symbol.  The latter can be unhidden by an elaborated type
+               specifier. */
+            record_defeatable_name_hiding(old_sym_ptr,
+                                          /*tag_hidden_by_nontag=*/TRUE, sp);
+          }  /* if */
+          if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER) {
+            /* The hidden symbol is file-scope entity.  It can be unhidden by
+               global qualification ("::"). */
+            record_defeatable_name_hiding(old_sym_ptr,
+                                          /*tag_hidden_by_nontag=*/FALSE, sp);
+          }  /* if */
+        }  /* for */
+      } else if (scope_depth == DEPTH_OF_FILE_SCOPE) {
+        /* If the current declaration is hidden by a previous declaration of a
+           class member, record that, too. */
+        check_for_tag_sym = is_tag_symbol(sym_ptr);
+        for (old_sym_ptr = sym_ptr->header->inactive_symbols;
+             old_sym_ptr != NULL;
+             old_sym_ptr = old_sym_ptr->next) {
+          class_type = old_sym_ptr->class_of_which_a_member;
+          if (class_type != NULL) {
+            sp = class_type->
+                    variant.class_struct_union.extra_info->assoc_scope;
+            check_assertion(sp != NULL);
+            if (check_for_tag_sym && !is_tag_symbol(old_sym_ptr)) {
+              record_defeatable_name_hiding(sym_ptr,
+                                            /*tag_hidden_by_nontag=*/TRUE, sp);
+            }  /* if */
+            record_defeatable_name_hiding(sym_ptr,
+                                          /*tag_hidden_by_nontag=*/FALSE, sp);
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 }  /* record_symbol_declaration */
 
 
