@@ -26,7 +26,7 @@ We now allow this behavior (originally disallowed in the ARM):
 When source-sequence lists are being generated and are supposed to include
 entries representing template function instantiations (i.e., when
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE) there was
-a bug that appeared with one inline-function instantiation was triggered
+a bug that occurred when one inline-function instantiation was triggered
 within another inline-function instantiation: the order sometimes failed to
 correspond to the dependency between the two functions.  This has now been
 fixed.
