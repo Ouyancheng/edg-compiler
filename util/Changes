@@ -1,5 +1,12 @@
 Version 2.32
 
+2/28/96  Configuration file that defined variables used by eccp
+
+eccp now looks in the directory specified by the EDG_BASE environment
+variable for a file named edg_eccp_config.  If such a file exists,
+eccp includes it to define additional environment variables that may
+be needed.
+
 2/22/96  Bug in name demangling of nested class name in virtual function
          table name
 
