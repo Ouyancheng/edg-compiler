@@ -5743,6 +5743,8 @@ than a constructor reference.
   /* If the param type entry is non-NULL there is at least one argument.  If
      there is a second argument and it has a default expression, the function
      call need not explicitly mention the second argument. */
+  /* An ellipsis is also allowed by virtue of the fact that it is not checked
+     for. */
   if (ptp != NULL && is_reference_type(ptp->type) &&
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     tp = type_pointed_to(ptp->type);
@@ -5756,8 +5758,8 @@ than a constructor reference.
                static X xx;
                X(const X&, int i = (throw xx, 1)) { }
              };
-           In even more obscure cases, there may be more that one parameter
-           to examine.  Note: the loop start with the second paramenter, if
+           In even more obscure cases, there may be more than one parameter
+           to examine.  Note: the loop start with the second parameter, if
            there is one. */
         for (ptp = ptp->next; ptp != NULL; ptp = ptp->next) {
           if (ptp->default_arg_expr == NULL) {
