@@ -2390,6 +2390,7 @@ initialized.  These are addressed in the course of the processing.
   int                           direct_base_class_count = 0;
   a_source_position             lparen_pos;
   a_constructor_init_ptr        uninit_list = NULL, end_of_uninit_list = NULL;
+  a_boolean                     any_ref_member_on_uninit_list = FALSE;
 
   db_enter(3, "ctor_initializer");
   class_type = ctor_rout->source_corresp.parent.class_type;
@@ -3067,6 +3068,7 @@ scan_paren:
               end_of_uninit_list->next = cip;
             }  /* if */
             end_of_uninit_list = cip;
+            if (is_reference_type(tp)) any_ref_member_on_uninit_list = TRUE;
             continue;
           }  /* if */
         }  /* if */
@@ -3142,13 +3144,16 @@ scan_paren:
   }  /* for */
   if (uninit_list != NULL) {
     /* Issue an error for uninitialized const and ref members. */
+    an_error_severity  severity = any_ref_member_on_uninit_list ?
+                                      es_error : es_discretionary_error;
     if (ctor_rout->compiler_generated) {
-      pos_ty_start_error(ec_cannot_initialize_fields,
-                         &class_type->source_corresp.decl_position,
-                         class_type);
+      pos_ty_start_diagnostic(severity, ec_cannot_initialize_fields,
+                              &class_type->source_corresp.decl_position,
+                              class_type);
     } else {
-      pos_sy_start_error(ec_missing_initializer_on_fields, &pos_curr_token,
-                         (a_symbol_ptr)ctor_rout->source_corresp.assoc_info);
+      pos_sy_start_diagnostic(severity, ec_missing_initializer_on_fields,
+                              &pos_curr_token, (a_symbol_ptr)ctor_rout->
+                                                   source_corresp.assoc_info);
     }  /* if */
     for (cip = uninit_list; cip != NULL; cip = cip->next) {
       a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
