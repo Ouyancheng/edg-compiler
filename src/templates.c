@@ -170,10 +170,11 @@ static char	*exported_template_line_type_names[(int)etlt_last+1] = {
 /*
 Macro that is TRUE if the instantiation request and/or template information
 files should be generated.  This is not done when doing preprocessing
-only or when the back end is suppressed.
+only or when the back end is suppressed.  It is also done only for the
+primary translation unit.
 */
 #define generate_template_files()					\
-  (!do_preprocessing_only && !suppress_back_end)
+  (!do_preprocessing_only && !suppress_back_end && is_primary_translation_unit)
 
 /*
 Macro that is TRUE if template instantiation flags should be generated.
@@ -844,6 +845,12 @@ Open the template information file.
                       "use_template_info_file is FALSE");
   check_assertion_str2(generate_template_files(), "open_template_info_file:",
                       "generate_template_files() is FALSE");
+#if DEBUG
+  if (db_flag_is_set("ti_file")) {
+    fprintf(f_debug, "Opening template_info_file %s\n",
+            template_info_file_name);
+  }  /* if */
+#endif /* DEBUG */
   /* Open a file in which the list of generated file names will be
      returned. */
   f_template_info = open_output_file(template_info_file_name,
@@ -920,6 +927,12 @@ already exists.
        errors occurred during this compilation. */
     if (is_regular_file(template_info_file_name)) {
       delete_file(template_info_file_name);
+#if DEBUG
+      if (db_flag_is_set("ti_file")) {
+       fprintf(f_debug, "Deleting temlate info file %s\n",
+               template_info_file_name);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* if */
   f_template_info = NULL;
@@ -14894,6 +14907,15 @@ data member specified by tip.
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
+    /* Reset the can_be_instantiated flag so that it will be reevaluated
+       below.  */
+    tip->can_be_instantiated = FALSE;
+    if (!entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
+      /* The corresponding temlate cannot be instantiated.  Clear the
+         new template instance pointer to suppress an attempt.  This can
+         happen if the entity is specialized in the other translation unit. */
+      tip = NULL;
+    }  /* if */
   }  /* if */
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
@@ -16438,7 +16460,8 @@ that might be required.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
       /* See if the entity should be instantiated as a result of an
          assignment by the automatic instantiation mechanism. */
-      if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
+      if (is_primary_translation_unit &&
+          entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
           tip->automatically_instantiated && !tip->already_instantiated) {
         do_automatic_instantiation_of_entity(tip);
       }  /* if */
