@@ -1,5 +1,18 @@
 Version 2.39
 
+4/16/98   Internal error on pragma in class template nested class declaration
+
+An internal error would occur if a pragma appeared in a class template
+declaration in a nested class definition between the class name and
+the opening brace of the class definition.  This has been fixed.
+
+  template<class T> struct A {
+    class B 
+  #pragma test_immediate
+      {};
+  };
+  A<int> ai;
+
 4/12/98   Using IL read routines during IL walk
 
 The routine read_memory_region now saves and restores the global variable

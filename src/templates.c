@@ -2106,7 +2106,7 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
   a_cached_token_ptr	ctp;
   a_cached_token_ptr	semicolon_token;
 
-  /* See if the last token if the cache is followed by an optional
+  /* See if the last token in the cache is followed by an optional
      semicolon.  Only insert one if there is not already one there. */
   for (ctp = tcsp->last_token->next; ctp != NULL; ctp = ctp->next) {
     /* Ignore pragma tokens. */
@@ -2120,6 +2120,12 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
     }  /* if */
     break;
   }  /* for */
+  /* Skip over any pragmas that precede the first token of the body. */
+  while (first_token != NULL &&
+         first_token->extra_info_kind ==
+                                        (a_token_extra_info_kind)teik_pragma) {
+    first_token = first_token->next;
+  }  /* while */
   if (insert_semicolon) {
     /* Make a new cached token entry for a semicolon, the function body
        will be replaced with the semicolon.  Give it the same token
