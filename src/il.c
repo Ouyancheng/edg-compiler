@@ -6929,9 +6929,8 @@ Make or find a type entry for a void type, and return a pointer to it.
 */
 {
   if (il_void_type == NULL) {
-    il_void_type = alloc_type((a_type_kind)tk_void);
     /* The void type is considered "incomplete." */
-    il_void_type->incomplete = TRUE;
+    il_void_type = alloc_type((a_type_kind)tk_void);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
@@ -15640,7 +15639,6 @@ entered into the symbol table.
   a_type_ptr  predeclared_type;
 
   predeclared_type = alloc_type(kind);
-  predeclared_type->incomplete = TRUE;
   /* Default name-linkage for classes is C++ external linkage. */
   predeclared_type->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;

@@ -4859,6 +4859,7 @@ set_size_for_complete_object:
     }  /* if */
 #endif /* TARG_PAD_ALLOCATED_EMPTY_BASE */
   }  /* if */
+  class_type->incomplete = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   /* If the class is a transparent union, verify that transparency
      is legal. */

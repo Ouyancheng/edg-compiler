@@ -474,6 +474,7 @@ as the class type, and use as a base class.
        be complete. */
     type->size = 1;
     type->alignment = 1;
+    type->incomplete = FALSE;
     set_source_corresp(&(type->source_corresp), sym);
     type->source_corresp.member_of_unknown_base =
                        templ_param_type->source_corresp.member_of_unknown_base;

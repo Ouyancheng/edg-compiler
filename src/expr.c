@@ -7597,7 +7597,6 @@ As an anachronism, allow an expression inside the [ ].
           /* For a delete of an array of classes, generate a dynamic init
              that replicates the destructor call for the whole array. */
           a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
-          array_type->incomplete = TRUE;
           array_type->variant.array.element_type = base_delete_type;
           /* Array size is left as zero; size need not be set. */
           /* The destruction, if any, is indicated both at the array level

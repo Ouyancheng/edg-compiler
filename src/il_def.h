@@ -4921,10 +4921,11 @@ typedef struct a_type {
                         /* The kind of type. */
   a_bit_field	incomplete:1;
 			/* TRUE if the given type has been declared without
-			   having been defined or if the type is void.
-			   (Can only be TRUE for class types, enum types,
-			   array types, and void).  For typerefs, the flag
-			   should be checked in the underlying type entry.) */
+			   having been defined or if the type is void.  (The
+			   flag is initially set to TRUE, and then cleared
+			   when the size of the type is computed.)  For
+			   typerefs, the flag should be checked in the
+			   underlying type entry.) */
   a_bit_field	used_in_exception_or_rtti:1;
 			/* TRUE if this type appeared as (1) the type of an
 			   exception-declaration of a handler, (2) the type
