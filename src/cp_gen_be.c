@@ -5521,10 +5521,16 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
   if (expr->variant.init.result_is_addr) {
     temp_type = type_pointed_to(temp_type);
   }  /* if */
-  if (C_mode() ||
-      ((dip->kind == (a_dynamic_init_kind)dik_constant ||
-        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
-       dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate)) {
+  if (dip->is_reused_value) {
+    /* A temp-init marked as a reused value is just put out as the
+       underlying value. */
+    gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
+                     /*force_parens=*/FALSE);
+  } else if (C_mode() ||
+             ((dip->kind == (a_dynamic_init_kind)dik_constant ||
+               dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
+              dip->variant.constant->kind ==
+                                         (a_constant_repr_kind)ck_aggregate)) {
     /* In C mode and sometimes in C++ mode, a temp-init node represents
        a compound literal. */
     gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
@@ -5550,6 +5556,56 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     if (cast_added) write_tok_ch(')');
   }  /* if */
 }  /* gen_temp_init */
+
+
+static a_boolean is_ne_0_operation(an_expr_node_ptr expr)
+/*
+Return TRUE if expr is a comparison of the form x != 0 of any type.
+*/
+{
+  a_boolean is_ne_0 = FALSE;
+
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_ine ||
+        op == (an_expr_operator_kind)eok_fne ||
+#if C99_IL_EXTENSIONS_SUPPORTED
+        op == (an_expr_operator_kind)eok_xne ||
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_ALLOWED
+        op == (an_expr_operator_kind)eok_fxne ||
+#endif /* FIXED_POINT_ALLOWED */
+        op == (an_expr_operator_kind)eok_pne ||
+        op == (an_expr_operator_kind)eok_pmne) {
+      an_expr_node_ptr op2 = expr->variant.operation.operands->next;
+      if (is_constant_node(op2)) {
+        if (is_zero_constant(op2->variant.constant)) {
+          is_ne_0 = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_ne_0;
+}  /* is_ne_0_operation */
+
+
+static void strip_first_operand_of_two_operand_question_mark(
+                                                     an_expr_node_ptr *operand)
+/*
+*operand is the first operand of a GNU two-operand "?" operator.  Adjust
+it as necessary.
+*/
+{
+  if (C_mode()) {
+    if (is_ne_0_operation(*operand)) {
+      /* Remove a "!= 0" on top in case it was implicitly generated.
+         It changes the type of the first operand, which is not good for
+         its use as the implied second operand. */
+      *operand = (*operand)->variant.operation.operands;
+      (*operand)->next = NULL;
+    }  /* if */
+  }  /* if */
+}  /* strip_first_operand_of_two_operand_question_mark */
 
 
 static unsigned long array_level_count(a_type_ptr type)
@@ -5633,7 +5689,6 @@ to char *.
   }  /* if */
   return is_const_str_cast;
 }  /* is_const_string_literal_cast */
-
 
 
 static void gen_dot_static(an_expr_node_ptr operand_1,
@@ -5867,6 +5922,9 @@ precedence confusion and need_parens is TRUE.
           /* Lvalue-returning "?".  Put out the second and third operands as
              lvalues. */
           if (need_parens) write_tok_ch('(');
+          if (node->variant.operation.is_gnu_two_operand_question_mark) {
+            strip_first_operand_of_two_operand_question_mark(&operand_1);
+          }  /* if */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
@@ -7581,6 +7639,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_question:
           /* Three operand operator. */
+          if (expr->variant.operation.is_gnu_two_operand_question_mark) {
+            strip_first_operand_of_two_operand_question_mark(&operand_1);
+          }  /* if */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
@@ -7854,6 +7915,16 @@ done_with_operation_after_parens:
       write_tok_str(")");
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case enk_reuse_value:
+      /* This comes up in Microsoft property reference expansions.
+         This is unfortunate since we don't really want to duplicate the
+         expression for the second reference to it.  But we don't have
+         much choice. */
+      { a_dynamic_init_ptr dip = expr->variant.reused_value_init;
+        gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
+                         /*force_parens=*/FALSE);
+      }
+      break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
       if (expr->variant.init.result_is_addr) {
