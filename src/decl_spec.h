@@ -33,7 +33,8 @@ extern void scan_microsoft_extended_decl_modifiers(
                             a_boolean                   *err);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern void typename_specifier(a_type_ptr *type_ptr);
+extern void typename_specifier(a_type_ptr            *type_ptr,
+                               a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean is_constructor_decl(a_type_ptr  class_type);
 
@@ -42,7 +43,8 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 				 a_storage_class             *storage_class,
 				 a_type_ptr                  *type_ptr,
                                  a_type_qualifier_set        *qualifiers,
-                                 a_decl_modifiers_block_ptr  decl_modifiers);
+                                 a_decl_modifiers_block_ptr  decl_modifiers,
+                                 a_decl_pos_block_ptr        decl_pos_block);
 
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */

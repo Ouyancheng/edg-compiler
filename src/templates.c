@@ -5336,6 +5336,7 @@ instance and is also only present when is_initial_decl is FALSE.
   a_type_qualifier_set         qualifiers;
   a_source_position            decl_start_pos;
   a_boolean		       type_is_function = FALSE;
+  a_decl_pos_block             decl_pos_block;
 
   dsi_flags = DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
@@ -5366,9 +5367,10 @@ instance and is also only present when is_initial_decl is FALSE.
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
+  clear_decl_pos_block(&decl_pos_block);
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
-                        &qualifiers, decl_modifiers);
+                        &qualifiers, decl_modifiers, &decl_pos_block);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -5398,7 +5400,7 @@ instance and is also only present when is_initial_decl is FALSE.
     declarator(di_flags, do_flags, *type,
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
-               &declarator_ssep, func_info);
+               &declarator_ssep, func_info, &decl_pos_block);
     if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
          is not equipped to handle it, create an error locator based on the
@@ -8429,13 +8431,15 @@ whether the nontype parameter is unnamed.
   a_source_position            param_pos;
   a_source_sequence_entry_ptr  declarator_ssep;
   a_type_ptr                   tp;
+  a_decl_pos_block              decl_pos_block;
 
   /* Scan the declaration specifiers. */
   param_pos = pos_curr_token;
+  clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
                          &dso_flags, &param_storage_class, param_type_ptr,
-                         &qualifiers, &decl_modifiers);
+                         &qualifiers, &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
@@ -8451,7 +8455,7 @@ whether the nontype parameter is unnamed.
              &do_flags, *param_type_ptr,
              /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
              param_type_ptr, &declarator_ssep,
-             (a_func_info_block_ptr)NULL);
+             (a_func_info_block_ptr)NULL, &decl_pos_block);
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
@@ -10382,9 +10386,11 @@ that follows.
   a_variable_ptr                vp;
   a_boolean			is_definition;
   a_boolean			is_constructor = FALSE;
+  a_decl_pos_block              decl_pos_block;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
+  clear_decl_pos_block(&decl_pos_block);
   /* First scan the decl-specifiers. */
   (void)decl_specifiers((DSI_IS_SPECIALIZATION |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
@@ -10395,7 +10401,7 @@ that follows.
                                   ? DSI_IS_MEMBER_DECLARATION
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        &decl_modifiers);
+                        &decl_modifiers, &decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
@@ -10455,7 +10461,7 @@ that follows.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     declarator(di_flags, &do_flags, type, decl_state->class_declared_in,
-               &locator, &type, &declarator_ssep, &func_info);
+               &locator, &type, &declarator_ssep, &func_info, &decl_pos_block);
     sym = NULL;
     has_parenthesized_initializer =
                               (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
@@ -12777,6 +12783,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_symbol_ptr		        sym;
   a_token_kind			end_of_statement_token;
   a_func_info_block             func_info;
+  a_decl_pos_block              decl_pos_block;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr   ssep;
   a_source_position             template_keyword_pos;
@@ -12823,11 +12830,12 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     (void)get_token();
     goto done;
   }  /* if */
+  clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        &decl_modifiers);
+                        &decl_modifiers, &decl_pos_block);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
@@ -12864,7 +12872,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-               &declarator_ssep, &func_info);
+               &declarator_ssep, &func_info, &decl_pos_block);
     record_param_id_list_declarations(func_info.param_id_list);
     done_with_func_info(func_info);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

@@ -238,7 +238,8 @@ void declarator(a_decl_flag_set             input_flags,
                 a_symbol_locator            *locator,
                 a_type_ptr                  *p_complete_type,
                 a_source_sequence_entry_ptr *declarator_ssep,
-                a_func_info_block           *func_info);
+                a_func_info_block           *func_info,
+                a_decl_pos_block_ptr        decl_pos_block);
 
 extern
 a_type_ptr pointer_declarator(
@@ -247,15 +248,17 @@ a_type_ptr pointer_declarator(
                       a_call_conv_descr_ptr left_calling_convention,
                       a_call_conv_descr_ptr unbound_calling_convention,
                       a_type_qualifier_set  *left_qualifiers,
-                      a_type_qualifier_set  *unbound_qualifiers);
+                      a_type_qualifier_set  *unbound_qualifiers,
+                      a_decl_pos_block_ptr  decl_pos_block);
 
-extern void array_declarator(a_type_ptr *new_type_ptr,
-                             a_boolean  nonconstant_dimension_allowed,
-                             a_boolean  vla_allowed,
-                             a_boolean  vla_asterisk_allowed,
-                             a_boolean  top_level_field_decl,
-                             a_boolean  restrict_allowed,
-                             a_boolean  *restrict_seen);
+extern void array_declarator(a_type_ptr        *new_type_ptr,
+                             a_boolean         nonconstant_dimension_allowed,
+                             a_boolean         vla_allowed,
+                             a_boolean         vla_asterisk_allowed,
+                             a_boolean         top_level_field_decl,
+                             a_boolean         restrict_allowed,
+                             a_boolean         *restrict_seen,
+                             a_decl_pos_block  *decl_pos_block);
 
 #if RESTRICT_ALLOWED
 extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,

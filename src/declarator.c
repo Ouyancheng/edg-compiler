@@ -108,10 +108,12 @@ token is a qualifier).
   a_type_ptr              dummy_type_ptr;
   a_decl_modifiers_block  dummy_decl_modifiers;
   a_type_qualifier_set    qualifiers;
+  a_decl_pos_block        decl_pos_block;
 
+  clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
-                        &qualifiers, &dummy_decl_modifiers);
+                        &qualifiers, &dummy_decl_modifiers, &decl_pos_block);
   check_assertion(qualifiers != TQ_NONE);
   return qualifiers;
 }  /* collect_type_qualifiers */
@@ -909,7 +911,8 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_boolean         is_constructor,
                                 a_boolean         is_destructor,
                                 a_boolean         disallow_default_args,
-                                a_boolean         disallow_exception_spec)
+                                a_boolean         disallow_exception_spec,
+                                a_decl_pos_block  *decl_pos_block)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
@@ -1092,15 +1095,18 @@ issue an error if a default argument expression is encountered.
     if (any_params) {
       last_param_type = NULL;
       do {
+        a_decl_pos_block  local_decl_pos_block;
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
+        clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */
         (void)decl_specifiers((DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                                DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_IS_PARAMETER |
                                DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER),
                               &dso_flags, &param_storage_class,
-                              &param_type_ptr, &qualifiers, &decl_modifiers);
+                              &param_type_ptr, &qualifiers, &decl_modifiers,
+                              &local_decl_pos_block);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if (last_param_type == NULL && curr_token == tok_rparen) {
@@ -1163,8 +1169,8 @@ issue an error if a default argument expression is encountered.
           }  /* if */
           declarator(di_flags, &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
-                     &param_locator, &param_type_ptr,
-                     &param_ssep, (a_func_info_block_ptr)NULL);
+                     &param_locator, &param_type_ptr, &param_ssep,
+                     (a_func_info_block_ptr)NULL, &local_decl_pos_block);
 #if RESTRICT_ALLOWED
           restrict_qualified = 
                 (do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) != 0;
@@ -1691,13 +1697,14 @@ issue an error if a default argument expression is encountered.
 #if !RESTRICT_ALLOWED
 /*ARGSUSED*/ /* <-- because "restrict_allowed" is not used. */
 #endif /* !RESTRICT_ALLOWED */
-void array_declarator(a_type_ptr *new_type_ptr,
-                      a_boolean  nonconstant_dimension_allowed,
-                      a_boolean  vla_allowed,
-                      a_boolean  vla_asterisk_allowed,
-                      a_boolean  top_level_field_decl,
-                      a_boolean  restrict_allowed,
-                      a_boolean  *restrict_seen)
+void array_declarator(a_type_ptr            *new_type_ptr,
+                      a_boolean             nonconstant_dimension_allowed,
+                      a_boolean             vla_allowed,
+                      a_boolean             vla_asterisk_allowed,
+                      a_boolean             top_level_field_decl,
+                      a_boolean             restrict_allowed,
+                      a_boolean             *restrict_seen,
+                      a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan an array declarator (ISO C 6.5.4.2), or an array declarator in an
 abstract declarator (ISO C 6.5.5).  Allocate and return in *new_type_ptr an
@@ -2254,7 +2261,8 @@ a_type_ptr pointer_declarator(
                       a_call_conv_descr_ptr left_calling_convention,
                       a_call_conv_descr_ptr unbound_calling_convention,
                       a_type_qualifier_set  *left_qualifiers,
-                      a_type_qualifier_set  *unbound_qualifiers)
+                      a_type_qualifier_set  *unbound_qualifiers,
+                      a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 
@@ -3005,7 +3013,8 @@ static void r_declarator(
                   a_type_qualifier_set        *p_left_qualifiers,
                   a_type_qualifier_set        *p_unbound_qualifiers,
                   a_source_sequence_entry_ptr *declarator_ssep,
-                  a_func_info_block           *func_info)
+                  a_func_info_block           *func_info,
+                  a_decl_pos_block_ptr        decl_pos_block)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending
 on the values of real_declarator_allowed and abstract_declarator_allowed
@@ -3121,10 +3130,9 @@ The syntax is:
   complete_type = pointer_declarator(specifiers_type,
                                      /*reference_allowed=*/
                                        C_dialect == C_dialect_cplusplus,
-                                     &left_call_conv,
-                                     &unbound_call_conv,
-                                     &left_qualifiers,
-                                     &unbound_qualifiers);
+                                     &left_call_conv, &unbound_call_conv,
+                                     &left_qualifiers, &unbound_qualifiers,
+                                     decl_pos_block);
   derived_type = NULL;
   bottom_derived_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3185,7 +3193,7 @@ The syntax is:
                  is_constructor, is_destructor,
                  &inner_left_call_conv, &unbound_call_conv,
                  &inner_left_qualifiers, &unbound_qualifiers,
-                 declarator_ssep, func_info);
+                 declarator_ssep, func_info, decl_pos_block);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Copy the position of the declarator-id into declarator_pos. */
@@ -3433,7 +3441,8 @@ function_lparen:
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
                           *is_constructor, *is_destructor,
-                          disallow_default_args, disallow_exception_spec);
+                          disallow_default_args, disallow_exception_spec,
+                          decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
@@ -3470,7 +3479,8 @@ function_lparen:
                              derived_type == NULL;
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
                        vla_allowed, vla_asterisk_allowed,
-                       top_level_field_decl, restrict_allowed, &restrict_seen);
+                       top_level_field_decl, restrict_allowed,
+                       &restrict_seen, decl_pos_block);
 #if RESTRICT_ALLOWED
       if (restrict_seen) {
         *output_flags |= DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY;
@@ -3719,7 +3729,8 @@ void declarator(a_decl_flag_set             input_flags,
                 a_symbol_locator            *locator,
                 a_type_ptr                  *p_complete_type,
                 a_source_sequence_entry_ptr *declarator_ssep,
-                a_func_info_block           *func_info)
+                a_func_info_block           *func_info,
+                a_decl_pos_block_ptr        decl_pos_block)
 /*
 Scan a declarator.  This is an interface routine for r_declarator, provided
 so that parameters needed only on recursive calls for nested declarators
@@ -3740,7 +3751,7 @@ the parameters.
                &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
                (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
-               declarator_ssep, func_info);
+               declarator_ssep, func_info, decl_pos_block);
 }  /* declarator */
 
 

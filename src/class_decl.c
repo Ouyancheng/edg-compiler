@@ -9162,10 +9162,12 @@ function template declarations.
   a_member_decl_info   decl_info;
   a_boolean            is_member_template_rescan;
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
+  a_decl_pos_block     decl_pos_block;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
   decl_start_pos = pos_curr_token;
+  clear_decl_pos_block(&decl_pos_block);
   initialize_member_decl_info(&decl_info, &decl_start_pos);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
@@ -9186,7 +9188,8 @@ function template declarations.
      omitted, e.g., for a function member with implicit type. */
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &qualifiers, &decl_info.decl_modifiers);
+                        &member_type, &qualifiers, &decl_info.decl_modifiers,
+                        &decl_pos_block);
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
@@ -9378,7 +9381,7 @@ function template declarations.
       declarator(di_flags, &decl_info.do_flags, member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep,
-                 &func_info);
+                 &func_info, &decl_pos_block);
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,

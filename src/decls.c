@@ -226,8 +226,24 @@ optimization is suppressed.
     }  /* if */
   }  /* if */
   return(is_start);
-}  /* is_decl_start */
+}  /* is_decl_bstart */
 
+
+void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block)
+/*
+Initialize the fields of the specified decl-pos block.
+*/
+{
+  decl_pos_block->decl_pos = null_source_position;
+  decl_pos_block->storage_class_pos = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->end_decl_pos = null_source_position;
+  decl_pos_block->specifiers_range.start = null_source_position;
+  decl_pos_block->specifiers_range.end = null_source_position;
+  decl_pos_block->declarator_range.start = null_source_position;
+  decl_pos_block->declarator_range.end = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* clear_decl_pos_block */
 
 a_boolean f_check_for_overload_anachronism(void)
 /*
@@ -5698,7 +5714,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
 			&storage_class, type_ptr, &qualifiers,
-                        &decl_modifiers);
+                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -5722,7 +5738,8 @@ In C++ mode an error is issued if a type definition appears in a type-name
     declarator(di_flags, &do_flags, *type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, type_ptr,
-               &declarator_ssep, (a_func_info_block_ptr)NULL);
+               &declarator_ssep, (a_func_info_block_ptr)NULL,
+               (a_decl_pos_block_ptr)NULL);
     if (di_flags & DI_VLA_ALLOWED) {
       /* VLA checking was done. */
       if (is_array_type(*type_ptr) &&
@@ -5794,7 +5811,7 @@ within this routine if is_parenthesized comes in FALSE.
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
                         &dso_flags, &storage_class, type_ptr, &qualifiers,
-                        &decl_modifiers);
+                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -5815,7 +5832,8 @@ within this routine if is_parenthesized comes in FALSE.
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
-                 &declarator_ssep, (a_func_info_block_ptr)NULL);
+                 &declarator_ssep, (a_func_info_block_ptr)NULL,
+                 (a_decl_pos_block_ptr)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -5828,7 +5846,8 @@ within this routine if is_parenthesized comes in FALSE.
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       (a_type_qualifier_set *)NULL);
+                                       (a_type_qualifier_set *)NULL,
+                                       (a_decl_pos_block_ptr)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -5840,7 +5859,8 @@ within this routine if is_parenthesized comes in FALSE.
                        /*vla_is_allowed=*/FALSE,
                        /*vla_asterisk_allowed=*/FALSE,
                        /*top_level_field_decl=*/FALSE,
-                       /*restrict_allowed=*/FALSE, &restrict_seen);
+                       /*restrict_allowed=*/FALSE, &restrict_seen,
+                       (a_decl_pos_block_ptr)NULL);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type);
       while (curr_token == tok_lbracket) {
@@ -5848,7 +5868,8 @@ within this routine if is_parenthesized comes in FALSE.
                          /*vla_is_allowed=*/FALSE,
                          /*vla_asterisk_allowed=*/FALSE,
                          /*top_level_field_decl=*/FALSE,
-                         /*restrict_allowed=*/FALSE, &restrict_seen);
+                         /*restrict_allowed=*/FALSE, &restrict_seen,
+                         (a_decl_pos_block_ptr)NULL);
         /* Add the new type to the bottom of the existing derived type list.
            Note that this involves error checking. */
         add_to_derived_type_list(new_type_ptr,
@@ -5897,7 +5918,7 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   pos = pos_curr_token;
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
-                        &decl_modifiers);
+                        &decl_modifiers, (a_decl_pos_block_ptr)NULL);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
   return type_ptr;
@@ -5967,7 +5988,7 @@ is no parent.
     copy_source_position(pos_curr_token, type_pos);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
-                          &decl_modifiers);
+                          &decl_modifiers, (a_decl_pos_block_ptr)NULL);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -5980,7 +6001,8 @@ is no parent.
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       (a_type_qualifier_set *)NULL);
+                                       (a_type_qualifier_set *)NULL,
+                                       (a_decl_pos_block_ptr)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
@@ -6383,10 +6405,13 @@ clause is to be attached.  catch_pos is the source position of "catch".
         set_to_error_locator(locator);
         remove_stop_token(tok_rparen);
       } else {
+        a_decl_pos_block  decl_pos_block;
+
+        clear_decl_pos_block(&decl_pos_block);
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
-                              &qualifiers, &decl_modifiers);
+                              &qualifiers, &decl_modifiers, &decl_pos_block);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -6406,7 +6431,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                      &type_ptr, &declarator_ssep,
-                     (a_func_info_block_ptr)NULL);
+                     (a_func_info_block_ptr)NULL, &decl_pos_block);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
@@ -6747,6 +6772,7 @@ Return a pointer to the variable that is declared.
   a_boolean                    incomplete_type_error_reported;
   a_boolean                    missing_declarator = FALSE;
   a_symbol_reference_kind      srk_flags;
+  a_decl_pos_block             decl_pos_block;
 
   db_enter(3, "condition_declaration");
   decl_pos = pos_curr_token;
@@ -6755,8 +6781,9 @@ Return a pointer to the variable that is declared.
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_IS_CONDITION_DECL;
+  clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers, &decl_modifiers);
+                        &qualifiers, &decl_modifiers, &decl_pos_block);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &decl_pos);
@@ -6772,7 +6799,7 @@ Return a pointer to the variable that is declared.
        array. */
     declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
-               &declarator_ssep, (a_func_info_block_ptr)NULL);
+               &declarator_ssep, (a_func_info_block_ptr)NULL, &decl_pos_block);
   } else {
     /* No declarator.  Issue a single diagnostic on this malformed
        condition declaration. */
@@ -7801,6 +7828,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    restrict_qualified = FALSE;
   a_token_kind                 final_token = tok_semicolon;
   a_boolean                    restore_name_linkage = is_linkage_spec_decl;
+  a_decl_pos_block             decl_pos_block;
 
   db_enter(3, "declaration");
 
@@ -7978,9 +8006,13 @@ of local variables (and types, etc.) of functions and in blocks.
     }  /* if */
   }  /* if */
 continue_with_declaration:
+  /* Initialize source position information associated with this
+     declaration. */
+  clear_decl_pos_block(&decl_pos_block);
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &qualifiers, &decl_modifiers);
+                        &type_ptr, &qualifiers, &decl_modifiers,
+                        &decl_pos_block);
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
   if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
@@ -8094,7 +8126,8 @@ continue_with_declaration:
       declarator_start_pos = pos_curr_token;
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &declarator_ssep, &func_info);
+                 &local_type_ptr, &declarator_ssep, &func_info,
+                 &decl_pos_block);
       /* declarator will have set error_position to the position of the
          declarator-id if this is a real declarator and the first token of
          the whole declarator if it is an abstract declarator. */
@@ -8128,7 +8161,8 @@ continue_with_declaration:
             }  /* if */
             /* "inline" and "static" are not allowed (ARM 3.4). */
             if (declared_storage_class == (a_storage_class)sc_static) {
-              pos_error(ec_static_not_allowed, &declarator_pos);
+              pos_error(ec_static_not_allowed,
+                        &decl_pos_block.storage_class_pos);
               declared_storage_class = (a_storage_class)sc_unspecified;
             }  /* if */
             if (inline_specified) {
@@ -8287,7 +8321,8 @@ continue_with_declaration:
             local_storage_class != (a_storage_class)sc_extern &&
             local_storage_class != (a_storage_class)sc_static) {
           /* The storage class of a function must be extern or static. */
-          pos_error(ec_bad_function_storage_class, &decl_start_pos);
+          pos_error(ec_bad_function_storage_class,
+                    &decl_pos_block.storage_class_pos);
           local_storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if (locator.specific_symbol != NULL &&
@@ -8306,7 +8341,7 @@ continue_with_declaration:
               severity = es_warning;
             }  /* if */
             pos_diagnostic(severity, ec_storage_class_not_allowed,
-                           &decl_start_pos);
+                           &decl_pos_block.storage_class_pos);
           }  /* if */
           /* Set the storage class to sc_unspecified for now.  It will be
              checked and reset if necessary in define_member_function. */
@@ -8456,7 +8491,8 @@ continue_with_declaration:
         if (decl_scope_level == depth_innermost_namespace_scope &&
             (local_storage_class == (a_storage_class)sc_auto ||
              local_storage_class == (a_storage_class)sc_register)) {
-          pos_error(ec_bad_file_scope_storage_class, &decl_start_pos);
+          pos_error(ec_bad_file_scope_storage_class,
+                    &decl_pos_block.storage_class_pos);
           local_storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if (is_function) {
@@ -8473,18 +8509,24 @@ continue_with_declaration:
                will be entered at the file scope as static.  This is an
                extension to ANSI C.  Do not allow at all in C++ mode. */
             if (local_storage_class == (a_storage_class)sc_static) {
+              an_error_severity  severity;
               if (C_dialect == C_dialect_cplusplus) {
-                error(ec_block_scope_function_must_be_extern);
+                pos_error(ec_block_scope_function_must_be_extern,
+                          &decl_pos_block.storage_class_pos);
                 /* id_linkage doesn't expect block level statics in
                    C++ mode. */
+                severity = es_error;
                 local_storage_class = (a_storage_class)sc_extern;
               } else {  /* a C dialect */
                 /* This is an extension to ANSI C so produce a diagnostic
                    in strict ANSI C mode. */
-                if (strict_ansi_mode) {
-                  diagnostic(strict_ansi_error_severity,
-                             ec_block_scope_function_must_be_extern);
-                }  /* if */
+                severity = strict_ansi_mode ?
+                              strict_ansi_error_severity : es_none;
+              }  /* if */
+              if (severity != es_none) {
+                pos_diagnostic(severity,
+                               ec_block_scope_function_must_be_extern,
+                               &decl_pos_block.storage_class_pos);
               }  /* if */
             }  /* if */
           }  /* if */

@@ -2379,7 +2379,8 @@ return_point:;
 }  /* enum_specifier */
 
 
-void typename_specifier(a_type_ptr *type_ptr)
+void typename_specifier(a_type_ptr            *type_ptr,
+                        a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan a typename specifier.  Typename is an elaborated type specifier.
 The syntax is
@@ -2403,6 +2404,12 @@ above.
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     diagnostic(es_discretionary_error, ec_typename_not_in_template);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    /* Assume the current token is the last decl-specifier. */
+    decl_pos_block->specifiers_range.end = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
   if (!is_generalized_identifier_start(GID_IS_TYPENAME)) {
     syntax_error(ec_exp_identifier);
@@ -2430,6 +2437,12 @@ above.
         tp = type_symbol_type(fund_sym);
       }  /* if */
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (decl_pos_block != NULL) {
+      /* Assume the current token is the last decl-specifier. */
+      decl_pos_block->specifiers_range.end = end_pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Bypass the identifier token. */
     (void)get_token();
   }  /* if */
@@ -3050,7 +3063,8 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_storage_class            *storage_class,
                           a_type_ptr                 *type_ptr,
                           a_type_qualifier_set       *qualifiers,
-                          a_decl_modifiers_block_ptr decl_modifiers)
+                          a_decl_modifiers_block_ptr decl_modifiers,
+                          a_decl_pos_block_ptr       decl_pos_block)
 /*
 Scan a list of declaration specifiers.  Specifically, scan a
 declaration-specifiers (3.5), a specifier_qualifier_list (3.5.2.1), or
@@ -3187,6 +3201,11 @@ Returns TRUE if there is an error in the specifiers.
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->specifiers_range.start = start_pos;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Loop for each declaration specifier. */
   for (;;) {
     switch (curr_token) {
@@ -3345,6 +3364,9 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* CHECKING */
           }  /* switch */
           decl_specifiers_seen |= DS_STORAGE_CLASS;
+          if (decl_pos_block != NULL) {
+            decl_pos_block->storage_class_pos = pos_curr_token;
+          }  /* if */
         }  /* if */
         break;
 #if ASM_FUNCTION_ALLOWED
@@ -4003,7 +4025,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            typename_specifier(type_ptr);
+            typename_specifier(type_ptr, decl_pos_block);
             basic_type = bt_typename;
             is_elaborated_type_specifier = TRUE;
           } else {
@@ -4012,7 +4034,7 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            typename_specifier(&dummy_type);
+            typename_specifier(&dummy_type, decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
@@ -4401,6 +4423,12 @@ something_unexpected:
         }  /* if */
         goto exit_loop;
     }  /* switch */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (decl_pos_block != NULL) {
+      /* Each time through the loop assume the current token is the last. */
+      decl_pos_block->specifiers_range.end = end_pos_curr_token;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
 no_get_token:
     any_decl_specifiers_seen = TRUE;
