@@ -1417,27 +1417,6 @@ nothing.
   }  /* while */
 }  /* free_macro_arg_entries */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_source_line_modif_ptr assoc_source_line_modif_if_any(char *loc)
-/*
-Return a pointer to the source line modification entry associated with the
-indicated character position.  If the character position is not inside
-a line modification (e.g., it's in the primary source line), return
-NULL.
-*/
-{
-  a_source_line_modif_ptr slmp;
-
-  if (within_curr_source_line(loc)) {
-    slmp = NULL;
-  } else {
-    slmp = assoc_source_line_modif(loc);
-  }  /* if */
-  return slmp;
-}  /* assoc_source_line_modif_if_any */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
@@ -1490,10 +1469,6 @@ associated global variables will also have been set).
   a_boolean       token_pasting_off_end;
   a_boolean       too_many_args_diag_given = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_source_line_modif_ptr
-                  paren_source_line_modif;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define ARG_VALUES_SIZE 50
 			/* For parameter counts in the normal range, the
 			   arg_values array provides quick look-up.  For
@@ -1760,14 +1735,6 @@ end_scan_for_macro_modifs:;
       /* Get the "(" as a token, and delete its characters. */
       (void)arg_get_token(&any_white_space_skipped);
       add_stop_token(tok_rparen);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_bugs) {
-        /* Remember the source line modification associated with the opening
-           parenthesis of the macro invocation.  See use later. */
-        paren_source_line_modif =
-                           assoc_source_line_modif_if_any(start_of_curr_token);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Get another token to prime the loop. */
       (void)arg_get_token(&any_white_space_skipped);
       pp = param_list;
@@ -1810,25 +1777,10 @@ do_argument_again:
           any_white_space_skipped = FALSE;
           need_end_of_token_marker = FALSE;
           while (curr_token != tok_newline &&
-                 curr_token != tok_end_of_source) {
+                 curr_token != tok_end_of_source &&
+                 ((curr_token != tok_comma && curr_token != tok_rparen) ||
+                  paren_count != 0)) {
             sizeof_t raw_text_len;
-            /* The argument ends on a comma or right parenthesis. */
-            if (curr_token == tok_comma || curr_token == tok_rparen) {
-              if (paren_count != 0) {
-                 /* ... but not if it is inside a set of parentheses. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              } else if (microsoft_bugs &&
-                         assoc_source_line_modif_if_any(start_of_curr_token) !=
-                                                     paren_source_line_modif) {
-                /* In Microsoft bugs mode, a comma or right parenthesis
-                   terminates an argument only if it comes from the same
-                   place as the opening parenthesis. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              } else {
-                /* The comma or right parenthesis terminates the argument. */
-                break;
-              }  /* if */
-            }  /* if */
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
               paren_count++;
