@@ -404,12 +404,16 @@ void record_symbol_reference(a_symbol_reference_kind kind,
 Record a reference of the indicated kind to the indicated symbol.  Set the
 referenced flag in the symbol entry.  If update_il_entry is TRUE, also
 set the referenced flag in the associated IL entry, if any.  Mark the
-symbol "used" or "set", if appropriate.
+symbol "used" or "set", if appropriate.  sym_ptr should not point to a
+projection symbol.
 */
 {
   a_source_correspondence *scptr;
   a_symbol_kind           sym_kind = sym_ptr->kind;
  
+  check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_projection &&
+                      sym_ptr->kind != (a_symbol_kind)sk_namespace_projection,
+                      "record_symbol_reference: projection symbol");
   /* If writing cross-reference information, write an entry for this
      declaration. */
   if (f_xref_info != NULL) {
