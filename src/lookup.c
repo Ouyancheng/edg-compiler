@@ -2862,7 +2862,8 @@ C and C++.
       sym = scope_stack_lookup(locator, &lookup_state,
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
-    if (sym == NULL && gpp_dependent_name_lookup &&
+    if (gpp_dependent_name_lookup &&
+        (sym == NULL || is_function_or_template_symbol(sym)) &&
         lookup_state.any_ignored_dependent_bases) {
       /* The lookup did not find a symbol but we looked in some classes
          with dependent base classes that may have symbols that were not
