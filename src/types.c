@@ -4599,7 +4599,6 @@ they are in name mangling; it is the underlying type, not the typedef name
 (which can be declared anywhere) that we really care about.
 */
 {
-  a_symbol_ptr  sym;
   a_boolean     result = FALSE;
 
   if (is_class_struct_union(type_ptr) || is_enum(type_ptr)) {
