@@ -285,10 +285,11 @@ static void mangled_function_base_name(
                                       a_type_ptr               conversion_type,
                                       a_mangling_control_block *mctl);
 static void mangled_function_name(
-                              a_routine_ptr            routine,
-                              a_boolean                suppress_param_encoding,
-                              sizeof_t                 *base_name_offset,
-                              a_mangling_control_block *mctl);
+                             a_routine_ptr            routine,
+                             a_boolean                suppress_param_encoding,
+                             a_boolean                suppress_parent_encoding,
+                             sizeof_t                 *base_name_offset,
+                             a_mangling_control_block *mctl);
 static void mangled_function_name_externalized_if_necessary(
                               a_routine_ptr            routine,
                               a_boolean                suppress_param_encoding,
@@ -951,6 +952,7 @@ for the IA-64 ABI.
   add_to_mangled_name('Z', mctl);
   mangled_function_name(ssp->enclosing_routine,
                         /*suppress_param_encoding=*/FALSE,
+                        /*suppress_parent_encoding=*/FALSE,
                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
@@ -1647,6 +1649,7 @@ template classes.
     }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
+                          /*suppress_parent_encoding=*/FALSE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1691,6 +1694,36 @@ template classes.
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_address_constant */
 
+#if IA64_ABI
+
+static void mangled_address_of_member(a_source_correspondence  *scp,
+                                      a_boolean                is_routine,
+                                      a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the address of a member, for
+the IA-64 ABI.  scp is the source correspondence of the member, which
+is a routine if is_routine is TRUE.
+*/
+{
+  a_type_ptr parent_class = scp->parent.class_type;
+ 
+  /* Unary "&" encoding "ad" followed by scope resolution operator "sr". */
+  add_str_to_mangled_name("adsr", mctl);
+  /* First operand is the parent class type. */
+  mangled_encoding_for_type(parent_class, mctl);
+  /* Second operand is an unqualified name, more or less. */
+  if (is_routine) {
+    a_routine_ptr rout = (a_routine_ptr)scp;
+    mangled_function_name(rout,
+                          /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
+                          /*suppress_parent_encoding=*/!emulate_gnu_abi_bugs,
+                          /*base_name_offset=*/(sizeof_t *)NULL, mctl);
+  } else {
+    mangled_name_with_length(unmangled_name_of(scp), mctl);
+  }  /* if */
+}  /* mangled_address_of_member */
+
+#endif /* IA64_ABI */
 
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- old_form is not used in that case. */
@@ -1786,6 +1819,7 @@ specification in the mangling for lengths of literals.
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
         mangled_function_name(func, /*suppress_param_encoding=*/TRUE, 
+                              /*suppress_parent_encoding=*/FALSE,
                               /*base_name_offset=*/(sizeof_t *)NULL,
                               mctl);
       } else {
@@ -1823,15 +1857,7 @@ specification in the mangling for lengths of literals.
     }  /* if */
   }  /* if */
   if (scp != NULL) {
-    /* Unary "&" encoding "ad" followed by scope resolution operator "sr". */
-    add_str_to_mangled_name("adsr", mctl);
-    mangled_encoding_for_type(scp->parent.class_type, mctl);
-    if (rout != NULL) {
-      mangled_function_name(rout, /*suppress_param_encoding=*/FALSE,
-                            /*base_name_offset=*/(sizeof_t *)NULL, mctl);
-    } else {
-      mangled_name_with_length(unmangled_name_of(scp), mctl);
-    }  /* if */
+    mangled_address_of_member(scp, /*is_routine=*/(rout != NULL), mctl);
   } else {
     /* We have a NULL pointer-to-member constant.  Although not allowed by the
        standard, some compilers accept this as an extension.  The IA64 ABI
@@ -2050,16 +2076,13 @@ do_unknown_function:
                                  old_form, mctl);
 #else /* IA64_ABI */
           { a_source_correspondence *scp;
-            /* Unary "&" operator "ad" followed by scope resolution "sr". */
-            add_str_to_mangled_name("adsr", mctl);
             con = con->variant.template_param.variant.constant;
             check_assertion(con->kind == 
                                    (a_constant_repr_kind)ck_template_param &&
                             con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_member);
             scp = &con->source_corresp;
-            mangled_encoding_for_type(scp->parent.class_type, mctl);
-            mangled_name_with_length(unmangled_name_of(scp), mctl);
+            mangled_address_of_member(scp, /*is_routine=*/FALSE, mctl);
           }
 #endif /* IA64_ABI */
           break;
@@ -3952,14 +3975,17 @@ constructors and conversion functions.
 static void mangled_function_name(
                              a_routine_ptr            routine,
                              a_boolean                suppress_param_encoding,
+                             a_boolean                suppress_parent_encoding,
                              sizeof_t                 *base_name_offset,
                              a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
-types; just put out the base encoded name.  If base_name_offset is not NULL,
-*base_name_offset is set to the offset from the start of the mangling to
-the point where the base name appears.
+types; just put out the base encoded name.  If suppress_parent_encoding
+is TRUE, suppress the parent qualifier for members of classes and
+namespaces.  If base_name_offset is not NULL, *base_name_offset is set
+to the offset from the start of the mangling to the point where the base
+name appears.
 */
 {
   a_type_ptr       conversion_type, routine_type;
@@ -3990,9 +4016,11 @@ the point where the base name appears.
   */
   routine_type = skip_typerefs(routine->type);
 #if IA64_ABI
-  /* Add a parent qualifier for a member if needed. */
-  mangled_ia64_parent_qualifier(&routine->source_corresp, iek_routine,
-                                &need_nested_name_close, mctl);
+  if (!suppress_parent_encoding) {
+    /* Add a parent qualifier for a member if needed. */
+    mangled_ia64_parent_qualifier(&routine->source_corresp, iek_routine,
+                                  &need_nested_name_close, mctl);
+  }  /* if */
 #endif /* IA64_ABI */
   /* See if the function should be mangled as a template.  In the modern C++
      language, template functions are mangled using the template arguments
@@ -4101,7 +4129,8 @@ mangle_template:
   /* See if the function is a class member function or a member of a
      namespace. */
   is_member = (routine->source_corresp.is_class_member ||
-               routine->source_corresp.parent.namespace_ptr != NULL);
+               routine->source_corresp.parent.namespace_ptr != NULL) &&
+              !suppress_parent_encoding;
   /* If we will be adding the class or namespace name or the parameter types,
      put out two underscores to separate the function name from the rest. */
   if (is_member || !suppress_param_encoding) {
@@ -4358,6 +4387,7 @@ externalized, use the encoding for the externalized form.
   }  /* if */
 #endif /* DO_IL_LOWERING */
   mangled_function_name(routine, suppress_param_encoding,
+                        /*suppress_parent_encoding=*/FALSE,
                         base_name_offset, mctl);
 #if DO_IL_LOWERING
   if (needs_to_be_externalized) {
@@ -4775,6 +4805,7 @@ Mangle the name of the indicated function, if necessary.
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
     mangled_function_name(routine, suppress_param_encoding, 
+                          /*suppress_parent_encoding=*/FALSE,
                           base_name_offset,
                           &mctl);
 #if !IA64_ABI
@@ -5605,6 +5636,7 @@ other mangled names.
     add_mangled_name_prefix(&mctl);
     add_str_to_mangled_name("Z", &mctl);
     mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
+                          /*suppress_parent_encoding=*/FALSE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
     add_to_mangled_name('E', &mctl);
@@ -5702,6 +5734,7 @@ pointer, or performs the "this" adjustments.
     /* Add the routine name. */
     mangled_function_name(prim_routine,
                           /*suppress_param_encoding=*/FALSE,
+                          /*suppress_parent_encoding=*/FALSE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
   }  /* if */
