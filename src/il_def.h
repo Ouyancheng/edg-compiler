@@ -1119,10 +1119,11 @@ typedef struct a_class_type_supplement {
 			   declared for this class.  (Typically this would
 			   be the offset to a pointer to a virtual function
 			   table.)  If virtual_function_info_base_class is
-                           non-NULL, this is still the offset within the
+			   non-NULL, this is still the offset within the
 			   current classs.  If virtual_function_count is zero
 			   this field is undefined.  */
-  a_targ_size_t virtual_function_info_base_class;
+  a_base_class_ptr
+		virtual_function_info_base_class;
 			/* If virtual function info is shared between the
 			   current class and one of its base classes (e.g.,
 			   if the current class uses the virtual function
