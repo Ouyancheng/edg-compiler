@@ -1078,7 +1078,7 @@ using the specified diagnostic message at the specified source position.
 {
   if (!curr_reachability.reachable) {
     if (!curr_reachability.suppress_unreachable_warning) {
-      warning(error_code, err_pos);
+      pos_warning(error_code, err_pos);
       /* Suppress the warning once it has been issued. */
       curr_reachability.suppress_unreachable_warning = TRUE;
     }  /* if */
