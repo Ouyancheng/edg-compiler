@@ -3384,35 +3384,6 @@ correspondence pointer for each of them.
 }  /* verify_type_correspondences_for_scope */
 
 
-void set_correspondence_of_unvisited_entries(a_scope_ptr  scope)
-/*
-Traverse the type list of the given file or namespace scope and set the
-correspondence for any type that has not yet been visited.  This routine is
-called when the normal process of setting correspondences has been completed:
-Some IL entries may not have had their correspondence set because the
-correspondence could depend on other declarations (e.g., in C mode, the
-correspondence of a struct or enum type is only set when the type is
-involved in the declaration of an entity with linkage).
-*/
-{
-  a_type_ptr  type;
-
-  for (type = skip_generated_type(scope->types);
-       type != NULL;
-       type = skip_generated_type(type->next)) {
-    if (trans_unit_corresp_of(type) == NULL) {
-      a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      /* Note that placeholder types do not have an associated symbol. */
-      if (type_sym != NULL && may_have_correspondence(type_sym)) {
-        /* Some types (e.g., C-mode types not participating in entities with
-           linkage) may not have a correspondence yet. */
-        clear_type_correspondence(type, /*visited=*/TRUE);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-}  /* set_correspondence_of_unvisited_entries */
-
-
 static void verify_routine_correspondences_for_scope(a_scope_ptr  scope)
 /*
 Traverse the list of routines of the given scope and verify a translation
@@ -3985,6 +3956,171 @@ the canonical entry.
 }  /* establish_variable_instantiation_corresp */
 
 
+static a_boolean make_type_correspond(a_type_ptr  type_1,
+                                      a_type_ptr  type_2,
+                                      a_boolean   *canonical_changed)
+/*
+Make type_1 correspond to type_2.  If canonical_changed is non-NULL and type_1
+becomes the canonical entry of the correspondence set as a result of this
+operation, set *canonical_changed to TRUE.  The called is responsible for
+initializing *canonical_changed.
+*/
+{
+  /* First set the correspondence of the type entry itself. */
+  set_trans_unit_corresp(iek_type, type_1, type_2);
+  /* Then set the correspondence of the type's substructure. */
+  if (!has_correspondence(type_1)) {
+    /* type_1 may have become the canonical entry, in which case we must
+       use type_2 to establish the correspondence of type_1's substructure.
+       This cannot be undone. */
+    a_type_ptr  tmp = type_1;
+    type_1 = type_2;
+    type_2 = tmp;
+    if (canonical_changed != NULL) {
+      *canonical_changed = TRUE;
+    }  /* if */
+  }  /* if */
+  if (is_immediate_class_type(type_1)) {
+    establish_trans_unit_correspondences_for_class(type_1);
+  } else if (is_immediate_enum_type(type_1)) {
+    establish_trans_unit_correspondences_for_enum(type_1);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return verify_type_correspondence(type_1);
+}  /* make_type_correspond */
+
+
+static a_boolean change_c_type_correspondence(a_type_ptr  type_1,
+                                              a_type_ptr  type_2)
+/*
+Change the correspondence of type_1 (and its substructure, if any) so that it
+belongs to the same correspondence set as type_2.  Return TRUE if and only if
+the two types are in fact compatible.
+*/
+{
+  a_boolean                 match = TRUE;
+  a_trans_unit_corresp_ptr  tucp1 = trans_unit_corresp_of(type_1);
+  a_trans_unit_corresp_ptr  tucp2 = trans_unit_corresp_of(type_2);
+
+  /* First change the correspondence of the type entry itself. */
+  trace_corresp_check(type_1);
+  trans_unit_corresp_of(type_1) = tucp2;
+  tucp1->canonical = tucp2->canonical;
+  /* The change the correspondence of the substructure. */
+  if (type_1->kind != type_2->kind) {
+    /* An error: The two types are of a different kind (e.g., and enum vs. a
+       class type. */
+    match = FALSE;
+  } else if (is_immediate_class_type(type_1)) {
+    if (class_type_has_body(type_1)) {
+      /* In C mode, the substructure of class types consists solely of their
+         fields. */
+      check_assertion(class_type_has_body(type_2));
+      a_field_ptr  field = type_1->variant.class_struct_union.field_list;
+      for (; field != NULL; field = field->next) {
+        trace_corresp_check(field);
+        trans_unit_corresp_of(field) = NULL;
+      }  /* for */
+      /* We can now safely call establish_trans_unit_correspondences_for_class
+         and verify_class_type_correspondence. */
+      establish_trans_unit_correspondences_for_class(type_1);
+      match = verify_class_type_correspondence(type_1);
+    }  /* if */
+  } else if (is_immediate_enum_type(type_1)) {
+    a_constant_ptr  ecp = type_1->variant.integer.enum_info.constant_list;
+    for (; ecp != NULL; ecp = ecp->next) {
+      trans_unit_corresp_of(ecp) = NULL;
+    }  /* for */
+    /* We can now safely call establish_trans_unit_correspondences_for_enum
+       and verify_enum_type_correspondence. */
+    establish_trans_unit_correspondences_for_enum(type_1);
+    match = verify_enum_type_correspondence(type_1);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return match;
+}  /* change_c_type_correspondence */
+
+
+static a_boolean make_c_types_correspond(a_type_ptr  type_1,
+                                         a_type_ptr  type_2)
+/*
+C types don't have linkage, but they must "correspond" if they participate in
+corresponding declarations of variables or functions with external linkage.
+Unfortunately, that means that we may temporarily end up with two (or more)
+correspondence entries for entities that should really all correspond.
+Consider the following scenario.  Four translation units A (primary), B, C, and
+D (loaded and processed in that order), all define a class type X.  Translation
+unit A declares a variable v1 of type X.  B and C both declare variable v2 of
+type X, and D first declares v1 and then v2.  The processing of A and B does
+not cause a correspondence to be recorded for their respective types X.  The
+processing of C causes its X and B's X to correspond (because of the matching
+variable v1).  When processing v2 in D, D's X is made to correspond to A's X,
+but then we find v1 which implies that there should really only be one
+correspondence entry for all X.
+If type_1 and/or type_2 have no correspondence yet, we can just make the two
+correspond.  If they both do have a different correspondence, we're in a
+situation like the one described above and a special procedure is needed:
+The canonical entry of type_1 is made to correspond to type_2 and its original
+correspondence entry is placed on a list that will be traversed later (to free
+the entries).  When all translation units have been visited, but before they
+are merged, set_correspondence_of_unvisited_entries is called.  In C mode, this
+routine now also adjusts any type whose canonical entry does not point to the
+same correspondence entry.  Return TRUE if the types are indeed identical;
+return FALSE otherwise.
+It is important that all C types have their correspondence set through this
+routine.
+*/
+{
+  a_boolean  result;
+  a_trans_unit_corresp_ptr  tucp1 = trans_unit_corresp_of(type_1);
+  a_trans_unit_corresp_ptr  tucp2 = trans_unit_corresp_of(type_2);
+
+  check_assertion(C_mode());
+  if (tucp1 == NULL) {
+    result = make_type_correspond(type_1, type_2, (a_boolean*)NULL);
+  } else if (tucp2 == NULL) {
+    result = make_type_correspond(type_2, type_1, (a_boolean*)NULL);
+  } else {
+    /* Check if type_1 and/or type_2 are part of a correspondence set made
+       obsolete by a previous call to this routine.  Such cases are identified
+       by the fact that the canonical entry no longer belongs to the
+       correspondence set itself. */
+    if (tucp1 != trans_unit_corresp_of_unknown_entry(tucp1->canonical)) {
+      change_c_type_correspondence(type_1, (a_type_ptr)tucp1->canonical);
+      tucp1 = trans_unit_corresp_of(type_1);
+    }  /* if */
+    if (tucp2 != trans_unit_corresp_of_unknown_entry(tucp2->canonical)) {
+      change_c_type_correspondence(type_2, (a_type_ptr)tucp2->canonical);
+      tucp2 = trans_unit_corresp_of(type_2);
+    }  /* if */
+    if (tucp1 == tucp2) {
+      /* The types already correspond. */
+      result = TRUE;
+    } else {
+      /* Ensure type_2 already corresponds to the "most canonical"
+         correspondence set. */
+      if (canonical_ranking((an_il_entry_kind)iek_type, tucp2->canonical) <
+             canonical_ranking((an_il_entry_kind)iek_type, tucp1->canonical)) {
+        a_type_ptr  tmp = type_2;
+        type_2 = type_1;
+        type_1 = tmp;
+        tucp1 = trans_unit_corresp_of(type_1);
+        tucp2 = trans_unit_corresp_of(type_2);
+      }  /* if */
+      /* Force the correspondence of type_1 to that of type_2.  We cannot use
+         the C++ mode routines for this since they don't allow modifying the
+         correspondence of an entry that is the canonical entry in a nontrivial
+         correspondence set. */
+      result = change_c_type_correspondence(type_1, type_2);
+      tucp1->canonical = tucp2->canonical;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* make_c_types_correspond */
+
+
 a_boolean seek_type_corresp(a_type_ptr  type_1,
                             a_type_ptr  type_2)
 /*
@@ -4012,6 +4148,10 @@ Otherwise, return FALSE.
   } else if (total_errors != 0) {
     /* If correspondence errors already occurred, an attempt to compare
        the structure of type_1 and type_2 may end up being meaningless. */
+  } else if (C_mode()) {
+    /* The correspondence of C types is more complex than that of other
+       entities because the types themselves have no linkage. */
+    result = make_c_types_correspond(type_1, type_2);
   } else {
     /* type_1 either hasn't been visited yet, or it was found not to have a
        correspondence.  Even in the latter case it is possible that type_2
@@ -4022,39 +4162,51 @@ Otherwise, return FALSE.
        the types do not after all match, the type is restored to its
        previous state wrt. correspondence checking. */
     a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
-    if (!visited || !C_mode()) {
+    clear_type_correspondence(type_1, /*visited=*/FALSE);
+    result = make_type_correspond(type_1, type_2, &visited);
+    if (!result && !visited && total_errors == 0) {
+      /* Undo any correspondences established earlier.  This requires two
+         steps: One to detach the entities from each other, and a second
+         one to delete the correspondence entry altogether. */
+      clear_type_correspondence(type_1, /*visited=*/TRUE);
       clear_type_correspondence(type_1, /*visited=*/FALSE);
-      /* First set the correspondence of the type entry itself. */
-      set_trans_unit_corresp(iek_type, type_1, type_2);
-      /* Then set the correspondence of the type's substructure. */
-      if (!has_correspondence(type_1)) {
-        /* type_1 may have become the canonical entry, in which case we must
-           use type_2 to establish the correspondence of type_1's substructure.
-           This cannot be undone. */
-        a_type_ptr  tmp = type_1;
-        type_1 = type_2;
-        type_2 = tmp;
-        visited = TRUE;
-      }  /* if */
-      if (is_immediate_class_type(type_1)) {
-        establish_trans_unit_correspondences_for_class(type_1);
-      } else if (is_immediate_enum_type(type_1)) {
-        establish_trans_unit_correspondences_for_enum(type_1);
-      } else {
-        unexpected_condition();
-      }  /* if */
-      result = verify_type_correspondence(type_1);
-      if (!result && !visited && total_errors == 0) {
-        /* Undo any correspondences established earlier.  This requires two
-           steps: One to detach the entities from each other, and a second
-           one to delete the correspondence entry altogether. */
-        clear_type_correspondence(type_1, /*visited=*/TRUE);
-        clear_type_correspondence(type_1, /*visited=*/FALSE);
-      }  /* if */
     }  /* if */
   }  /* if */
   return result;
 }  /* seek_type_corresp */
+
+
+void set_correspondence_of_unvisited_entries(a_scope_ptr  scope)
+/*
+Traverse the type list of the given file or namespace scope and set the
+correspondence for any type that has not yet been visited.  This routine is
+called when the normal process of setting correspondences has been completed:
+Some IL entries may not have had their correspondence set because the
+correspondence could depend on other declarations (e.g., in C mode, the
+correspondence of a struct or enum type is only set when the type is
+involved in the declaration of an entity with linkage).
+*/
+{
+  a_type_ptr  type;
+
+  for (type = skip_generated_type(scope->types);
+       type != NULL;
+       type = skip_generated_type(type->next)) {
+    a_trans_unit_corresp_ptr  tucp = trans_unit_corresp_of(type);
+    if (tucp == NULL) {
+      a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+      /* Note that placeholder types do not have an associated symbol. */
+      if (type_sym != NULL && may_have_correspondence(type_sym)) {
+        /* Some types (e.g., C-mode types not participating in entities with
+           linkage) may not have a correspondence yet. */
+        clear_type_correspondence(type, /*visited=*/TRUE);
+      }  /* if */
+    } else if (trans_unit_corresp_of_unknown_entry(tucp->canonical) != tucp) {
+      check_assertion(C_mode());
+      change_c_type_correspondence(type, (a_type_ptr)tucp->canonical);
+    }  /* if */
+  }  /* for */
+}  /* set_correspondence_of_unvisited_entries */
 
 
 static void find_namespace_correspondence(a_namespace_ptr  nsp)
