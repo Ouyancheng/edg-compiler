@@ -14803,19 +14803,6 @@ any non-empty template parameter lists that were scanned.
          decl_state->number_of_template_decl_scopes--) {
     pop_scope();
   }  /* for */
-  /* Save the declaration sequence number at the end of this template
-     declaration. */
-  if (decl_state->decl_info != NULL) {
-    /* Record the current declaration sequence number.  This is used
-       to restrict name visibility during template instantiation. */
-    if (decl_state->decl_info->decl_seq == NO_DECL_SEQUENCE_NUMBER) {
-      /* Only set it if it was not already set.  For subordinate function
-         templates, it will have been set based on the prototype (but note
-         that this is only used for the decl_cache, the body cache is
-         actually used directly from the prototype template). */
-      decl_state->decl_info->decl_seq = ++decl_seq_counter;
-    }  /* if */
-  }  /* if */
   /* Any pbk_next_construct pragmas will be considered to bind to each of
      the instances generated from the template.  Save the current construct
      pragma list in the template symbol supplement. */
@@ -14902,6 +14889,19 @@ any non-empty template parameter lists that were scanned.
     } else {
       check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
       static_data_member_prototype_instantiation(sym, attributes);
+    }  /* if */
+  }  /* if */
+  /* Save the declaration sequence number at the end of this template
+     declaration. */
+  if (decl_state->decl_info != NULL) {
+    /* Record the current declaration sequence number.  This is used
+       to restrict name visibility during template instantiation. */
+    if (decl_state->decl_info->decl_seq == NO_DECL_SEQUENCE_NUMBER) {
+      /* Only set it if it was not already set.  For subordinate function
+         templates, it will have been set based on the prototype (but note
+         that this is only used for the decl_cache, the body cache is
+         actually used directly from the prototype template). */
+      decl_state->decl_info->decl_seq = ++decl_seq_counter;
     }  /* if */
   }  /* if */
   /* Extract the bodies of any member functions, nested classes, or

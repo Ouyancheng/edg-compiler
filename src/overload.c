@@ -2306,8 +2306,9 @@ lookup.  dependent_call is TRUE if the call is a template-dependent
 call.
 */
 {
-  a_boolean     visible = TRUE, function_template_case;
-  a_routine_ptr routine;
+  a_boolean              visible = TRUE, function_template_case;
+  a_routine_ptr          routine;
+  a_decl_sequence_number effective_decl_seq;
 
   /* Ignore friend functions that aren't visible.  Note that this
      test is done on the projection symbol, if any, and not on the
@@ -2324,7 +2325,10 @@ call.
       is_nonspecialized_instantiation_context() &&
       !function_symbol->is_class_member &&
       !is_local_symbol(function_symbol) &&
-      function_symbol->decl_seq > get_effective_decl_seq()) {
+      (function_symbol->decl_seq >
+                             (effective_decl_seq = get_effective_decl_seq()) &&
+       effective_decl_seq != NO_DECL_SEQUENCE_NUMBER)) {
+ 
     /* This symbol is not visible in this template instantiation (it
        was declared after the template definition). */
     visible = FALSE;
