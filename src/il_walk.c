@@ -1865,6 +1865,10 @@ entry kind passed as an argument.
     case iek_constructor_init:
                             s = "constructor-init";        break;
 #endif /* ifdef CFE */
+#if ORPHAN_PROCESSING_NEEDED
+    case iek_orphaned_il_list:
+                            s = "orphaned-il-list";        break;
+#endif /* ORPHAN_PROCESSING_NEEDED */
     default:                s = "**BAD ENTRY KIND**";      break;
   }  /* switch */
   return s;
