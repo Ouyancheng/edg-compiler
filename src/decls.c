@@ -3494,6 +3494,9 @@ the symbol and its linkage (which is always "none").
       var->type = composite_type(type_ptr, var->type);
       /* Mark the static data member defined.  It can only be defined once. */
       sym->defined = TRUE;
+      /* Set the IL referenced flag since, as an externally visible variable,
+         it could be referenced from another translation unit. */
+      var->source_corresp.referenced = TRUE;
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
