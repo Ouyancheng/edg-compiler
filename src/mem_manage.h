@@ -123,9 +123,6 @@ execution of the front end.
 */
 #define alloc_fe(size) alloc_in_region(NULL_region_number, size)
 
-extern void record_mapped_mem_block(a_void_ptr	addr,
-				    sizeof_t	size);
-
 /* Allocate a block of memory to be used for memory region storage. */
 extern a_void_ptr alloc_new_mem_block(sizeof_t size);
 /* Allocate an additional memory block for a memory region. */
@@ -168,6 +165,11 @@ extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 extern void mem_manage_one_time_init(void);
 /* Initialize memory management. */
 extern void mem_manage_init(void);
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+extern void record_mapped_mem_block(a_void_ptr	addr,
+				    sizeof_t	size);
 
 #if !USE_MMAP_FOR_MEMORY_REGIONS
 extern void preallocate_pch_memory(void);
@@ -261,17 +263,15 @@ memory management is done.  The memory for regions that may need to be
 written out as part of the PCH cannot be freed until after the PCH is
 written.
 */
-#if STANDALONE_UTILITY_PROGRAM
-#define may_be_building_new_pch() (FALSE)
-#else /* !STANDALONE_UTILITY_PROGRAM */
 #define may_be_building_new_pch() (header_stop_position_pending)
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Macro that is TRUE if two memory allocation history entries are equivalent.
 */
 #define equivalent_mem_alloc_history(m1, m2)				\
   ((m1).addr == (m2).addr && (m1).size == (m2).size)
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG
 EXTERN unsigned long

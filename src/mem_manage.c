@@ -143,57 +143,6 @@ and "freed" here mean via malloc/free, not by some mechanism on top of that.
 }  /* adjust_record_of_total_allocation */
 #endif /* DEBUG */
 
-#define MEM_ALLOC_HISTORY_INCREMENTAL_ALLOCATION 500
-			/* Initial and incremental allocation sizes for
-			   mem_alloc_history.  */
-
-
-/* Forward declaration. */
-static char *realloc_with_check(char     *old_ptr,
-                                sizeof_t old_size,
-                                sizeof_t new_size);
-
-static void add_mem_alloc_history_entry(a_void_ptr	addr,
-		                        sizeof_t	size)
-/*
-Add an entry to the memory allocation history array.
-*/
-{
-  a_mem_alloc_history_ptr	mahp;
-  db_enter(5, "add_mem_alloc_history_entry");
-#if USE_MMAP_FOR_MEMORY_REGIONS
-  if (num_of_mem_alloc_history_entries == size_of_mem_alloc_history) {
-    /* There is no more space in the array, allocate a larger array. */
-    a_mem_alloc_history_number	old_size;
-    a_mem_alloc_history_number	new_size;
-    old_size = size_of_mem_alloc_history;
-    new_size = old_size + MEM_ALLOC_HISTORY_INCREMENTAL_ALLOCATION;
-    size_of_mem_alloc_history = new_size;
-    mem_alloc_history = (a_mem_alloc_history_ptr)realloc_with_check
-                          ((char *)mem_alloc_history,
-	                   (sizeof_t)(old_size * sizeof(a_mem_alloc_history)),
-		           (sizeof_t)(new_size * sizeof(a_mem_alloc_history)));
-  }  /* if */
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  if (num_of_mem_alloc_history_entries == SIZE_OF_MEM_ALLOC_HISTORY) {
-    /* This condition should be handled by the caller. */
-    unexpected_condition_str2("add_mem_alloc_history_entry:",
-			      "too many memory history entries");
-  }  /* if */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  mahp = &mem_alloc_history[num_of_mem_alloc_history_entries++];
-  mahp->addr = addr;
-  mahp->size = size;
-#if DEBUG
-  if (debug_level >= 5) {
-    fprintf(f_debug, "Added mem_alloc_history, addr: %p, size: %lu\n",
-            addr, (unsigned long)size);
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-}  /* add_mem_alloc_history_entry */
-
-
 static char *malloc_with_check(sizeof_t size)
 /*
 Interface to malloc that allocates "size" bytes.  Checks for failure of 
@@ -261,6 +210,59 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
   }  /* if */
   return (ptr);
 }  /* realloc_with_check */
+
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+#define MEM_ALLOC_HISTORY_INCREMENTAL_ALLOCATION 500
+			/* Initial and incremental allocation sizes for
+			   mem_alloc_history.  */
+
+
+/* Forward declaration. */
+static char *realloc_with_check(char     *old_ptr,
+                                sizeof_t old_size,
+                                sizeof_t new_size);
+
+static void add_mem_alloc_history_entry(a_void_ptr	addr,
+		                        sizeof_t	size)
+/*
+Add an entry to the memory allocation history array.
+*/
+{
+  a_mem_alloc_history_ptr	mahp;
+  db_enter(5, "add_mem_alloc_history_entry");
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  if (num_of_mem_alloc_history_entries == size_of_mem_alloc_history) {
+    /* There is no more space in the array, allocate a larger array. */
+    a_mem_alloc_history_number	old_size;
+    a_mem_alloc_history_number	new_size;
+    old_size = size_of_mem_alloc_history;
+    new_size = old_size + MEM_ALLOC_HISTORY_INCREMENTAL_ALLOCATION;
+    size_of_mem_alloc_history = new_size;
+    mem_alloc_history = (a_mem_alloc_history_ptr)realloc_with_check
+                          ((char *)mem_alloc_history,
+	                   (sizeof_t)(old_size * sizeof(a_mem_alloc_history)),
+		           (sizeof_t)(new_size * sizeof(a_mem_alloc_history)));
+  }  /* if */
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  if (num_of_mem_alloc_history_entries == SIZE_OF_MEM_ALLOC_HISTORY) {
+    /* This condition should be handled by the caller. */
+    unexpected_condition_str2("add_mem_alloc_history_entry:",
+			      "too many memory history entries");
+  }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  mahp = &mem_alloc_history[num_of_mem_alloc_history_entries++];
+  mahp->addr = addr;
+  mahp->size = size;
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Added mem_alloc_history, addr: %p, size: %lu\n",
+            addr, (unsigned long)size);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* add_mem_alloc_history_entry */
 
 
 #if !USE_MMAP_FOR_MEMORY_REGIONS
@@ -485,6 +487,20 @@ precompiled headers is suppressed.
   return addr;
 }  /* alloc_new_mem_block */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+
+#else /* STANDALONE_UTILITY_PROGRAM */
+
+a_void_ptr alloc_new_mem_block(sizeof_t size)
+/*
+Allocate a new memory block.  This is the version used for standalone
+utility programs.
+*/
+{
+  a_void_ptr	addr;
+  addr = (a_void_ptr)malloc_with_check(size);
+  return addr;
+}  /* alloc_new_mem_block */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
  
 
 a_mem_block_header_ptr alloc_mem_block(a_memory_region_number region_number,
@@ -1021,7 +1037,6 @@ decision whether to generate a PCH is made.
        then free its storage. */
     write_memory_region(region_number);
   }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
   if (!may_be_building_new_pch()) {
     /* Only free the memory region if we know that we won't need to save
        it in a PCH file. */
@@ -1031,6 +1046,9 @@ decision whether to generate a PCH is made.
        trim the unused portion of the memory block though. */
     trim_memory_region(region_number);
   }  /* if */
+#else /* STANDALONE_UTILITY_PROGRAM */
+  free_memory_region(region_number);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Communication with the back end is via memory.  Trim the region to
      reclaim unused storage at the end of the last block.  Unused storage
