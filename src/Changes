@@ -1,26 +1,46 @@
 Version 2.28
 
+1/12/95 Symbol reference kind for initializations
+
+A new symbol reference kind, SRK_INITIALIZATION, has been added for
+variable and static data member initializations.  It is a modifier of
+SRK_DEFINITION, and it may in turn be modified by SRK_IMPLICIT when no
+explicit initializer appears in the source but implicit initialization is
+performed by calling a default constructor.
+
+1/12/95 Const member with type array-of-class-type
+
+A spurious error is no longer issued when a class with no constructor has a
+const member of array type and the underlying array element type is a class
+with a constructor.  Here's an example:
+
+  struct S { S(); };
+  class A {
+    const S s[10];             // Error is no longer issued
+  };
+
+Here A::s is initialized by the compiler-generated default constructor
+A::A() because S::S() can be called for each of its elements.
+
 1/11/95 Bug in #pragma once handling
 
-The front end was issuing a spurious "extra text after end of
-preprocessing directive" error on all #pragma once directives.
-This has been fixed.
+The front end was issuing a spurious "extra text after end of preprocessing
+directive" error on all #pragma once directives.  This has been fixed.
 
 1/11/95 Recognition of wchar_t as a keyword
 
-In C++, wchar_t is now recognized as a keyword.  This feature may
-be enabled or disabled using a command line option.  The default
-is specified by a lang_feat.h flag.  When wchar_t is a keyword,
-a preprocessing flag can be automatically defined by the front end
-so that a single set of system headers can be used for both modes.
+In C++, wchar_t is now recognized as a keyword.  This feature may be
+enabled or disabled using a command line option.  The default is specified
+by a lang_feat.h flag.  When wchar_t is a keyword, a preprocessing flag can
+be automatically defined by the front end so that a single set of system
+headers can be used for both modes.
 
 1/11/95 Implicit inclusion problem introduced in 2.27
 
 Version 2.27 introduced an implicit inclusion bug that would sometimes
-cause files to be included after the linkage of classes and
-their members had been determined.  This resulted in spurious errors
-in classes declared in the implicitly included files.  This has been
-corrected.
+cause files to be included after the linkage of classes and their members
+had been determined.  This resulted in spurious errors in classes declared
+in the implicitly included files.  This has been corrected.
 
 1/11/95 Bug in code to compute CPU time used
 
@@ -37,7 +57,7 @@ declaration has duplicate size or sign specifiers.
 A stupid bug introduced in version 2.27 caused some problems in linkage
 on variable lists when IL lowering adds temporaries.  Now fixed.
 
-1/6/94  Use of cfront member function typedefs
+1/6/95  Use of cfront member function typedefs
 
 When (in cfront mode only) a "member function typedef" is declared -- e.g.,
 MF in the following code fragment:
@@ -54,13 +74,13 @@ pointer-to-member type:
   MF f();                     // error
   int i = sizeof(MF);         // error
 
-1/6/94  Repackaging in declaration processing
+1/6/95  Repackaging in declaration processing
 
 Some of the code in decl_specifiers has been broken out into new
 subroutines combine_type_specifiers and add_type_qualifiers; similarly,
 declarator now has a new subroutine, scan_real_declarator_id.
 
-1/6/94  Signal handling on old Unix systems without job control
+1/6/95  Signal handling on old Unix systems without job control
 
 The code that initializes the signal handlers first ensures that
 the interrupt signal is not being ignored before resetting it.
@@ -68,7 +88,7 @@ This prevents a background compilation from being terminated by
 an interrupt signal intended for a foreground process on older
 Unix systems that lack job control.
 
-1/6/94  Template instantiation bug when a template is redeclared
+1/6/95  Template instantiation bug when a template is redeclared
 
 A bug has been fixed that caused template functions to be instantiated
 incorrectly when a template was redeclared after being defined, and
