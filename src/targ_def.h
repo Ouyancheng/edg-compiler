@@ -130,12 +130,17 @@ Ordering of bytes in char constants:
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 */
+
+#ifndef TARG_WCHAR_T_INT_KIND
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
 			/* Default value, used to initialize global variable
 			   targ_wchar_t_int_kind. */
+#endif /* !defined(TARG_WCHAR_T_INT_KIND) */
+#ifndef TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 			/* Default value, used to initialize global variable
 			   targ_sizeof_wchar_t. */
+#endif /* !defined(TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT) */
 
 /*
 Integer types:
