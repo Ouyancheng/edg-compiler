@@ -4205,7 +4205,8 @@ constructor.  Change it to add an indirection to the type.
 }  /* add_indirection_to_cctor_param_type */
 
 
-static a_boolean drop_const_on_this_param_variable(a_routine_ptr routine)
+static a_boolean should_drop_const_on_this_param_variable(
+                                                         a_routine_ptr routine)
 /*
 Return TRUE if the top-level "const" on the "this" parameter variable of the
 indicated routine should be dropped.
@@ -4226,7 +4227,7 @@ indicated routine should be dropped.
   if (routine->assignment_to_this_done) drop_const = TRUE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   return drop_const;
-}  /* drop_const_on_this_param_variable */
+}  /* should_drop_const_on_this_param_variable */
 
 
 void lower_type(a_type_ptr type)
@@ -4361,7 +4362,8 @@ Do IL lowering of the indicated type and everything under it.
                const doesn't appear on the interface (see
                make_implicit_this_param_variable). */
             if (rtsp->assoc_routine == NULL ||
-                !drop_const_on_this_param_variable(rtsp->assoc_routine)) {
+                !should_drop_const_on_this_param_variable(
+                                                        rtsp->assoc_routine)) {
               ptp->qualifiers = TQ_CONST;
             }  /* if */
             ptp->next = rtsp->param_type_list;
@@ -9920,7 +9922,7 @@ Do IL lowering of the indicated scope and everything under it.
       /* this_param_variable is not cleared.  It's harmless and it's
          helpful to be able to check it when one does not know whether or
          not it has been lowered. */
-      if (drop_const_on_this_param_variable(routine)) {
+      if (should_drop_const_on_this_param_variable(routine)) {
         /* Drop the top-level "const" on the "this" parameter because it has
            to be modifiable.  Do this in a way that preserves "restrict" if
            that's present. */
