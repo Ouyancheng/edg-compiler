@@ -30,29 +30,6 @@ as a core language issue.  The front end now enforces this rule.
     f<A,5>(0);  // should call #2
   }
 
-1/30/02  Address of static member of current class is dependent in
-         prototype instantiation
-
-The address of a static member (data or function) of the current class
-should be considered dependent in a prototype instantiation of a
-template.  Now, it is.  Without this fix, the front end did not
-correctly recognize template classes having nontype template
-arguments that are the address of a static member as being nonreal
-classes, and this could cause aborts (e.g., IL write/read errors)
-later.  The following test case aborted in the C++-generating
-back end version when compiled in strict mode:
-
-  namespace NN1 {
-    template <int* ip> struct E {
-      E();
-      static int s1;
-      void ff1();
-    };
-    template <int* ip> E<ip>::E() {
-      E<&s1>().ff1();
-    }
-  }
-
 1/30/02  Spurious error when conversion template appears in a deeply nested
          namespace
 
