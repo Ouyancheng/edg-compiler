@@ -1,5 +1,12 @@
 Version 2.26
 
+9/8/94   Using processing_C_code_in_pragma without expand_macros
+
+It is now possible to set processing_C_code_in_pragma to TRUE
+while expand_macros is set to FALSE.  Formerly, this was not possible
+because identifiers were only looked up when macros were not being
+expanded.
+
 9/8/94   A() when A is a class without a constructor
 
 A functional-notation type conversion of the form A(), where A is a class

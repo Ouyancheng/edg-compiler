@@ -4945,7 +4945,8 @@ id_scan:
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
       clear_locator(&locator_for_curr_id, &pos_curr_token);
-      if ((fetch_pp_tokens || in_preprocessing_directive) && !expand_macros) {
+      if ((fetch_pp_tokens || in_preprocessing_directive) &&
+          !expand_macros && !processing_C_code_in_pragma) {
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
       } else {
