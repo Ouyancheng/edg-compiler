@@ -3281,16 +3281,28 @@ this one is such a continuation.
         adv_curr_source_sequence_entry();
         write_tok_str("friend ");
         gen_type_name(type);
-      } else if (type->is_builtin_va_list &&
-                 type->source_corresp.decl_position.seq == 0) {
+      } else if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>.
-           Don't put it out -- put out an #include of the header instead.
-           The test for a sequence number of zero distinguishes this va_list
-           from one that came from other headers (e.g., <stdio.h>) but was
-           adopted as the built-in one.  See declare_builtin_va_list_type. */
+           Don't put it out -- put out an #include of the header instead. */
         type->typedef_definition_has_been_put_out = TRUE;
         suppress_closing_punct = TRUE;
         adv_curr_source_sequence_entry();
+        /* If the guard macros were defined already, put out #defines so that
+           the expansion of <stdarg.h> does not define va_list again. */
+#ifdef GUARD_MACRO_FOR_VA_LIST
+        if (type->va_list_guard_macro_was_defined) {
+          begin_pp_directive("#define ");
+          write_str(GUARD_MACRO_FOR_VA_LIST);
+          end_pp_directive();
+        }  /* if */
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+#ifdef GUARD_MACRO2_FOR_VA_LIST
+        if (type->va_list_guard_macro2_was_defined) {
+          begin_pp_directive("#define ");
+          write_str(GUARD_MACRO2_FOR_VA_LIST);
+          end_pp_directive();
+        }  /* if */
+#endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
         begin_pp_directive("#include <stdarg.h>");
         end_pp_directive();
       } else {
@@ -3328,19 +3340,6 @@ this one is such a continuation.
       write_end_of_declaration_punctuation(*another_decl_in_comma_list);
     }  /* if */
   }  /* if */
-#ifdef GUARD_MACRO_FOR_VA_LIST
-  if (type->is_builtin_va_list &&
-      type->source_corresp.decl_position.seq != 0 &&
-      is_definition) {
-    /* This is declaration of a type named "va_list" which has been adopted
-       as the built-in va_list for <stdarg.h>.  Define the guard macro used
-       by the headers to prevent redefinition of va_list when <stdarg.h>
-       is included. */
-    begin_pp_directive("#define ");
-    write_str(GUARD_MACRO_FOR_VA_LIST);
-    end_pp_directive();
-  }  /* if */
-#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
 }  /* gen_type_decl */
 
 

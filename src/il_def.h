@@ -3487,8 +3487,19 @@ typedef struct a_type {
 			   namespaces. */
   a_bit_field	is_builtin_va_list:1;
 			/* TRUE if this type is the va_list type declared by
-			   <stdarg.h> (or, with nonstandard headers, by
-			   something like <stdio.h>). */
+			   <stdarg.h>. */
+#ifdef GUARD_MACRO_FOR_VA_LIST
+  a_bit_field	va_list_guard_macro_was_defined:1;
+			/* TRUE if the macro named by GUARD_MACRO_FOR_VA_LIST
+			   was defined at the point where <stdarg.h> was
+			   included. */
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+#ifdef GUARD_MACRO2_FOR_VA_LIST
+  a_bit_field	va_list_guard_macro2_was_defined:1;
+			/* TRUE if the macro named by GUARD_MACRO2_FOR_VA_LIST
+			   was defined at the point where <stdarg.h> was
+			   included. */
+#endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
 #if DO_IL_LOWERING
   a_variable_ptr
 		typeinfo_var;

@@ -1796,13 +1796,21 @@ Print a typedef declaration.
 */
 {
   if (start_unreferenced_bracket(&type->source_corresp)) {
-    if (type->is_builtin_va_list &&
-        type->source_corresp.decl_position.seq == 0) {
+    if (type->is_builtin_va_list) {
       /* This is the declaration of the built-in va_list, from <stdarg.h>.
-         Don't put it out -- put out an #include of the header instead.
-         The test for a sequence number of zero distinguishes this va_list
-         from one that came from other headers (e.g., <stdio.h>) but was
-         adopted as the built-in one.  See declare_builtin_va_list_type. */
+         Don't put it out -- put out an #include of the header instead. */
+      /* If the guard macros were defined already, put out #defines so that
+         the expansion of <stdarg.h> does not define va_list again. */
+#ifdef GUARD_MACRO_FOR_VA_LIST
+      if (type->va_list_guard_macro_was_defined) {
+        write_pp_directive("#define ", GUARD_MACRO_FOR_VA_LIST);
+      }  /* if */
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+#ifdef GUARD_MACRO2_FOR_VA_LIST
+      if (type->va_list_guard_macro2_was_defined) {
+        write_pp_directive("#define ", GUARD_MACRO2_FOR_VA_LIST);
+      }  /* if */
+#endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
       write_pp_directive("#include <stdarg.h>", (char *)NULL);
     } else {
       /* Dump any pragmas associated with the type. */
@@ -2153,17 +2161,6 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
     default:
       unexpected_condition_str("dump_type_decl: bad type");
   }  /* switch */
-#ifdef GUARD_MACRO_FOR_VA_LIST
-  if (type->is_builtin_va_list &&
-      type->source_corresp.decl_position.seq != 0 &&
-      pass == 2) {
-    /* This is declaration of a type named "va_list" which has been adopted
-       as the built-in va_list for <stdarg.h>.  Define the guard macro used
-       by the headers to prevent redefinition of va_list when <stdarg.h>
-       is included. */
-    write_pp_directive("#define ", GUARD_MACRO_FOR_VA_LIST);
-  }  /* if */
-#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
 }  /* dump_type_decl */
 
 

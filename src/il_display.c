@@ -964,6 +964,16 @@ Display the indicated type entry.
   if (ptr->is_builtin_va_list) {
     disp_boolean("is_builtin_va_list", TRUE);
   }  /* if */
+#ifdef GUARD_MACRO_FOR_VA_LIST
+  if (ptr->va_list_guard_macro_was_defined) {
+    disp_boolean("va_list_guard_macro_was_defined", TRUE);
+  }  /* if */
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+#ifdef GUARD_MACRO2_FOR_VA_LIST
+  if (ptr->va_list_guard_macro2_was_defined) {
+    disp_boolean("va_list_guard_macro2_was_defined", TRUE);
+  }  /* if */
+#endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
 #if DO_IL_LOWERING
   if (ptr->typeinfo_var != NULL) {
     disp_ptr("typeinfo_var", (char *)ptr->typeinfo_var, iek_variable);

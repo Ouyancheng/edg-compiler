@@ -1,5 +1,13 @@
 Version 2.39
 
+4/10/98   Improvement in built-in <stdarg.h> support
+
+In the support for built-in <stdarg.h>, it is now possible to specify
+a second guard macro to be defined when <stdarg.h> is included,
+by setting GUARD_MACRO2_FOR_VA_LIST.  This is useful when more than
+one preprocessor macro is used by the host system header files to
+avoid multiple definitions of va_list.
+
 4/10/98   Error recovery on missing right brace in aggregate initializer
 
 Error recovery has been improved on a missing right brace in an aggregate

@@ -3946,15 +3946,44 @@ namespace std was encountered in the source.
 }  /* enter_symbol_for_namespace_std */
 
 
+#if defined(GUARD_MACRO_FOR_VA_LIST) || defined(GUARD_MACRO2_FOR_VA_LIST)
+
+static a_boolean define_guard_macro(char *macro_name)
+/*
+If the guard macro with the indicated name is not defined already, define
+it and return FALSE.  If it is defined already, do nothing and return TRUE.
+*/
+{
+  a_boolean        already_defined = FALSE;
+  a_symbol_locator locator;
+  a_symbol_ptr     macro_sym;
+
+  macro_sym = find_symbol(macro_name, (sizeof_t)(strlen(macro_name)),
+                          &locator);
+  macro_sym = find_defined_macro(macro_sym);
+  if (macro_sym != NULL) {
+    /* The macro is defined already. */
+    already_defined = TRUE;
+  } else {
+    /* The macro is not defined.  Define it. */
+    (void)enter_predef_macro("1", macro_name,
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+  return already_defined;
+}  /* define_guard_macro */
+
+#endif /* defined(GUARD_MACRO_FOR_VA_LIST) || ... */
+
 void declare_builtin_va_list_type(void)
 /*
-Declare the type va_list when <stdarg.h> is treated as a builtin.
+Declare the type va_list when <stdarg.h> is treated as a builtin.  This is
+called at the point where the #include <stdarg.h> appears.
 */
 {
   a_symbol_ptr     sym;
   a_type_ptr       va_list_type, va_list_typedef;
   a_symbol_locator locator;
-  a_boolean        existing_sym = FALSE;
 
   if (builtin_va_list_type == NULL) {
     /* Look for an existing va_list symbol.  Such a symbol would exist
@@ -3966,11 +3995,9 @@ Declare the type va_list when <stdarg.h> is treated as a builtin.
                       &locator);
     sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
     if (sym != NULL && is_type_symbol(sym)) {
-      /* Yes, there is a global type called va_list.  Use it and do not
-         declare a new symbol. */
-      existing_sym = TRUE;
+      /* Yes, there is a global type called va_list.  Use it rather than
+         declaring a new symbol. */
       va_list_type = type_symbol_type(sym);
-      va_list_type->is_builtin_va_list = TRUE;
     } else {
       /* There is no existing va_list.  Create one. */
       /* Look for a special predefined name (e.g., __edg_va_list).  If it's
@@ -3987,19 +4014,10 @@ Declare the type va_list when <stdarg.h> is treated as a builtin.
         /* The special symbol does not exist, so use the default "void *". */
         va_list_type = make_pointer_type(void_type());
       }  /* if */
-    }  /* if */
-    if (!existing_sym) {
       /* Enter a file-scope symbol "va_list" that is a typedef to the
          proper type. */
       sym = full_enter_symbol(VA_LIST_NAME, (sizeof_t)(sizeof(VA_LIST_NAME)-1),
                               (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
-#ifdef GUARD_MACRO_FOR_VA_LIST
-      /* Define a macro that tells the headers that va_list has been
-         defined. */
-      (void)enter_predef_macro("1", GUARD_MACRO_FOR_VA_LIST,
-                               /*cannot_be_redefined=*/FALSE,
-                               /*ref_suppresses_pch_file=*/FALSE);
-#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
     }  /* if */
     /* Build a typedef for va_list.  This is done even when there is
        an existing symbol, because we need a declaration at the right
@@ -4010,8 +4028,6 @@ Declare the type va_list when <stdarg.h> is treated as a builtin.
     va_list_typedef->is_builtin_va_list = TRUE;
     add_to_types_list(va_list_typedef, DEPTH_OF_FILE_SCOPE);
     set_source_corresp(&va_list_typedef->source_corresp, sym);
-    /* The source position must be zero, so we can recognize this typedef
-       as the built-in one. */
     va_list_typedef->source_corresp.decl_position = null_source_position;
     /* Note that we update a pre-existing symbol to point to the typedef.
        this is necessary so that the needed and referenced flags will be
@@ -4024,6 +4040,18 @@ Declare the type va_list when <stdarg.h> is treated as a builtin.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     builtin_va_list_type = type_symbol_type(sym);
 #undef VA_LIST_NAME
+#ifdef GUARD_MACRO_FOR_VA_LIST
+    /* Define a macro that tells the headers that va_list has been
+       defined. */
+    va_list_typedef->va_list_guard_macro_was_defined =
+                                   define_guard_macro(GUARD_MACRO_FOR_VA_LIST);
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+#ifdef GUARD_MACRO2_FOR_VA_LIST
+    /* Define a macro that tells the headers that va_list has been
+       defined. */
+    va_list_typedef->va_list_guard_macro2_was_defined =
+                                  define_guard_macro(GUARD_MACRO2_FOR_VA_LIST);
+#endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
   }  /* if */
 }  /* declare_builtin_va_list_type */
 

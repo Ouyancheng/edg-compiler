@@ -1435,7 +1435,8 @@ pass_stdarg_references_to_generated_code.
 
 Note that GUARD_MACRO_FOR_VA_LIST can be defined to be a quoted string
 that is the name of a macro to be defined when the built-in va_list
-is defined.  If it is not set, no macro is defined.
+is defined.  If it is not set, no macro is defined.  A second macro
+can be specified with GUARD_MACRO2_FOR_VA_LIST.
 */
 #ifndef DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
 #if BACK_END_IS_C_GEN_BE
