@@ -321,6 +321,17 @@ be controlled from the command line by --[no_]class_name_injection.
 #endif /* DEFAULT_CLASS_NAME_INJECTION */
 
 /*
+Flag that is used as the default setting for global variable
+arg_dependent_lookup_enabled.  This controls whether argument
+dependent lookup is done for unqualified names in function calls.
+The variable can also be controlled from the command line by
+--[no_]arg_dep_lookup.
+*/
+#ifndef DEFAULT_ARG_DEPENDENT_LOOKUP
+#define DEFAULT_ARG_DEPENDENT_LOOKUP TRUE
+#endif /* DEFAULT_ARG_DEPENDENT_LOOKUP */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

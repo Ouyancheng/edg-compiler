@@ -175,6 +175,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_const_string_literals,
   optk_class_name_injection,
+  optk_arg_dependent_lookup,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -471,6 +472,15 @@ EXTERN a_boolean
                                                                               ;
 			/* TRUE if class names are injected into the scope
 			   of the class. */
+
+EXTERN a_boolean
+		arg_dependent_lookup_enabled
+#if VAR_INITIALIZERS
+                                             = DEFAULT_ARG_DEPENDENT_LOOKUP
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if argument dependent lookup of function
+			   names should be performed. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed
