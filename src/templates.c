@@ -16705,13 +16705,15 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
          copied.  If the entry is not needed, reset the instantiation count. */
       if (is_primary_translation_unit) {
         mip->instance_required_count = 0;
-#if DEBUG
-        if (db_sym_trace("instantiations", sym)) {
-          db_instance_count(mip, /*increment=*/FALSE);
-        }  /* if */
-#endif /* DEBUG */
-        check_assertion(mip->instance_required_count >= 0);
+      } else if (tip->instantiation_required) {
+        mip->instance_required_count--;
       }  /* if */
+#if DEBUG
+      if (db_sym_trace("instantiations", sym)) {
+        db_instance_count(mip, /*increment=*/FALSE);
+      }  /* if */
+#endif /* DEBUG */
+      check_assertion(mip->instance_required_count >= 0);
       /* If the instance count has been decremented to zero, reset the
          add to request file flag. */
       if (is_primary_translation_unit && mip->instance_required_count == 0) {
@@ -17338,10 +17340,16 @@ be processed.
       routine->instance_required = instance_required;
     }  /* if */
 #if DEBUG
-    if (db_flag_is_set("uaif")) {
-      db_name(is_static_data_member ?
-                 &variable->source_corresp : &routine->source_corresp);
-      fputs(":\n", f_debug);
+    if (db_sym_trace("uaif", instance_sym)) {
+      fprintf(f_debug, "update_auto_instantiation_flags:\n");
+      if (is_static_data_member) {
+        db_entity_info((char*)variable, iek_variable);
+      } else {
+        db_entity_info((char*)routine, iek_routine);
+        fprintf(f_debug, "Routine type: ");
+        db_type(routine->type);
+        fprintf(f_debug, "\n");
+      }  /* if */
       fprintf(f_debug, " already_instantiated=%d\n",
               mip->already_instantiated);
       fprintf(f_debug, " instance_required=%d\n", instance_required);
