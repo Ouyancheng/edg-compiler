@@ -1496,13 +1496,11 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
 }  /* base_subobject_conflict */
 
 
-static a_boolean type_has_nonarray_subobject_of_empty_type(
-                                                   a_type_ptr  type,
-                                                   a_type_ptr  subobject_type)
+static a_boolean type_has_subobject_of_empty_type(a_type_ptr  type,
+                                                  a_type_ptr  subobject_type)
 /*
 Return TRUE if and only if "type" contains a (direct or indirect) base or
-field whose type is the empty class subobject_type.  Ignore fields of array
-types (and their subobjects).
+field whose type is the empty class subobject_type.
 */
 {
   a_boolean  result = FALSE;
@@ -1514,10 +1512,14 @@ types (and their subobjects).
   }  /* if */
   field = type->variant.class_struct_union.field_list;
   for (; field != NULL; field = field->next) {
-    if (is_immediate_class_type(field->type)) {
-      if (identical_types(field->type, subobject_type) ||
-          type_has_nonarray_subobject_of_empty_type(field->type,
-                                                    subobject_type)) {
+    a_type_ptr  field_type = skip_typerefs(field->type);
+    if (is_array_type(field_type)) {
+      field_type = underlying_array_element_type(field_type);
+      field_type = skip_typerefs(field_type);
+    }  /* if */
+    if (is_immediate_class_type(field_type)) {
+      if (identical_types(field_type, subobject_type) ||
+          type_has_subobject_of_empty_type(field_type, subobject_type)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1527,8 +1529,7 @@ types (and their subobjects).
     a_base_class_ptr  bcp = base_classes_of(type);
     for (; bcp != NULL; bcp = bcp->next) {
       if (identical_types(bcp->type, subobject_type) ||
-          type_has_nonarray_subobject_of_empty_type(bcp->type,
-                                                    subobject_type)) {
+          type_has_subobject_of_empty_type(bcp->type, subobject_type)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1536,7 +1537,7 @@ types (and their subobjects).
   }  /* if */
 done:
   return result;
-}  /* type_has_nonarray_subobject_of_empty_type */
+}  /* type_has_subobject_of_empty_type */
 
 
 static a_boolean gnu_first_field_conflict(a_type_ptr     class_type,
@@ -1556,7 +1557,7 @@ to emulate a layout bug in early GNU implementation of the IA-64 ABI.
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->offset == offset &&
           bcp->type->variant.class_struct_union.is_empty_class &&
-          type_has_nonarray_subobject_of_empty_type(field->type, bcp->type)) {
+          type_has_subobject_of_empty_type(field->type, bcp->type)) {
         result = TRUE;
         break;
       }  /* if */
