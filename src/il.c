@@ -797,12 +797,6 @@ class_struct_union:
         }  /* if */
         fprintf(f_debug, "} : size = %lu, alignment = %d",
                 tp->size, tp->alignment);
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-        fprintf(f_debug, ", semivisible = %s",
-                tp->use_cfront_transitional_nested_type_name_mangling ?
-                "TRUE" : "FALSE");
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-
         if (any_virtual_base_classes) {
           fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
                               ctsp->size_without_virtual_base_classes,

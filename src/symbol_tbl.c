@@ -754,6 +754,11 @@ and indentation is the indentation desired.
 #endif /* CHECKING */
   }  /* switch */
   if (type != NULL) {
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+    if (type->use_cfront_transitional_nested_type_name_mangling) {
+      put_string("semivisible");
+    }  /* if */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     if (!space_left(20) ||
         (!space_left(30) && is_array_type(type)) || is_function_type(type) ||
         ((is_pointer_type(type) || is_reference_type(type)) &&
