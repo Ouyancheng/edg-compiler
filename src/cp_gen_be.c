@@ -3271,7 +3271,7 @@ of a comma list, and *another_decl_in_comma_list is returned TRUE if the
 declaration following this one is such a continuation.
 */
 {
-  a_type_ptr under_type, this_param_type;
+  a_type_ptr under_type;
   a_boolean  anon_union_case = FALSE;
 
   if (sec_decl != NULL) {
@@ -3303,14 +3303,14 @@ declaration following this one is such a continuation.
     gen_type_name(under_type);
     *another_decl_in_comma_list = FALSE;
   } else {
+    a_type_ptr class_type;
     if (!suppress_specifiers) write_tok_str("typedef ");
-    /* FIXME: can do better than call to implicit_this_param_type_of? */
     if (is_function_type(under_type) &&
-        (this_param_type = implicit_this_param_type_of(under_type)) != NULL) {
+        (class_type = f_skip_typerefs(under_type)->variant.routine.extra_info->
+                                                         this_class) != NULL) {
       /* A cfront member function typedef, e.g.,
            typedef int A::f(int);
          Put out with a qualified name. */
-      a_type_ptr class_type= f_skip_typerefs(type_pointed_to(this_param_type));
       form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
                            TQ_NONE, 
