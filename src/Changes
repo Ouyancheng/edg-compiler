@@ -1,5 +1,14 @@
 Version 2.23
 
+4/8/94   Name demangler
+
+A new utility program called edg_decode has been added.  When compiled
+as a program, it works as a filter to do name demangling, much like the
+similar cfront utility does.  It can alternatively be compiled as
+a function that can be called to do name demangling from within a
+program.  Note: it demangles external entity names only; it doesn't
+handle internal names.
+
 4/8/94   The lint ARGSUSED directive
 
 Two bugs have been fixed in our support of the ARGSUSED directive, which
