@@ -591,12 +591,11 @@ extern void set_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
                                               long            con_val,
                                               an_integer_kind ikind);
-#if GENERATE_EH_TABLES
+
 extern void set_unsigned_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
                                               unsigned long   con_val,
                                               an_integer_kind ikind);
-#endif /* GENERATE_EH_TABLES */
 
 /* See also below -- this is defined as a macro if IL lowering is
    configured out. */
