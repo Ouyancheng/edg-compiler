@@ -1914,7 +1914,8 @@ that do normal id lookup processing.
         /* If this is a namespace scope, also look for any symbols that
            are visible because of using directives. */
         if ((kind == (a_scope_kind)sck_namespace_extension ||
-             kind == (a_scope_kind)sck_namespace_reactivation) &&
+             kind == (a_scope_kind)sck_namespace_reactivation ||
+             kind == (a_scope_kind)sck_file) &&
             ssep->using_directives_apply &&
             !lookup_state->is_linkage_lookup &&
             !lookup_state->is_friend_lookup) {
@@ -2293,7 +2294,8 @@ that do normal id lookup processing.
     if (kind == (a_scope_kind)sck_class_reactivation ||
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation ||
-        kind == (a_scope_kind)sck_template_instantiation) {
+        kind == (a_scope_kind)sck_template_instantiation ||
+        (kind == (a_scope_kind)sck_file && ssep->is_reactivation)) {
       if (kind == (a_scope_kind)sck_class_reactivation &&
           lookup_state->is_linkage_lookup) {
         /* Skip class reactivation scopes for linkage lookups. */
@@ -2661,17 +2663,16 @@ C and C++.
 	  if a template instantiation, class reactivation, namespace
 	  reactivation, namespace extension, or class scope for a class
 	  with base classes is active.  It is also true for scopes containing
-          using-directives.
+          using-directives and for the reactivation of the file scope.
     */
     ssep = &scope_stack[depth_scope_stack];
     force_slow_lookup = lookup_state.skip_curr_scope ||
                         lookup_state.skip_class_scopes ||
                         lookup_state.is_linkage_lookup ||
                         lookup_state.is_friend_lookup;
-    if (C_dialect != C_dialect_cplusplus ||
-        (((inactive_symbol_list == NULL && !locator->is_conversion_name) ||
-          !ssep->inactive_symbols_may_be_visible) &&
-         !ssep->slow_lookup_required && !force_slow_lookup)) {
+    if (((inactive_symbol_list == NULL && !locator->is_conversion_name) ||
+         !ssep->inactive_symbols_may_be_visible) &&
+         !ssep->slow_lookup_required && !force_slow_lookup) {
       /* Fast algorithm: just search the active symbol list. */
 #if DEBUG
       num_fast_id_lookups++;

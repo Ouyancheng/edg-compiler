@@ -1344,6 +1344,11 @@ the scope being pushed.
     }  /* if */
     decl_scope_level = depth_scope_stack;
   }  /* if */
+  if (kind == (a_scope_kind)sck_file && ssep->is_reactivation) {
+    /* When a file scope is reactivated, its symbols will be on the inactive
+       list. */
+    ssep->inactive_symbols_may_be_visible = TRUE;
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Check for class reactivations, classes with base classes,
        namespace extensions, and template instantiations.  When these
@@ -3802,7 +3807,7 @@ unit.
   if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block ||
-        kind == (a_scope_kind)sck_file) {
+        (kind == (a_scope_kind)sck_file && is_namespace_wrapup)) {
       /* Now that all declarations in the scope have been seen, check for
          name hiding.  The hidden name table assists the C++-generating back
          end to determine when to put out qualified names and elaborated
