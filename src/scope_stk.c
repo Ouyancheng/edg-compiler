@@ -4559,10 +4559,10 @@ it is an external definition).
     /* A non-template variable. */
     if ((var->storage_class == (a_storage_class)sc_unspecified
 #if DO_IL_LOWERING
-         && !var->promoted_local_static)
+         && !var->promoted_local_static
 #endif /* DO_IL_LOWERING */
-         || var->init_kind == (an_init_kind)initk_dynamic
-                                                         ) {
+                                       ) ||
+         var->init_kind == (an_init_kind)initk_dynamic) {
       /* This is an externally linked variable that has been defined, or
          it is a variable local to this translation unit but with
          dynamic initialization, in which case it is treated as "needed"
