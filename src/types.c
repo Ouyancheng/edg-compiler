@@ -4588,10 +4588,11 @@ they in name mangling; it is the underlying type, not the typedef name
 (which can be declared anywhere) that we really care about.
 */
 {
-  a_symbol_ptr  sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-  a_boolean result = FALSE;
+  a_symbol_ptr  sym;
+  a_boolean     result = FALSE;
 
-  if (is_class_struct_union(type_ptr) || is_enum_type(type_ptr)) {
+  if (is_class_struct_union(type_ptr) || is_enum(type_ptr)) {
+    sym  = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
     if (is_unnamed_tag_symbol(sym)) {
       is_unnamed_type = *force_end_of_traversal = result = TRUE;
     }  /* if */
