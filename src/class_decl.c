@@ -8829,15 +8829,17 @@ specific information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Find the last attribute. */
-  last_attribute = &attributes;
-  while (*last_attribute != NULL) {
-    last_attribute = &(*last_attribute)->next;
-  }  /* while */
-  /* Scan the attributes that follow the declarator. */
-  *last_attribute = scan_attributes();
-  /* Apply the attributes to the field. */
-  member_type = apply_attributes_to_variable_type(attributes, member_type);
+  if (gcc_mode) {
+    /* Find the last attribute. */
+    last_attribute = &attributes;
+    while (*last_attribute != NULL) {
+      last_attribute = &(*last_attribute)->next;
+    }  /* while */
+    /* Scan the attributes that follow the declarator. */
+    *last_attribute = scan_attributes();
+    /* Apply the attributes to the field. */
+    member_type = apply_attributes_to_variable_type(attributes, member_type);
+  }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* If the class type was marked with the "packed" attribute, also apply that
      attribute to this field. */
@@ -8916,11 +8918,13 @@ specific information about the member declaration, respectively.
     cannot_bind_to_curr_construct();
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Apply the attributes to the field. */
-  apply_attributes_to_field(attributes, field);
-  /* We are done with the postfix attributes. */
-  free_attribute_list(*last_attribute);
-  *last_attribute = NULL;
+  if (gcc_mode) {
+    /* Apply the attributes to the field. */
+    apply_attributes_to_field(attributes, field);
+    /* We are done with the postfix attributes. */
+    free_attribute_list(*last_attribute);
+    *last_attribute = NULL;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Add the field to the temporary list for this class/struct/union. */
   if (class_state->end_of_field_list == NULL) {
