@@ -9720,7 +9720,8 @@ is NULL, the operand is not a parameter.
                                        err_pos, source_type,
                                        orig_dest_type);
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (!is_error_operand(source_operand) &&
+    } else if (gcc_mode &&
+               !is_error_operand(source_operand) &&
                ((is_transparent != NULL && *is_transparent) ||
                 (is_transparent != NULL && is_union_type(dest_type) &&
                  skip_typerefs(dest_type)->variant.class_struct_union.
