@@ -960,7 +960,8 @@ the template.
             }  /* if */
           }  /* if */
         } else if (is_class_definition && tag_sym->is_class_member &&
-                   !is_explicit_instantiation) {
+                   !is_explicit_instantiation &&
+                   cssp->class_template != NULL) {
           /* This is a definition of a member template instance -- apparently
              an attempt at old-style specialization, but only the "template<>"
              syntax is allowed for member template specializations. */
