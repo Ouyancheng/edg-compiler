@@ -243,12 +243,22 @@ caution when modifying this routine.
        not match the tag being processed, issue an error. */
     tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
     if (tag_sym != NULL && tag_sym->kind != tag_kind) {
-      pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
-                     &locator_for_curr_id.source_position,
-                     name_of_symbol_kind(tag_kind), tag_sym);
-      tag_sym = NULL;
-      tag_err = TRUE;
-      goto done;
+      an_error_severity  severity = (an_error_severity)es_error;
+      if (any_cfront_mode() &&
+          tag_sym->kind != (a_symbol_kind)sk_enum_tag &&
+          tag_kind != (a_symbol_kind)sk_enum_tag) {
+        /* Allow mixing of struct/class and union in cfront mode. */
+        severity = (an_error_severity)es_warning;
+      }  /* if */
+      pos_stsy_diagnostic(severity,
+                          ec_tag_kind_incompatible_with_declaration,
+                          &locator_for_curr_id.source_position,
+                          name_of_symbol_kind(tag_kind), tag_sym);
+      if (severity == (an_error_severity)es_error) {
+        tag_sym = NULL;
+        tag_err = TRUE;
+        goto done;
+      }  /* if */
     }  /* if */
     /* Save the symbol locator for this identifier before doing the
        get_token. */
@@ -569,14 +579,21 @@ to indicate whether the class/struct/union is actually defined.
         }  /* if */
 #endif /* CHECKING */
       } else if (tag_sym->kind != tag_kind) {
-        check_assertion(is_template_class_symbol(tag_sym));
-        /* Error -- tag-kind mismatch in a specialization. */
-        pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos,
-                     tag_sym->variant.class_struct_union.extra_info->
+        if (is_template_class_symbol(tag_sym)) {
+          /* Error -- tag-kind mismatch in a specialization. */
+          pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos,
+                       tag_sym->variant.class_struct_union.extra_info->
                                                             class_template);
-        set_to_named_error_locator(locator);
-        error_tag_sym = tag_sym;
-        tag_sym = NULL;
+          set_to_named_error_locator(locator);
+          error_tag_sym = tag_sym;
+          tag_sym = NULL;
+#if CHECKING
+        } else {
+          /* Mixing union and nonunion declarations is allowed in cfront
+             mode.  A diagnostic will already have been issued. */
+          check_assertion(any_cfront_mode());
+#endif /* CHECKING */
+        }  /* if */
       }  /* if */
     }  /* if */
     if (is_error_locator(locator)) err = TRUE;
