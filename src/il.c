@@ -6311,7 +6311,7 @@ variable can be diagnosed.
       pos_sy_error(ec_register_storage_class_conflict, pos, sym);
     }  /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-  } else if (named_address_spaces_enabled &&
+  } else if (named_address_spaces_enabled && register_id  != 0 &&
              type_qualified_with_named_address_space(var->type)) {
     pos_error(ec_register_in_address_space, pos);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
