@@ -361,6 +361,14 @@ lookups.  The variable can also be controlled from the command line by
 #endif /* DEFAULT_FRIEND_INJECTION */
 
 /*
+Flag that is TRUE if Sun CC 5.0 compatibility features should be allowed by
+default.
+*/
+#ifndef DEFAULT_SUN_COMPATIBILITY
+#define DEFAULT_SUN_COMPATIBILITY FALSE
+#endif /* DEFAULT_SUN_COMPATIBILITY */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

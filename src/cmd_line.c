@@ -840,6 +840,10 @@ Initialize the option information table.
                          "sun",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_sun_mode,
+                         "no_sun",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1526,7 +1530,6 @@ otherwise implicitly enabled cfront mode.
 }  /* exclude_cfront_mode */
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 static void exclude_microsoft_mode(an_error_code  error_code)
 /*
 Microsoft mode is incompatible with other settings.  Either issue the given
@@ -1534,6 +1537,7 @@ diagnostic (error_code) if the conflict is explicit, or silently turn off an
 otherwise implicitly enabled Microsoft mode.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft mode is not compatible with another mode set on the command
      line. */
   if (microsoft_mode) {
@@ -1549,8 +1553,8 @@ otherwise implicitly enabled Microsoft mode.
       microsoft_bugs = FALSE;
     }  /* if */
   }  /* if */
-}  /* exclude_microsoft_mode */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* exclude_microsoft_mode */
 
 
 static void check_and_set_ansi_mode_options()

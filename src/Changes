@@ -1,5 +1,15 @@
 Version 2.43
 
+11/9/99  Sun compatibility option
+
+The front end now supports command-line switches --sun and --no_sun that
+provide some language compatibility with the Sun CC compiler (version 5.0).
+The default setting of these switches is determined by the new configuration
+option DEFAULT_SUN_COMPATIBILITY.
+
+Sun compatibility is only applicable in C++ mode, and cannot be enabled at
+the same time as strict ANSI mode, or Microsoft or cfront compatibility modes.
+
 11/9/99  Sun compatibility: using-directive non-tag hides tag from other scope
 
 In Sun mode, a non-tag from one scope hides a tag from another scope when

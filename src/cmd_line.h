@@ -198,6 +198,15 @@ EXTERN a_boolean
 			   features used, disable features that conflict
 			   with ANSI C (i.e., asm). */
 EXTERN a_boolean
+                sun_mode
+#if VAR_INITIALIZERS
+                         = DEFAULT_SUN_COMPATIBILITY
+#endif /* VAR_INITIALIZERS */
+                                                    ;
+                        /*  accept language features supported
+                            by Sun CC release 5.0. */
+
+EXTERN a_boolean
                 cfront_2_1_mode /* = FALSE */;
                         /*  accept language features supported
                             by cfront release 2.1. */
@@ -205,11 +214,6 @@ EXTERN a_boolean
                 cfront_3_0_mode /* = FALSE */;
                         /*  accept language features supported
                             by cfront release 3.0. */
-
-EXTERN a_boolean
-                sun_mode /* = FALSE */;
-                        /*  accept language features supported
-                            by Sun CC release 5.0. */
 
 /*
 Macro that is TRUE if any cfront mode has been selected.
