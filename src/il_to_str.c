@@ -1656,6 +1656,12 @@ confusion.  Do the output in the way described by octl.
         form_name(&constant->source_corresp, iek_constant, octl);
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
+                 is_bool_type(con_type)) {
+        /* A bool constant. */
+        octl->output_str(cmplit_integer_constant(constant, 0L) != 0 ? "true" :
+                                                                      "false");
+      } else if (!octl->c_generating_back_end &&
+                 il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
         a_boolean       ovflo, need_char_cast_close_paren = FALSE;
