@@ -4982,14 +4982,17 @@ declaration.
   a_boolean                set_invisible = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
   a_boolean                first_decl = FALSE;
-  a_name_reference_ptr     name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_name_reference_ptr     name_ref = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_storage_class          declared_storage_class = storage_class;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean                microsoft_specialization_redef = FALSE;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -5520,7 +5523,10 @@ declaration.
           routine_ptr->specialized_with_old_syntax = TRUE;
         } else if (is_function_def) {
           /* There is already a definition.  This is some sort of error. */
-          if (!sym->variant.routine.ptr->is_specialized &&
+          linked_redecl_error = TRUE;
+          template_function_specific_decl = FALSE;
+          redecl_error_already_issued = TRUE;
+          if (!routine_ptr->is_specialized &&
               routine_ptr->is_inline && routine_ptr->called) {
             /* An inline function template has been declared, an instance
                of it has been referenced and therefore instantiated on
@@ -5532,11 +5538,21 @@ declaration.
                       &locator->source_position);
           } else {
             /* Already defined, presumably by a specialization. */
-            pos_sy_error(ec_already_defined, &locator->source_position, sym);
+            if (microsoft_bugs && microsoft_version == 1200 &&
+                routine_ptr->is_specialized && !is_friend_decl) {
+              /* Microsoft Visual C++ 6.0 ignores redefinitions of
+                 specializations.  We need to scan the upcoming definition,
+                 but it must be discarded and the old body preserved.
+                 We will therefore create a new symbol and IL entry, but
+                 discard them after the function body has been scanned. */
+              microsoft_specialization_redef = TRUE;
+              pos_sy_warning(ec_already_defined, &locator->source_position,
+                             sym);
+              goto skip_overloading;
+            } else {
+              pos_sy_error(ec_already_defined, &locator->source_position, sym);
+            }  /* if */
           }  /* if */
-          linked_redecl_error = TRUE;
-          template_function_specific_decl = FALSE;
-          redecl_error_already_issued = TRUE;
           set_to_named_error_locator(*locator);
           /* Set a flag to suppress reuse of the existing external-routine
              symbol and of the routine already in use.  Also, to suppress a
@@ -5656,9 +5672,10 @@ declaration.
     }  /* if */
 skip_overloading:;
   }  /* if */
-  if (linked_redecl_error) {
+  if (linked_redecl_error || microsoft_specialization_redef) {
     /* There is a linked symbol, but it is not compatible with the new
-       declaration.  Force a new symbol and a new IL entry. */
+       declaration or the new declaration is a redefinition.  Force a
+       new symbol and a new IL entry. */
     sym = NULL;
     linked_symbol = NULL;
     routine_ptr = NULL;
@@ -5679,12 +5696,15 @@ skip_overloading:;
         (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
       }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-    if (microsoft_mode && invalid_scope_for_new_or_delete) {
+    if (microsoft_mode && (invalid_scope_for_new_or_delete ||
+                           microsoft_specialization_redef)) {
       /* An operator new or delete function was declared in a namespace scope.
          The Microsoft C++ compiler permits this (i.e., no error is issued),
          yet it proceeds to ignore the declaration in processing new and
          delete expressions.  We emulate this behavior by not adding the
          symbol to the symbol table. */
+      /* Similarly, duplicate specialization definitions should not be kept
+         in the symbol table. */
       remove_symbol(sym);
     }  /* if */
     /* Mark friend functions for which this is the initial declaration. */
@@ -5704,6 +5724,7 @@ skip_overloading:;
   }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none && !redeclaration &&
+      !microsoft_specialization_redef &&
       (!scope_stack[depth_scope_stack].in_prototype_instantiation ||
        prototype_instantiations_in_il)) {
     /* Create an external symbol for the present linkable declaration.
@@ -5769,11 +5790,14 @@ skip_overloading:;
        list of the innermost namespace scope (or, if this is an extern "C"
        context, add it to routines list of the file scope).  If we're in a
        prototype instantiation scope, do not add it to the routines list
-       unless prototype instantiations are stored in the IL. */
+       unless prototype instantiations are stored in the IL.  Similarly, do
+       not add routines representing Microsoft duplicate specialization
+       definitions to the list. */
     a_scope_depth  scope_depth = depth_innermost_namespace_scope;
 
-    if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
-        !prototype_instantiations_in_il) {
+    if ((scope_stack[depth_scope_stack].in_prototype_instantiation &&
+         !prototype_instantiations_in_il) ||
+        microsoft_specialization_redef) {
       scope_depth = NO_SCOPE_DEPTH;
     } else if ((linkage == idl_external || sun_mode) &&
                scope_stack[depth_scope_stack].default_name_linkage ==
@@ -5803,6 +5827,13 @@ skip_overloading:;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
     first_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (microsoft_specialization_redef) {
+      /* If this is a dummy entry generated to process a duplicate
+         specialization definition, we mark is as "defined" so it can
+         be recognized later on. */
+      routine_ptr->defined = TRUE;
+      routine_ptr->is_specialized = TRUE;
+    }  /* if */
   } else {
     /* There is an existing IL entry that we are reusing. */
     /* Check for internal linkage on the old but not the new, or

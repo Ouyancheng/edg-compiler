@@ -15213,6 +15213,38 @@ template.  "pos" is the position to be used if an error is to be issued.
 }  /* check_specialization_scope */
 
 
+static void replace_entry_for_duplicate_specialization(a_symbol_ptr  *p_sym)
+/*
+Microsoft Visual C++ 6.0 accepts and discards duplicate function template
+specializations.  To emulate this, we scan the duplicate definition with
+a dummy IL entry and associated symbol (to preserve the original entries).
+*p_sym points to the symbol for the original specialization.  This routine
+replaces it by a new symbol pointing to a new routine entry.
+*/
+{
+  a_symbol_ptr   old_sym = *p_sym, new_sym;
+  a_routine_ptr  old_rp = old_sym->variant.routine.ptr, new_rp;
+  a_type_ptr     old_tp = old_rp->type, new_tp;
+
+  /* Copy the symbol. */
+  *p_sym = new_sym = alloc_symbol(old_sym->kind, old_sym->header,
+                                  &old_sym->decl_position);
+  *new_sym = *old_sym;
+  new_sym->defined = FALSE;
+  new_sym->next = NULL;
+  new_sym->next_in_scope = NULL;
+  /* Copy the routine type (scan_function_body could potentially modify it). */
+  new_tp = copy_routine_type_with_param_types(old_tp,
+                                              /*copy_default_args=*/FALSE);
+  /* Create a new routine entry and link it to the symbol. */
+  new_rp = make_routine(new_tp, old_rp->storage_class, NO_SCOPE_DEPTH);
+  new_rp->defined = TRUE;
+  new_rp->is_specialized = TRUE;
+  set_source_corresp(&new_rp->source_corresp, new_sym);
+  new_sym->variant.routine.ptr = new_rp;
+}  /* replace_entry_for_duplicate_specialization */
+
+
 static void full_specialization(a_tmpl_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
@@ -15245,6 +15277,7 @@ that follows.
   a_boolean			microsoft_nonstd_specialization = FALSE;
   an_attribute_ptr              *p_attributes = NULL;
   an_attribute_ptr              attributes = NULL;
+  a_boolean                     microsoft_specialization_redef = FALSE;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -15483,8 +15516,21 @@ that follows.
         if (severity == es_error) sym = NULL;
       } else if (is_definition && sym->defined) {
         /* The entity has already been defined. */
-        pos_sy_error(ec_already_defined, &locator.source_position, sym);
-        sym = NULL;
+        if (microsoft_bugs && microsoft_version == 1200 && rp != NULL &&
+            already_specialized) {
+          /* Microsoft Visual C++ 6.0 accepts and discards redefinitions of
+             explicit specializations.  The symbol and routine entry must be
+             replaced by new ones while scanning the duplicate definition
+             (which will be discarded in the end). */
+          microsoft_specialization_redef = TRUE;
+          pos_sy_warning(ec_already_defined, &locator.source_position, sym);
+          replace_entry_for_duplicate_specialization(&sym);
+          rp = sym->variant.routine.ptr;
+          scp = &rp->source_corresp;
+        } else {
+          pos_sy_error(ec_already_defined, &locator.source_position, sym);
+          sym = NULL;
+        }  /* if */
       } else if (!already_specialized) {
         scp->decl_position = id_pos;
       }  /* if */
@@ -15601,6 +15647,7 @@ that follows.
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
       } else {
+        /* A specialization of a routine. */
         /* Issue an error if the exception specification on the instance does
            not match that of the template. */
         check_exception_specification(type, sym, &func_info.throw_position,

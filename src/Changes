@@ -1,5 +1,18 @@
 Version 3.4
 
+9/9/03   Microsoft compatibility: Duplicate specialization definitions
+
+In Microsoft bugs mode, with microsoft_version equal to 1200 (which
+corresponds to Microsoft Visual C++ 6.0), the front end now accepts
+and discards duplicate function templates specializations.  For example:
+
+  template<class T> int f(T) { return 0; }
+  template<> int f(int) { return 1; }  // OK.
+  template<> int f(int) { return 2; }  // Accepted, but the body of the
+                                       // specialization is discarded.
+
+A warning is issued in such cases.
+
 9/9/03   Microsoft compatibility: binding reference to non-const to
          "new" operation
 

@@ -584,8 +584,15 @@ and for the instantiation of template functions.
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state         saved_pack_alignment_state;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  a_boolean                      discard_definition = FALSE;
 
   db_enter(3, "scan_function_body");
+  if (microsoft_bugs && microsoft_version == 1200 &&
+      rout_ptr->defined && rout_ptr->is_specialized) {
+    /* This is a duplicate definition of a template specialization.
+       Microsoft Visual C++ 6.0 just discards these. */
+    discard_definition = TRUE;
+  }  /* if */
   if (rout_ptr->source_corresp.is_class_member) {
     class_type = rout_ptr->source_corresp.parent.class_type;
   } else {
@@ -1040,6 +1047,9 @@ and for the instantiation of template functions.
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline. */
     add_to_inline_function_list(rout_ptr);
+  }  /* if */
+  if (discard_definition) {
+    clear_function_body(il_header.region_scope_entry[rout_ptr->assoc_scope]);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
