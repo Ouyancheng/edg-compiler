@@ -3911,6 +3911,12 @@ and return NULL.  This routine is called only in C++ mode.
              always dependent in a prototype instantiation. */
           any_dependent_arg = TRUE;
         }  /* if */
+        if (!any_dependent_arg && is_template_id &&
+            template_arg_list_involves_template_param(template_arg_list)) {
+          /* A call like f<T>(1), where the explicit template argument
+             list includes dependent arguments. */
+          any_dependent_arg = TRUE;
+        }  /* if */
         if (any_dependent_arg) {
           /* We can't do overload resolution because some of the arguments
              have template-dependent types.  Return a flag indicating that. */
