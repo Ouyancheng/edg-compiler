@@ -380,6 +380,24 @@ are accepted.
 			     "cpp_quote", MSAT_ANY);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "statement", /*is_unnamed=*/TRUE, NULL);
+  /* [db_accessor] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "db_accessor", MSAT_ANY);
+  /* [db_column] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "db_column", MSAT_ANY);
+  /* [db_command] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "db_command", MSAT_ANY);
+  /* [db_param] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "db_param", MSAT_ANY);
+  /* [db_source] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "db_source", MSAT_ANY);
+  /* [db_table] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "db_table", MSAT_ANY);
   /* [default] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "default",
