@@ -3143,6 +3143,17 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_lvalue_cast:
           unexpected_condition_str("gen_expr: eok_lvalue_cast as rvalue");
+        case eok_dynamic_cast:
+          write_tok_str("dynamic_cast<");
+          gen_type(expr->type);
+          write_tok_str(">(");
+          if (is_reference_type(expr->type)) {
+            gen_lvalue(operand_1);
+          } else {
+            gen_expression(operand_1);
+          }  /* if */
+          write_tok_str(")");
+          goto done_with_operation;
         case eok_complement:
           opstr = "~";
           break;
