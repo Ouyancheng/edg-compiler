@@ -1794,7 +1794,7 @@ evaluated (but not checked to see if the match is good enough).
   an_arg_match_summary_ptr
                      arg_match;
   a_boolean          param_is_reference, type_qualifiers_added;
-  a_boolean          class_copy_case;
+  a_boolean          class_copy_case, pointer_case;
 
   db_enter(4, "function_template_matches_operand_list");
   templ_sym = cfp->function_symbol;
@@ -1853,6 +1853,7 @@ evaluated (but not checked to see if the match is good enough).
       param_type = ptp->type;
       arg_type = arg_operand->operand.type;
       type_qualifiers_added = FALSE;
+      pointer_case = FALSE;
       param_is_reference = is_reference_type(param_type);
       if (param_is_reference) {
         /* The parameter has a reference type. */
@@ -1900,6 +1901,7 @@ evaluated (but not checked to see if the match is good enough).
            level in a pointer case, e.g., int * --> const int *.
            This is another trivial conversion.
            In general, remove one level of matching pointer types. */
+        pointer_case = TRUE;
         arg_type = type_pointed_to(arg_type);
         param_type = type_pointed_to(param_type);
         /* Check and adjust the top-level type qualifiers. */
@@ -1932,12 +1934,10 @@ evaluated (but not checked to see if the match is good enough).
         arg_match->match_level = aml_std_conversion;
         arg_match->downward_cast_derivation =
                                             base_class_conv_needed->derivation;
-        if (!param_is_reference) {
-          /* Save information needed to check whether or not a copy
-             constructor is needed. */
-          class_copy_case = TRUE;
-          eff_param_type = base_class_conv_needed->type;
-        }  /* if */
+        /* Save information needed to check whether or not a copy
+           constructor is needed. */
+        class_copy_case = TRUE;
+        eff_param_type = base_class_conv_needed->type;
       } else {
         /* Normal case: exact match. */
         arg_match->match_level = aml_exact;
@@ -1954,14 +1954,14 @@ evaluated (but not checked to see if the match is good enough).
           arg_match->less_desirable_exact_match = TRUE;
 #endif /* 0 */
         }  /* if */
-        if (!param_is_reference && is_class_struct_union_type(arg_type)) {
+        if (is_class_struct_union_type(arg_type)) {
           /* Save information needed to check whether or not a copy
              constructor is needed. */
           class_copy_case = TRUE;
           eff_param_type = skip_typerefs(arg_type);
         }  /* if */
       }  /* if */
-      if (class_copy_case) {
+      if (class_copy_case && !param_is_reference && !pointer_case) {
         /* See if a copy constructor is needed for a class copy. */
         set_user_conversion_for_class_copy(&arg_operand->operand,
                                            eff_param_type,
