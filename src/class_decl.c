@@ -2821,8 +2821,7 @@ without it.
 static a_symbol_ptr decl_friend_function(a_symbol_locator      *locator,
                                          a_type_ptr            class_type,
                                          a_type_ptr            function_type,
-                                         a_func_info_block_ptr func_info,
-                                         a_boolean             is_inline)
+                                         a_func_info_block_ptr func_info)
 /*
 Do processing for declaring a function (identified by *locator and with
 a type of function_type) friend of the current class (class_type).  Getting
@@ -2836,8 +2835,6 @@ of the function, and again overloading is a possibility.
   a_type_ptr                   old_type;
   a_class_list_entry_ptr       clep;
   a_boolean                    is_overloaded_function;
-  a_boolean                    is_function_def_with_body;
-  a_boolean                    is_main_function = FALSE;
   a_storage_class              storage_class;
   a_class_type_supplement_ptr  ctsp;
   a_routine_list_entry_ptr     rlep;
@@ -2850,7 +2847,6 @@ of the function, and again overloading is a possibility.
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
-    is_function_def_with_body = (curr_token == tok_lbrace);
     sym = locator->specific_symbol;
     if (sym != NULL && sym->class_of_which_a_member != NULL &&
         !is_member_function_symbol(sym)) {
@@ -2872,26 +2868,22 @@ of the function, and again overloading is a possibility.
       /* If the friend function is defined in this declaration or if it was
          specified as inline, that information should be passed on to
          decl_var_or_routine. */
-      if (is_function_def_with_body) is_inline = TRUE;
       if (strcmp(locator->symbol_header->identifier, "main") == 0) {
         /* Friendship is being given to the main() function. */
-        is_main_function = TRUE;
-        if (is_inline) {
+        func_info->is_main_function = TRUE;
+        if (func_info->is_inline) {
           /* But it can't be declared "inline" or defined inline. */
           pos_error(ec_inline_main, &locator->source_position);
-          is_inline = FALSE;
+          func_info->is_inline = FALSE;
         }  /* if */
       }  /* if */
-      if (is_inline) {
+      if (func_info->is_inline) {
         storage_class = (a_storage_class)sc_static;
       } else {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       decl_var_or_routine(locator, storage_class, function_type, func_info,
-                          /*is_implicit_function=*/FALSE,
-                          is_function_def_with_body, is_inline,
-                          is_main_function, &sym, &linkage, &old_type,
-                          &ext_sym);
+                          &sym, &linkage, &old_type, &ext_sym);
     } else {
       if (sym->class_of_which_a_member == class_type) {
         /* It's a member function of the very class that is according it
@@ -2911,7 +2903,7 @@ of the function, and again overloading is a possibility.
                     locator->specific_symbol);
           set_to_error_locator(*locator);
         } else {
-          if (is_inline && !is_function_def_with_body &&
+          if (func_info->is_inline && !func_info->is_definition &&
               !sym->variant.routine.ptr->is_inline) {
             error(ec_inline_not_allowed);
           }  /* if */
@@ -3253,7 +3245,6 @@ static a_symbol_ptr decl_member_function(
                                    a_type_ptr              member_type,
                                    a_func_info_block_ptr   func_info,
                                    an_access_specifier     access,
-                                   a_boolean               is_inline,
                                    a_boolean               is_virtual,
                                    a_boolean               compiler_generated,
                                    a_special_function_kind spec_kind)
@@ -3299,8 +3290,8 @@ special function kind (e.g., constructor, destructor), if any.
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  It is an error to redeclare a member function, but we try
        merge the declarations anyway. */
-    redecl_member_function(sym, member_type, access, is_inline, is_virtual,
-                           &locator->source_position);
+    redecl_member_function(sym, member_type, access, func_info->is_inline,
+                           is_virtual, &locator->source_position);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -3320,7 +3311,7 @@ special function kind (e.g., constructor, destructor), if any.
        the member functions will also be changed. */
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->source_corresp.access = access;
-    rtn->is_inline = is_inline;
+    rtn->is_inline = func_info->is_inline;
     rtn->compiler_generated = compiler_generated;
     add_throw_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
@@ -4169,11 +4160,12 @@ routine body is generated at this time.
   }  /* if */
   clear_func_info(&func_info);
   set_to_throw_anything(&func_info, &pos_curr_token);
+  func_info.is_inline = TRUE;
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
   (void)decl_member_function(&locator, class_type, rout_type, &func_info,
                              (an_access_specifier)as_public,
-                             /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
+                             /*is_virtual=*/FALSE,
                              /*compiler_generated=*/TRUE, sfkind);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -6221,22 +6213,25 @@ Scan the body of a class definition, including the base classes list.
                   }  /* if */
                 }  /* if */
               }  /* if */
+              func_info.is_definition = function_def_present;
+              func_info.is_inline = inline_specified || function_def_present;
               if (friend_specified) {
-                rout_sym =
-                      decl_friend_function(&locator, class_type, local_type,
-                                           &func_info, inline_specified);
+                rout_sym = decl_friend_function(&locator, class_type,
+                                                local_type, &func_info);
               } else {
                 if (is_destructor) {
                   spec_kind = (a_special_function_kind)sfk_destructor;
                 } else if (is_constructor) {
                   spec_kind = (a_special_function_kind)sfk_constructor;
-                  if (curr_token == tok_colon) function_def_present = TRUE;
+                  if (curr_token == tok_colon) {
+                    func_info.is_definition = function_def_present = TRUE;
+                    func_info.is_inline = TRUE;
+                  }  /* if */
                 }  /* if */
                 /* Create a symbol for the member function. */
                 rout_sym = decl_member_function(
                                    &locator, class_type, local_type,
-                                   &func_info, access,
-                                   inline_specified, virtual_specified,
+                                   &func_info, access, virtual_specified,
                                    /*compiler_generated=*/FALSE, spec_kind);
                 if (corresp_prototype_tag_sym != NULL) {
                   /* The class must be the instantiation of a class template
@@ -6284,7 +6279,7 @@ Scan the body of a class definition, including the base classes list.
                      decl_friend_function, which also handles cases in which
                      it should be left unset despite the presence of a
                      function body. */
-                  rout_sym->variant.routine.ptr->is_inline = TRUE;
+                  check_assertion(rout_sym->variant.routine.ptr->is_inline);
                 }  /* if */
                 remove_stop_token(tok_comma);
                 /* Cache the tokens comprising the function definition
