@@ -3798,29 +3798,27 @@ routine is called for both C-style casts and C++ functional-notation type
 conversions.
 */
 {
-  a_type_ptr       source_type;
+  a_type_ptr       source_type = operand->type;
   an_error_code    warning_suggested;
   a_boolean        failed = FALSE;
   a_routine_ptr    conversion_routine;
   an_expr_node_ptr func_ptr_node, object_node;
 
-  /* Convert array --> pointer and function --> pointer. */
-  do_operand_transformations(operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                             expression_kind);
-  /* Fetch the type after those conversions. */
-  source_type = operand->type;
 
   /* For a C++ cast to reference, convert the lvalue operand to a pointer
-     to the object. */
+     to the object.  Note that source_type remains set to the original
+     type (the reference). */
   if (cast_to_reference) {
-    /* The expression must be an lvalue. */
-    if (!is_an_lvalue(operand)) {
+    /* The expression must be an lvalue (that term in C++ includes function
+       designators). */
+    if (is_an_lvalue(operand)) {
+      take_address_of_lvalue(operand, expression_kind);
+    } else if (is_a_function_designator(operand)) {
+      conv_function_designator_to_ptr_to_function(operand, expression_kind);
+    } else {
       if (!is_error_operand(operand)) {
         error_in_operand(ec_expr_not_an_lvalue, operand);
       }  /* if */
-    } else {
-      take_address_of_lvalue(operand, expression_kind);
     }  /* if */
   }  /* if */
 
@@ -3893,7 +3891,7 @@ conversions.
           is_pointer_type(operand->type) &&
           is_function_type(type_pointed_to(operand->type))) {
         pos_warning(ec_bound_function_cast_anachronism, start_position);
-        conv_lvalue_to_rvalue(operand, expression_kind);
+        do_operand_transformations(operand, TOPT_NO_OPTIONS, expression_kind);
         if (operand->virtual_function) {
           /* The function is a virtual function, so use an
              eok_virtual_function_ptr operation to compute the address at
@@ -3922,7 +3920,7 @@ conversions.
       }  /* if */
     } else if (is_void_type(type_cast_to)) {
       /* Anything --> void, allowed. */
-      conv_lvalue_to_rvalue(operand, expression_kind);
+      do_operand_transformations(operand, TOPT_NO_OPTIONS, expression_kind);
       /* For casts to void, we build an expression node that is a cast
          to void.  This special cast to void is only used for the
          case handled here, i.e., for an explicit cast to void.
@@ -3972,6 +3970,9 @@ conversions.
       if (warning_suggested != ec_no_error) {
         pos_warning(warning_suggested, start_position);
       }  /* if */
+      do_operand_transformations(operand,
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
+                                 expression_kind);
       /* In pcc mode, some lvalues cast to same-sized types remain lvalues
          (e.g., int to unsigned). */
       if (C_dialect == C_dialect_pcc && is_an_lvalue(operand) &&
