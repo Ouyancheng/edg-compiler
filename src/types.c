@@ -3652,8 +3652,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       /* Pointer --> pointer-to-error and pointer-to-error --> pointer are
          always allowed. */
       okay = TRUE;
-    } else if (is_template_param_type(unqual_dest_type_pointed_to) ||
-               is_template_param_type(unqual_source_type_pointed_to)) {
+    } else if (!C_mode() && is_template_dependent_context() &&
+               (is_or_contains_template_param(unqual_dest_type_pointed_to) ||
+                is_or_contains_template_param(unqual_source_type_pointed_to))){
       /* Conversions between template parameter types are always allowed. */
       okay = TRUE;
     } else {
