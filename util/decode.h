@@ -8,12 +8,12 @@
 *                                                                             *
 ******************************************************************************/
 /*
-edg_decode.c -- Declarations for edg_decode.c (name demangler for C++).
+decode.h -- Declarations for decode.c (name demangler for C++).
 */
 
 /* Avoid including these declarations more than once: */
-#ifndef EDG_DECODE_H
-#define EDG_DECODE_H 1
+#ifndef DECODE_H
+#define DECODE_H 1
 
 void decode_identifier(char      *id,
                        char      *output_buffer,
@@ -21,7 +21,7 @@ void decode_identifier(char      *id,
                        a_boolean *err,
                        a_boolean *buffer_overflow_err);
 
-#endif /* ifndef EDG_DECODE_H */
+#endif /* ifndef DECODE_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *
