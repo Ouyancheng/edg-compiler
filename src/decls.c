@@ -5904,16 +5904,13 @@ return a pointer to it in *symbol_ptr.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Call enter symbol to create a new symbol for this type.  It will
-     also issue an error if the name is already declared in the current
-     scope. */
-  sym = enter_local_symbol((a_symbol_kind)sk_type, locator,
-                           decl_scope_level, suppress_redecl_error);
   /* Create a new type entry and add it to the types list for the current
      scope. */
-  sym->variant.type.ptr = tp = alloc_type((a_type_kind)tk_typeref);
+  tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
-  set_source_corresp(&(tp->source_corresp), sym);
+  /* Create a new symbol for this type and bind it to the new type. */
+  sym = enter_typedef_symbol(tp, locator, decl_scope_level,
+                             suppress_redecl_error);
   nsp = NULL;
   if (!C_mode()) {
     if (class_type != NULL) {

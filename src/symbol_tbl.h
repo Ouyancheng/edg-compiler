@@ -2532,6 +2532,11 @@ extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
 
 extern void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym);
 
+extern a_symbol_ptr enter_typedef_symbol(a_type_ptr       type_ptr,
+                                         a_symbol_locator *locator,
+                                         a_scope_depth    scope_level,
+                                         a_boolean        suppress_error);
+
 EXTERN a_symbol_ptr
 		symbol_for_namespace_std;
 			/* Symbol for namespace "std", which is predeclared

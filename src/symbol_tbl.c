@@ -4238,6 +4238,46 @@ specified by tag_sym, and enter it into the symbol table.
 }  /* enter_injected_class_name_symbol */
 
 
+a_symbol_ptr enter_typedef_symbol(a_type_ptr       type_ptr,
+                                  a_symbol_locator *locator,
+                                  a_scope_depth    scope_depth,
+                                  a_boolean        suppress_error)
+/*
+Allocate an sk_type symbol to represent a typedef declaration for the type
+specified by type_ptr and enter it into the symbol table.  This routine
+is called for typedef declarations (in place of enter_local_symbol, which
+calls enter_symbol) because some error checks require the type to be added
+to the symbol entry before the symbol is added to the symbol table.
+*/
+{
+  a_symbol_ptr  sym;
+
+  db_enter(3, "enter_typedef_symbol");
+  if (scope_stack[scope_depth].kind == (a_scope_kind)sck_func_prototype &&
+      !is_error_locator(*locator) && !is_error_type(type_ptr)) {
+    pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
+  }  /* if */
+  sym = alloc_symbol((a_symbol_kind)sk_type, locator->symbol_header,
+                         &locator->source_position);
+  sym->is_error = locator->is_error;
+  /* Set the locator to point to the symbol entered. */
+  locator->specific_symbol = sym;
+  locator->is_qualified_name = FALSE;
+  /* Bind the type in the symbol.  This has to be done before adding the
+     symbol to the symbol table. */
+  sym->variant.type.ptr = type_ptr;
+  set_source_corresp(&(type_ptr->source_corresp), sym);
+  /* Add the symbol to the proper scope's symbol list. */
+  add_symbol_to_scope_list(sym, scope_depth, &suppress_error);
+  /* Add the symbol to the symbol table.  This must be done after the symbol
+     is added to the scope list, because that sets the scope number, which
+     is needed to check for redeclaration. */
+  link_symbol_into_symbol_table(sym, scope_depth, suppress_error);
+  db_exit();
+  return sym;
+}  /* enter_typedef_symbol */
+
+
 void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
                                       char        *name)
 /*
