@@ -2423,7 +2423,9 @@ is TRUE.
        or macros to be expanded.  For those cases, the preprocessed line
        must be constructed by using the information in
        source_line_modif_list. */
-    if (source_line_modif_list == NULL) {
+    if (source_line_modif_list == NULL &&
+        (!null_chars_allowed_in_source ||
+         strchr(curr_source_line, LE_ESCAPE)[1] == LE_NEWLINE)) {
       /* For the common case, output the line quickly. */
       /* We count on the fact that an LE_ESCAPE sequence will end the
          string. */
@@ -2501,6 +2503,11 @@ is TRUE.
           } else if (ch == LE_END_OF_LINE) {
             /* End of the whole line. */
             break;
+          } else if (ch == LE_NULL) {
+            /* Null (zero) character in line. */
+            putc('\0', f_pp_output);
+            prev_ch = '\0';
+            loc_in_line += LE_ESCAPE_LEN;
           } else {
             unexpected_condition_str(
                             "gen_pp_output_for_curr_line: bad lexical escape");
@@ -2564,25 +2571,50 @@ orig_line_modif_list modifications apply to the indicated text.
 {
   char                    *local_stop_loc;
   a_source_line_modif_ptr slmp;
+  a_boolean               unmodified_line;
+  a_boolean               possible_nulls = FALSE;
 
+  /* See whether the line has any modifications that require special
+     handling. */
+  unmodified_line = (source_line_modif_list == NULL);
+  if (null_chars_allowed_in_source) {
+    char *p = strchr(curr_source_line, LE_ESCAPE);
+    if (p != NULL && p[1] != LE_NEWLINE) {
+      /* The line might have LE_ESCAPE/LE_NULL escapes in it for
+         null (zero) source characters. */
+      unmodified_line = FALSE;
+      possible_nulls = TRUE;
+    }  /* if */
+  }  /* if */
   for (;;) {
-    if (source_line_modif_list == NULL) {
-      /* There are no macro modifications, so the text can just be written. */
+    if (unmodified_line) {
+      /* There are no macro modifications and no null characters, so the
+         text can just be written. */
       local_stop_loc = stop_loc;
     } else if (stop_loc == NULL) {
-      /* Writing to end of line, and there are macro modifications to the
-         current line.  See if there are any attention markers in the rest
-         of the line.  Note that this scan will stop at the
+      /* Writing to end of line, and there are macro modifications to or
+         nulls in the current line.  See if there are any attention markers
+         in the rest of the line.  Note that this scan will stop at the
          LE_ESCAPE/LE_NEWLINE lexical escape sequence at the end of the
          line if no attention marker is found. */
       local_stop_loc = strchr(loc_in_line, ATTENTION_MARKER);
+      if (possible_nulls && local_stop_loc == NULL) {
+        /* Stop on an LE_ESCAPE/LE_NULL escape if there is one. */
+        char *p = strchr(loc_in_line, LE_ESCAPE);
+        if (p[1] == LE_NULL) local_stop_loc = p;
+      }  /* if */
     } else {
       /* Writing part of the line, and there are macro modifications to the
-         current line.  See if there are any attention markers in the part
-         of the line we want to write. */
+         current line.  See if there are any attention markers or nulls
+         in the part of the line we want to write. */
       for (local_stop_loc = loc_in_line;
            local_stop_loc < stop_loc && *local_stop_loc != ATTENTION_MARKER;
-           local_stop_loc++) {}
+           local_stop_loc++) {
+        if (possible_nulls && *local_stop_loc == LE_ESCAPE) {
+          check_assertion(local_stop_loc[1] == LE_NULL);
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
     /* Now write whatever is just raw text. */
     if (local_stop_loc == NULL) {
@@ -2606,25 +2638,33 @@ orig_line_modif_list modifications apply to the indicated text.
     loc_in_line = local_stop_loc;
     /* If the whole requested piece has now been written out, exit the loop. */
     if (loc_in_line == stop_loc) break;
-    /* *loc_in_line must be an attention marker.  Find and write the original
-       character for that position.  Note that there may be several
-       modifications on that same location, and we have to find the
-       original one. */
-    for (slmp = source_line_modif_list; ; slmp = slmp->next) {
-      check_assertion(slmp != NULL);
-      if (slmp->line_loc == loc_in_line &&
-          slmp->orig_char != ATTENTION_MARKER) break;
-    }  /* for */
-    loc_in_line++;
-    if (slmp->orig_char != LE_ESCAPE) {
-      putc(slmp->orig_char, f_raw_listing);
+    if (*loc_in_line == LE_ESCAPE) {
+      check_assertion(loc_in_line[1] == LE_NULL);
+      /* An escape representing a null (zero) character.  Put out a blank. */
+      putc(' ', f_raw_listing);
+      loc_in_line += LE_ESCAPE_LEN;
     } else {
-      /* The original character is an escape.  This must be the first
-         character of a newline sequence, when the entire line is deleted.
-         Move past it and let the newline character be put out on the
-         normal exit above. */
-      check_assertion(*loc_in_line == LE_NEWLINE);
+      /* *loc_in_line must be an attention marker.  Find and write the original
+         character for that position.  Note that there may be several
+         modifications on that same location, and we have to find the
+         original one. */
+      check_assertion(*loc_in_line == ATTENTION_MARKER);
+      for (slmp = source_line_modif_list; ; slmp = slmp->next) {
+        check_assertion(slmp != NULL);
+        if (slmp->line_loc == loc_in_line &&
+            slmp->orig_char != ATTENTION_MARKER) break;
+      }  /* for */
       loc_in_line++;
+      if (slmp->orig_char != LE_ESCAPE) {
+        putc(slmp->orig_char, f_raw_listing);
+      } else {
+        /* The original character is an escape.  This must be the first
+           character of a newline sequence, when the entire line is deleted.
+           Move past it and let the newline character be put out on the
+           normal exit above. */
+        check_assertion(*loc_in_line == LE_NEWLINE);
+        loc_in_line += LE_ESCAPE_LEN-1;
+      }  /* if */
     }  /* if */
     /* If the whole requested piece has now been written out, exit the loop. */
     if (loc_in_line == stop_loc) break;
@@ -2793,6 +2833,11 @@ the calls to this routine.
         } else if (ch == LE_END_OF_LINE) {
           /* End of the whole line. */
           break;
+        } else if (ch == LE_NULL) {
+          /* Null (zero) character in line.  Put out a blank. */
+          add_char_to_raw_listing_buffer(' ');
+          prev_ch = ' ';
+          loc_in_line += LE_ESCAPE_LEN;
         } else {
           unexpected_condition_str(
                            "gen_expanded_raw_listing_...: bad lexical escape");
@@ -4724,10 +4769,27 @@ entry_for_possible_trigraph:
         /* The zero character is reserved for internal use.  Replace it
            by a blank and save the error position for later display. */
 entry_for_null_character:
-        *loc_in_line = ch = ' ';
-        if (!has_invalid_char) {
-          has_invalid_char = TRUE;
-          offset_to_invalid_char = loc_in_line - curr_source_line;
+        if (!null_chars_allowed_in_source) {
+          ch = ' ';
+          if (!has_invalid_char) {
+            has_invalid_char = TRUE;
+            offset_to_invalid_char = loc_in_line - curr_source_line;
+          }  /* if */
+        } else {
+          /* Null allowed: put in an LE_ESCAPE/LE_NULL to represent the null
+             character. */
+          if (loc_in_line == after_curr_source_line_minus_term) {
+            /* The line is too long; the buffer must be expanded. */
+            offset_in_line = loc_in_line - curr_source_line;
+            expand_curr_source_line();
+            loc_in_line = curr_source_line + offset_in_line;
+            after_curr_source_line_minus_term = after_end_of_curr_source_line -
+                                                2*LE_ESCAPE_LEN;
+          }  /* if */
+          /* Put the LE_ESCAPE character into curr_source_line. */
+          *loc_in_line++ = LE_ESCAPE;
+          /* Fall into the normal code to store the LE_NULL character. */
+          ch = LE_NULL;
         }  /* if */
       }  /* if */
       /* Check that there is still room in the line buffer.  We have to
@@ -5101,6 +5163,11 @@ white_space_loop:
         /* Marker put into text to indicate that the following macro name
            should not be expanded.  Return to caller. */
         goto end_skip;
+      } else if (ch == LE_NULL) {
+        /* Null (zero) character. */
+        warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
+        kind_skipped |= WHITE_SPACE_OTHER;
+        curr_char_loc += LE_ESCAPE_LEN;
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
@@ -5351,6 +5418,11 @@ normal_comment:
           if (ch == LE_ESCAPE) {
             /* End of a line of the comment. */
             ch = curr_char_loc[1];
+            if (ch == LE_NULL) {
+              /* Null (zero) character in comment.  Ignored. */
+              curr_char_loc += LE_ESCAPE_LEN;
+              continue;
+            }  /* if */
             check_assertion_str(ch == LE_NEWLINE ||
                                 ch == LE_END_OF_LINE,
                             "skip_white_space: bad lexical escape in comment");
@@ -6077,6 +6149,7 @@ responsible for issuing error messages.
         /* Token ends after the "\" -- this is an unclosed string.  This can
            happen because of macro definitions on the command line, e.g.,
            -DX="\ */
+        /* Also handles \ followed by an LE_ESCAPE/LE_NULL sequence. */
         unterminated = TRUE;
         goto return_point;
       } else if ((ch == 'u' || ch == 'U') &&
@@ -6114,11 +6187,20 @@ responsible for issuing error messages.
         }  /* if */
       }  /* if */
     } else if (ch == LE_ESCAPE) {
-      /* Lexical escape, e.g., newline.  The string is unterminated at
-         end of line or in some other strange way that comes up with
-         preprocessing. */
-      unterminated = TRUE;
-      goto return_point;
+      if (curr_char_loc[1] == LE_NULL) {
+        /* Null (zero) character -- keep in string. */
+        warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
+                                             ec_null_char_in_string,
+                            curr_char_loc);
+        nchars++;
+        curr_char_loc += LE_ESCAPE_LEN;
+      } else {
+        /* Other lexical escape, e.g., newline.  The string is unterminated
+           at end of line or in some other strange way that comes up with
+           preprocessing. */
+        unterminated = TRUE;
+        goto return_point;
+      }  /* if */
     } else {
       /* Normal character. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -6460,11 +6542,13 @@ non-NULL, also append the characters in the comment, through but not including
       case LE_ESCAPE:
         ch = curr_char[1];
         if (ch == LE_END_OF_TOKEN ||
-            ch == LE_INERT_MACRO) {
+            ch == LE_INERT_MACRO ||
+            ch == LE_NULL) {
           /* Marker put into text by preprocessing of macros, to force the same
              interpretation of token boundaries as during the macro definition.
              Or, marker that indicates that a macro name should not be
-             expanded.  Skip over the escape and don't put it out. */
+             expanded, or represents a null (zero) character.  Skip over the
+             escape and don't put it out. */
           next_char = curr_char + LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
           /* End of the expansion text for a macro.  Find the character
@@ -7191,6 +7275,11 @@ start_of_token_scan:  /* Restart here after scanning white space. */
         start_of_curr_token = curr_char_loc;
         is_inert_macro = TRUE;
         goto id_scan;
+      } else if (ch == LE_NULL) {
+        /* Null (zero) character.  Let the white-space routine figure it
+           out. */
+        skip_white_space();
+        goto start_of_token_scan;
       } else {
         unexpected_condition_str("get_token: bad lexical escape");
       }  /* if */

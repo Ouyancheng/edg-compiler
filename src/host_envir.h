@@ -1392,6 +1392,14 @@ the -v option.
 */
 
 /*
+Flag that provides the default value for null_chars_allowed_in_source,
+which controls whether null (zero) characters are allowed in source lines.
+*/
+#ifndef DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE
+#define DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE FALSE
+#endif /* DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE */
+
+/*
 Routines/macros to deal with multibyte character sequences in source code.
 */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED

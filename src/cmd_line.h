@@ -1200,6 +1200,15 @@ EXTERN a_boolean
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 EXTERN a_boolean
+		null_chars_allowed_in_source
+#if VAR_INITIALIZERS
+                                      = DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* TRUE if null (zero) characters should be allowed
+			   in source lines. */
+
+EXTERN a_boolean
 		report_embedded_cplusplus_noncompliance /* = FALSE */;
 			/* TRUE to enforce the restricted version of C++
 			   called "Embedded C++" (no namespaces, templates,

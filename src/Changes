@@ -1,5 +1,11 @@
 Version 3.1
 
+6/17/02  Null (zero) characters in source lines
+
+The front end can now be configured to allow null (zero) characters
+in source lines, by setting DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE
+to TRUE.  In GNU C mode, the option is enabled automatically.
+
 6/14/02  GNU C compatibility: Invalid flexible array members
 
 In GNU C mode, the front end used to accept array fields with unspecified

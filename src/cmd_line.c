@@ -2380,6 +2380,7 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   long_long_promotion_allowed = FALSE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
+  null_chars_allowed_in_source = TRUE;
 }  /* check_and_set_gcc_mode_options */
 
 

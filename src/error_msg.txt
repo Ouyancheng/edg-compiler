@@ -1240,6 +1240,9 @@ ec_bad_affinity;;"affinity expression must have a shared type or point to a shar
 ec_shared_affinity_type;;"affinity has shared type (not pointer to shared)"
 ec_upc_shared_void_comparison;;"shared void* types can only be compared for equality"
 ec_cl_upc_requires_ansi_c_dialect;;"UPC mode is incompatible with C++ and K&R modes"
+ec_null_char_ignored;;"null (zero) character in input line ignored"
+ec_null_char_in_string;;"null (zero) character in string or character constant"
+ec_null_char_in_header_name;;"null (zero) character in header name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
@@ -1249,4 +1252,3 @@ ec_cl_upc_requires_ansi_c_dialect;;"UPC mode is incompatible with C++ and K&R mo
 # Copyright 1988-2001 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
-

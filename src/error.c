@@ -1918,12 +1918,18 @@ a blank line instead of the caret line.
             slmp = nested_source_line_modif(loc_in_line);
             ch = slmp->orig_char;
           }  /* if */
-          /* Exit on the newline at the end of the source line.  (If there
-             wasn't one there originally, one has been added.) */
           if (ch == LE_ESCAPE) {
-            check_assertion_str(loc_in_line[1] == LE_NEWLINE,
-                                "write_orig_source_line: bad lexical escape");
-            goto end_of_loop;
+            if (loc_in_line[1] == LE_NULL) {
+              /* Null (zero) character in line.  Output as blank. */
+              ch = ' ';
+              loc_in_line += LE_ESCAPE_LEN-1;
+            } else {
+              /* Exit on the newline at the end of the source line.  (If there
+                 wasn't one there originally, one has been added.) */
+              check_assertion_str(loc_in_line[1] == LE_NEWLINE,
+                                 "write_orig_source_line: bad lexical escape");
+              goto end_of_loop;
+            }  /* if */
           }  /* if */
           put_char(ch);
           loc_in_line++;
