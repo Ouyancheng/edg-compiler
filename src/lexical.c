@@ -229,6 +229,7 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[ilm_last + 1] = {
 };
 
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*
 Data structure used to represent a list of file suffixes.
 */
@@ -246,6 +247,7 @@ typedef struct a_file_suffix {
 
 static a_file_suffix_ptr
 		 implicit_instantiation_file_suffix_list = NULL;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
 #if DEBUG
