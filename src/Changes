@@ -1,5 +1,14 @@
 Version 2.39
 
+7/9/98    Hidden-name problem with friend declarations that refer to
+          function template instances
+
+Friend declarations that refer to function template instances were not
+handled properly by the hidden-name table processing routines.  This
+could result in the use of qualified names in places in which they were
+not really needed when using the C++-generating back end.  This has been
+fixed.
+
 7/9/98    EH cleanup state, long lifetime temporaries mode, switch clauses
 
 The cleanup state determined in long lifetime temporaries mode at a

@@ -537,6 +537,10 @@ hiding.
     /* Ignore template instantiation scopes. */
   } else if (is_template_class_symbol(sym_ptr)) {
     /* Ignore template class specializations. */
+  } else if ((sym_ptr->kind == (a_symbol_kind)sk_routine ||
+              sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
+             sym_ptr->variant.routine.instance_ptr != NULL) {
+    /* Ignore function template instances. */
   } else if (!sym_ptr->is_class_member &&
              ssep->kind == (a_scope_kind)sck_class_struct_union &&
              sym_ptr->decl_scope != FILE_SCOPE_NUMBER &&
