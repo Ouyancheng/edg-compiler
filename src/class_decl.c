@@ -1348,6 +1348,75 @@ corresponding entry is removed from the registry.
 }  /* update_override_registry */
 
 
+static a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
+                                                    a_type_ptr  type2)
+/*
+Compare the exception specifications associated with function types type1
+and type2.  Return TRUE if the exception specification on the former is less
+restrictive than that on the latter.  "Less restrictive" means more types
+are allowed to be thrown.  For example, the following are in order from most
+restrictive to least restrictive:
+  void f1() throw();              // Nothing will be thrown
+  void f2() throw(T);
+  void f3() throw(T,U);
+  void f4();                      // Anything might be thrown
+*/
+{
+  a_boolean                            is_less_restrictive = FALSE;
+  an_exception_specification_ptr       esp1, esp2;
+  an_exception_specification_type_ptr  estp1, estp2;
+
+  if (exceptions_enabled) {
+    esp1 = type1->variant.routine.extra_info->exception_specification;
+    esp2 = type2->variant.routine.extra_info->exception_specification;
+    if (esp2 == NULL) {
+      /* The function associated with type2 can throw any exception; type1
+         cannot be less restrictive than that. */
+      /* is_less_restrictive = FALSE; */
+    } else if (esp1 == NULL) {
+      /* Type1's function can can throw any exception, and type2's function
+         has at least some restriction, so the former is less restrictive. */
+      is_less_restrictive = TRUE;
+    } else {
+      /* If any type on the exception specification list of type1's function
+         does not appear on the list of type2, the former is less restrictive.
+         Corollary 1: if the list of the type1's function is empty (i.e., if
+         its exception specification is maximally restrictive), there is no
+         way it can be less restrictive; in this case, the outer loop stops
+         before it even gets started.  Corollary 2:  if there is anything on
+         the list for type1 and the list for type2 is empty, type1 has to be
+         less restrictive; in this case it is the inner loop that doesn't
+         run. */
+      /* The outer loop traverses the types specified for type1. */
+      estp1 = esp1->exception_specification_type_list;
+      for (; estp1 != NULL; estp1 = estp1->next) {
+        /* Ignore entries marked "redundant" -- the type has already been
+           seen on the list. */
+        if (estp1->redundant) continue;
+        /* The inner loop traverses the types specified for type2, looking
+           for an entry that matches the current entry from type1's list. */
+        estp2 = esp2->exception_specification_type_list;
+        for (; estp2 != NULL; estp2 = estp2->next) {
+          /* Ignore entries marked "redundant" -- the type has already been
+             seen on the list. */
+          if (estp2->redundant) continue;
+          if (identical_types(estp1->type, estp2->type)) {
+            /* Match. */
+            goto continue_outer_loop;
+          }  /* if */
+        }  /* for */
+        /* Falling through to here means a match was not found. */
+        is_less_restrictive = TRUE;
+        break;
+continue_outer_loop:;
+        /* A match was found.  Move on to the next type in type1's list. */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return is_less_restrictive;
+}  /* exception_spec_is_less_restrictive */
+
+
 static a_boolean check_for_virtual_function(
                             a_boolean                       virtual_specified,
                             a_symbol_ptr                    rout_sym,
@@ -1415,6 +1484,13 @@ routine entry and return TRUE; otherwise return FALSE.
         if (rp->is_virtual) {
           /* Base class destructor is virtual. */
           is_virtual = TRUE;
+          if (exception_spec_is_less_restrictive(rout->type,
+                                                 rp->type)) {
+            /* The exception specification for the overriding virtual function
+               is less restrictive that that of the overridden function. */
+            pos_sy2_error(ec_exception_specs_override_incompat, source_pos,
+                          rout_sym, sym);
+          }  /* if */
           record_virtual_function_override(bcp, rp, rout);
           if (shares_virtual_function_info(class_type, bcp)) {
             /* The virtual function table is being shared, so we must use the
@@ -1500,6 +1576,14 @@ routine entry and return TRUE; otherwise return FALSE.
                                                            rp->type)) {
                     /* Match */
                     is_virtual = TRUE;
+                    if (exception_spec_is_less_restrictive(rout->type,
+                                                           rp->type)) {
+                      /* The exception specification for the overriding
+                         virtual function is less restrictive that that of
+                         the overridden function. */
+                      pos_sy2_error(ec_exception_specs_override_incompat,
+                                    source_pos, rout_sym, sym);
+                    }  /* if */
                     /* Record the virtual function override in the base class
                        entry.  It can be used later, e.g., for building a
                        virtual function table. */
@@ -3508,7 +3592,7 @@ of the function, and again overloading is a possibility.
 
 
 #if 0
-#else
+#else /* if !0 */
 /* Remove this code when support for overloaded operator delete is added. */
 static a_boolean is_operator_delete_symbol(a_symbol_ptr  sym)
 /*
@@ -3608,7 +3692,7 @@ function symbols.
          routine types are candidates for overloading; if it returns FALSE
          it also returns the error code for a diagnostic explaining why. */
 #if 0
-#else
+#else /* if !0 */
 /* Remove this code when support for overloaded operator delete is added.
    Don't forget to mark the error code as REMOVED in error_msg.txt. */
       if (is_operator_delete_symbol(sym)) {
