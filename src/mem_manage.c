@@ -116,6 +116,10 @@ static unsigned long
 		num_mapped_bytes_from_pch;
 			/* Number of bytes of memory that have been mapped
 			   from a precompiled header file. */
+
+static unsigned long
+		num_text_buffers_allocated;
+			/* Number of text buffers that have been allocated. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* DEBUG */
 
@@ -1253,11 +1257,15 @@ total_accounted_for is the amount of space that is accounted for by
 usage counts in other files.
 */
 {
+  unsigned long          num, size, total, grand_total = 0;
   a_memory_region_number region_number;
   a_mem_block_header_ptr hdr;
   unsigned long          total_used, total_unallocated = 0;
   unsigned long		 total_in_freed_blocks = 0;
 
+  db_space_used_header("Memory management table use:");
+  db_space_used("text buffers", num_text_buffers_allocated, a_text_buffer);
+  db_space_used_total();
   fprintf(f_debug, "\nAllocated space in all categories:\n");
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total of above", "", "",
                    total_accounted_for);
@@ -1308,6 +1316,107 @@ usage counts in other files.
 #endif /* DEBUG */
 
 
+a_text_buffer_ptr alloc_text_buffer(sizeof_t	allocation_increment)
+/*
+Allocate and initialize a text buffer.  allocation_increment is the
+size of the initial memory allocation and any additional allocations.
+Note that text buffers are allocated in general memory, because the buffers
+they point to are allocated there.
+*/
+{
+  a_text_buffer_ptr	tbp;
+
+  tbp = alloc_general_of_type(a_text_buffer);
+  tbp->allocated_size = allocation_increment;
+  tbp->allocation_increment = allocation_increment;
+  tbp->size = 0;
+  tbp->buffer = (char *)alloc_general(allocation_increment);
+#if DEBUG
+  num_text_buffers_allocated++;
+#endif /* DEBUG */
+  return tbp;
+}  /* alloc_text_buffer */
+
+
+void reset_text_buffer(a_text_buffer_ptr	buffer)
+/*
+Reset the specified buffer to indicate that it is empty.
+*/
+{
+  buffer->size = 0;
+}  /* reset_text_buffer */
+
+
+void expand_text_buffer(a_text_buffer_ptr	buffer,
+			sizeof_t		length)
+/*
+Expand the specified text buffer so that it is large enough to hold
+"length" characters.
+*/
+{
+  if (length > buffer->allocated_size) {
+    /* There is not enough room for the new characters.  Reallocate the
+       buffer. */
+    sizeof_t	new_size;
+    /* Compute a new size that is a multiple of the allocation increment. */
+    new_size = ((length + buffer->allocation_increment - 1) /
+                buffer->allocation_increment) * buffer->allocation_increment;
+    buffer->buffer = (char *)realloc_general(buffer->buffer,
+                                             buffer->allocated_size,
+                                             new_size);
+    /* Each time the buffer is reallocated, double the allocation increment. */
+    buffer->allocation_increment *= 2;
+    buffer->allocated_size = new_size;
+  }  /* if */
+}  /* expand_text_buffer */
+
+
+void set_buffer_position(a_text_buffer_ptr	buffer,
+			 char			*pos)
+/*
+Update buffer so that any additional characters that are appended
+will be placed starting at the location specified by pos.
+*/
+{
+  /* Make sure pos is a valid location in the buffer. */
+  check_assertion(buffer->buffer <= pos &&
+                  &buffer->buffer[buffer->allocated_size - 1] >= pos);
+  buffer->size = pos - buffer->buffer;
+}  /* set_buffer_position */
+
+
+void add_to_text_buffer(a_text_buffer_ptr	buffer,
+			char			*string,
+			sizeof_t		length)
+/*
+Add "length" characters of "string" to the text buffer pointed to "buf".
+*/
+{
+  sizeof_t	new_size;
+
+  new_size = buffer->size + length;
+  ensure_text_buffer_space(buffer, new_size);
+  /* Copy the characters into the buffer. */
+  memcpy(&buffer->buffer[buffer->size], string, size_t_arg(length));
+  buffer->size = new_size;
+}  /* add_to_text_buffer */
+
+#if DEBUG
+
+void db_text_buffer(char		*prefix,
+		    a_text_buffer_ptr	buf)
+/*
+Display the contents of a text buffer, for debugging purposes.  "prefix"
+is a string used to label the output, and may be NULL.  "buf" is the buffer
+to be displayed.
+*/
+{
+  if (prefix != NULL) fprintf(f_debug, "%s: ", prefix);
+  fprintf(f_debug, "%.*s\n", (int)buf->size, buf->buffer);
+}  /* db_text_buffer */
+
+#endif /* DEBUG */
+
 void mem_manage_one_time_init(void)
 /*
 Do one-time initialization of variables related to the mem_manage routines.
@@ -1324,6 +1433,7 @@ Do one-time initialization of variables related to the mem_manage routines.
 #if DEBUG
       pch_saved_var_array_elem(total_mem_used),
       pch_saved_var_array_elem(num_alignment_bytes_allocated),
+      pch_saved_var_array_elem(num_text_buffers_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -1355,6 +1465,7 @@ Do one-time initialization of variables related to the mem_manage routines.
   total_mem_allocated = 0;
   max_mem_allocated = 0;
   total_general_mem_allocated = 0;
+  num_text_buffers_allocated = 0;
 #if USE_MMAP_FOR_MEMORY_REGIONS
   num_mapped_bytes_allocated = 0;
   num_mapped_bytes_from_pch = 0;

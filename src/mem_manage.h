@@ -198,7 +198,6 @@ typedef struct a_mem_alloc_history {
 			/* Number of bytes allocated. */
 } a_mem_alloc_history;
 
-
 typedef long	a_mem_alloc_history_number;
 			/* Type of an index into the
 			    mem_alloc_history array. */
@@ -288,6 +287,68 @@ EXTERN a_memory_region_number
 			/* Size of allocated_in_region (in entries, not 
 			   bytes). */
 #endif /* DEBUG */
+
+/*
+A general purpose text buffer that is automatically resized as characters
+are added.  The string may or may not be null-terminated, but if it is
+null-terminated, the null-terminator will be included in "size".
+*/
+typedef struct a_text_buffer {
+  sizeof_t	allocated_size;
+			/* The size in bytes of the memory allocated for the
+			   buffer. */
+  sizeof_t	size;
+			/* The number of characters currently in the buffer. */
+  sizeof_t	allocation_increment;
+			/* Initially, this is the size of the initial memory
+			   allocation for the buffer.  Each time the buffer
+			   is reallocated, this size is doubled. */
+  char		*buffer;
+			/* Pointer to the buffer containing the characters. */
+} a_text_buffer;
+
+extern void db_text_buffer(char		*prefix,
+			   a_text_buffer_ptr	buf);
+
+extern a_text_buffer_ptr alloc_text_buffer(sizeof_t	allocation_increment);
+
+extern void reset_text_buffer(a_text_buffer_ptr	buffer);
+
+extern void expand_text_buffer(a_text_buffer_ptr	buffer,
+			       sizeof_t			length);
+
+extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
+			       char			*string,
+			       sizeof_t			length);
+
+/*
+Add the specified string to a text buffer.
+*/
+#define add_string_to_text_buffer(buffer, string)			\
+  (add_to_text_buffer(buffer, string, strlen(string)))
+
+/*
+Make sure that the specified buffer has at least "length" total bytes in it.
+If not, expand the buffer by reallocating it.
+*/
+#define ensure_text_buffer_space(buf, length)			\
+{ if ((length) > (buf)->allocated_size) {				\
+    expand_text_buffer(buf, (sizeof_t)(length));			\
+  }  /* if */							\
+}  /* ensure_text_buffer_space */
+
+extern void set_buffer_position(a_text_buffer_ptr	buffer,
+				char			*pos);
+
+/*
+Add the specified character to the text buffer specifier by "buf".
+*/
+#define add_char_to_text_buffer(buf, ch)				\
+{ ensure_text_buffer_space(buf, (buf)->size+1);			\
+  (buf)->buffer[(buf)->size] = (ch);					\
+  (buf)->size++;							\
+}  /* add_char_to_text_buffer */
+
 #endif /* ifndef MEM_MANAGE_H */
 
 /******************************************************************************

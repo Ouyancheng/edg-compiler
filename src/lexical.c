@@ -604,8 +604,7 @@ static unsigned long
 		num_include_file_histories_allocated,
 		cached_pp_token_string_space,
                 num_stop_token_stack_entries_allocated,
-		num_reusable_cache_entries_allocated,
-		num_text_buffers_allocated;
+		num_reusable_cache_entries_allocated;
 #endif /* DEBUG */
 
 
@@ -12020,7 +12019,6 @@ Display and return the amount of space used for various lexical tables.
                 a_pragma_kind_description);
   db_space_used("file suffixes", num_file_suffixes_allocated,
                 a_file_suffix);
-  db_space_used("text buffers", num_text_buffers_allocated, a_text_buffer);
   db_space_used("include file histories", num_include_file_histories_allocated,
                 an_include_file_history);
   db_space_used_other("cached pp token strings", cached_pp_token_string_space,
@@ -12045,107 +12043,6 @@ Display and return the amount of space used for various lexical tables.
 }  /* show_lexical_space_used */
 #endif /* DEBUG */
 
-
-a_text_buffer_ptr alloc_text_buffer(sizeof_t	allocation_increment)
-/*
-Allocate and initialize a text buffer.  allocation_increment is the
-size of the initial memory allocation and any additional allocations.
-Note that text buffers are allocated in general memory, because the buffers
-they point to are allocated there.
-*/
-{
-  a_text_buffer_ptr	tbp;
-
-  tbp = alloc_general_of_type(a_text_buffer);
-  tbp->allocated_size = allocation_increment;
-  tbp->allocation_increment = allocation_increment;
-  tbp->size = 0;
-  tbp->buffer = (char *)alloc_general(allocation_increment);
-#if DEBUG
-  num_text_buffers_allocated++;
-#endif /* DEBUG */
-  return tbp;
-}  /* alloc_text_buffer */
-
-
-void reset_text_buffer(a_text_buffer_ptr	buffer)
-/*
-Reset the specified buffer to indicate that it is empty.
-*/
-{
-  buffer->size = 0;
-}  /* reset_text_buffer */
-
-
-void expand_text_buffer(a_text_buffer_ptr	buffer,
-			sizeof_t		length)
-/*
-Expand the specified text buffer so that it is large enough to hold
-"length" characters.
-*/
-{
-  if (length > buffer->allocated_size) {
-    /* There is not enough room for the new characters.  Reallocate the
-       buffer. */
-    sizeof_t	new_size;
-    /* Compute a new size that is a multiple of the allocation increment. */
-    new_size = ((length + buffer->allocation_increment - 1) /
-                buffer->allocation_increment) * buffer->allocation_increment;
-    buffer->buffer = (char *)realloc_general(buffer->buffer,
-                                             buffer->allocated_size,
-                                             new_size);
-    /* Each time the buffer is reallocated, double the allocation increment. */
-    buffer->allocation_increment *= 2;
-    buffer->allocated_size = new_size;
-  }  /* if */
-}  /* expand_text_buffer */
-
-
-void set_buffer_position(a_text_buffer_ptr	buffer,
-			 char			*pos)
-/*
-Update buffer so that any additional characters that are appended
-will be placed starting at the location specified by pos.
-*/
-{
-  /* Make sure pos is a valid location in the buffer. */
-  check_assertion(buffer->buffer <= pos &&
-                  &buffer->buffer[buffer->allocated_size - 1] >= pos);
-  buffer->size = pos - buffer->buffer;
-}  /* set_buffer_position */
-
-
-void add_to_text_buffer(a_text_buffer_ptr	buffer,
-			char			*string,
-			sizeof_t		length)
-/*
-Add "length" characters of "string" to the text buffer pointed to "buf".
-*/
-{
-  sizeof_t	new_size;
-
-  new_size = buffer->size + length;
-  ensure_text_buffer_space(buffer, new_size);
-  /* Copy the characters into the buffer. */
-  memcpy(&buffer->buffer[buffer->size], string, size_t_arg(length));
-  buffer->size = new_size;
-}  /* add_to_text_buffer */
-
-#if DEBUG
-
-void db_text_buffer(char		*prefix,
-		    a_text_buffer_ptr	buf)
-/*
-Display the contents of a text buffer, for debugging purposes.  "prefix"
-is a string used to label the output, and may be NULL.  "buf" is the buffer
-to be displayed.
-*/
-{
-  if (prefix != NULL) fprintf(f_debug, "%s: ", prefix);
-  fprintf(f_debug, "%.*s\n", (int)buf->size, buf->buffer);
-}  /* db_text_buffer */
-
-#endif /* DEBUG */
 
 static void init_include_file_suffixes(void)
 /*
@@ -12299,7 +12196,6 @@ are handled in lexical_init.)
   }
 #if DEBUG
   num_file_suffixes_allocated = 0;
-  num_text_buffers_allocated = 0;
 #endif /* DEBUG */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   /* Create the instantiation file suffix list. */
@@ -12335,7 +12231,6 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
       pch_saved_var_array_elem(num_stop_token_stack_entries_allocated),
       pch_saved_var_array_elem(num_include_file_histories_allocated),
-      pch_saved_var_array_elem(num_text_buffers_allocated),
       pch_saved_var_array_elem(cached_pp_token_string_space),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()

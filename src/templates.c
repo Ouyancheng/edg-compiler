@@ -17320,10 +17320,12 @@ Initializations for template.
   num_exported_template_files_allocated = 0;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* DEBUG */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Allocate a buffer used to read the various template files. */
   file_read_buffer = alloc_text_buffer(1024);
   /* FIXME - temporary */
   find_exported_template_files();
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */
 
 /******************************************************************************
