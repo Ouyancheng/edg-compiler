@@ -6940,6 +6940,32 @@ the symbol for the instance, or NULL if no instance is found.
 }  /* find_matching_template_instance */
 
 
+static void check_for_missing_type_specifier(a_decl_flag_set   dso_flags,
+					     a_type_ptr	       type,
+					     a_symbol_ptr      sym,
+					     a_source_position *pos)
+/*
+Check whether a type specifier is required by the current declaration,
+and issue an error if a required specifier was omitted.
+
+dso_flags and type are the values returned from decl_specifiers and
+declarator.  sym is the symbol associated with the declarator.  pos
+is the position to be used if a diagnostic is issued.
+*/
+{
+  if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+    if (is_function_type(type) && sym != NULL &&
+        (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
+         is_conversion_function_symbol(sym))) {
+      /* No type specifier is required. */
+    } else {
+      /* Error on omitted type specifier. */
+      pos_diagnostic(es_discretionary_error, ec_missing_type_specifier, pos);
+    }  /* if */
+  }  /* if */
+}  /* check_for_missing_type_specifier */
+
+
 static void full_template_specialization(void)
 /*
 One or more empty template parameter clauses ("template <>") have been
@@ -6997,17 +7023,7 @@ that follows.
         sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
       }  /* if */
     }  /* if */
-    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-      if (is_function_type(type) && sym != NULL &&
-          (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
-           is_conversion_function_symbol(sym))) {
-        /* No type specifier is required. */
-      } else {
-        /* Error on omitted type specifier. */
-        pos_diagnostic(es_discretionary_error,
-                       ec_missing_type_specifier, &decl_start_pos);
-      }  /* if */
-    }  /* if */
+    check_for_missing_type_specifier(dso_flags, type, sym, &decl_start_pos);
     if (is_error_locator(locator)) {
       /* Ignore it. */
     } else if (sym == NULL) {
@@ -8507,8 +8523,11 @@ is a recursive call for a class nested within the template class.
           for (;
                list_sym != NULL;
                list_sym = is_list ? list_sym->next : NULL) {
-            /* Only set the flags for things that can be instantiated. */
-            if (sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE,
+            /* Only set the flags for things that can be instantiated.  The
+               test of is_function_symbol excludes function templates from
+               this processing. */
+            if (is_function_symbol(list_sym) &&
+                sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE,
                                         is_pragma)) {
               update_instantiation_flags(list_sym, pragma_kind, pos,
                                          /*is_class_instantiation=*/TRUE,
@@ -8675,6 +8694,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   if (sym == NULL) {
     sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
   }  /* if */
+  check_for_missing_type_specifier(dso_flags, type, sym, start_pos);
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function

@@ -1,5 +1,12 @@
 Version 2.32
 
+4/29/96 Diagnostic issues for a missing type specifier in an explicit
+        instantiation
+
+A discretionary error is now issued if an explicit instantiation
+directive contains a missing type specifier.  This is done
+for both the #pragma form and the standard form.  
+
 4/29/96 Anonymous unions and source-sequence lists
 
 When an anonymous union appears in a non-class scope, its representation in
