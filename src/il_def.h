@@ -3366,6 +3366,10 @@ typedef struct a_type {
 			/* An elaborated type specifier (e.g., "class X")
 			   is needed when referring to this type.  Used only
 			   within the C++-generating back end. */
+  a_bit_field	typedef_definition_has_been_put_out:1;
+			/* TRUE if this type is a typedef and its definition
+			   has been put out.  Used only within the
+			   C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	autonomous_primary_tag_decl:1;
