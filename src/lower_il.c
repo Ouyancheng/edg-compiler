@@ -4015,8 +4015,7 @@ static a_routine_ptr
 static void add_vtbl_entry_init(a_targ_ptrdiff_t delta,
                                 a_routine_ptr    func_to_call,
                                 a_variable_ptr   typeinfo_var,
-                                a_constant_ptr   aggr_con,
-                                a_routine_ptr    first_virtual)
+                                a_constant_ptr   aggr_con)
 /*
 Create a ck_aggregate constant and dependent constants to initialize
 an entry of a virtual function table to (delta, 0, func_to_call), and add the
@@ -4024,9 +4023,6 @@ constant to the end of the aggr_con list.  func_to_call may be NULL;
 in that case, a NULL pointer is put out for the function unless
 typeinfo_var is non-NULL, in which case a pointer to the indicated
 typeinfo variable is put into the function pointer field.
-If first_virtual is non-NULL, it points to the virtual function that
-was used as the basis for a decision on whether or not to put out the
-virtual function table.
 */
 {
   a_constant_ptr entry_aggr, delta_con, i_con, func_con;
@@ -4076,19 +4072,6 @@ virtual function table.
     implicit_cast(func_con, vptp_type);
     /* Mark the routine as referenced. */
     func_to_call->source_corresp.referenced = TRUE;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode) {
-      /* If the function is a template function, now marked as referenced,
-         an instantiation is now required somewhere.  Don't do this on the
-         function that was used to decide to put out the virtual function
-         table, since that function forces the virtual function table to be
-         put out, and not the other way around. */
-      if (func_to_call->is_template_function &&
-          func_to_call != first_virtual) {
-        func_to_call->instance_required = TRUE;
-      }  /* if */
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
   /* The "i" field is set to zero -- it's not used in virtual function
      tables, only in pointers to member functions. */
@@ -4418,7 +4401,7 @@ put out the virtual function table.
     }  /* if */
     /* Create the initializing constants for this entry of the table. */
     add_vtbl_entry_init(delta, func_to_call, (a_variable_ptr)NULL, 
-                        aggr_con, first_virtual);
+                        aggr_con);
     /* The functions are usually in order by number so set up for the
        next iteration in the common case. */
     primary_function = primary_function->next;
@@ -4569,13 +4552,13 @@ virtual function table.
       add_vtbl_entry_init(delta,
                           (a_routine_ptr)NULL,
                           make_typeinfo_var(class_type),
-                          aggr_con, first_virtual);
+                          aggr_con);
     } else
 #endif /* ABI_CHANGES_FOR_RTTI */
     /* Do not insert code here; this is the "else" of an "if". */
     {
       add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
-                          (a_variable_ptr)NULL, aggr_con, first_virtual);
+                          (a_variable_ptr)NULL, aggr_con);
 #if GENERATE_EH_TABLES
       /* If exceptions are enabled, force generation of the typeinfo variable
          for the type because it might be referenced from some other
@@ -4594,7 +4577,7 @@ virtual function table.
     /* Put out the initialization for an extra zeroed entry at the end, for
        cfront compatibility. */
     add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
-                        (a_variable_ptr)NULL, aggr_con, first_virtual);
+                        (a_variable_ptr)NULL, aggr_con);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
@@ -4643,9 +4626,6 @@ class_type if any are needed.
   a_boolean                   need_determined = FALSE;
   a_boolean                   definition_needed, force_static;
   a_routine_ptr               first_virtual;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  a_boolean                   any_vtbl_ref = FALSE;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   /* Make sure the class type has been pre-lowered. */
   prelower_class_type(class_type);
@@ -4665,13 +4645,6 @@ class_type if any are needed.
                                         ctsp->virtual_function_table_var,
                                         definition_needed, force_static,
                                         first_virtual);
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-      /* Remember whether or not there's any reference to a virtual function
-         table. */
-      if (ctsp->virtual_function_table_var->source_corresp.referenced) {
-        any_vtbl_ref = TRUE;
-      }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     }  /* if */
     /* Generate the virtual function table for each base class when it
        is contained within a complete object of the primary class. */
@@ -4689,13 +4662,6 @@ class_type if any are needed.
                                           bcp->virtual_function_table_var,
                                           definition_needed, force_static,
                                           first_virtual);
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-        /* Remember whether or not there's any reference to a virtual
-           function table. */
-        if (bcp->virtual_function_table_var->source_corresp.referenced) {
-          any_vtbl_ref = TRUE;
-        }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
       }  /* if */
     }  /* for */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -4716,27 +4682,6 @@ class_type if any are needed.
       }  /* if */
     }  /* for */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode &&
-        ctsp->template_arg_list != NULL && any_vtbl_ref &&
-        first_virtual != NULL && first_virtual->is_template_function) {
-      /* Automatic template instantiation is being done.  The class is a
-         template class with virtual functions, and the decision on whether
-         or not to put out the virtual function table is based on the function
-         first_virtual, which can be generated from a template.  There was
-         a reference to some virtual function table related to the class
-         (e.g., a reference from a constructor) in this compilation, which
-         means that the virtual function table needs to be generated
-         somewhere in the program.  Therefore, somewhere in the program
-         there needs to be an instance of first_virtual (so that
-         the virtual function table will be generated at that point).  Set
-         the instance_required flag unless there is a body for first_virtual
-         in this compilation. */
-      if (first_virtual->assoc_scope == NULL_region_number) {
-        first_virtual->instance_required = TRUE;
-      }  /* if */
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 }  /* define_virtual_function_tables */
 

@@ -1,5 +1,14 @@
 Version 2.46
 
+1/20/01  Superseded code to set instance-required flags in IL lowering
+         removed
+
+Some code in lower_il.c that set instance-required flags for virtual
+member functions of templates has been removed.  The code dealt with
+the interaction of decider functions and virtual function tables.
+It's now unnecessary, because the more general code in func_def.c
+takes care of setting the necessary flags.
+
 1/20/01  C99 compound literals in static initializers
 
 The front end failed to diagnose errors in certain cases involving
