@@ -118,6 +118,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_source_sequence_entry),
   sizeof(a_src_seq_secondary_decl),
   sizeof(a_src_seq_end_of_construct),
+  sizeof(a_src_seq_sublist),
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   sizeof(a_comment),
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */

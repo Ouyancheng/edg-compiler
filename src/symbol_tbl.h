@@ -1633,22 +1633,23 @@ typedef struct a_scope_stack_entry {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		last_source_sequence_entry;
-			/* Last in the linked list of source sequence entries
-			   that are pointed to by il_scope; NULL if none. */
+			/* For file and function scopes, the last in the
+			   linked list of source sequence entries that are
+			   pointed to by il_scope; NULL if none. */
   a_source_sequence_entry_ptr
 		source_sequence_avail_list;
 			/* List of freed source sequence entries that are
 			   available for reuse; NULL if none. */
+  a_src_seq_sublist_ptr
+		last_src_seq_sublist;
+			/* For function scopes, the last in the linked list
+			   of source sequence sublist entries that are pointed
+			   to by il_scope; NULL if none. */
   a_scope_depth depth_innermost_ss_list_scope;
 			/* Depth of the innermost scope on the scope stack
 			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
 			   depth_innermost_function_scope, or, in C++ only,
 			   the depth of the innermost class scope). */
-  a_scope_depth depth_innermost_file_scope_region_ss_list_scope;
-			/* Depth of the innermost scope on the scope stack
-			   with a source sequence list for entities in the
-			   file scope memory region (either DEPTH_OF_FILE_SCOPE
-			   or, in C++ only, the depth of a class scope). */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;
@@ -1748,12 +1749,6 @@ EXTERN a_scope_depth
 			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
 			   depth_innermost_function_scope, or, in C++ only,
 			   the depth of the innermost class scope). */
-EXTERN a_scope_depth
-		depth_innermost_file_scope_region_ss_list_scope;
-			/* Depth of the innermost scope on the scope stack
-			   with a source sequence list for entities in the
-			   file scope memory region (either DEPTH_OF_FILE_SCOPE
-			   or, in C++ only, the depth of a class scope). */
 EXTERN a_scope_depth
 		depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,

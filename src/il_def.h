@@ -297,6 +297,7 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_src_seq_secondary_decl */
   iek_src_seq_end_of_construct,
 			/* a_src_seq_end_of_construct */
+  iek_src_seq_sublist,	/* a_src_seq_sublist */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   iek_comment,		/* a_comment */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
@@ -314,6 +315,9 @@ typedef a_byte a_byte_il_entry_kind;
    (entry_kind) == iek_other_text)
 
 #if NEED_IL_DISPLAY || DEBUG
+/*
+Display names for il entry kinds.
+*/
 EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if VAR_INITIALIZERS
 = {
@@ -378,6 +382,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_source_sequence_entry */		"source-sequence-entry",
 /* iek_src_seq_secondary_decl */	"src-seq-secondary-decl",
 /* iek_src_seq_end_of_construct */	"src-seq-end-of-construct",
+/* iek_src_seq_sublist */		"src-seq-sublist",
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 /* iek_comment */			"comment",
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
@@ -483,7 +488,7 @@ is determined by examining the tagged pointer.
 typedef struct a_src_seq_end_of_construct *a_src_seq_end_of_construct_ptr;
 typedef struct a_src_seq_end_of_construct {
   a_source_position
-		decl_position;
+		source_position;
 			/* Source position of the tok_rbrace or tok_rparen
 			   that marks the end of the construct. */
   a_tagged_pointer
@@ -494,6 +499,52 @@ typedef struct a_src_seq_end_of_construct {
 			   function prototype is associated with a function
 			   type, not a routine entry.) */
 } a_src_seq_end_of_construct;
+
+
+/*
+Header for a sublist of file-scope source sequence entries in the midst of
+a function-scope source sequence list.
+
+  IL scope ---------->sublist------------------------->sublist...
+  entry for            entry--->src-seq<-->src-seq...   entry--->src-seq...
+  function               ^                                ^
+        |                |                                |
+        --->src-seq<-->src-seq<-->src-seq<-->src-seq<-->src-seq...
+                       (parent)                         (parent)
+
+The sublist entry is pointed to by a source sequence entry from the
+function scope list (the "sublist-parent").  It in turn points to source
+sequence entries (allocated in the file scope memory region) that may be
+thought of as successors of the sublist-parent; similarly, the successor of
+the sublist's final source sequence entry would be sublist-parent->next.
+(The function-scope source sequence list is logically a single list but is
+actually discontinuous, with sublist branches, because entities allocated
+in the file-scope memory region cannot have pointers into a function-scope
+memory region.  Similaryly, there is no pointer back from the sublist
+header to its parent since the former is allocated in file-scope memory and
+the latter resides in function-scope memory.)  There can be any number of
+sublists in a given function's source sequence list; the headers are linked
+together in a list pointed to from the function's scope entry.
+*/
+typedef struct a_src_seq_sublist *a_src_seq_sublist_ptr;
+typedef struct a_src_seq_sublist {
+  a_src_seq_sublist_ptr
+		next;
+			/* Pointer to the next sublist of file-scope source
+			   sequence entries in the current function scope;
+			   NULL for the end of the list. */
+  a_source_sequence_entry_ptr
+		source_sequence_list;
+			/* A doubly-linked list of source sequence entries
+			   representing contiguous occurrences of file-scope
+			   entities (typically, declarations of entities
+			   that are allocated in the file-scope memory region)
+			   within the current function scope.  Never NULL. */
+  a_source_sequence_entry_ptr
+		last_source_sequence_entry;
+			/* Last in the linked list of source sequence entries
+			   that are pointed to by this entry. */
+} a_src_seq_sublist;
 
 
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
@@ -4390,6 +4441,12 @@ typedef struct an_orphaned_il_list {
 			/* Pointer to the orphaned file scope IL variable
 			   entry list for a function scope.  These variables
 			   will be local static variables of the function. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_src_seq_sublist_ptr
+		orphaned_src_seq_sublists;
+			/* Pointer to the orphaned file scope IL source
+			   sequence sublist list for a function scope. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_orphaned_il_list_ptr
 		next;
 			/* Pointer to the next orphaned IL entry list for 
@@ -4615,12 +4672,18 @@ typedef struct a_scope {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_list;
-			/* For file, function, and class-struct-union scopes,
-			   a doubly-linked list of source sequence entries
-			   representing all declarations, statements, macros,
-			   pragmas, and comments that appear within the textual
-			   extent of the scope (not counting nested function
-			   and class-struct-union scopes). */
+			/* For file and function scopes, a doubly-linked list
+			   of source sequence entries representing all
+			   declarations, statements, macros, pragmas, and
+			   comments that appear within the textual extent of
+			   the scope. */
+  a_src_seq_sublist_ptr
+		src_seq_sublist_list;
+			/* For function scopes, a linked list of source
+			   sequence sublist headers, representing those
+			   portions of the function-scope source sequence list
+			   comprised of entries belonging to the file-scope
+			   memory region. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_scope;
 

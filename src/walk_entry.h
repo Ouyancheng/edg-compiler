@@ -862,6 +862,13 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_list(ptr->source_sequence_list, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
+        if (!walking_file_scope) {
+          /* The src_seq_sublist_list, which appears only on function scopes,
+             is not walked at this time: it is handled during orphan list
+             processing. */
+          remap_ptr(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
+                    iek_src_seq_sublist);
+        }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
@@ -1300,6 +1307,16 @@ the file scope, do not process it (but record an orphan in the latter case).
                   (an_il_entry_kind)ptr->entity.kind);
       }
       break;
+    case iek_src_seq_sublist:
+      {
+        a_src_seq_sublist_ptr ptr = (a_src_seq_sublist_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_src_seq_sublist_ptr, iek_src_seq_sublist);
+        walk_list(ptr->source_sequence_list, a_source_sequence_entry_ptr,
+                  iek_source_sequence_entry);
+        remap_ptr(ptr->last_source_sequence_entry, a_source_sequence_entry_ptr,
+                  iek_source_sequence_entry);
+      }
+      break;
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     case iek_comment:
       /* No pointers. */
@@ -1313,6 +1330,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                        iek_orphaned_il_list);
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
+        walk_list(ptr->orphaned_src_seq_sublists, a_src_seq_sublist_ptr,
+                  iek_src_seq_sublist);
       }
       break;
 #if CHECKING
