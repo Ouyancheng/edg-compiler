@@ -5497,7 +5497,6 @@ This routine may only be called in C++ mode.
          we try to look up the identifier.  A warning will be issued,
          if appropriate, after the lookup is done.  The "." may not
          be used as a qualifier separator in a field selection operator. */
-      next_tok = next_two_tokens(tok_period, &next_tok_2);
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
     }  /* if */
@@ -5623,6 +5622,7 @@ This routine may only be called in C++ mode.
          Skip of the code in the "else" clause that processing the
          rest of the class qualifier. */
       class_type = dtor_class_type;
+      class_type_is_really_a_class = FALSE;
       (void)get_token();  /* Gets the type name. */
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
