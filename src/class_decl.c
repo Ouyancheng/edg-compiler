@@ -4138,6 +4138,13 @@ routine body is generated at this time.
       extra_info->assoc_routine_is_ctor = TRUE;
     }  /* if */
   }  /* if */
+  if (ptp != NULL) {
+    /* Set a flag in the param type entry if its associated type is or contains
+       a template parameter. */
+    if (is_or_contains_template_param(class_type)) {
+      ptp->type_involves_template_param = TRUE;
+    }  /* if */
+  }  /* if */
   extra_info->param_type_list = ptp;
   extra_info->implicit_this_param_type =
            make_qualified_type(make_pointer_type(class_type),
@@ -5074,6 +5081,10 @@ The routine body is not generated until it is known to be needed.
                              make_qualified_type(class_type,
                                                  /*is_const=*/const_okay,
                                                  /*is_volatile=*/FALSE)));
+    /* Set a flag in the param type entry if its associated type is or contains
+       a template parameter. */
+    ptp->type_involves_template_param =
+                                  is_or_contains_template_param(class_type);
     generate_special_function(class_type, ptp,
                               (a_special_function_kind)sfk_constructor);
   }  /* if */
@@ -5096,6 +5107,10 @@ The routine body is not generated until it is known to be needed.
                                make_qualified_type(class_type,
                                                    /*is_const=*/const_okay,
                                                    /*is_volatile=*/FALSE)));
+    /* Set a flag in the param type entry if its associated type is or contains
+       a template parameter. */
+    ptp->type_involves_template_param =
+                                  is_or_contains_template_param(class_type);
     generate_special_function(class_type, ptp,
                               (a_special_function_kind)sfk_operator);
   }  /* if */
@@ -6094,6 +6109,13 @@ Scan the body of a class definition, including the base classes list.
                     break;
                   }  /* if */
                 }  /* for */
+              }  /* if */
+              if (is_nonreal_instantiation && is_function_type(local_type)) {
+                /* Go through the parameters for this function type.  If any
+                   of the associated types involves a template parameter,
+                   mark the param type entry; this is useful for function
+                   arg matching. */
+                set_type_involves_template_param_flags(local_type);
               }  /* if */
             }  /* if */
           }  /* if */
