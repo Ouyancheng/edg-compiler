@@ -223,9 +223,9 @@ the value is a multiple of HOST_POINTER_ALIGNMENT.
 
 /*
 The value of HOST_IL_ENTRY_PREFIX_ALIGNMENT must be a multiple of the value
-of HOST_POINTER_ALIGNMENT to ensure that the correct alignment of addresses
-computed to access pointers preceding an IL prefix (file-scope orphan pointers
-and/or translation unit copy addresses).
+of HOST_POINTER_ALIGNMENT to ensure the correct alignment of addresses
+computed to access pointers "fields" preceding an IL prefix (file-scope
+orphan pointers and/or translation unit copy addresses).
 */
 #if (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0
  #error -- HOST_IL_ENTRY_PREFIX_ALIGNMENT must be multiple of \
