@@ -8089,6 +8089,9 @@ the function instantiation entry and set all the pointers.
       tip->declared_type = form_declared_type(tp,
                                               func_info_for_template(tssp));
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Call a routine that manages the correspondence of entities between
+         translation units to notify it of the new instance. */
+      record_instantiation(rout_sym, tssp);
     }  /* if */
   }  /* if */
   if (tssp != NULL) {
