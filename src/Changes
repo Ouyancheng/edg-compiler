@@ -1,5 +1,12 @@
 Version 3.4
 
+8/29/03  Incorrect space used output for an_overriding_virtual_function
+
+The front end now correctly outputs the space used for
+an_overriding_virtual_function entries (when that output is enabled).
+Previously, the size of one such entry was computed as the size to a
+pointer to the entry.
+
 8/29/03  GNU C++ mode: Attributes on explicit template specializations
 
 In GNU C++ mode the front end now accepts GNU attributes on explicit

@@ -3708,7 +3708,7 @@ Display and return the amount of space used for various IL tables.
                 a_routine_list_entry);
   db_space_used("overriding virtual func",
                 num_overriding_virtual_functions_allocated,
-                an_overriding_virtual_function_ptr);
+                an_overriding_virtual_function);
   db_space_used("derivation steps", num_derivation_steps_allocated,
                 a_derivation_step);
   db_space_used("base class derivations", num_base_class_derivations_allocated,
