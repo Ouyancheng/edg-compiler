@@ -283,7 +283,7 @@ has not yet been examined for a matching entry in another translation unit.
 
 
 #if !CHECKING
-/*ARGSUSED*/ /* THe kind parameter is only used for consistency checking. */
+/*ARGSUSED*/ /* The kind parameter is only used for consistency checking. */
 #endif /* CHECKING */
 static void f_set_unvisited_trans_unit_corresp(an_il_entry_kind  kind,
                                                char              *entity)
@@ -2505,9 +2505,11 @@ given type.
     /* Work from the noncanonical entry to set the correspondences of
        members. */
     type = canon;
-  } else if (trans_unit_corresp_of(type) == NULL) {
-    /* This is presumably the first time we see this instantiation. */
-    set_no_trans_unit_corresp(iek_type, type);
+#if 0 /* FIXME */
+    /* Sometimes type is unvisited at this point.  That used to be the case
+       with the previous correspondence structure too and seems to work fine.
+       */
+#endif
   }  /* if */
   establish_trans_unit_correspondences_for_class(type);
   if (new_canon) {
