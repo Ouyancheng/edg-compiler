@@ -3976,7 +3976,7 @@ Syntax:
   an_operand            operand;
   a_constant            constant;
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
-  a_type_ptr            sizeof_type;
+  a_type_ptr            sizeof_type, orig_sizeof_type;
   a_local_expr_options_set
                         local_options;
   an_expr_stack_entry   expr_stack_entry;
@@ -4106,6 +4106,7 @@ Syntax:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 
+  orig_sizeof_type = sizeof_type;
   sizeof_type = skip_typerefs(sizeof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(sizeof_type);
@@ -4127,9 +4128,10 @@ Syntax:
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
-         evaluated until runtime. */
+         evaluated until runtime.  Note the use of orig_sizeof_type
+         to preserve typedefs. */
       an_expr_node_ptr node =
-                      make_runtime_sizeof_expr(is_type, sizeof_type, &operand);
+                 make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
       make_expression_operand(node, node->type, result);
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
@@ -4148,7 +4150,7 @@ Syntax:
     } else {
       /* Make an expression node to represent the sizeof. */
       an_expr_node_ptr node =
-                      make_runtime_sizeof_expr(is_type, sizeof_type, &operand);
+                 make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
       make_expression_operand(node, node->type, result);
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
@@ -4188,7 +4190,8 @@ Syntax:
            the type. */
         is_type = TRUE;
       }  /* if */
-      constant.expr = make_runtime_sizeof_expr(is_type, sizeof_type, &operand);
+      constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
+                                               &operand);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     make_constant_operand(&constant, result);
