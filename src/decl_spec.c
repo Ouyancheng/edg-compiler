@@ -134,9 +134,9 @@ necessarily null-terminated).
 char *scan_GUID_string(void)
 /*
 Scan the string literal token that contains a GUID string.  Extract and
-check the format of the string.  Return a pointer to an IL string containing
-the GUID characters.  If the string is not of the required form, a diagnostic
-is issued and a NULL pointer is returned.
+check the format of the string.  Return a pointer to a primary IL string
+containing the GUID characters.  If the string is not of the required form,
+a diagnostic is issued and a NULL pointer is returned.
 
 The syntax is
   uuid ( string-literal )
@@ -175,7 +175,7 @@ string that is returned.
     }  /* if */
     /* Do error checking on the string. */
     if (is_valid_GUID_string(str, length)) {
-      result = alloc_il((sizeof_t)length+1);
+      result = alloc_primary_file_scope_il((sizeof_t)length+1);
       /* Copy the string, lower-casing hex letters so that
          strcmp can be used to compare strings. */
       { char		*src = str;

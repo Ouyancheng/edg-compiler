@@ -2546,8 +2546,10 @@ type is in fact valid.
     if (match && 
         (
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         !same_str(type->variant.integer.uuid_string,
-                   corresp_type->variant.integer.uuid_string) ||
+         (type->variant.integer.uuid_string != NULL &&
+          corresp_type->variant.integer.uuid_string != NULL &&
+          !same_str(type->variant.integer.uuid_string,
+                    corresp_type->variant.integer.uuid_string)) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          type->variant.integer.int_kind !=
                                      corresp_type->variant.integer.int_kind)) {
@@ -2947,7 +2949,8 @@ type is in fact valid.
           sup->decl_modifiers != corresp_sup->decl_modifiers ||
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          !same_str(sup->uuid_string, corresp_sup->uuid_string) ||
+          (sup->uuid_string != NULL && corresp_sup->uuid_string != NULL &&
+           !same_str(sup->uuid_string, corresp_sup->uuid_string)) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           !corresponding_fields(sup->anonymous_union_field,
                                 corresp_sup->anonymous_union_field)))) {

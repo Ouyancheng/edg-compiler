@@ -1007,7 +1007,24 @@ not being eliminated.
                                    iek_routine);
       }  /* if */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (corresp_ctsp->uuid_string == NULL && ctsp->uuid_string != NULL) {
+        /* Preserve the UUID string associated with a class if it was only
+           specified on the entry about to be eliminated. */
+        corresp_ctsp->uuid_string = ctsp->uuid_string;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_immediate_enum_type(type)) {
+    if (corresp_type->variant.integer.uuid_string == NULL &&
+        type->variant.integer.uuid_string != NULL) {
+      /* Preserve the UUID string associated with an enum type if it was only
+         specified on the entry about to be eliminated. */
+      corresp_type->variant.integer.uuid_string =
+                                            type->variant.integer.uuid_string;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* transfer_type_details */
 
