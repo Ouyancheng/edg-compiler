@@ -924,6 +924,9 @@ to default values.
       pte->variant.integer.enum_type = FALSE;
       pte->variant.integer.wchar_t_type = FALSE;
       pte->variant.integer.bool_type = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pte->variant.integer.microsoft_sized_int_type = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

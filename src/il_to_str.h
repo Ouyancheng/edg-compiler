@@ -158,6 +158,8 @@ void form_unqualified_name(a_source_correspondence               *scp,
 
 extern char *int_kind_name(an_integer_kind kind);
 
+extern char *int_type_name(a_type_ptr type);
+
 extern char *float_kind_name(a_float_kind kind);
 
 #ifdef CFE

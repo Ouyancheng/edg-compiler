@@ -3755,6 +3755,12 @@ typedef struct a_type {
                            "signed int" and "int" may not mean the same
                            thing; used for ik_short, ik_long, and ik_long_long
 			   as well as for ik_int. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		microsoft_sized_int_type:1;
+			/* TRUE if this is a Microsoft __intN type that should
+			   be treated as a built-in. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 

@@ -1050,7 +1050,7 @@ Display the indicated type entry.
     case tk_integer:
       (void)printf("tk_integer\n");
       disp_name("int_kind");
-      (void)printf("%s\n", int_kind_name(ptr->variant.integer.int_kind));
+      (void)printf("%s\n", int_type_name(ptr));
 #ifdef FFE
       disp_boolean("logical_type",
                    (a_boolean)ptr->variant.integer.logical_type);
@@ -1059,6 +1059,11 @@ Display the indicated type entry.
       if (ptr->variant.integer.explicitly_signed) {
         disp_boolean("explicitly_signed", TRUE);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.integer.microsoft_sized_int_type) {
+        disp_boolean("microsoft_sized_int_type", TRUE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptr->variant.integer.wchar_t_type) {
         disp_boolean("wchar_t_type", TRUE);
       }  /* if */

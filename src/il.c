@@ -53,8 +53,20 @@ il.c -- Construction of intermediate language trees.
 /*
 Pointers to shared types.  These are cleared by il_init.
 */
-static a_type_ptr int_types[(int)ik_last];
-static a_type_ptr signed_int_types[(int)ik_last];
+static a_type_ptr std_int_types[(int)ik_last];
+static a_type_ptr std_signed_int_types[(int)ik_last];
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_type_ptr microsoft_sized_int_types[(int)ik_last];
+static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
+#define int_types(microsoft_intrinsic) \
+  ((microsoft_intrinsic) ? microsoft_sized_int_types : std_int_types)
+#define signed_int_types(microsoft_intrinsic) \
+  ((microsoft_intrinsic) ? microsoft_sized_signed_int_types \
+                         : std_signed_int_types)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define int_types(microsoft_intrinsic) std_int_types
+#define signed_int_types(microsoft_intrinsic) std_signed_int_types
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static a_type_ptr float_types[(int)fk_last];
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
 static a_type_ptr string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
@@ -344,8 +356,7 @@ print_name:
           db_type_name(tp);
           /* Display the underlying integer kind if it's other than "int". */
           if (tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
-            fprintf(f_debug, " (%s)",
-                    int_kind_name(tp->variant.integer.int_kind));
+            fprintf(f_debug, " (%s)", int_type_name(tp));
           }  /* if */
           break;
         }  /* if */
@@ -825,7 +836,7 @@ Dump the contents of the indicated type entry, for debug purposes.
         } else if (tp->variant.integer.bool_type) {
           fputs("bool", f_debug);
         } else {
-          fprintf(f_debug, "%s", int_kind_name(tp->variant.integer.int_kind));
+          fprintf(f_debug, "%s", int_type_name(tp));
           if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
         }  /* if */
         break;
@@ -4666,46 +4677,56 @@ indicated string type.
 }  /* char_int_kind_from_string_type */
 
 
-a_type_ptr integer_type(an_integer_kind kind)
+a_type_ptr extended_integer_type(an_integer_kind  kind,
+                                 a_boolean        microsoft_intrinsic)
 /*
 Make or find a type entry for an integer type of the indicated kind, and
-return a pointer to it.
+return a pointer to it.  If microsoft_intrinsic is TRUE, we are processing a
+"__intN" type that Microsoft Visual C++ 6.0 (and later?) treats as a distinct
+built-in type (as opposed to just a typedef for another integral type).
 */
 {
   a_type_ptr pit;
 
-  if (int_types[kind] != NULL) {
+  if (int_types(microsoft_intrinsic)[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
-    pit = int_types[kind];
+    pit = int_types(microsoft_intrinsic)[kind];
   } else {
     /* The type must be created. */
-    int_types[kind] = pit = alloc_type((a_type_kind)tk_integer);
+    pit = alloc_type((a_type_kind)tk_integer);
     pit->variant.integer.int_kind = kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    pit->variant.integer.microsoft_sized_int_type = microsoft_intrinsic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     set_type_size(pit);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    int_types(microsoft_intrinsic)[kind] = pit;
   }  /* if */
   return pit;
-}  /* integer_type */
+}  /* extended_integer_type */
 
 
-a_type_ptr signed_integer_type(an_integer_kind kind)
+a_type_ptr extended_signed_integer_type(an_integer_kind  kind,
+                                        a_boolean        microsoft_intrinsic)
 /*
 Make or find a type entry for an explicitly signed integer type of the
 indicated kind, and return a pointer to it.  Keeping track of the difference
 between, e.g., a plain "int" and a "signed int" is necessary because the two
 may be handled differently for bit fields.  Should only be called for kinds
-ik_short, ik_int, ik_long, and ik_long_long.
+ik_short, ik_int, ik_long, and ik_long_long.  If microsoft_intrinsic is TRUE,
+we are processing a "__intN" type that Microsoft treats as a distinct built-in
+type (as opposed to just a typedef for another integral type).
 */
 {
   a_type_ptr pit;
 
-  if (signed_int_types[kind] != NULL) {
+  if (signed_int_types(microsoft_intrinsic)[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
-    pit = signed_int_types[kind];
+    pit = signed_int_types(microsoft_intrinsic)[kind];
   } else {
     /* The type must be created. */
 #if CHECKING
@@ -4716,21 +4737,25 @@ ik_short, ik_int, ik_long, and ik_long_long.
         && kind != (an_integer_kind)ik_long_long
 #endif /* LONG_LONG_ALLOWED */
                                                 ) {
-      internal_error("signed_integer_type: bad int kind");
+      internal_error("extended_signed_integer_type: bad int kind");
     }  /* if */
 #endif /* CHECKING */
-    signed_int_types[kind] = pit = alloc_type((a_type_kind)tk_integer);
+    pit = alloc_type((a_type_kind)tk_integer);
     pit->variant.integer.int_kind = kind;
     pit->variant.integer.explicitly_signed = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    pit->variant.integer.microsoft_sized_int_type = microsoft_intrinsic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     set_type_size(pit);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
     add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    signed_int_types(microsoft_intrinsic)[kind] = pit;
   }  /* if */
   return pit;
-}  /* signed_integer_type */
+}  /* extended_signed_integer_type */
 
 
 a_type_ptr wchar_t_type(void)
@@ -11293,8 +11318,12 @@ in il_init.)
       pch_saved_var_array_elem(il_void_type),
       pch_saved_var_array_elem(il_wchar_t_type),
       pch_saved_var_array_elem(il_bool_type),
-      pch_array_saved_var_array_elem(int_types),
-      pch_array_saved_var_array_elem(signed_int_types),
+      pch_array_saved_var_array_elem(std_int_types),
+      pch_array_saved_var_array_elem(std_signed_int_types),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_array_saved_var_array_elem(microsoft_sized_int_types),
+      pch_array_saved_var_array_elem(microsoft_sized_signed_int_types),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_array_saved_var_array_elem(string_types),
       pch_array_saved_var_array_elem(wide_string_types),
       pch_array_saved_var_array_elem(shareable_constants_table),
@@ -11348,8 +11377,14 @@ of the front end.
 
   /* Static variables in il.c: */
   /* Depending on NULL represented as zero bits here. */
-  memzero((char *)int_types, sizeof(int_types));
-  memzero((char *)signed_int_types, sizeof(signed_int_types));
+  memzero((char *)std_int_types, sizeof(std_int_types));
+  memzero((char *)std_signed_int_types, sizeof(std_signed_int_types));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  memzero((char *)microsoft_sized_int_types,
+          sizeof(microsoft_sized_int_types));
+  memzero((char *)microsoft_sized_signed_int_types,
+          sizeof(microsoft_sized_signed_int_types));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   memzero((char *)float_types, sizeof(float_types));
   memzero((char *)string_types, sizeof(string_types));
   memzero((char *)wide_string_types, sizeof(wide_string_types));

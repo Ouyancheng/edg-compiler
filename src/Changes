@@ -1,5 +1,30 @@
 Version 2.44
 
+12/14/99 Microsoft compatibility: intrinsic __intN types
+
+When emulating Microsoft Visual C++ 6.0 and higher the front end now treats
+the extension types __int8, __int16, __int32 and __int64 as distinct built-in
+types instead of making them synonyms for standard integer types of the
+appropriate size.  This enables the following example:
+
+  extern "C" int printf(char const*, ...);
+  void f(__int32 x) { printf("Special\n"); } 
+  void f(int) { printf("Normal\n"); }
+  int main() {
+    f(1);                         // Calls f(int)
+    f(__int32(2));                // Calls f(__int32)
+    f(__int32(3)+__int32(4));     // Calls f(int) (promotion for '+')
+    f(__int16(5));                // Calls f(int) (promotion)
+    return 0;
+  }
+
+Note that the new types promote to the standard integer types.  The example is
+not accepted with the option "--microsoft_version=1100" because with Visual
+C++ 5.0 (and earlier) "int" and "__int32" are synonyms for the same type and
+hence "f(int)" is considered to be defined twice.
+
+Name mangling and demangling was adapted to encode and decode the new types.
+
 12/13/99 Extra position information for switch cases
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end now maintains for

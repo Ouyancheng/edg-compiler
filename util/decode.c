@@ -1561,6 +1561,26 @@ to the character position following what was demangled.
       case 'r':
         s = "long double";
         break;
+      case 'm':
+        /* Microsoft intrinsic __intN types (Visual C++ 6.0 and later). */
+        switch (*p++) {
+          case '1':
+            s = "__int8";
+            break;
+          case '2':
+            s = "__int16";
+            break;
+          case '4':
+            s = "__int32";
+            break;
+          case '8':
+            s = "__int64";
+            break;
+          default:
+            bad_mangled_name(dctl);
+            s = "";
+        }  /* switch */
+        break;
       default:
         bad_mangled_name(dctl);
         s = "";

@@ -1815,6 +1815,30 @@ Add to the mangled name the encoding for the type "type".
           s = "w";
         } else if (type->variant.integer.bool_type) {
           s = "b";
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (type->variant.integer.microsoft_sized_int_type) {
+          /* Mangling of __intN types in certain Microsoft modes (Visual C++
+             6.0 started treating these as new intrinsic types. */
+          an_integer_kind  kind = type->variant.integer.int_kind;
+          if (kind == (an_integer_kind)ik_signed_char ||
+              kind == (an_integer_kind)ik_char) {
+            s = "m1";
+          } else if (kind == (an_integer_kind)ik_unsigned_char) {
+            s = "Um1";
+          } else if (kind == targ_int16_int_kind) {
+            s = "m2";
+          } else if (kind == targ_unsigned_int16_int_kind) {
+            s = "Um2";
+          } else if (kind == targ_int32_int_kind) {
+            s = "m4";
+          } else if (kind == targ_unsigned_int32_int_kind) {
+            s = "Um4";
+          } else if (kind == targ_int64_int_kind) {
+            s = "m8";
+          } else if (kind == targ_unsigned_int64_int_kind) {
+            s = "Um8";
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           switch (type->variant.integer.int_kind) {
             case ik_char:           s = "c";  break;

@@ -3516,7 +3516,11 @@ decl_specifiers.
                       "combine_type_specifiers: bad value for a_type_sign");
 #endif /* CHECKING */
         }
-        *type_ptr = integer_type((an_integer_kind)ikind);
+        /* In Microsoft Visual C++ 6.0 __int8 is a distinct type (not just a
+           synonym for a char type). */
+        *type_ptr = extended_integer_type((an_integer_kind)ikind,
+                                          microsoft_version >= 1200 &&
+                                          size == size_int8);
       }  /* if */
       break;
     case bt_wchar_t:
@@ -3610,14 +3614,22 @@ decl_specifiers.
           internal_error("combine_type_specifiers: bad size for int");
 #endif /* CHECKING */
       }  /* switch */
+        /* In Microsoft Visual C++ 6.0 __intN is a distinct type (not just a
+           synonym for another integral type). */
       if (sign == sign_signed) {
         /* For an explicitly "signed" int, use a different type entry.
            Plain "int" and "signed int" have to be kept separate because
            they may mean different things as bit-field types.  The same
            applies to explicitly signed short, long, and long long. */
-        *type_ptr = signed_integer_type((an_integer_kind)ikind);
+        *type_ptr = extended_signed_integer_type((an_integer_kind)ikind,
+                                                 microsoft_version >= 1200 &&
+                                                 size >= size_int8 &&
+                                                 size <= size_int64);
       } else {
-        *type_ptr = integer_type((an_integer_kind)ikind);
+        *type_ptr = extended_integer_type(
+                                     (an_integer_kind)ikind,
+                                     microsoft_version >= 1200 &&
+                                     size >= size_int8 && size <= size_int64);
       }  /* if */
       break;
     case bt_float:

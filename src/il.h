@@ -291,9 +291,16 @@ extern void do_based_type_fixup(void);
 
 extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
-extern a_type_ptr integer_type(an_integer_kind kind);
+extern a_type_ptr extended_integer_type(an_integer_kind kind,
+                                        a_boolean       microsoft_intrinsic);
 
-extern a_type_ptr signed_integer_type(an_integer_kind kind);
+/* A shorthand to request a standard (as opposed to Microsoft-specific)
+   integer type of a given kind: */
+#define integer_type(kind)  extended_integer_type(kind, FALSE)
+
+extern a_type_ptr extended_signed_integer_type(
+                                         an_integer_kind kind,
+                                         a_boolean       microsoft_intrinsic);
 
 extern a_type_ptr wchar_t_type(void);
 

@@ -460,6 +460,49 @@ with "**BAD" for a bad integer kind.
 }  /* int_kind_name */
 
 
+char *int_type_name(a_type_ptr type)
+/*
+Return a string for the name of the given integer type.  The standard cases
+are delegated to int_kind_name, but for intrinsic Microsoft __intN types
+(Visual C++ 6.0) the work is done here.
+*/
+{
+  char             *result;
+  an_integer_kind  kind;
+
+  check_assertion(type->kind == (a_type_kind)tk_integer);
+  kind = type->variant.integer.int_kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (type->variant.integer.microsoft_sized_int_type) {
+    if (kind == (an_integer_kind)ik_signed_char ||
+        kind == (an_integer_kind)ik_char) {
+      result = "__int8";
+    } else if (kind == (an_integer_kind)ik_unsigned_char) {
+      result = "unsigned __int8";
+    } else if (kind == targ_int16_int_kind) {
+      result = "__int16";
+    } else if (kind == targ_unsigned_int16_int_kind) {
+      result = "unsigned __int16";
+    } else if (kind == targ_int32_int_kind) {
+      result = "__int32";
+    } else if (kind == targ_unsigned_int32_int_kind) {
+      result = "unsigned __int32";
+    } else if (kind == targ_int64_int_kind) {
+      result = "__int64";
+    } else if (kind == targ_unsigned_int64_int_kind) {
+      result = "unsigned __int64";
+    } else {
+      result = "**BAD-SIZE-INT-KIND**";
+    }  /* if */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  {
+    result = int_kind_name(type->variant.integer.int_kind);
+  }  /* if */
+  return result;
+}  /* int_type_name */
+
+
 static void form_int_kind_name(an_integer_kind                       kind,
                                an_il_to_str_output_control_block_ptr octl)
 /*
