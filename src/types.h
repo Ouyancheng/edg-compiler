@@ -93,6 +93,7 @@ top of a class type).
 #define type_qualifiers_match(type_1, type_2)                         \
   (is_const_qualified_type(type_1) == is_const_qualified_type(type_2) && \
    is_volatile_qualified_type(type_1) == is_volatile_qualified_type(type_2))
+#define is_unknown_type(tp) ((tp)->kind == (a_type_kind)tk_unknown)
 
 extern a_boolean f_is_const_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp);
