@@ -143,6 +143,221 @@ static a_boolean
 			   while processing an entry later on the list. */
 
 
+#if RECORD_TEMPLATES_IN_IL
+
+static char	*templ_str_buffer = NULL;
+			/* Not allocated on a per-file basis. */
+#define TEMPL_STR_BUFFER_INITIAL_ALLOCATION 1000
+#define TEMPL_STR_BUFFER_INCREMENTAL_ALLOCATION 1000
+			/* Initial and incremental allocation sizes for
+			   templ_str_buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+
+static sizeof_t	size_templ_str_buffer = 0;
+
+static sizeof_t pos_in_templ_str_buffer;
+
+static void expand_templ_str_buffer(sizeof_t size_needed)
+/*
+Expand the templ_str_buffer by reallocating it, so that its total size
+is at least size_needed.  Called by ensure_templ_str_buffer_space.
+*/
+{
+  sizeof_t new_size;
+
+  new_size = size_templ_str_buffer + TEMPL_STR_BUFFER_INCREMENTAL_ALLOCATION;
+  if (new_size < size_needed) new_size  = size_needed;
+  templ_str_buffer = realloc_general(templ_str_buffer, size_templ_str_buffer,
+                                     new_size);
+  size_templ_str_buffer = new_size;
+}  /* expand_templ_str_buffer */
+
+
+/*
+Ensure that templ_str_buffer has at least size_needed bytes in it.  If not,
+expand templ_str_buffer by reallocating it.
+*/
+#define ensure_templ_str_buffer_space(size_needed)                     \
+{ if (size_templ_str_buffer < size_needed) {                           \
+    expand_templ_str_buffer((sizeof_t)(size_needed));                  \
+  }  /* if */                                                          \
+}  /* ensure_templ_str_buffer_space */
+
+
+static void make_template_string(a_template_ptr  template_ptr,
+                                 a_token_cache   *template_param_list_cache,
+                                 a_token_cache   *template_decl_cache,
+                                 a_token_cache   *template_body_cache)
+/*
+Go through the three token caches and build a string representation of the
+template in a buffer; the string should correspond closely to what the user
+wrote in the source program, except for comments (excluded) and formatting
+(only line feeds and indentation are preserved).  Then allocate a string of
+the appropriate size, copy the contents of the buffer into it, and update
+the "text" field of *template_ptr to point to it.
+*/
+{
+  a_token_cache      *cache;
+  char               *str, *il_string;
+  a_seq_number       curr_seq, seq_incr;
+  a_column_number    column_incr;
+  sizeof_t           len;
+
+  db_enter(3, "make_template_string");
+  /* curr_seq is initialized to the line on which the template declaration
+     begins. */
+  curr_seq = template_ptr->source_corresp.decl_position.seq;
+  pos_in_templ_str_buffer = 0;
+  /* The outer loop goes though the three token caches in order, beginning
+     with "template < ... >". */
+  cache = template_param_list_cache;
+  for (;;) {
+    check_assertion(cache != NULL);
+    /* Activate the cache and then go through each of its tokens. */
+    rescan_reusable_cache(cache);
+    while (curr_token != tok_end_of_source) {
+      if (pos_curr_token.seq == curr_seq) {
+        /* We're on the same line as the previous token processed, so just
+           add a space (in most cases) to separate the tokens. */
+        if (curr_token == tok_comma || curr_token == tok_semicolon ||
+            pos_in_templ_str_buffer == 0) {
+          /* No space is needed before a comma or semicolon -- or if this is
+             the very first token of the declaration. */
+          column_incr = 0;
+        } else {
+          /* Add a single space. */
+          column_incr = 1;
+        }  /* if */
+        /* Don't add a line feed. */
+        seq_incr = 0;
+      } else {
+        /* We've moved to a new line.  Compute the indentation. */
+        column_incr = pos_curr_token.column - 1;
+        /* Compute the number of line feed characters to add. */
+        seq_incr =  pos_curr_token.seq - curr_seq;
+        /* Reset the current line. */
+        curr_seq = pos_curr_token.seq;
+      }  /* if */
+      /* Add any spaces and line feeds that might be required. */
+      if (seq_incr > 0 || column_incr > 0) {
+        ensure_templ_str_buffer_space(pos_in_templ_str_buffer +
+                                            seq_incr + column_incr);
+        for (; seq_incr > 0; --seq_incr) {
+          templ_str_buffer[pos_in_templ_str_buffer++] = '\n';
+        }  /* for */
+        for (; column_incr > 0; --column_incr) {
+          templ_str_buffer[pos_in_templ_str_buffer++] = ' ';
+        }  /* for */
+      }  /* if */
+      /* Now put out the characters representing the token. */
+      switch (curr_token) {
+        case tok_int_constant:
+        case tok_float_constant:
+        case tok_string_literal:
+        case tok_char_constant:
+          /* Literal constant. */
+#if 0
+/* Fix this with a call to a general constant-to-string routine. */
+#endif /* if 0 */
+          str = "???";
+          goto put_str;
+#if CHECKING
+        /* Check for tokens that should not show up in the cached tokens of
+           a template declaration. */
+        case tok_end_of_source:
+        case tok_header_name:
+        case tok_pp_number:
+        case tok_digit_sequence:
+        case tok_cpp_quote:
+        case tok_ptr_to_member:
+        case tok_newline:
+          internal_error("make_template_string: unexpected token");
+#endif /* CHECKING */
+        case tok_identifier:
+          /* An identifier. */
+          check_assertion(!locator_for_curr_id.has_been_coalesced);
+          str = locator_for_curr_id.symbol_header->identifier;
+          goto put_str;
+        default:
+          /* A keyword or other token whose literal name can be put out. */
+          str = token_names[(int)curr_token];
+put_str:
+          len = strlen(str);
+          if (len > 0) {
+            /* Be sure there's room in the buffer before copying in the
+               string. */
+            ensure_templ_str_buffer_space(pos_in_templ_str_buffer + len);
+            strcpy(&templ_str_buffer[pos_in_templ_str_buffer], str);
+            pos_in_templ_str_buffer += len;
+          }  /* if */
+      }  /* switch */
+      /* Advance to the next token in the cache. */
+      (void)get_token();
+    }  /* while */
+    /* Advance past the end-of-source token. */
+    flush_past_token_cache_terminator();
+    /* Advance to the next token cache. */
+    if (cache == template_param_list_cache) {
+      cache = template_decl_cache;
+    } else if (cache == template_decl_cache) {
+      cache = template_body_cache;
+      /* There will be no cache for the token body if no body was declared --
+         in which case, terminate the loop. */
+      if (cache == NULL) break;
+    } else {
+      /* All done. */
+      break;
+    }  /* if */
+  }  /* for */
+  /* Terminate the string with a semicolon (which will not have been
+     included among the cached tokens). */
+  ensure_templ_str_buffer_space(pos_in_templ_str_buffer + 1);
+  templ_str_buffer[pos_in_templ_str_buffer++] = ';';
+  /* Allocate a block of file scope IL memory into which the string may
+     be copied. */
+  il_string = (char *)alloc_il(pos_in_templ_str_buffer + 1);
+  (void)memcpy(il_string, templ_str_buffer,
+               size_t_arg(pos_in_templ_str_buffer));
+  /* Add a null terminator. */
+  il_string[pos_in_templ_str_buffer] = '\0';
+  template_ptr->text = il_string;
+#if DEBUG
+  if (debug_level >= 3) {
+    /* This won't work if the string contains nulls -- is it worth fixing? */
+    fprintf(f_debug, "Saved template string: '%s'\n", il_string);
+  }  /* if */
+#endif /* DEBUG */
+  
+  db_exit();
+}  /* make_template_string */
+
+
+static a_template_ptr make_il_template_entry(void)
+/*  
+Allocate an IL template entry.  The source position of the current token
+(which should be tok_template) serves as the decl_position of the template
+declaration as a whole.
+*/
+{
+  a_template_ptr  tp;
+
+  check_assertion(curr_token == tok_template);
+  tp = alloc_template();
+  tp->source_corresp.decl_position = pos_curr_token;
+  add_to_templates_list(tp);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* There's not yet a name or symbol for the template declaration, so call
+     update_source_sequence_list directly. */
+  update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
+                              (a_source_sequence_entry_ptr)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  return tp;
+}  /* make_il_template_entry */
+
+#endif /* RECORD_TEMPLATES_IN_IL */
+
 static a_boolean instantiation_of_type_is_in_progress(a_type_ptr tp)
 /*
 Return TRUE if a class/struct/union scope for tp, which represents a template
@@ -2889,6 +3104,51 @@ for the instantiation.
   db_exit();
 }  /* cache_function_template_body */
 
+#if RECORD_TEMPLATES_IN_IL
+
+static void cache_template_param_list(a_token_cache  *p_token_cache)
+/*
+Cache the tokens from "template" to the ">" that terminates the template
+parameter list.  They will be used later to build the string representing
+the template declaration if the template needs to appear in the IL.
+*/
+{
+  a_token_set_array  stop_tokens;
+
+  db_enter(3, "cache_template_param_list");
+  clear_token_cache(p_token_cache, /*reusable=*/TRUE);
+  if (next_token() == tok_lt) {
+    /* Cache the current token and advance past it. */
+    cache_curr_token(p_token_cache);
+    (void)get_token();
+    /* Initialize a local stop token set. */
+    clear_token_set_array(stop_tokens);
+    /* Cache all tokens up to the ">" that matches the current "<". */
+    incr_token_set_array_element(stop_tokens, tok_gt);
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    incr_token_set_array_element(stop_tokens, tok_colon);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    cache_token_stream(p_token_cache, stop_tokens);
+    if (curr_token == tok_gt) {
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+    }  /* if */
+   }  /* if */
+  /* Add an end-of-source token to the end of the token cache to
+     assure that we don't scan past the end of the cache in the actual
+     scan. */
+  terminate_token_cache(p_token_cache);
+  /* Rescan a copy of the cached tokens from this cache.  This is done so
+     that when the original template declaration is scanned the last token
+     of the cache is followed by the token that followed it in the original
+     source program with no intervening tok_end_of_source.  This also
+     allows the reusable token cache to be discarded if it turns out that
+     this is not a function declaration. */
+  rescan_copy_of_cache(p_token_cache);
+  db_exit();
+}  /* cache_template_param_list */
+
+#endif /* RECORD_TEMPLATES_IN_IL */
 
 static void cache_template_declaration(a_token_cache  *p_token_cache)
 /*
@@ -3307,6 +3567,11 @@ entry is pushed on the scope stack.
   a_boolean		            decl_token_cache_used = FALSE;
   a_boolean                         nonglobal_decl_err = FALSE;
   a_pending_pragma_ptr		    pragmas_bound_to_template;
+#if RECORD_TEMPLATES_IN_IL
+  a_template_ptr                    il_template_entry = NULL;
+  a_token_cache                     template_param_list_cache;
+  a_token_cache                     *p_template_body_cache = NULL;
+#endif /* RECORD_TEMPLATES_IN_IL */
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -3327,6 +3592,14 @@ entry is pushed on the scope stack.
     /* template declarations may appear at file scope only (ARM 14.1). */
     error(ec_nonglobal_template_declaration);
     nonglobal_decl_err = TRUE;
+#if RECORD_TEMPLATES_IN_IL
+  } else {
+    /* Create an IL template entry for this declaration, and build the first
+       cache upon which its string representation will be based. */
+    il_template_entry = make_il_template_entry();
+    /* Cache "template" through ">". */
+    cache_template_param_list(&template_param_list_cache);
+#endif /* RECORD_TEMPLATES_IN_IL */
   }  /* if */
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
                    (a_type_ptr)NULL, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
@@ -3352,6 +3625,12 @@ entry is pushed on the scope stack.
                                  defines_something)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
+#if RECORD_TEMPLATES_IN_IL
+    if (*defines_something) {
+      /* Save a pointer to the token cache for class template body. */
+      p_template_body_cache = &sym->variant.template_info->token_cache;
+    }  /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
   } else if (is_decl_start(/*expr_context=*/FALSE,
                            /*real_declarator_allowed=*/TRUE) ||
              is_declarator_start()) {
@@ -3423,7 +3702,7 @@ entry is pushed on the scope stack.
         }  /* if */
 #endif /* CHECKING */
 #if 0
-#else
+#else /* if !0 */
         /* Temporary fix until algorithm in find_static_data_member_template,
            which currently depends on matching decl_positions, is improved.
            The problem is that the match algorithm expects the decl_position
@@ -3433,7 +3712,7 @@ entry is pushed on the scope stack.
            the defined flag here means the source position in the symbol is
            not overwritten. */
         sym->defined = TRUE;
-#endif
+#endif /* if 0 */
         mark_defined(sym, &locator.source_position);
         tssp = sym->variant.static_data_member.instance_ptr->template_info;
         /* Update the param list ptr, which should be non-null when the
@@ -3460,6 +3739,10 @@ entry is pushed on the scope stack.
           discard_token_cache(p_token_cache);
         } else if (curr_token == tok_semicolon) {
           terminate_token_cache(p_token_cache);
+#if RECORD_TEMPLATES_IN_IL
+          /* Save a pointer to the token cache for the initializer. */
+          p_template_body_cache = p_token_cache;
+#endif /* RECORD_TEMPLATES_IN_IL */
         }  /* if */
       }  /* if */
     } else if (is_function_type(type)) {
@@ -3479,7 +3762,7 @@ entry is pushed on the scope stack.
           err = TRUE;
         }  /* if */
 #if 0
-#else
+#else /* if !0 */
         /* Temporary fix until algorithm in find_member_function_template,
            which currently depends on matching decl_positions, is improved.
            The problem is that the match algorithm expects the decl_position
@@ -3489,7 +3772,7 @@ entry is pushed on the scope stack.
            the defined flag here means the source position in the symbol is
            not overwritten. */
         sym->defined = TRUE;
-#endif
+#endif /* if 0 */
         mark_defined(sym, &locator.source_position);
       } else {
         mark_declared(sym, &locator.source_position);
@@ -3546,6 +3829,12 @@ entry is pushed on the scope stack.
         cache_function_template_body(&tssp->token_cache,
                                      is_constructor_symbol(sym),
                                      defines_something);
+#if RECORD_TEMPLATES_IN_IL
+        if (*defines_something) {
+          /* Save a pointer to the token cache for function body. */
+          p_template_body_cache = &tssp->token_cache;
+        }  /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
       }  /* if */
       if (sym->class_of_which_a_member != NULL) {
         /* Out-of-line definition of a member function of a class template.
@@ -3689,6 +3978,43 @@ entry is pushed on the scope stack.
       }  /* for */
     }  /* if */
   }  /* if */
+#if RECORD_TEMPLATES_IN_IL
+  if (il_template_entry != NULL) {
+    /* Finish up establishing the IL template entry.  (It's already been
+       added to the templates list, its decl_position has been set, and
+       its source correspondence entry, if any, has been put out.) */
+    if (sym != NULL && !sym->is_error) {
+      /* Give it a name, etc.  Note that the class-of-which-a-member field
+         should not be set, since the parent class of a member function or
+         static data member template is generally not a real class. */
+      set_source_corresp(&il_template_entry->source_corresp, sym);
+      /* Set the template kind. */
+      switch (sym->kind) {
+        case sk_class_template:
+          il_template_entry->kind = (a_template_kind)templk_class;
+          break;
+        case sk_function_template:
+          il_template_entry->kind = (a_template_kind)templk_function;
+          break;
+        case sk_member_function:
+          il_template_entry->kind = (a_template_kind)templk_member_function;
+          break;
+        case sk_static_data_member:
+          il_template_entry->kind = (a_template_kind)templk_static_data_member;
+          break;
+#if CHECKING
+        default:
+          internal_error("template_declaration: bad template symbol kind");
+#endif /* CHECKING */
+      }  /* switch */
+      /* Create the string that represents the template declaration. */
+      make_template_string(il_template_entry, &template_param_list_cache,
+                           &decl_token_cache, p_template_body_cache);
+      /* The cache for the template parameter list is no longer needed. */
+      discard_token_cache(&template_param_list_cache);
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
   /* If the declaration token cache is not needed, discard it. */
   if (!decl_token_cache_used) {
     discard_token_cache(&decl_token_cache);
