@@ -20,15 +20,14 @@ defined as 1 to get a main program back end.  Otherwise, a version to be
 called in the same program as the front end is produced (if needed).
 */
 
-#if HDRSTOP_RECOGNIZED
-/* Placing the header stop here has the effect of suppressing the generation
-   of a precompiled header file.  This is done because cp_gen_be.c cannot
+#ifdef PCH_PRAGMA_GUARD
+/* Suppress generation of a precompiled header file -- cp_gen_be.c cannot
    share its precompiled header with any other file.  (The only utility from
    generating a precompiled header file would be for recompilation; for
-   that, the header stop should be moved to after the last #include, outside
-   all #ifs.) */
-#pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
+   that, the no_pch pragma should be removed and a hdrstop pragma added
+   after the last #include, outside all #ifs.)  */
+#pragma no_pch
+#endif /* PCH_PRAGMA_GUARD */
 
 #ifdef STANDALONE_CP_GEN_BE
 /* For the main-program version, get global variables defined. */
