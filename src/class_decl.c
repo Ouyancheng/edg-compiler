@@ -5339,7 +5339,7 @@ and "class_type" indicates the class in which the declaration occurs.
     /* Again, this error is not required (but it should be, we think). */
 #endif /* if 0 */
     pos_sy2_error(ec_bad_access_decl_name_is_hidden, &error_position,
-                  locator_for_curr_id.specific_symbol,
+                  fundamental_symbol_of(locator_for_curr_id.specific_symbol),
                   fundamental_symbol_of(projection_into_curr_class));
     goto done;
   }  /* if */
