@@ -197,7 +197,7 @@ to the textual order of the source program.  For example,
 When entering a class or function template instantiation or the definition
 of an inline-defined member function, the current pack alignment state is
 saved and the appropriate default is set.  Within that context, #pragma
-pack directives are treated as "local" and a warning are issued.  When the
+pack directives are treated as "local" and a remark is issued.  When the
 instantiation or function body is complete, the original pack alignment
 state is restored.
 

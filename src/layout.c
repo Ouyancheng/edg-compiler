@@ -538,6 +538,8 @@ if n is supplied or to the value associated with the last entry popped.
   /* Restore the stop token array, pop the pragma scope, etc. */
   wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE, save_stop_tokens_array);
   if (updated) {
+    /* Issue a diagnostic on a #pragma pack that appears within an
+       instantiation or inline-defined member function definition. */
     a_scope_stack_entry_ptr  ssep;
     a_symbol_ptr             sym = NULL;
 
@@ -556,7 +558,7 @@ if n is supplied or to the value associated with the last entry popped.
       }  /* if */
     }  /* if */
     if (sym != NULL) {
-      pos_sy_warning(ec_local_pragma_pack, &ppp->pragma_position, sym);
+      pos_sy_remark(ec_local_pragma_pack, &ppp->pragma_position, sym);
     }  /* if */
   }  /* if */
 #if DEBUG
