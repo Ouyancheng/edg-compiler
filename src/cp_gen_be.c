@@ -2443,7 +2443,8 @@ is the one associated with the definition of the class.
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   if (ctsp != NULL &&
-      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
+      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable &&
+      !type->source_corresp.is_local_to_function) {
     /* For a global anonymous union, put out "static" in front of the union. */
     write_tok_str("static ");
   }  /* if */
@@ -2837,6 +2838,7 @@ This routine also works for rvalue field selections.
   }  /* while */
   return object_expr;
 }  /* remove_nonstandard_anonymous_union_field_selections */
+
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 static void gen_simple_field_selection(an_expr_node_ptr object_expr,
