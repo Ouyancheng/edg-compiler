@@ -1170,7 +1170,7 @@ error code.
       m = "assignment to \"this\" (anachronism)";
       break;
     case ec_overload_ignored:
-      m = "\"overload\" ignored (anachronsim)";
+      m = "\"overload\" ignored (anachronism)";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -1647,13 +1647,13 @@ An internal error has occurred.  Write the given message and abort.
 */
 {
   /* This variable does not have to be reset by fe_init. */
-  static internal_error_loop = FALSE;
+  static a_boolean internal_error_loop = FALSE;
 
   /* Make sure that if one internal error leads to another, we abort
      the compilation instead of looping. */
   if (internal_error_loop) {
     fprintf(stderr, "Internal error loop: %s\n", error_message);
-    term_compilation(es_catastrophe);
+    term_compilation(es_internal_error);
   }  /* if */
   internal_error_loop = TRUE;
   write_diagnostic(error_message, -1, (char *)NULL, -1, (char *)NULL, -1,
