@@ -8649,32 +8649,34 @@ and for the instantiation of template functions.
     a_src_seq_sublist_ptr        sublist = NULL;
 
     starting_ssep = func_info->prototype_scope_ss_entry_start;
-    ending_ssep = func_info->prototype_scope_ss_entry_end;
-    check_assertion(in_file_scope(starting_ssep));            
-    if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
-      sublist = sublist_header_of(starting_ssep);
-    }  /* if */
-    if (starting_ssep->prev == NULL) {
-      /* The head of the list. */
-      check_assertion(sublist != NULL);
-      sublist->source_sequence_list = ending_ssep->next;
-    } else {
-      starting_ssep->prev->next = ending_ssep->next;
-    }  /* if */
-    if (ending_ssep->next == NULL) {
-      /* Tail of the list. */
-      if (sublist != NULL) {
-        sublist->last_source_sequence_entry = starting_ssep->prev;
-      } else {
-        scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry =
-                                                      starting_ssep->prev;
+    if (starting_ssep != NULL) {
+      ending_ssep = func_info->prototype_scope_ss_entry_end;
+      check_assertion(in_file_scope(starting_ssep));            
+      if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
+        sublist = sublist_header_of(starting_ssep);
       }  /* if */
-    } else {
-      ending_ssep->next->prev = starting_ssep->prev;
-    }  /* if */
-    if (sublist != NULL && sublist->source_sequence_list == NULL) {
-      remove_sublist_header_and_parent(sublist,
-                                       find_sublist_parent(sublist));
+      if (starting_ssep->prev == NULL) {
+        /* The head of the list. */
+        check_assertion(sublist != NULL);
+        sublist->source_sequence_list = ending_ssep->next;
+      } else {
+        starting_ssep->prev->next = ending_ssep->next;
+      }  /* if */
+      if (ending_ssep->next == NULL) {
+        /* Tail of the list. */
+        if (sublist != NULL) {
+          sublist->last_source_sequence_entry = starting_ssep->prev;
+        } else {
+          scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry =
+                                                        starting_ssep->prev;
+        }  /* if */
+      } else {
+        ending_ssep->next->prev = starting_ssep->prev;
+      }  /* if */
+      if (sublist != NULL && sublist->source_sequence_list == NULL) {
+        remove_sublist_header_and_parent(sublist,
+                                         find_sublist_parent(sublist));
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
