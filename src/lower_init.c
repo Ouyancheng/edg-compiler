@@ -5730,31 +5730,9 @@ have already had their designated initializers lowered.
         /* Non-aggregate constant. */
         if (earlier_con != NULL) {
           /* con overwrites an earlier initialization at the same location,
-             given by earlier_con. */
-          if (earlier_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-            /* The earlier constant has no side effects, so it is just
-               replaced by the new one. */
-          } else {
-            /* The earlier constant has side effects, so keep the old and
-               new initializations under a comma expression. */
-            an_expr_node_ptr   earlier_expr, expr;
-            a_dynamic_init_ptr earlier_dip = earlier_con->variant.dynamic_init;
-            a_dynamic_init_ptr dip;
-            check_assertion(earlier_dip->kind ==
-                                          (a_dynamic_init_kind)dik_expression);
-            earlier_expr = earlier_dip->variant.expression;
-            if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-              dip = con->variant.dynamic_init;
-              check_assertion(dip->kind==(a_dynamic_init_kind)dik_expression);
-              expr = dip->variant.expression;
-            } else {
-              expr = alloc_node_for_constant(con);
-              set_constant_kind(con, (a_constant_repr_kind)ck_dynamic_init);
-              dip = con->variant.dynamic_init = earlier_dip;
-            }  /* if */
-            expr = make_comma_node(earlier_expr, expr);
-            dip->variant.expression = expr;
-          }  /* if */
+             given by earlier_con. The following call will combine the two
+             initializers into *con. */
+          combine_initializer_constants(earlier_con, con);
         }  /* if */
       }  /* if */
       if (earlier_con != NULL) earlier_con = earlier_con->next;

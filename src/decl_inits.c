@@ -2381,14 +2381,11 @@ the type of that entity.
            with static lifetime.  The emulation is not perfect when more
            nesting is involved as in "int x = { f(), { 1, { 2 }}};". */
       } else {
-        constant = combine_initializers(constant, init_dip,
-                                        next_constant, &next_dip);
-        if (next_dip != NULL) {
-          /* Don't use the second constant (if any), because it might have
-             acquired a dynamic component that needs further processing. */
-          constant = NULL;
-          *init_dip = next_dip;
-        }  /* if */
+        combine_initializers(constant, init_dip, next_constant, &next_dip);
+        /* Don't use the second constant (if any) if it has acquired a
+           dynamic component that needs further processing. */
+        constant = (next_dip != NULL)? NULL: next_constant;
+        *init_dip = next_dip;
       }  /* if */
     }  /* while */
   }  /* if */

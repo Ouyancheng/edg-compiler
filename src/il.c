@@ -2892,10 +2892,10 @@ Copy a constant entry from "from" to "to".
 }  /* copy_constant */
 
 
-a_constant_ptr combine_initializers(a_constant_ptr     first,
-                                    a_dynamic_init_ptr *first_dip_ptr,
-                                    a_constant_ptr     second,
-                                    a_dynamic_init_ptr *second_dip_ptr)
+void combine_initializers(a_constant_ptr     first,
+                          a_dynamic_init_ptr *first_dip_ptr,
+                          a_constant_ptr     second,
+                          a_dynamic_init_ptr *second_dip_ptr)
 /*
 Create the effect of sequentially applying two initializers to the same
 variable.  If an initializer representation is available as "a_constant"
@@ -2905,7 +2905,8 @@ not be null and not point to a null pointer: instead, they should point
 to a dynamic_init_ptr representing the initializer for which (presumably)
 no constant has been created (yet).  This interface conveniently fits that
 of scan_initializer_of_simple_object.  The entities passed as parameters
-should be unshared and may be invalidated by this function.
+should be unshared. The entities pointed to by second and *second_dip_ptr
+are modified to reflect the combined effect.
 */
 {
   if (first != NULL && first->kind != (a_constant_repr_kind)ck_dynamic_init) {
@@ -2932,27 +2933,25 @@ should be unshared and may be invalidated by this function.
           value of the dynamic first initializer.  So create an expression
           node for this second (constant) value to enable its combination
           into a comma node. */
-       second_expr = alloc_node_for_allocated_constant(second);
-       second_dip = first_dip;
-       second = first;
+       second_expr = alloc_node_for_constant(second);
+       set_constant_kind(second, (a_constant_repr_kind)ck_dynamic_init);
+       second_dip = second->variant.dynamic_init = first_dip;
     }  /* if */
     second_dip->variant.expression = make_comma_node(first_expr, second_expr);
     if (second_dip_ptr != NULL) { *second_dip_ptr = second_dip; }
   }  /* if */
-  return second;
 }  /* combine_initializers */
 
 
-a_constant_ptr combine_initializer_constants(a_constant_ptr first,
-                                             a_constant_ptr second)
+void combine_initializer_constants(a_constant_ptr first, a_constant_ptr second)
 /*
-Return a constant that represents the effect of sequentially initializing
-the same variable with *first followed by *second.  In particular, *first
-can be discarded if it has no side-effects.  The constants passed as
-parameters should be unshared and may be invalidated by this function.
+Modify the constant pointed to by second to represent the effect of
+sequentially initializing the same variable with *first followed by (the
+original) *second.  In particular, *first can be discarded if it has no
+side-effects.  The constants passed as parameters should be unshared.
 */
 {
-  return combine_initializers(first, NULL, second, NULL);
+  combine_initializers(first, NULL, second, NULL);
 }  /* combine_initializer_constants */
 
 

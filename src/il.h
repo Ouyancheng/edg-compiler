@@ -425,13 +425,13 @@ extern a_scope_ptr new_il_region(a_scope_kind   kind,
 extern void copy_constant(a_constant *from,
                           a_constant *to);
 
-extern a_constant_ptr combine_initializers(a_constant_ptr     first,
-                                           a_dynamic_init_ptr *first_dip_ptr,
-                                           a_constant_ptr     second,
-                                           a_dynamic_init_ptr *second_dip_ptr);
+extern void combine_initializers(a_constant_ptr     first,
+                                 a_dynamic_init_ptr *first_dip_ptr,
+                                 a_constant_ptr     second,
+                                 a_dynamic_init_ptr *second_dip_ptr);
 
-extern a_constant_ptr combine_initializer_constants(a_constant_ptr first,
-                                                    a_constant_ptr second);
+extern void combine_initializer_constants(a_constant_ptr first,
+                                          a_constant_ptr second);
 
 extern a_constant_ptr alloc_unshared_constant(a_constant *cp);
 
