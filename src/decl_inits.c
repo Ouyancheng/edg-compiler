@@ -1465,7 +1465,7 @@ returned set to TRUE.
                                                (a_dynamic_init_ptr)NULL);
       } else {
         /* The initializer is a simple constant, so it can just be attached
-           the the variable.  However, the variable is in file scope memory
+           to the variable.  However, the variable is in file scope memory
            and init_con was allocated in function scope memory; therefore,
            copy the constant to the correct memory region. */
         switch_to_file_scope_region(&region_to_switch_back_to);
