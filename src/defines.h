@@ -81,6 +81,7 @@ Flags to be set when using the KAI inliner.
 
 #ifdef SOLARIS
 #define C_GEN_BE_GENERATES_ANSI_C 1
+#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_WCHAR_T_INT_KIND ik_unsigned_long 
 #define USE_INIT_SECTION_IN_GENERATED_C 1
