@@ -1508,7 +1508,7 @@ by a command line option.
     if (!(option_kind_used[(int)optk_const_string_literals])) {
       /* String literals are const starting with version 7.1. */
       string_literals_are_const = microsoft_version >= 1310;
-   }  /* if */
+    }  /* if */
     single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
                                           microsoft_version < 1300);
     allow_nonconst_ref_anachronism = TRUE;
