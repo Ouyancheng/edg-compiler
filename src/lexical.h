@@ -1751,6 +1751,15 @@ EXTERN a_boolean
 			 /* TRUE when processing the list of macro-only
 			    preincludes. */
 
+EXTERN a_boolean
+		next_token_is_top_level_decl_start;
+			/* Flag toggled in translation_unit when advancing
+			   past a token that marks the end of a "top-level"
+			   declaration (i.e., a ";" or "}").  When this flag
+			   is TRUE, the state of the compiler is in effect
+			   between declarations -- or else just before the
+			   first declaration or just after the last. */
+
 /*
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.

@@ -263,18 +263,15 @@ static an_error_severity
 		default_severity_for_error_code[(int)ec_last + 1];
 				/* Array of error severities associated
 				   with error codes.  The default table
-				   contains values set from the command-line.
-				   Static initialization results in the
-				   array being set to es_default. */
+				   contains values set from the
+				   command-line. */
 
 static an_error_severity
 		current_severity_for_error_code[(int)ec_last + 1];
 				/* Array of error severities associated
 				   with error codes.  The current table
 				   contains values set from the command-line
-				   or by pragmas.  Static initialization
-				   results in the array being set to
-				   es_default. */
+				   or by pragmas. */
 
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
@@ -289,7 +286,7 @@ line.  Occasionally a diagnostic will refer to a source line that is not in
 the current logical source line (a line read earlier).  The buffer pointed
 to by error_source_line will hold such a source line that has been reread.
 */
-static char	*error_source_line = NULL;
+static char	*error_source_line;
 			/* Characters of the source line being reread for
 			   diagnostic generation, ended by both a newline and
 			   a null.  Space is dynamically allocated, and its
@@ -301,7 +298,7 @@ static char	*error_source_line = NULL;
 			   error_source_line.  The initial allocation should be
 			   such that almost all cases can be accepted (so that
 			   the realloc is hardly ever needed). */
-static char	*after_end_of_error_source_line = NULL;
+static char	*after_end_of_error_source_line;
 			/* Address past the last element of error_source_line,
 			   as an aid to checking for overflow, etc.  A variable
 			   because error_source_line line can be reallocated
@@ -353,12 +350,12 @@ typedef struct an_error_file_index {
 } an_error_file_index;
 
 static an_error_file_index_ptr
-		head_of_file_index_list /*= NULL*/;
+		head_of_file_index_list;
 				/* Pointer to the beginning of the list of
 				   an_error_file_index entries.  Initialized
 				   to NULL by error_init(). */
 static an_error_file_index_ptr
-		tail_of_file_index_list /*= NULL*/;
+		tail_of_file_index_list;
 				/* Pointer to the tail of the list of
 				   an_error_file_index entries.  Initialized
 				   to NULL by error_init(). */
@@ -2654,14 +2651,16 @@ additional messages in a multiple message diagnostic.
 
 
 #if CHECKING
+static a_boolean internal_error_loop;
+			/* Set to TRUE once an internal error has been
+			   detected.  Used to detect a loop in internal
+			   error processing. */
+
 DOES_NOT_RETURN internal_error(char *error_message)
 /*
 An internal error has occurred.  Write the given message and abort.
 */
 {
-  /* This variable does not have to be reset by fe_init. */
-  static a_boolean internal_error_loop = FALSE;
-
   /* Make sure that if one internal error leads to another, we abort
      the compilation instead of looping. */
   if (internal_error_loop) {
@@ -2886,6 +2885,13 @@ may not have their severity altered.
 }  /* check_for_overridden_severity */
 
 
+static an_error_severity  cs_saved_severity;
+			/* The saved severity used by check_severity.
+			   This is a file-scope static so that it can
+			   be cleared during initialization of the
+			   front end. */
+
+				
 static a_boolean check_severity(an_error_code		   error_code,
                                 a_source_position          **error_pos,
                                 an_error_severity          *severity,
@@ -2899,7 +2905,6 @@ current source position and severity or restore the previously saved settings.
 */
 {
   static a_source_position  saved_error_position;
-  static an_error_severity  saved_severity = (an_error_severity)es_default;
   static an_error_severity  saved_error_threshold;
   an_error_severity	    error_threshold_to_use;
 
@@ -2907,7 +2912,7 @@ current source position and severity or restore the previously saved settings.
   /* The saved severity level should be es_default if and only if this is a
      diagnostic without extra message lines or if it is the first message
      with such extra lines. */
-  if ((saved_severity == (an_error_severity)es_default) !=
+  if ((cs_saved_severity == (an_error_severity)es_default) !=
       (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
        diag_kind == (a_diagnostic_category_kind)dck_primary ||
        diag_kind == (a_diagnostic_category_kind)dck_context_primary)) {
@@ -2943,7 +2948,7 @@ current source position and severity or restore the previously saved settings.
       /* The principal message of a multiple message diagnostic.  Save the
          arguments for later calls. */
       copy_source_position(**error_pos, saved_error_position);
-      saved_severity = *severity;
+      cs_saved_severity = *severity;
       saved_error_threshold = error_threshold_to_use;
     }  /* if */
   } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
@@ -2951,12 +2956,12 @@ current source position and severity or restore the previously saved settings.
              diag_kind == (a_diagnostic_category_kind)dck_end_context) {
     /* Reuse the error position and severity from the primary diagnostic. */
     *error_pos = &saved_error_position;
-    *severity = saved_severity;
+    *severity = cs_saved_severity;
     error_threshold_to_use = saved_error_threshold;
 #if CHECKING
     if (diag_kind == (a_diagnostic_category_kind)dck_end_list ||
         diag_kind == (a_diagnostic_category_kind)dck_end_context) {
-      saved_severity = (an_error_severity)es_default;
+      cs_saved_severity = (an_error_severity)es_default;
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
@@ -4716,6 +4721,19 @@ Do one-time initialization of variables related to the error routines.
 are handled in error_init.)
 */
 {
+#if CHECKING
+  internal_error_loop = FALSE;
+#endif /* CHECKING */
+  catastrophe_has_occurred = FALSE;
+  error_source_line = NULL;
+  after_end_of_error_source_line = NULL;
+  cs_saved_severity = (an_error_severity)es_default;
+  /* Zeroing this array causes it to be set to es_default. */
+  memzero(default_severity_for_error_code,
+           sizeof(default_severity_for_error_code));
+  /* Zeroing this array causes it to be set to es_default. */
+  memzero(current_severity_for_error_code,
+           sizeof(current_severity_for_error_code));
   /* Save variables from error.h and error.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
@@ -4744,7 +4762,6 @@ Perform any initializations necessary for error.c functions at the beginning
 of each compilation.
 */
 {
-  catastrophe_has_occurred = FALSE;
   clear_file_index_list();
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
