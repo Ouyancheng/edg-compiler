@@ -875,20 +875,31 @@ scope is that of a class definition.
       extra_info->prototyped = FALSE;
     }  /* if */
     any_params = FALSE;
-  } else if (curr_token == tok_ellipsis && C_dialect == C_dialect_cplusplus) {
+  } else if (curr_token == tok_ellipsis
+#if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
+             && C_dialect == C_dialect_cplusplus
+#endif /* !ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE */
+                                                ) {
     if (is_destructor) {
       /* Destructors are allowed no arguments. */
       error(ec_too_many_params_for_destructor);
     } else {
       /* In C++ f(...) is legal, though it is not recommended since is not
-         portable (ARM 8.3). */
-      extra_info->prototyped = TRUE;
+         portable (ARM 8.3).  In C it's an extension that is supported when
+         ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE is TRUE. */
       extra_info->has_ellipsis = TRUE;
+      /* An ellipsis only occurs in prototyped param lists. */
+      extra_info->prototyped = TRUE;
 #if ASM_FUNCTION_ALLOWED
       if (func_info->is_asm_function) {
         pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
-      }  /* if */
+      } else
 #endif /* ASM_FUNCTION_ALLOWED */
+      if (C_mode() && strict_ansi_mode) {
+        /* Issue a diagnostic on use of a nonstandard feature. */
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_nonstd_ellipsis_only_param, &pos_curr_token);
+      }  /* if */
     }  /* if */
     /* Advance past the ellipsis. */
     (void)get_token();
