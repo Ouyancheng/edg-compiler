@@ -18814,6 +18814,64 @@ previous instantiation flag entry.
 }  /* write_alternate_entry_points_to_template_info_file */
 
 #endif /* IA64_ABI */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+
+static a_boolean thunk_instance_required(a_routine_ptr rout_ptr)
+/*
+Return TRUE if the indicated routine has a thunk that is referenced in
+such a way that we know that an instance of the main routine is
+required (somewhere, but not necessarily in the current compilation).
+*/
+{
+  a_boolean     instance_required = FALSE;
+  a_routine_ptr thunk = rout_ptr->next;
+
+  while (thunk != NULL &&
+         thunk->overriding_function_for_covariant_return_type == rout_ptr) {
+    if (thunk->address_taken) {
+      instance_required = TRUE;
+      break;
+    }  /* if */
+    thunk = thunk->next;
+  }  /* while */
+  return instance_required;
+}  /* thunk_instance_required */
+
+
+static a_boolean alt_entry_point_or_thunk_instance_required(
+                                                        a_routine_ptr rout_ptr)
+/*
+Return TRUE if the indicated routine has an alternate entry point
+or a thunk that is referenced in such a way that we know that an instance
+of the main routine is required (somewhere, but not necessarily in the
+current compilation).
+*/
+{
+  a_boolean instance_required = FALSE;
+
+  if (thunk_instance_required(rout_ptr)) {
+    instance_required = TRUE;
+#if IA64_ABI
+  } else if (rout_ptr->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+             rout_ptr->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) {
+    a_routine_list_entry_ptr rlep;
+    for (rlep = rout_ptr->variant.ctor_dtor.alternate_entry_points;
+         rlep != NULL;
+         rlep = rlep->next) {
+      if (rlep->routine->address_taken ||
+          thunk_instance_required(rlep->routine)) {
+        instance_required = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+#endif /* IA64_ABI */
+  }  /* if */
+  return instance_required;
+}  /* alt_entry_point_or_thunk_instance_required */
+
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 static void create_instantiation_flags_for_inline_function(
 					a_routine_ptr	rout_ptr)
@@ -18831,13 +18889,27 @@ a body (if needed) for extern inline functions.
     a_boolean	instance_required = FALSE;
     a_boolean	do_not_instantiate = FALSE;
     a_boolean	can_be_instantiated = TRUE;
-    /* The instance required flag is set only when we have already
-       decided to generate the body of the inline function.  The
-       instance required flag is needed when a definition is present so
-       that the prelinker knows that the generating translation unit is
-       still referencing the entity. */
-    if (!rout_ptr->suppress_inline_body &&
-        rout_ptr->assoc_scope != NULL_region_number) {
+    /* The instance required flag is set when we know that the object
+       file for this compilation will contain a reference to the
+       function.  In general, this is unknowable because we don't know
+       what the back end will inline.  So, usually we do not set
+       the instance required flag, and if there is a reference to
+       the function name unresolved at link time the prelinker will
+       assign it someplace.  However, in two cases we know more:
+       (a)  If the inline function is already assigned to this
+       compilation, we want the instance required flag set.
+       (b)  If the function's address has been taken, we know that
+       it is needed (someplace, not necessarily in this compilation).
+       Note that if the address was taken but the routine turned out
+       to be unneeded we clear the flag below when we check
+       the definition_needed flag. */
+    if (rout_ptr->assoc_scope != NULL_region_number &&
+        (!rout_ptr->suppress_inline_body ||
+         !rout_ptr->address_taken
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+         || alt_entry_point_or_thunk_instance_required(rout_ptr)
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+                                             )) {
       instance_required = rout_ptr->inline_instance_required;
     }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
