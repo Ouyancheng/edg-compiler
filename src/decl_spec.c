@@ -30,8 +30,9 @@ decl_spec.c -- Scanning of declaration specifiers.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_decl_modifier scan_microsoft_extended_decl_modifiers(
-                                                     a_boolean  is_class_decl,
-                                                     a_boolean  *err)
+                                            a_boolean            is_class_decl,
+                                            a_type_qualifier_set *qualifiers,
+                                            a_boolean            *err)
 /*
 Scan the Microsoft __declspec specifier, which has the form
 
@@ -48,72 +49,92 @@ Scan the Microsoft __declspec specifier, which has the form
 		dllimport
 		dllexport
 
+Return the modifiers that were found.  If an error occurs (e.g., an invalid
+modifier), set err to TRUE.  err is unchanged if there are no errors.
 is_class_decl is TRUE when the modifiers apply to a class declaration
 (e.g., "class __declspec(dllexport) A ...") rather than to a declarator.
-Return the modifiers that were found. If an error occurs (e.g., an invalid
-modifier), set err to TRUE.  err is unchanged if there are no errors.
+In that case, and in 16-bit Microsoft mode, memory attributes like near
+and far are also allowed; they are returned in *qualifiers.
 
 When this routine is called, the current token must be the __declspec
-keyword.
+keyword (or a memory attribute keyword).
 */
 {
-  a_decl_modifier	modifiers = DM_NONE;
-  check_assertion_str2(curr_token == tok_declspec,
-                       "scan_microsoft_extended_decl_modifiers:",
-                       "curr_token not tok_declspec");
-  /* Bypass the __declspec token. */
-  (void)get_token();
-  if (required_token(tok_lparen, ec_exp_lparen)) {
-    add_stop_token(tok_rparen);
-    if (curr_token != tok_identifier) {
-      syntax_error(ec_exp_identifier);
-    } else {
-      while (curr_token == tok_identifier) {
-        char	*modifier;
-        modifier = locator_for_curr_id.symbol_header->identifier;
-        if (strcmp(modifier, "dllexport") == 0) {
-          if (modifiers & DM_DLLIMPORT) {
-            /* The dllimport and dllexport attributes are mutually
-               exclusive. */
-            warning(ec_bad_combination_of_dll_attributes);
-          } else {
-            modifiers |= DM_DLLEXPORT;
-          }  /* if */
-        } else if (strcmp(modifier, "dllimport") == 0) {
-          if (modifiers & DM_DLLEXPORT) {
-            /* The dllimport and dllexport attributes are mutually
-               exclusive. */
-            warning(ec_bad_combination_of_dll_attributes);
-          } else {
-            modifiers |= DM_DLLIMPORT;
-          }  /* if */
-        } else if (strcmp(modifier, "thread") == 0) {
-          if (is_class_decl) {
-            /* "thread" is not allowed on a class declaration. */
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            modifiers |= DM_THREAD;
-          }  /* if */
-        } else if (strcmp(modifier, "naked") == 0) {
-          /* "naked" is not allowed on a class declaration. */
-          if (is_class_decl) {
-            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                           &pos_curr_token, modifier);
-          } else {
-            modifiers |= DM_NAKED;
-          }  /* if */
+  a_decl_modifier modifiers = DM_NONE;
+
+  if (is_class_decl) *qualifiers = TQ_NONE;
+  for (;;) {
+    if (is_class_decl && is_microsoft_memory_attribute()) {
+      /* Memory attribute like "near". */
+      a_type_qualifier_set new_qualifiers;
+      if (curr_token == tok_near) {
+        new_qualifiers = TQ_NEAR;
+      } else {
+        check_assertion(curr_token == tok_far);
+        new_qualifiers = TQ_FAR;
+      }  /* if */
+      *qualifiers |= new_qualifiers;
+      (void)get_token();        
+    } else if (curr_token == tok_declspec) {
+      /* __declspec(...) */
+      /* Bypass the __declspec token. */
+      (void)get_token();
+      if (required_token(tok_lparen, ec_exp_lparen)) {
+        add_stop_token(tok_rparen);
+        if (curr_token != tok_identifier) {
+          syntax_error(ec_exp_identifier);
         } else {
-          str_error(ec_bad_declspec_modifier, modifier);
-          *err = TRUE;
+          while (curr_token == tok_identifier) {
+            char *modifier;
+            modifier = locator_for_curr_id.symbol_header->identifier;
+            if (strcmp(modifier, "dllexport") == 0) {
+              if (modifiers & DM_DLLIMPORT) {
+                /* The dllimport and dllexport attributes are mutually
+                   exclusive. */
+                warning(ec_bad_combination_of_dll_attributes);
+              } else {
+                modifiers |= DM_DLLEXPORT;
+              }  /* if */
+            } else if (strcmp(modifier, "dllimport") == 0) {
+              if (modifiers & DM_DLLEXPORT) {
+                /* The dllimport and dllexport attributes are mutually
+                   exclusive. */
+                warning(ec_bad_combination_of_dll_attributes);
+              } else {
+                modifiers |= DM_DLLIMPORT;
+              }  /* if */
+            } else if (strcmp(modifier, "thread") == 0) {
+              if (is_class_decl) {
+                /* "thread" is not allowed on a class declaration. */
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                modifiers |= DM_THREAD;
+              }  /* if */
+            } else if (strcmp(modifier, "naked") == 0) {
+              /* "naked" is not allowed on a class declaration. */
+              if (is_class_decl) {
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                modifiers |= DM_NAKED;
+              }  /* if */
+            } else {
+              str_error(ec_bad_declspec_modifier, modifier);
+              *err = TRUE;
+            }  /* if */
+            (void)get_token();
+          }  /* while */
+          /* Check for the closing right paren. */
+          if (curr_token != tok_rparen) error(ec_exp_rparen);
         }  /* if */
-        (void)get_token();
-      }  /* while */
-      /* Check for the closing right paren. */
-      if (curr_token != tok_rparen) error(ec_exp_rparen);
+        remove_stop_token(tok_rparen);
+      }  /* if */
+    } else {
+      /* Not __declspec or a memory attribute -- exit the loop. */
+      break;
     }  /* if */
-    remove_stop_token(tok_rparen);
-  }  /* if */
+  }  /* for */
   return modifiers;
 }  /* scan_microsoft_extended_decl_modifiers */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -627,6 +648,7 @@ to indicate whether the class/struct/union is actually defined.
   a_boolean               namespace_extension_pushed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier         decl_modifiers = DM_NONE;
+  a_type_qualifier_set    class_qualifiers = TQ_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_specifier");
@@ -668,13 +690,15 @@ to indicate whether the class/struct/union is actually defined.
     }  /* if */
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (curr_token == tok_declspec && !C_mode()) {
+    if (!C_mode() &&
+        (curr_token == tok_declspec || is_microsoft_memory_attribute())) {
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_function_definition and applied to each member
          declaration, where appropriate. */
       a_boolean  local_err;
       decl_modifiers =
              scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                                    &class_qualifiers,
                                                     &local_err);
       /* Bypass the closing paren -- if it's missing a diagnostic will already
          have been issued. */
@@ -1114,8 +1138,12 @@ skip_tag_scan:
   if (is_class_definition) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!C_mode()) {
-      class_type->variant.class_struct_union.extra_info->
-                                         decl_modifiers = decl_modifiers;
+      /* If there were any class-wide modifiers or memory attributes
+         specified, record them in the class type supplement. */
+      a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+      ctsp->decl_modifiers = decl_modifiers;
+      ctsp->qualifiers = class_qualifiers;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (scan_class_definition(class_type, effective_decl_level,
@@ -2449,7 +2477,9 @@ Returns TRUE if there is an error in the specifiers.
           switch (curr_token) {
             case tok_declspec:
               new_modifiers = scan_microsoft_extended_decl_modifiers(
-                                               /*is_class_decl=*/FALSE, &err);
+                                               /*is_class_decl=*/FALSE,
+                                               (a_type_qualifier_set *)NULL,
+                                               &err);
               break;
             case tok_microsoft_inline:
 	      new_modifiers = DM_MICROSOFT_INLINE;
@@ -3339,9 +3369,9 @@ no_get_token:
          pointer declarator. */
       if (!is_type_qualifier()
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          && !is_microsoft_declarator_qualifier()
+          && !is_microsoft_memory_attribute()
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                 ) {
+                                             ) {
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&
