@@ -1406,7 +1406,7 @@ error code.
       m = "base class %t has already been initialized";
       break;
     case ec_base_class_init_anachronism:
-      m = "base class %t assumed (anachronism)";
+      m = "base class name required -- %t assumed (anachronism)";
       break;
     case ec_member_already_initialized:
       m = "%n has already been initialized";
@@ -3819,6 +3819,33 @@ Report the indicated diagnostic at the position indicated by error_position.
 {
   pos_st_diagnostic(error_severity, error_code, &error_position, (char *)NULL);
 }  /* diagnostic */
+
+
+void pos_ty_diagnostic(an_error_severity  error_severity,
+                       an_error_code      error_code,
+                       a_source_position  *error_pos,
+                       a_type_ptr         type)
+/*
+Report the indicated diagnostic (with the indicated type) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos_ty_diagnostic */
+
+
+void type_diagnostic(an_error_severity  error_severity,
+                     an_error_code      error_code,
+                     a_type_ptr         type)
+/*
+Report the indicated diagnostic (with the indicated type) at the position
+indicated by error_position.
+*/
+{
+  pos_ty_diagnostic(error_severity, error_code, &error_position, type);
+}  /* type_diagnostic */
 
 
 void pos_sy_diagnostic(an_error_severity  error_severity,

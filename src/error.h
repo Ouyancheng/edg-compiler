@@ -572,6 +572,13 @@ extern void pos_diagnostic(an_error_severity  error_severity,
                            a_source_position  *error_pos);
 extern void diagnostic(an_error_severity  error_severity,
                        an_error_code      error_code);
+extern void pos_ty_diagnostic(an_error_severity  error_severity,
+                              an_error_code      error_code,
+                              a_source_position  *error_pos,
+                              struct a_type      *type);
+extern void type_diagnostic(an_error_severity  error_severity,
+                            an_error_code      error_code,
+                            struct a_type      *type);
 extern void pos_sy_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,
