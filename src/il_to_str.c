@@ -458,8 +458,13 @@ way described by octl.
 
   if (octl->c_generating_back_end && octl->gen_pcc_code) {
     if (kind == (a_float_kind)fk_long_double) {
-      /* When generated K&R C from the C-generating back end, put out
-         "double" for "long double". */
+      /* When generating K&R C from the C-generating back end, put out
+         "double" for "long double" and issue a one-time-only warning. */
+      static a_boolean warning_issued = FALSE;
+      if (!warning_issued) {
+        warning(ec_double_for_long_double);
+        warning_issued = TRUE;
+      }  /* if */
       kind = (a_float_kind)fk_double;
     }  /* if */
   }  /* if */
