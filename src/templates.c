@@ -461,6 +461,12 @@ typedef struct a_tmpl_decl_state {
 			   specialization of a class that is a member of
 			   a class template, and the declaration appears
 			   outside of the parent class. */
+  a_boolean	has_dependent_templ_param;
+			/* A template parameter has a type that depends
+			   on another template parameter. */
+  a_boolean	is_template_template_param;
+			/* TRUE when scanning the template parameter clauses
+			   of a template template declaration. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -571,6 +577,8 @@ Initialize a template declaration state block.
   tdsp->decl_scope_err = FALSE;
   tdsp->export_present = FALSE;
   tdsp->partial_spec_outside_of_class_template = FALSE;
+  tdsp->has_dependent_templ_param = FALSE;
+  tdsp->is_template_template_param = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
@@ -11484,12 +11492,24 @@ Place the tokens for a template parameter into a token cache.
   /* In the normal case we will scan an expression and encounter a comma
      or right parenthesis.  If both of these are omitted, terminate the token
      stream when some likely delimiter is reached. */
-  incr_token_set_array_element(stop_tokens, tok_comma);
-  incr_token_set_array_element(stop_tokens, tok_gt);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
+  incr_token_set_array_element(stop_tokens, tok_lbrace);
   clear_token_cache(token_cache, /*reusable=*/TRUE);
-  cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
-                                          &decl_state->param_list_cache);
+  if (curr_token != tok_template) {
+    /* When not scanning a template template parameter, stop on a ","
+       or ">".  These may appear in a template template parameter declaration,
+       so when scanning those we scan until a semicolon or brace. */
+    incr_token_set_array_element(stop_tokens, tok_comma);
+    incr_token_set_array_element(stop_tokens, tok_gt);
+    cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
+                                            &decl_state->param_list_cache);
+  } else {
+    /* When caching a template template parameter it is more difficult to
+       know when to stop.  Stop on just a semicolon or brace.  Don't
+       coalesce identifiers because we might encounter references to
+       template parameters that have not been declared yet. */
+    cache_token_stream(token_cache, stop_tokens);
+  }  /* if */
   /* Note that the terminating token (comma, etc.) is not added to
      the cache. */
   terminate_token_cache(token_cache);
@@ -11667,17 +11687,28 @@ parameter declaration.
 static a_symbol_ptr create_template_param_symbol(
 					a_symbol_kind		kind,
 					a_symbol_locator	*locator,
-					a_boolean		is_unnamed)
+					a_boolean		is_unnamed,
+					a_boolean		enter_sym)
 /*
-Create the symbol for a template parameter.  Return the symbol.
+Create the symbol for a template parameter.  Return the symbol.  is_unnamed
+is TRUE for unnamed symbols.  enter_sym is TRUE if the symbol should be
+entered into the symbol table.
 */
 {
   a_symbol_ptr	sym;
 
   if (!is_unnamed) {
-    /* Create a symbol of the appropriate name and kind. */
-    sym = enter_symbol(kind, locator, decl_scope_level,
-                       /*suppress_redecl_error=*/FALSE);
+    if (enter_sym) {
+      /* Create a symbol and enter it into the symbol table. */
+      sym = enter_symbol(kind, locator, decl_scope_level,
+                         /*suppress_redecl_error=*/FALSE);
+    } else {
+      /* The symbol should not be entered into the symbol table.  Create a
+         symbol of the appropriate name and kind. */
+      sym = alloc_symbol(kind, locator->symbol_header,
+                         &locator->source_position);
+      sym->decl_scope = scope_stack[decl_scope_level].number;
+    }  /* if */
   } else {
     sym = make_unnamed_template_param_symbol(kind, &pos_curr_token);
   }  /* if */
@@ -11712,7 +11743,8 @@ parameter entry for the parameter.
   is_named = curr_token == tok_identifier;
   /* Create an sk_type symbol for the parameter. */
   sym = create_template_param_symbol((a_symbol_kind)sk_type,
-                                     &locator_for_curr_id, !is_named);
+                                     &locator_for_curr_id, !is_named,
+                                     /*enter_sym=*/TRUE);
   /* Bypass the identifier. */
   if (is_named) (void)get_token();
   /* Allocate a template-param type.  This type is for front-end use
@@ -11788,15 +11820,13 @@ static a_template_param_ptr scan_nontype_template_param(
 		a_tmpl_decl_state_ptr		decl_state,
 		a_template_param_list_pos	template_param_list_pos,
 		a_token_cache			*param_cache,
-		a_boolean			*param_cache_used,
-		a_boolean			is_template_param)
+		a_boolean			*param_cache_used)
 /*
 Scan the declaration of a nontype template parameter.  Return the template
 parameter entry for the parameter.  param_cache is the cache containing
 the template parameter declaration.  param_cache_used is set to TRUE if
 a that cache has been saved for rescanning when the type of the nontype
-parameter depends on a template parameter.  is_template_param is TRUE if
-this is the template parameter list of a template template parameter.
+parameter depends on a template parameter.
 */
 {
   a_type_ptr		param_type_ptr;
@@ -11816,7 +11846,8 @@ this is the template parameter list of a template template parameter.
   /* Create a symbol and bind a template param constant to it. At each
       point of instantiation an actual constant will be substituted. */
   sym = create_template_param_symbol((a_symbol_kind)sk_constant,
-                                     &param_locator, is_unnamed);
+                                     &param_locator, is_unnamed,
+                                     /*enter_sym=*/TRUE);
   sym->variant.constant = param_con =
                      fs_constant((a_constant_repr_kind)ck_template_param);
   param_con->type = param_type_ptr;
@@ -11843,9 +11874,7 @@ this is the template parameter list of a template template parameter.
     set_template_cache_info(&template_param->cache, param_cache,
                             decl_state->decl_info);
     *param_cache_used = TRUE;
-    if (is_template_param) {
-      error(ec_dependent_type_in_templ_templ_param);
-    }  /* if */
+    decl_state->has_dependent_templ_param = TRUE;
   }  /* if */
   if (curr_token == tok_assign) {
     /* Scan the default value. */
@@ -11866,6 +11895,7 @@ this is the template parameter list of a template template parameter.
      def_arg_involves_template_param = TRUE;
     }  /* if */
     if (!const_type_involves_template_param ||
+        decl_state->is_template_template_param ||
         nonclass_prototype_instantiations) {
       /* Scan the default argument expression.  Rescan a copy of the cache.
          This is done so that when the default argument is scanned, the
@@ -11874,7 +11904,8 @@ this is the template parameter list of a template template parameter.
          tok_end_of_source.  Note that this is also done for defaults whose
          type is not template dependent.  This is done because, prior to
          nonclass prototype instantiations, such default arguments were
-         scanned in all cases. */
+         scanned in all cases.  This is also done for default arguments of
+         template parameters of template template parameters. */
       rescan_copy_of_cache(&def_arg_cache);
       default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(param_type_ptr,
@@ -11936,15 +11967,23 @@ parameter based on the current state.
   new_state->effective_decl_level = curr_state->effective_decl_level;
   new_state->enclosing_scope = curr_state->enclosing_scope;
   new_state->param_list_cache = curr_state->param_list_cache;
+  new_state->is_template_template_param = TRUE;
 }  /* set_decl_state_for_template_param */
 
 
 static a_template_param_ptr scan_template_template_param(
 		a_tmpl_decl_state_ptr		parent_decl_state,
-		a_template_param_list_pos	template_param_list_pos)
+		a_template_param_list_pos	template_param_list_pos,
+		a_token_cache			*param_cache,
+		a_boolean			*param_cache_used,
+		a_boolean			is_rescan)
 /*
 Scan the declaration of a template template parameter.  Return the template
-parameter entry for the parameter.
+parameter entry for the parameter.  param_cache_used is set to TRUE if
+a that cache has been saved for rescanning when the type of the nontype
+parameter depends on a template parameter.  is_rescan is TRUE when this
+routine is called to rescan a template template parameter declaration that
+depends on a another template parameter.
 */
 {
   a_template_param_ptr			template_param;
@@ -11984,10 +12023,12 @@ parameter entry for the parameter.
      (void)get_token();
   }  /* if */
   is_named = curr_token == tok_identifier;
-  /* Create a class template symbol for this template template parameter. */
+  /* Create a class template symbol for this template template parameter.
+     Do not enter the symbol when this is a rescan. */
   sym = create_template_param_symbol((a_symbol_kind)sk_class_template,
                                      &locator_for_curr_id,
-                                     !is_named);
+                                     !is_named,
+                                     /*enter_sym=*/!is_rescan);
   /* See if the parameter being declared has the same name as one of its
      template parameters. */
   if (is_named) {
@@ -12031,6 +12072,20 @@ parameter entry for the parameter.
      template parameter. */
   check_template_param_default_args(local_decl_state.decl_info->parameters,
                                     /*is_partial_specialization=*/FALSE);
+  if (local_decl_state.has_dependent_templ_param) {
+    /* If one of the template parameters of the template template parameter
+       is dependent, propagate this information up to the enclosing
+       template. */
+    parent_decl_state->has_dependent_templ_param = TRUE;
+    tssp->variant.class_template.involves_template_param = TRUE;
+    if (!is_rescan) {
+      /* Don't attempt to save the cache information if, during a rescan,
+         the template is still dependent. */
+      set_template_cache_info(&template_param->cache, param_cache,
+                              parent_decl_state->decl_info);
+      *param_cache_used = TRUE;
+    }  /* if */
+  }  /* if */
   if (curr_token == tok_assign) {
     a_token_cache			def_arg_cache;
     a_template_ptr			def_arg_templ;
@@ -12074,15 +12129,13 @@ parameter entry for the parameter.
 }  /* scan_template_template_param */
 
 
-static void scan_template_param_list(a_tmpl_decl_state_ptr decl_state,
-				     a_boolean		   is_template_param)
+static void scan_template_param_list(a_tmpl_decl_state_ptr decl_state)
 /*
 Scan a comma-separated list of template parameters.  The opening "<" will
 already have been scanned, and an empty list will have already been
 checked for.  The current token, consequently, is the first token of the
 first parameter.  Return a pointer to the linked list that is created
-to represent the template parameters.  is_template_param is TRUE if
-this is the template parameter list of a template template parameter.
+to represent the template parameters.
 */
 {
   a_template_param_ptr 		template_param;
@@ -12121,11 +12174,14 @@ this is the template parameter list of a template template parameter.
     } else if (param_kind == (a_symbol_kind)sk_constant) {
       template_param = scan_nontype_template_param(
                              decl_state, template_param_list_pos, &param_cache,
-                             &param_cache_used, is_template_param);
+                             &param_cache_used);
     } else {
       /* A template template parameter. */
       template_param = scan_template_template_param(decl_state,
-                                                    template_param_list_pos);
+                                                    template_param_list_pos,
+                                                    &param_cache,
+                                                    &param_cache_used,
+						    /*is_rescan=*/FALSE);
     }  /* if */
     /* Add the template param to the end of the list. */
     if (template_param_list == NULL) {
@@ -12157,24 +12213,23 @@ this is the template parameter list of a template template parameter.
 }  /* scan_template_param_list */
 
 
-a_type_ptr rescan_template_constant_parameter
-                                     (a_symbol_ptr	   template_sym,
-                                      a_symbol_ptr	   param_sym,
-			              a_template_param_ptr param_ptr,
-				      a_template_arg_ptr   arg_list,
-                                      a_boolean		   do_default_arg,
-                                      a_constant_ptr       *constant)
+a_type_ptr rescan_template_constant_parameter(
+		        a_symbol_ptr		template_sym,
+			a_symbol_ptr		param_sym,
+			a_template_param_ptr	param_ptr,
+			a_template_arg_ptr	arg_list,
+			a_boolean		do_default_arg,
+			a_constant_ptr		*constant)
 /*
 Rescan the tokens of a template parameter declaration and/or default
-argument using the current values of any previous parameters so that
-the declaration and/or default argument is processed with the types
-with which the class is to be instantiated.  This is used to get the
-correct types for template parameters whose types depend on other
-template parameters.  If the type of the constant depends on a
-template parameter, then the type is rescanned.  Otherwise, the
-existing type is simply used.  If do_default_arg is TRUE, then the
-default argument constant is processed too.  A pointer to the
-resulting constant is stored in the pointer pointed to by "constant".
+argument using the current values of any previous parameters so that the
+declaration and/or default argument is processed with the types with which
+the class is to be instantiated.  This is used to get the correct types for
+template parameters whose types depend on other template parameters.  If the
+type of the constant depends on a template parameter, then the type is
+rescanned.  Otherwise, the existing type is simply used.  If do_default_arg
+is TRUE, then the default argument constant is processed too.  A pointer to
+the resulting constant is stored in the pointer pointed to by "constant".
 */
 {
   a_type_ptr				constant_type;
@@ -12290,6 +12345,109 @@ resulting constant is stored in the pointer pointed to by "constant".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return constant_type;
 }  /* rescan_template_constant_parameter */
+
+
+static void set_decl_state_for_template_template_rescan(
+				a_tmpl_decl_state_ptr	new_state,
+				a_template_param_ptr	param)
+/*
+Create a new template declaration state for rescanning a template template
+parameter.  "param" is the template parameter for the previously scanned
+template template parameter.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  init_templ_decl_state(new_state);
+  ssep = &scope_stack[depth_scope_stack];
+  new_state->in_prototype_instantiation = ssep->in_prototype_instantiation;
+  new_state->param_list_cache = param->cache.tokens;
+  new_state->is_template_template_param = TRUE;
+}  /* set_decl_state_for_template_template_rescan */
+
+
+a_template_ptr rescan_template_template_parameter(
+				a_symbol_ptr		template_sym,
+				a_template_param_ptr	param_ptr,
+				a_template_arg_ptr	arg_list)
+/*
+Rescan the tokens of a template template parameter declaration using
+the current values of any previous parameters so that the declaration
+is processed with the types with which the class is to be
+instantiated.  This is used to get the correct types for template
+template parameters that depend on other template parameters.
+*/
+{
+  a_source_position  		saved_pos_curr_token;
+  a_source_position  		saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position		saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  static unsigned int		pending_instantiations = 0;
+  a_boolean			dependent_arg_list;
+  a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+  a_template_ptr		new_template = NULL;
+
+  saved_pos_curr_token = pos_curr_token;
+  saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  dependent_arg_list = is_template_dependent_context() ||
+                       template_arg_list_involves_template_param(arg_list);
+  /* If the argument list is dependent, flag this as a nonreal
+     instantiation. */
+  if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
+  if (pending_instantiations == max_pending_instantiations) {
+    error(ec_recursive_inst_of_templ_default_arg);
+    new_template = error_class_template()->
+                                      variant.template_info->il_template_entry;
+  } else {
+    a_tmpl_decl_state		parent_decl_state;
+    a_template_param_ptr	new_param;
+    /* Increment the count of pending default argument instantiations.
+       This is used to detect infinite recursion. */
+    ++pending_instantiations;
+    /* Push the template instantiation scope.  Note that the instance symbol
+       passed to push_scope is NULL because we don't yet know which instance
+       is being instantiated.  Also note that a class type is not being
+       passed for the same reason. */
+    push_template_instantiation_scope(param_ptr->cache.decl_info,
+				        (a_type_ptr)NULL,
+				        (a_routine_ptr)NULL,
+				        (a_symbol_ptr)NULL,
+				        template_sym, arg_list,
+                                        /*push_stop_tokens=*/TRUE,
+				        ps_options);
+    /* Rescan the tokens of the template template parameter declaration. */
+    rescan_reusable_cache(&param_ptr->cache.tokens);
+    /* Create a template declaration state that can be passed into the
+       template template parameter scanning routine. */
+    set_decl_state_for_template_template_rescan(&parent_decl_state, param_ptr);
+    /* Rescan the template template parameter declaration. */
+    new_param = scan_template_template_param(
+                       &parent_decl_state,
+                       param_ptr->variant.templ->
+                                          il_template_entry->coordinates.depth,
+                       (a_token_cache*)NULL, (a_boolean*)NULL,
+                       /*is_rescan=*/TRUE);
+    /* Scan the declaration specifiers. */
+    /* Skip past any tokens remaining in the cache.  Extra tokens will
+       be present under certain error conditions and when a default argument
+       has been supplied. */
+    flush_past_token_cache_terminator();
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
+    --pending_instantiations;
+    new_template = new_param->variant.templ->il_template_entry;
+  }  /* if */
+  error_position = saved_error_position;
+  pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  return new_template;
+}  /* rescan_template_template_parameter */
 
 
 a_type_ptr rescan_template_type_default_arg
@@ -14089,7 +14247,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Save a pointer to the template declaration information in the
            scope stack entry. */
         scope_stack[depth_scope_stack].tmpl_decl_state = decl_state;
-        scan_template_param_list(decl_state, is_template_param);
+        scan_template_param_list(decl_state);
         template_decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
         /* Record that a template parameter list has been seen.  A

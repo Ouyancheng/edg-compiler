@@ -1182,6 +1182,89 @@ A short-hand version of db_symbol for convenient access from a debugger.
   db_symbol(sym, "", 2);
 }  /* db_sym */
 
+
+void db_template_parameter(a_template_param_ptr	tpp)
+/*
+Display a template parameter, for debugging purposes.
+*/
+{
+  int	indentation = 2;
+  db_symbol(tpp->param_symbol, "", indentation + 4);
+  switch (tpp->param_symbol->kind) {
+    case sk_type:
+      fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
+      /* Display the proxy class type if one exists. */
+      if (tpp->variant.type != NULL) {
+        a_type_ptr ptype = tpp->variant.type;
+        db_type(ptype);
+        if (ptype->variant.template_param.extra_info != NULL) {
+          a_type_ptr  class_type;
+          class_type =
+                  ptype->variant.template_param.extra_info->class_type;
+          if (class_type != NULL) {
+            fprintf(f_debug, "\n%*sproxy class: ",
+                    indentation + 6, "");
+            db_type(class_type);
+          }  /* if */
+        }  /* if */
+      } else {
+        fprintf(f_debug, "NULL");
+      }  /* if */
+      if (tpp->has_default_arg) {
+	if (!tpp->def_arg_involves_template_param) {
+	  fprintf(f_debug, "%s", "= ");
+	  db_type(tpp->default_arg.type);
+	} else {
+	  fprintf(f_debug, "%s", "= <token cache>");
+	}  /* if */
+      }  /* if */
+      break;
+    case sk_constant:
+      fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
+      if (tpp->variant.constant.ptr != NULL) {
+        db_constant(tpp->variant.constant.ptr);
+      } else {
+        fprintf(f_debug, "NULL");
+      }  /* if */
+      if (tpp->has_default_arg) {
+	if (!tpp->def_arg_involves_template_param) {
+	  fprintf(f_debug, "%s", "= ");
+	  db_constant(tpp->default_arg.constant);
+	} else {
+	  fprintf(f_debug, "%s", "= <token cache>");
+	}  /* if */
+      }  /* if */
+      break;
+    case sk_class_template:
+      fprintf(f_debug, "%*sparameter template: ", indentation + 4, "");
+      if (tpp->variant.templ != NULL) {
+        a_template_ptr	templ_ptr;
+        templ_ptr = tpp->variant.templ->il_template_entry;
+        db_symbol((a_symbol_ptr)templ_ptr->source_corresp.assoc_info,
+                  "", indentation + 4);
+      } else {
+        fprintf(f_debug, "NULL");
+      }  /* if */
+      break;
+    default:
+      fprintf(f_debug, "<BAD TEMPLATE PARAM SYMBOL KIND>");
+  }  /* if */
+  fprintf(f_debug, "\n");
+}  /* db_template_parameter */
+
+
+void db_template_param_list(a_template_param_ptr	tpp)
+/*
+Display a template parameter list, for debugging purposes.
+*/
+{
+  int count = 1;
+  for (; tpp != NULL; tpp = tpp->next, count++) {
+    fprintf(f_debug, "Template parameter %d:\n", count);
+    db_template_parameter(tpp);
+  }  /* for */
+}  /* db_template_param_list */
+
 #endif /* DEBUG */
 
 void set_source_corresp(a_source_correspondence *sc,
@@ -2410,6 +2493,7 @@ and return a pointer to it.
                                             (a_name_linkage_kind)nlk_none;
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
       tssp->variant.class_template.template_template_param = FALSE;
+      tssp->variant.class_template.involves_template_param = FALSE;
       tssp->variant.class_template.any_full_instantiations = FALSE;
       tssp->variant.class_template.argument_template = NULL;
 #if CHECKING 

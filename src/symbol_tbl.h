@@ -1940,6 +1940,11 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this is a class template symbol associated
 			   with a template template parameter. */
       a_bit_field
+		involves_template_param;
+			/* TRUE for template template parameters for which
+			   one or more template parameters depends on another
+			   template parameter. */
+      a_bit_field
 		any_full_instantiations:1;
 			/* TRUE if any full instantiations have been done of
 			   this template or any of its partial
@@ -4038,6 +4043,10 @@ extern char *db_symbol_trans_unit(a_symbol_ptr sym);
 extern void db_symbol_name_trans_unit(a_symbol_ptr sym);
 
 extern char *db_canonical_ptr_for_symbol(a_symbol_ptr	sym);
+
+extern void db_template_param_list(a_template_param_ptr	tpp);
+
+extern void db_template_parameter(a_template_param_ptr	tpp);
 
 /*
 Information used to gather performance statistics related to symbol

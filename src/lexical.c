@@ -9425,6 +9425,26 @@ done using the disambiguation routines.
 }  /* scan_unknown_template_arg_list */
 
 
+static a_boolean is_template_template_param_of_current_decl(
+					a_symbol_ptr	template_sym)
+/*
+Determine whether the template template parameter specified by template_sym
+was declared by a template declaration scope currently on the scope stack.
+*/
+{
+  a_boolean	result = FALSE;
+  a_boolean	is_local_to_function = FALSE;
+  a_scope_depth	depth;
+
+  depth = scope_depth_of_symbol(template_sym, &is_local_to_function);
+  if (depth != NO_SCOPE_DEPTH &&
+      scope_stack[depth].kind == (sck_template_declaration)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_template_template_peram_of_current_decl */
+
+
 static
 a_template_arg_ptr scan_template_argument_list(a_symbol_ptr	template_sym,
 					       a_boolean        *any_errors)
@@ -9440,21 +9460,31 @@ associated.  any_errors is set to TRUE if any errors are detected by
 this routine.  Its value is unchanged if no errors are detected.
 */
 {
-  a_template_param_ptr            param_ptr = NULL;
-  a_symbol_ptr                    sym;
-  a_type_ptr                      argument_type;
-  a_constant_ptr                  constant;
-  a_template_arg_ptr              arg_ptr;
-  a_template_arg_ptr              arg_list = NULL;
-  a_template_arg_ptr              last_arg = NULL;
-  a_templ_arg_kind		  arg_kind;
-  a_template_decl_info_ptr	  decl_info;
+  a_template_param_ptr             param_ptr = NULL;
+  a_symbol_ptr                     sym;
+  a_type_ptr                       argument_type;
+  a_constant_ptr                   constant;
+  a_template_arg_ptr               arg_ptr;
+  a_template_arg_ptr               arg_list = NULL;
+  a_template_arg_ptr               last_arg = NULL;
+  a_templ_arg_kind		   arg_kind;
+  a_template_decl_info_ptr	   decl_info;
+  a_template_symbol_supplement_ptr tssp;
+  a_boolean			   templ_templ_param_of_curr_decl = FALSE;
 
-  decl_info = template_sym->variant.template_info->cache.decl_info;
+  tssp = template_sym->variant.template_info;
+  decl_info = tssp->cache.decl_info;
   param_ptr = decl_info->parameters;
   /* Indicate that this is an error case if the template has any empty
      parameter list. */
   if (param_ptr == NULL) *any_errors = TRUE;
+  if (tssp->variant.class_template.template_template_param) {
+    /* The template whose argument list is being scanned is a template
+       template argument.  Determine whether the template declaration
+       scope for that argument is still one the scope stack. */
+    templ_templ_param_of_curr_decl =
+                     is_template_template_param_of_current_decl(template_sym);
+  }  /* if */
   do {
     a_source_position  arg_pos;
     /* If the current token is a ">", and this is the first argument,
@@ -9491,9 +9521,10 @@ this routine.  Its value is unchanged if no errors are detected.
       /* If the type of a constant involves a template parameter type,
          rescan the declaration of the parameter type to get the type
          to be used in this argument list. */
-      if (param_ptr->variant.constant.type_involves_template_param) {
-	constant_type = rescan_template_constant_parameter
-                             (template_sym, sym, param_ptr, arg_list,
+      if (param_ptr->variant.constant.type_involves_template_param &&
+          !templ_templ_param_of_curr_decl) {
+	constant_type = rescan_template_constant_parameter(
+                              template_sym, sym, param_ptr, arg_list,
                               /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
       }  /* if */
       constant = fs_constant((a_constant_repr_kind)ck_error);
@@ -9508,11 +9539,22 @@ this routine.  Its value is unchanged if no errors are detected.
       arg_ptr->variant.constant = constant;
     } else {
       /* A template template argument. */
-      a_template_ptr	templ;
+      a_template_ptr		templ;
+      a_template_ptr		param_template;
       check_assertion_str(sym->kind == (a_symbol_kind)sk_class_template,
                           "scan_template_argument_list: template expected");
-      templ = scan_template_template_argument(
-                        param_ptr->variant.templ->il_template_entry, &arg_pos);
+      param_template = param_ptr->variant.templ->il_template_entry;
+      if (param_ptr->variant.templ->
+                              variant.class_template.involves_template_param &&
+          !templ_templ_param_of_curr_decl) {
+        /* The template template parameter depends on another template
+           parameter (e.g., "template <class T, template <T t> class X> ...").
+           Rescan the template template parameter declaration to create a new
+           parameter template. */
+        param_template = rescan_template_template_parameter(
+                                       template_sym, param_ptr, arg_list);
+      }  /* if */
+      templ = scan_template_template_argument(param_template, &arg_pos);
       arg_ptr->variant.templ = templ;
     }  /* if */
     /* Link this entry on to the argument list. */
@@ -9568,14 +9610,18 @@ this routine.  Its value is unchanged if no errors are detected.
           /* A nontype argument. */
           check_assertion(is_nontype_templ_arg(arg_ptr));
 	  if (param_ptr->has_default_arg) {
-            /* A constant parameter.  The default value can be either a
-  	       constant value or a token cache that needs to be scanned.
-               Call a routine that will rescan the type declaration and/or
-               default argument expression. */
-            (void)rescan_template_constant_parameter
-                                    (template_sym, sym, param_ptr, arg_list,
+            if (!templ_templ_param_of_curr_decl) {
+              /* A constant parameter.  The default value can be either a
+	         constant value or a token cache that needs to be scanned.
+                 Call a routine that will rescan the type declaration and/or
+                 default argument expression. */
+              (void)rescan_template_constant_parameter(
+                                     template_sym, sym, param_ptr, arg_list,
                                      /*do_default_arg=*/TRUE, &constant);
-            arg_ptr->variant.constant = constant;
+              arg_ptr->variant.constant = constant;
+            } else {
+              arg_ptr->variant.constant = param_ptr->default_arg.constant;
+            }  /* if */
           } else {
             /* A nontype constant without a default argument.  This also only
                occurs in error cases.  Use an error constant. */

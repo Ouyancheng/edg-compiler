@@ -192,6 +192,11 @@ extern a_type_ptr rescan_template_constant_parameter
                                       a_boolean		   do_default_arg,
                                       a_constant_ptr       *constant);
 
+extern a_template_ptr rescan_template_template_parameter(
+				a_symbol_ptr		template_sym,
+				a_template_param_ptr	param_ptr,
+				a_template_arg_ptr	arg_list);
+
 extern a_type_ptr rescan_template_type_default_arg
                                      (a_symbol_ptr	   template_sym,
 			              a_template_param_ptr param_ptr,
