@@ -550,10 +550,15 @@ Display the indicated source correspondence entry.
      mangled_name_cannot_be_included_in_other_name, which are used only in
      the front end. */
 #endif /* NEED_NAME_MANGLING */
-#if ONE_INSTANTIATION_PER_OBJECT
   if (scp->static_used_by_instantiation) {
     disp_boolean("  static_used_by_instantiation", TRUE);
   }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+  if (scp->duplicate_static_in_instantiation_slices) {
+    disp_boolean("  duplicate_static_in_instantiation_slices", TRUE);
+  }  /* if */
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (scp->copied_from_secondary_trans_unit) {
     disp_boolean("  copied_from_secondary_trans_unit", TRUE);

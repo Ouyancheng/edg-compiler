@@ -12457,12 +12457,12 @@ files can reference it.
   scp->name_linkage = (a_name_linkage_kind)nlk_external;
 }  /* externalize_source_correspondence */
 
-#if ONE_INSTANTIATION_PER_OBJECT
 
 void make_statics_referenced_from_instantiations_external(void)
 /*
 When generating instantiations in separate object files, make any
 static variables or functions referenced from instantiations external.
+This also comes up for statics referenced from exported templates.
 This must be called after IL lowering for the file scope, and after
 the needed-flag walk for the file scope.
 */
@@ -12481,9 +12481,11 @@ the needed-flag walk for the file scope.
          rout != NULL;
          rout = rout->next) {
       if (rout->source_corresp.static_used_by_instantiation &&
+#if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
           !rout->source_corresp.duplicate_static_in_instantiation_slices &&
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
           !rout->is_inline) {
         if (rout->storage_class != (a_storage_class)sc_static) {
           /* If the entity was changed to non-static after the flag was set,
@@ -12511,9 +12513,11 @@ the needed-flag walk for the file scope.
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
       /* Do not insert code here.  This is the "else" of an "if". */
       if (var->source_corresp.static_used_by_instantiation
+#if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
           && !var->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
                                                                           ) {
         if (var->storage_class != (a_storage_class)sc_static) {
           /* If the entity was changed to non-static after the flag was set,
@@ -12530,7 +12534,6 @@ the needed-flag walk for the file scope.
   }  /* if */
 }  /* make_statics_referenced_from_instantiations_external */
 
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 void lower_il_memory_region(a_memory_region_number region_number)
 /*

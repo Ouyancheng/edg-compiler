@@ -1066,13 +1066,13 @@ typedef struct a_source_correspondence {
 			   and block extern declarations.  Set/used only within
 			   the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
 			/* TRUE if this entity is a static variable or function
 			   that is referenced from an instantiation and
 			   therefore needs to be made external (unless the
 			   duplicate_static_in_instantiation_slices flag is
 			   set). */
+#if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
   a_bit_field	duplicate_static_in_instantiation_slices:1;
 			/* TRUE if this is a special internal entity that
