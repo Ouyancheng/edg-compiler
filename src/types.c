@@ -4599,56 +4599,6 @@ is allocated, it is allocated in the file scope.
 }  /* composite_type */
 
 
-static a_boolean types_distinguishable(a_type_ptr orig_type_1,
-                                       a_type_ptr orig_type_2,
-                                       a_boolean  *params_all_compatible)
-/*
-Return TRUE if the types type_1 and type_2 are distinguishable by overload
-resolution.  If they are not distinguishable and they are not compatible,
-set *params_all_compatible to FALSE (but do not change it otherwise; it's
-cumulative over all the parameters).
-*/
-{
-  a_boolean  reference_dropped = FALSE, distinguishable = FALSE;
-  a_type_ptr type_1 = orig_type_1;
-  a_type_ptr type_2 = orig_type_2;
-
-  /* See if one of the types is a reference to the other type,
-     e.g., T and T&. */
-  if (is_reference_type(type_1)) {
-    type_1 = type_pointed_to(type_1);
-    reference_dropped = TRUE;
-  }  /* if */
-  if (is_reference_type(type_2)) {
-    type_2 = type_pointed_to(type_2);
-    reference_dropped = TRUE;
-  }  /* if */
-  /* If neither top-level type was a reference, drop the type qualifiers
-     (it's impossible to distinguish between T, const T, and volatile T,
-     but it's possible to distinguish between T&, const T&, and
-     volatile T&). */
-  if (!reference_dropped) {
-    type_1 = skip_typerefs(type_1);
-    type_2 = skip_typerefs(type_2);
-  }  /* if */
-  /* Now compare the types.  If any error types appear in the type tree, that
-     will be enough to distinguish the types. */
-  if (!f_types_are_compatible(type_1, type_2, TCF_NO_FLAGS)) {
-    /* The two types are distinguishable. */
-    distinguishable = TRUE;
-  } else {
-    /* The types are indistinguishable.  See if the original types are
-       compatible (meaning the same type, roughly).  This is useful to know
-       in issuing the right error message. */
-    if (*params_all_compatible &&
-        !types_are_strictly_compatible(orig_type_1, orig_type_2)) {
-      *params_all_compatible = FALSE;
-    }  /* if */
-  }  /* if */
-  return distinguishable;
-}  /* types_distinguishable */
-
-
 a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
                                    a_type_ptr    new_type,
                                    a_boolean     new_is_template,
@@ -4665,7 +4615,7 @@ in that case), as may any of the types on the old list.  Only callable
 in C++ mode.  See ARM 13.
 */
 {
-  a_boolean        distinguishable = TRUE, params_all_compatible;
+  a_boolean        distinguishable = TRUE;
   a_boolean        old_is_list, old_is_template;
   a_type_ptr       old_type;
   a_param_type_ptr old_param, new_param;
@@ -4673,7 +4623,6 @@ in C++ mode.  See ARM 13.
                    old_extra_info, new_extra_info;
   a_type_ptr       old_this_param_type, new_this_param_type;
   a_boolean        old_this_qualified, new_this_qualified;
-  a_boolean        linkages_compat;
 
   db_enter(5, "overload_distinguishable");
   *err_code = ec_no_error;
@@ -4704,7 +4653,6 @@ in C++ mode.  See ARM 13.
       goto distinguishable_determined;
     }  /* if */
     distinguishable = FALSE;
-    params_all_compatible = TRUE;
     /* Get the old routine type. */
     if (old_is_template) {
       old_type = old_sym_ptr->variant.template_info->
@@ -4729,8 +4677,8 @@ in C++ mode.  See ARM 13.
                                     type_pointed_to(old_this_param_type)));
     if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
         (old_this_param_type != NULL && new_this_param_type != NULL &&
-         types_distinguishable(old_this_param_type, new_this_param_type,
-                               &params_all_compatible))) {
+         !f_types_are_compatible(old_this_param_type, new_this_param_type,
+                                 TCF_NO_FLAGS))) {
       /* "this" parameter types are distinguishable; this probably means
          one function is const or volatile and the other isn't. */
       distinguishable = TRUE;
@@ -4738,11 +4686,9 @@ in C++ mode.  See ARM 13.
     }  /* if */
     /* If linkage specifications on the routine types are not compatible,
        the types are distinguishable. */
-    linkages_compat = routine_linkages_are_compatible(
-                                 old_extra_info->routine_name_linkage,
-                                 new_extra_info->routine_name_linkage,
-                                 /*is_impl_conv=*/FALSE);
-    if (!linkages_compat) {
+    if (!routine_linkages_are_compatible(old_extra_info->routine_name_linkage,
+                                         new_extra_info->routine_name_linkage,
+                                        /*is_impl_conv=*/FALSE)) {
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
@@ -4768,40 +4714,36 @@ in C++ mode.  See ARM 13.
            such types. */
         if ((old_param->type_involves_template_param !=
                            new_param->type_involves_template_param) ||
-            types_distinguishable(old_param->type, new_param->type,
-                                  &params_all_compatible)) {
+            !f_types_are_compatible(old_param->type, new_param->type,
+                                    TCF_NO_FLAGS)) {
           distinguishable = TRUE;
           goto distinguishable_determined;
         }  /* if */
       }  /* if */
     }  /* for */
-    /* All the parameters are indistinguishable. */
-    if (params_all_compatible) {
-      if ((old_this_param_type == NULL) != (new_this_param_type == NULL)) {
-        /* Except in certain cases in cfront mode, it's an error to overload
-           a static and nonstatic member function whose parameter types are
-           the same. */
-        *err_code = ec_static_nonstatic_with_same_param_types;
-      } else {
-        /* The parameter types are not just indistinguishable, they are
-           compatible.  This suggests that the user is trying to distinguish
-           the function on the basis of the return type, which is not
-           valid. */
+    /* Falling through to here means the parameter types are all
+       indistinguishable. */
+    if ((old_this_param_type == NULL) != (new_this_param_type == NULL)) {
+      /* Except in certain cases in cfront mode, it's an error to overload
+         a static and nonstatic member function whose parameter types are
+         the same. */
+      *err_code = ec_static_nonstatic_with_same_param_types;
+    } else {
+      /* The parameter types are compatible, so the only incompatibility
+         remaining must have to do with the return types. */
 #if CHECKING
-        if (types_are_strictly_compatible(
+      if (types_are_strictly_compatible(
                                   old_type->variant.routine.return_type,
                                   new_type->variant.routine.return_type)) {
-          /* The caller is supposed to have ensured that the case of
-             completely compatible function types does not come here, since
-             that's a case of redeclaration rather than overloading. */
-          internal_error("overload_distinguishable: types compatible");
-        }  /* if */
-#endif /* CHECKING */
-        *err_code = ec_return_type_cannot_distinguish_functions;
+        /* The caller is supposed to have ensured that the case of
+           completely compatible function types does not come here, since
+           that's a case of redeclaration rather than overloading. */
+        internal_error("overload_distinguishable: types compatible");
       }  /* if */
-    } else {
-      /* The parameter lists differ in some way. */
-      *err_code = ec_overloaded_function_types_too_similar;
+#endif /* CHECKING */
+      /* User is trying to distinguish the function on the basis of the return
+         type, which is not valid. */
+      *err_code = ec_return_type_cannot_distinguish_functions;
     }  /* if */
 distinguishable_determined:;
   } while (distinguishable &&
