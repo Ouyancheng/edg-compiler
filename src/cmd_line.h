@@ -126,6 +126,7 @@ typedef enum /*an_option_kind*/ {
   optk_building_runtime,
   optk_bool_is_keyword,
   optk_array_new_and_delete,
+  optk_explicit,
   optk_namespaces,
   optk_implicit_using_std,
   optk_remove_unneeded_entities,
@@ -309,6 +310,14 @@ EXTERN a_boolean
 			   enabled.  Significant only in C++ mode.  They
 			   cannot be enabled if the ABI changes for them
 			   are not enabled. */
+EXTERN a_boolean
+		explicit_keyword_enabled
+#if VAR_INITIALIZERS
+                                         = DEFAULT_EXPLICIT_KEYWORD_ENABLED
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
+			/* TRUE if the "explicit" keyword is recognized.
+			   Significant only in C++ mode. */
 EXTERN a_boolean
 		namespaces_enabled
 #if VAR_INITIALIZERS

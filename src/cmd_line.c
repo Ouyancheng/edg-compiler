@@ -506,6 +506,14 @@ Initialize the option information table.
                          "no_array_new_and_delete", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_explicit,
+                         "explicit", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_explicit,
+                         "no_explicit", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_namespaces,
                          "namespaces", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1087,6 +1095,7 @@ common_cfront_mode_settings:
         allow_anachronisms = TRUE;
         long_lifetime_temps = TRUE;
         bool_is_keyword = FALSE;
+        explicit_keyword_enabled = FALSE;
 #if !RUNTIME_USES_NAMESPACES
         namespaces_enabled = FALSE;
 #endif /* !RUNTIME_USES_NAMESPACES */
@@ -1477,6 +1486,10 @@ common_cfront_mode_settings:
         /* Enable/disable array new and delete. */
         array_new_and_delete_enabled = opt_value;
         break;
+      case optk_explicit:
+        /* Enable/disable recognition of the keyword "explicit". */
+        explicit_keyword_enabled = opt_value;
+        break;
       case optk_namespaces:
         /* Enable/disable namespaces. */
         namespaces_enabled = opt_value;
@@ -1559,6 +1572,9 @@ common_cfront_mode_settings:
     if (option_kind_used[(int)optk_array_new_and_delete]) {
       command_line_error(ec_cl_array_new_and_delete_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_explicit]) {
+      command_line_error(ec_cl_explicit_option_only_in_cplusplus);
+    }  /* if */
     if (option_kind_used[(int)optk_namespaces]) {
       command_line_error(ec_cl_namespaces_option_only_in_cplusplus);
     }  /* if */
@@ -1588,6 +1604,7 @@ common_cfront_mode_settings:
     exceptions_enabled = FALSE;
     rtti_enabled = FALSE;
     array_new_and_delete_enabled = FALSE;
+    explicit_keyword_enabled = FALSE;
     namespaces_enabled = FALSE;
     wchar_t_is_keyword = FALSE;
     bool_is_keyword = FALSE;
@@ -1680,6 +1697,11 @@ common_cfront_mode_settings:
         /* If array_new_and_delete_enabled was not explicitly set by a
            command line option, set it now. */
         array_new_and_delete_enabled = ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_explicit])) {
+        /* If explicit_keyword_enabled was not explicitly set by a command
+           line option, set it now. */
+        explicit_keyword_enabled = TRUE;
       }  /* if */
       if (!(option_kind_used[(int)optk_namespaces])) {
         /* If namespaces_enabled was not explicitly set by a command line
