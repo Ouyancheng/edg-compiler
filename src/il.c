@@ -6969,7 +6969,8 @@ expression.
 an_expr_node_ptr var_lvalue_expr(a_variable_ptr var)
 /*
 Build an expression node that represents the lvalue address of var and
-return a pointer to it.
+return a pointer to it.  Note that this routine does not do anything special
+for variables with reference type.
 */
 {
   an_expr_node_ptr node;
@@ -6984,7 +6985,8 @@ return a pointer to it.
 an_expr_node_ptr var_rvalue_expr(a_variable_ptr var)
 /*
 Build an expression node that represents the rvalue value of var and
-return a pointer to it.
+return a pointer to it.  Note that this routine does not do anything special
+for variables with reference type.
 */
 {
   an_expr_node_ptr node;
