@@ -679,8 +679,8 @@ integer the same size as a pointer.
 #endif /* !defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
 #ifndef TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
-  (((2*TARG_SIZEOF_SHORT+TARG_SIZEOF_POINTER-1)/TARG_ALIGNOF_POINTER)+1)* \
-   TARG_ALIGNOF_POINTER
+  ((((2*TARG_SIZEOF_SHORT+TARG_SIZEOF_POINTER-1)/TARG_ALIGNOF_POINTER)+1)* \
+    TARG_ALIGNOF_POINTER)
 			/* Default value, used to initialize global variable
 			   targ_sizeof_ptr_to_member_function. */
 #endif /* !defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION) */
