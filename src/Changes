@@ -62,6 +62,14 @@ mode this is reduced to a warning.  For example:
   };
   B::~B(){}    // Usually an error
 
+2/5/93  Change in default instantiation mode
+
+It is expected that most applications will use the pragma mechanism
+for instantiation of noninline functions.  Consequently, the default
+value for the instantiation mode option has been changed from "local"
+to "none".  This means that no out-of-line functions will be instantiated
+unless a pragma requesting an instantiation is present.
+
 2/5/93  Instantiation pragmas
 
 Instantiation of template functions and static data members can now be
