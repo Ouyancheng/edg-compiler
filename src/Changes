@@ -1,5 +1,10 @@
 Version 2.42
 
+3/18/99  lower_dynamic_cast did not work right for ABI versions < 241
+
+lower_dynamic_cast made reference to an uninitialized local variable
+when the front end is built with a ABI version < 241.  Now fixed.
+
 3/18/99  Abort in composite_array_type eliminated
 
 A template redeclaration could trigger an internal error in

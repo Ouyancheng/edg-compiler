@@ -6622,10 +6622,10 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
     set_variable_address_constant(var, &constant,
                                   /*set_address_taken_flag=*/TRUE);
   }  /* if */
+  desired_type_node = alloc_node_for_constant(&constant);
 #if ABI_COMPATIBILITY_VERSION >= 241
   /* Make the pointer to the original source. */
   orig_src_copy = make_reusable_copy(src, /*vars_can_change=*/FALSE);
-  desired_type_node = alloc_node_for_constant(&constant);
   /* Make the static_type argument. */
   set_variable_address_constant(make_typeinfo_var(
                                   f_skip_typerefs(type_pointed_to(src->type))),
