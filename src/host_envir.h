@@ -445,10 +445,6 @@ with a C back end.
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
  #error -- IL lowering must be done for the C-generating back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION && !DO_IL_LOWERING
- #error -- IL lowering must be done if automatic instantiation is allowed.
-/* This is because the name mangling routines are needed. */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && !DO_IL_LOWERING */
 
 /*
 If DO_IL_LOWERING is TRUE, this gives the routine names used for the
@@ -503,6 +499,9 @@ IL lowering is used or if automatic template instantiation is selected.
 #define NEED_NAME_MANGLING FALSE
 #endif /* ifndef NEED_NAME_MANGLING */
 #endif /* DO_IL_LOWERING ... */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION && !NEED_NAME_MANGLING
+ #error -- Name mangling code is needed if automatic instantiation is allowed.
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && !NEED_NAME_MANGLING */
 
 /*
 Flag that is TRUE if unrecognized pragmas should be accepted and passed
