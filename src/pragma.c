@@ -624,27 +624,13 @@ otherwise return FALSE.
 static void add_pragma_to_il(a_pending_pragma_ptr  ppp,
                              an_il_entry_kind      entity_kind,
                              char                  *entity_ptr,
-			     a_type_ptr		   class_type,
-                             a_boolean             at_file_scope)
+                             a_boolean             is_global)
 /*
 ppp points to the front-end representation of a pragma.  When the pragma
 binding kind is pbk_next, entity_ptr is a pointer to the IL entry of the
 specified entity_kind with which the pragma is associated; otherwise,
-entity_ptr is NULL.
-
-When adding a pragma to the IL, it is necessary to determine the
-memory region in which the pragma entry should be allocated and the
-scope list onto which the pragma entry should be added.  For pragmas
-that are not bound to entities, both the memory region and scope
-are determined by the at_file_scope flag.  For pragmas bound to
-entities, the memory region is always the same as the memory
-region of the entity to which the pragma is bound.  The scope for
-pragmas bound to entities is the scope of the class of which the entity
-is a member (for class members), the file scope (for entities in the file
-scope memory region) or the current scope (for other entities).
-
-class_type points to the class of which the entity
-is a member, or NULL if the entity is not a member of a class.
+entity_ptr is NULL.  is_global, which is used only when entity_ptr is NULL,
+indicates whether the unbound entity is global or local in scope.
 
 This routine (1) allocates the IL pragma entry and initializes it, (2)
 binds it to the entity it's associated with, if any, and sets the
@@ -654,20 +640,67 @@ and (5) returns a pointer to the IL pragma entry to the caller, in case
 there is additional processing to be done.
 */
 {
-  a_pragma_ptr            pp;
-  a_memory_region_number  region_to_switch_back_to;
+  a_pragma_ptr             pp;
+  a_memory_region_number   region_to_switch_back_to;
+  a_boolean                in_fs_memory = FALSE;
+  a_scope_depth            scope_depth = decl_scope_level;
+  a_source_correspondence  *scp = NULL;
 
   db_enter(5, "add_pragma_to_il");
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Pragmas are never added to the IL inside a prototype instantiation. */
   } else {
-    if (entity_ptr != NULL) {
-      /* If we are binding to an entity, the IL pragma entry should be
-         allocated in the current memory if class_type is NULL, or at file
-         scope if a class_type is specified. */
-      at_file_scope = class_type != NULL || in_file_scope(entity_ptr);
+    /* Determine the memory region in which the IL pragma entry should be
+       allocated and the scope_depth of the scope entry to which it should
+       be attached. */
+    if (entity_ptr == NULL) {
+      /* The pragma is not associated with any entity.  If it is a global
+         pragma, associate it with the file scope; otherwise, it belongs to
+         the local context. */
+      if (is_global) {
+        scope_depth == DEPTH_OF_FILE_SCOPE;
+        /* Force a change to the file-scope memory region, if needed. */
+        in_fs_memory = TRUE;
+      }  /* if */
+    } else if (entity_kind == (an_il_entry_kind)iek_statement) {
+      /* Pragmas bound to statements are in local memory and are attached to
+         the current scope. */
+      /* Set the has_associated_pragma field. */
+      ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
+    } else {
+      /* We are binding to a declarative entity, and the IL pragma entry
+         should be allocated in file-scope memory if the entity itself was
+         allocated there; otherwise, use the current memory. */
+      scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
+      check_assertion_str2(scp != NULL, "add_pragma_to_il:",
+                           "invalid entity kind (no source corresp)");
+      if (in_file_scope(entity_ptr)) {
+        /* Force a change to the file-scope memory region, if needed. */
+        in_fs_memory = TRUE;
+        if (!C_mode() &&
+            (scp->is_class_member || scp->parent.namespace_ptr != NULL)) {
+          /* For class and namespace members we will use the corresponding IL
+             scope. */
+          scope_depth = NO_SCOPE_DEPTH;
+        } else {
+          /* All other file-scope entities will be attached to the file
+             scope itself. */
+          scope_depth = DEPTH_OF_FILE_SCOPE;
+        }  /* if */
+      }  /* if */
+      /* Set the has_associated_pragma field. */
+      scp->has_associated_pragma = TRUE;
     }  /* if */
-    if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
+    if (in_fs_memory) {
+      switch_to_file_scope_region(&region_to_switch_back_to);
+#if CHECKING
+    } else if (scope_depth == depth_innermost_namespace_scope) {
+      /* No need to switch to the file-scope memory region because that's the
+         default. */
+      check_assertion_str(curr_il_region_number == FILE_SCOPE_REGION_NUMBER,
+                          "add_pragma_to_il: memory region mismatch");
+#endif /* CHECKING */
+    }  /* if */
     pp = alloc_pragma(ppp->descr_ptr->kind);
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
@@ -675,22 +708,9 @@ there is additional processing to be done.
     if (entity_ptr != NULL) {
       pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
       pp->entity.ptr = entity_ptr;
-      /* Set the has_associated_pragma field.  This is in the source
-         correspondence structure for most IL entries.  Statements have
-         no source correspondence structure, but do have a
-         has_associated_pragma in the statement structure. */
-      if (entity_kind == (an_il_entry_kind)iek_statement) {
-        ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
-      } else {
-        a_source_correspondence *scp;
-        scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
-        check_assertion_str2(scp != NULL, "add_pragma_to_il:",
-                             "invalid entity kind (no source corresp)");
-        scp->has_associated_pragma = TRUE;
-      }  /* if */
     }  /* if */
-    add_to_pragma_list(pp, at_file_scope, class_type);
-    if (at_file_scope) {
+    add_to_pragma_list(pp, scope_depth, scp);
+    if (in_fs_memory) {
       switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -719,39 +739,32 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
 {
   char              		 *entity;
   an_il_entry_kind	 	 entity_kind;
-  a_boolean	         	 at_file_scope;
+  a_boolean	         	 is_global = FALSE;
   a_boolean			 is_bound_to_il;
   a_pragma_kind_description_ptr	 pkdp;
-  a_type_ptr			 class_type = NULL;
 
   db_enter(5, "create_il_entry_for_pragma");
   pkdp = ppp->descr_ptr;
+#if CHECKING
   /* Next construct pragmas must be bound to an IL entry.  Other binding
      kinds may optionally be bound to an IL entry. */
-  is_bound_to_il = pkdp->binding_kind == pbk_next_construct ||
-                   (sp != NULL || sym != NULL);
-#if CHECKING
-  if (is_bound_to_il) {
-    check_assertion_str
-          ((sym == NULL) != (sp == NULL),
-          "create_il_entry_for_pragma: invalid next_construct call");
+  if (pkdp->binding_kind == pbk_next_construct) {
+    check_assertion_str2((sym == NULL) != (sp == NULL),
+                         "create_il_entry_for_pragma:",
+                         "invalid next_construct call");
   }  /* if */
 #endif /* CHECKING */
-  if (is_bound_to_il) {
-    if (sym != NULL) {
-      entity = il_entry_for_symbol(sym, &entity_kind);
-      if (sym->is_class_member) class_type = sym->parent.class_type;
-    } else {
-      entity = (char *)sp;
-      entity_kind = (an_il_entry_kind)iek_statement;
-    }  /* if */
-    at_file_scope = FALSE;
+  if (sym != NULL) {
+    entity = il_entry_for_symbol(sym, &entity_kind);
+  } else if (sp != NULL) {
+    entity = (char *)sp;
+    entity_kind = (an_il_entry_kind)iek_statement;
   } else {
     entity = NULL;
     entity_kind = (an_il_entry_kind)iek_none;
-    at_file_scope = pkdp->global;
+    is_global = pkdp->global;
   }  /* if */
-  add_pragma_to_il(ppp, entity_kind, entity, class_type, at_file_scope);
+  add_pragma_to_il(ppp, entity_kind, entity, is_global);
   db_exit();
 }  /* create_il_entry_for_pragma */
 
