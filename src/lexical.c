@@ -5974,6 +5974,7 @@ responsible for issuing error messages.
   }  /* while */
 return_point:
   end_of_curr_token = curr_char_loc;
+  if (unterminated) end_of_curr_token--;
   *num_chars = nchars;
   return unterminated;
 }  /* accum_quoted_string */
