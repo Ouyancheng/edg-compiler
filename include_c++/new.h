@@ -42,8 +42,8 @@ namespace std {
 
 #endif /* ifndef __NO_EDG_EXCEPTION_CLASSES */
 
-  typedef void (*__new_handler)();
-  __new_handler set_new_handler(__new_handler);
+  typedef void (*new_handler)();
+  new_handler set_new_handler(new_handler);
   struct nothrow_t { };
   // Declaration of object nothrow to permit the use of the placement new
   // syntax: new (nothrow) T;

@@ -1,3 +1,11 @@
+Version 2.32
+
+7/22/96 Use standard name for the new handler type
+
+In new.h, __new_handler was changed to new_handler as specified in the
+working paper.
+
+-------------------------------------------------------------------------------
 Version 2.32, June 28, 1996
 
 5/6/96  Revised nothrow new implementation
