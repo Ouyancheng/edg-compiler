@@ -4557,9 +4557,12 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
      in constant expressions). */
   if (curr_expr_kind_is_const()) {
     can_fold = TRUE;
-  } else if (is_constant_operand(operand)) {
-    /* In a non-constant expression, fold casts of constant rvalues. */
-    if (is_an_rvalue(operand)) can_fold = TRUE;
+  } else if (is_constant_operand(operand) &&
+             is_an_rvalue(operand) &&
+             !is_class_struct_union_type(dest_type)) {
+    /* In a non-constant expression, fold casts of constant rvalues,
+       except casts to class types. */
+    can_fold = TRUE;
   }  /* if */
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
@@ -4594,7 +4597,6 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
       expr = make_operator_node(op, dest_type, expr);
       if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
       make_expression_operand(expr, dest_type, operand);
-      restore_operand_details_incl_ref(operand, &orig_operand);
     }  /* if */
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
@@ -6036,6 +6038,25 @@ the expression.
       node->kind = (an_expr_node_kind)enk_variable_address;
       set_variable_address_taken(node->variant.variable);
       node->implicit_reference_indirection = FALSE;
+    }  /* if */
+  } else if (is_constant_node(node)) {
+    a_constant_ptr con = node->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param &&
+        con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member) {
+      /* The value of a a member of a nonreal class.  Change it to the
+         address of the member. */
+      possible = TRUE;
+      if (!see_if_possible) {
+        a_constant addr_con;
+        clear_constant(&addr_con, (a_constant_repr_kind)ck_template_param);
+        set_template_param_constant_kind(
+                                 &addr_con,
+                                 (a_template_param_constant_kind)tpck_address);
+        addr_con.variant.template_param.variant.constant = con;
+        addr_con.type = type_of_unknown_templ_param_nontype;
+        node->variant.constant = alloc_shareable_constant(&addr_con);
+      }  /* if */
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
              !node->variant.init.result_is_addr) {
