@@ -2388,10 +2388,10 @@ Allocate bcp (an empty base class).
   an_unnormalized_bit_offset dummy = 0;
 
   /* Attempt to allocate the base at offset zero.  Some GNU compilers do not
-     always use offset zero for the initial attempt at placing an empty
+     always use offset zero for the initial attempt at placing a direct empty
      virtual base: Instead they may use an offset computed for the virtual
      base in one of the direct base types. */
-  if (emulate_gnu_abi_bugs && bcp->is_virtual) {
+  if (emulate_gnu_abi_bugs && bcp->is_virtual && bcp->direct) {
     offset = virtual_base_offset_computed_for_last_direct_base_type(bcp);
   }  /* if */
   if (!(base_subobject_conflict(bcp, offset) ||
