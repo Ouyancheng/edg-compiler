@@ -3235,6 +3235,8 @@ the current state have in common.
 {
   /* Pop any namespaces we're inside of that we do not want to be inside of. */
   while (curr_name_context->assoc_scope != common_scope) {
+    check_assertion(curr_name_context->assoc_scope->kind ==
+                                                  (a_scope_kind)sck_namespace);
     write_tok_str("} ");
     pop_name_context();
   }  /* while */
@@ -3244,6 +3246,8 @@ the current state have in common.
     /* Find the scope one down from the current one. */
     a_scope_ptr     temp_scope = desired_scope, parent;
     for (;;) {
+      check_assertion(temp_scope != NULL &&
+                      temp_scope->kind == (a_scope_kind)sck_namespace);
       nsp = temp_scope->variant.assoc_namespace;
       parent = parent_scope_of_full(&nsp->source_corresp);
       if (parent == curr_name_context->assoc_scope) break;
