@@ -5259,6 +5259,11 @@ This routine may only be called in C++ mode.
         class_symbol = NULL;
       }  /* if */
     }  /* if */
+    /* Clear the specific symbol field which may have been set by the lookups
+       performed above.  It must be cleared in case this isn't actually a
+       qualified name.  We clear it now because it may be set again if a
+       template reference is coalesced and we don't want to lose that value. */
+    locator_for_curr_id.specific_symbol = NULL;
     /* If the class symbol is for a class template, process the argument
        list. */
     class_symbol = check_for_class_template(class_symbol, options, &err);
@@ -5279,6 +5284,10 @@ This routine may only be called in C++ mode.
       /* This is a qualifier. */
       is_qualified_name = TRUE;
       is_file_scope_qualified_name = FALSE;
+      /* Restore the specific_symbol with the class symbol determined earlier.
+         This needs to be restored so that access and ambiguity checking can
+	 be done. */
+      locator_for_curr_id.specific_symbol = class_symbol;
       for (;;) {
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
@@ -5360,9 +5369,6 @@ This routine may only be called in C++ mode.
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
-  /* Clear the specific symbol field which may have been set by the lookups
-     performed above. */
-  locator_for_curr_id.specific_symbol = NULL;
   if (is_qualified_name) {
     /* This is a qualifier -- see if it is a pointer to member. */
     if (curr_token == tok_star) {
