@@ -92,6 +92,8 @@ predicates.
 /* Union or aggregate types are simply unions or aggregates. */
 #define is_aggregate_or_union(tp) (is_aggregate(tp) || is_union(tp))
 
+/* Pointer-to-member type. */
+#define is_ptr_to_member(tp) ((tp)->kind == (a_type_kind)tk_ptr_to_member)
 
 a_type_ptr f_skip_typerefs(a_type_ptr type_ptr)
 /*
@@ -451,6 +453,16 @@ array, class, struct, and union types.
   tp = skip_typerefs(tp);
   return(is_aggregate_or_union(tp));
 }  /* is_aggregate_or_union_type */
+
+
+a_boolean is_ptr_to_member_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a pointer-to-member type (C++ only).
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_ptr_to_member(tp);
+}  /* is_ptr_to_member_type */
 
 
 a_type_ptr array_element_type(a_type_ptr array_type)
@@ -881,6 +893,15 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_array:
         set_array_type_size(type_ptr);
         goto size_already_set;
+      case tk_ptr_to_member:
+        if (is_function_type(type_ptr->variant.ptr_to_member.type)) {
+          size = TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION;
+          alignment = TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION;
+        } else {
+          size = TARG_SIZEOF_PTR_TO_DATA_MEMBER;
+          alignment = TARG_ALIGNOF_PTR_TO_DATA_MEMBER;
+        }  /* if */
+        break;
 #if CHECKING
       case tk_class:
       case tk_struct:
