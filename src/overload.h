@@ -63,8 +63,8 @@ typedef struct a_conv_descr {
 			/* If TRUE, the function returns a reference and the
 			   reference should be left as an lvalue rather than
 			   converted to an rvalue.  If FALSE, the result is
-			   always an lvalue (either originally or after
-			   an lvalue-->rvalue conversion).  Note that this
+			   an rvalue (either originally or after an
+			   lvalue-->rvalue conversion).  Note that this
 			   is meaningful even when the entry indicates no
 			   conversion. */
   a_byte_boolean
