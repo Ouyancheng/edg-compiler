@@ -387,7 +387,7 @@ Process the arguments on the command line that invoked the compiler.
 	  a_boolean	bad_format;
 	  a_boolean	bad_name;
           instantiation_list_filename = optarg;
-          do_auto_instantiation = TRUE;
+          process_instantiation_list_file = TRUE;
           f_instantiation_information =
                           open_source_file(instantiation_list_filename,
                                            &not_found, &bad_format, &bad_name);
@@ -624,6 +624,9 @@ unknown_option:
   /* Determine the appropriate error level for anachronism messages based
      on whether anachronisms are to be allowed. */
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
+  /* If an instantiation list file was specified make sure that automatic
+     instantiation mode is enabled. */
+  automatic_instantiation_mode |= process_instantiation_list_file;
   /* Choose the style of preprocessing. */
   pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
   if (cfront_compatibility_mode) {
