@@ -4500,6 +4500,8 @@ Do IL lowering of a pointer-to-member constant.
   a_boolean        did_not_fold;
   a_constant_ptr   delta_con, index_con, func_con;
   a_targ_ptrdiff_t delta, index, offset;
+  a_memory_region_number
+                   region_to_switch_back_to = NULL_region_number;
 
   /* A pointer-to-data-member becomes a short; a pointer-to-member-function
      becomes a ck_aggregate to initialize a struct.  Clearly, the places
@@ -4509,6 +4511,14 @@ Do IL lowering of a pointer-to-member constant.
     /* Pointer to member function. */
     repr_for_ptr_to_member_function_constant(constant, &delta, &index,
                                              &routine, &offset);
+    if (lowering_file_scope) {
+      /* Switch to the file scope.  Needed when lowering constants in a
+         file-scope initialization or termination routine: the current memory
+         region would be the one for the generated routine, and the
+         alloc_constant calls below must allocate the constants in the
+         file scope memory region. */
+      switch_to_file_scope_region(&region_to_switch_back_to);
+    }  /* if */
     /* Make sure the struct type used to represent a pointer-to-member-function
        is allocated. */
     (void)make_mptr_type();
@@ -4557,6 +4567,7 @@ Do IL lowering of a pointer-to-member constant.
     delta_con->next = index_con;
     index_con->next = func_con;
     constant->variant.aggregate.last_constant = func_con;
+    switch_back_to_original_region(region_to_switch_back_to);
   } else {
     /* Pointer to data member. */
     repr_for_ptr_to_data_member_constant(constant, &delta);

@@ -1,5 +1,12 @@
 Version 2.16
 
+4/4/93  IL lowering problem with pointer-to-member-function constants
+
+Formerly, when IL lowering processed pointer-to-member-function constants
+in a generated file-scope initialization or termination routine, it
+allocated some constant entries in the wrong memory region, which caused
+an internal error during IL writing/reading.  Now corrected.
+
 4/2/93  Taking the address of a member function without "&"
 
 It is now legal (except in strict mode) to take the address of a member
