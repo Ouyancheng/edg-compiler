@@ -2360,7 +2360,7 @@ the scope must be the file scope.
            type = type->next) {
         if (type->kind == (a_type_kind)tk_typeref &&
             type->variant.typeref.has_variably_modified_type) {
-          /* Variably-modified types are put out where their stmk_vla_typedef
+          /* Variably-modified types are put out where their stmk_vla_decl
              appears.  They cannot be the type of an entity with linkage, so
              not putting them out here is not a problem. */
         } else {
@@ -4881,10 +4881,10 @@ interleaved with the variables.
        var_ptr != NULL;
        var_ptr = var_ptr->next) {
     if (il_header.source_language != sl_Cplusplus &&
-        is_vla_type(var_ptr->type)) {
-      /* The variable has a variable length array type.  Do not put it out
-         now; it will be put out where the corresponding
-         stmk_alloc_vla_variable statement appears. */
+        var_ptr->has_variably_modified_type) {
+      /* The variable has a variably modified type.  Do not put it out now;
+         now; it will be put out where the corresponding stmk_vla_decl
+         statement appears. */
     } else {
       dump_variable_decl(var_ptr, dump_vars_without_initializers,
                          dump_initializers);
@@ -5519,17 +5519,20 @@ Generate C for a statement.
     case stmk_set_vla_size:
       /* No output. */
       break;
-    case stmk_alloc_vla_variable:
-      /* Dump out the declaration of a variable with a variable length array
-         type at the point where it occurs in the executable code sequence. */
-      dump_variable_decl(statement->variant.vla_variable,
-                         /*dump_vars_without_initializers=*/TRUE,
-                         /*dump_initializers=*/TRUE);
-      break;
-    case stmk_vla_typedef:
-      /* Dump out the declaration of a typedef for a variably-modified type
-         at the point where is occurs in the executable code sequence. */
-      dump_type_decl(statement->variant.vla_typedef, /*pass=*/2);
+    case stmk_vla_decl:
+      if (statement->variant.vla.is_typedef_decl) {
+        /* Dump out the declaration of a typedef for a variably-modified type
+           at the point where is occurs in the executable code sequence. */
+        dump_type_decl(statement->variant.vla.variant.typedef_type,
+                       /*pass=*/2);
+      } else {
+        /* Dump out the declaration of a variable with a variably modified
+           type at the point where it occurs in the executable code
+           sequence. */
+        dump_variable_decl(statement->variant.vla.variant.variable,
+                           /*dump_vars_without_initializers=*/TRUE,
+                           /*dump_initializers=*/TRUE);
+      }  /* if */
       break;
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
@@ -5664,8 +5667,7 @@ its subtree.
       case stmk_decl:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:
-      case stmk_alloc_vla_variable:
-      case stmk_vla_typedef:
+      case stmk_vla_decl:
         /* No subtree of statements. */
         break;
       case stmk_return:

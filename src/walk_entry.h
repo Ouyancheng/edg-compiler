@@ -1329,12 +1329,14 @@ do_set_proper_definition_needed_flag:
             remap_ptr(ptr->variant.vla_dimension, a_vla_dimension_ptr,
                       iek_vla_dimension);
             break;
-          case stmk_alloc_vla_variable:
-            remap_ptr(ptr->variant.vla_variable, a_variable_ptr,
-                      iek_variable);
-            break;
-          case stmk_vla_typedef:
-            remap_ptr(ptr->variant.vla_typedef, a_type_ptr, iek_type);
+          case stmk_vla_decl:
+            if (ptr->variant.vla.is_typedef_decl) {
+              remap_ptr(ptr->variant.vla.variant.typedef_type, a_type_ptr,
+                        iek_type);
+            } else {
+              remap_ptr(ptr->variant.vla.variant.variable, a_variable_ptr,
+                        iek_variable);
+            }  /* if */
             break;
 #endif /* ifdef CFE */
 #ifdef FFE

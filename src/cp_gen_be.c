@@ -5755,8 +5755,7 @@ Generate code for the indicated statement.
       suppress_trailing_space = TRUE;
       break;
     case stmk_set_vla_size:
-    case stmk_alloc_vla_variable:
-    case stmk_vla_typedef:
+    case stmk_vla_decl:
       /* No output. */
       break;
     default:

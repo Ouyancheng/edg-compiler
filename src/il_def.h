@@ -4022,8 +4022,15 @@ typedef struct a_variable {
 			   whose type is incompatible with that of another
 			   file-scope variable with the same name, where the
 			   latter is treated as the "official" variable. */
-  a_bit_field   vla_requires_deallocation:1;
-			/* TRUE if this variable is a VLA that requires
+  a_bit_field	has_variably_modified_type:1;
+			/* The type of the variable is a variably modified
+			   type, i.e., is or contains a VLA type. */
+  a_bit_field	is_vla:1;
+			/* The variable is a variable length array, i.e., its
+			   type is a VLA type.  (Note: this flag is TRUE only
+			   if has_variably_modified_type is also TRUE.) */
+  a_bit_field	vla_requires_deallocation:1;
+			/* TRUE if is_vla is TRUE and this variable requires
 			   deallocation.  Deallocation should occur at the end
 			   of the scope in which the VLA was allocated and/or
 			   at a return statement.  (There is no statement
@@ -5590,13 +5597,11 @@ enum a_statement_kind_tag {
 			   given function or block scope. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   stmk_set_vla_size,	/* Set the size of a VLA type. */
-  stmk_alloc_vla_variable,
-			/* Allocate storage for a variable of VLA type.
-			   (Note: there is no corresponding deallocation
-			   statement.  See the vla_requires_deallocation
-			   field in a_variable.) */
-  stmk_vla_typedef,	/* Identify where a local typedef that refers to a
-			   variably modified type should be put out. */
+  stmk_vla_decl,	/* Declaration of a variable or typedef with
+			   variably modified type.  If the variable is a VLA,
+			   allocate storage for it.  (Note: there is no
+			   corresponding deallocation statement.  See the
+			   vla_requires_deallocation field in a_variable.) */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,		/* Code label for an ENTRY. */
@@ -6256,15 +6261,30 @@ typedef struct a_statement {
                 vla_dimension;
                         /* The VLA dimension whose number of elements is
                            fixed at this point. */
-    /* When kind == stmk_alloc_vla_variable: */
-    a_variable_ptr
-                vla_variable;
-                        /* Pointer to variable having VLA type which is
-                           allocated memory at this point. */
-    /* When kind == stmk_vla_typedef: */
-    a_type_ptr	vla_typedef;
+    /* When kind == stmk_vla_decl: */
+    struct {
+      a_byte_boolean
+		is_typedef_decl;
+			/* TRUE for a typedef declaration (the type refers
+			   to a variably modified type) or FALSE for a
+			   variable declaration (either the variable is a
+			   VLA, in which case storage will be allocated at
+			   the point represented by this statement, or else
+			   it has a variably modified type). */
+      union {
+        /* When is_typedef_decl is TRUE: */
+        a_type_ptr
+		typedef_type;
 			/* Pointer to a typedef type that refers (directly or
 			   indirectly) to a variably modified type. */
+        /* When is_typedef_decl is FALSE: */
+        a_variable_ptr
+                variable;
+                        /* Pointer to variable having a variably modified
+			   type. If the variable has VLA type, memory for it
+                           is allocated at this point. */
+      } variant;
+    } vla;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */

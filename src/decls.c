@@ -3549,17 +3549,29 @@ cross-reference output describing this declaration.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (vla_enabled) {
-    if (is_variable_def && is_vla_type(type_ptr)) {
-      /* VLA variable (C only).  Create an stmk_alloc_vla_variable statement
-         to set the location where the VLA is to be allocated. */
+    if (is_variably_modified_type(type_ptr)) {
+      /* Since the type may have various run-time dependencies, put out a
+         statement indicating where in the executable stream this declaration
+         appears. */
       a_statement_ptr vla_stmt;
 
-      vla_stmt = 
-          add_statement_at_stmt_pos((a_statement_kind)stmk_alloc_vla_variable,
-                                    &locator->source_position);
-      vla_stmt->variant.vla_variable = variable_ptr;
-      /* Indicate that the VLA variable needs to be deallocated. */
-      variable_ptr->vla_requires_deallocation = TRUE;
+      variable_ptr->has_variably_modified_type = TRUE;
+      vla_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
+                                           &locator->source_position);
+      vla_stmt->variant.vla.is_typedef_decl = FALSE;
+      vla_stmt->variant.vla.variant.variable = variable_ptr;
+      if (is_vla_type(type_ptr)) {
+        if (!is_variable_def) {
+          /* Must be an error. */
+          check_assertion(total_errors > 0);
+        } else {
+          /* Memory for this variable will also have to be allocated.  Mark
+             the variable as a variable length array. */
+          variable_ptr->is_vla = TRUE;
+          /* Also indicate that the VLA variable needs to be deallocated. */
+          variable_ptr->vla_requires_deallocation = TRUE;
+        }  /* if */
+      }  /* if */
     } /* if */
   }  /* if */
   if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
@@ -5190,9 +5202,10 @@ return a pointer to it in *symbol_ptr.
     if (is_variably_modified_type(type_ptr)) {
       a_statement_ptr  sp;
       
-      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_typedef,
+      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
                                      &locator->source_position);
-      sp->variant.vla_typedef = tp;
+      sp->variant.vla.is_typedef_decl = TRUE;
+      sp->variant.vla.variant.typedef_type = tp;
       tp->variant.typeref.has_variably_modified_type = TRUE;
     }  /* if */
   }  /* if */

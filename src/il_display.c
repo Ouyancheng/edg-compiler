@@ -2467,6 +2467,17 @@ do_label:
       disp_ptr("vla_dimension", (char *)ptr->variant.vla_dimension,
                iek_vla_dimension);
       break;
+    case stmk_vla_decl:
+      (void)printf("stmk_vla_decl\n");
+      if (ptr->variant.vla.is_typedef_decl) {
+        disp_boolean("vla.is_typedef_decl", TRUE);
+        disp_ptr("vla.typedef_type",
+                 (char *)ptr->variant.vla.variant.typedef_type, iek_type);
+      } else {
+        disp_boolean("vla.is_typedef_decl", FALSE);
+        disp_ptr("vla.variable", (char *)ptr->variant.vla.variant.variable,
+                 iek_variable);
+      }  /* if */
     case stmk_alloc_vla_variable:
       (void)printf("stmk_alloc_vla_variable\n");
       disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
