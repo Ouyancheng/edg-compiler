@@ -1355,7 +1355,8 @@ declaration.
             /* A type name is bound to void type -- this construct is treated
                as a nonstandard way of signifying an empty param list.  Issue
                an error in strict mode; a warning otherwise. */
-            pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
+            pos_diagnostic(strict_ansi_mode ?
+                              strict_ansi_discretionary_severity : es_warning,
                            ec_nonstd_void_param_list, &param_type_pos);
             remove_stop_token(tok_comma);
             break;
