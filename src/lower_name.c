@@ -1075,6 +1075,7 @@ If the indicated class type is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__C%lu", (unsigned long)unnamed_class_name_seed);
     type->source_corresp.name = name;
+    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_class_a_name */
 
@@ -1107,6 +1108,7 @@ If the indicated namespace is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__N%lu", (unsigned long)unnamed_namespace_name_seed);
     nsp->source_corresp.name = name;
+    nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_namespace_a_name */
 
@@ -1138,6 +1140,7 @@ If the indicated enum type is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__E%lu", (unsigned long)unnamed_enum_name_seed);
     type->source_corresp.name = name;
+    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_enum_a_name */
 
@@ -1149,7 +1152,7 @@ static unsigned long
 		unnamed_member_variable_name_seed;
 
 
-static void give_unnamed_member_variable_a_name(a_variable_ptr nsp)
+static void give_unnamed_member_variable_a_name(a_variable_ptr var)
 /*
 If the indicated member variable is unnamed, give it a name.
 */
@@ -1157,7 +1160,7 @@ If the indicated member variable is unnamed, give it a name.
   char     *name;
   sizeof_t name_len;
 
-  if (nsp->source_corresp.name == NULL) {
+  if (var->source_corresp.name == NULL) {
     /* The member variable is unnamed, so make up a name. */
     /* The name is __Vnn, where nn is a unique number for the
        member variable.  This is not from the ARM or cfront. */
@@ -1167,7 +1170,8 @@ If the indicated member variable is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)sprintf(name, "__V%lu",
                   (unsigned long)unnamed_member_variable_name_seed);
-    nsp->source_corresp.name = name;
+    var->source_corresp.name = name;
+    var->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_member_variable_a_name */
 
@@ -2562,9 +2566,8 @@ variable is a template static data member specialization.
   */
   mangled_name_length = 0;
   name = unmangled_name_of(scp);
-#if CHECKING
-  if (name == NULL) internal_error("mangled_member_name: unnamed member");
-#endif /* CHECKING */
+  /* For an unnamed member, use the mangled name. */
+  if (name == NULL) name = scp->name;
   /* Copy the name. */
   section_length = strlen(name);
   mangled_name_length += section_length;
