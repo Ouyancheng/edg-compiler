@@ -6609,12 +6609,9 @@ Scan the body of a class definition, including the base classes list.
               warning(ec_missing_type_specifier);
             }  /* if */
             /* Typedef declaration. */
-            decl_typedef(&locator, local_type, &typedef_sym_ptr,
+            decl_typedef(&locator, local_type, class_type, &typedef_sym_ptr,
                          declarator_ssep);
-            typedef_sym_ptr->class_of_which_a_member = class_type;
             typedef_sym_ptr->variant.type->source_corresp.access = access;
-            typedef_sym_ptr->variant.type->
-                          source_corresp.class_of_which_a_member = class_type;
             if (curr_routine_fixup != NULL &&
                 curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
               /* Update the symbol pointer in the fixup entry -- it's needed

@@ -228,6 +228,7 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
 
 extern void decl_typedef(a_symbol_locator             *locator,
                          a_type_ptr                   type_ptr,
+                         a_type_ptr                   class_type,
                          a_symbol_ptr                 *symbol_ptr,
                          a_source_sequence_entry_ptr  declarator_ssep);
 

@@ -3470,13 +3470,15 @@ the symbol and its linkage (which is always "none").
 
 void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
+                  a_type_ptr                   class_type,
                   a_symbol_ptr                 *symbol_ptr,
                   a_source_sequence_entry_ptr  declarator_ssep)
 /*
-Enter the declaration of an identifier for a typedef.  *locator gives
-the symbol locator (and thus its name and its declaration position).
-type_ptr gives the type.  Create and enter a symbol entry, and return
-a pointer to it in *symbol_ptr.
+Enter the declaration of an identifier for a typedef.  *locator gives the
+symbol locator (and thus its name and its declaration position).  type_ptr
+gives the type.  If this is a member typedef, class_type identifies the
+class of which it is a member.  Create and enter a symbol entry, and
+return a pointer to it in *symbol_ptr.
 */
 {
   a_type_ptr    tp;
@@ -3573,6 +3575,10 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
+  if (class_type != NULL) {
+    sym->class_of_which_a_member = class_type;
+    tp->source_corresp.class_of_which_a_member = class_type;
+  }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
   add_to_types_list(tp, decl_scope_level);
@@ -5497,7 +5503,8 @@ continue_with_declaration:
            in decl_parameter, called when the function body is scanned. */
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
-        decl_typedef(&locator, local_type_ptr, &symbol_ptr, declarator_ssep);
+        decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL,
+                     &symbol_ptr, declarator_ssep);
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
