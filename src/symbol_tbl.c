@@ -1034,8 +1034,8 @@ do_variable:
     if (!space_left(20) ||
         (!space_left(30) && is_array_type(type)) || is_function_type(type) ||
         ((is_pointer_type(type) || is_reference_type(type)) &&
-	 ((is_array_type(type->variant.pointer.type) && !space_left(35)) ||
-	  is_function_type(type->variant.pointer.type))) ||
+	 ((is_array_type(type_pointed_to(type)) && !space_left(35)) ||
+	  is_function_type(type_pointed_to(type)))) ||
         (!space_left(55) && is_template_class_type(type))) {
       fprintf(f_debug, ",\n%*stype = ", indentation, "");
     } else {
