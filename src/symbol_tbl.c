@@ -1134,7 +1134,7 @@ void set_source_corresp_with_scope_depth(a_source_correspondence *sc,
                                          a_symbol_ptr            sp,
 			                 a_scope_depth		depth)
 /*
-Set the source correspondence to point to a given symbol that for which
+Set the source correspondence to point to a given symbol for which
 the scope is not still active.  This routine works by temporarily
 changing the scope of the symbol to NO_SCOPE_NUMBER and calling
 set_source_corresp.  The scope number is set to its original value
