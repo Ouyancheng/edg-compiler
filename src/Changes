@@ -184,7 +184,7 @@ This has been fixed.
 1/2/01   Spurious error on initialization of multilevel array field
 
 In C++ and C99 modes, the front end used to issue a spurious error message
-when braces are omitted in the initializer for the first element of a fiel
+when braces are omitted in the initializer for the first element of a field
 with multilevel array type.  The error only occurred if the structure
 containing the field was itself used as the type of a class member.
 For example:
