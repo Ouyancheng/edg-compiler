@@ -26,6 +26,7 @@ overload.c -- Expression processing overload resolution.
 #include "cmd_line.h"
 #include "types.h"
 #include "folding.h"
+#include "class_decl.h"
 
 /* Forward declarations required because of out-of-order references. */
 static void prep_conversion_operand(an_operand        *source_operand,
@@ -319,8 +320,8 @@ Print an argument match summary for debug purposes.
   }  /* if */
   bcp = amsp->cast_base_class;
   if (bcp != NULL) {
-    fprintf(f_debug, ", base class %s (in %s)", bcp->type->source_corresp.name,
-                     bcp->derived_class->source_corresp.name);
+    fprintf(f_debug, ", base class ");
+    db_abbreviated_base_class(bcp);
   }  /* if */
   fprintf(f_debug, "\n");
 }  /* db_arg_match_summary */
