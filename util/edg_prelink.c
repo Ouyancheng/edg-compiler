@@ -322,6 +322,7 @@ static int	reserved_info_file_lines = INSTANTIATION_INFO_LINES_RESERVED;
 			   information file that are reserved and do
 			   not contain instantiation list entries. */
 
+
 #if DEBUG
 static int pl_debug_level = 0;
 static void pl_db_symbol(a_pl_symbol_ptr psp,
@@ -2068,15 +2069,15 @@ has changed then write the updated list of instantiations to the file.
   int				return_status = 0;
   int				i;
 
+/* Macro that returns a line from the reserved lines array, if the line
+   number is valid, and returns a NULL string otherwise. */
+#define get_reserved_line(number) 					\
+  (((number) > (INSTANTIATION_INFO_LINES_RESERVED - 1))			\
+                                                ? ""			\
+                                                : reserved_lines[(number)])
   /* We allocate one additional array element because it is possible
      for there to be zero reserved lines. */
   char *reserved_lines[INSTANTIATION_INFO_LINES_RESERVED + 1];
-  /* Initialize the array so that we can check for invalid
-     references (i.e., if INSTANTIATION_INFO_LINES_RESERVED is
-     set incorrectly. */
-  for (i = 0; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
-    reserved_lines[i] = NULL;
-  }  /* for */
 
   pifp = pl_input_files;
   while (pifp != NULL) {
@@ -2133,9 +2134,9 @@ has changed then write the updated list of instantiations to the file.
 #if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
         (void)unlink(pifp->file_name);
 #endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
-        return_status = pl_recompile_file(reserved_lines[0],
-                                          reserved_lines[1],
-                                          reserved_lines[2]);
+        return_status = pl_recompile_file(get_reserved_line(0),
+                                          get_reserved_line(1),
+                                          get_reserved_line(2));
         /* Stop if an error occurs. */
         if (return_status != 0) break;
       }  /* if */
@@ -2147,6 +2148,7 @@ has changed then write the updated list of instantiations to the file.
     pifp = pifp->next;
   }  /* while */
   return return_status;
+#undef get_reserved_lines
 }  /* pl_update_info_files */
 
 
@@ -2316,6 +2318,11 @@ int main(int argc, char *argv[])
 
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
+
+  /* The prelinker now expects there to be at least three reserved lines. */
+  if (INSTANTIATION_INFO_LINES_RESERVED < 3) {
+    pl_internal_error("INSTANTIATION_INFO_LINES_RESERVED set incorrectly");
+  }  /* if */
 
   /* Allocate arrays to hold pointers to -L directory names and library
      names specified by -l options.  We don't know how many of these will
