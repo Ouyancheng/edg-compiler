@@ -1606,9 +1606,17 @@ variable did not require dynamic initialization, if which case the lifetime
 is not needed.
 */
 {
+  a_boolean  suppress_warning = TRUE;
+
   check_assertion(local_static_lifetime == curr_object_lifetime);
   if (err || local_static_var_init == NULL ||
-      local_static_var_init->init_kind != (an_init_kind)initk_dynamic) {
+      local_static_var_init->init_kind != (an_init_kind)initk_dynamic ||
+      !dynamic_init_has_side_effects(local_static_var_init->
+                                               initializer.dynamic,
+                                     &suppress_warning)) {
+    /* No object lifetime is needed if this is not a dynamic initialization,
+       or if it is represented as a dynamic initialization but the initializer
+       has no side effects (e.g., is a constant). */
     mark_object_lifetime_as_useless(local_static_lifetime);
   } else {
     bind_object_lifetime(local_static_lifetime,

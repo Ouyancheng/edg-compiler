@@ -1,5 +1,19 @@
 Version 2.34
 
+10/16/96 Object lifetime on initialization of local static variable
+
+An object lifetime is no longer generated for the initialization of a
+local static variable when the initializer is a non-constant that has no
+side effects.  For example:
+
+  int i;
+  struct S { int x, y, z; };
+  void f() {
+    static int j = i;           // No object lifetime needed
+    static S a = { 0,0,0 };     // No object lifetime needed
+    static S b = a;             // No object lifetime needed
+  }
+
 10/15/96 Delete allowed after placement new of array
 
 The WP was recently changed to say that memory allocated through
