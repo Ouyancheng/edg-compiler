@@ -1,5 +1,15 @@
 Version 2.28
 
+2/1/95   Support for #ident and #pragma ident
+
+When IDENT_DIRECTIVE_AND_PRAGMA is TRUE (see lang_feat.h), the #ident and
+#pragma ident directives are recognized: in both cases, a pk_ident pragma
+entry with a constant pointer identifying the string is added to the IL
+(and the C and C++ generating back ends put out #ident directives).
+
+(Note: the #ident directive, which was previously recognized but ignored,
+is no longer recognized unless IDENT_DIRECTIVE_AND_PRAGMA is set.)
+
 1/30/95  Support for #pragma pack and --pack_alignment
 
 When USER_CONTROL_OF_STRUCT_PACKING is TRUE (see lang_feat.h), the maximum
