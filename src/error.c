@@ -2118,7 +2118,8 @@ Add a string representing a constant value to a string being formed.
 #define LOCAL_BUFFER_LEN 30
   char                     buffer[LOCAL_BUFFER_LEN], *p_char;
   a_source_correspondence  *scp;
-  int                      i, count;
+  int                      i;
+  a_targ_size_t            count;
   a_float_kind             fkind;
 
   if (cp->implicit_cast) {
@@ -3162,7 +3163,8 @@ made is returned.
 */
 {
   an_error_file_index_ptr curr_file;
-  int                     index, spacing, mid_index;
+  int                     index, mid_index;
+  unsigned long           spacing;
 
   /* Typically the current file being read will be at the head of the list
      of an_error_file_index entries. */

@@ -430,12 +430,12 @@ past the number on return.
 Put a multi-byte number (num) into a macro-definition string. rtp points
 to the first byte of the number; it is advanced past the number on return.
 */
-#define PN_BYTE_MASK ((1 << CHAR_BIT) - 1);
+#define PN_BYTE_MASK ((1 << CHAR_BIT) - 1)
 #define put_macro_repl_text_number(num, rtp)                          \
 { unsigned long temp = num;                                           \
-  *(a_byte *)rtp++ =  temp                & PN_BYTE_MASK;             \
-  *(a_byte *)rtp++ = (temp >> CHAR_BIT)   & PN_BYTE_MASK;             \
-  *(a_byte *)rtp++ = (temp >> CHAR_BIT*2) & PN_BYTE_MASK;             \
+  *(a_byte *)rtp++ = (a_byte)(temp                 & PN_BYTE_MASK);   \
+  *(a_byte *)rtp++ = (a_byte)((temp >> CHAR_BIT)   & PN_BYTE_MASK);   \
+  *(a_byte *)rtp++ = (a_byte)((temp >> CHAR_BIT*2) & PN_BYTE_MASK);   \
 }  /* put_macro_repl_text_number */
 
 

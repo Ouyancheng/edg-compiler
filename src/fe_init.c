@@ -291,7 +291,7 @@ a symbol locator in *locator.
 */
 {
   a_boolean         return_value = FALSE;
-  int               i;
+  sizeof_t          i;
   a_source_position position;
 
   *assoc_symbol = NULL;
