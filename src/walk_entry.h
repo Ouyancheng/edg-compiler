@@ -354,6 +354,7 @@ pointers.
 #else /* !NEED_NAME_MANGLING */
 #define walk_unmangled_name(ptr) /* Nothing */
 #endif /* NEED_NAME_MANGLING */
+#undef walk_per_instantiation_needed_flags
 #if ONE_INSTANTIATION_PER_OBJECT
 #define walk_per_instantiation_needed_flags(ptr) \
   walk_list((ptr).per_instantiation_needed_flags, \
@@ -362,6 +363,7 @@ pointers.
 #else /* !ONE_INSTANTIATION_PER_OBJECT */
 #define walk_per_instantiation_needed_flags(ptr) /* Nothing */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#undef walk_decl_position_supplement
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #define walk_decl_position_supplement(ptr) \
   walk_ptr((ptr).decl_pos_info, a_decl_position_supplement_ptr, \
