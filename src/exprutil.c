@@ -4509,17 +4509,21 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
                         is_error_operand(operand),
                         "generic_cast_operand: non-const operand");
     if (!il_identical_types(operand->type, dest_type)) {
+      a_type_ptr con_dest_type = dest_type;
       a_constant orig_constant;
       orig_constant = operand->variant.constant;
-      make_template_param_cast_constant(&orig_constant,
-                                        &operand->variant.constant,
-                                        dest_type);
       if (operand->state == (an_operand_state)os_lvalue ||
           operand->state == (an_operand_state)os_function_designator) {
-        if (operand->type != type_of_unknown_templ_param_nontype) {
-          operand->type = type_pointed_to(operand->type);
+        /* If we're casting an lvalue constant, the constant type has
+           one more level of "pointer to" than the operand does. */
+        if (con_dest_type != type_of_unknown_templ_param_nontype) {
+          con_dest_type = make_pointer_type(con_dest_type);
         }  /* if */
       }  /* if */
+      make_template_param_cast_constant(&orig_constant,
+                                        &operand->variant.constant,
+                                        con_dest_type);
+      operand->type = dest_type;
     }  /* if */
   } else {
     /* Non-constant expression.  Generate a cast expression. */
