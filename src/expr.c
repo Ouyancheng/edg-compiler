@@ -1996,17 +1996,22 @@ qualified_name_check:
           } else {
             projection_member_sym = locator_for_curr_id.specific_symbol;
             member_sym = fundamental_symbol_of(projection_member_sym);
-            /* Make sure the name is a member of the class indicated by the
-               left-hand side, or one of its base classes.  The NULL check
-               is needed to catch cases like p->::x. */
-            if (!projection_member_sym->is_class_member ||
-                !is_same_class_or_base_class_thereof(class_struct_union_type,
-                                                     projection_member_sym->
+            if (symbol_supplement_for_class(class_struct_union_type)->
+                                                            is_nonreal_class) {
+              /* Skip the check for a nonreal class in a prototype
+                 instantiation. */
+            } else {
+              /* Make sure the name is a member of the class indicated by the
+                 left-hand side, or one of its base classes. */
+              if (!projection_member_sym->is_class_member ||
+                  !is_same_class_or_base_class_thereof(class_struct_union_type,
+                                                       projection_member_sym->
                                                          parent.class_type)) {
-              pos_ty_error(ec_name_not_member_of_class_or_base_classes,
-                           &qualified_member_position,
-                           class_struct_union_type);
-              err = TRUE;
+                pos_ty_error(ec_name_not_member_of_class_or_base_classes,
+                             &qualified_member_position,
+                             class_struct_union_type);
+                err = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
           need_member_sym_check = FALSE;
