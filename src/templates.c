@@ -1386,7 +1386,29 @@ more specialized than templ_sym1, and return 0 if they are unordered.
     result = 0;
   }  /* if */
   return result;
-}  /* compare_function_template_speciality */
+}  /* compare_function_templates */
+
+
+static a_template_nesting_depth nesting_depth_of_template_param
+                                                   (a_template_param_ptr tpp)
+/*
+Return the template nesting depth of the specified template parameter.
+*/
+{
+  a_template_nesting_depth	depth;
+
+  if (tpp == NULL) {
+    /* This is an error case -- use a depth of zero. */
+    depth = 0;
+  } else if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
+    depth = tpp->variant.type->
+                         variant.template_param.extra_info->coordinates.depth;
+  } else {
+    depth = tpp->variant.constant.ptr->
+                 variant.template_param.variant.coordinates.depth;
+  }  /* if */
+  return depth;
+}  /* nesting_depth_of_template_param */
 
 
 /* Forward declaration. */
@@ -1398,10 +1420,10 @@ static a_boolean matches_template_arg_list(
 
 static a_boolean matches_partial_specialization(
 				a_symbol_ptr		template_sym,
-				a_template_arg_ptr	arg_list,
+				a_symbol_ptr		instance_sym,
 				a_template_arg_ptr	*ps_arg_list)
 /*
-Determine whether the template argument list specified by arg_list
+Determine whether the template instance specified by instance_sym
 matches the partial specialization indicated by template_sym.  Return
 TRUE if it does; otherwise return FALSE.  If a match is found, return
 the template argument list with respect to the partial specialization
@@ -1409,11 +1431,10 @@ in ps_arg_list.
 */
 {
   a_boolean				result = FALSE;
-  a_template_arg_ptr			templ_tap;
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				prototype_sym;
   a_type_ptr				prototype_type;
-  a_class_type_supplement_ptr		ctsp;
+  a_type_ptr				instance_type;
   a_template_param_ptr			templ_param_list;
   a_template_arg_ptr			local_arg_list;
   a_boolean				local_arg_list_used = FALSE;
@@ -1424,8 +1445,7 @@ in ps_arg_list.
   tssp = template_sym->variant.template_info;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   prototype_type = type_symbol_type(prototype_sym);
-  ctsp = prototype_type->variant.class_struct_union.extra_info;
-  templ_tap = ctsp->template_arg_list;
+  instance_type = type_symbol_type(instance_sym);
   /* Get the template parameter list associated with this partial
      specialization. */
   templ_param_list = tssp->cache.decl_info->parameters;
@@ -1437,11 +1457,28 @@ in ps_arg_list.
     local_arg_list = NULL;
     local_arg_list_used = TRUE;
   }  /* if */
-  if (matches_template_arg_list(arg_list, templ_tap, ps_arg_list,
-                                templ_param_list)) {
+  if (matches_template_type(instance_type, prototype_type, ps_arg_list,
+                            templ_param_list, MTT_NO_FLAGS)) {
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
-      result = TRUE;
+      a_type_ptr			test_type;
+      a_boolean				copy_error = FALSE;
+      a_template_nesting_depth		depth;
+      /* Determine the template nesting depth of the template being
+         processed. */
+      depth = nesting_depth_of_template_param(templ_param_list);
+      /* Substitute the template parameters of the template with the deduced
+         arguments.  We should end up with the original type.  This main
+         purpose of this test is to make sure that template parameters in
+         nondeduced contexts yield the expected types once substituted. */
+      test_type = copy_type_with_substitution(prototype_type,
+                                              *ps_arg_list, depth,
+					      &template_sym->decl_position,
+					      CTWS_PROTOTYPE_ALLOWED,
+					      &copy_error);
+      if (!copy_error && identical_types(instance_type, test_type)) {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!result || local_arg_list_used) {
@@ -1455,8 +1492,8 @@ in ps_arg_list.
 
 
 static a_boolean is_more_specialized(
-				a_symbol_ptr 		templ_sym1,
-				a_symbol_ptr		templ_sym2)
+				a_symbol_ptr 		template_sym1,
+				a_symbol_ptr		template_sym2)
 /*
 templ_sym1 and templ_sym2 are class template symbols for partial
 specializations of a template.  Return TRUE if templ_sym1 is more
@@ -1465,24 +1502,9 @@ matches both templates, templ_sym1 should be preferred over templ_sym2.
 */
 {
   a_boolean				result = FALSE;
-  a_template_arg_ptr			tap1;
-  a_template_arg_ptr			tap2;
+  a_symbol_ptr				prototype_sym1;
   a_template_symbol_supplement_ptr	tssp1;
-  a_template_symbol_supplement_ptr	tssp2;
-  a_type_ptr				type1;
-  a_type_ptr				type2;
-  a_template_arg_ptr			dummy_arg_list = NULL;
-  a_template_param_ptr			templ_param_list;
-
-  tssp1 = templ_sym1->variant.template_info;
-  tssp2 = templ_sym2->variant.template_info;
-  templ_param_list = tssp2->cache.decl_info->parameters;
-  type1 = tssp1->variant.class_template.prototype_instantiation->
-                                              variant.class_struct_union.type;
-  type2 = tssp2->variant.class_template.prototype_instantiation->
-                                              variant.class_struct_union.type;
-  tap1 = type1->variant.class_struct_union.extra_info->template_arg_list;
-  tap2 = type2->variant.class_struct_union.extra_info->template_arg_list;
+ 
   /* Use the argument deduction routines to determine whether the template
      parameters used in template2 can be deduced from the values used in
      template1.  If so, then template1 is more specialized than template2.
@@ -1492,15 +1514,10 @@ matches both templates, templ_sym1 should be preferred over templ_sym2.
      In this example, the T in template2 can be deduced from template1.
      The deduced value is T*.  So, template1 is more specialized than
      template1. */
-  if (matches_template_arg_list(tap1, tap2, &dummy_arg_list,
-                                templ_param_list)) {
-    if (wrapup_template_argument_deduction(
-                       dummy_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  /* Discard the argument list produced by the deduction process. */
-  free_template_arg_list(dummy_arg_list);
+  tssp1 = template_sym1->variant.template_info;
+  prototype_sym1 = tssp1->variant.class_template.prototype_instantiation;
+  result = matches_partial_specialization(template_sym2, prototype_sym1,
+                                          (a_template_arg_ptr*)NULL);
   return result;
 }  /* is_more_specialized */
 
@@ -1649,7 +1666,6 @@ with that partial specialization; otherwise return NULL.
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				matching_sym = NULL;
   a_symbol_ptr				ps_sym;
-  a_template_arg_ptr			templ_arg_list;
   a_class_type_supplement_ptr		ctsp;
   a_partial_order_candidate_ptr		candidate_list = NULL;
 
@@ -1657,11 +1673,10 @@ with that partial specialization; otherwise return NULL.
   tssp = template_sym->variant.template_info;
   /* Get the template argument list with respect to the primary template. */
   ctsp = class_type->variant.class_struct_union.extra_info;
-  templ_arg_list = ctsp->template_arg_list;
   for (ps_sym = tssp->variant.class_template.partial_specializations;
        ps_sym != NULL; ps_sym = ps_sym->next) {
     a_template_arg_ptr	ps_arg_list = NULL;
-    if (matches_partial_specialization(ps_sym, templ_arg_list,
+    if (matches_partial_specialization(ps_sym, instance_sym,
                                        &ps_arg_list)) {
       add_to_partial_order_candidates_list(&candidate_list,
                                            ps_sym, ps_arg_list);
@@ -3329,28 +3344,6 @@ included in the search.
 }  /* find_template_class */
 
 
-static a_template_nesting_depth nesting_depth_of_template_param
-                                                   (a_template_param_ptr tpp)
-/*
-Return the template nesting depth of the specified template parameter.
-*/
-{
-  a_template_nesting_depth	depth;
-
-  if (tpp == NULL) {
-    /* This is an error case -- use a depth of zero. */
-    depth = 0;
-  } else if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
-    depth = tpp->variant.type->
-                         variant.template_param.extra_info->coordinates.depth;
-  } else {
-    depth = tpp->variant.constant.ptr->
-                 variant.template_param.variant.coordinates.depth;
-  }  /* if */
-  return depth;
-}  /* nesting_depth_of_template_param */
-
-
 static a_template_arg_ptr create_initial_template_arg_list(
 			a_template_param_ptr		templ_param_list,
 			a_template_arg_ptr		partial_arg_list,
@@ -4357,6 +4350,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_nonreal_template;
   
+  template_sym = primary_template_of(template_sym);
   tssp = template_sym->variant.template_info;
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   is_nonreal_template = tssp->is_nonreal_member;
@@ -4402,7 +4396,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
     prev_new_tap = new_tap;
   }  /* for */
   new_sym = find_template_class(template_sym, &new_list,
-                                /*prototype_allowed=*/FALSE);
+                                (options & CTWS_PROTOTYPE_ALLOWED) != 0);
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */
 
@@ -7430,7 +7424,6 @@ subordinate templates.
        sym != NULL; sym = next_instance_sym(sym)) {
     a_class_symbol_supplement_ptr	cssp;
     a_type_ptr				instance_type;
-    a_template_arg_ptr			templ_arg_list;
     cssp = sym->variant.class_struct_union.extra_info;
     instance_type = sym->variant.class_struct_union.type;
     /* Skip nonreal classes.  This includes prototype instantiations. */
@@ -7439,9 +7432,7 @@ subordinate templates.
     if (instance_type->variant.class_struct_union.is_specialized) continue;
     /* Skip the instance if a full instantiation has not yet been done. */
     if (is_incomplete_type(instance_type)) continue;
-    templ_arg_list = instance_type->
-                     variant.class_struct_union.extra_info->template_arg_list;
-    if (matches_partial_specialization(ps_sym, templ_arg_list,
+    if (matches_partial_specialization(ps_sym, sym,
                                        (a_template_arg_ptr*)NULL)) {
       /* It does match the partial specialization.  Now see whether the
          existing instantiation came from the primary template or another

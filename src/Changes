@@ -1,5 +1,21 @@
 Version 2.38
 
+11/26/97  Nondeduced contexts in partial specializations
+
+In version 2.37, template argument deduction was modified to handle
+"nondeduced" contexts as described in the draft standard.  A bug was
+introduced that could cause a partial specialization containing
+nondeduced contexts to be used when it should not have been.  This has
+been fixed.
+
+  template <class T1, class T2> struct A { };  // #1
+  template <class T> struct A<T, T::C> { };  // #2
+  struct X {
+    struct C {};
+    struct D {};
+  };
+  A<X, X::D> x;  // Should use #1
+
 11/24/97  C-generating back end: struct in prototype scope with
           definition_needed FALSE
 
