@@ -427,9 +427,15 @@ Flag that is TRUE if GNU C builtin operators should be accepted in support of
 
 /*
 Flag that is TRUE if asm expressions target a processor of an x86 family.
+If Gnu extensions are enabled and we are building on an x86 system,
+this flag defaults to TRUE.
 */
 #ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && defined(__i386__)
+#define GNU_X86_ASM_EXTENSIONS_ALLOWED TRUE
+#else /* !(GNU_EXTENSIONS_ALLOWED && defined(__i386__)) */
 #define GNU_X86_ASM_EXTENSIONS_ALLOWED FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386__) */
 #endif /* ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED */
 
 /*
