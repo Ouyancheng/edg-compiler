@@ -93,7 +93,8 @@ typedef struct a_base_class_spec {
    caught. */
 typedef struct a_type_info_impl {
 #if ABI_CHANGES_FOR_RTTI
-  type_info	user_type_info;
+  STD_NAMESPACE::type_info
+		user_type_info;
 			/* This is the user visible type_info object,
 			   a reference to which is returned by the
 			   typeid runtime routine.  The runtime assumes

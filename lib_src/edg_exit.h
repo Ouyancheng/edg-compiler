@@ -13,7 +13,7 @@ Exit processing declarations.
 
 */
 
-extern void edg_exit(int val);
+extern void __edg_exit(int val);
 
 
 /******************************************************************************

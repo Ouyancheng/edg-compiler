@@ -61,6 +61,17 @@ Error routines.
 #endif /* CHECKING */
 
 /*
+Define the qualifier that should be used to access something defined
+in the namespace of the runtime.  This is "std" if the runtime
+uses namespaces or "" otherwise.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+#define STD_NAMESPACE std
+#else /* ifndef __EDG_RUNTIME_USES_NAMESPACES */
+#define STD_NAMESPACE /* nothing */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+/*
 a_size_of_t is used as a synonym for size_t by the runtime.
 */
 #if 0

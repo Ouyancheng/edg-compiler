@@ -28,7 +28,7 @@ extern "C" void exit(int);
 extern "C" void __eh_exit_processing(void);
 #endif /* EXCEPTION_HANDLING */
 
-void edg_exit(int val)
+void __edg_exit(int val)
 /*
 Do any wrapup processing required by the runtime including any
 exception handling processing that must be done.  Then call the

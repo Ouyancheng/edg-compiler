@@ -14,25 +14,40 @@ default operator new() when memory cannot be allocated.
 
 */
 
+#include "new.h"
+
 #define NULL 0
 
-typedef void (*pointer_to_function_returning_void) ();
-
-extern pointer_to_function_returning_void _new_handler = NULL;
-
-
-extern pointer_to_function_returning_void set_new_handler(
-             pointer_to_function_returning_void handler)
 /*
-Set _new_handler to the new function pointer provided and return the
-previous value of _new_handler.
+If the runtime should be defined in the std namespace, open
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+namespace std {
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+
+__new_handler __curr_new_handler = NULL;
+
+
+__new_handler set_new_handler(__new_handler handler)
+/*
+Set __curr_new_handler to the new function pointer provided and return the
+previous value of __curr_new_handler.
 */
 {
-  pointer_to_function_returning_void rr = _new_handler;
-  _new_handler = handler;
+  __new_handler rr = __curr_new_handler;
+  __curr_new_handler = handler;
   return rr;
 }  /* set_new_handler */
 
+/*
+If the runtime should be defined in the std namespace, close
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+}  /* namespace std */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -21,6 +21,15 @@ C++ functions to support exception handling.
 #if EXCEPTION_HANDLING
 #include "eh.h"
 
+/*
+If the runtime should be defined in the std namespace, open
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+namespace std {
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+
 void terminate()
 /*
 The default terminate routine.
@@ -29,17 +38,6 @@ The default terminate routine.
   if (__default_terminate_routine != NULL) __default_terminate_routine();
   abort();
 }  /* terminate */
-
-
-EXTERN_C void __call_terminate(void)
-/*
-Used by the EH runtime when terminate needs to be called.  Ensures
-that terminate does not return.
-*/
-{
-  terminate();
-  abort();
-}  /* __call_terminate */
 
 
 a_void_function_ptr set_terminate(a_void_function_ptr new_func)
@@ -64,6 +62,25 @@ The default unexpected routine.  This routine calls terminate.
 }  /* unexpected */
 
 
+a_void_function_ptr set_unexpected(a_void_function_ptr new_func)
+/*
+Set the unexpected routine pointer to the value passed by the caller
+and return the old value.
+*/
+{
+  a_void_function_ptr	old_func = __default_unexpected_routine;
+  __default_unexpected_routine = new_func;
+  return old_func;
+}  /* set_unexpected */
+
+/*
+If the runtime should be defined in the std namespace, close
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+}  /* namespace std */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
 
 EXTERN_C void __call_unexpected(void)
 /*
@@ -76,16 +93,16 @@ that unexpected does not return.
 }  /* __call_unexpected */
 
 
-a_void_function_ptr set_unexpected(a_void_function_ptr new_func)
+EXTERN_C void __call_terminate(void)
 /*
-Set the unexpected routine pointer to the value passed by the caller
-and return the old value.
+Used by the EH runtime when terminate needs to be called.  Ensures
+that terminate does not return.
 */
 {
-  a_void_function_ptr	old_func = __default_unexpected_routine;
-  __default_unexpected_routine = new_func;
-  return old_func;
-}  /* set_unexpected */
+  terminate();
+  abort();
+}  /* __call_terminate */
+
 
 #endif /* EXCEPTION_HANDLING */
 

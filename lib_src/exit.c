@@ -30,7 +30,7 @@ exit routine.  This is needed because one file cannot refer to both
 the C and C++ versions of void exit(int).
 */
 {
-  edg_exit(val);
+  __edg_exit(val);
 }
 
 

@@ -21,6 +21,15 @@ Functions that implement the "exception" class (19.1.1).
 
 #include "exception.h"
 
+/*
+If the runtime should be defined in the std namespace, open
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+namespace std {
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+
 exception::exception() THROW_NOTHING()
 /*
 Constructor for exception.
@@ -54,6 +63,15 @@ no additional information is available.
 {
   return "";
 }  /* exception::~exception */
+
+
+/*
+If the runtime should be defined in the std namespace, close
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+}  /* namespace std */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 
 #endif /* EXCEPTION_HANDLING */

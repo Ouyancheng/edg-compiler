@@ -22,6 +22,15 @@ Run-time type identification -- user callable functions.
 #include "rtti.h"
 #include "typeinfo.h"
 
+/*
+If the runtime should be defined in the std namespace, open
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+namespace std {
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+
 _bool type_info::operator==(const type_info& rhs) const
 /*
 Return TRUE if two type_info structures refer to the same type.
@@ -184,6 +193,14 @@ no additional information is available.
   return "";
 }  /* bad_typeid::~bad_typeid */
 
+
+/*
+If the runtime should be defined in the std namespace, close
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+}  /* namespace std */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 

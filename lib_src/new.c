@@ -15,10 +15,30 @@ C++ operator new();
 
 #include <stddef.h>
 #include <stdlib.h>
+#include "basics.h"
+#include "runtime.h"
+#include "new.h"
 
-typedef void (*pointer_to_function_returning_void) ();
+/*
+If the runtime should be defined in the std namespace, open
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+namespace std {
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-extern pointer_to_function_returning_void _new_handler;
+extern __new_handler __curr_new_handler;
+
+/*
+If the runtime should be defined in the std namespace, close
+the std namespace.
+*/
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+}  /* namespace std */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+
+/* Note that operator new is not in the std namespace. */
 
 
 extern void *operator new(size_t size)
@@ -40,8 +60,8 @@ calls of operator new.
 
   if (size == 0) size = 1;
   while ((ptr = (void *)malloc(size)) == NULL) {
-    if (_new_handler != NULL) {
-      (*_new_handler) ();
+    if (STD_NAMESPACE::__curr_new_handler != NULL) {
+      (*STD_NAMESPACE::__curr_new_handler) ();
     } else {
       return (void *)NULL;
     }  /* if */
