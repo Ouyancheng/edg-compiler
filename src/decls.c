@@ -1451,6 +1451,63 @@ static void clear_id_linkage_block(an_id_linkage_block *idlbp)
   idlbp->name_linkage_is_explicit = FALSE;
 }  /* clear_id_linkage_block */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean for_init_declaration_uses_standard_scope(
+                                                  an_id_linkage_block  *idlbp,
+                                                  a_scope_depth        depth)
+/*
+A declaration with the properties described in *idlbp appeared in a for-init
+construct in a Microsoft mode that determines the scoping of for-init variable
+based on its type or the type of a synonym in the surrounding scope.  depth is
+the depth of the standard for-init scope within the current scope stack.
+Return whether or not the for-init variable should use the standard for-init
+scope.
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  type;
+  a_scope_depth  saved_decl_scope_level = decl_scope_level;
+  a_symbol_ptr   sym;
+
+  check_assertion(microsoft_mode && microsoft_type_dependent_for_init_scope);
+  /* Look for an existing declaration in the scope in which the for-statement
+     appears. */
+  decl_scope_level = depth-1;
+  sym = curr_scope_id_lookup(idlbp->locator, IDL_NO_OPTIONS);
+  decl_scope_level = saved_decl_scope_level;
+  /* Check that no synonym declaration exists in that nonstandard scope
+     (except for other nonstandard for-init variables). */
+  if (sym != NULL && sym->decl_scope == scope_stack[depth-1].number) {
+    /* There already is a declaration of the same name in the scope enclosing
+       the for-statement. */
+    if (sym->kind == (a_symbol_kind)sk_variable &&
+        sym->variant.variable.declared_in_for_init) {
+      /* The existing declaration is also a for-init variable: Hide it. */
+      sym->is_invisible = TRUE;
+    } else {
+      /* The existing declaration is not a for-init variable: Use the standard
+         scope for the current variable. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    /* If the current declaration has a class type with a destructor, use the
+       standard scope. */
+    type = skip_typerefs(idlbp->type);
+    if (is_immediate_class_type(type)) {
+      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+      if (cssp != NULL && cssp->destructor != NULL) {
+        /* The for-init variable has a class type with a destructor: Use the
+           standard scope. */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* for_init_declaration_uses_standard_scope */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void compute_effective_decl_level(an_id_linkage_block  *idlbp,
                                          a_scope_depth        depth)
@@ -1507,20 +1564,13 @@ the same as depth_scope_stack).
     }  /* while */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_type_dependent_for_init_scope &&
-             scope_stack[depth].is_for_init_block) {
-    /* MSVC++ 7.1 will use standard scoping for for-init variables that need
-       a destructor call, but old-style scoping for other variables. */
-    a_boolean   standard_scope = FALSE;
-    a_type_ptr  type = skip_typerefs(idlbp->type);
-    if (is_immediate_class_type(type)) {
-      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-      if (cssp != NULL && cssp->destructor != NULL) {
-        standard_scope = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!standard_scope) {
-      --depth;
-    }  /* if */
+             scope_stack[depth].is_for_init_block &&
+             !for_init_declaration_uses_standard_scope(idlbp, depth)) {
+    /* The scoping of for-init variables in MSVC++ 7.1 depends on the type of
+       that variable and on the kind of declaration that might be hidden in the
+       nonstandard scope.  The call to for_init_declaration_uses_standard_scope
+       may cause a previous for-init declaration to become invisible. */
+    --depth;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   idlbp->effective_decl_level = depth;

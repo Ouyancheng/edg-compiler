@@ -1,5 +1,39 @@
 Version 3.6
 
+12/2/04  Microsoft compatibility: For-init scope refinements
+
+In Microsoft mode with microsoft_version >= 1310 (and unless the command-line
+options --old_for_init or --new_for_init options are specified) the front end
+now enforces the standard for-init scope if using the nonstandard scope (i.e.,
+the scope in which the "for" statement appears) would hide a declaration that
+was not itself a for-init declaration.  For example:
+
+  void f() {
+    int i = 100;
+    for (int i = 0; i<10; ++i) {}  // Use standard scope to avoid hiding
+                                   // previous declaration of i.
+    // i == 100 at this point.
+    for (int j = 0; j<10; ++j) {}  // Uses nonstandard scope.
+    for (int j = 0; j<20; ++j) {}  // Uses nonstandard scope, hiding the
+                                   // previous declaration of j.
+  }
+
+Furthermore, even if standard scoping scoping is used due to the type of the
+for-init variable (see Changes entry of 9/20/04), a for-init variable of the
+same name but with nonstandard scoping might be hidden in the remainder of
+its scope.  For example (still assuming Microsoft mode with microsoft_version
+equal to 1310):
+
+  struct S { ~S() {} };  // Type with destructor forces standard for-init
+                         // scoping.
+  void g() {
+    for (int i = 0; i<10; ++i) {}  // Nonstandard for-init scope.
+      // i is visible here and i == 10.
+    for (S i; false;) {}           // Standard for-init scope, but previous
+                                   // declaration of i is hidden in its scope.
+      // i is invisible here.
+  }
+
 12/1/04  Internal error with global "other" pragmas and source sequence lists
 
 When the front end is configured to generate source sequence lists, an
