@@ -97,6 +97,10 @@ predicates.
 #define is_object(tp) (!is_function(tp) && !is_reference_ptr(tp) && \
                        (tp)->size != 0)
 
+/* Template parameter type. */
+#define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
+
+
 a_type_ptr f_skip_typerefs(a_type_ptr type_ptr)
 /*
 Strip any typeref entries off the given type to get to the real type, and
@@ -484,6 +488,15 @@ Return TRUE if the given type is a pointer-to-member type (C++ only).
   return is_ptr_to_member(tp);
 }  /* is_ptr_to_member_type */
 
+
+a_boolean is_template_param_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a template parameter type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_template_param(tp);
+}  /* is_template_param_type */
 
 
 a_boolean is_template_class_type(a_type_ptr tp)
