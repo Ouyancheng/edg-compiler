@@ -6279,6 +6279,12 @@ If C_output_file_name is NULL, use stdout for the output.
     dump_source_file_correspondence_info(il_header.primary_source_file);
     (void)fprintf(f_C_output, "*/\n");
   }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (needed_flag_bit_number != 0) {
+    (void)fprintf(f_C_output, "/* Instantiation number = %lu */\n",
+                  needed_flag_bit_number);
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Other initialization code. */
   dump_header_code();
 
