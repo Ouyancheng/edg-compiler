@@ -3989,13 +3989,13 @@ typedef struct a_variable {
 			   file-scope variable with the same name, where the
 			   latter is treated as the "official" variable. */
   a_bit_field   vla_requires_deallocation:1;
-                        /* TRUE if this variable is a VLA that requires
-                           deallocation.  Deallocation should occur at the end
-                           of the scope in which the VLA was allocated and/or
+			/* TRUE if this variable is a VLA that requires
+			   deallocation.  Deallocation should occur at the end
+			   of the scope in which the VLA was allocated and/or
 			   at a return statement.  (There is no statement
-                           for VLA deallocation that corresponds to
-                           stmk_alloc_vla_variable, which is generated for
-			   allocation of VLA variables. */
+			   for VLA deallocation that corresponds to
+			   stmk_alloc_vla_variable, which is generated for
+			   allocation of VLA variables.) */
 #if DO_IL_LOWERING
   a_bit_field	initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
@@ -5531,7 +5531,7 @@ enum a_statement_kind_tag {
 			/* Allocate storage for a variable of VLA type.
 			   (Note: there is no corresponding deallocation
 			   statement.  See the vla_requires_deallocation
-			   field in a_variable. */
+			   field in a_variable.) */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,		/* Code label for an ENTRY. */
