@@ -386,10 +386,10 @@ Initialize the option information table.
   add_option_description(optk_wchar_t_is_keyword, "wchar_t_keyword",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* WCHAR_T_ENABLING_POSSIBLE */
   add_option_description(optk_wchar_t_is_keyword, "no_wchar_t_keyword",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* WCHAR_T_ENABLING_POSSIBLE */
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Note -- the Microsoft-style "-Zpn" option is not supported.  The driver
      that invokes the front end may convert it to "--pack_alignment=n". */
@@ -445,10 +445,10 @@ Initialize the option information table.
   add_option_description(optk_rtti, "rtti", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* RTTI_ENABLING_POSSIBLE */
   add_option_description(optk_rtti, "no_rtti", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* RTTI_ENABLING_POSSIBLE */
   add_option_description(optk_building_runtime, "building_runtime", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -456,20 +456,20 @@ Initialize the option information table.
   add_option_description(optk_bool_is_keyword, "bool",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* BOOL_ENABLING_POSSIBLE */
   add_option_description(optk_bool_is_keyword, "no_bool",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* BOOL_ENABLING_POSSIBLE */
 #if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
   add_option_description(optk_array_new_and_delete,
                          "array_new_and_delete", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
   add_option_description(optk_array_new_and_delete,
                          "no_array_new_and_delete", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
 }  /* initialize_option_descriptions */
 
 
@@ -1489,8 +1489,10 @@ Process the arguments on the command line that invoked the compiler.
            option, set it now. */
         bool_is_keyword = BOOL_ENABLING_POSSIBLE;
       }  /* if */
-      /* Temporary lifetime is short. */
-      long_lifetime_temps = FALSE;
+      if (!(option_kind_used[(int)optk_long_lifetime_temps])) {
+        /* Temporary lifetime is short. */
+        long_lifetime_temps = FALSE;
+      }  /* if */
       if (!(option_kind_used[(int)optk_rtti])) {
         /* If rtti_enabled was not explicitly set by a command line
            option, set it now. */
