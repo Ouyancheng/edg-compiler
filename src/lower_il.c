@@ -270,16 +270,35 @@ in the cleanup entry.
   cap->next = NULL;
   cap->applies_on_block_exit = applies_on_block_exit;
   cap->applies_on_exception_cleanup = applies_on_exception_cleanup;
-  cap->kind = kind;
-  cap->label = NULL;
-  clear_init_pos_descr(&cap->init_pos_descr);
   cap->region_number = NULL_EH_REGION_NUMBER;
-  clear_dynamic_init(&cap->dynamic_init, (a_dynamic_init_kind)dik_none);
-  cap->first_time_test_var = NULL;
+  cap->kind = kind;
+  switch (kind) {
+    case cak_catch:
+      /* No variant fields. */
+      break;
+    case cak_label:
+      cap->variant.label = NULL;
+      break;
+    case cak_destruction:
+      clear_dynamic_init(&cap->variant.object.dynamic_init,
+                         (a_dynamic_init_kind)dik_none);
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-  cap->template_static_data_member_init_guard_var = NULL;
+      cap->variant.object.template_static_data_member_init_guard_var = NULL;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-  cap->is_expr_temporary = FALSE;
+      cap->variant.object.is_expr_temporary = FALSE;
+      goto common_fields;
+    case cak_new_allocation:
+common_fields:
+      clear_init_pos_descr(&cap->variant.object.init_pos_descr);
+      cap->variant.object.first_time_test_var = NULL;
+      break;
+    case cak_try_block:
+      cap->variant.try_frame = NULL;
+      break;
+    default:
+      unexpected_condition_str(
+                              "alloc_cleanup_action: bad cleanup action kind");
+  }  /* switch */
   return cap;
 }  /* alloc_cleanup_action */
 
@@ -293,7 +312,10 @@ Free a list of cleanup action entries by putting them on the available list.
 
   for (; cap != NULL; cap = cap_next) {
     /* Free the list of init_pos_modifier entries pointed to. */
-    free_init_pos_modifier_list(cap->init_pos_descr.modifiers);
+    if (is_object_cleanup_action(cap)) {
+      free_init_pos_modifier_list(
+                                 cap->variant.object.init_pos_descr.modifiers);
+    }  /* if */
     cap_next = cap->next;
     cap->next = avail_cleanup_actions;
     avail_cleanup_actions = cap;
@@ -5921,7 +5943,8 @@ lifetimes than normal variables.)
   for (prev_cap = NULL, cap = curr_context->cleanup_actions;
        cap != NULL;
        cap = cap->next) {
-    if (cap->is_expr_temporary) {
+    if (cap->kind == cak_destruction &&
+        cap->variant.object.is_expr_temporary) {
       /* Remove this entry from the list. */
       if (prev_cap == NULL) {
         curr_context->cleanup_actions = cap->next;
@@ -6049,8 +6072,9 @@ to the original statement in its new location.
 static void gen_one_cleanup_action(a_cleanup_action_ptr   cap,
                                    an_insert_location_ptr insert_location)
 /*
-Generate code for the cleanup action described by cap.  The code is
-inserted at *insert_location and *insert_location is updated.
+Generate code for the cleanup action described by cap as it applies to
+block exit.  The code is inserted at *insert_location and *insert_location
+is updated.
 */
 {
   an_insert_location     insert_location2;
@@ -6062,25 +6086,28 @@ inserted at *insert_location and *insert_location is updated.
        temporary, generate an "if" statement to test whether or not the
        variable was ever initialized.  Only do the destruction if it
        was. */
-    if (cap->first_time_test_var != NULL) {
-      add_last_time_test(cap->first_time_test_var, 
+    if (cap->kind == cak_destruction &&
+        cap->variant.object.first_time_test_var != NULL) {
+      add_last_time_test(cap->variant.object.first_time_test_var, 
                          insert_location,
                          &insert_location2);
       effective_insert_loc = &insert_location2;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-    } else if (cap->template_static_data_member_init_guard_var != NULL) {
+    } else if (cap->kind == cak_destruction &&
+               cap->variant.object.
+                          template_static_data_member_init_guard_var != NULL) {
       /* This is the destruction of a static data member in a template, and
          there is a guard variable to make sure that the variable is
          destroyed only once. */
       add_static_data_member_destruction_guard_test(
-                         cap->template_static_data_member_init_guard_var, 
-                         insert_location,
-                         &insert_location2);
+                cap->variant.object.template_static_data_member_init_guard_var,
+                insert_location,
+                &insert_location2);
       effective_insert_loc = &insert_location2;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
     }  /* if */
-    lower_destructor_dynamic_init(&cap->dynamic_init,
-                                  &cap->init_pos_descr,
+    lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
+                                  &cap->variant.object.init_pos_descr,
                                   effective_insert_loc);
   }  /* if */
 }  /* gen_one_cleanup_action */
@@ -6143,7 +6170,7 @@ indicated by curr_context through outer_context, inclusive.
          cap != NULL;
          cap = cap->next) {
       if (cap->applies_on_block_exit) {
-        /* There are some cleanup actions. */
+        /* There are some cleanup actions on block exit. */
         any_required = TRUE;
         goto done;
       }  /* if */
@@ -6178,8 +6205,8 @@ conditional destruction of temporaries is required.
     for (cap = curr_context->cleanup_actions;
          cap != NULL;
          cap = cap->next) {
-      if (cap->applies_on_block_exit) {
-        a_variable_ptr var = cap->first_time_test_var;
+      if (cap->applies_on_block_exit && cap->kind == cak_destruction) {
+        a_variable_ptr var = cap->variant.object.first_time_test_var;
         if (var != NULL) {
           /* Make "flag_var = 0" and insert it. */
           (void)insert_var_assignment_statement(
@@ -6258,7 +6285,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
       for (cap = goto_context->cleanup_actions;
            cap != NULL;
            cap = cap->next) {
-        if (cap->kind == cak_label && cap->label == label) {
+        if (cap->kind == cak_label && cap->variant.label == label) {
           goto end_context_loop;
         }  /* if */
       }  /* for */
@@ -6303,7 +6330,7 @@ end_context_loop:
          cap != NULL;
          cap = cap->next) {
       if (cap->kind == cak_label) {
-        if (cap->label == label) {
+        if (cap->variant.label == label) {
           /* Found the label.  If there were any cleanup entries seen before
              this point, there are some cleanup actions to be put out. */
           any_label_block_cleanup_actions_needed = any_cleanup_entries;
@@ -6327,7 +6354,7 @@ end_context_loop:
       /* Generate cleanup actions corresponding to any initializations made
          after the label in the same block. */
       for (cap = goto_context->cleanup_actions;
-           cap->kind != cak_label || cap->label != label;
+           cap->kind != cak_label || cap->variant.label != label;
            cap = cap->next) {
         gen_one_cleanup_action(cap, &insert_location);
       }  /* for */
@@ -6412,7 +6439,7 @@ Do IL lowering of the indicated statement and everything under it.
         cap = alloc_cleanup_action(cak_label,
                                    /*applies_on_block_exit=*/FALSE,
                                    /*applies_on_exception_cleanup=*/FALSE);
-        cap->label = statement->variant.label;
+        cap->variant.label = statement->variant.label;
         cap->next = curr_context->cleanup_actions;
         curr_context->cleanup_actions = cap;
         if (exceptions_enabled) {

@@ -1226,8 +1226,10 @@ the size is not available in the region description entry).
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
   /* Allocate the proper entry in the object address table. */
-  object_addr_index = object_addr_table_entry(&cap->init_pos_descr,
-                                              insert_location);
+  check_assertion(is_object_cleanup_action(cap));
+  object_addr_index =
+                   object_addr_table_entry(&cap->variant.object.init_pos_descr,
+                                           insert_location);
   /* Switch to the file scope memory region so the variable and initialization
      constants will be allocated there. */
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -1248,16 +1250,16 @@ the size is not available in the region description entry).
   /* For the element size: note that the init_pos_descr has the type of an
      element, not of the whole array.  For non-arrays, the type is of
      course as expected. */
-  elem_type = type_from_init_pos_descr(&cap->init_pos_descr);
+  elem_type = type_from_init_pos_descr(&cap->variant.object.init_pos_descr);
   elem_type = skip_typerefs(elem_type);
   elem_size_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
                                 TARG_SIZE_T_INT_KIND);
   size_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  if (cap->init_pos_descr.whole_array) {
+  if (cap->variant.object.init_pos_descr.whole_array) {
     /* The entity really is an array.  Get the element count.  -1 indicates
        that the runtime should look up the number of elements in the array. */
-    elem_count = cap->init_pos_descr.array_element_count;
+    elem_count = cap->variant.object.init_pos_descr.array_element_count;
   } else {
     /* Not an array (see header comment above).  Use an element count of 0. */
     elem_count = 0;
@@ -1390,7 +1392,8 @@ pointer can be examined.
 
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
-  if (cap->init_pos_descr.whole_array) {
+  check_assertion(is_object_cleanup_action(cap));
+  if (cap->variant.object.init_pos_descr.whole_array) {
     /* For arrays, we need an entry in the array table. */
     handle_number = array_table_entry(cap, insert_location);
     /* Set the flag that indicates this object is an array. */
@@ -1398,8 +1401,9 @@ pointer can be examined.
   } else {
     /* Non-array. */
     /* Allocate the proper entry in the object address table. */
-    handle_number = object_addr_table_entry(&cap->init_pos_descr,
-                                            insert_location);
+    handle_number =
+                   object_addr_table_entry(&cap->variant.object.init_pos_descr,
+                                           insert_location);
   }  /* if */
   /* Assign a region number to this entry. */
   cap->region_number = next_region_number++;
@@ -1436,7 +1440,7 @@ pointer can be examined.
   /* This needs to deal with delete routines too. */
 #endif
   dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
-  dtor_routine = cap->dynamic_init.destructor;
+  dtor_routine = cap->variant.object.dynamic_init.destructor;
   /* Create the generic function pointer type if it does not exist already. */
   ptr_func_type = make_vptp_type();
   if (dtor_routine == NULL) {

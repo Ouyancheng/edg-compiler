@@ -2079,9 +2079,9 @@ static void add_conditional_destruction_temp(
                                          a_cleanup_action_ptr cap,
                                          an_insert_location   *insert_location)
 /*
-cap points to a cleanup action being generated.  We are currently
-inside a conditional operand of a "?", "&&", or "||" operation.  Since
-the construction is conditional, we add a temporary variable, initialize
+cap points to a cak_destruction cleanup action being generated.  We are
+currently inside a conditional operand of a "?", "&&", or "||" operation.
+Since the construction is conditional, we add a temporary variable, initialize
 it to zero at the beginning of the current block, and insert an assignment
 to set the temporary to 1 at insert_location.  The destruction generated
 later will be made conditional on the temporary.
@@ -2093,7 +2093,8 @@ later will be made conditional on the temporary.
   a_statement_ptr     stmk_init_stmt, block, label_statement;
   a_switch_clause_ptr scp;
 
-  cap->first_time_test_var = temp =
+  check_assertion(cap->kind == cak_destruction);
+  cap->variant.object.first_time_test_var = temp =
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
   /* The temporary must be initialized to zero.  If it is static, that
      is done implicitly.  Otherwise, it must be done dynamically. */
@@ -2417,24 +2418,24 @@ do_assignment:;
                                /*applies_on_exception_cleanup=*/TRUE);
     /* Copy the entire dynamic init entry because it may be modified below
        to make it a valid C dynamic initialization. */
-    cap->dynamic_init = *dip;
+    cap->variant.object.dynamic_init = *dip;
     /* Clear the destructor field in the dynamic init entry to make it legal
        C IL. */
     dip->destructor = NULL;
-    cap->init_pos_descr = *ipdp;
-    cap->is_expr_temporary = is_expr_temporary;
+    cap->variant.object.init_pos_descr = *ipdp;
+    cap->variant.object.is_expr_temporary = is_expr_temporary;
     /* If this is an initialization within an aggregate, we must save the
        init_pos_modifier list.  However, the list runs through the stack,
        so we must make an allocated copy. */
     if (ipdp->modifiers != NULL) {
-      cap->init_pos_descr.modifiers =
+      cap->variant.object.init_pos_descr.modifiers =
                                   copy_init_pos_modifier_list(ipdp->modifiers);
     }  /* if */
     if (first_time_test_var != NULL) {
       /* Destruction of local static variables must happen at the end of
          the file scope if the initialization has been done (i.e., if the
          first-time-test variable has been set to non-zero. */
-      cap->first_time_test_var = first_time_test_var;
+      cap->variant.object.first_time_test_var = first_time_test_var;
       /* Put the entry on the front of a special list. */
       cap->next = cleanup_actions_for_local_static_variables;
       cleanup_actions_for_local_static_variables = cap;
@@ -2469,7 +2470,7 @@ do_assignment:;
         /* This is a static data member in a template and it has guard code
            around the initialization, which means it also needs guard code
            around the destruction. */
-        cap->template_static_data_member_init_guard_var =
+        cap->variant.object.template_static_data_member_init_guard_var =
                                     template_static_data_member_init_guard_var;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */

@@ -140,51 +140,70 @@ typedef struct a_cleanup_action {
 		applies_on_exception_cleanup;
 			/* TRUE if the indicated cleanup must be done on
 			   cleanup for a thrown exception. */
-  a_cleanup_action_kind
-		kind;	/* Kind of entry. */
-  /* When kind == cak_label: */
-  a_label_ptr	label;
-			/* If kind == cak_label, this entry does not describe
-			   a cleanup action; it is a marker that indicates
-			   where in the list a label was declared, and this
-			   points to the label.  The other fields (below)
-			   are not meaningful. */
-  /* When kind == anything except cak_label: */
-  an_init_pos_descr
-		init_pos_descr;
-			/* Description of the object to which cleanup
-			   applies. */
   a_cleanup_region_number
 		region_number;
 			/* Destructible object region number for exception
 			   handling. */
-  /* When kind == cak_destruction: */
-  a_dynamic_init
-		dynamic_init;
-			/* The dynamic initialization entry that describes the
-			   cleanup action.  Note that this is a copy
-			   of the entire entry, not a pointer to it, because
-			   the original entry may have been modified into
-			   an entry that is valid in C. */
-  a_variable_ptr
+  a_cleanup_action_kind
+		kind;	/* Kind of entry. */
+  union {
+    /* When kind == cak_catch, no variant fields. */
+    /* When kind == cak_label: */
+    a_label_ptr	label;
+			/* This entry does not describe a cleanup action;
+			   it is a marker that indicates where in the list a
+			   label was declared, and this points to the label. */
+    /* When kind == cak_destruction or cak_new_allocation: */
+    /* See the macro is_object_cleanup_action below -- its list must match the
+       list here. */
+    struct {
+      an_init_pos_descr
+		init_pos_descr;
+			/* Description of the object to which cleanup
+			   applies. */
+      a_variable_ptr
 		first_time_test_var;
 			/* If non-NULL, points to a first-time-test variable
 			   which will be non-zero if the initialization has
 			   been done.  This is needed for local static
 			   variables and for temporaries initialized under
 			   conditional operators. */
+      /* Fields after this point apply only when kind == cak_destruction: */
+      a_dynamic_init
+		dynamic_init;
+			/* The dynamic initialization entry that describes the
+			   initialization for which the cleanup is the
+			   destruction.  Note that this is a copy of the
+			   entire entry, not a pointer to it, because the
+			   original entry may have been modified into an
+			   entry that is valid in C. */
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-  a_variable_ptr
+      a_variable_ptr
 		template_static_data_member_init_guard_var;
 			/* If non-NULL, points to a variable tested in guard
 			   code around the initialization and destruction of
 			   a static data member of a template. */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-  a_byte_boolean
+      a_byte_boolean
 		is_expr_temporary;
 			/* TRUE if the entity to be destroyed is a compiler-
 			   generated expression temporary. */
+    } object;
+    /* When kind == cak_try_block: */
+    a_variable_ptr
+		try_frame;
+			/* Variable for the "try" stack frame. */
+  }  variant;
 } a_cleanup_action;
+
+
+/*
+Macro that tests a cleanup action to see whether it is one that
+has the "object" variant.
+*/
+#define is_object_cleanup_action(cap) \
+  ((cap)->kind == cak_destruction || (cap)->kind == cak_new_allocation)
+
 
 /*
 Value used to indicate "no region number" for exception handling regions.
