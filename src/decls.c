@@ -2035,8 +2035,6 @@ param type entry.
 #if CHECKING
     if (ptp == NULL) {
       internal_error("fixup_parameters: too few param type entries");
-    } else if (!types_are_compatible(vp->type, ptp->type)) {
-      internal_error("fixup_parameters: types not compatible");
     }  /* if */
 #endif /* CHECKING */
     vp->assoc_param_type = ptp;
