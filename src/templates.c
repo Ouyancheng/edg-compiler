@@ -9963,7 +9963,7 @@ depends on a template parameter type, return TRUE in *template_dependent
     *param_type_ptr = error_type();
   } else if (tp->kind == (a_type_kind)tk_float) {
     if (!floating_point_template_parameters_allowed) {
-      /* A floating point parameter type of void is no longer allowed
+      /* A floating-point template parameter type is no longer allowed
          as of 3/94. */
       pos_error(ec_float_template_parameter, &param_pos);
     }  /* if */
