@@ -1885,39 +1885,43 @@ unit set to the primary translation unit.
   a_scope_pointers_block *pointers_block;
   a_boolean              is_class_scope =
                          (scope->kind == (a_scope_kind)sck_class_struct_union);
+  a_boolean              scope_being_merged = entry_to_be_merged(scope);
   a_boolean              move_to_end;
 
+  /* Note that when scope_being_merged is FALSE the members of the scope
+     have already been copied and linked together.  We traverse the lists
+     to look for things that need to be merged, but entities that need
+     only to be copied do not need further processing. */
   check_assertion(is_primary_translation_unit);
-  /* Process only scopes that must be merged into their counterparts. */
-  if (entry_to_be_merged(scope)) {
-    /* Find the corresponding scope. */
-    primary_scope = (a_scope_ptr)transitive_copy_address_of(scope);
-    /* Get the pointers block for the primary IL scope. */
-    pointers_block = get_pointers_block_for_scope(primary_scope);
-    check_assertion(pointers_block != NULL || is_class_scope);
-    if (scope->types != NULL) {
-      a_type_ptr type, last_type;
-      /* Merge the types in the scope into the primary IL scope. */
-      /* Get a pointer to the last type in the primary scope. */
-      if (pointers_block != NULL) {
-        last_type = pointers_block->last_type;
-      } else {
-        /* Actual last type will be determined below if/when needed. */
-        last_type = NULL;
-      }  /* if */
-      for (type = scope->types; type != NULL; type = type->next) {
-        a_type_ptr corresp_type =
+  /* Find the corresponding scope. */
+  primary_scope = (a_scope_ptr)transitive_copy_address_of(scope);
+  /* Get the pointers block for the primary IL scope. */
+  pointers_block = get_pointers_block_for_scope(primary_scope);
+  check_assertion(pointers_block != NULL || is_class_scope);
+  if (scope->types != NULL) {
+    a_type_ptr type, last_type;
+    /* Merge the types in the scope into the primary IL scope. */
+    /* Get a pointer to the last type in the primary scope. */
+    if (pointers_block != NULL) {
+      last_type = pointers_block->last_type;
+    } else {
+      /* Actual last type will be determined below if/when needed. */
+      last_type = NULL;
+    }  /* if */
+    for (type = scope->types; type != NULL; type = type->next) {
+      a_type_ptr corresp_type =
                           (a_type_ptr)checked_trans_unit_copy_address_of(type);
-        if (is_immediate_class_type(type) &&
-            type->variant.class_struct_union.extra_info != NULL &&
-            type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-          /* A class with a scope.  Do a recursive call to process it. */
-          a_scope_ptr class_scope = type->variant.class_struct_union.
+      if (is_immediate_class_type(type) &&
+          type->variant.class_struct_union.extra_info != NULL &&
+          type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+        /* A class with a scope.  Do a recursive call to process it. */
+        a_scope_ptr class_scope = type->variant.class_struct_union.
                                                        extra_info->assoc_scope;
-          finish_trans_unit_copy(class_scope);
-        }  /* if */
-        if (!entry_to_be_merged(type)) {
-          /* An entry that was simply copied. */
+        finish_trans_unit_copy(class_scope);
+      }  /* if */
+      if (!entry_to_be_merged(type)) {
+        /* An entry that was simply copied. */
+        if (scope_being_merged) {
 #if DEBUG
           if (db_trace("trans_copy", corresp_type, iek_type)) {
             fprintf(f_debug,
@@ -1938,116 +1942,120 @@ unit set to the primary translation unit.
           } else {
             last_type->next = corresp_type;
           }  /* if */
-        } else {
-          /* The entry gets merged into the corresponding type. */
-          a_type_ptr primary_type =
+        }  /* if */
+      } else {
+        /* The entry gets merged into the corresponding type. */
+        a_type_ptr primary_type =
                   (a_type_ptr)checked_trans_unit_copy_address_of(corresp_type);
 #if DEBUG
-          if (db_trace("trans_copy", corresp_type, iek_type)) {
-            fprintf(f_debug,
-                    "finish_trans_unit_copy, merging into %lx after copy:\n",
-                    (unsigned long)primary_type);
-            db_entity_info((char *)corresp_type, iek_type);
-          }  /* if */
+        if (db_trace("trans_copy", corresp_type, iek_type)) {
+          fprintf(f_debug,
+                  "finish_trans_unit_copy, merging into %lx after copy:\n",
+                  (unsigned long)primary_type);
+          db_entity_info((char *)corresp_type, iek_type);
+        }  /* if */
 #endif /* DEBUG */
-          if (is_immediate_class_type(corresp_type)) {
-            merge_class_details(corresp_type, primary_type);
-            if (!entry_should_overwrite_primary_entry(type)) {
-              /* No overwriting is needed, so we're done.  This happens,
-                 for example, when the only reason for merging is to merge
-                 the befriending lists, or when the class is marked to be
-                 merged because some of its members need to be merged. */
-              goto end_of_type_list_add;
-            }  /* if */
+        if (is_immediate_class_type(corresp_type)) {
+          merge_class_details(corresp_type, primary_type);
+          if (!entry_should_overwrite_primary_entry(type)) {
+            /* No overwriting is needed, so we're done.  This happens,
+               for example, when the only reason for merging is to merge
+               the befriending lists, or when the class is marked to be
+               merged because some of its members need to be merged. */
+            goto end_of_type_list_add;
           }  /* if */
-          /* Copy this type and its definition, overwriting the
-             existing primary type.  Move the primary IL type
-             to the end of the types list so that it appears on
-             the list at the point where the definition appears.
-             Class members are not moved to the end of the list.
-             Also do not move to the end of the list when the
-             type being moved is a declaration (that can
-             happen when a definition in a secondary translation
-             unit is chosen as the canonical entry, and then its
-             definition is not needed anywhere and is removed by
-             the unneeded-entity removal processing). */
-          move_to_end = (!is_class_scope &&
-                         class_type_has_body(corresp_type));
-          if (move_to_end) {
-            /* Also remove any associated namespace placeholder, but do
-               not move it to the end of the list.  There will be a
-               placeholder in the secondary IL that gets moved over. */
-            move_to_end_of_types_list(primary_type, NO_SCOPE_DEPTH,
-                                      /*delete_placeholder=*/TRUE);
-          }  /* if */
-          overwrite_primary_type(corresp_type, primary_type);
-          corresp_type = primary_type;
-          if (!move_to_end) goto end_of_type_list_add;
-        } /* if */
+        }  /* if */
+        /* Copy this type and its definition, overwriting the
+           existing primary type.  Move the primary IL type
+           to the end of the types list so that it appears on
+           the list at the point where the definition appears.
+           Class members are not moved to the end of the list.
+           Also do not move to the end of the list when the
+           type being moved is a declaration (that can
+           happen when a definition in a secondary translation
+           unit is chosen as the canonical entry, and then its
+           definition is not needed anywhere and is removed by
+           the unneeded-entity removal processing). */
+        move_to_end = (!is_class_scope && scope_being_merged &&
+                       class_type_has_body(corresp_type));
+        if (move_to_end) {
+          /* Also remove any associated namespace placeholder, but do
+             not move it to the end of the list.  There will be a
+             placeholder in the secondary IL that gets moved over. */
+          move_to_end_of_types_list(primary_type, NO_SCOPE_DEPTH,
+                                    /*delete_placeholder=*/TRUE);
+        }  /* if */
+        overwrite_primary_type(corresp_type, primary_type);
+        corresp_type = primary_type;
+        if (!move_to_end) goto end_of_type_list_add;
+      } /* if */
+      if (scope_being_merged) {
         corresp_type->next = NULL;
         last_type = corresp_type;
         if (pointers_block != NULL) pointers_block->last_type = last_type;
-end_of_type_list_add:;
-      }  /* for */
-    }  /* if */
-    if (scope->variables != NULL) {
-      a_variable_ptr variable, last_variable;
-      /* Merge the variables in the scope into the primary IL scope. */
-      /* Get a pointer to the last variable in the primary scope. */
-      if (pointers_block != NULL) {
-        last_variable = pointers_block->last_variable;
-      } else {
-        /* Actual last variable will be determined below if/when needed. */
-        last_variable = NULL;
       }  /* if */
-      for (variable = scope->variables;
-           variable != NULL;
-           variable = variable->next) {
-        a_variable_ptr corresp_variable =
+end_of_type_list_add:;
+    }  /* for */
+  }  /* if */
+  if (scope->variables != NULL) {
+    a_variable_ptr variable, last_variable;
+    /* Merge the variables in the scope into the primary IL scope. */
+    /* Get a pointer to the last variable in the primary scope. */
+    if (pointers_block != NULL) {
+      last_variable = pointers_block->last_variable;
+    } else {
+      /* Actual last variable will be determined below if/when needed. */
+      last_variable = NULL;
+    }  /* if */
+    for (variable = scope->variables;
+         variable != NULL;
+         variable = variable->next) {
+      a_variable_ptr corresp_variable =
                   (a_variable_ptr)checked_trans_unit_copy_address_of(variable);
-        if (entry_to_be_merged(variable)) {
-          /* The entry gets merged into the corresponding variable. */
-          a_variable_ptr primary_variable =
+      if (entry_to_be_merged(variable)) {
+        /* The entry gets merged into the corresponding variable. */
+        a_variable_ptr primary_variable =
                      (a_variable_ptr)checked_trans_unit_copy_address_of(
                                                              corresp_variable);
 #if DEBUG
-          if (db_trace("trans_copy", corresp_variable, iek_variable)) {
-            fprintf(f_debug,
-                    "finish_trans_unit_copy, merging into %lx after copy:\n",
-                    (unsigned long)primary_variable);
-            db_entity_info((char *)corresp_variable, iek_variable);
-          }  /* if */
-#endif /* DEBUG */
-          if (primary_variable->storage_class ==
-                                             (a_storage_class)sc_unspecified) {
-            /* Eliminate the definition of the primary variable (this happens
-               when the secondary has a specialization and the primary does
-               not). */
-            clear_variable_definition(primary_variable);
-          }  /* if */
-          /* Copy this variable and its definition, overwriting the
-             existing primary variable.  Move the primary IL variable
-             to the end of the variables list so that it appears on
-             the list at the point where the definition appears.
-             Class members are not moved to the end of the list.
-             Also do not move if a specialization declaration replaces
-             an unspecialized variable (with or without a definition). */
-          move_to_end = (!is_class_scope &&
-                         corresp_variable->storage_class ==
-                                              (a_storage_class)sc_unspecified);
-          if (move_to_end) {
-            remove_from_variables_list(primary_variable, NO_SCOPE_DEPTH);
-            last_variable = pointers_block->last_variable;
-          }  /* if */
-#if MAINTAIN_NEEDED_FLAGS
-          /* Eliminate any default argument object lifetimes associated with
-             the entry that is about to be overwritten. */
-          eliminate_variable_default_arg_object_lifetimes(primary_variable);
-#endif /* MAINTAIN_NEEDED_FLAGS */
-          overwrite_primary_variable(corresp_variable, primary_variable);
-          corresp_variable = primary_variable;
-          if (!move_to_end) goto end_of_variable_list_add;
+        if (db_trace("trans_copy", corresp_variable, iek_variable)) {
+          fprintf(f_debug,
+                  "finish_trans_unit_copy, merging into %lx after copy:\n",
+                  (unsigned long)primary_variable);
+          db_entity_info((char *)corresp_variable, iek_variable);
         }  /* if */
+#endif /* DEBUG */
+        if (primary_variable->storage_class ==
+                                             (a_storage_class)sc_unspecified) {
+          /* Eliminate the definition of the primary variable (this happens
+             when the secondary has a specialization and the primary does
+             not). */
+          clear_variable_definition(primary_variable);
+        }  /* if */
+        /* Copy this variable and its definition, overwriting the
+           existing primary variable.  Move the primary IL variable
+           to the end of the variables list so that it appears on
+           the list at the point where the definition appears.
+           Class members are not moved to the end of the list.
+           Also do not move if a specialization declaration replaces
+           an unspecialized variable (with or without a definition). */
+        move_to_end = (!is_class_scope && scope_being_merged &&
+                       corresp_variable->storage_class ==
+                                              (a_storage_class)sc_unspecified);
+        if (move_to_end) {
+          remove_from_variables_list(primary_variable, NO_SCOPE_DEPTH);
+          last_variable = pointers_block->last_variable;
+        }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+        /* Eliminate any default argument object lifetimes associated with
+           the entry that is about to be overwritten. */
+        eliminate_variable_default_arg_object_lifetimes(primary_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+        overwrite_primary_variable(corresp_variable, primary_variable);
+        corresp_variable = primary_variable;
+        if (!move_to_end) goto end_of_variable_list_add;
+      }  /* if */
+      if (scope_being_merged) {
         if (is_class_scope && last_variable == NULL) {
           /* Determine the last variable the first time it is needed. */
           last_variable = primary_scope->variables;
@@ -2075,91 +2083,93 @@ end_of_type_list_add:;
         if (pointers_block != NULL) {
           pointers_block->last_variable = last_variable;
         }  /* if */
+      }  /* if */
 end_of_variable_list_add:;
-      }  /* for */
-    }  /* if */
-    if (scope->dynamic_inits != NULL) {
-      /* Add the dynamic initializations of "scope" to the end of the
-         dynamic initializations list of "primary scope". */
-      a_dynamic_init_ptr copied_inits =
+    }  /* for */
+  }  /* if */
+  if (scope->dynamic_inits != NULL && scope_being_merged) {
+    /* Add the dynamic initializations of "scope" to the end of the
+       dynamic initializations list of "primary scope". */
+    a_dynamic_init_ptr copied_inits =
           (a_dynamic_init_ptr)transitive_copy_address_of(scope->dynamic_inits);
-      a_dynamic_init_ptr last_dyn_init = primary_scope->dynamic_inits;
-      if (last_dyn_init == NULL) {
-        primary_scope->dynamic_inits = copied_inits;
-      } else {
-        last_dyn_init = pointers_block->last_dynamic_init;
-        last_dyn_init->next = copied_inits;
-      }  /* if */
-      last_dyn_init = copied_inits;
-      while (last_dyn_init->next != NULL) {
-        last_dyn_init = last_dyn_init->next;
-      }  /* while */
-      check_assertion(pointers_block != NULL);  /* No dynamic init list
-                                                   in classes. */
-      pointers_block->last_dynamic_init = last_dyn_init;
+    a_dynamic_init_ptr last_dyn_init = primary_scope->dynamic_inits;
+    if (last_dyn_init == NULL) {
+      primary_scope->dynamic_inits = copied_inits;
+    } else {
+      last_dyn_init = pointers_block->last_dynamic_init;
+      last_dyn_init->next = copied_inits;
     }  /* if */
-    if (scope->routines != NULL) {
-      a_routine_ptr routine, last_routine;
-      /* Merge the routines in the scope into the primary IL scope. */
-      /* Get a pointer to the last routine in the primary scope. */
-      if (pointers_block != NULL) {
-        last_routine = pointers_block->last_routine;
-      } else {
-        /* Actual last routine will be determined below if/when needed. */
-        last_routine = NULL;
-      }  /* if */
-      for (routine = scope->routines;
-           routine != NULL;
-           routine = routine->next) {
-        a_routine_ptr corresp_routine =
+    last_dyn_init = copied_inits;
+    while (last_dyn_init->next != NULL) {
+      last_dyn_init = last_dyn_init->next;
+    }  /* while */
+    check_assertion(pointers_block != NULL);  /* No dynamic init list
+                                                 in classes. */
+    pointers_block->last_dynamic_init = last_dyn_init;
+  }  /* if */
+  if (scope->routines != NULL) {
+    a_routine_ptr routine, last_routine;
+    /* Merge the routines in the scope into the primary IL scope. */
+    /* Get a pointer to the last routine in the primary scope. */
+    if (pointers_block != NULL) {
+      last_routine = pointers_block->last_routine;
+    } else {
+      /* Actual last routine will be determined below if/when needed. */
+      last_routine = NULL;
+    }  /* if */
+    for (routine = scope->routines;
+         routine != NULL;
+         routine = routine->next) {
+      a_routine_ptr corresp_routine =
                     (a_routine_ptr)checked_trans_unit_copy_address_of(routine);
-        if (entry_to_be_merged(routine)) {
-          /* The entry gets merged into the corresponding routine. */
-          a_routine_ptr primary_routine =
+      if (entry_to_be_merged(routine)) {
+        /* The entry gets merged into the corresponding routine. */
+        a_routine_ptr primary_routine =
                    (a_routine_ptr)checked_trans_unit_copy_address_of(
                                                               corresp_routine);
 #if DEBUG
-          if (db_trace("trans_copy", corresp_routine, iek_routine)) {
-            fprintf(f_debug,
-                    "finish_trans_unit_copy, merging into %lx after copy:\n",
-                    (unsigned long)primary_routine);
-            db_entity_info((char *)corresp_routine, iek_routine);
-          }  /* if */
-#endif /* DEBUG */
-          merge_routine_details(corresp_routine, primary_routine);
-          if (!entry_should_overwrite_primary_entry(routine)) {
-            /* No overwriting is needed, so we're done.  This happens,
-               for example, when the only reason for merging is to merge
-               the befriending lists. */
-            goto end_of_routine_list_add;
-          }  /* if */
-          if (primary_routine->assoc_scope != NULL_region_number) {
-            /* Eliminate the body of the primary routine (this happens when
-               the secondary has a specialization and the primary does not). */
-            clear_body_for_routine(primary_routine);
-          }  /* if */
-          /* Copy this routine and its definition, overwriting the
-             existing primary routine.  Move the primary IL routine
-             to the end of the routines list so that it appears on
-             the list at the point where the definition appears.
-             Class members are not moved to the end of the list.
-             Also do not move if a specialization declaration replaces
-             an unspecialized routine (with or without a definition). */
-          move_to_end = (!is_class_scope &&
-                         corresp_routine->assoc_scope != NULL_region_number);
-          if (move_to_end) {
-            remove_from_routines_list(primary_routine, NO_SCOPE_DEPTH);
-            last_routine = pointers_block->last_routine;
-          }  /* if */
-#if MAINTAIN_NEEDED_FLAGS
-          /* Eliminate any default argument object lifetimes associated with
-             the entry that is about to be overwritten. */
-          eliminate_routine_default_arg_object_lifetimes(primary_routine);
-#endif /* MAINTAIN_NEEDED_FLAGS */
-          overwrite_primary_routine(corresp_routine, primary_routine);
-          corresp_routine = primary_routine;
-          if (!move_to_end) goto end_of_routine_list_add;
+        if (db_trace("trans_copy", corresp_routine, iek_routine)) {
+          fprintf(f_debug,
+                  "finish_trans_unit_copy, merging into %lx after copy:\n",
+                  (unsigned long)primary_routine);
+          db_entity_info((char *)corresp_routine, iek_routine);
         }  /* if */
+#endif /* DEBUG */
+        merge_routine_details(corresp_routine, primary_routine);
+        if (!entry_should_overwrite_primary_entry(routine)) {
+          /* No overwriting is needed, so we're done.  This happens,
+             for example, when the only reason for merging is to merge
+             the befriending lists. */
+          goto end_of_routine_list_add;
+        }  /* if */
+        if (primary_routine->assoc_scope != NULL_region_number) {
+          /* Eliminate the body of the primary routine (this happens when
+             the secondary has a specialization and the primary does not). */
+          clear_body_for_routine(primary_routine);
+        }  /* if */
+        /* Copy this routine and its definition, overwriting the
+           existing primary routine.  Move the primary IL routine
+           to the end of the routines list so that it appears on
+           the list at the point where the definition appears.
+           Class members are not moved to the end of the list.
+           Also do not move if a specialization declaration replaces
+           an unspecialized routine (with or without a definition). */
+        move_to_end = (!is_class_scope && scope_being_merged &&
+                       corresp_routine->assoc_scope != NULL_region_number);
+        if (move_to_end) {
+          remove_from_routines_list(primary_routine, NO_SCOPE_DEPTH);
+          last_routine = pointers_block->last_routine;
+        }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+        /* Eliminate any default argument object lifetimes associated with
+           the entry that is about to be overwritten. */
+        eliminate_routine_default_arg_object_lifetimes(primary_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+        overwrite_primary_routine(corresp_routine, primary_routine);
+        corresp_routine = primary_routine;
+        if (!move_to_end) goto end_of_routine_list_add;
+      }  /* if */
+      if (scope_being_merged) {
         if (is_class_scope && last_routine == NULL) {
           /* Determine the last routine the first time it is needed. */
           last_routine = primary_scope->routines;
@@ -2187,135 +2197,137 @@ end_of_variable_list_add:;
         if (pointers_block != NULL) {
           pointers_block->last_routine = last_routine;
         }  /* if */
+      }  /* if */
 end_of_routine_list_add:;
-      }  /* for */
+    }  /* for */
+  }  /* if */
+  if (scope->templates != NULL && scope_being_merged) {
+    a_template_ptr templ, last_templ;
+    /* Merge the templates in the scope into the primary IL scope. */
+    /* Get a pointer to the last template in the primary scope. */
+    if (pointers_block != NULL) {
+      last_templ = pointers_block->last_template;
+    } else {
+      /* Actual last template will be determined below if/when needed. */
+      last_templ = NULL;
     }  /* if */
-    if (scope->templates != NULL) {
-      a_template_ptr templ, last_templ;
-      /* Merge the templates in the scope into the primary IL scope. */
-      /* Get a pointer to the last template in the primary scope. */
-      if (pointers_block != NULL) {
-        last_templ = pointers_block->last_template;
-      } else {
-        /* Actual last template will be determined below if/when needed. */
-        last_templ = NULL;
-      }  /* if */
-      for (templ = scope->templates; templ != NULL; templ = templ->next) {
-        a_template_ptr corresp_templ =
+    for (templ = scope->templates; templ != NULL; templ = templ->next) {
+      a_template_ptr corresp_templ =
                      (a_template_ptr)checked_trans_unit_copy_address_of(templ);
-        check_assertion(!entry_to_be_merged(templ));
-        /* An entry that was copied. */
-        if (is_class_scope && last_templ == NULL) {
-          /* Determine the last template the first time it is needed. */
-          last_templ = primary_scope->templates;
-          if (last_templ != NULL) {
-            while (last_templ->next != NULL) last_templ = last_templ->next;
-          }  /* if */
+      check_assertion(!entry_to_be_merged(templ));
+      /* An entry that was copied. */
+      if (is_class_scope && last_templ == NULL) {
+        /* Determine the last template the first time it is needed. */
+        last_templ = primary_scope->templates;
+        if (last_templ != NULL) {
+          while (last_templ->next != NULL) last_templ = last_templ->next;
         }  /* if */
-        /* Add the template to the end of the list. */
-        if (last_templ == NULL) {
-          primary_scope->templates = corresp_templ;
-        } else {
-          last_templ->next = corresp_templ;
-        }  /* if */
-        corresp_templ->next = NULL;
-        last_templ = corresp_templ;
-        if (pointers_block != NULL) pointers_block->last_template = last_templ;
-      }  /* for */
-    }  /* if */
-    if (scope->namespaces != NULL) {
-      a_namespace_ptr nsp, last_nsp;
-      /* Merge the namespaces in the scope into the primary IL scope. */
-      check_assertion(pointers_block != NULL);  /* No namespaces in classes. */
-      last_nsp = pointers_block->last_namespace;
-      for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-        a_namespace_ptr corresp_nsp =
+      }  /* if */
+      /* Add the template to the end of the list. */
+      if (last_templ == NULL) {
+        primary_scope->templates = corresp_templ;
+      } else {
+        last_templ->next = corresp_templ;
+      }  /* if */
+      corresp_templ->next = NULL;
+      last_templ = corresp_templ;
+      if (pointers_block != NULL) pointers_block->last_template = last_templ;
+    }  /* for */
+  }  /* if */
+  if (scope->namespaces != NULL) {
+    a_namespace_ptr nsp, last_nsp;
+    /* Merge the namespaces in the scope into the primary IL scope. */
+    check_assertion(pointers_block != NULL);  /* No namespaces in classes. */
+    last_nsp = pointers_block->last_namespace;
+    for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+      a_namespace_ptr corresp_nsp =
                       (a_namespace_ptr)checked_trans_unit_copy_address_of(nsp);
-        if (!entry_to_be_merged(nsp)) {
-          /* An entry that was simply copied.  Add it to the end of the
-             list. */
-          if (last_nsp == NULL) {
-            primary_scope->namespaces = corresp_nsp;
-          } else {
-            last_nsp->next = corresp_nsp;
-          }  /* if */
-          corresp_nsp->next = NULL;
-          last_nsp = corresp_nsp;
-          pointers_block->last_namespace = last_nsp;
+      if (!entry_to_be_merged(nsp) && scope_being_merged) {
+        /* An entry that was simply copied.  Add it to the end of the
+           list. */
+        if (last_nsp == NULL) {
+          primary_scope->namespaces = corresp_nsp;
+        } else {
+          last_nsp->next = corresp_nsp;
         }  /* if */
-        if (!nsp->is_namespace_alias) {
-          finish_trans_unit_copy(nsp->variant.assoc_scope);
-        }  /* if */
-      }  /* for */
-    }  /* if */
-    if (scope->pragmas != NULL) {
-      a_pragma_ptr pragma, last_pragma;
-      /* Merge the pragmas in the scope into the primary IL scope. */
-      /* Get a pointer to the last pragma in the primary scope. */
-      if (pointers_block != NULL) {
-        last_pragma = pointers_block->last_pragma;
-      } else {
-        /* Actual last pragma will be determined below if/when needed. */
-        last_pragma = NULL;
+        corresp_nsp->next = NULL;
+        last_nsp = corresp_nsp;
+        pointers_block->last_namespace = last_nsp;
       }  /* if */
-      for (pragma = scope->pragmas; pragma != NULL; pragma = pragma->next) {
-        a_pragma_ptr corresp_pragma =
+      if (!nsp->is_namespace_alias) {
+        finish_trans_unit_copy(nsp->variant.assoc_scope);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (scope->pragmas != NULL && scope_being_merged) {
+    a_pragma_ptr pragma, last_pragma;
+    /* Merge the pragmas in the scope into the primary IL scope. */
+    /* Get a pointer to the last pragma in the primary scope. */
+    if (pointers_block != NULL) {
+      last_pragma = pointers_block->last_pragma;
+    } else {
+      /* Actual last pragma will be determined below if/when needed. */
+      last_pragma = NULL;
+    }  /* if */
+    for (pragma = scope->pragmas; pragma != NULL; pragma = pragma->next) {
+      a_pragma_ptr corresp_pragma =
                       (a_pragma_ptr)checked_trans_unit_copy_address_of(pragma);
-        if (is_class_scope && last_pragma == NULL) {
-          /* Determine the last pragma the first time it is needed. */
-          last_pragma = primary_scope->pragmas;
-          if (last_pragma != NULL) {
-            while (last_pragma->next != NULL) last_pragma = last_pragma->next;
-          }  /* if */
+      if (is_class_scope && last_pragma == NULL) {
+        /* Determine the last pragma the first time it is needed. */
+        last_pragma = primary_scope->pragmas;
+        if (last_pragma != NULL) {
+          while (last_pragma->next != NULL) last_pragma = last_pragma->next;
         }  /* if */
-        /* Add the pragma to the end of the list. */
-        if (last_pragma == NULL) {
-          primary_scope->pragmas = corresp_pragma;
-        } else {
-          last_pragma->next = corresp_pragma;
-        }  /* if */
-        corresp_pragma->next = NULL;
-        last_pragma = corresp_pragma;
-        if (pointers_block != NULL) pointers_block->last_pragma = last_pragma;
-      }  /* for */
-    }  /* if */
-    if (scope->asm_entries != NULL) {
-      an_asm_entry_ptr asm_entry, last_asm_entry;
-      /* Merge the asm entries in the scope into the primary IL scope. */
-      /* Get a pointer to the last asm entry in the primary scope. */
-      if (pointers_block != NULL) {
-        last_asm_entry = pointers_block->last_asm_entry;
-      } else {
-        /* Actual last asm entry will be determined below if/when needed. */
-        last_asm_entry = NULL;
       }  /* if */
-      for (asm_entry = scope->asm_entries;
-           asm_entry != NULL;
-           asm_entry = asm_entry->next) {
-        an_asm_entry_ptr corresp_asm_entry =
-               (an_asm_entry_ptr)checked_trans_unit_copy_address_of(asm_entry);
-        if (is_class_scope && last_asm_entry == NULL) {
-          /* Determine the last asm entry the first time it is needed. */
-          last_asm_entry = primary_scope->asm_entries;
-          if (last_asm_entry != NULL) {
-            while (last_asm_entry->next != NULL) {
-              last_asm_entry = last_asm_entry->next;
-            }  /* while */
-          }  /* if */
-        }  /* if */
-        /* Add the asm entry to the end of the list. */
-        if (last_asm_entry == NULL) {
-          primary_scope->asm_entries = corresp_asm_entry;
-        } else {
-          last_asm_entry->next = corresp_asm_entry;
-        }  /* if */
-        corresp_asm_entry->next = NULL;
-        last_asm_entry = corresp_asm_entry;
-        if (pointers_block != NULL) {
-          pointers_block->last_asm_entry = last_asm_entry;
-        }  /* if */
-      }  /* for */
+      /* Add the pragma to the end of the list. */
+      if (last_pragma == NULL) {
+        primary_scope->pragmas = corresp_pragma;
+      } else {
+        last_pragma->next = corresp_pragma;
+      }  /* if */
+      corresp_pragma->next = NULL;
+      last_pragma = corresp_pragma;
+      if (pointers_block != NULL) pointers_block->last_pragma = last_pragma;
+    }  /* for */
+  }  /* if */
+  if (scope->asm_entries != NULL && scope_being_merged) {
+    an_asm_entry_ptr asm_entry, last_asm_entry;
+    /* Merge the asm entries in the scope into the primary IL scope. */
+    /* Get a pointer to the last asm entry in the primary scope. */
+    if (pointers_block != NULL) {
+      last_asm_entry = pointers_block->last_asm_entry;
+    } else {
+      /* Actual last asm entry will be determined below if/when needed. */
+      last_asm_entry = NULL;
     }  /* if */
+    for (asm_entry = scope->asm_entries;
+         asm_entry != NULL;
+         asm_entry = asm_entry->next) {
+      an_asm_entry_ptr corresp_asm_entry =
+               (an_asm_entry_ptr)checked_trans_unit_copy_address_of(asm_entry);
+      if (is_class_scope && last_asm_entry == NULL) {
+        /* Determine the last asm entry the first time it is needed. */
+        last_asm_entry = primary_scope->asm_entries;
+        if (last_asm_entry != NULL) {
+          while (last_asm_entry->next != NULL) {
+            last_asm_entry = last_asm_entry->next;
+          }  /* while */
+        }  /* if */
+      }  /* if */
+      /* Add the asm entry to the end of the list. */
+      if (last_asm_entry == NULL) {
+        primary_scope->asm_entries = corresp_asm_entry;
+      } else {
+        last_asm_entry->next = corresp_asm_entry;
+      }  /* if */
+      corresp_asm_entry->next = NULL;
+      last_asm_entry = corresp_asm_entry;
+      if (pointers_block != NULL) {
+        pointers_block->last_asm_entry = last_asm_entry;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (scope_being_merged) {
     /* Merge the object lifetime from "scope" into that from
        "primary_scope". */
     merge_object_lifetimes(scope, primary_scope);
