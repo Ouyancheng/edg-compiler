@@ -2498,6 +2498,24 @@ aggregate, set *keep_constant to TRUE.
     /* Class, struct, or union -- get first field (nonstatic data member). */
     ipmp->curr_field = next_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
+    { a_class_type_supplement_ptr ctsp =
+                              aggr_type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL &&
+          ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+        /* This aggregate is an anonymous union.  Link the new modifier
+           entry around the anonymous union, so the anonymous union level
+           does not appear in the modifiers list.  The anonymous union
+           levels are restored when the field selections are generated
+           (see au_field_lvalue_selection_expr).  This seems a bit
+           roundabout, and it is, but it's needed to get ctor-inits
+           of anonymous union fields to work right.  In that case it's
+           not convenient to add additional modifiers to represent each
+           anonymous union level, because the modifier structures are local
+           variables and there's no opportunity to do recursion to
+           get the extra modifier entries on the list. */
+        ipmp->next = ipmp->next->next;
+      }  /* if */
+    }
   }  /* if */
   /* Work through the list of constants, pairing each one with a member of
      the aggregate. */

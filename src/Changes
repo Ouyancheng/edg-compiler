@@ -1,5 +1,19 @@
 Version 2.39
 
+2/25/98   IL lowering of aggregate initialization of anonymous union
+
+Aggregate initialization of an anonymous union field was not handled
+correctly in IL lowering.  The following case, now fixed, created
+invalid IL, which if run through the C-generating back caused an
+internal error in dump_field_from_second_operand:
+
+  struct X {
+    union { unsigned long y; };
+  } x;
+  void f(unsigned long p) {
+    X v = { p };
+  }
+
 2/24/98   C++-generating back end: output of 64-bit constants in Microsoft
           mode
 
