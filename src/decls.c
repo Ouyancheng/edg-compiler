@@ -7770,7 +7770,7 @@ continue_with_declaration:
         if (is_function) {
           /* A qualified name that identifies a function is allowed only when
              the function body is present. */
-          pos_error(ec_member_function_redeclaration, &declarator_pos);
+          pos_error(ec_member_function_redecl_outside_class, &declarator_pos);
           set_to_error_locator(locator);
         } else {
           /* Assume that qualified names that are not functions refer to static
