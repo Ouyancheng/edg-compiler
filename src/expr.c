@@ -7274,11 +7274,19 @@ handle_trapped_left_paren:
     case tok_void:
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
-     if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;
-     scan_functional_notation_type_conversion(type_keyword(),
-                                              &local_result,
-                                              expression_kind, local_options);
-     break;
+      if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;
+      if (next_token() == tok_lparen) {
+        scan_functional_notation_type_conversion(type_keyword(),
+                                                 &local_result,
+                                                 expression_kind,
+                                                 local_options);
+      } else {
+        /* No parenthesis following the type, so issue an error. */
+        error_and_make_error_operand(ec_type_identifier_not_allowed,
+                                     &local_result);
+        (void)get_token();
+      }  /* if */
+      break;
      
     default:
 bad_start_of_primary:
