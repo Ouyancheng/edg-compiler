@@ -2344,7 +2344,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     sym = NULL;
   } else if (sym != NULL) {
     /* The locator is for a specific symbol, so return the symbol for it. */
-    check_assertion(is_acceptable_symbol(sym));
+    /* Make sure that the symbol we are returning matches the lookup
+       criteria.  This check is suppressed if the do_not_clear_specific_symbol
+       flag is set, which usually indicates that the symbol is a coalesced
+       template reference. */
+    check_assertion(is_acceptable_symbol(sym) ||
+                    locator->do_not_clear_specific_symbol);
   } else {
     /* Search for a symbol in the right scope. */
     /* First, search the list of inactive symbols.  These are class
