@@ -47,6 +47,8 @@ extern a_boolean class_specifier(a_boolean  first_specifier,
                                  a_boolean  *declares_something,
                                  a_boolean  *defines_something);
 
+extern void reference_to_special_member_function(a_routine_ptr  rout_ptr);
+
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
 
