@@ -676,65 +676,70 @@ projection symbol.
              appropriate. */
           a_boolean                suppress_warning = FALSE;
 
-          /* To determine whether to suppress the warning, examine the scope
-             stack for labels and uncompleted loops that might enable the
-             program to set the variable in code that has not yet been seen
-             and then to branch back to the current code.  In other words,
-             only issue a warning if we're sure the variable cannot have
-             been set. */
-          for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
-            check_assertion(ssep != &scope_stack[0]);
-            if (ssep->kind == (a_scope_kind)sck_function) {
-              /* A reference to a local variable from within quasi-nested
-                 function definition should have been reported as an error and
-                 recorded as an srk_error reference. */
-              check_assertion(ssep->number == sym_ptr->decl_scope ||
-                              !scptr->is_local_to_function);
-              /* We are at the outermost scope of the function.  Check for
-                 a label. */
-              goto check_label_decl_seq;
-            } else if (ssep->number == sym_ptr->decl_scope) {
-              /* We are at the scope in which the variable was declared.
-                 Jump out to the function scope and look for a label. */
-              ssep = &scope_stack[depth_innermost_function_scope];
+          if (depth_scope_stack == depth_innermost_namespace_scope) {
+            /* An unset variable with internal linkage (e.g., one declared
+               extern inside an unnamed namespace). */
+          } else {
+            /* To determine whether to suppress the warning, examine the scope
+               stack for labels and uncompleted loops that might enable the
+               program to set the variable in code that has not yet been seen
+               and then to branch back to the current code.  In other words,
+               only issue a warning if we're sure the variable cannot have
+               been set. */
+            for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
+              check_assertion(ssep != &scope_stack[0]);
+              if (ssep->kind == (a_scope_kind)sck_function) {
+                /* A reference to a local variable from within quasi-nested
+                   function definition should have been reported as an error
+                   and recorded as an srk_error reference. */
+                check_assertion(ssep->number == sym_ptr->decl_scope ||
+                                !scptr->is_local_to_function);
+                /* We are at the outermost scope of the function.  Check for
+                   a label. */
+                goto check_label_decl_seq;
+              } else if (ssep->number == sym_ptr->decl_scope) {
+                /* We are at the scope in which the variable was declared.
+                   Jump out to the function scope and look for a label. */
+                ssep = &scope_stack[depth_innermost_function_scope];
 check_label_decl_seq:
-              /* If the variable was declared before the label, suppress the
-                 warning.  If it was declared after the label, the warning
-                 is appropriate.  For example:
-                   void f() {
-                     int i;
-                       :
-                   L:
-                     int j;
-                     ++i;          // No warning -- i may be set later.
-                     ++j;          // Warning -- j cannot have been set yet.
+                /* If the variable was declared before the label, suppress the
+                   warning.  If it was declared after the label, the warning
+                   is appropriate.  For example:
+                     void f() {
+                       int i;
                          :
-                   }
-              */
-              if (ssep->last_label_decl_seq > sym_ptr->decl_seq) {
-                /* Variable was declared before the label was defined. */
-                suppress_warning = TRUE;
-              }  /* if */
-              break;
-            } else if (ssep->is_loop_scope) {
-              /* The variable was declared in a scope outside the loop
-                 scope, so suppress the warning.  If it were declared within
-                 the loop, the warning would still be okay.  For example:
-                   void f() {
-                     int i;
-                       :
-                     for (;;) {
+                     L:
                        int j;
-                       ++i;        // No warning -- i may be set later.
-                       ++j;        // Warning -- j cannot have been set yet.
-                         :
+                       ++i;          // No warning -- i may be set later.
+                       ++j;          // Warning -- j cannot have been set yet.
+                           :
                      }
-                   }
-              */
-              suppress_warning = TRUE;
-              break;
-            }
-          }  /* for */
+                */
+                if (ssep->last_label_decl_seq > sym_ptr->decl_seq) {
+                  /* Variable was declared before the label was defined. */
+                  suppress_warning = TRUE;
+                }  /* if */
+                break;
+              } else if (ssep->is_loop_scope) {
+                /* The variable was declared in a scope outside the loop
+                   scope, so suppress the warning.  If it were declared within
+                   the loop, the warning would still be okay.  For example:
+                     void f() {
+                       int i;
+                         :
+                       for (;;) {
+                         int j;
+                         ++i;        // No warning -- i may be set later.
+                         ++j;        // Warning -- j cannot have been set yet.
+                           :
+                       }
+                     }
+                */
+                suppress_warning = TRUE;
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
           if (!suppress_warning) {
             pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
           }  /* if */
