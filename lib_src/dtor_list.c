@@ -18,7 +18,8 @@ dtor_list.c -- destruction list processing.
 #pragma hdrstop
 #include "dtor_list.h"
 
-#if !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT
+#if !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT || \
+    !SYSTEM_RUNTIME_HAS_IA64_ATEXIT
 
 /*
 The list of static objects that require destruction.  An entry is
@@ -28,7 +29,9 @@ object is created.
 static a_needed_destruction_ptr
 		needed_destruction_head /* = NULL*/;
 
-#endif /* !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
+#endif /* !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT
+          !SYSTEM_RUNTIME_HAS_IA64_ATEXIT */
+
 
 #ifndef __EDG_IA64_ABI
 
