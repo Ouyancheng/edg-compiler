@@ -1,5 +1,17 @@
 Version 2.26
 
+10/10/94 A(x) and (A)x mean the same thing and allow user-defined
+         conversions on x
+
+The explicit conversions A(x) and (A)x, with A a class type, should mean
+exactly the same thing, and should allow implicit user-defined conversions
+to convert x to the type of the parameter of the constructor.  Now, they
+do.  Formerly, user-defined conversions were not allowed on the argument
+
+- for A(x) when there were both constructors for A and a conversion
+  function that could convert x to A, and
+- for (A)x in all cases.
+
 10/7/94  Using copy constructors for derived --> base conversions
 
 The front end now considers copy constructors for derived --> based class
