@@ -1,5 +1,30 @@
 Version 3.4
 
+2/13/04  GNU IA-64 ABI: Effect of #pragma pack on bit fields
+
+The effect of #pragma pack directives on bit fields changed substantially
+between versions 3.2 and 3.3 of GNU C and C++ compilers.  The GNU C/C++ 3.2
+behavior was previously emulated by the EDG front end in all GNU C and C++
+modes.  Now the emulation only happens in GNU modes when the front end is
+configured for the IA-64 ABI.  Furthermore, the GNU 3.3 behavior is mimicked
+when the global variable gnu_abi_version (configured with the macro
+DEFAULT_GNU_ABI_VERSION) is set to 30300 or higher.  For example:
+
+  #pragma pack(1)
+  union U {
+    int f1: 2;
+    char f2[2];
+  };
+  struct S {  // Size 12 with GNU C++ 3.2.  Size 8 with GNU C++ 3.3.
+    U u;
+    int a: 1;
+    int  : 0;
+    int c: 31;
+  };
+
+(We anticipate the GNU 3.3 behavior will be carried over to version 3.4 of
+the GNU compiler suite.  See also the Changes entry of 10/20/03.)
+
 2/12/04 Abort on partial specialization using template template parameters
 
 In certain error cases, an abort could occur when determining which of
@@ -165,32 +190,6 @@ In UPC mode the macros __UPC__ and __UPC_VERSION__ are now predefined.
 In addition, either the macro __UPC_DYNAMIC_THREADS__ or the macro
 __UPC_STATIC_THREADS__ is defined, depending on whether the number of
 UPC threads is dynamic or not.
-
-1/30/04  GNU IA-64 ABI: Effect of #pragma pack on bit fields
-
-The effect of #pragma pack directives on bit fields changed substantially
-between versions 3.2 and 3.3 of GNU C and C++ compilers.  The GNU C/C++ 3.2
-behavior was previously emulated by the EDG front end in GNU C and C++ modes.
-Now this emulation is controlled by the variable emulate_gnu_abi_bugs (which
-is normally configured with the macro DEFAULT_EMULATE_GNU_ABI_BUGS).
-Furthermore, the GNU 3.3 behavior is mimicked when the global variable
-gnu_abi_bugs_version (configured with the macro DEFAULT_GNU_ABI_BUGS_VERSION)
-is set to 30300 or higher.  For example:
-
-  #pragma pack(1)
-  union U {
-    int f1: 2;
-    char f2[2];
-  };
-  struct S {  // Size 12 with GNU C++ 3.2.  Size 8 with GNU C++ 3.3.
-    U u;
-    int a: 1;
-    int  : 0;
-    int c: 31;
-  };
-
-(We anticipate the GNU 3.3 behavior will be carried over to version 3.4 of
-the GNU compiler suite.  See also the Changes entry of 10/20/03.)
 
 1/30/04  GNU mode: Spurious error on format attribute
 
@@ -1507,7 +1506,7 @@ version whose IA-64 ABI bugs should be emulated.  Currently, only versions
 are normally also present in GNU C++ 3.3.  Emulation of bugs specific to
 GNU C++ 3.3 is in its very initial stages and therefore not as complete as
 the emulation of bugs in GNU C++ 3.2.)  The value of the new global variable
-can be set through the new configuration macro DEFAULT_GNU_ABI_BUGS_VERSION.
+can be set through the new configuration macro DEFAULT_GNU_ABI_VERSION.
 
 10/16/03 Internal error with PROTOTYPE_INSTANTIATIONS_IN_IL
 
