@@ -562,6 +562,10 @@ not specifically allow this syntax, but it is supported by cfront.
     if (curr_class_qualifier.class_type == ssep->assoc_type &&
         curr_class_qualifier.has_global_qualifier == FALSE) {
       is_member_id = TRUE;
+      /* Issue any access errors encountered while scanning the
+	 qualifier -- even though there shouldn't be any for this
+	 case. */
+      issue_qualifier_access_errors();
       /* Skip to the token after the qualifier (the identifier). */
       (void)get_token();
       /* Accepting qualified member names is an extension so issue a

@@ -3533,8 +3533,8 @@ in the source program.
 }  /* have_access_to_symbol */
 
 
-static void issue_access_error(a_symbol_ptr       sym,
-                               a_source_position  *err_pos)
+void issue_access_error(a_symbol_ptr       sym,
+                        a_source_position  *err_pos)
 /*
 Issue the appropriate error on the inaccessibility of sym.
 */
@@ -3560,12 +3560,15 @@ Issue the appropriate error on the inaccessibility of sym.
 }  /* issue_access_error */
 
 
-void member_check_ambiguity_and_verify_access(a_symbol_locator *locator)
+void member_check_ambiguity_verify_access_and_return_error_descr
+			(a_symbol_locator		*locator,
+			 an_access_error_descr_ptr	*aedp_ptr)
 /*
 Verify that the indicated member symbol is not ambiguous and that we have
-access to it; issue an error if appropriate.  This is called from the macro
-check_ambiguity_and_verify_access.  In case of an ambiguity, the locator
-is set to an error locator.
+access to it.  If the user did not supply an error description pointer,
+then issue the error, otherwise return the information to the caller so
+that the caller can issue an error later if appropriate.  In case of an
+ambiguity, the locator is set to an error locator.
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
@@ -3580,10 +3583,19 @@ is set to an error locator.
     set_to_error_locator(*locator);
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible. */
-    issue_access_error(fundamental_symbol_of(sym), &locator->source_position);
-    locator->access_control_error_reported = TRUE;
+    if (aedp_ptr == NULL ) {
+      issue_access_error(fundamental_symbol_of(sym),
+                         &locator->source_position);
+      locator->access_control_error_reported = TRUE;
+    } else {
+      an_access_error_descr_ptr	aedp;
+      aedp = alloc_access_error_descr();
+      aedp->sym = fundamental_symbol_of(sym);
+      aedp->position = locator->source_position;
+      *aedp_ptr = aedp;
+    }  /* if */
   }  /* if */
-}  /* member_check_ambiguity_and_verify_access */
+}  /* member_check_ambiguity_verify_access_and_return_error_descr */
 
 
 void overload_check_ambiguity_and_verify_access(

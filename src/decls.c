@@ -4594,7 +4594,11 @@ otherwise it is NULL.  The syntax is:
         a_boolean        	  err;
         a_class_qualifier	  cq;
         an_identifier_options_set options;
-        options = GID_DISALLOW_GLOBAL_QUALIFIER;
+        /* Access checking is suppressed for declarators.  When the
+           declarator contains a class qualifier it is defining something
+           already declared in the class definition.  This should not be
+           considered an access violation. */
+        options = GID_DISALLOW_GLOBAL_QUALIFIER | GID_SUPPRESS_ACCESS_ERRORS;
         if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
           options |= GID_DISALLOW_QUALIFIED_NAME;
         }  /* if */

@@ -200,6 +200,11 @@ static a_reusable_cache_entry_ptr
 			/* List of reusable cache stack entries (allocated
                            in front end storage) freed and available for
                            reuse. */
+static an_access_error_descr_ptr
+		avail_access_error_descrs;
+			/* List of access error description  entries (allocated
+                           in front end storage) freed and available for
+                           reuse. */
 
 static a_reusable_cache_entry_ptr
                 reusable_cache_stack;
@@ -223,7 +228,8 @@ static unsigned long
 		num_source_line_modifs_allocated,
 		num_cached_tokens_allocated,
 		num_cached_constants_allocated,
-		num_reusable_cache_entries_allocated;
+		num_reusable_cache_entries_allocated,
+		num_access_error_descrs_allocated;
 #endif /* DEBUG */
 
 
@@ -504,7 +510,10 @@ for pp-tokens.
   } else if (curr_token == tok_class_qualifier ||
              curr_token == tok_ptr_to_member) {
     /* Class qualifier or pointer to member -- save the current class
-       qualifier structure. */
+       qualifier structure.  Note that the class qualifier contains a pointer
+       to a list of access error descriptors.  We simply retain the original
+       pointer -- these entries will not be freed until the token
+       is rescanned.  This value is not present for tok_ptr_to_member. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_class_qualifier;
     ctp->variant.class_qualifier = curr_class_qualifier;
   } else {
@@ -4852,6 +4861,71 @@ skip_processing:
 }  /* coalesce_template_class_reference */
 
 
+an_access_error_descr_ptr alloc_access_error_descr(void)
+/*
+Allocate an access error description entry.  Reuse a freed entry if possible.
+*/
+{
+  an_access_error_descr_ptr aedp;
+
+  if (avail_access_error_descrs != NULL) {
+    /* Reuse a freed entry. */
+    aedp = avail_access_error_descrs;
+    avail_access_error_descrs = avail_access_error_descrs->next;
+  } else {
+    /* Allocate a new entry. */
+    aedp = (an_access_error_descr_ptr)alloc_fe(sizeof(an_access_error_descr));
+#if DEBUG
+    num_access_error_descrs_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  aedp->next = NULL;
+  aedp->sym = NULL;
+  aedp->position = pos_curr_token;
+  return aedp;
+}  /* alloc_access_error_descr */
+	
+
+static void do_not_issue_qualifier_access_errors(void)
+/*
+Free the access error description entries pointed to by curr_class_qualifier
+and clear the pointer in curr_class_qualifier.  Put them on the available
+list to be reused.
+*/
+{
+  an_access_error_descr_ptr	last_ptr = curr_class_qualifier.access_errors;
+  an_access_error_descr_ptr	next;
+  /* Find the last element of the list.  The available list will be linked
+     onto the end of the list passed by the caller. */
+  while ((next = last_ptr->next) != NULL) last_ptr = next;
+  last_ptr->next = avail_access_error_descrs;
+  avail_access_error_descrs = curr_class_qualifier.access_errors;
+  curr_class_qualifier.access_errors = NULL;
+}  /* do_not_issue_qualifier_access_errors */
+
+
+void issue_qualifier_access_errors(void)
+/*
+Loop through the list of access errors, pointed to by curr_class_qualifier,
+that were detected while scanning the class qualifier.  Issue the
+errors, free the list, and clear the pointer.
+*/
+{
+  an_access_error_descr_ptr	aedp;
+
+  aedp = curr_class_qualifier.access_errors;
+  while (aedp != NULL) {
+    issue_access_error(aedp->sym, &aedp->position);
+    aedp = aedp->next;
+  }  /* while */
+  /* This frees the list of access errors and sets the pointer in
+     curr_class_qualifier to NULL.  The name may seem a odd, but in
+     all other instances, one calls either issue_qualifier_access_error
+     or do_not_issue_qualifier_access_error, so we make do with an
+     odd looking call here. */
+  do_not_issue_qualifier_access_errors();
+}  /* issue_qualifier_access_errors */
+
 
 static void clear_class_qualifier(a_class_qualifier_ptr cqp)
 /*
@@ -4863,6 +4937,7 @@ Initializes the fields of a class qualifier structure.
   cqp->is_file_scope_qualifier = FALSE;
   cqp->is_identifier = FALSE;
   cqp->err = FALSE;
+  cqp->access_errors = NULL;
 }
 
 
@@ -4982,6 +5057,16 @@ If the token following a class qualifier is not part of a valid identifier
 we still return TRUE so that an appropriate diagnostic can be generated when
 an attempt is made to use the thing after the qualifier.
 
+This routine performs ambiguity and access checking on the components of the
+qualified name.  Only the ambiguity errors are actually issued, however.
+Information about any access errors is accumulated in a list of
+an_access_error_descr entries pointed to by curr_class_qualifier.  It is
+the responsibility of the caller that gets the token following the class
+qualifier to ensure that either issue_qualifier_access_errors or
+do_not_issue_qualifier_access_errors is called to do the appropriate processing
+and free the entries on the list.  This routine issues any access errors
+encountered if the construct scanned is a pointer to member.
+
 Returns *err TRUE if there was an error.  This routine may only be called
 in C++ mode. 
 */
@@ -4998,6 +5083,12 @@ in C++ mode.
   a_token_kind		next_tok;
   a_boolean             local_err;
   a_boolean		result = FALSE;
+  an_access_error_descr_ptr
+			aedp = NULL;
+  an_access_error_descr_ptr
+			first_aedp = NULL;
+  an_access_error_descr_ptr
+			last_aedp = NULL;
 
   db_enter(4, "is_generalized_identifier_start");
   /* If no error parameter was supplied by the caller, set err to point
@@ -5013,6 +5104,11 @@ in C++ mode.
              curr_class_qualifier.is_identifier;
     goto exit;
   }  /* if */
+#if CHECKING
+  if (curr_class_qualifier.access_errors != NULL) {
+    internal_error("is_generalized_identifier_start: access_errors not NULL");
+  }  /* if */
+#endif /* CHECKING */
   start_position = pos_curr_token;
   orig_error_position = error_position;
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
@@ -5079,8 +5175,19 @@ in C++ mode.
         } else {
           /* Record the reference on the symbol. */
           mark_referenced(class_symbol, &pos_curr_token);
-          /* Do ambiguity and access control checking on the class symbol. */
-          check_ambiguity_and_verify_access(&locator_for_curr_id);
+          /* Do ambiguity and access control checking on the class symbol.
+	     Ambiguity errors will be issued but access errors will only
+	     be detected.  A pointer to the description of the access error, 
+	     if any, is returned in aedp.  If an error occurred, link the
+	     description onto the end of a list of errors. */
+	  aedp = NULL;
+	  member_check_ambiguity_verify_access_and_return_error_descr
+				(&locator_for_curr_id, &aedp);
+          if (aedp != NULL) {
+            if (last_aedp != NULL) last_aedp->next = aedp;
+            last_aedp = aedp;
+	    if (first_aedp == NULL) first_aedp = aedp;
+          }  /* if */
           class_type = skip_typerefs(class_symbol->
                                           variant.class_struct_union.type);
         }  /* if */
@@ -5167,7 +5274,12 @@ in C++ mode.
     curr_class_qualifier.is_identifier = is_identifier;
     curr_class_qualifier.err = *err;
     curr_class_qualifier.source_position = start_position;
+    curr_class_qualifier.access_errors = first_aedp;
     result = is_qualifier || is_identifier;
+    /* For pointer to member, issue any access errors that were detected. */
+    if (is_ptr_to_member && first_aedp != NULL) {
+      issue_qualifier_access_errors();
+    }  /* if */
   }  /* if */
   /* Restore original source position and error position. */
   pos_curr_token = start_position;
@@ -5197,7 +5309,7 @@ a_boolean coalesce_generalized_identifier
                a_boolean                        *err)
 /*
 Scans a generalized identifier but does not attempt to lookup the
-identifier.  The consists of scanning an optional class qualifier,
+identifier.  This consists of scanning an optional class qualifier,
 scanning the tokens for multi-token identifiers such as "operator +"
 and setting the locator flags to reflect what was scanned.
 
@@ -5256,6 +5368,16 @@ otherwise it will be set FALSE.
        recorded by is_generalized_identifier_start. */
     error_position = curr_class_qualifier.source_position;
     start_position = error_position;
+    /* Issue any access errors detected while scanning the class
+       qualifier.  If access errors are to be suppressed, free the list
+        of access errors. */
+    if (curr_class_qualifier.access_errors != NULL) {
+      if (options & GID_SUPPRESS_ACCESS_ERRORS) {
+        do_not_issue_qualifier_access_errors();
+      } else {
+        issue_qualifier_access_errors();
+      }  /* if */
+    }  /* if */
     /* Make sure that the class has been instantiated and is not
        an incomplete type. */
     if (!*err && class_type != NULL) {
@@ -5324,8 +5446,6 @@ exit:
   db_exit();
   return (return_value);
 }  /* coalesce_generalized_identifier */
-
-
 
 
 a_boolean coalesce_and_lookup_qualified_name
@@ -5546,6 +5666,8 @@ Display and return the amount of space used for various lexical tables.
   write_one("cached constant", num_cached_constants_allocated, a_constant);
   write_one("cache stack entry", num_reusable_cache_entries_allocated,
             a_reusable_cache_entry);
+  write_one("access error descr", num_access_error_descrs_allocated,
+            an_access_error_descr);
 
   total = after_end_of_curr_source_line - curr_source_line;
   fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "curr_source_line",
@@ -5616,6 +5738,7 @@ of the front end.
   num_cached_tokens_allocated = 0;
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
+  num_access_error_descrs_allocated = 0;
 #endif /* DEBUG */
 
   /* Do the initial allocation for curr_source_line the first time this

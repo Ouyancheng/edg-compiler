@@ -1447,11 +1447,29 @@ extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 
 extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
-extern void member_check_ambiguity_and_verify_access(a_symbol_locator *loc);
+extern void issue_access_error(a_symbol_ptr       sym,
+                               a_source_position  *err_pos);
+
+extern void member_check_ambiguity_verify_access_and_return_error_descr
+			(a_symbol_locator		*loc,
+			 an_access_error_descr_ptr	*aedp_ptr);
 
 extern void overload_check_ambiguity_and_verify_access(
                                            a_symbol_locator *locator,
                                            a_symbol_ptr     overloaded_symbol);
+
+
+/*
+Verify that the indicated member symbol is not ambiguous and that we have
+access to it; issue an error if appropriate.  This is called from the macro
+check_ambiguity_and_verify_access.  This macro provides a NULL pointer
+for the access descriptor pointer when calling the routine
+member_check_ambiguity_verify_access_and_return_error_descr.
+*/
+#define member_check_ambiguity_and_verify_access(locator)		\
+  member_check_ambiguity_verify_access_and_return_error_descr		\
+			(locator, /*an_access_error_descr_ptr=*/NULL);
+
 
 /*
 Check to see if a symbol found is ambiguous or inaccessible.  Ambiguity
@@ -1467,6 +1485,7 @@ and call a subroutine for class members.
     member_check_ambiguity_and_verify_access(locator);                \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
+
 
 /*
 Return TRUE if access1 represents greater accessibility than access2.

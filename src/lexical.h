@@ -185,6 +185,10 @@ typedef int an_identifier_options_set;
 			/* Causes an error to be issued if the identifier
 			   is an operator name of the form "operator =" or
 			   "operator int"). */
+#define GID_SUPPRESS_ACCESS_ERRORS    0x20
+			/* Causes access errors detected while scanning
+			   the class qualifier portion of the name to be
+			   disregarded. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
@@ -240,6 +244,22 @@ typedef struct a_token_cache {
 			   teik_lint_and_pragma entry is needed to record
 			   a change in the lint comment or pragma state. */
 } a_token_cache;
+
+
+/* Contains a description of an access error that has been detected
+   for which an error may need to be issued later. */
+typedef struct an_access_error_descr *an_access_error_descr_ptr;
+typedef struct an_access_error_descr {
+  an_access_error_descr_ptr
+		next;	/* Pointer to the next error description record. */
+  struct a_symbol	
+		*sym;
+			/* Symbol that the program was trying to access
+			   that should be included in the error message. */
+  a_source_position
+		position;
+			/* Position to be used when the error is issued. */
+} an_access_error_descr;
 
 
 /* These includes are placed here so that a_token_cache will be defined
@@ -795,20 +815,6 @@ EXTERN an_error_code
 			   TRUE, since no diagnostic was put out in that
 			   case. */
 
-/* Contains a description of an access error that has been detected
-   for which an error may need to be issued later. */
-typedef struct an_access_error_descr *an_access_error_descr_ptr;
-typedef struct an_access_error_descr {
-  an_access_error_descr_ptr
-		next;	/* Pointer to the next error description record. */
-  a_symbol_ptr	sym;
-			/* Symbol that the program was trying to access
-			   that should be included in the error message. */
-  a_source_position
-		position;
-			/* Position to be used when the error is issued. */
-} an_access_error_descr;
-
 
 /* Contains a description of a class qualifier or pointer to member. */
 typedef struct a_class_qualifier *a_class_qualifier_ptr;
@@ -1098,6 +1104,10 @@ extern a_symbol_ptr coalesce_template_class_reference
 			 a_boolean		   *err);
 
 extern an_access_error_descr_ptr alloc_access_error_descr(void);
+
+extern void issue_qualifier_access_errors(void);
+
+extern void do_not_issue_qualifier_access_errors(void);
 
 /* Macro to check prevent calling the error checking function unless some
    error flags have been specified. */
