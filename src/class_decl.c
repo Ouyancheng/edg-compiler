@@ -4427,6 +4427,9 @@ special function kind (e.g., constructor, destructor), if any.
 }  /* decl_member_function */
 
 
+#if !DECL_MODIFIERS_IN_USE
+/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE */
 void decl_member_function_template(a_symbol_locator     *locator,
                                    a_type_ptr           class_type,
                                    a_type_ptr           member_type,
