@@ -21,11 +21,62 @@ templates.c -- Support for C++ templates.
 #include "error.h"
 #include "il.h"
 #include "lexical.h"
+#include "mem_manage.h"
+#include "lower_name.h"
 #include "statements.h"
 #include "symbol_tbl.h"
 #include "types.h"
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+typedef struct an_instance_lookup_entry *an_instance_lookup_entry_ptr;
+typedef struct an_instance_lookup_entry {
+  /* Structure used to represent entries in the hash table of template
+     instantiation names.  This is used to match entries from the
+     instantiation list file with entries on the compilers instantiation
+     required list. */
+  an_instance_lookup_entry_ptr
+		next;
+			/* Pointer to the next instance in a given hash
+			   table bucket. */
+  char		*name;
+			/* Name of the instance.  This is the name read from
+			   the instantiation list file.  This will typically
+			   be the mangled name of the function or static
+			   data member. */
+} an_instance_lookup_entry;
 
+#define INSTANCE_LOOKUP_TABLE_SIZE 127
+			/* The number of buckets in the instance lookup table.
+			   This number should be prime. */
+
+static an_instance_lookup_entry_ptr
+		instance_lookup_table[INSTANCE_LOOKUP_TABLE_SIZE];
+			/* Each element of the array points to a list of
+			   entries associated with instantiations that hashed
+			   to a given group. */
+
+#define HASH_FACTOR 73
+			/* The multiplier used in the hash algorithm that
+			   generates an index in the hash table from an
+                           identifier name string.
+			   Do not change without investigating the
+			   hash table performance that results.  Prime
+			   values are likely to work better than
+			   non-prime values. */
+#define INFO_FILE_LINE_INCREMENTAL_ALLOCATION 256
+			/* The number of bytes added to the information file
+			   input line each time it is reallocated; also the
+			   initial allocation. */
+
+static a_boolean
+		any_instantiations_required;
+			/* TRUE if there are any template instantiations
+			   needed for this compilation.  This is TRUE
+			   whether or not the instantiations are provided
+			   by this file.  This is used to determine whether
+			   to create an instantiation information file. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+	
 static a_def_arg_expr_fixup_ptr	curr_default_args;
 			/* Pointer to the default argument entries for
                            the function template being scanned. */
@@ -106,10 +157,16 @@ itself recursively to process classes nested within this class.
         /* Under certain conditions the instance pointer will be NULL.  This
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
+#if 0
         if (instantiation_mode == tim_all ||
             sym->variant.routine.ptr->is_virtual) {
           update_instantiation_required_flag(tip, /*value=*/TRUE);
         }  /* if */
+#else /* 0 */
+        update_instantiation_required_flag
+                                      (tip, instantiation_mode == tim_all ||
+                                       sym->variant.routine.ptr->is_virtual);
+#endif /* 0 */
       }  /* if */
       rout = rout->next;
     }  /* while */
@@ -3275,7 +3332,7 @@ list.
 }  /* add_to_instantiations_required_list */
 
 
-static a_boolean should_be_instantiated(a_template_instance_ptr	tip)
+static a_boolean should_be_instantiated(a_template_instance_ptr tip)
 /*
 Determines whether this template instance needs an instantiation and
 generates any errors caused by conflicting instantiation information
@@ -3402,17 +3459,329 @@ updated but not removed from the list.
               instantiate_template_function(tip);
             }  /* if */
 	  }  /* if */
-        } else {
-	  /* If we're not in instantiation wrapup just add the entry to the
-	     instantiations list. */
-          add_to_instantiations_required_list(tip);
         }  /* if */
       }  /* if */
     }  /* if */
   } else {
     tip->instantiation_required = FALSE;
   }  /* if */
+  /* The entry is always added to the instantiations list because certain
+     entries for which instantiation is not required need to be processed
+     for automatic instantiation processing. */
+  add_to_instantiations_required_list(tip);
 }  /* update_instantiation_required_flag */
+
+
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+void create_or_remove_instantiation_information_file(void)
+{
+  char		*ii_file_name;
+  FILE		*f_ii_file;
+
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    /* Only create the file if the input is coming from a file. */
+    ii_file_name = derived_name(primary_source_file_name,
+                                INSTANTIATION_FILE_SUFFIX);
+    f_ii_file = fopen(ii_file_name, "r");
+    fclose(f_ii_file);
+    if (any_instantiations_required) {
+      /* If the file does not exist, create it. */
+      if (f_ii_file == NULL) {
+        f_ii_file = fopen(ii_file_name, "a");
+        if (f_ii_file == NULL) {
+          str_catastrophe(ec_cannot_create_instantiation_information_file,
+                          ii_file_name);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* No instantiation information needed.  Delete the file if it
+         already exits. */
+      if (f_ii_file != NULL) {
+        delete_file(ii_file_name);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* create_or_remove_instantiation_information_file */
+
+
+static an_instance_lookup_entry_ptr alloc_instance_lookup_entry(void)
+/*
+Allocate an instance lookup entry, initialize it, and return a pointer
+to it.
+*/
+{
+  an_instance_lookup_entry_ptr	ilp;
+
+  ilp = (an_instance_lookup_entry_ptr)
+                                alloc_fe(sizeof(an_instance_lookup_entry));
+  ilp->next = NULL;
+  ilp->name = NULL;
+  return ilp;
+}  /* alloc_instance_lookup_entry */
+
+
+static an_instance_lookup_entry_ptr find_instance(char		*name,
+				                  a_boolean	add)
+/*
+Find a symbol entry with the specified name.  Add the name to the
+list if an entry does not already exist.
+*/
+{
+  register unsigned            hash_value = 0;
+  register char                *ptr;
+  an_instance_lookup_entry_ptr ilp    = NULL;
+  int                          bucket_number;
+  int			       length;
+
+  length = strlen(name);
+  /* Hash the symbol's name.  This involves taking the name's
+     first, last, and middle 3 characters.  Of course, if the name has
+     fewer than 5 characters, take the entire name. */
+  if (length > 5) {
+    ptr = name + (length >> 1) - 1;
+    hash_value = (int)*name;
+    hash_value = (hash_value * HASH_FACTOR) +
+                                             (int)*(name + length - 1);
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
+  } else {
+    register int i;
+    ptr = name;
+    for (i = 0; i < length; i++) {
+      hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+    }  /* for */
+  }  /* if */
+
+  /* Look in the symbol bucket saving the position in case this symbol needs
+     to be added. */
+  bucket_number = hash_value % INSTANCE_LOOKUP_TABLE_SIZE;
+  if ((ilp = instance_lookup_table[bucket_number]) != NULL) {
+    do {
+      if (strcmp(name, ilp->name) == 0) {
+        /* We have a match. */
+        goto symbol_found;
+      }  /* if */
+    } while ((ilp = ilp->next) != NULL);
+  }  /* if */
+
+  /* Exiting this loop indicates that the symbol does not exist in the table;
+     allocate a symbol header for it. */
+  if (add) {
+    ilp = alloc_instance_lookup_entry();
+    /* Link the new header onto the front of the appropriate bucket of the
+       symbol table. */
+    ilp->next = instance_lookup_table[bucket_number];
+    instance_lookup_table[bucket_number] = ilp;
+    /* Allocate space for the name (including a null terminator) and make a
+       copy of the name. */
+    ilp->name = (char *)alloc_fe(length + 1);
+    strcpy(ilp->name, name);
+  }  /* if */
+
+symbol_found:
+  return ilp;
+}  /* find_instance */
+
+
+static char *read_info_file(void)
+/*
+Reads a line of input from the instantiation list file.  Returns TRUE if
+a line of input is being returned.  Returns FALSE at end-of-file.
+*/
+{
+  register char*    buffer_pos;
+  register int      size = 0;
+  register char     ch;
+  char              *result;
+  static char	    *input_line;
+  static sizeof_t   info_file_line_size = 0;
+
+  /* Allocate space into which the input line can be read.  Only done
+     the first time this routine is called. */
+  if (info_file_line_size == 0) {
+    input_line =
+            (char *)alloc_general(INFO_FILE_LINE_INCREMENTAL_ALLOCATION);
+    info_file_line_size = INFO_FILE_LINE_INCREMENTAL_ALLOCATION;
+  }  /* if */
+  buffer_pos = input_line;
+
+  while (ch = getc(f_instantiation_information), ch != EOF && ch != '\n') {
+    if (++size == info_file_line_size) {
+      /* The input line needs to be expanded.  This occurs one character
+         before the actual end of the buffer to ensure that there will be
+         enough room for the null terminator at the end of the string. */
+      sizeof_t  curr_offset;
+      sizeof_t	new_size;
+      new_size = info_file_line_size + INFO_FILE_LINE_INCREMENTAL_ALLOCATION;
+      curr_offset = buffer_pos - input_line;
+      input_line = realloc_general(input_line, info_file_line_size, new_size);
+      info_file_line_size = new_size;
+      buffer_pos = input_line + curr_offset;
+    }  /* if */
+    *buffer_pos++ = ch;
+  }  /* while */
+  
+  /* Terminate string with a null character. */
+  *buffer_pos++ = '\0';
+
+  /* Determine whether to return end-of-file (NULL). */
+  result = input_line;
+  if (ch == EOF && size == 0) result = NULL;
+
+  return (result);
+}  /* read_info_file */
+
+
+static a_boolean read_instantiation_information_file(void)
+/*
+Read the list of names from the instantiation information file and
+enter the names into a hash table.  Returns TRUE if any entries
+were entered in the hash table; otherwise returns FALSE.
+*/
+{
+  char		*name;
+  a_boolean	result = FALSE;
+
+  if (do_auto_instantiation) {
+    /* The variable do_auto_instantiation indicates that an instantiation
+       list file is present. */
+    while ((name = read_info_file()) != NULL) {
+      (void)find_instance(name, /*add=*/TRUE);
+      result = TRUE;
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* read_instantiation_information_file */
+
+
+static a_boolean can_be_instantiated(a_template_instance_ptr tip)
+/*
+Determines whether this template instance needs an instantiation and
+generates any errors caused by conflicting instantiation information
+such as instantiating a template for which no body was supplied.
+*/
+{
+  a_boolean	result = TRUE;
+  a_boolean	specific_def;
+  a_boolean	template_def;
+
+  /* For error checking purposes, find out if a specific definition
+     exists and whether a body exists for the template definition. */
+  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    specific_def = tip->instance_sym->defined;
+    template_def = tip->template_sym->defined;
+  } else {
+    a_symbol_ptr		      template_sym;
+    a_template_symbol_supplement_ptr  tssp;
+    template_sym = tip->template_sym;
+    tssp = template_supplement_for_symbol(template_sym);
+    specific_def = tip->specific_def;
+    template_def = tssp->token_cache.first_token != NULL;
+  }  /* if */
+  result = template_def && !specific_def && !tip->already_instantiated;
+  return result;
+}  /* can_be_instantiated */
+
+
+static void automatic_instantiation(void)
+/*
+This is the main routine that handles automatic instantiation processing.
+The list of instantiations that are to be performed by this compilation is
+read from the instantiation information file.  We then go through the
+instantiations required list and look for names that match the
+instantiations to be done.  When a match is found the instantiation is
+performed.  The routine and variable IL entries contain flags which are used
+to pass information to a link-time instantiation processor.  This routine
+is responsible for setting the appropriate flags.
+*/
+{
+  a_boolean			instantiations_needed;
+  a_template_instance_ptr	tip;
+
+  /* Set the instantiation mode to tim_none.  This is done to ensure that
+     only the instantiations explicitly requested in the list file are
+     performed.  We don't want a mode like "used" or "all" to cause
+     other instantiations to happen as a consequence of the requested
+     instantiations that are performed. */
+  instantiation_mode = tim_none;
+  /* We always need to go through the full instantiation list to set the
+     flags to be passed to the back-end.  We don't, however, need to
+     compare mangled names unless there are actually instantiations that
+     we need to do.   The read routine returns a flag that indicates whether
+     any information was present in the instantiation file. */
+  instantiations_needed = read_instantiation_information_file();
+  tip = instantiations_required;
+  for (; tip != NULL; tip = tip->next_in_instantiation_list) {
+    char	*name;
+    a_symbol_ptr	instance_sym = tip->instance_sym;
+    a_routine_ptr	routine;
+    a_variable_ptr	variable;
+    a_boolean		is_static_data_member;
+    a_boolean		can_instantiate;
+
+#if 0
+    if (tip->instantiation_required) any_instantiations_required = TRUE;
+#else /* 0 */
+    any_instantiations_required = TRUE;
+#endif /* 0 */
+    can_instantiate = can_be_instantiated(tip);
+    /* Get a pointer to the IL entry to be processed. */
+    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      is_static_data_member = TRUE;
+      variable = instance_sym->variant.variable.ptr;
+    } else {
+      is_static_data_member = FALSE;
+      routine = instance_sym->variant.routine.ptr;
+    }  /* if */
+    if (instantiations_needed && can_instantiate
+#if 0
+        && tip->instantiation_required
+#endif /* 0 */
+				      ) {
+      /* If an instantiation list is present and if this template could
+         be instantiated then check whether it was present in the
+         instantiation list file. */
+      if (is_static_data_member) {
+        name = get_mangled_static_data_member_name(variable);
+      } else {
+        name = get_mangled_function_name(routine);
+      }  /* if */
+      if (find_instance(name, /*add=*/FALSE)) {
+        /* The name was in the instantiation list.  Generate an
+           instantiation.  The test of instantiation_required above ensures
+           that an instantiation will only be generated if it is requested
+           in the instantiation list and is also required by this file.
+           This is required in order for the link time instantiator to
+           be able to recognize instantiations that are no longer needed. */
+        if (is_static_data_member) {
+          define_template_static_data_member(tip);
+        } else {
+          instantiate_template_function(tip);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Set the flags to be passed to the link-time automatic instantiator. */
+#if 0
+    /* Should there be a special "do_not_instantiate" field in the template
+       instance? */
+#endif /* 0 */
+    if (is_static_data_member) {
+      variable->do_not_instantiate = tip->specific_def;
+      variable->instance_required = TRUE;
+      if (!tip->already_instantiated && !tip->specific_def) {
+        variable->can_be_instantiated = can_instantiate;
+      }  /* if */
+    } else {
+      routine->do_not_instantiate = tip->specific_def;
+      routine->instance_required = TRUE;
+      if (!tip->already_instantiated && !tip->specific_def) {
+        routine->can_be_instantiated = can_instantiate;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* automatic_instantiation */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
 void instantiation_wrapup(void)
@@ -3462,6 +3831,11 @@ specific definition that made it unnecessary.
       }  /* if */
     }  /* if */
   }  /* for */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Do processing related to automatic instantiation processing. */
+  automatic_instantiation();
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
   db_exit();
 }  /* instantiation_wrapup */
 
@@ -3475,6 +3849,10 @@ Initializations for template.
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
   in_instantiation_wrapup = FALSE;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  any_instantiations_required = FALSE;
+  memzero(instance_lookup_table, sizeof(instance_lookup_table));
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */
 
 /******************************************************************************

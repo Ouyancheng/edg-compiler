@@ -80,6 +80,9 @@ extern void update_instantiation_required_flag(a_template_instance_ptr tip,
                                                a_boolean               value);
 extern void instantiation_wrapup(void);
 extern void templates_init(void);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+extern void create_or_remove_instantiation_information_file(void);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 /* If tp is a class in need of instantiation or an array whose underlying
    element type is such a class, instantiate it.  Otherwise, do nothing. */

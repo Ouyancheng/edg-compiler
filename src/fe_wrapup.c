@@ -106,6 +106,12 @@ Do any processing required at the end of execution of the front end.
   finish_il_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Create or remove the instantiation information file if necessary. */
+  create_or_remove_instantiation_information_file();
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+
   /* Close the raw listing file if one is being generated. */
   if (f_raw_listing != NULL) {
     if (fflush(f_raw_listing) || ferror(f_raw_listing) ||
