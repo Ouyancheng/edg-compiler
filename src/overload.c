@@ -2124,6 +2124,15 @@ are ignored.
          and cause the overload resolution to be ambiguous. */
       goto accept_function;
     }  /* if */
+    if (do_dependent_name_processing &&
+        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+        function_symbol->decl_seq >
+                            scope_stack[depth_innermost_instantiation_scope].
+                                                template_decl_info->decl_seq) {
+      /* This symbol is not visible in this template instantiation (it
+         was declared after the template definition). */
+      goto reject_function;
+    }  /* if */
     if (!function_template_case) {
       /* The symbol is not a function template (i.e., it's a normal
          function). */
