@@ -20,12 +20,20 @@
 # The error code is the enumeration element name that is used by the front end.
 # The file must be specified in enumeration order.  To preserve the numbering
 # of error codes, errors may not be inserted in the middle of the file,
-# nor may lines be removed.
+# nor may lines be removed.  If an error message is no longer in use,
+# the line on which it is defined should be prefixed with the string
+# "REMOVED;".  This will retain its sequence number but eliminate it from
+# the generated tables.
 #
 # The tag is an alias for a given error code that is used by the command
 # line processing routines to override the severity of a diagnostic.  If
 # no tag is specified, the error code (with the ec_ removed) is used as
 # the tag.
+#
+# Some messages are used as part of the message formatting process.  These
+# messages should have a tag oF INTERNAL.  This stops the message from
+# being entered in the tag table and also prevents the message from appearing
+# in the automatically generated documentation file.
 #
 # Any quote characters within the text string must be escaped.
 #
@@ -233,7 +241,7 @@ ec_asm_with_non_function;;"asm may only be used to declare a function"
 ec_asm_func_has_storage_class;;"an asm function may not have a storage class"
 ec_bad_asm_func_return_size;;"asm return value size does not match function return type"
 ec_bad_asm_func_param_size;;"asm parameter size does not match function parameter size"
-ec_exp_percent;;"expected a \"%\""
+REMOVED;ec_exp_percent;;"expected a \"%\""
 ec_asm_specifier_conflicts_with_prev;;"invalid combination of asm control specifiers"
 ec_extra_text_on_asm_control_line;;"extra text after expected end of asm control line"
 ec_exp_asm_control_specifier;;"expected an asm control specifier"
@@ -408,7 +416,7 @@ ec_no_suitable_assignment_operator;;"class %t has no suitable assignment operato
 ec_ambiguous_assignment_operator;;"ambiguous default assignment operator for class %t"
 ec_const_volatile_not_allowed;;"const or volatile qualifier is not allowed"
 ec_missing_typedef_name;;"declaration requires a typedef name"
-ec_missing_object_name;;"unknown error"
+REMOVED;ec_missing_object_name;;"unknown error"
 ec_virtual_not_allowed;;"\"virtual\" is not allowed"
 ec_static_not_allowed;;"\"static\" is not allowed"
 ec_bound_function_cast_anachronism;;"cast of bound function to normal function pointer (anachronism)"
@@ -485,16 +493,16 @@ ec_ambiguous_ptr_to_overloaded_function;;"more than one instance of %n matches t
 ec_nonstd_long_long;;"the type \"long long\" is nonstandard"
 ec_nonstd_friend_decl;;"omission of \"%s\" is nonstandard"
 ec_return_type_on_conversion_function;;"return type may not be specified on a conversion function"
-ec_template_detected_during_header;;"detected during:"
-ec_template_instantiation_context;;"%sinstantiation of %nf %p"
-ec_compiler_generated_function_context;;"%simplicit generation of %nf %p"
+ec_template_detected_during_header;INTERNAL;"detected during:"
+ec_template_instantiation_context;INTERNAL;"%sinstantiation of %nf %p"
+ec_compiler_generated_function_context;INTERNAL;"%simplicit generation of %nf %p"
 ec_runaway_recursive_instantiation;;"excessive recursion at instantiation of %n"
 ec_bad_template_declaration;;"\"%s\" is not a function or static data member"
 ec_bad_nontype_template_arg;;"argument of type %t1 is incompatible with template parameter of type %t2"
 ec_init_needing_temp_not_allowed;;"initialization requiring a temporary or conversion is not allowed"
 ec_decl_hides_function_parameter;;"declaration of %sq hides function parameter"
 ec_nonconst_ref_init_from_rvalue;;"initial value of reference to non-const must be an lvalue"
-ec_implicit_static_data_member_definition;;"%simplicit definition of %nf %p"
+ec_implicit_static_data_member_definition;INTERNAL;"%simplicit definition of %nf %p"
 ec_template_not_allowed;;"\"template\" is not allowed"
 ec_not_a_class_template;;"%t is not a class template"
 ec_static_data_member_anon_union;;"static data member may not be an anonymous union"
@@ -506,7 +514,7 @@ ec_name_not_tag_in_file_scope;;"the global scope has no tag named %sq"
 ec_not_a_tag_member;;"%n has no tag member named %sq"
 ec_ptr_to_member_typedef;;"member function typedef (allowed for cfront compatibility)"
 ec_bad_use_of_ptr_to_member_typedef;;"%n may be used only in pointer-to-member declaration"
-ec_empty_initializer_list;;"unknown error"
+REMOVED;ec_empty_initializer_list;;"unknown error"
 ec_nonexternal_entity_in_template_arg;;"a template argument may not reference a non-external entity"
 ec_id_must_be_class_or_type_name;;"name followed by \"::~\" must be a class name or a type name"
 ec_destructor_name_mismatch;;"destructor name does not match name of class %t"
@@ -559,8 +567,8 @@ ec_period_used_as_qualifier;;"\".\" used in place of \"::\" to form a qualified 
 ec_const_function_anachronism;;"non-const function called for const object (cfront anachronism)"
 ec_dependent_stmt_is_declaration;;"a dependent statement may not be a declaration"
 ec_void_param_not_allowed;;"a parameter may not have void type"
-ec_template_function_declaration_context;;"%sinstantiation of %na %p"
-ec_template_class_argument_list_context;;"%sprocessing of template argument list for %na %p"
+ec_template_function_declaration_context;INTERNAL;"%sinstantiation of %na %p"
+ec_template_class_argument_list_context;INTERNAL;"%sprocessing of template argument list for %na %p"
 ec_bad_templ_arg_expr_operator;;"this operator is not allowed in a template argument expression"
 ec_missing_handler;;"try block requires at least one handler"
 ec_missing_exception_declaration;;"handler requires an exception declaration"
@@ -568,7 +576,7 @@ ec_masked_by_default_handler;;"handler is masked by default handler"
 ec_masked_by_handler;;"handler is masked by previous handler for type %t"
 ec_local_type_used_in_exception;;"use of a local type to specify an exception"
 ec_redundant_throw_type;;"redundant type in throw specification"
-ec_incompatible_throw_specification;;"throw specification is incompatible with that of previous %nd%s"
+ec_incompatible_throw_specification;;"throw specification is incompatible with that of previous %nd%s\=':'"
 ec_previously_empty_throw_list;;"previously specified: no exceptions will be thrown"
 ec_previously_omitted_throw_type;;"previously omitted: %t"
 ec_previously_included_throw_type;;"previously specified but omitted here: %t"
