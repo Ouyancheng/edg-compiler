@@ -7037,7 +7037,7 @@ If C_output_file_name is NULL, use stdout for the output.
 }  /* generate_C_output_file */
 
 
-static void c_gen_be_init(void)
+static void c_gen_be_file_init(void)
 /*
 Initialize for the C-generating back end.  These are initializations that
 must be redone for each generated C file.
@@ -7077,7 +7077,7 @@ must be redone for each generated C file.
 #if ASM_FUNCTION_ALLOWED
   within_asm_function_definition = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
-}  /* c_gen_be_init */
+}  /* c_gen_be_file_init */
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
@@ -7103,7 +7103,7 @@ routine or variable has the given source correspondence field and
                                               (char *)NULL, 0);
   needed_flag_bit_number = needed_bit_number;
   /* Do initialization. */
-  c_gen_be_init();
+  c_gen_be_file_init();
   /* Generate the C output file. */
   generate_C_output_file(C_output_file_name);
   needed_flag_bit_number = 0;
@@ -7152,7 +7152,7 @@ the C output files for all instantiations.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-static void c_gen_be_one_time_init(void)
+static void c_gen_be_init(void)
 /*
 Initialize for the C-generating back end.  These are initializations that
 need to be done only once even if multiple C files are generated.
@@ -7202,7 +7202,7 @@ The IL is already available when this routine is called.
   /* In C99 mode we want to see "_Bool" rather "bool" or the type underlying
      _Bool. */
   octl.render_c99_bool = c99_mode;
-}  /* c_gen_be_one_time_init */
+}  /* c_gen_be_init */
 
 
 static void c_gen_be(void)
@@ -7217,8 +7217,8 @@ Generate C from the intermediate language.
   char *gen_c_file_name = NULL;
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
-  /* Do one-time initialization. */
-  c_gen_be_one_time_init();
+  /* Do overall initialization. */
+  c_gen_be_init();
 
   /* Determine the C output file name. */
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
