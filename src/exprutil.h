@@ -336,7 +336,6 @@ extern void issue_warning_from_argument_summary(
 extern void selector_match_with_this_param(
                                 an_operand          *bound_function_selector,
                                 a_boolean           selector_is_object_pointer,
-                                a_boolean           assume_base_class_cast,
                                 a_type_ptr          routine_type,
                                 an_argument_summary *arg_summary);
 
@@ -578,16 +577,15 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
-extern void make_constructor_call(a_routine_ptr    ctor_routine,
-                                  an_expr_node_ptr arg_expr_list,
-                                  an_operand       *result);
+extern void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
+                                          an_expr_node_ptr arg_expr_list,
+                                          a_boolean        result_is_addr,
+                                          an_operand       *result);
 
 extern a_boolean user_defined_conversion_possible(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
-                                  a_boolean          conv_into_init_target,
                                   a_routine_ptr      *conversion_routine,
-                                  a_boolean          *cctor_elision_done,
                                   a_boolean          *failed);
 
 extern void user_convert_operand(an_operand         *operand,
