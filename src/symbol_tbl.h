@@ -772,11 +772,13 @@ EXTERN a_scope_depth
 EXTERN a_scope_depth
 		decl_scope_level;
 			/* Level in the scope stack that contains the
-			   current declaration level.  Differs from
+			   current declaration level.  In C, differs from
 			   depth_scope_stack when the innermost "scopes"
-			   are for C struct/union fields; decl_scope_level
-			   would then contain the real scope level rather than
-			   the struct/union pseudo-scope level. */
+			   are for struct/union fields; decl_scope_level
+			   then contains the real scope level rather than
+			   the struct/union pseudo-scope level.  In C++,
+			   differs from depth_scope_stack when the innermost
+			   "scope" is a class reactivation. */
 EXTERN a_scope_depth
 		depth_innermost_function_scope;
 			/* Level in the scope stack that contains the innermost
