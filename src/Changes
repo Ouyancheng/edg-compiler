@@ -1,5 +1,15 @@
 Version 2.43
 
+9/22/99  Comparisons and conditional operators on multilevel pointer types
+
+In C++ mode, the front end now accepts multilevel pointer types with differing
+cv-qualification signatures on relational operators, and as second and third
+arguments to conditional operators.
+
+  bool f(int const **p1, int **p2) {
+    return p1 < p2;
+  }
+
 9/22/99  Performance problem with empty base class layout optimization
 
 The empty base class layout optimization (see Changes entry of 8/9/99) could

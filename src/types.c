@@ -4646,6 +4646,40 @@ set to TRUE (otherwise it is set to FALSE).
 }  /* expl_conversion_possible */
 
 
+a_type_ptr multilevel_composite_pointer_type(a_type_ptr type_1,
+                                             a_type_ptr type_2)
+/*
+If the two given multilevel pointer types are identical except for the
+cv-qualification on the multilevel pointer structure, this function returns
+a similar type with the union of the cv-qualification signatures (except that
+top-level qualifiers are dropped).  Otherwise, NULL is returned.
+*/
+{
+  a_type_ptr  result;
+
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (identical_types(type_1, type_2)) {
+    result = type_1;
+  } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
+    a_type_ptr  type_pointed_to_1 = type_pointed_to(type_1);
+    a_type_ptr  type_pointed_to_2 = type_pointed_to(type_2);
+
+    result = multilevel_composite_pointer_type(type_pointed_to_1,
+                                               type_pointed_to_2);
+    if (result != NULL) {
+      result = make_qualified_type(result,
+                                   get_type_qualifiers(type_pointed_to_1) |
+                                     get_type_qualifiers(type_pointed_to_2));
+      result = make_pointer_type(result);
+    }  /* if */
+  } else {
+    result = NULL;
+  }  /* if */
+  return result;
+}  /* multilevel_composite_pointer_type */
+
+
 static a_type_ptr composite_array_type(a_type_ptr array_type1,
                                        a_type_ptr array_type2)
 /*

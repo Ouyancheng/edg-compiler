@@ -3240,13 +3240,29 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         break;
       }  /* if */
     }  /* if */
-    /* Stop after second time around loop. */
-    if (suppress_extensions == FALSE) break;
+    if (suppress_extensions == FALSE) {
+      /* Stop after second time around loop. */
+      break;
+    } else if (!C_mode()) {
+      /* In C++, multilevel pointer types are compatible if they differ only
+         in the various qualifications.  The composite type picks the unions
+         of those qualifiers. */
+      *operation_type = multilevel_composite_pointer_type(operand_1_type,
+                                                          operand_2_type);
+      if (*operation_type != NULL) {
+        /* By setting local_operation_type to NULL, we indicate this should
+           not undergo further validity checks. */
+        local_operation_type = NULL;
+        okay = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
     /* Go back for the second iteration with extensions allowed. */
     suppress_extensions = FALSE;
   }  /* for */
   if (okay && operand_1_is_pointer && operand_2_is_pointer &&
-      operand_1_type != operand_2_type) {
+      operand_1_type != operand_2_type &&
+      local_operation_type != NULL) {
     /* Make sure the operation type has all the cv-qualifiers present on
        each of the operands. */
     a_type_ptr type_pointed_to_1 = type_pointed_to(operand_1_type);
@@ -3264,7 +3280,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     }  /* if */
     local_operation_type = make_pointer_type(operation_type_pointed_to);
   }  /* if */
-  if (okay) {
+  if (okay && local_operation_type != NULL) {
     a_boolean nonstd_case = FALSE;
     if (strict_ansi_mode && C_dialect == C_dialect_ANSI) {
       /* In strict ANSI C mode, issue warnings for the extensions let by
@@ -3323,13 +3339,15 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       pos_opt_ty2_warning(std_conv.warning_suggested, operator_position,
                           operand_1_type, operand_2_type);
     }  /* if */
-  } else {
+  } else if (!okay) {
     /* The operands are not compatible. */
     pos_ty2_error(ec_incompatible_operands, operator_position,
                   operand_1_type, operand_2_type);
     local_operation_type = error_type();
   }  /* if */
-  *operation_type = local_operation_type;
+  if (local_operation_type != NULL) {
+    *operation_type = local_operation_type;
+  }  /* if */
   return okay;
 }  /* check_compatibility_of_pointer_operands */
 
