@@ -129,6 +129,14 @@ static unsigned long
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
+static unsigned long
+                last_arrow_column;
+                        /* The column position at which the most recent
+                           "->" was written by handle_operator_call. */
+static a_line_number
+                last_arrow_line;
+                        /* The line number on which the most recent "->"
+                           was written by handle_operator_call. */
 static a_boolean
 		curr_output_pos_known;
 			/* TRUE if the current output position is known. */
@@ -5105,6 +5113,33 @@ This routine also works for rvalue field selections.
 
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
+static a_boolean is_operator_syntax_arrow(an_expr_node_ptr expr)
+/*
+Return true if expr is a call to an operator->() that resulted from operator
+syntax ("a->b") rather than an explicit function call.
+*/
+{
+  a_boolean result = FALSE;
+  if (is_operation_node(expr) &&
+      expr->variant.operation.call_uses_operator_syntax) {
+    an_expr_node_ptr func_expr = expr->variant.operation.operands;
+    a_routine_ptr    rp = func_expr->variant.routine;
+    an_opname_kind   op = rp->variant.opname_kind;
+
+    check_assertion_str(func_expr->kind ==
+                                        (an_expr_node_kind)enk_routine_address,
+                 "is_operator_syntax_arrow: operand not a function constant.");
+    check_assertion_str(rp->special_kind ==
+	                                 (a_special_function_kind)sfk_operator,
+      "is_operator_syntax_arrow: non-operator function using operator syntax");
+
+    if (op == (an_opname_kind)onk_arrow) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_operator_syntax_arrow */
+
 static void gen_simple_field_selection(an_expr_node_ptr object_expr,
                                        an_expr_node_ptr field_expr)
 /*
@@ -5148,8 +5183,7 @@ this selection.
     if (field_expr->variant.field->source_corresp.qualification_needed) {
       write_tok_str("::");
     }  /* if */
-  } else if (is_operation_node(object_expr) &&
-             object_expr->variant.operation.call_uses_operator_syntax) {
+  } else if (is_operator_syntax_arrow(object_expr)) {
     /* This expression implicitly invokes an operator->() function; generate
        it in the original "x->y" form. */
     gen_expression(object_expr);
@@ -5366,7 +5400,9 @@ static void gen_dot_static(an_expr_node_ptr operand_1,
 operand_1 and operand_2 are the operands of a "dot-static" operation, e.g.,
 eok_lvalue_dot_static.  operand_1 is an lvalue if is_lvalue_1 is TRUE,
 and operand_2 is an lvalue if is_lvalue_2 is TRUE.  Put out the operation,
-with the operator indicated by opstr.
+with the operator indicated by opstr.  opstr will be "" if the generated code
+for operand_1 will include the operator (for an operator->() call generated
+by handle_operator_call).
 */
 {
   a_boolean      unknown_function_case = FALSE;
@@ -5415,6 +5451,10 @@ with the operator indicated by opstr.
     if (!has_name(con) && !unknown_function_case) {
       opstr = ",";
       use_comma = TRUE;
+      if (is_operator_syntax_arrow(operand_1)) {
+        /* Prevent generating "operator->()" as just "->" */
+        operand_1->variant.operation.call_uses_operator_syntax = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
@@ -5640,7 +5680,11 @@ precedence confusion and need_parens is TRUE.
         case eok_points_to_static:
           /* Static member selection, p->m. */
           if (need_parens) write_tok_ch('(');
-          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, "->",
+          /* If operand_1 is an invocation of operator->() that will be
+             generated as "->", pass "" as the opstr instead of "->" to
+             avoid generating "->->". */
+          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE,
+                         is_operator_syntax_arrow(operand_1) ? "" : "->",
                          operand_2, /*is_lvalue_2=*/TRUE);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
@@ -5670,6 +5714,11 @@ precedence confusion and need_parens is TRUE.
           processed = TRUE;
           break;
       }  /* switch */
+    } else if (is_operator_syntax_arrow(node)) {
+      /* node is a call to an operator->() that was expressed in the source
+         using operator syntax ("a->b").  Generate it in that form. */
+      gen_expression(node);
+      processed = TRUE;
     } else {
       switch (op) {
         case eok_padd_subsc:
@@ -6339,7 +6388,9 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
       if (overparenthesize) {
         write_tok_str("))");
       }  /* if */
-      write_tok_ch('.');
+      if (!is_operator_syntax_arrow(object_expr)) {
+        write_tok_ch('.');
+      }  /* if */
     }  /* if */
   }  /* if */
   if (suppress_virtual && rout->is_virtual) {
@@ -6458,9 +6509,12 @@ return FALSE and let the caller generate the code normally.
     char                          *op_name;
     char                          *right_half;
 
+    check_assertion_str(func_expr->kind ==
+                                        (an_expr_node_kind)enk_routine_address,
+                     "handle_operator_call: operand not a function constant.");
     check_assertion_str(rp->special_kind ==
-	                                (a_special_function_kind)sfk_operator,
-         "handle_operator_call: non-operator function using operator syntax");
+	                                 (a_special_function_kind)sfk_operator,
+          "handle_operator_call: non-operator function using operator syntax");
 
     /* For postfix operators, there's no need to enclose the generated
        expression in parentheses because the precedence is already higher
@@ -6512,14 +6566,28 @@ return FALSE and let the caller generate the code normally.
       param = param->next;
     }  /* if */
 
-    if (arg != NULL ||
-        op == (an_opname_kind)onk_function_call ||
-        op == (an_opname_kind)onk_arrow) {
-      /* Either there's a second argument or this is a function call or "->"
+    if (op == (an_opname_kind)onk_arrow) {
+      /* "->" must be handled specially, because a single "->" in the source
+         can turn into multiple calls to operator-> functions (when one
+         returns a class object rather than a pointer).  Consequently,
+         generating the operand may have already output a "->" for a nested
+         operator->() invocation.  To avoid generating "a->->->b" in such
+         cases, we only output "->" if there isn't one already at the current
+         location (which can only happen in this cascade case, otherwise
+         there must have been subsequent output since the last "->" from an
+         operator->() call). */
+      if (last_arrow_column != curr_output_column ||
+          last_arrow_line != curr_output_line) {
+        write_tok_str(op_name);
+        last_arrow_column = curr_output_column;
+        last_arrow_line = curr_output_line;
+      }  /* if */
+    } else if (arg != NULL ||
+               op == (an_opname_kind)onk_function_call) {
+      /* Either there's a second argument or this is a function call
          operator, so the operator follows the first operand. */
       a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
                                  op != (an_opname_kind)onk_subscript &&
-                                 op != (an_opname_kind)onk_arrow &&
                                  op != (an_opname_kind)onk_plus_plus &&
                                  op != (an_opname_kind)onk_minus_minus &&
                                  op != (an_opname_kind)onk_arrow_star);
@@ -11071,6 +11139,8 @@ Initialize for the C++/C-generating back end.
   curr_output_file = NULL;
   curr_output_line = 0;
   curr_output_column = 0;  /* Special value meaning there is no output line. */
+  last_arrow_column = 0;
+  last_arrow_line = 0;
   curr_output_pos_known = FALSE;
   output_position_is_pending = FALSE;
   curr_source_sequence_entry = NULL;

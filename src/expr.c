@@ -1227,7 +1227,7 @@ Syntax:
   a_boolean         do_arg_dep_lookup = FALSE;
   a_boolean         arg_dep_lookup_suppressed = FALSE;
   a_boolean         found_through_adl = FALSE;
-  a_boolean         uses_overloaded_call_operator = FALSE;
+  a_boolean         has_overloaded_call_operator = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -1327,7 +1327,7 @@ Syntax:
         /* There is an operator() function.  The operand has become
            the selector object, and the function call operator routine
            becomes the operand. */
-        uses_overloaded_call_operator = TRUE;
+        has_overloaded_call_operator = TRUE;
         /* We can use an indefinite function operand whether the operator()
            function is overloaded or not. */
         make_indefinite_function_operand(member_function_symbol,
@@ -1697,11 +1697,30 @@ Syntax:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Build the call node and an operand for it. */
+    a_boolean uses_operator_syntax = FALSE;
+    if (has_overloaded_call_operator &&
+        operand->kind == (an_operand_kind)ok_constant &&
+        operand->variant.constant.kind == (a_constant_repr_kind)ck_address &&
+        operand->variant.constant.variant.address.kind ==
+                                           (an_address_base_kind)abk_routine) {
+      a_routine_ptr rp =
+                     operand->variant.constant.variant.address.variant.routine;
+      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+          rp->variant.opname_kind == onk_function_call) {
+        /* The original "function" was a class object with an operator()
+           member, and the resulting call is to an operator() (as opposed to
+           using a conversion operator to a function pointer): mark the call
+           as using operator syntax so the C++-generating back end can
+           reconstruct the original source form (e.g., "x()" instead of
+           "x.operator()()"). */
+        uses_operator_syntax = TRUE;
+      }  /* if */
+    }  /* if */
     assemble_function_call(operand, bound_function_selector, argument_list,
                            /*compiler_generated=*/FALSE,
                            /*is_conversion=*/FALSE,
                            arg_dep_lookup_suppressed,
-                           found_through_adl, uses_overloaded_call_operator,
+                           found_through_adl, uses_operator_syntax,
                            &call_position, result);
 #if GNU_EXTENSIONS_ALLOWED
     if (call_may_be_folded) {
