@@ -1989,11 +1989,16 @@ correspondence pointer for each of them.
   for (type = skip_generated_type(scope->types);
        type != NULL;
        type = skip_generated_type(type->next)) {
-    a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-
-    /* Note that placeholder types do not have an associated symbol. */
-    if (type_sym != NULL && may_have_correspondence(type_sym)) {
-      (void)verify_type_correspondence(type);
+    if (checked_trans_unit_corresp_pointer_of(type) == NULL) {
+      /* Some types (e.g., certain unnamed class types that acquired a name
+         thought a typedef) may not have been processed yet. */
+      clear_type_correspondence(type, /*visited=*/TRUE);
+    } else {
+      a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+      /* Note that placeholder types do not have an associated symbol. */
+      if (type_sym != NULL && may_have_correspondence(type_sym)) {
+        (void)verify_type_correspondence(type);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* verify_type_correspondences_for_scope */
