@@ -26,6 +26,7 @@ extern void unary_operation(an_expr_operator_kind op,
                             a_constant            *result,
                             a_boolean             constant_context,
                             a_boolean             *did_not_fold,
+                            a_boolean             *template_constant,
                             a_source_position     *err_pos);
 
 extern void binary_operation(an_expr_operator_kind op,
@@ -35,6 +36,7 @@ extern void binary_operation(an_expr_operator_kind op,
                              a_constant            *result,
                              a_boolean             constant_context,
                              a_boolean             *did_not_fold,
+                             a_boolean             *template_constant,
                              a_source_position     *err_pos);
 
 extern void check_shift_count(a_constant    *shift_count_constant,

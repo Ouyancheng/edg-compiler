@@ -1469,6 +1469,7 @@ void unary_operation(an_expr_operator_kind op,
 		     a_constant            *result,
                      a_boolean             constant_context,
                      a_boolean             *did_not_fold,
+                     a_boolean             *template_constant,
                      a_source_position     *err_pos)
 /*
 Fold unary operations on constants.  op indicates the operation,
@@ -1477,8 +1478,9 @@ The result constant is put into result.  If constant_context is FALSE,
 this operation is being evaluated as part of a nonconstant expression,
 so any error is reduced to a warning and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE if the operation could not be
-folded for any other reason.  *err_pos is used as the position for any
-diagnostics issued.
+folded for any other reason (*template_constant is returned TRUE if
+the reason is that the constant is a template parameter constant).
+*err_pos is used as the position for any diagnostics issued.
 */
 {
   an_error_code     err_code;
@@ -1487,19 +1489,17 @@ diagnostics issued.
   db_enter(5, "unary_operation");
 
   *did_not_fold = FALSE;
+  *template_constant = FALSE;
   err_code = ec_no_error;
   err_severity = es_warning;
   if (is_error_constant(constant)) {
     /* The constant is an error constant; set the result to an error
        constant and return. */
     set_error_constant(result);
-#if 0
-#else
   } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* For now, an operation on a ck_template_param constant yields an
-       error constant. */
-    set_error_constant(result);
-#endif /* 0 */  
+    /* An operation on a ck_template_param constant cannot be folded. */
+    *did_not_fold = TRUE;
+    *template_constant = TRUE;
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -2541,6 +2541,7 @@ void binary_operation(an_expr_operator_kind op,
 		      a_constant            *result,
                       a_boolean             constant_context,
 		      a_boolean             *did_not_fold,
+                      a_boolean             *template_constant,
                       a_source_position     *err_pos)
 /*
 Fold a two-operand constant operation.  op indicates the operation,
@@ -2550,7 +2551,9 @@ If constant_context is FALSE, this operation is being evaluated as
 part of a nonconstant expression, so any error is reduced to a
 warning and *did_not_fold is returned TRUE.  *did_not_fold is also
 returned TRUE if the operation could not be folded for any other
-reason.  *err_pos is used as the position for any diagnostics issued.
+reason (*template_constant is returned TRUE if the reason is that
+the constant is a template parameter constant).  *err_pos is used
+as the position for any diagnostics issued.
 */
 {
   an_error_code     err_code;
@@ -2561,6 +2564,7 @@ reason.  *err_pos is used as the position for any diagnostics issued.
   db_enter(5, "binary_operation");
 
   *did_not_fold = FALSE;
+  *template_constant = FALSE;
   err_code = ec_no_error;
   err_severity = es_warning;
 
@@ -2568,14 +2572,11 @@ reason.  *err_pos is used as the position for any diagnostics issued.
     /* One and/or the other of the constants is an error constant; set the
        result to an error constant and return. */
     set_error_constant(result);
-#if 0
-#else
   } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param ||
              constant_2->kind == (a_constant_repr_kind)ck_template_param) {
-    /* For now, an operation on a ck_template_param constant yields an
-       error constant. */
-    set_error_constant(result);
-#endif /* 0 */  
+    /* An operation on a ck_template_param constant cannot be folded. */
+    *did_not_fold = TRUE;
+    *template_constant = TRUE;
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -2788,13 +2789,6 @@ field cannot be passed as a constant.
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
-#if 0
-#else
-  } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param) {
-    /* For now, an operation on a ck_template_param constant yields an
-       error constant. */
-    set_error_constant(result);
-#endif /* 0 */  
   } else {
     /* Take the pointer offset, ... */
     get_pointer_offset(constant_1, &offset);
