@@ -10088,14 +10088,25 @@ or the specific definition flag (if instantiate is FALSE).
       tip->explicit_instantiation = FALSE;
       tip->explicit_do_not_instantiate = TRUE;
       tip->class_explicitly_instantiated = FALSE;
+      /* We can get here from either a do_not_instantiate pragma or a
+         Microsoft "extern template" explicit instantiation directive.
+         A do_not_instantiate pragma is assumed to be used in cases where
+         an old-style specialization is present in some other translation unit.
+         Consequently, the is_specialized and specialized_with_old_syntax
+         flags are set so that the mangled name used here will match the
+         mangled name of the old-style specialization in the other unit. */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        a_variable_ptr vp = sym->variant.static_data_member.variable;
-        vp->is_specialized = TRUE;
-        if (is_pragma) vp->specialized_with_old_syntax = TRUE;
+        if (is_pragma) {
+          a_variable_ptr vp = sym->variant.static_data_member.variable;
+          vp->is_specialized = TRUE;
+          vp->specialized_with_old_syntax = TRUE;
+        }  /* if */
       } else {
-        a_routine_ptr rp = sym->variant.routine.ptr;
-        rp->is_specialized = TRUE;
-        if (is_pragma) rp->specialized_with_old_syntax = TRUE;
+        if (is_pragma) {
+          a_routine_ptr rp = sym->variant.routine.ptr;
+          rp->is_specialized = TRUE;
+          rp->specialized_with_old_syntax = TRUE;
+        }  /* if */
       }  /* if */
     } else { /* pragma_kind == (a_pragma_kind)pk_can_instantiate */
       /* For the can_instantiate pragma set the instantiation required
