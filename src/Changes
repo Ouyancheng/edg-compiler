@@ -1,5 +1,28 @@
 Version 3.4
 
+8/14/03  Microsoft compatibility: copy constructors preferred in overload
+         resolution
+
+In Microsoft bugs mode, overload resolution now prefers copy constructors
+over other functions that are otherwise equally good.
+
+  struct A {
+    A(const A&);
+    A(int);
+  };
+  struct B {
+    operator A();
+    operator int();
+  } b;
+  int main() {
+    A x = b;  // Now accepted in Microsoft mode; was ambiguous
+  }
+
+This MSVC++ behavior is apparently intended to partly compensate for
+MSVC++'s handling of some cases of copy-initialization as direct-
+initialization (see Changes entry of 1/18/98).  The emulation of
+that in the EDG C++ Front End is now done only in Microsoft bugs mode.
+
 8/13/03  VLA dimensions sometimes lost on declared type
 
 In some situations involving forward function declarations the front end

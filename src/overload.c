@@ -3663,6 +3663,52 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
 }  /* compare_late_tiebreakers */
 
 
+static int compare_copy_constructors_for_microsoft(
+                                                 a_candidate_function_ptr cfp1,
+                                                 a_candidate_function_ptr cfp2)
+/*
+Compare two candidate functions in Microsoft bugs mode and return
+
+  +1 if cfp1 is better than cfp2,
+   0 if cfp1 and cfp2 are equally good, or
+  -1 if cfp1 is worse than cfp2
+
+on the basis that MSVC++ prefers copy constructors over other functions.
+*/
+{
+  int          cmp = 0;
+  a_symbol_ptr sym1 = cfp1->function_symbol;
+  a_symbol_ptr sym2 = cfp2->function_symbol;
+
+  if (sym1 != NULL && sym2 != NULL) {
+    a_routine_ptr rout1 = sym1->variant.routine.ptr;
+    a_routine_ptr rout2 = sym2->variant.routine.ptr;
+    a_type_qualifier_set
+                  qualifiers;
+    a_boolean     is_cctor1 =
+                  (rout1->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+                   is_copy_constructor(rout1,
+                                       rout1->source_corresp.parent.class_type,
+                                       &qualifiers,
+                                       /*is_declarative_context=*/FALSE));
+    a_boolean     is_cctor2 =
+                  (rout2->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+                   is_copy_constructor(rout2,
+                                       rout2->source_corresp.parent.class_type,
+                                       &qualifiers,
+                                       /*is_declarative_context=*/FALSE));
+    if (is_cctor1 && !is_cctor2) {
+      cmp = 1;
+    } else if (is_cctor2 && !is_cctor1) {
+      cmp = -1;
+    }  /* if */
+  }  /* if */
+  return cmp;
+}  /* compare_copy_constructors_for_microsoft */
+
+
 static a_type_ptr candidate_return_type(a_candidate_function_ptr cfp)
 /*
 Return the return type of the indicated candidate function.  Return NULL
@@ -3766,6 +3812,11 @@ other.  Return
        function can serve as a tie-breaker. */
     /* More type qualifiers were added on cfp2, so cfp1 is better. */
     cmp = 1;
+  } else if (microsoft_bugs &&
+             (cmp = compare_copy_constructors_for_microsoft(cfp1, cfp2)) != 0){
+    /* MSVC++ favors copy constructors over other functions, as a way
+       of making their funny "copy-initialization is direct-initialization"
+       rules work. */
   } else if (cfp1->is_function_template != cfp2->is_function_template) {
     /* The fact that one function is a function template and the other
        is not can serve as a tie-breaker. */
@@ -10965,7 +11016,7 @@ the "=" semantics (copy-initialization).
   orig_operand = *source_operand;
   *dip = NULL;
   /* Microsoft VC++ treats copy-initialization as direct-initialization. */
-  if (microsoft_mode) is_copy_initialization = FALSE;
+  if (microsoft_bugs) is_copy_initialization = FALSE;
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type, 
@@ -11944,7 +11995,7 @@ of is_transparent.  For processed_arg, see conversion_to_class_possible.
      and
        A x = expr;
      as direct-initialization.  Argument passing is not affected. */
-  if (microsoft_mode &&
+  if (microsoft_bugs &&
       (initializing_return_value || initializing_variable)) {
     is_copy_initialization = FALSE;
   }  /* if */
