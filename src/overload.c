@@ -1373,33 +1373,31 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       goto have_level;
     }  /* if */
     /* Check for another exact match case, for pointers involving addition
-       of type qualifiers on the type pointed to (the "T* --> (qualified T)*"
+       of type qualifiers on the type pointed to (the "T* --> qualified T *"
        case). */
     if (is_pointer_type(param_type) && is_pointer_type(arg_type)
 #ifdef pointer_types_have_same_repr
+        /* Checking that the pointer representation is the same here forces
+           a conversion that changes pointer representation to be a
+           conversion, not an exact match.  That is a language choice on
+           an extension.  If that's not right, remove this. */
         && pointer_types_have_same_repr(param_type, arg_type)
 #endif /* ifdef pointer_types_have_same_repr */
                                                              ) {
       a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
       a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
-      if (types_are_compatible_ignoring_qualifiers(arg_type_pointed_to,
-                                                   param_type_pointed_to)) {
-        /* The types pointed to are compatible.  See if the qualifiers
-           are okay.  Note that the case where the qualifiers are the same
-           need not be checked for, since it would have been handled
-           above in the normal exact-match case. */
-        if (any_qualifier_missing(param_type_pointed_to,
-                                  arg_type_pointed_to)) {
-          /* There are some qualifiers being dropped, so the pointer types
-             are not compatible. */
-        } else {
-          /* Some qualifiers are being added.  This is the
-             "T* --> (qualified T)*" case, which should be remembered
-             as a possible tie-breaker later. */
-          arg_summary->match_level = aml_exact;
-          arg_summary->conversion.std.type_qualifiers_added = TRUE;
-          goto have_level;
-        }  /* if */
+      if (qualification_conversion_possible(arg_type_pointed_to,
+                                            param_type_pointed_to,
+                                            (a_boolean *)NULL,
+                                            /*ignore_underlying_type=*/FALSE)){
+        /* Some qualifiers are being added.  This is the
+           "T* --> qualified T *" case, which should be remembered
+           as a possible tie-breaker later.  Note that the case where
+           the types are the same would have been handled earlier and
+           would not come here. */
+        arg_summary->match_level = aml_exact;
+        arg_summary->conversion.std.type_qualifiers_added = TRUE;
+        goto have_level;
       }  /* if */
     }  /* if */
     if (arg_operand != NULL && is_indefinite_function_operand(arg_operand) &&
