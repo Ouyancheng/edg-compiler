@@ -725,15 +725,17 @@ control checking is done.
   }  /* if */
   if (!evaluated) {
     /* Unevaluated expression.  Do not set referenced (etc.). */
-  } else if (rp->is_virtual && honor_virtual) {
-    /* Virtual function call.  Do not set referenced (etc.) because the
-       call might actually be of an overriding function. */
   } else {
-    /* Non-virtual call. */
-    mark_routine_referenced(rp);
     /* Update the symbol and the cross-reference listing. */
     record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), sym, pos,
                             /*update_il_entry=*/FALSE);
+    if (rp->is_virtual && honor_virtual) {
+      /* Virtual function call.  Do not set referenced (etc.) because the
+         call might actually be of an overriding function. */
+    } else {
+      /* Non-virtual call. */
+      mark_routine_referenced(rp);
+    }  /* if */
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 

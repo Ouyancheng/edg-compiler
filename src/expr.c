@@ -4447,7 +4447,7 @@ As an anachronism, allow an expression inside the [ ].
         }  /* if */
         dtor_routine = select_destructor(base_delete_type, base_delete_type,
                                          &operand.position,
-                                         /*honor_virtual=*/FALSE,
+                                         /*honor_virtual=*/TRUE,
                                          curr_expr_is_potentially_evaluated(),
                                          /*suppress_access_check=*/FALSE);
         if (dtor_routine != NULL) {
