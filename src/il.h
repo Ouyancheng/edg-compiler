@@ -576,12 +576,6 @@ declaration entry.  It is cast to the indicated pointer type.
 #define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
 
 /*
-Return TRUE if the indicated source sequence entry is a proxy for
-a file-scope declaration, i.e., it has kind iek_source_sequence_entry.
-*/
-#define ss_is_proxy(ssep) (ss_entry_kind(ssep) == iek_source_sequence_entry)
-
-/*
 Return TRUE if the indicated source sequence entry points to a source sequence
 sublist header, i.e., it has kind iek_src_seq_sublist.
 */
@@ -594,17 +588,6 @@ for a sublist of file-scope source sequence entries.  Fetch and return a
 pointer to the sublist header.
 */
 #define assoc_sublist_of(ssep) ss_entry_ptr((ssep), a_src_seq_sublist_ptr)
-
-/*
-ssep points to a function-scope source sequence entry of type
-iek_source_sequence_entry.  Such an entry is a proxy for an entry on the
-file-scope source sequence list, i.e., it indicates the point on the
-function-scope source sequence list where the file-scope declaration occurs.
-Fetch and return a pointer to the corresponding file-scope source sequence
-entry.
-*/
-#define ss_assoc_with_proxy(ssep) \
-  ss_entry_ptr((ssep), a_source_sequence_entry_ptr)
 
 #if DEBUG
 extern void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep);
