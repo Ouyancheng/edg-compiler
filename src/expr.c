@@ -3678,6 +3678,12 @@ operation is a pointer-to-member (see ARM 5.3).
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                    TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+        if (gcc_mode) {
+          /* Get an lvalue back from what is ordinarily an rvalue in
+             some cases in gcc mode. */
+          revert_gcc_rvalue_to_lvalue_if_possible(&operand,
+                                                  /*ignore_casts=*/FALSE);
+        }  /* if */
         if (is_an_lvalue(&operand)) {
           if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
             /* In pcc mode "&array" is the same as "array" implicitly converted

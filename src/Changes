@@ -1,5 +1,10 @@
 Version 3.1
 
+8/3/02   GNU C compatibility: &(a, b) is ptreated as (a, &b)
+
+In GNU C mode, it is now acceptable to take the address of a
+comma expression whose second operand is an lvalue.
+
 7/31/02  Overload resolution: binding reference to non-constant to
 	 pointer produced by array-to-pointer decay
 
