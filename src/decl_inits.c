@@ -1207,10 +1207,10 @@ initialized.  These are addressed in the course of the processing.
        bcp = bcp->next) {
     if (bcp->is_virtual || bcp->direct) {
       cssp = symbol_supplement_for_class(bcp->type);
-      /* If the virtual base class or direct base class has a constructor or
-         a destructor, a dynamic init entry will be required.  Create the
-         constructor init entry now; the dynamic init will be added later. */
-      if (cssp->constructor != NULL || cssp->destructor != NULL) {
+      /* If the virtual base class or direct base class has a constructor, a
+         dynamic init entry will be required.  Create the constructor init
+         entry now; the dynamic init will be added later. */
+      if (cssp->constructor != NULL) {
         cip = alloc_ctor_init(bcp->is_virtual ?
                               (a_constructor_init_kind)cik_virtual_base_class :
                               (a_constructor_init_kind)cik_direct_base_class);
@@ -1257,7 +1257,7 @@ initialized.  These are addressed in the course of the processing.
       }  /* while */
       if (is_class_struct_union_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
-        if (cssp->constructor != NULL || cssp->destructor != NULL) {
+        if (cssp->constructor != NULL) {
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
           cip->variant.field = sym->variant.field;
           if (cip_list == NULL) {
@@ -1486,10 +1486,6 @@ scan_paren:
               dip->variant.constructor.args = arg_list;
               /* Mark the constructor referenced. */
               reference_to_special_member_function(rp);
-              if (cssp->destructor != NULL) {
-                dip->destructor = rp = cssp->destructor->variant.routine;
-                reference_to_special_member_function(rp);
-              }  /* if */
             } else {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
@@ -1534,9 +1530,8 @@ scan_paren:
   }  /* if */
   /* Make a pass over the new list, adding default constructors where
      appropriate.  Items on the list are all subobjects and members that
-     require constructor initialization (or have a destructor), plus
-     (optionally) additional items for which the user specified an initial
-     value. */
+     require constructor initialization, plus (optionally) additional items
+     for which the user specified an initial value. */
   for (cip = cip_list; cip != NULL; cip = cip->next) {
     if (cip->initializer == NULL) {
       /* No initializer was explicitly specified. */
@@ -1578,12 +1573,6 @@ scan_paren:
         dip->variant.constructor.routine = rp =
                                   cssp->default_constructor->variant.routine;
         dip->variant.constructor.args = NULL;
-        reference_to_special_member_function(rp);
-      }  /* if */
-      /* Record the destructor, if any, in the dynamic init entry. */
-      if (cssp->destructor != NULL) {
-        dip->destructor = rp = cssp->destructor->variant.routine;
-        /* Mark the destructor referenced. */
         reference_to_special_member_function(rp);
       }  /* if */
       if (array_type != NULL) {
