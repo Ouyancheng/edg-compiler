@@ -2063,8 +2063,10 @@ do_set_proper_definition_needed_flag:
       {
         a_using_decl_ptr ptr = (a_using_decl_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_using_decl_ptr, iek_using_decl);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        /* walk_ptr used instead of remap_ptr because the entity referenced
+           can be a constant, e.g., in a prototype instantiation. */
+        walk_ptr(ptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)ptr->entity.kind);
         if (ptr->is_class_member) {
           remap_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
         } else {
