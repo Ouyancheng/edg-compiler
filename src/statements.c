@@ -34,7 +34,7 @@ statements.c -- Scanning of statements.
 
 
 static a_struct_stmt_stack_entry_ptr
-		struct_stmt_stack_container = NULL;
+		struct_stmt_stack_container;
 			/* A dynamically allocated array of structured
 			   statement stack entries that can accommodate
 			   the coexistence of more than one stack.  When a
@@ -47,7 +47,7 @@ static a_struct_stmt_stack_entry_ptr
 			   necessary.  size_struct_stmt_stack_container
 			   gives the number of elements currently allocated.
 			   Allocation is not per-file. */
-static sizeof_t	size_struct_stmt_stack_container = 0;
+static sizeof_t	size_struct_stmt_stack_container;
 			/* Size of struct_stmt_stack_container, in terms of
 			   the number of elements. */
 #define STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION 30
