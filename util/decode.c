@@ -1089,12 +1089,17 @@ controls output of extra information on template parameters.
   char          *p = ptr;
   unsigned long nchars;
 
-  /* A simple mangled type name consists of digits indicating the length of
-     the name followed by the name itself, e.g., "3abc". */
-  /* Accumulate the count. */
-  p = get_number(p, &nchars, dctl);
-  /* Write the type name. */
-  p = full_demangle_name(p, nchars, (char *)NULL, temp_par_info, dctl);
+  if (*p == 'Z') {
+    /* A template parameter name. */
+    p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
+  } else {
+    /* A simple mangled type name consists of digits indicating the length of
+       the name followed by the name itself, e.g., "3abc". */
+    /* Accumulate the count. */
+    p = get_number(p, &nchars, dctl);
+    /* Write the type name. */
+    p = full_demangle_name(p, nchars, (char *)NULL, temp_par_info, dctl);
+  }  /* if */
   return p;
 }  /* demangle_simple_type_name */
 
@@ -1230,11 +1235,9 @@ to the character position following what was demangled.
 
   /* Process type qualifiers. */
   p = demangle_type_qualifiers(p, /*trailing_space=*/TRUE, dctl);
-  if (isdigit((unsigned char)*p) || *p == 'Q') {
+  if (isdigit((unsigned char)*p) || *p == 'Q' || *p == 'Z') {
     /* Named type, like class or enum, e.g., "3abc". */
     p = demangle_type_name(p, dctl);
-  } else if (*p == 'Z') {
-    p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
   } else {
     /* Builtin type. */
     /* Handle signed and unsigned. */
