@@ -1,5 +1,17 @@
 Version 2.44
 
+3/10/00  Internal error on local incompatible redeclaration of ::main
+
+In C++ mode, the front end used to abort processing when encountering a local
+declaration of the function "main" that was incompatible with a previous
+declaration of that function.
+
+  int main(int argc, char *argv[]) {
+    int main(); // Used to abort
+  }
+
+This is now fixed (a normal incompatibility error is issued).
+
 3/10/00  End position of bound function in call
 
 With EXTRA_SOURCE_POSITIONS_IN_IL, the expression node for the

@@ -4891,11 +4891,14 @@ the latter will be NULL for variables.
         if (rout_type == NULL) break;
         if (second_best_match == NULL) second_best_match = sym;
       } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
+        an_extern_symbol_descr_ptr esdp = sym->variant.extern_symbol_descr;
         /* A type compatibility check may also be required for routines. */
-        if (rout_type == NULL || C_dialect != C_dialect_cplusplus) {
-          /* A name match is enough. */
+        if (rout_type == NULL || C_dialect != C_dialect_cplusplus ||
+            esdp->variant.routine.ptr == il_header.main_routine) {
+          /* A name match is enough in C (and for C++, if the routine is
+             "::main"). */
           break;
-        } else if (is_error_type(sym->variant.extern_symbol_descr->type)) {
+        } else if (is_error_type(esdp->type)) {
           /* Assume this is not a match.  Keep looking. */
         } else {
           /* In C++ the function's type signature is effectively part of the
@@ -4910,7 +4913,7 @@ the latter will be NULL for variables.
           */
           a_type_ptr           other_type;
 
-          other_type = sym->variant.extern_symbol_descr->type;
+          other_type = esdp->type;
           other_type = skip_typerefs(other_type);
           rout_type = skip_typerefs(rout_type);
           if (param_types_are_compatible(rout_type, other_type,
