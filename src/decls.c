@@ -6682,11 +6682,7 @@ continue_with_declaration:
       if (storage_class == (a_storage_class)sc_typedef) {
         /* A case like "typedef int;" or "typedef struct { int i; };" */
         set_err_pos_to_curr_token();
-        if (C_dialect == C_dialect_cplusplus) {
-          error(ec_missing_typedef_name);
-        } else {
-          warning(ec_missing_typedef_name);
-        }  /* if */
+        warning(ec_missing_typedef_name);
       } else if (!declares_something) {
         if (defines_something &&
             (storage_class != (a_storage_class)sc_unspecified ||
