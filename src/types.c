@@ -1798,7 +1798,7 @@ and 3.3.6 (pointer - pointer), 3.3.8 (relational operators), 3.3.9 (equality
 operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 */
 {
-  a_boolean  okay = FALSE;
+  a_boolean  okay = FALSE, conversion_from_void_star;
   a_type_ptr dest_type_pointed_to, source_type_pointed_to;
   a_type_ptr unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
 
@@ -1814,6 +1814,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 #endif /* DEBUG */
   *pointer_normalization_needed = FALSE;
   *warning_suggested = ec_no_error;
+  /* If in strict ANSI mode and nonstandard constructs should be reported as
+     errors, disable extensions. */
+  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+    suppress_extensions = TRUE;
+  }  /* if */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
 #if CHECKING
@@ -1855,7 +1860,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       /* The types pointed to are not compatible.  See if the pointers are
          compatible anyway because one or the other is a "void *". */
       if (is_void(unqual_dest_type_pointed_to)) {
-        /* Destination type is "void *". */
+        /* Destination type is "void *" or a pointer to a qualified version
+           of void. */
         if (is_object(unqual_source_type_pointed_to) ||
             is_incomplete(unqual_source_type_pointed_to)) {
           /* In ANSI C, a pointer to an object or incomplete type
@@ -1869,14 +1875,24 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              types in the ARM definition). */
           okay = TRUE;
           *pointer_normalization_needed = TRUE;
-        } else if (C_dialect == C_dialect_cplusplus &&
-                   is_function(unqual_source_type_pointed_to)) {
-          /* In C++, a pointer to a function may be converted to "void *" if
-             the pointer will fit in a "void *".  ARM 4.6 (pointer
-             conversions). */
-          if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
-            okay = TRUE;
-            *pointer_normalization_needed = TRUE;
+        } else if (is_function(unqual_source_type_pointed_to)) {
+          /* Converting a pointer to function to a pointer to void. */
+          if (C_dialect == C_dialect_cplusplus) {
+            /* In C++, a pointer to a function may be converted to "void *" if
+               the pointer will fit in a "void *".  ARM 4.6 (pointer
+               conversions). */
+            if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+              okay = TRUE;
+              *pointer_normalization_needed = TRUE;
+            }  /* if */
+          } else {
+            /* In C, such a conversion is nonstandard, but allowed as
+               an extension, with a warning */
+            if (!suppress_extensions) {
+              okay = TRUE;
+              *pointer_normalization_needed = TRUE;
+              *warning_suggested = default_warning_code;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else if (C_dialect == C_dialect_cplusplus &&
@@ -1891,14 +1907,20 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            That's not quite what the ARM says, but it's what cfront does,
            and it makes sense. */
         okay = TRUE;
-      } else if (C_dialect != C_dialect_cplusplus &&
-                 !check_as_operands_not_conversion &&
-                 is_void_type(unqual_source_type_pointed_to) &&
+      } else if ((conversion_from_void_star =
+                   (C_dialect != C_dialect_cplusplus &&
+                    !check_as_operands_not_conversion &&
+                    is_void_type(unqual_source_type_pointed_to))) &&
                  (is_object(unqual_dest_type_pointed_to) ||
                   is_incomplete(unqual_dest_type_pointed_to))) {
         /* In C but not C++, a "void *" may be converted to a pointer to an
            object or incomplete type.  ANSI C 3.3.16.1 (assignment). */
         okay = TRUE;
+      } else if (conversion_from_void_star && !suppress_extensions) {
+        /* As an extension in C, we also allow a "void *" to be converted to
+           a function pointer; a warning is issued. */
+        okay = TRUE;
+        *warning_suggested = default_warning_code;
       } else if (!suppress_extensions && source_is_constant &&
                  is_address_of_string_constant(source_constant) &&
                  is_character_type(unqual_source_type_pointed_to) &&
@@ -1906,16 +1928,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* Allow a character string to be converted to a pointer to any kind
            of char.  This is an extension in both C and C++. */
         okay = TRUE;
-        if (strict_ansi_mode) {
-          /* If strict ANSI violations are being reported as errors then we
-             need to indicate that this is invalid; otherwise just indicate
-             that a warning should be issued. */
-          if ((int)strict_ansi_error_severity == (int)es_error) {
-            okay = FALSE;
-          } else {
-            *warning_suggested = default_warning_code;
-          }  /* if */
-        }  /* if */
+        if (strict_ansi_mode) *warning_suggested = default_warning_code;
       } else if (C_dialect == C_dialect_pcc) {
         /* In pcc mode, allow conversion between incompatible pointer types,
            with a warning. */
@@ -1929,12 +1942,6 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            This covers cases like unsigned char * --> char *. */
         okay = TRUE;
         *warning_suggested = default_warning_code;
-        if (strict_ansi_mode) {
-          /* If strict ANSI violations are being reported as errors then we
-             need to indicate that this is invalid; otherwise just indicate
-             that a warning should be issued. */
-          if ((int)strict_ansi_error_severity == (int)es_error) okay = FALSE;
-        }  /* if */
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {

@@ -1,5 +1,10 @@
 Version 2.11
 
+9/30/92  void * interconvertible with pointers to functions
+
+In non-strict C mode, a pointer to void may be converted to or from
+a pointer to function.  A warning is issued.
+
 9/30/92  Relaxation of interchangeable-types check
 
 In non-strict mode, same-sized integer types are now considered
