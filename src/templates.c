@@ -4028,7 +4028,8 @@ on the ck_template_param constant pointed to by the expression.
       copy_type(type, new_array_type);
       new_array_type->variant.array.element_type = tp;
       if (orig_cp != new_cp) {
-        if (new_cp->kind != (a_constant_repr_kind)ck_template_param) {
+        if (new_cp->kind != (a_constant_repr_kind)ck_template_param &&
+            !is_error_constant(new_cp)) {
           /* The substituted value is now an integer value.  Extract
              that value and use it as a constant bound.  Note that
              overflow is ignored at this point. */
@@ -4040,8 +4041,8 @@ on the ck_template_param constant pointed to by the expression.
                  unsigned_value_of_integer_constant(new_cp, &overflow);
         } else {
           /* The substituted value is still a ck_template_param
-             constant.  Create a new expression node to point to
-             the new constant. */
+             constant (or an error constant).  Create a new expression
+             node to point to the new constant. */
           new_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
           *new_expr = *orig_expr;
           new_expr->next = NULL;
