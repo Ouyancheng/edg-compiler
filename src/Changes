@@ -85,9 +85,9 @@ In GNU C mode (but not in GNU C++ mode) the front end now ignores extraneous
 9/11/02  Microsoft compatibility: Declaration in for-initializer can be
          hidden by declaration in surrounding scope
 
-Microsoft Visual C++ version 7 allows a variable to be declared in a 
-scope in a for-initializer variable with the same name was already
-declared.  The earlier declaration is then hidden.  For example:
+Microsoft Visual C++ version 7 allows a variable to be declared in a scope
+that already contains a for-initializer variable with the same name.  The
+earlier declaration is then hidden.  For example:
 
   int main() {
     for (int k = 0; k<10; ++k);  // Declaration #1

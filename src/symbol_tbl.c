@@ -2995,10 +2995,10 @@ this is not allowed, an error will be issued by the caller.
          for-statement, but it does not conflict with the declaration of other
          variables in that scope.  This handles the case where the for-init
          declaration comes first; decl_variable handles the other case. */
-      pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
-                           &old_sym->decl_position);
+      pos_start_diagnostic(es_warning, ec_declaration_hides_for_init,
+                           &new_sym->decl_position);
       add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
-                                    &new_sym->decl_position);
+                                    &old_sym->decl_position);
       end_error();
       err = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
