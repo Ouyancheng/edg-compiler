@@ -12079,9 +12079,12 @@ classes.
      for which bitwise copy is not allowed. */
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
 #if USER_CONTROL_OF_STRUCT_PACKING
-  /* Determine the alignment adjustment required for packing. */
-  class_type->variant.class_struct_union.max_member_alignment =
+  if (class_type->variant.class_struct_union.max_member_alignment == 0) {
+    /* Determine the alignment adjustment required for packing (unless it was
+       already set). */
+    class_type->variant.class_struct_union.max_member_alignment =
                                   current_max_alignment_for_class_members();
+  }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
