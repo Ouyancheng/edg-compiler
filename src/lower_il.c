@@ -250,7 +250,6 @@ static a_boolean check_for_troublesome_ptr_to_member_constant(
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
                                   a_type_ptr  *insert_pointer);
-static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp);
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -8218,7 +8217,7 @@ C++ to C, so that a C back end can handle it without change.
 }  /* lower_il_memory_region */
 
 
-static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
+void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
 /*
 Eliminate the indicated object lifetime and all its children.  "Eliminate"
 means to detach them from the IL tree so they're not reachable.  Do nothing
