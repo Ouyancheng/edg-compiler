@@ -3197,6 +3197,15 @@ Reserve space at the end of the class object for virtual base classes.
     /* The size without virtual base classes includes all subobjects that have
        been laid out thus far.  */
     adjust_size_for_empty_bases(lob);
+    if (emulate_gnu_abi_bugs) {
+      /* Early GNU implementations for the IA-64 ABI force an alignment
+         boundary before allocating trailing virtual bases. */
+      if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&
+          !lob->any_overflow) {
+        error(struct_too_large_error());
+        lob->any_overflow = TRUE;
+      }  /* if */
+    }  /* if */
 #endif /* IA64_ABI */
     ctsp->size_without_virtual_base_classes = lob->byte_offset;
     ctsp->alignment_without_virtual_base_classes = lob->alignment;
@@ -3208,7 +3217,11 @@ Reserve space at the end of the class object for virtual base classes.
        current class before the data sections for the virtual base classes
        are put out.  This assures that size-without-virtual-base-classes will
        correspond to the actual size of an incomplete subobject. */
-    if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
+    if (
+#if IA64_ABI
+        !emulate_gnu_abi_bugs &&
+#endif /* IA64_ABI */
+        !do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
                       ctsp->alignment_without_virtual_base_classes)) {
       if (!lob->any_overflow) {
         error(struct_too_large_error());
