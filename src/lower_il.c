@@ -9541,6 +9541,29 @@ in order on the next_in_destruction_list field).
 }  /* first_destruction_in_unordered_set */
 
 
+static void dump_pending_cleanup_state_setting(
+                                     a_boolean          *something_pending,
+                                     a_dynamic_init_ptr pending_cleanup_state,
+                                     an_insert_location *insert_location)
+/*
+If *something_pending is TRUE, pending_cleanup_state indicates a cleanup
+state which code should should have been emitted to establish.  The output
+was delayed in the hope that it could be eliminated if another
+cleanup-state-set came next.  That hasn't happened, so put out the
+code to indicate the cleanup state (inserting it at insert_location), and
+reset *something_pending to FALSE.
+*/
+{
+  if (something_pending) {
+    curr_context->curr_cleanup_state = pending_cleanup_state;
+    insert_code_to_indicate_cleanup_state(pending_cleanup_state,
+                                          insert_location,
+                                          /*unreachable=*/FALSE);
+    *something_pending = FALSE;
+  }  /* if */
+}  /* dump_pending_cleanup_state_setting */
+
+
 static a_boolean gen_cleanup_actions_or_check_if_needed(
                                         an_object_lifetime_ptr outer_lifetime,
                                         an_insert_location_ptr insert_location,
@@ -9558,6 +9581,8 @@ code.
   a_dynamic_init_ptr     dip = curr_context->latest_initialization;
   an_object_lifetime_ptr lifetime = curr_object_lifetime;
   a_boolean              prev_is_catch = FALSE, curr_is_catch;
+  a_dynamic_init_ptr     pending_cleanup_state = NULL;
+  a_boolean              state_set_pending = FALSE;
 
   /* Do nothing at all if there are no lifetimes involved. */
   if (outer_lifetime != NULL) {
@@ -9584,7 +9609,10 @@ code.
              destructors).  They apply for exception cleanup but not on
              exit via branch.  Ditto for partial aggregate cleanup,
              if an exception is thrown before the initialization is
-             completed. */
+             completed.  The cleanup state does need to be updated, however. */
+          pending_cleanup_state = dip->destructible_entity_descr->
+                                cleanup_state_to_set_when_starting_destruction;
+          state_set_pending = TRUE;
         } else if (dip->is_guard_var_for_local_static_var_init ||
                    dip->is_freeing_of_storage_on_exception) {
           /* Remove the cleanup entry that requests clearing the guard
@@ -9594,14 +9622,9 @@ code.
              is just updated. */
           /* Note that these are present only when exceptions are
              enabled. */
-          any_cleanup_needed = TRUE;
-          if (check_only) goto done;
-          curr_context->curr_cleanup_state = dip->destructible_entity_descr->
+          pending_cleanup_state = dip->destructible_entity_descr->
                                 cleanup_state_to_set_when_starting_destruction;
-          insert_code_to_indicate_cleanup_state(
-                                              curr_context->curr_cleanup_state,
-                                              insert_location,
-                                              /*unreachable=*/FALSE);
+          state_set_pending = TRUE;
         } else if (dip->variable == NULL &&
                    dip->destructible_entity_descr->init_pos_descr.variable ==
                                                return_value_pointer_variable) {
@@ -9609,8 +9632,12 @@ code.
              return value optimization variable.  The destruction doesn't get
              done on exit from the routine (the caller does it). */
         } else {
+          /* Normal case -- a destruction is needed. */
           any_cleanup_needed = TRUE;
           if (check_only) goto done;
+          dump_pending_cleanup_state_setting(&state_set_pending,
+                                             pending_cleanup_state,
+                                             insert_location);
           gen_one_destruction(dip, insert_location);
         }  /* if */
       }  /* for */
@@ -9632,6 +9659,9 @@ code.
           } else {
             any_cleanup_needed = TRUE;
             if (check_only) goto done;
+            dump_pending_cleanup_state_setting(&state_set_pending,
+                                               pending_cleanup_state,
+                                               insert_location);
             cleanup_on_exit_from_try_block(context_for_lifetime(lifetime),
                                     (a_try_supplement_ptr)lifetime->entity.ptr,
                                            insert_location);
@@ -9643,6 +9673,9 @@ code.
           /* Exit from a "catch" clause. */
           any_cleanup_needed = TRUE;
           if (check_only) goto done;
+          dump_pending_cleanup_state_setting(&state_set_pending,
+                                             pending_cleanup_state,
+                                             insert_location);
           cleanup_on_exit_from_catch(scope->variant.assoc_handler,
                                      insert_location);
           curr_is_catch = TRUE;
@@ -9664,6 +9697,22 @@ code.
       lifetime = lifetime->parent_lifetime;
       prev_is_catch = curr_is_catch;
     }  /* for */
+    /* Output any pending code to set the cleanup state, unless we are
+       at the outermost level in a function in the fully-lowered mode
+       (in that case, the global variable will be reset to the value for
+       the caller in a moment anyway). */
+    if (state_set_pending
+#if DO_FULL_PORTABLE_EH_LOWERING
+        && !(lifetime->kind == (an_object_lifetime_kind)olk_block &&
+             lifetime->entity.ptr == (char *)innermost_function_scope)
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+                         ) {
+      any_cleanup_needed = TRUE;
+      if (check_only) goto done;
+      dump_pending_cleanup_state_setting(&state_set_pending,
+                                         pending_cleanup_state,
+                                         insert_location);
+    }  /* if */
   }  /* if */
 done:
   return any_cleanup_needed;
