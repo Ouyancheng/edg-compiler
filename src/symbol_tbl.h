@@ -13,7 +13,7 @@ symbol_tbl.h - Declarations related to symbol table processing.
 
 */
 
-/* Avoid including these declararations more than once. */
+/* Avoid including these declarations more than once. */
 #ifndef SYMBOL_TBL_H
 #define SYMBOL_TBL_H 1
 
