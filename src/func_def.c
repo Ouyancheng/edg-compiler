@@ -765,10 +765,28 @@ a new symbol is created and entered in the symbol table.
   if (!function_instantiation) {
     /* Record the type exactly as it was declared (before array-to-pointer
        decay, etc.).  This is done only for parameters of functions that
-       are declared explicitly; template functions are excluded because the
-       param_id entry is the one associated with the template declaration
-       and may involve template parameter types. */
+       are declared explicitly; template functions are handled specially
+       because the param_id entry is the one associated with the template
+       declaration and may involve template parameter types. */
     vp->declared_type = param_id->declared_type;
+  } else {
+    /* Declared type of a template instance can be inferred from the
+       declared type of in the param-id entry (from the template declaration)
+       and from the param-type entry (now recorded in tp). */
+    if (is_function_type(param_id->declared_type)) {
+      /* Undo the change of a function type to pointer-to-function type. */
+      check_assertion(is_pointer_type(tp) &&
+                      is_function_type(type_pointed_to(tp)));
+      vp->declared_type = type_pointed_to(tp);
+    } else if (is_array_type(param_id->declared_type)) {
+      /* Undo array-to-pointer decay. */
+      check_assertion(is_pointer_type(tp));
+      vp->declared_type = alloc_type((a_type_kind)tk_array);
+      vp->declared_type->variant.array.element_type = type_pointed_to(tp);
+    } else {
+      /* No change required. */
+      vp->declared_type = tp;
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_parameters_list(vp);
