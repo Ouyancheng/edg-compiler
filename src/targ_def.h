@@ -908,16 +908,11 @@ When this switch is TRUE, exception handling features will be completely
 lowered to C form, in a portable way.  All exception-handling statements and
 expressions are completely lowered, code is generated to maintain an
 exception handling stack, and cleanup tables and typeinfo entries are
-generated.
+generated.  Note that the C-generating back end requires this mode.
 */
-#if BACK_END_IS_C_GEN_BE
-#undef DO_FULL_PORTABLE_EH_LOWERING
-#define DO_FULL_PORTABLE_EH_LOWERING TRUE /* Do not change this. */
-#else /* BACK_END_IS_C_GEN_BE */
 #ifndef DO_FULL_PORTABLE_EH_LOWERING
 #define DO_FULL_PORTABLE_EH_LOWERING TRUE
 #endif /* ifndef DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* BACK_END_IS_C_GEN_BE */
 
 /*
 When this switch is TRUE, cleanup tables and typeinfo entries will be generated
