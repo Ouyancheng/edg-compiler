@@ -21,9 +21,6 @@ il_to_str.h -- Declarations related to il_to_str.c (produce an external
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
-#ifndef SYMBOL_TBL_H
-#include "symbol_tbl.h"
-#endif /* ifndef SYMBOL_TBL_H */
 
 
 /*
@@ -90,9 +87,6 @@ extern void form_template_args(a_template_arg_ptr                    tap,
 extern void form_name(char                                  *entry,
                       an_il_entry_kind                      kind,
                       an_il_to_str_output_control_block_ptr octl);
-
-extern void form_symbol_name(a_symbol_ptr                          sym,
-                             an_il_to_str_output_control_block_ptr octl);
 
 extern char *int_kind_name(an_integer_kind kind);
 

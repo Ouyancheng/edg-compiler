@@ -90,6 +90,9 @@ declared.
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+#ifndef IL_TO_STR_H
+#include "il_to_str.h"
+#endif /* ifndef IL_TO_STR_H */
 
 
 /* Contains a description of an access error that has been detected
@@ -2414,6 +2417,9 @@ which is_class_struct_union_type is TRUE.
 #define is_prototype_instantiation_symbol(sym)				\
   (is_template_class_symbol((sym)) &&					\
    (sym)->variant.class_struct_union.extra_info->is_prototype_instantiation)
+
+extern void form_symbol_name(a_symbol_ptr                          sym,
+                             an_il_to_str_output_control_block_ptr octl);
 
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */

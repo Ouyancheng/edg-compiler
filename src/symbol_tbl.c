@@ -142,6 +142,36 @@ static an_access_error_descr_ptr
                            in front end storage) freed and available for
                            reuse. */
 
+
+void form_symbol_name(a_symbol_ptr                          sym,
+                      an_il_to_str_output_control_block_ptr octl)
+/*
+Output the (possibly qualified) name of the indicated symbol.  The output
+is done according to the output control block octl.
+*/
+{
+  char             *entry;
+  an_il_entry_kind kind;
+
+  /* See if the symbol has an associated IL entry. */
+  entry = il_entry_for_symbol(sym, &kind);
+  if (entry != NULL) {
+    /* Use the IL entry. */
+    form_name(entry, kind, octl);
+  } else {
+    /* No IL entry; use the symbol name directly. */
+    if (il_header.source_language == sl_Cplusplus) {
+      a_type_ptr class_type = sym->class_of_which_a_member;
+      /* Put out the class qualifier on a class member. */
+      if (class_type != NULL) {
+        form_class_qualifier(class_type, octl);
+      }  /* if */
+    }  /* if */
+    octl->output_str(sym->header->identifier);
+  }  /* if */
+}  /* form_symbol_name */
+
+
 #if DEBUG
 #define DEBUG_LINE_LENGTH ((unsigned int)79)
 /* Macros used within db_symbol, referencing local variables defined
