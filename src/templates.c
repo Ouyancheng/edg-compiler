@@ -6827,6 +6827,16 @@ any non-empty template parameter lists that were scanned.
 }  /* template_declaration */
 
 
+static void full_template_specialization(void)
+/*
+*/
+{
+  db_enter(3, "full_template_instantiation");
+  unexpected_condition_str("new specialization syntax not implemented");
+  db_exit();
+}  /* full_template_specialization */
+
+
 static void decl_level_of_template(a_decl_state_ptr decl_state)
 /*
 Determine the effective declaration scope for a template declaration
@@ -6962,7 +6972,7 @@ are either the specialization of a template or a template declaration.
      param-lists must be present). */
   scan_template_param_clauses(&decl_state);
   if (decl_state.is_full_specialization) {
-    unexpected_condition_str("new specialization syntax not implemented");
+    full_template_specialization();
 #if 0
 #else
     /* A reminder to make sure that defines_something is set properly
