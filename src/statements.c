@@ -1769,7 +1769,8 @@ the current statement sequence.
 #if GNU_EXTENSIONS_ALLOWED
   } else if (kind == (a_statement_kind)stmk_return) {
     a_routine_ptr  rp = current_routine_entry();
-    if (skip_typerefs(rp->type)->variant.routine.extra_info->does_not_return &&
+    a_type_ptr     rtp = skip_typerefs(rp->type);
+    if (rtp->variant.routine.extra_info->does_not_return &&
         curr_reachability.reachable_considering_hints) {
       /* Issue a warning on the return statement.  (For implicit returns,
          the warning is issued on the current token, which is normally the
@@ -1777,6 +1778,7 @@ the current statement sequence.
       pos_warning(ec_noreturn_function_does_return,
                   stmt_pos->seq != 0 ? stmt_pos
                                      : &pos_curr_token);
+      rtp->variant.routine.extra_info->does_not_return = FALSE;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -5327,14 +5329,6 @@ See also 3.6.6.4.
   rout = current_routine_entry();
   rout_type = skip_typerefs(rout->type);
   return_type = rout_type->variant.routine.return_type;
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && rout_type->variant.routine.extra_info->does_not_return) {
-    warning(ec_return_in_function_marked_with_noreturn);
-    if (curr_reachability.reachable_considering_hints) {
-      rout_type->variant.routine.extra_info->does_not_return = FALSE;
-    }  /* if */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* See if there is an expression after "return". */
