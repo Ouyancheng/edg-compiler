@@ -3969,6 +3969,9 @@ are enabled.
 }  /* insert_code_to_indicate_cleanup_state */
 
 
+#ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT
+/*ARGSUSED*/
+#endif /* ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT */
 void save_eh_lowering_context(an_eh_lowering_context *ehcontext)
 /*
 Save the current state of exception handling lowering, as reflected in
@@ -3991,6 +3994,9 @@ restore_eh_lowering_context.
 }  /* save_eh_lowering_context */
 
 
+#ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT
+/*ARGSUSED*/
+#endif /* ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT */
 void restore_eh_lowering_context(an_eh_lowering_context *ehcontext)
 /*
 Restore the current state of exception handling lowering, as reflected in
