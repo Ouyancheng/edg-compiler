@@ -5305,16 +5305,17 @@ class_type is the class type whose vtbl is being constructed
         /* Put a null typeinfo pointer in the table.  This is used when
            RTTI is disabled. */
         make_zero_of_proper_type(pointer_type, func_con);
-#if GENERATE_EH_TABLES
+#if GENERATE_EH_TABLES && !IA64_ABI
         /* If exceptions are enabled, force generation of the typeinfo variable
            for the type because it might be referenced from some other
            compilation unit.  When RTTI information is generated, the virtual
            function table always points to the typeinfo variable, so this
-           processing is not needed. */
+           processing is not needed.  In the IA-64 ABI, the typeinfo is
+           put out as a COMDAT everywhere it is used. */
         if (exceptions_enabled) {
           (void)make_typeinfo_var(class_type);
         }  /* if */
-#endif /* GENERATE_EH_TABLES */
+#endif /* GENERATE_EH_TABLES && !IA64_ABI */
       }  /* if */
     } else {
       /* Put a NULL pointer in the table.  This is used for the

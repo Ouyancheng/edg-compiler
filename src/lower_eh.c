@@ -1867,6 +1867,14 @@ unit.
                                                                &first_virtual);
         use_comdat = !force_static;
       }
+      if (!generate_rtti_typeinfo) {
+        /* Not generating RTTI information (e.g., --no_rtti has been
+           specified).  g++ with -fno-rtti decouples the generation of
+           definitions for typeinfo variables from the generation of the
+           definitions of the associated virtual function tables.  The
+           typeinfo is put out as a COMDAT instead. */
+        if (use_comdat) definition_needed = TRUE;
+      }  /* if */
 #else /* !IA64_ABI */
       force_static = (vtbl_var->storage_class == (a_storage_class)sc_static);
       definition_needed = (vtbl_var->init_kind != (an_init_kind)initk_none);

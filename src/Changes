@@ -1,5 +1,17 @@
 Version 3.4
 
+4/14/04  Emulation of g++ -fno-rtti mode
+
+The front end in the IA-64 ABI mode can now emulate what g++
+does with -fno-rtti more accurately.  g++ appears to decouple
+the generation of the definition of the typeinfo variable for
+a class from the generation of the definition of the vtable for
+the class; the typeinfo is put out as a COMDAT everywhere it
+is used.  This is now done when --no_rtti is specified and
+SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED is TRUE.
+Also, the default for SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
+has been changed to TRUE when DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE.
+
 4/13/04  Memory leak with free list of alias fixup entries
 
 The list of freed alias fixup entries was maintained incorrectly
