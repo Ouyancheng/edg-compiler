@@ -7942,6 +7942,7 @@ id_scan:
 	      } else if (ctoken == tok_false || ctoken == tok_true) {
                 /* A C++ boolean constant. */
 		scan_boolean_constant(ctoken);
+                goto end_id_scan;
               } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
                 if (microsoft_mode){
@@ -7972,8 +7973,7 @@ id_scan:
         /* The identifier is not a macro and not a keyword.  If we are
            in a preprocessing #if expression, replace the identifier with
            the value 0L.  ("true" and "false" are the exception.) */
-        if (in_pp_if_expression &&
-            !(ctoken == tok_false || ctoken == tok_true)) {
+        if (in_pp_if_expression) {
           remark(ec_undefined_preproc_id);
           ctoken = make_pp_int_constant(0L);
         }  /* if */
