@@ -3519,6 +3519,7 @@ for the function scope case; it must be NULL in other cases.
   ssep->last_constant            = NULL;
   ssep->last_type                = NULL;
   ssep->last_variable            = NULL;
+  ssep->last_nonstatic_variable  = NULL;
   ssep->last_label               = NULL;
   ssep->last_routine             = NULL;
   ssep->first_scope              = NULL;

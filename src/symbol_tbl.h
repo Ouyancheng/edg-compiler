@@ -877,6 +877,10 @@ typedef struct a_scope_stack_entry {
 		last_variable;
 			/* End of list of local variables of this scope, NULL
 			   if none. */
+  a_variable_ptr
+		last_nonstatic_variable;
+			/* End of list of nonstatic local variables of this
+			   scope, NULL if none. */
   a_label_ptr	last_label;
 			/* End of list of local labels of this scope, NULL
 			   if none. */
