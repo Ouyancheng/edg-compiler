@@ -5,8 +5,8 @@ Version 3.4
 In Microsoft mode, the front end will no longer instantiate the members of
 a class template specialization declared with __declspec(dllimport) when
 performing an explicit class template instantiation.  The dllimport specifier
-may have been present on class template definition, or it may have been added
-by the explicit instantiation directive.  For example:
+may have been present on the class template definition, or it may have been
+added by the explicit instantiation directive.  For example:
 
   template<typename T> struct S {
     static int d;
