@@ -16,7 +16,7 @@ been adjusted further so that the parentheses around the function
 name are not put out when the function name is a qualified name
 (the use of a qualified name suppresses argument-dependent lookup,
 and some compilers had problems with the extra parentheses in
-a case like (::f)().
+a case like "(::f)()").
 
 7/15/04  Microsoft compatibility: __TIMESTAMP__ macro
 
