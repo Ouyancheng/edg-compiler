@@ -1530,6 +1530,15 @@ that do normal id lookup processing.
     /* This is a class scope and we are skipping class scopes. */
     skip_scope = TRUE;
   }  /* if */
+  if (lookup_state->skip_curr_scope &&
+      scope_depth_of(ssep) == depth_scope_stack) {
+    /* IDL_SKIP_CURR_SCOPE is being used.  Don't accept symbols from the
+       first scope entry.  (This is used when looking up names from the
+       initializer list of a constructor declaration; the constructor
+       parameters must not be visible during this lookup.  It is also
+       used during hidden-name processing.) */
+    skip_scope = TRUE;
+  }  /* if */
   if (!skip_scope) {
     if (ssep->reactivated_class_being_defined) {
       /* If the class that is being reactivated is still in the process of
