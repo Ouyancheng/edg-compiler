@@ -1,5 +1,10 @@
 Version 2.23
 
+3/1/94  Declaring an object of void type
+
+In C++ mode an error is now issued when an extern variable is declared to
+have void type.
+
 2/28/94  Fixed spurious error on virtual function overriding
 
 In the following case, in which dominance needs to be taken into account
