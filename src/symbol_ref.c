@@ -283,6 +283,8 @@ hiding.
   } else if (sym_ptr->kind == (a_symbol_kind)sk_parameter) {
     /* Ignore parameter symbols.  The only parameters that are interesting
        are the ones that have been turned into variables. */
+  } else if (is_unnamed_tag_symbol(sym_ptr)) {
+    /* No name hiding for unnamed entities. */
   } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
              depth_template_declaration_scope != NO_SCOPE_DEPTH ||
              (sym_ptr->is_class_member &&
@@ -320,7 +322,7 @@ hiding.
            class x;                 // class x is hidden at file scope
          Again, hiding can be defeated by using "class x" instead of "x". */
       old_sym_ptr = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-      if (old_sym_ptr != sym_ptr) {
+      if (old_sym_ptr != sym_ptr && old_sym_ptr != NULL) {
         tag_hidden_by_nontag = TRUE;
         global_hidden_by_nonglobal = FALSE;
         record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
