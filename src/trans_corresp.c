@@ -678,8 +678,10 @@ has not yet been examined for a matching entry in another translation unit.
     ++(*tcp)->count;
 #endif /* CHECKING */
   } else {
-    /* Reuse the correspondence entry. */
-    check_assertion_str((*tcp)->count == 1,
+    /* Reuse the correspondence entry.  (Normally, the entry shouldn't be
+       shared.  However, an exception is the sharing by two template
+       entries that are in the same translation unit.) */
+    check_assertion_str((*tcp)->count == 1 || kind == iek_template,
                         "f_set_no_trans_unit_corresp: correspondence busy");
   }  /* if */
   change_canonical_entry(*tcp, entity);
