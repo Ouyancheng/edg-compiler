@@ -3291,15 +3291,16 @@ the constant.
     if (constant->assoc_var_assigned) {
       assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
     } else {
+      a_type_ptr var_type;
       /* The variable must be allocated. */
-      (void)make_mptr_type();
+      var_type = make_qualified_type(make_mptr_type(), TQ_CONST);
       if (in_file_scope((char *)constant)) {
         /* The constant is in the file scope, so use a file-scope variable.
            The constant is possibly shared, but we're going to rewrite
            every use of it to reference the variable instead, so the constant
            will end up being used only in the initialization of the
            variable (and therefore unshared). */
-        assoc_var = make_file_scope_temporary(constant->type);
+        assoc_var = make_file_scope_temporary(var_type);
         /* Make the constant the initial value of the variable. */
         assoc_var->init_kind = (an_init_kind)initk_static;
         assoc_var->initializer.constant = constant;
@@ -3309,7 +3310,7 @@ the constant.
       } else {
         /* The constant is in the function scope, so use a function-local
            static variable. */
-        assoc_var = make_unnamed_local_static_variable(constant->type,
+        assoc_var = make_unnamed_local_static_variable(var_type,
                                                    /*in_function_scope=*/TRUE);
         /* To initialize a local static variable to an aggregate we use
            a local-static-variable-init entry (to avoid memory region
