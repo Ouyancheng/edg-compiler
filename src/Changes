@@ -1,5 +1,32 @@
 Version 2.44
 
+5/17/00  Overload resolution: "this parameter" of static member function
+         doesn't count
+
+In conformance with 13.3.3 paragraph 1 bullet 1 of the C++ standard,
+overload resolution now considers the made-up "this parameter" for
+a static member function call to have a match that's no better,
+no worse than the match on any other function in the overload
+set (i.e., it doesn't affect the selection of the best function).
+Formerly, in conformance with some earlier drafts of the Working
+Paper, the made-up parameter was considered an exact match.
+
+  struct A {
+    A(long);
+  };
+  struct B {
+    static void y(const A& p);
+           void y(long p);
+  };
+  struct C : public B {
+    void z() { long j = 1; y(j);}  // Formerly got an ambiguity error;
+                                   // Now calls B::y(long)
+  };
+  int main() {
+    C c;
+    c.z();
+  }
+
 5/15/00  C++-generating back end: typedefs preserved in initialization
 
 Formerly, the front end removed type qualifiers and typedefs from

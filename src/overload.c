@@ -2379,8 +2379,7 @@ template-dependent call.
       if (!function_is_nonstatic_member_function) {
         /* The function has no "this" parameter, so it does not need a
            selector.  We would discard it if this function is chosen,
-           but we still need a match entry for it.  It counts as an
-           exact match. */
+           but we still need a match entry for it. */
         if (surrogate_function_conv_sym != NULL) {
           /* For a surrogate function, the match on the "this" parameter
              includes the conversion. */
@@ -2400,8 +2399,10 @@ template-dependent call.
             this_match->conversion.result_is_an_lvalue = TRUE;
           }  /* if */
         } else {
-          /* Normal case (not surrogate function). */
-          this_match->match_level = aml_exact;
+          /* Normal case (not surrogate function).  This is a match that
+             can't be compared to other matches (it's neither better nor
+             warse) so leave it as "none". */
+          this_match->match_level = aml_none;
         }  /* if */
         this_match->is_match_for_this_param = TRUE;
       } else {
@@ -3155,7 +3156,12 @@ Compare two argument match summary entries and return
   int cmp = 0;
 
   /* Compare the gross match levels. */
-  if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
+  if (arg_match1->match_level == aml_none ||
+      arg_match2->match_level == aml_none) {
+    /* The match for the "this parameter" of a static member function
+       has a "none" match level.  It's no better and no worse than any
+       other match. */
+  } else if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
     /* arg_match1 is better. */
     cmp = 1;
   } else if ((int)arg_match1->match_level > (int)arg_match2->match_level) {
