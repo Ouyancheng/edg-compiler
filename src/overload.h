@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -486,6 +486,7 @@ extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           a_type_ptr        temp_type,
                                           a_boolean         result_is_addr,
                                           a_boolean         is_explicit_cast,
+                                          a_boolean         is_value_init,
                                           a_source_position *position,
                                           an_operand        *result);
 
@@ -708,6 +709,6 @@ extern void overload_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

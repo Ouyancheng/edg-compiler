@@ -1,5 +1,19 @@
 Version 2.46
 
+7/24/01  Value-initialization
+
+Value-initialization, a refinement of default-initialization
+introduced in TC1 of the C++ standard (and core issue 178), is
+now implemented.  It ensures that all fields of non-POD classes
+without user-written constructors are properly initialized, by
+zeroing the storage for the object before calling the constructor.
+
+Three new runtime routines, __array_new_zero, __placement_array_new_zero,
+and __vec_new_eh_zero, have been added to the runtime library.
+They have the same parameter lists and functionality as the existing
+routines with similar names without "_zero", but they zero the storage
+before calling the constructor.
+
 7/19/01  Incorrect storage class for function prototype instantiations
 
 When generating non-class prototype instantiations, the storage class

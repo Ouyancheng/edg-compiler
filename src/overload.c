@@ -9735,6 +9735,7 @@ void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                    a_type_ptr        temp_type,
                                    a_boolean         result_is_addr,
                                    a_boolean         is_explicit_cast,
+                                   a_boolean         is_value_init,
                                    a_source_position *position,
                                    an_operand        *result)
 /*
@@ -9749,8 +9750,9 @@ a member.  If it is NULL, the class type is used.  ctor_routine can
 be NULL to indicate that the constructor is unknown because one or
 more of the arguments is template-dependent in a prototype instantiation.
 temp_type must be non-NULL in that case.  is_explicit_cast is TRUE if
-this node represents an explicit cast.  *position gives the source
-position.
+this node represents an explicit cast.  is_value_init is TRUE if
+this call is generated to do value-initialization.  *position gives
+the source position.
 */
 {
   a_dynamic_init_ptr dip;
@@ -9783,6 +9785,7 @@ position.
   set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
   dip->variant.constructor.ptr = ctor_routine;
   dip->variant.constructor.args = arg_expr_list;
+  dip->variant.constructor.value_initialization = is_value_init;
   /* Make an operand for the overall expression. */
   make_expression_operand(temp_init_node, temp_init_node->type, result);
 }  /* make_constructor_dynamic_init */
@@ -9934,7 +9937,7 @@ an explicit cast.
                                 ctor_arg_conversion, &arg_expr_list);
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
                                   dest_type, /*result_is_addr=*/FALSE,
-                                  is_explicit_cast,
+                                  is_explicit_cast,  /*is_value_init=*/FALSE,
                                   &orig_operand.position, operand);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -10541,6 +10544,7 @@ the address of the temporary.  Used only in C++ mode.
         make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
                                       /*result_is_addr=*/TRUE,
                                       /*is_explicit_cast=*/FALSE,
+                                      /*is_value_init=*/FALSE,
                                       &orig_operand.position,
                                       operand);
       }  /* if */

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1997 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -5893,6 +5893,7 @@ specification allow a variable-sized array as the top type.
   a_routine_ptr     ctor_routine, delete_routine = NULL;
   a_boolean         needs_initialization, trapped_left_paren;
   a_boolean         zero_initialization, dependent_initialization;
+  a_boolean         value_initialization;
   an_expr_node_ptr  arg_expr_list, init_arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
   an_arg_operand_ptr
@@ -6235,10 +6236,17 @@ specification allow a variable-sized array as the top type.
          was selected.  If so, the "new" call can be folded into the
          constructor call. */
       if (ctor_sym != NULL) {
-        set_class_assoc_operator_new_routine(unqual_base_new_type);
-        if (unqual_base_new_type->variant.class_struct_union.extra_info->
+        /* If the entity gets value-initialization, suppress this
+           optimization, because there's no way to tell the constructor
+           to do the necessary zeroing after the allocation. */
+        a_boolean value_init = (curr_token == tok_lparen &&
+                                next_token() == tok_rparen);
+        if (!value_init) {
+          set_class_assoc_operator_new_routine(unqual_base_new_type);
+          if (unqual_base_new_type->variant.class_struct_union.extra_info->
                                    assoc_operator_new_routine == new_routine) {
-          new_routine = NULL;
+            new_routine = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -6298,6 +6306,7 @@ specification allow a variable-sized array as the top type.
   needs_initialization = FALSE;
   zero_initialization = FALSE;
   dependent_initialization = FALSE;
+  value_initialization = FALSE;
   unknown_dependent_ctor = FALSE;
   ctor_routine = NULL;
   init_val_node = NULL;
@@ -6375,6 +6384,7 @@ specification allow a variable-sized array as the top type.
       err = TRUE;
     }  /* if */
     if (ctor_sym != NULL) {
+      a_boolean empty_parens = (curr_token == tok_rparen);
       /* Class with a (nontrivial) constructor. */
       /* Develop the dynamic init entry, if any, used to free storage
          if an exception is thrown before the initialization is finished.
@@ -6392,6 +6402,8 @@ specification allow a variable-sized array as the top type.
       if (array_new) init_arg_expr_list = NULL;
       needs_initialization = (ctor_routine != NULL ||
                               unknown_dependent_ctor);
+      /* A "()" initializer implies value initialization. */
+      value_initialization = (needs_initialization && empty_parens);
     } else if (is_template_dependent_context() &&
                is_template_dependent_type(new_type)) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
@@ -6420,8 +6432,9 @@ specification allow a variable-sized array as the top type.
         needs_initialization = TRUE;
       } else {
         /* The initializer is empty, i.e., "()".  This means
-           zero-initialization. Note that "()" for class types with
-           (nontrivial) constructors is handled above. */
+           value-initialization.  Note that "()" for class types with
+           (nontrivial) constructors is handled above, however, so
+           value-initialization here is effectively zero-initialization. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -6463,6 +6476,7 @@ specification allow a variable-sized array as the top type.
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
         dip->variant.constructor.ptr = ctor_routine;
         dip->variant.constructor.args = init_arg_expr_list;
+        dip->variant.constructor.value_initialization = value_initialization;
         if (array_new) {
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate
@@ -8641,6 +8655,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
     a_boolean unknown_dependent_function;
+    a_boolean empty_parens = (curr_token == tok_rparen);
     scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine,
                         &unknown_dependent_function, &lparen_pos,
                         type_cast_to);
@@ -8657,6 +8672,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       make_constructor_dynamic_init(ctor_routine, arg_expr_list,
                                     type_cast_to, /*result_is_addr=*/FALSE,
                                     /*is_explicit_cast=*/TRUE,
+                                    /*is_value_init=*/empty_parens,
                                     start_position, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs) {
@@ -8691,7 +8707,10 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
         make_error_operand(result);
       } else if (is_reference_type(type_cast_to)) {
         /* Disallow a cast to a reference type without operands; you
-           can't default-initialize a reference. */
+           can't default-initialize a reference.  The standard as of
+           TC1 makes this not an error, because the initialization is
+           value-initialization, and there's no error for value-
+           initializing a reference, but that has to be wrong. */
         pos_error(ec_bad_cast, &lparen_pos);
         make_error_operand(result);
       } else {
@@ -8708,7 +8727,10 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
           /* void(). */
           cast_operand_to_void(result, type_cast_to);
         } else if (is_class_struct_union_type(type_cast_to)) {
-          /* A class with no constructor, followed by (), e.g., "A()". */
+          /* A class with no constructor, followed by (), e.g., "A()".
+             This is value-initialization, but we know the class has
+             no non-trivial constructor, so it's effectively
+             zero-initialization. */
           an_expr_node_ptr temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
@@ -8718,18 +8740,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                         /*suppress_abstract_test=*/TRUE,
                                         start_position);
           a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
-          if (reference_to_trivial_default_constructor(type_cast_to,
-                                                       &lparen_pos)) {
-            /* The class is a non-POD with an assumed trivial constructor.
-               The initialization conceptually calls the constructor, which is
-               a no-op. */
-            set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_none);
-          } else {
-            /* The class is a POD.  Initialization is to zero. */
-            set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
-            /* Check for uninitialized const members within the class. */
-            check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
-          }  /* if */
+          set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
           make_expression_operand(temp_init_node, temp_init_node->type,
                                   result);
         } else {
@@ -14439,6 +14450,7 @@ overall errors.
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean                     unknown_dependent_function;
+  a_boolean                     empty_parens;
 
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
@@ -14447,6 +14459,7 @@ overall errors.
                   /*suppress_object_lifetime=*/FALSE);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
+  empty_parens = (curr_token == tok_rparen);
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp->constructor != NULL);
   /* Scan the constructor argument list. */
@@ -14465,6 +14478,8 @@ overall errors.
     *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
     (*dip)->variant.constructor.ptr = conversion_routine;
     (*dip)->variant.constructor.args = arg_list;
+    /* The entity is value-initialized if the parentheses were empty. */
+    (*dip)->variant.constructor.value_initialization = empty_parens;
     if (fill_in_dtor) {
       /* Fill in the destructor information.  Note that we cannot use
          alloc_dtor_dynamic_init because it does not allow for the
@@ -14790,6 +14805,6 @@ instantiation.  Go through it and do any necessary processing for that.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1997 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -46,6 +46,9 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
+static void insert_call_to_zero_entity(an_expr_node_ptr   entity_node,
+                                       an_expr_node_ptr   entity_size_node,
+                                       an_insert_location *insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -1381,6 +1384,23 @@ already been lowered.
     internal_error("add_constructor_call: bad kind");
   }  /* if */
 #endif /* CHECKING */
+  if (dip->variant.constructor.value_initialization &&
+      ctor_routine->compiler_generated) {
+    /* To do value-initialization on a class without a user-written
+       constructor, zero the object and then call the default constructor. */
+    an_expr_node_ptr entity_node_copy =
+                                make_reusable_copy(entity_node,
+                                                   /*vars_can_change=*/FALSE);
+    a_type_ptr       class_type =
+                                ctor_routine->source_corresp.parent.class_type;
+    an_expr_node_ptr entity_size_node =
+                                 node_for_host_large_integer(
+                                        (a_host_large_integer)class_type->size,
+                                        targ_size_t_int_kind);
+    insert_call_to_zero_entity(entity_node, entity_size_node,
+                               insert_location);
+    entity_node = entity_node_copy;
+  }  /* if */
   /* If no implied_arg_list is supplied and the constructor needs one
      (because it initializes a class that has virtual base classes), make
      the implied_arg_list (all entries are NULL pointer values). */
@@ -1413,8 +1433,11 @@ NULL until then.
 static a_routine_ptr
 		vec_new_routine,
 		vec_new_eh_routine,
+		vec_new_eh_zero_routine,
 		array_new_routine,
+		array_new_zero_routine,
 		placement_array_new_routine,
+		placement_array_new_zero_routine,
 		vec_cctor_routine,
 		vec_cctor_eh_routine,
 		vec_delete_routine,
@@ -1508,7 +1531,8 @@ static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
                                           a_routine_ptr    ctor_routine,
                                           a_routine_ptr    dtor_routine,
                                           a_routine_ptr    new_routine,
-                                          a_routine_ptr    delete_routine)
+                                          a_routine_ptr    delete_routine,
+                                          a_boolean        zero_storage)
 /*
 Make a call to a runtime routine (__vec_new or __array_new) that will
 allocate an array and call a constructor for each element of the
@@ -1529,9 +1553,11 @@ be used to do the allocation; if it is null, the default routine is
 used.  If delete_routine is non-NULL, it points to an "operator
 delete[]" routine to be used to free the storage if an exception is
 thrown before initialization is completed; if it is NULL, the default
-routine is used.  The runtime routine __array_new is called for cases
-that require a special new or delete routine.  This routine is not
-used for placement new cases.
+routine is used.  zero_storage is TRUE if the storage should be
+zeroed before the constructor is called, for value-initialization.
+The runtime routine __array_new is called for cases that require a
+special new or delete routine.  This routine is not used for
+placement new cases.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
@@ -1548,6 +1574,11 @@ used for placement new cases.
          __vec_new   (entity_node, num_elems, size_elem, ctor_routine)
          __vec_new_eh(entity_node, num_elems, size_elem, ctor_routine,
                                                          dtor_routine)
+         __vec_new_eh_zero
+                     (entity_node, num_elems, size_elem, ctor_routine,
+                                                         dtor_routine)
+       The "_zero" version zeroes the storage before calling the constructor,
+       for value-initialization cases.
     */
     if (entity_node == NULL) {
       /* If the runtime routine is supposed to do the allocation, pass a
@@ -1559,7 +1590,15 @@ used for placement new cases.
     entity_node->next = num_elem_node;
     num_elem_node->next = size_elem_node;
     size_elem_node->next = ctor_addr_node;
-    if (exceptions_enabled && dtor_routine != NULL) {
+    if (zero_storage) {
+      /* __vec_new_eh_zero call, which zeroes storage before calling the
+         constructor, for value-initialization. */
+      dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
+      ctor_addr_node->next = dtor_addr_node;
+      call_node = make_runtime_rout_call("__vec_new_eh_zero",
+                                         &vec_new_eh_zero_routine,
+                                         void_star_type(), arg_expr_list);
+    } else if (exceptions_enabled && dtor_routine != NULL) {
       /* __vec_new_eh call, with destructor. */
       dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
       ctor_addr_node->next = dtor_addr_node;
@@ -1574,9 +1613,13 @@ used for placement new cases.
     /* A special new or delete routine must be used.  The call looks like
          __array_new(num_elems, size_elem, ctor_routine,
                      dtor_routine, new_routine, delete_routine, is_two_arg)
+         __array_new_zero
+                    (num_elems, size_elem, ctor_routine,
+                     dtor_routine, new_routine, delete_routine, is_two_arg)
        The dtor_routine and delete_routine are always NULL when exceptions
        are disabled.  is_two_arg is 1 if the delete routine has two arguments
-       and 0 otherwise. */
+       and 0 otherwise.  The "_zero" version zeroes the storage before
+       calling the constructor, for value-initialization cases. */
     check_assertion(entity_node == NULL);
     dtor_addr_node = expr_for_pointer_to_routine(dtor_routine);
     new_addr_node = expr_for_pointer_to_routine(new_routine);
@@ -1592,8 +1635,14 @@ used for placement new cases.
     dtor_addr_node->next = new_addr_node;
     new_addr_node->next = delete_addr_node;
     delete_addr_node->next = is_two_arg_node;
-    call_node = make_runtime_rout_call("__array_new", &array_new_routine,
-                                       void_star_type(), arg_expr_list);
+    if (!zero_storage) {
+      call_node = make_runtime_rout_call("__array_new", &array_new_routine,
+                                         void_star_type(), arg_expr_list);
+    } else {
+      call_node = make_runtime_rout_call("__array_new_zero",
+                                         &array_new_zero_routine,
+                                         void_star_type(), arg_expr_list);
+    }  /* if */
   }  /* if */
   return call_node;
 }  /* make_vec_new_call */
@@ -1607,7 +1656,8 @@ static an_expr_node_ptr make_placement_array_new_call(
                                           a_routine_ptr    ctor_routine,
                                           a_routine_ptr    dtor_routine,
                                           a_routine_ptr    delete_routine,
-                                          an_expr_node_ptr delete_args)
+                                          an_expr_node_ptr delete_args,
+                                          a_boolean        zero_storage)
 /*
 Make a call to a runtime routine (__placement_array_new) that will
 record the size of an array allocated via placement new and call a
@@ -1623,7 +1673,9 @@ destroy array elements that were created if a throw occurs halfway
 through the initialization of the array).  If delete_routine is
 non-NULL, it points to an "operator delete[]" routine to be used
 to free the storage if an exception is thrown before initialization
-is completed; if it is NULL, the storage is not freed.
+is completed; if it is NULL, the storage is not freed.  zero_storage
+is TRUE if the storage should be zeroed before the constructor is
+called, for value-initialization.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
@@ -1642,9 +1694,15 @@ is completed; if it is NULL, the storage is not freed.
   num_elem_node->next = size_elem_node;
   size_elem_node->next = ctor_addr_node;
   ctor_addr_node->next = dtor_addr_node;
-  call_node = make_runtime_rout_call("__placement_array_new",
-                                     &placement_array_new_routine,
-                                     void_star_type(), arg_expr_list);
+  if (!zero_storage) {
+    call_node = make_runtime_rout_call("__placement_array_new",
+                                       &placement_array_new_routine,
+                                       void_star_type(), arg_expr_list);
+  } else {
+    call_node = make_runtime_rout_call("__placement_array_new_zero",
+                                       &placement_array_new_zero_routine,
+                                       void_star_type(), arg_expr_list);
+  }  /* if */
   if (delete_routine != NULL) {
     /* A placement delete routine must be called.  The fact that the
        pointer is non-NULL means exceptions are enabled. */
@@ -2203,6 +2261,7 @@ in default_version_of_routine).
 {
   a_routine_ptr    ctor_routine;
   an_expr_node_ptr call_node, num_elem_node;
+  a_boolean        zero_storage;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -2210,6 +2269,12 @@ in default_version_of_routine).
   }  /* if */
 #endif /* CHECKING */
   ctor_routine = dip->variant.constructor.ptr;
+  /* To value-initialize an object of a class without a user-written
+     constructor, zero the storage first and then call the default
+     constructor.  This has to be tested before the constructor
+     is replaced by the default version. */
+  zero_storage = (dip->variant.constructor.value_initialization &&
+                  ctor_routine->compiler_generated);
   ctor_routine = default_version_of_routine(ctor_routine,
                                             dip->variant.constructor.args);
   if (dip->init_expr_lifetime != NULL) {
@@ -2217,6 +2282,7 @@ in default_version_of_routine).
   }  /* if */
   if (source_node != NULL) {
     /* Copy constructor case. */
+    check_assertion(!dip->variant.constructor.value_initialization);
     call_node = make_vec_cctor_call(entity_node, source_node,
                                     array_element_count, ctor_routine,
                                     dip->destructor);
@@ -2229,7 +2295,8 @@ in default_version_of_routine).
                                   ctor_routine,
                                   exceptions_enabled ? dip->destructor :
                                                        (a_routine *)NULL,
-                                  (a_routine *)NULL, (a_routine *)NULL);
+                                  (a_routine *)NULL, (a_routine *)NULL,
+                                  zero_storage);
   }  /* if */
   /* Make a statement containing the call and insert it at the right
      location. */
@@ -4573,6 +4640,7 @@ arrays with class elements.
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   an_expr_node_ptr            delete_args = NULL;
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+  a_boolean                   zero_storage = FALSE;
 
   /* Get the array element type. */
   array_type = skip_typerefs(ndsp->type);
@@ -4790,6 +4858,12 @@ arrays with class elements.
     check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor);
     /* Get the constructor routine to call. */
     ctor_routine = elem_dip->variant.constructor.ptr;
+    /* To value-initialize an object of a class without a user-written
+       constructor, zero the storage first and then call the default
+       constructor.  This has to be tested before the constructor
+       is replaced by the default version. */
+    zero_storage = (elem_dip->variant.constructor.value_initialization &&
+                    ctor_routine->compiler_generated);
     /* If the constructor has default arguments, make a routine that
        calls the constructor with the necessary default arguments. */
     /* Note that elem_dip->variant.constructor.args must not be lowered
@@ -4822,14 +4896,16 @@ arrays with class elements.
     /* Construct the call of __vec_new or __array_new. */
     vec_new_node = make_vec_new_call(entity_node, ptr_elem_type, num_elem_node,
                                      ctor_routine, dtor_routine,
-                                     new_routine, delete_routine);
+                                     new_routine, delete_routine,
+                                     zero_storage);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   } else {
     /* Placement new.  Construct a call of __placement_array_new. */
     vec_new_node = make_placement_array_new_call(entity_node,
                                                  ptr_elem_type, num_elem_node,
                                                  ctor_routine, dtor_routine,
-                                                 delete_routine, delete_args);
+                                                 delete_routine, delete_args,
+                                                 zero_storage);
   }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
@@ -5057,6 +5133,8 @@ The subtree of the node has not yet been lowered.
     a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
     an_expr_node_ptr implied_arg_list, end_implied_arg_list;
     /* ndsp->arg is not lowered because it is thrown away. */
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor &&
+                    !dip->variant.constructor.value_initialization);
     /* Pass a NULL for the "this" parameter to tell the constructor to
        do the allocation. */
     make_zero_of_proper_type(make_pointer_type(base_type), &null_constant);
@@ -9218,8 +9296,11 @@ Do one-time initialization of static variables declared in lower_init.c.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(vec_new_routine),
       pch_saved_var_array_elem(vec_new_eh_routine),
+      pch_saved_var_array_elem(vec_new_eh_zero_routine),
       pch_saved_var_array_elem(array_new_routine),
+      pch_saved_var_array_elem(array_new_zero_routine),
       pch_saved_var_array_elem(placement_array_new_routine),
+      pch_saved_var_array_elem(placement_array_new_zero_routine),
       pch_saved_var_array_elem(vec_cctor_routine),
       pch_saved_var_array_elem(vec_cctor_eh_routine),
       pch_saved_var_array_elem(vec_delete_routine),
@@ -9245,8 +9326,11 @@ Do one-time initialization of static variables declared in lower_init.c.
      between translation units. */
   register_trans_unit_variable(vec_new_routine);
   register_trans_unit_variable(vec_new_eh_routine);
+  register_trans_unit_variable(vec_new_eh_zero_routine);
   register_trans_unit_variable(array_new_routine);
+  register_trans_unit_variable(array_new_zero_routine);
   register_trans_unit_variable(placement_array_new_routine);
+  register_trans_unit_variable(placement_array_new_zero_routine);
   register_trans_unit_variable(vec_cctor_routine);
   register_trans_unit_variable(vec_cctor_eh_routine);
   register_trans_unit_variable(vec_delete_routine);
@@ -9274,8 +9358,11 @@ for each translation unit.
 */
 {
   vec_new_routine = vec_new_eh_routine = NULL;
+  vec_new_eh_zero_routine = NULL;
   array_new_routine = NULL;
+  array_new_zero_routine = NULL;
   placement_array_new_routine = NULL;
+  placement_array_new_zero_routine = NULL;
   vec_cctor_routine = vec_cctor_eh_routine = NULL;
   vec_delete_routine = array_delete_routine = NULL;
   memzero_routine = NULL;
