@@ -145,8 +145,7 @@ is not done.
 
   assoc_symbol = NULL;
   if (locator_for_curr_id.is_operator_name ||
-      locator_for_curr_id.is_conversion_name ||
-      locator_for_curr_id.is_destructor_name) {
+      locator_for_curr_id.is_conversion_name) {
     /* Cannot be a type name. */
   } else {
     options = GID_DEFER_ACCESS_ERRORS;
