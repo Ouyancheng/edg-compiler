@@ -1179,6 +1179,7 @@ routine entry and return TRUE; otherwise return FALSE.
 */
 {
   a_boolean                    is_virtual, overloaded;
+  a_boolean                    is_unreal_instantiation;
   a_base_class_ptr             bcp;
   a_symbol_ptr                 symbol_list, sym, sym_next;
   a_routine_ptr                rout, rp;
@@ -1187,9 +1188,19 @@ routine entry and return TRUE; otherwise return FALSE.
   a_virtual_function_number    virtual_function_number = 0;
 
   db_enter(4, "check_for_virtual_function");
-  rout = rout_sym->variant.routine.ptr;
-  ctsp = class_type->variant.class_struct_union.extra_info;
   is_virtual = virtual_specified;
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
+    rout = rout_sym->variant.template.extra_info->variant.function.routine;
+    is_unreal_instantiation = TRUE;
+    /* If a member function of a template class is marked "virtual" that's
+       all we need to know, since no virtual function override information
+       is maintained for template classes. */
+    if (is_virtual) goto done;
+  } else {
+    rout = rout_sym->variant.routine.ptr;
+    is_unreal_instantiation = is_within_unreal_instantiation(class_type);
+  }  /* if */
   /* We scan symbols on the inactive list, since we are only interested in
      base classes symbols. */
   symbol_list = rout_sym->header->inactive_symbols;
@@ -1259,14 +1270,19 @@ routine entry and return TRUE; otherwise return FALSE.
               if (return_types_are_override_compatible(rout->type, rp->type)) {
                 /* Match */
                 is_virtual = TRUE;
-                /* Record the virtual function override in the base class
-                   entry.  It can be used later, e.g., for building a virtual
-                   function table. */
-                record_virtual_function_override(bcp, rp, rout);
-                if (shares_virtual_function_info(class_type, bcp)) {
-                  /* The virtual function table is being shared, so we must
-                     use the identical number. */
-                  virtual_function_number = rp->virtual_function_number;
+                if (is_unreal_instantiation) {
+                  /* No more searching is needed, so break out of the loops. */
+                  goto done;
+                } else {
+                  /* Record the virtual function override in the base class
+                     entry.  It can be used later, e.g., for building a virtual
+                     function table. */
+                  record_virtual_function_override(bcp, rp, rout);
+                  if (shares_virtual_function_info(class_type, bcp)) {
+                    /* The virtual function table is being shared, so we must
+                       use the identical number. */
+                    virtual_function_number = rp->virtual_function_number;
+                  }  /* if */
                 }  /* if */
               } else {
                 /* Error -- cannot differ in return type only (ARM 10.2). */
@@ -1283,9 +1299,10 @@ routine entry and return TRUE; otherwise return FALSE.
     }  /* for */
 next_base_class:;
   }  /* for */
+done:
   if (is_virtual) {
     /* Mark the routine entry. */
-    rout_sym->variant.routine.ptr->is_virtual = TRUE;
+    rout->is_virtual = TRUE;
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     if (virtual_function_number != 0) {
       /* The virtual base class is being shared between the current class
@@ -1299,14 +1316,18 @@ next_base_class:;
          back end for indexing into a virtual function table. */
       if (ctsp->highest_virtual_function_number >=
                                          MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
-        pos_error(ec_too_many_virtual_functions, source_pos);
+        if (is_unreal_instantiation) {
+          /* Don't issue an error, since the number is not accurately
+             maintained for class templates. */
+        } else {
+          pos_error(ec_too_many_virtual_functions, source_pos);
+        }  /* if */
         /* Reset to zero, to avoid more such messages. */
         ctsp->highest_virtual_function_number = 0;
       }  /* if */
       virtual_function_number = ++(ctsp->highest_virtual_function_number);
     }  /* if */
-    rout_sym->variant.routine.ptr->virtual_function_number =
-                                                    virtual_function_number;
+    rout->virtual_function_number = virtual_function_number;
   }  /* if */
   db_exit();
   return is_virtual;
@@ -3396,20 +3417,18 @@ special function kind (e.g., constructor, destructor), if any.
     } else {
       rtn->special_kind = spec_kind;
     }  /* if */
-    if (!is_func_template) {
-      /* If "virtual" was specified in the declaration, mark the routine as
-         virtual.  Even if it wasn't, its virtualness can be inherited.  In
-         either case record the relationship between the current routine and
-         its appearance in the base classes of the current class. */
-      if (check_for_virtual_function(is_virtual, sym, class_type,
-                                     &locator->source_position)) {
-        /* Classes with virtual functions require constructors. */
-        cssp->constructor_required = TRUE;
-        /* Classes with virtual functions cannot be constructed or assigned
-           by bitwise copying. */
-        cssp->construction_by_bitwise_copy_allowed = FALSE;
-        cssp->assignment_by_bitwise_copy_allowed = FALSE;
-      }  /* if */
+    /* If "virtual" was specified in the declaration, mark the routine as
+       virtual.  Even if it wasn't, its virtualness can be inherited.  In
+       either case record the relationship between the current routine and
+       its appearance in the base classes of the current class. */
+    if (check_for_virtual_function(is_virtual, sym, class_type,
+                                   &locator->source_position)) {
+      /* Classes with virtual functions require constructors. */
+      cssp->constructor_required = TRUE;
+      /* Classes with virtual functions cannot be constructed or assigned
+         by bitwise copying. */
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
     /* If this is a user-defined conversion or an overloaded operator,
        check for errors in the argument list. */
