@@ -1,5 +1,12 @@
 Version 3.6
 
+11/17/04 Performance improvement in memory allocation when using PCH
+
+When generating and/or using precompiled header files, an optimization
+has been added to free_mem_block to disable the coalescing of fragmented
+memory blocks as these blocks cannot be freed anyway in PCH mode.  This
+can make a significant difference when compiling very large programs.
+
 11/16/04 Microsoft compatibility: nonclass qualifier bug emulation no longer
          necessary
 

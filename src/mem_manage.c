@@ -645,8 +645,15 @@ Free the storage associated with the indicated memory block.
   a_mem_block_header_ptr test_hdr, prev_hdr;
 
   db_enter(5, "free_mem_block");
-  if (okay_to_free_mem_blocks && hdr->malloc_size > 0 &&
-      hdr->malloc_size == (sizeof_t)(hdr->after_end_of_block - (char *)hdr)) {
+  if (!okay_to_free_mem_blocks) {
+      /* If memory blocks cannot be freed, don't attempt to merge the blocks.
+         This is an optimization because the list of blocks can get quite large
+         when they are not being freed. */
+      hdr->next = reusable_blocks_list;
+      reusable_blocks_list = hdr;
+  } else if (hdr->malloc_size > 0 &&
+             hdr->malloc_size ==
+                           (sizeof_t)(hdr->after_end_of_block - (char *)hdr)) {
     /* Blocks that are complete blocks as originally allocated by malloc
        can be freed by calling free. */
     free_complete_block(hdr);
@@ -689,7 +696,7 @@ Free the storage associated with the indicated memory block.
         }  /* if */
         /* Is the aggregate block now a complete block?  If so, free it and
            leave the loop. */
-        if (okay_to_free_mem_blocks && hdr->malloc_size > 0 &&
+        if (hdr->malloc_size > 0 &&
             hdr->malloc_size ==
                            (sizeof_t)(hdr->after_end_of_block - (char *)hdr)) {
           free_complete_block(hdr);
