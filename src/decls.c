@@ -8663,6 +8663,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
         } else if (!is_error_type(type_ptr)) {
           /* Force instantiation of template class. */
           check_for_uninstantiated_template_class(type_ptr);
+          /* Adjust the type if necessary (for example, "array of x"
+             becomes "pointer to x"). */
+          adjust_parameter_type(&type_ptr);
           if (is_incomplete_type(type_ptr)) {
             /* Incomplete type is not allowed. */
             pos_error(ec_incomplete_type_not_allowed, &decl_pos);
