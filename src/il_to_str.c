@@ -243,18 +243,16 @@ be used to output any part of the name.  Called only for C++.
 {
   a_source_correspondence  *scp = &class_type->source_corresp;
 
-  /* Ignore anonymous union levels. */
-  while (class_type->variant.class_struct_union.extra_info->
-                 anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
-    class_type = scp->parent.class_type;
-    scp = &class_type->source_corresp;
-  }  /* while */
   /* Use recursion to handle multiple levels of nesting. */
   form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
                                     scp->parent, octl);
   /* Do the last level. */
-  form_unqualified_name(scp, iek_type, octl);
-  octl->output_str("::");
+  /* Ignore anonymous unions. */
+  if (class_type->variant.class_struct_union.extra_info->
+                   anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
+    form_unqualified_name(scp, iek_type, octl);
+    octl->output_str("::");
+  }  /* if */
 }  /* form_class_qualifier */
 
 
