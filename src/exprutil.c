@@ -4209,6 +4209,7 @@ a diagnostic is put out in some cases.
     /* We know which routine is being called. */
     if (curr_expr_is_potentially_evaluated()) {
       /* It is being called. */
+      rp->called = TRUE;
       if (rp->pure_virtual && !is_virtual && !virtual_suppressed) {
         /* Non-virtual call of a pure virtual function, and not written
            explicitly to suppress virtualness. */
