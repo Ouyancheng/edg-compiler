@@ -6683,7 +6683,7 @@ C++ mode.
         *processed = TRUE;
         generic_cast_operand(operand, eff_type_cast_to,
                              (an_expr_operator_kind)eok_cast,
-                             /*is_implicit_cast=*/TRUE);
+                             /*is_implicit_cast=*/FALSE);
       }  /* if */
     } else {
       /* Normal case (not a cast to a reference type). */
