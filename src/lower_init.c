@@ -3964,8 +3964,7 @@ and made external) can be a tentative definition (i.e., uninitialized).
   a_dynamic_init     dyn_init;
 
   check_assertion(variable->storage_class == (a_storage_class)sc_unspecified &&
-                  variable->init_kind == (an_init_kind)initk_static &&
-                  is_integral_or_enum_type(variable->type));
+                  variable->init_kind == (an_init_kind)initk_static);
   /* The WP [stmt.dcl] paragraph 3 says "A local object with static
      storage duration initialized with an integral constant-
      expression is initialized before its block is first entered."
