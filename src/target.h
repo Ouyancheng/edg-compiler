@@ -156,7 +156,7 @@ typedef long an_integer_value;
 
 /*
 There is no host integer that is large enough, so use an array to represent
-the target integers. */
+the target integers.
 */
 /* Type of the elements of the array.  These must be at least half the
    size of a_host_large_integer (some large and efficient integer type on
@@ -177,7 +177,7 @@ typedef short an_int_value_part;
    values in the range MIN_INT_VALUE_PART..MAX_INT_VALUE_PART can
    be done in a_host_large_integer without special coding to deal
    with overflows. */
-typedef long a_host_large_integer;
+typedef unsigned long a_host_large_integer;
 #define MAX_HOST_LARGE_INTEGER LONG_MAX
 #define MIN_HOST_LARGE_INTEGER LONG_MIN
 #define BITS_IN_HOST_LARGE_INTEGER (sizeof(a_host_large_integer)*CHAR_BIT)
