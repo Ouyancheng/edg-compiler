@@ -3043,7 +3043,7 @@ This routine is called during IL walking.
           disp_statement((a_statement_ptr)entry_ptr);
           break;
         case iek_object_lifetime:
-          disp_object_lifetime((an_object_lifetime)entry_ptr);
+          disp_object_lifetime((an_object_lifetime_ptr)entry_ptr);
           break;
         case iek_scope:
           disp_scope((a_scope_ptr)entry_ptr);
