@@ -2362,6 +2362,21 @@ section, if there is one, or a new text section will be begun if necessary.
 { put_raw_text(str, length, &curr_text_section); }
 
 
+static int smemcmp(char     *s1,
+                   char     *s2,
+                   sizeof_t length)
+/*
+Like the standard memcmp, but guaranteed to compare the characters sequentially
+and read no more characters than necessary.  Used when one does not know
+that the two strings are at least as long as the indicated length.  Also
+returns just 0 or 1, not -1/0/+1.
+*/
+{
+  while (length--) if (*s1++ != *s2++) return 1;
+  return 0;
+}  /* smemcmp */
+
+
 void proc_define(void)
 /*
 Scan and process a #define directive.
@@ -2726,8 +2741,8 @@ Scan and process a #define directive.
          the same spelling after white space is standardized. */
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
-          memcmp(mdp->repl_text, macro_buffer,
-                 size_t_arg(next_avail_in_macro_buffer - macro_buffer)) == 0) {
+          smemcmp(mdp->repl_text, macro_buffer,
+                  (sizeof_t)(next_avail_in_macro_buffer - macro_buffer)) == 0){
         /* Check parameter lists to make sure they match. */
         for (pp = param_list, pp2 = mdp->param_list;
              pp != NULL && pp2 != NULL;
@@ -2829,7 +2844,7 @@ it on the list, or NULL if it is the first entry on the list.
        app != NULL;
        *prev_app = app, app = app->next) {
     if (strlen(app->name) == name_len &&
-        memcmp(app->name, name, size_t_arg(len_of_curr_token)) == 0) {
+        memcmp(app->name, name, size_t_arg(name_len)) == 0) {
       /* Found it. */
       break;
     }  /* if */
@@ -3175,9 +3190,9 @@ try_match_again:
              string matched so far.  Also check for the blank as a token
              delimiter after the token string. */
           after_matched_str = matched_value->value + matched_len;
-          if (memcmp(after_matched_str,
-                     start_of_curr_token,
-                     size_t_arg(len_of_curr_token)) == 0 &&
+          if (smemcmp(after_matched_str,
+                      start_of_curr_token,
+                      len_of_curr_token) == 0 &&
               *(after_matched_str+len_of_curr_token) == ' ') {
             /* The new token matches the continuation of the matched string,
                so change the matched string length to include the added
@@ -3191,8 +3206,8 @@ try_match_again:
             while ((matched_value = matched_value->next) != NULL) {
               /* Go try the match again if the new matched_value starts with
                  the same characters matched in the old_matched_value. */
-              if (memcmp(matched_value->value, old_matched_value->value,
-                         size_t_arg(matched_len)) == 0) {
+              if (smemcmp(matched_value->value, old_matched_value->value,
+                          matched_len) == 0) {
                 goto try_match_again;
               }  /* if */
             }  /* for */
