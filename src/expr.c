@@ -8172,7 +8172,7 @@ e.g., a local variable.
         refs_non_ext = TRUE;
       } else {
         /* Force the class to be external. */
-        symbol_supplement_for_class(class_type)->force_external_linkage = TRUE;
+        set_force_external_linkage_flag(class_type);
       }  /* if */
     } else {
       /* Not a class member. */
