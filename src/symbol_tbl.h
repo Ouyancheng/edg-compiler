@@ -814,6 +814,9 @@ typedef struct a_template_instance {
 			/* TRUE if instantiation has already been performed
 			   (for instance, for inline functions, which are
 			   instantiated at the point of first reference). */
+  unsigned int	explicit_do_not_instantiate:1;
+			/* TRUE if instantiation has been explicitly 
+			   suppressed by a do_not_instantiate pragma. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma

@@ -869,6 +869,7 @@ instantiated.
 
 static void update_instantiation_flags(a_symbol_ptr	 sym,	
 				       a_boolean	 instantiate,
+                                       a_boolean	 do_not_instantiate,
 				       a_source_position *pos)
 /*
 Given a pointer to either a routine, member function, or static data member
@@ -888,15 +889,23 @@ or the specific definition flag (if instantiate is FALSE).
     unexpected_condition();
   }  /* if */
   if (tip != NULL) {
+    a_boolean	instantiation_required_flag;
     if (instantiate) {
-      update_instantiation_required_flag(tip, TRUE);
+      instantiation_required_flag = TRUE;
       tip->explicit_instantiation = TRUE;
       tip->explicit_instantiation_pos = *pos;
-    } else {
-      update_instantiation_required_flag(tip, FALSE);
+    } else if (do_not_instantiate) {
+      instantiation_required_flag = FALSE;
       tip->specific_def = TRUE;
       tip->explicit_instantiation = FALSE;
+      tip->explicit_do_not_instantiate = TRUE;
+    } else {
+      /* For the can_instantiate pragma set the instantiation required
+         flag to its current value.  The purpose of this is to ensure
+         that the entry is on the instantiations required list. */
+      instantiation_required_flag = tip->instantiation_required;
     }  /* if */
+    update_instantiation_required_flag(tip, instantiation_required_flag);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -913,9 +922,11 @@ or the specific definition flag (if instantiate is FALSE).
 }  /* update_instantiation_flags */
 
 
-static void update_instantiation_flags_for_class(a_symbol_ptr	   sym,
-						 a_boolean	   instantiate,
-						 a_source_position *pos)
+static void update_instantiation_flags_for_class
+					(a_symbol_ptr	   sym,
+					 a_boolean	   instantiate,
+					 a_boolean	   do_not_instantiate,
+					 a_source_position *pos)
 /*
 Updates the instantiation flags for all of the member functions and static
 data members within a given template class.
@@ -946,11 +957,13 @@ data members within a given template class.
       for (; list_sym != NULL; list_sym = is_list ? list_sym->next : NULL) {
         /* Only set the flags for things that can be instantiated. */
         if (can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
-          update_instantiation_flags(list_sym, instantiate, pos);
+          update_instantiation_flags(list_sym, instantiate,
+                                     do_not_instantiate, pos);
        	}  /* if */
       }  /* for */
     } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      update_instantiation_flags(mem_sym, instantiate, pos);
+      update_instantiation_flags(mem_sym, instantiate,
+                                 do_not_instantiate, pos);
     }  /* if */
   }  /* for */
 }  /* update_instantiation_flags_for_class */
@@ -1018,6 +1031,7 @@ The pragmas are:
 
 	#pragma instantiate <id or function declaration>
 	#pragma do_not_instantiate <id or function declaration>
+	#pragma can_instantiate <id or function declaration>
 
 The pragma name can be followed by either a qualified name or a 
 complete function declaration.  The name can be something like:
@@ -1053,12 +1067,16 @@ assumed if the return type is omitted.
   a_symbol_ptr		sym;
   a_symbol_ptr		new_sym;
   a_source_position	start_pos;
-  a_boolean		instantiate;
+  a_boolean		instantiate = FALSE;
+  a_boolean		do_not_instantiate = FALSE;
 
   if (curr_id_is("instantiate")) {
     instantiate = TRUE;
   } else if (curr_id_is("do_not_instantiate")) {
-    instantiate = FALSE;
+    do_not_instantiate = TRUE;
+  } else if (curr_id_is("can_instantiate")) {
+    /* Don't set either flag.  Just make sure an entry exists on the
+       instantiations required list. */
   } else {
     unexpected_condition();
   }  /* if */
@@ -1085,15 +1103,18 @@ assumed if the return type is omitted.
         pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
       } else if (is_template_class_and_not_specific_def_symbol(sym)) {
          /* Process all member functions and static data members. */
-	update_instantiation_flags_for_class(sym, instantiate, &start_pos);
+	update_instantiation_flags_for_class(sym, instantiate,
+                                             do_not_instantiate, &start_pos);
       } else if ((new_sym = sym_if_template_class_member_function(sym))
 								 != NULL) {
 	sym = new_sym;
-	update_instantiation_flags(sym, instantiate, &start_pos);
+	update_instantiation_flags(sym, instantiate, do_not_instantiate,
+                                   &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.variable.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation flags. */
-	update_instantiation_flags(sym, instantiate, &start_pos);
+	update_instantiation_flags(sym, instantiate, do_not_instantiate,
+                                   &start_pos);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.
@@ -1170,7 +1191,8 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(sym, instantiate, &start_pos);
+        update_instantiation_flags(sym, instantiate, do_not_instantiate,
+                                   &start_pos);
       }  /* if */
     } else {
       /* A regular function name that is expected to represent one or
@@ -1219,7 +1241,8 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(new_sym, instantiate, &start_pos);
+        update_instantiation_flags(new_sym, instantiate, do_not_instantiate,
+                                   &start_pos);
       }  /* if */
     }  /* if */
   } else {
@@ -1264,6 +1287,7 @@ Scan and process a #pragma directive.
         processed = TRUE;
       } else if (C_dialect == C_dialect_cplusplus &&
 		 (curr_id_is("instantiate") ||
+		  curr_id_is("can_instantiate") ||
 		  curr_id_is("do_not_instantiate"))) {
         /* Instantiate, or suppress instantiation of, a template class,
 	    function, or static data member. */
