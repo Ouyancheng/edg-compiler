@@ -470,8 +470,10 @@ always appear in the same order on the routines list of a class scope.)
 */
 {
   while (routine != NULL && 
+#if NEED_NAME_MANGLING
          /* Some routines are generated as part of prelowering. */
          (routine->source_corresp.name_has_been_mangled ||
+#endif /* NEED_NAME_MANGLING */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
           (routine->is_template_function && !routine->is_specialized &&
