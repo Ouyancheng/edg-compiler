@@ -320,7 +320,7 @@ static void alloc_hidden_name_fixup(a_tagged_pointer entity)
 /*
 Allocate a hidden-name fixup entry for the indicated entity and put it
 on the current name context fixup list.  The current values of the
-global_qualification_needed and	elaborated_type_specifier_needed flags in
+global_qualification_needed and elaborated_type_specifier_needed flags in
 that entry are saved for restoration at the end of the current name context.
 */
 {
