@@ -26,6 +26,7 @@ il.c -- Construction of intermediate language trees.
 #include "types.h"
 #include "cmd_line.h"
 #include "float_pt.h"
+#include "const_ints.h"
 #include "exprutil.h"
 #include "folding.h"
 #include "templates.h"
@@ -2588,6 +2589,21 @@ end of compilation) for shareable constants.
   ssep->last_constant = con_ptr;
   con_ptr->next = NULL;
 }  /* add_to_constants_list */
+
+
+void set_integer_constant(a_constant      *cp,
+                          long            value,
+                          an_integer_kind kind)
+/*
+Set the constant entry *cp to the integer constant given by value.
+Its integer kind is as given by kind.
+*/
+{
+  db_enter(5, "set_integer_constant");
+  clear_constant(cp, (a_constant_repr_kind)ck_integer);
+  set_value_of_integer_constant(cp, value, integer_type(kind));
+  db_exit();
+}  /* set_integer_constant */
 
 
 void make_zero_of_proper_type(a_type_ptr desired_type,
