@@ -4055,26 +4055,33 @@ a default operator delete function (including the class variant with
 a second parameter of type size_t).
 */
 {
-  a_boolean        is_default = FALSE;
-  a_param_type_ptr ptp = skip_typerefs(routine->type)->
-                                  variant.routine.extra_info->param_type_list;
+  a_boolean                      is_default = FALSE;
+  a_routine_type_supplement_ptr  rtsp;
+  a_param_type_ptr               ptp;
 
-  check_assertion(ptp != NULL);
-  if (ptp->next == NULL) {
-    /* operator delete(void *), a default operator delete. */
-    is_default = TRUE;
-  } else if (routine->source_corresp.is_class_member) {
-    /* Look for a class member operator delete with a second parameter of type
-       size_t. */
-    ptp = ptp->next;
+  rtsp = skip_typerefs(routine->type)->variant.routine.extra_info;
+  if (rtsp->has_ellipsis) {
+    /* An operator delete declared with ellipsis can't be a default operator
+       delete. */
+  } else {
+    ptp = rtsp->param_type_list;
+    check_assertion(ptp != NULL);
     if (ptp->next == NULL) {
-      /* The function has two parameters. */
-      a_type_ptr param_type = skip_typerefs(ptp->type);
+      /* operator delete(void *), a default operator delete. */
+      is_default = TRUE;
+    } else if (routine->source_corresp.is_class_member) {
+      /* Look for a class member operator delete with a second parameter of
+         type size_t. */
+      ptp = ptp->next;
+      if (ptp->next == NULL) {
+        /* The function has two parameters. */
+        a_type_ptr param_type = skip_typerefs(ptp->type);
 
-      if (is_integral_type(param_type) &&
-          param_type->variant.integer.int_kind == targ_size_t_int_kind) {
-        /* operator delete(void *, size_t), a default operator delete. */
-        is_default = TRUE;
+        if (is_integral_type(param_type) &&
+            param_type->variant.integer.int_kind == targ_size_t_int_kind) {
+          /* operator delete(void *, size_t), a default operator delete. */
+          is_default = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4183,11 +4190,14 @@ symbol that is returned as the corresponding operator delete symbol, but it
 may an overload symbol instead.
 */
 {
-  a_symbol_ptr      sym = NULL, corresp_op_delete_sym = NULL, fund_sym;
-  a_routine_ptr     rp;
-  an_opname_kind    delete_opname_kind;
-  a_param_type_ptr  op_new_param_type_list, op_new_ptp, ptp;
-  a_boolean         is_overloaded, any_template_seen;
+  a_symbol_ptr                   sym = NULL;
+  a_symbol_ptr                   corresp_op_delete_sym = NULL, fund_sym;
+  a_routine_ptr                  rp;
+  an_opname_kind                 delete_opname_kind;
+  a_param_type_ptr               op_new_param_type_list, op_new_ptp, ptp;
+  a_boolean                      is_overloaded, any_template_seen;
+  a_routine_type_supplement_ptr  rtsp;
+  a_boolean                      op_new_has_ellipsis = FALSE;
 
   db_enter(4, "find_corresponding_operator_delete_sym");
   check_assertion(op_new_sym->kind == (a_symbol_kind)sk_routine ||
@@ -4213,9 +4223,10 @@ may an overload symbol instead.
   }  /* if */
   *overload_sym = sym;
   if (sym != NULL) {
-    op_new_param_type_list = skip_typerefs(rp->type)->
-                                 variant.routine.extra_info->param_type_list;
-    if (op_new_param_type_list->next == NULL) {
+    rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
+    op_new_has_ellipsis = rtsp->has_ellipsis;
+    op_new_param_type_list = rtsp->param_type_list;
+    if (op_new_param_type_list->next == NULL && !op_new_has_ellipsis) {
       /* This is default (single-argument) operator new, so find the default
          operator delete. */
       corresp_op_delete_sym = find_default_operator_delete_sym(sym, ambiguous);
@@ -4250,8 +4261,14 @@ may an overload symbol instead.
           any_template_seen = TRUE;
         } else {
           check_assertion(is_function_symbol(fund_sym));
-          ptp = skip_typerefs(fund_sym->variant.routine.ptr->type)->
-                                  variant.routine.extra_info->param_type_list;
+          rtsp = skip_typerefs(fund_sym->variant.routine.ptr->type)->
+                                               variant.routine.extra_info;
+          if (rtsp->has_ellipsis != op_new_has_ellipsis) {
+            /* There can't be a match unless both were declared with ellipsis
+               or neither was. */
+            continue;
+          }  /* if */
+          ptp = rtsp->param_type_list;
           check_assertion(ptp != NULL);
           for (ptp = ptp->next, op_new_ptp = op_new_param_type_list->next;
                ptp != NULL && op_new_ptp != NULL;
