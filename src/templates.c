@@ -11131,8 +11131,15 @@ a real instantiation.
     } else {
       /* Find the symbol of the corresponding friend declaration from the
          prototype instantiation. */
-      tssp->variant.function.prototype_friend_symbol =
-                                    find_friend_info_from_prototype(proto_sym);
+      a_symbol_ptr			proto_friend_sym;
+      a_template_symbol_supplement_ptr	proto_friend_tssp;
+      proto_friend_sym = find_friend_info_from_prototype(proto_sym);
+      tssp->variant.function.prototype_friend_symbol = proto_friend_sym;
+      /* Set the declaration sequence number of this declaration based on
+         the value from the prototype friend declaration. */
+      proto_friend_tssp = template_supplement_for_symbol(proto_friend_sym);
+      decl_state->decl_info->decl_seq =
+            proto_friend_tssp->variant.function.decl_cache.decl_info->decl_seq;
     }  /* if */
   }  /* if */
 }  /* set_or_find_prototype_friend_info */
