@@ -1,5 +1,11 @@
 Version 2.16
 
+3/30/93 fp_negate routine added
+
+A new routine fp_negate has been added to float_pt.c.  Formerly, negation
+of floating-point constants was done by subtracting from zero, which did
+not work with IEEE floating point.
+
 3/29/93  Scanning array dimension in static data member declaration
 
 The dimensions of an static data member array declaration are now scanned
