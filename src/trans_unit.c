@@ -421,8 +421,7 @@ treated as separate translation units of a single compilation.
     /* When loading a file for the purpose of defining exported templates,
        the module ID must be restored to the value used when the file was
        originally compiled. */
-    check_assertion(module_id == NULL);
-    module_id = exported_file->module_id;
+    set_module_id(exported_file->module_id);
   }  /* if */
 #endif /* MODULE_ID_NEEDED */
   if (do_preprocessing_only) {

@@ -2082,6 +2082,22 @@ Change any non-identifier characters in the indicated string to underscores.
 }  /* change_non_id_characters */
 
 
+static char	*module_id /* = NULL */;
+			/* A string used to qualify static names that are put
+			   out as external names to make them unique. */
+
+void set_module_id(char *new_module_id)
+/*
+Set the module ID for the current translation unit to the value specified
+by new_module_id.
+*/
+{
+  /* Make sure a module ID has not already been assigned. */
+  check_assertion(module_id == NULL);
+  module_id = new_module_id;
+}  /* set_module_id */
+
+
 char *make_module_id(void)
 /*
 Make a string that is based on the name of the current module and is used to

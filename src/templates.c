@@ -15428,7 +15428,7 @@ templates defined in the file.
 
       }  /* if */
 #if MODULE_ID_NEEDED
-   } else if (strncmp(line, "mid:", 4) == 0) {
+    } else if (strncmp(line, "mid:", 4) == 0) {
       char	*new_module_id = &line[4];
       etfp->module_id = copy_string_to_region(
                                        FRONT_END_REGION_NUMBER, new_module_id);
@@ -16035,8 +16035,7 @@ Create the file containing information about exported templates.
   }  /* if */
 #if MODULE_ID_NEEDED
   /* Write the module ID. */
-  make_module_id();
-  write_to_exported_template_file(etlt_module_id, module_id);
+  write_to_exported_template_file(etlt_module_id, make_module_id());
 #endif /* MODULE_ID_NEEDED */
 }  /* generate_exported_template_file */
 
