@@ -5365,8 +5365,8 @@ Return a pointer to the variable that is declared.
 }  /* condition_declaration */
 
 
-static make_using_directive(a_namespace_ptr    nsp,
-                            a_source_position  *pos)
+static void make_using_directive(a_namespace_ptr    nsp,
+                                 a_source_position  *pos)
 /*
 Create a using-directive entry for the specified namespace, add it to the
 current scope's list using directives, and "activate" it to assure that
