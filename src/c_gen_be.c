@@ -6438,7 +6438,7 @@ Generate C for a statement.
   /* Identify the line number except for lines that put out their own
      line info. */
   if (statement->kind != (a_statement_kind)stmk_label
-#if CFE
+#ifdef CFE
       && statement->kind != (a_statement_kind)stmk_init
 #endif /* ifdef CFE */
                                                        ) {
