@@ -4131,6 +4131,7 @@ in il_alloc_init.)
   }  /* if */
   register_trans_unit_variable(file_scope_entry_prefix_size);
   register_trans_unit_variable(avail_template_args);
+  register_trans_unit_variable(file_scope_entry_prefix_alignment_offset);
 }  /* il_alloc_one_time_init */
 
 
