@@ -3671,6 +3671,7 @@ There must be a derivation so marked.
 }  /* preferred_virtual_derivation_of */
 
 
+#if DEBUG
 a_base_class_derivation_ptr direct_virtual_derivation_of(a_base_class_ptr  bcp)
 /*
 bcp is virtual base class assumed to have its direct flag set to TRUE.  Return
@@ -3688,6 +3689,7 @@ set to TRUE.
   }  /* while */
   return bcdp;
 }  /* direct_virtual_derivation_of */
+#endif /* DEBUG */
 
 
 a_derivation_step_ptr cast_virtual_derivation_path_of(a_base_class_ptr bcp)
