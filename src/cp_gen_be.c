@@ -5174,6 +5174,40 @@ implements an array-to-pointer decay; return FALSE otherwise.
 }  /* is_array_decay_cast */
 
 
+static a_boolean is_const_string_literal_cast(an_expr_node_ptr expr)
+/*
+expr is a compiler-generated cast.  Return TRUE if it is a cast that
+implements the deprecated conversion from a const string literal
+to char *.
+*/
+{
+  a_boolean  is_const_str_cast = FALSE;
+  a_type_ptr source_type = expr->variant.operation.operands->type;
+  a_type_ptr dest_type = expr->type;
+
+  if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+    /* Look for a source type of "const char *". */
+    a_type_ptr source_type_pointed_to = type_pointed_to(source_type);
+    if (get_type_qualifiers(source_type_pointed_to) == TQ_CONST) {
+      source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+      if (source_type_pointed_to->kind == (a_type_kind)tk_integer &&
+          source_type_pointed_to->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_char) {
+        /* Look for a destination type of "char *". */
+        a_type_ptr dest_type_pointed_to = type_pointed_to(dest_type);
+        if (dest_type_pointed_to->kind == (a_type_kind)tk_integer &&
+            dest_type_pointed_to->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_char) {
+          is_const_str_cast = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_const_str_cast;
+}  /* is_const_string_literal_cast */
+
+
+
 static void gen_dot_static(an_expr_node_ptr operand_1,
                            a_boolean        is_lvalue_1,
                            char             *opstr,
@@ -6323,7 +6357,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              no way to write the cast explicitly, because the type can't
              be named at the call site.  Likewise for an implicit cast
              to a variably-modified type. */
-          if (expr->variant.operation.compiler_generated) {
+          /* Make the deprecated conversion from a const string literal
+             to "char *" explicit in case the underlying compiler does
+             not allow that in this context. */
+          if (expr->variant.operation.compiler_generated &&
+              !is_const_string_literal_cast(expr)) {
             if (is_array_decay_cast(expr)) {
               /* A cast that does array-to-pointer decay.  The cast can be
                  removed, but an extra indirection has to be applied to the

@@ -1,5 +1,28 @@
 Version 3.1
 
+12/14/02 C++-generating back end: "?" operator with equal-length strings
+
+The C++-generating back end rendered a "?" with equal-length
+string literals as the second and third operand (which is an lvalue)
+slightly strangely.  For the input
+
+  char *p = (char *)(i ? "ab" : "cd");
+
+The output produced was
+
+  auto char *p = ((char *)(&((i) ? "ab" : "cd"))); return 0; 
+
+which is correct, but ran into bugs in the Sun CC and HP aCC
+compilers.  The IL for such cases has now been changed to produce
+output that more closely matches the input.
+
+As part of this change, the C++-generating back has been
+changed to always output the cast that implements the implicit
+deprecated conversion from a string literal to "char *", which
+makes examples like the above less sensitive to how the
+target C++ compiler implements that conversion and any
+extensions of it.
+
 12/14/02 C++-generating back end: inaccessible typedefs in generated code
 
 When the C++-generating back end generates template arguments

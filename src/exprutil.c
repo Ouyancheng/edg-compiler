@@ -8523,6 +8523,46 @@ operand is an array rvalue.  Convert it to an lvalue for the array.
 }  /* conv_array_rvalue_to_lvalue */
 
 
+static an_expr_node_ptr conv_array_lvalue_expr_to_pointer(
+                                                    an_expr_node_ptr  node,
+                                                    a_type_ptr        ptr_type,
+                                                    a_source_position *err_pos)
+/*
+node is an expression for an lvalue array.  Do the array-to-pointer decay
+on it, and return a pointer to the decayed expression.  ptr_type is
+the pointer type to which the expression decays.  err_pos is the
+position to be used for any errors.
+*/
+{
+  if (is_operation_node(node) &&
+      node->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
+      node->variant.operation.kind == (an_expr_operator_kind)eok_question) {
+    /* Transform a case like
+         (i ? "ab" : "cd")
+       by transforming the second and third operands. */
+    an_expr_node_ptr op1 = node->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    an_expr_node_ptr op3 = op2->next;
+    op2->next = NULL;
+    op2 = conv_array_lvalue_expr_to_pointer(op2, ptr_type, err_pos);
+    op3 = conv_array_lvalue_expr_to_pointer(op3, ptr_type, err_pos);
+    op1->next = op2;
+    op2->next = op3;
+    node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+    node->type = ptr_type;
+  } else {
+    /* Normal case -- add a cast to do the decay. */
+    cast_node(&node, ptr_type,
+              /*check_cast_access=*/TRUE,
+              /*is_implicit_cast=*/TRUE,
+              /*is_reinterpret_cast=*/FALSE,
+              /*reinterpret_semantics=*/FALSE,
+              err_pos);
+  }  /* if */
+  return node;
+}  /* conv_array_lvalue_expr_to_pointer */
+
+
 void conv_array_operand_to_pointer_operand(an_operand *operand)
 /*
 Apply the implicit array to pointer-to-first-element-of-array transformation
@@ -8532,8 +8572,6 @@ If the operand is an array rvalue, the conversion is done in some modes
 (C++, C99) and not in others.  All other cases are left alone.
 */
 {
-  a_type_ptr ptr_type;
-
   if (is_array_type(operand->type)) {
     if (is_an_rvalue(operand) && (!C_mode() || c99_mode || gcc_mode)) {
       /* In C++ or C99 (but not in older C), an array rvalue is converted
@@ -8542,17 +8580,25 @@ If the operand is an array rvalue, the conversion is done in some modes
       conv_array_rvalue_to_lvalue(operand);
     }  /* if */
     if (is_an_lvalue(operand)) {
+      a_type_ptr ptr_type;
       /* An array lvalue -- convert to a pointer. */
       an_operand orig_operand;
       orig_operand = *operand;
-      /* Convert to an rvalue that is the pointer, and change its type
-         from pointer-to-array to pointer-to-array-element. */
       ptr_type = type_after_array_to_pointer_transformation(operand->type);
+      /* Convert to an rvalue that is the pointer. */
       take_address_of_lvalue(operand);
-      cast_operand(ptr_type, operand, /*check_cast_access=*/TRUE,
-                   /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE,
-                   /*reinterpret_semantics=*/FALSE);
+      if (is_expression_operand(operand)) {
+        an_expr_node_ptr node;
+        node = conv_array_lvalue_expr_to_pointer(operand->variant.expression,
+                                                 ptr_type,
+                                                 &operand->position);
+        make_expression_operand(node, node->type, operand);
+      } else {
+        cast_operand(ptr_type, operand, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/TRUE,
+                     /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
+      }  /* if */
       /* Restore the original source position, etc.  Keep the
          reference entries because if the pointer to the array is
          used in a subscript operation or the like we would like to
