@@ -2637,112 +2637,112 @@ break_handled:;
 static void check_void_return_okay(a_boolean         is_implicit_return,
 				   an_expr_node_ptr  *return_expr)
 /*
-Check that a void return (one with no value) is okay as a way of exiting
-the current routine.  If is_implicit_return is TRUE then the return
-was generated as a consequence of falling off of the end of a function;
-otherwise the program contained an explicit return statement that
-contained no return value expression.
+A void return (one with no expression) is being used to exit the current
+routine.  If is_implicit_return is TRUE, the return was generated as
+a consequence of falling off the end of a function; otherwise, the
+program contained an explicit return statement with no return value
+expression.  Check that a void return is okay as a way of exiting the
+current routine, and also set *return_expr to point to an expression
+if a return value is implied, or NULL if not.
 
-If the return is from the main routine, generate an implicit return
-expression if possible.  If main() returns an integral type then an
-implicit return from main is treated as a "return 0".  This is the defined
-behavior in C++ when control reaches the end of the main routine.  This
-behavior is also used in C where the language says that this
-is undefined.  Note that this is also done in C++ when main contains
-a "return;" (i.e., a return with no expression).  In C++ such a return
-also results in undefined behavior.
+If the return is from "main", and main returns "int", a return value
+of 0 is created.  That is the defined behavior in C++ when control
+reaches the end of the main routine.  That behavior is also used in C,
+in which such a return is undefined.
 
-A diagnostic is generated for any cases in which the behavior is undefined.
-
-If an implicit return value can be created, the expression pointer passed
-by the caller is updated to point to a zero of the appropriate type.
+The return expression is also set for a return from a constructor.
 */
 {
-  a_routine_ptr   rout;
-  a_type_ptr      tp;
-  a_symbol_ptr    function_name_symbol;
-  a_boolean       issue_no_value_returned_diag = FALSE;
-  an_error_severity
-		  no_returned_value_severity;
-  a_boolean	  implicit_return_from_main = FALSE;
+  a_routine_ptr     rout;
+  a_type_ptr        tp;
+  a_boolean         issue_no_value_returned_diag = FALSE;
+  an_error_severity no_returned_value_severity;
 
-
-  /* Get a pointer to the current routine entry, and get its return
-     type. */
+  *return_expr = NULL;
+  /* Disable return value optimization in a function that contains a void
+     return statement. */
+  { a_scope_stack_entry_ptr ssep= &scope_stack[depth_innermost_function_scope];
+    ssep->return_value_optimization_possible = FALSE;
+    ssep->il_scope->variant.routine.return_value_variable = NULL;
+  }
+  /* Get a pointer to the current routine entry. */
   rout = current_routine_entry();
-  tp = rout->type->variant.routine.return_type;
-  /* Check for a return from main.  If possible generate an implicit
-     return value. */
-  if (rout == il_header.main_routine) {
-    if (is_integral_type(tp)) {
-      a_constant zero;
-      make_zero_of_proper_type(tp, &zero);
-      *return_expr = alloc_node_for_constant(&zero);
-      implicit_return_from_main = TRUE;
-    }  /* if */
-  }  /* if */
-  if (!is_void_type(tp) && !is_error_type(tp)) {
-    if (C_dialect != C_dialect_cplusplus) {
-      /* If a return with no expression appears in a function with a
-         non-void type, issue a diagnostic.  Do not issue the diagnostic for
-         the main program, or if the declaration of the function did not
-         have an explicit type specifier (omitting the specifier implies
-         "int", but may have been intended to mean "void" in old-style C). */
-      if (!struct_stmt_stack->rout_type_explicitly_specified) {
-        /* A remark if the routine's type was not explicitly specified. */
-        issue_no_value_returned_diag = TRUE;
-        no_returned_value_severity = es_remark;
-      } else if (rout == il_header.main_routine && is_implicit_return) {
-        /* Returning from main() by falling off of the end of the function.
-           Issue a remark. */
-        issue_no_value_returned_diag = TRUE;
-        no_returned_value_severity = es_remark;
-      } else {
-        /* A function other than main, or an explicit return from main that
-           omitted the return value. */
-        issue_no_value_returned_diag = TRUE;
-        no_returned_value_severity = es_warning;
-      }  /* if */
-    } else {
-      /* C++:  Issue a diagnostic unless we are returning from a constructor.
-	 The diagnostic is either a warning or a strict ANSI diagnostic.
-         C++ defines falling off the end of main as an implicit "return 0".
-         No special case is made for an explicit return from main that
-         omits the return value.  There is no special case for cases in which
-	 the return type is not explicit. */
-      if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
-        /* Constructors will not have a return expression since at the source
-           level they have no return type; however, in the IL they are
-           represented as returning the "this" parameter. */
-      } else {
-        if (implicit_return_from_main && is_implicit_return) {
-          /* Something like "main(){}" but not "main() { return; }.  This
-             is defined and no diagnostic is needed. */
-        } else {
-          issue_no_value_returned_diag = TRUE;
-          if (strict_ansi_mode) {
-            no_returned_value_severity = strict_ansi_error_severity;
+  if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
+    /* Constructors will not have a return expression since at the source
+       level they have no return type; however, in the IL they are
+       represented as returning the "this" parameter. */
+    *return_expr = this_param_value_expr();
+  } else {
+    /* Get the routine return type. */
+    tp = rout->type->variant.routine.return_type;
+    /* A void return in a void function is okay.  In other kinds of functions,
+       a diagnostic may be appropriate. */
+    if (!is_void_type(tp) && !is_error_type(tp)) {
+      /* A return without an expression in a non-void function.  Unless a
+         special case applies, this case deserves a diagnostic. */
+      issue_no_value_returned_diag = TRUE;
+      no_returned_value_severity = es_warning;
+      /* Check for a return from main. */
+      if (rout == il_header.main_routine &&
+          is_integral_type(tp) &&
+          f_skip_typerefs(tp)->variant.integer.int_kind ==
+                                                     (an_integer_kind)ik_int) {
+        /* main returning "int", so make it return 0. */
+        a_constant zero;
+        make_zero_of_proper_type(tp, &zero);
+        *return_expr = alloc_node_for_constant(&zero);
+        /* Falling off the end of "main" is a special case that merits
+           reduced diagnostics.  An explicit return from main (i.e.,
+           "main () {return;}") doesn't get special consideration. */
+        if (is_implicit_return) {
+          if (C_mode()) {
+            /* In C, falling off the end of main merits a remark. */
+            no_returned_value_severity = es_remark;
           } else {
-            no_returned_value_severity = es_warning;
+            /* In C++, falling off the end of main is fully standard. */
+            issue_no_value_returned_diag = FALSE;
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Not "main". */
+        /* See if the diagnostic level should be adjusted for other reasons. */
+        if (C_mode()) {
+          /* C: Issue a remark instead of a warning if the declaration
+             of the function did not have an explicit type specifier (omitting
+             the specifier implies "int", but may have been intended to mean
+             "void" in old-style C). */
+          if (!struct_stmt_stack->rout_type_explicitly_specified) {
+            no_returned_value_severity = es_remark;
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-
   /* Output diagnostic about no value returned from non-void function
      if necessary. */
   if (issue_no_value_returned_diag) {
-    /* Get pointer to the symbol for the function name. */
-    function_name_symbol = (a_symbol_ptr)rout->source_corresp.assoc_info;
-#if CHECKING
-    if (function_name_symbol == NULL) {
-        internal_error("check_void_return_okay: unexpected NULL assoc_info");
+    if (strict_ansi_mode && !C_mode()) {
+      /* In strict C++ mode, the severity may be an error. */
+      no_returned_value_severity = strict_ansi_error_severity;
     }  /* if */
+    if ((int)no_returned_value_severity < (int)es_error &&
+        is_implicit_return &&
+        !curr_reachability.reachable_considering_hints) {
+      /* Suppress a non-error diagnostic if this is an implicit return and the
+         user told us this code is not reachable. */
+    } else {
+      /* Get pointer to the symbol for the function name. */
+      a_symbol_ptr function_name_symbol =
+                                 (a_symbol_ptr)rout->source_corresp.assoc_info;
+#if CHECKING
+      if (function_name_symbol == NULL) {
+          internal_error("check_void_return_okay: unexpected NULL assoc_info");
+      }  /* if */
 #endif /* CHECKING */
-    sym_diagnostic(no_returned_value_severity,
-                   ec_no_value_returned_in_non_void_function,
-                   function_name_symbol);
+      sym_diagnostic(no_returned_value_severity,
+                     ec_no_value_returned_in_non_void_function,
+                     function_name_symbol);
+    }  /* if */
   }  /* if */
 }  /* check_void_return_okay */
 
@@ -2760,7 +2760,7 @@ See also 3.6.6.4.
 */
 {
   a_statement_ptr    sp;
-  an_expr_node_ptr   return_expr = NULL;
+  an_expr_node_ptr   return_expr;
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      rout;
   a_type_ptr         return_type, routine_type;
@@ -2802,11 +2802,6 @@ See also 3.6.6.4.
   if (!expr_present) {
     /* The expression is missing. */
     check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
-      /* In a constructor the user may not specify a return value.  However,
-         the IL contains code to return the "this" variable. */
-      return_expr = this_param_value_expr();
-    }  /* if */
   } else {
     /* The expression is present. */
     if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -3462,7 +3457,6 @@ branching into it is disallowed).
      warning on unreachable code. */
   check_lint_notreached_flag();
   if (at_function_level) {
-    a_routine_ptr	rout = current_routine_entry();
     /* Function. */
     /* If the code at the end of a function runs off the end, a default
        return must be added.  See 3.6.6.4. */
@@ -3471,27 +3465,17 @@ branching into it is disallowed).
        (i.e., the current function should also have type void), and add
        a return with no expression. */
     if (at_function_level && curr_reachability.reachable) {
-      a_statement_ptr sp;
-      an_expr_node_ptr	return_expr = NULL;
-      /* Suppress the warning if the user told us this code is not
-         reachable. */
-      if (curr_reachability.reachable_considering_hints) {
-        /* Falling off the end of a function in reachable code.  Make sure
-           that a void return is acceptable here.  If this is the main
-           routine, generate an implicit return value, if possible. */
-        check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);
-      }  /* if */
+      a_statement_ptr  sp;
+      an_expr_node_ptr return_expr;
+      /* Falling off the end of a function in reachable code.  Make sure
+         that a void return is acceptable here.  If this is the main
+         routine, generate an implicit return value, if possible. */
+      check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);
       /* The statement is not allocated earlier because we don't want it to
          affect the reachability information. */
       sp = add_statement((a_statement_kind)stmk_return);
-      if (return_expr != NULL) {
-        /* return_expr will be set for an implicit return from main. */
-        sp->expr = return_expr;
-      } else if (rout->special_kind ==
-                             (a_special_function_kind)sfk_constructor) {
-        /* By default constructors return the "this" variable. */
-        sp->expr = this_param_value_expr();
-      }  /* if */
+      /* Insert an implied return value if there is one. */
+      sp->expr = return_expr;
     }  /* if */
     /* Pop the statement stack. */
     pop_stmt_stack();
