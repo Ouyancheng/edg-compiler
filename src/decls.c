@@ -1877,7 +1877,7 @@ scope is that of a class definition.
          function declared within a class definition, a qualifier on the
          function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer
          to member function are permitted. */
-      if (locator->is_operator_name &&
+      if (locator != NULL && locator->is_operator_name &&
           (locator->variant.opname == (an_opname_kind)onk_new ||
            locator->variant.opname == (an_opname_kind)onk_delete)) {
         /* Operator new and delete can never be qualified. */
