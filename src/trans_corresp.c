@@ -2140,8 +2140,7 @@ is in fact valid.
   a_boolean     match;
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
   a_type_ptr    corresp_type = (a_type_ptr)canonical_il_entry_of(type);
-  a_boolean     both_defined = type_has_definition(type) &&
-                               type_has_definition(corresp_type);
+  a_boolean     both_defined;
   a_source_correspondence_ptr
                 scp, corresp_scp;
 
@@ -2155,10 +2154,11 @@ is in fact valid.
       type = prim;
     }  /* if */
   }  /* if */
+  check_assertion(corresp_type != NULL);
   scp = &type->source_corresp,
   corresp_scp = &corresp_type->source_corresp;
-
-  check_assertion(corresp_type != NULL);
+  both_defined = type_has_definition(type) &&
+                 type_has_definition(corresp_type);
   if (type == corresp_type) {
     match = TRUE;
     if (is_immediate_enum_type(type)) {
