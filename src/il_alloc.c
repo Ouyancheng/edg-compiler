@@ -318,7 +318,10 @@ of the primary translation unit.
 */
 {
   char *ptr;
+  a_boolean saved_is_primary_translation_unit = is_primary_translation_unit;
+  is_primary_translation_unit = TRUE;
   do_fs_alloc(ptr, size, FILE_SCOPE_REGION_NUMBER);
+  is_primary_translation_unit = saved_is_primary_translation_unit;
 #ifdef TRACE_ALLOC
   trace_alloc_check(ptr);
 #endif /* TRACE_ALLOC */
