@@ -7664,10 +7664,13 @@ skip_tag_scan:
       /* If the current declaration coexists with another declaration in the
          current scope that effectively hides it, record that information in
          the IL. */
-      if (tag_sym->header->symbol != tag_sym) {
-        check_assertion(tag_sym->header->symbol->decl_scope ==
+      if (!tag_sym->is_error && !is_unnamed_class_symbol(tag_sym)) {
+        if (tag_sym->header->symbol != tag_sym) {
+          check_assertion(tag_sym->header->symbol->decl_scope ==
                                                       tag_sym->decl_scope);
-        record_defeatable_name_hiding(tag_sym, /*tag_hidden_by_nontag=*/TRUE);
+          record_defeatable_name_hiding(tag_sym,
+                                        /*tag_hidden_by_nontag=*/TRUE);
+        }  /* if */
       }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
