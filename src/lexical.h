@@ -989,7 +989,12 @@ EXTERN a_boolean
 			   This is set when tokens are being rescanned
 			   from a cache or when there are pragmas that
 			   are associated with the current token. */
-
+#if ASM_FUNCTION_ALLOWED
+EXTERN a_boolean
+		in_asm_function_body;
+			/* TRUE if processing takes place during the scan of
+			   asm function body. */
+#endif /* ASM_FUNCTION_ALLOWED */
 
 /*
 The stop token array: If a syntactic error occurs, flush_tokens
