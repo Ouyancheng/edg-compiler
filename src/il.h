@@ -53,6 +53,8 @@ extern void set_error_constant(a_constant *cp);
 
 extern a_param_type_ptr alloc_param_type(a_boolean at_file_scope);
 
+extern a_base_class_ptr alloc_base_class(void);
+
 extern a_type_ptr alloc_type(a_type_kind kind);
 
 extern a_type_ptr fs_type(a_type_kind kind);

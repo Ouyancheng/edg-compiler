@@ -49,6 +49,7 @@ static unsigned long
 		num_param_types_allocated,
 		num_routine_type_supplements_allocated,
 		num_class_type_supplements_allocated,
+                num_base_classes_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_variables_allocated,
@@ -1542,6 +1543,29 @@ at_file_scope == TRUE.
 }  /* alloc_param_type */
 
 
+a_base_class_ptr alloc_base_class(void)
+/*
+Allocate a base class entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_base_class_ptr bcp;
+
+  bcp = (a_base_class_ptr)alloc_cil(sizeof(a_base_class));
+
+#if DEBUG
+  num_base_classes_allocated++;
+#endif
+  bcp->next         = NULL;
+  bcp->base_class   = NULL;
+  bcp->access       = (an_access_specifier)as_public;
+  bcp->virtual      = FALSE;
+  bcp->offset       = 0;
+
+  return bcp;
+}  /* alloc_base_class */
+
+
 static a_class_type_supplement_ptr alloc_class_type_supplement(void)
 /*
 Allocate a class-type-supplement entry, initialize its fields, and return
@@ -2790,6 +2814,7 @@ Display and return the amount of space used for various IL tables.
                                        a_routine_type_supplement);
   write_one("class type supplement", num_class_type_supplements_allocated,
                                      a_class_type_supplement);
+  write_one("base class", num_base_classes_allocated, a_base_class);
   write_one("type", num_types_allocated, a_type);
   write_one("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   write_one("variable", num_variables_allocated, a_variable);
@@ -2878,6 +2903,7 @@ of the front end.
   num_param_types_allocated              = 0;
   num_routine_type_supplements_allocated = 0;
   num_class_type_supplements_allocated   = 0;
+  num_base_classes_allocated             = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
   num_variables_allocated                = 0;
