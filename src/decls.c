@@ -4768,7 +4768,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    has_initializer;
   a_boolean                    has_parenthesized_initializer;
   a_boolean                    err = FALSE;
-  a_boolean                    decl_start;
   a_boolean                    dangling_type_specifier = FALSE;
   a_boolean                    inline_specified;
   a_source_position            decl_start_pos, declarator_pos;
@@ -4835,17 +4834,21 @@ of local variables (and types, etc.) of functions and in blocks.
            already have advanced past the final token. */ 
         goto return_point;
       }  /* if */
+    } else if (check_for_overload_anachronism()) {
+      /* We check for and discard declarations of the form "overload f;" --
+         issue diagnostics on pragmas that are trying to bind to an overload
+         declaration. */
+      cannot_bind_to_curr_construct();
+      goto check_for_semicolon;
     }  /* if */
   }  /* if */
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
+  /* Set the flags for calling decl_specifiers. */
+  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED;
   if (curr_token == tok_asm) {
 #if ASM_FUNCTION_ALLOWED
-    if (function_definition_allowed && next_token() != tok_lparen) {
-      is_asm_function = TRUE;
-      /* Skip over the "asm". */
-      (void)get_token();
-    } else {
+    if (!function_definition_allowed || next_token() == tok_lparen) {
 #endif /* ASM_FUNCTION_ALLOWED */
       /* Scan the asm declaration. */
       (void)asm_declaration(/*asm_decl_allowed=*/!is_old_style_param_decl,
@@ -4853,33 +4856,31 @@ of local variables (and types, etc.) of functions and in blocks.
       goto return_point;
 #if ASM_FUNCTION_ALLOWED
     }  /* if */
+    /* Not "asm (...)", so assume we have an asm function declaration --
+       something like "asm void f(void) { ... }". */
+    is_asm_function = TRUE;
+    /* Skip over the "asm". */
+    (void)get_token();
+    /* Note: DSI_STORAGE_CLASS_SPECIFIER_ALLOWED should not be set if this
+       is an asm function declaration.  "asm" is not quite a storage class,
+       at least not syntactically, since it is only recognized as the very
+       first token of the asm function declaration.  That's why it gets this
+       special handling. */
+    storage_class = (a_storage_class)sc_asm;
 #endif /* ASM_FUNCTION_ALLOWED */
-  }  /* if */
-
-  if (C_dialect == C_dialect_cplusplus) {
-    /* Check for and discard declarations of the form "overload f;". */
-    if (check_for_overload_anachronism()) {
-      /* Issue diagnostics on pragmas that are trying to bind to an overload
-         declaration. */
-      cannot_bind_to_curr_construct();
-      goto check_for_semicolon;
-    }  /* if */
-  }  /* if */
-  /* Set the flags for calling decl_specifiers. */
-  decl_start = is_decl_start(/*expr_context=*/FALSE,
-                             /*real_declarator_allowed=*/TRUE);
-  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED;
-  /* Within a non-block linkage specification no storage class is allowed
-     (inferred from ARM 7.4). */
-  if (!extern_implied) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+  } else {
+    /* Within a non-block linkage specification no storage class is allowed
+       (inferred from ARM 7.4). */
+    if (!extern_implied) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 #if MICROSOFT_KEYWORDS_ALLOWED
-  /* Microsoft permits a storage class to be specified in a
-     linkage specification declaration such as
-       extern "C" __declspec(dllimport) f();
-  */
-  if (microsoft_mode) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+    /* Microsoft permits a storage class to be specified in a
+       linkage specification declaration such as
+         extern "C" __declspec(dllimport) f();
+    */
+    if (microsoft_mode) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
-  dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+    dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+  }  /* if */
   if (is_old_style_param_decl) {
     dsi_flags |= DSI_IS_PARAMETER;
     dsi_flags |= DSI_IS_OLD_STYLE_PARAM_DECL;
@@ -4896,9 +4897,17 @@ of local variables (and types, etc.) of functions and in blocks.
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
      the specifiers can be omitted entirely. */
-  if (!decl_start) {
+  if (!is_decl_start(/*expr_context=*/FALSE,
+                     /*real_declarator_allowed=*/TRUE)) {
     if (function_definition_allowed && is_declarator_start()) {
       /* Function definition with omitted specifiers. */
+#if ASM_FUNCTION_ALLOWED
+    } else if (is_asm_function) {
+      /* "asm" followed by something that's not a declaration. */
+      syntax_error(ec_exp_declaration);
+      discard_curr_construct_pragmas();
+      goto advance_past_final_token;
+#endif /* ASM_FUNCTION_ALLOWED */
     } else {
       /* Look for some cases that are obviously not the start of a declaration,
          and give a more specific "Expected a declaration" message. */
@@ -5278,14 +5287,8 @@ continue_with_declaration:
       }  /* if */
 #if ASM_FUNCTION_ALLOWED
       if (is_asm_function) {
-        /* This is an asm function.  Go process it. */
-        remove_all_local_stop_tokens();
-        asm_function_definition(&locator, local_type_ptr, 
-                                top_declarator_type_is_function,
-                                &func_info, local_storage_class);
-        done_with_func_info(func_info);
-        goto return_point;
-      }  /* if */
+        local_storage_class = (a_storage_class)sc_asm;
+      } else
 #endif /* ASM_FUNCTION_ALLOWED */
       if (is_function && local_storage_class != (a_storage_class)sc_typedef) {
         if (local_storage_class != (a_storage_class)sc_unspecified &&
