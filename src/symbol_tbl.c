@@ -6980,12 +6980,12 @@ static a_progenitor_ptr find_progenitor_in_base_class(
                                         an_id_lookup_options_set  options)
 /*
 Given a pointer to a base class and a locator, determine whether the name
-specified in the locator is declared either in the base class itself or in a
-class from which the base class is derived.  Such a declaration is referred
-to as the "progenitor" of a projection symbol, which will may be created
-later.  If such a progenitor is found, return a pointer to a progenitor entry
-(which, in the case of ambiguity, may be the head of a linked list of
-progenitor entries); otherwise, return NULL.
+specified in the locator is declared either in the base class itself or in
+a class from which the base class is derived.  Such a declaration is
+referred to as the "progenitor" of a projection symbol, which may or may
+not be created later. If such a progenitor is found, return a pointer to
+a progenitor entry (which, in the case of ambiguity, may be the head of a
+linked list of progenitor entries); otherwise, return NULL.
 */
 {
   a_symbol_ptr      sym, tag_sym, using_decl_sym = NULL;
@@ -7163,7 +7163,7 @@ static a_boolean progenitors_are_equivalent(a_progenitor_ptr  progenitor1,
                                             a_progenitor_ptr  progenitor2)
 /*
 Given two progenitors (referring to symbols projected into the same class
-from two different base classes, return TRUE if their respective fundamental
+from two different base classes), return TRUE if their respective fundamental
 symbols are the same (not only the same members of the same class but with
 equivalent derivations).
 */
