@@ -226,6 +226,7 @@ extern void pos_ty2_diagnostic(an_error_severity  error_severity,
 extern void type_diagnostic(an_error_severity  error_severity,
                             an_error_code      error_code,
                             struct a_type      *type);
+#if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,
@@ -233,6 +234,12 @@ extern void pos_sy_diagnostic(an_error_severity  error_severity,
 extern void sym_diagnostic(an_error_severity  error_severity,
                            an_error_code      error_code,
                            struct a_symbol    *symbol);
+extern void pos_syty_diagnostic(an_error_severity  error_severity,
+                                an_error_code      error_code,
+                                a_source_position  *error_pos,
+                                struct a_symbol    *symbol,
+                                struct a_type      *type);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void pos_st_remark(an_error_code     error_code,
                           a_source_position *error_pos,
                           char              *error_string);

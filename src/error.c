@@ -2852,6 +2852,23 @@ indicated by error_position.
   pos_sy_diagnostic(error_severity, error_code, &error_position, symbol);
 }  /* sym_diagnostic */
 
+
+void pos_syty_diagnostic(an_error_severity  error_severity,
+                         an_error_code      error_code,
+                         a_source_position  *error_pos,
+                         a_symbol_ptr       symbol,
+                         a_type_ptr         type)
+/*
+Report the indicated diagnostic (with the indicated symbol and type) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol;
+  error_msg_types[1] = type;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos_syty_diagnostic */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void pos_st_remark(an_error_code     error_code,
