@@ -1430,13 +1430,20 @@ not compared.
       for (; list1 != NULL && list2 != NULL;
            list1 = list1->next, list2 = list2->next) {
         /* Compare the parameter types, with the second parameter type
-           type promoted appropriately if it is old-style.
-           The type qualifiers (if any) on the parameter types
-           are ignored (ANSI C standard, 3.5.4.3). */
-        param_1_type = skip_typerefs(list1->type);
-        param_2_type = skip_typerefs(list2->type);
-        if (!list2_prototyped) {
-          param_2_type = default_argument_promotion(param_2_type);
+           type promoted appropriately if it is old-style. */
+        param_1_type = list1->type;
+        param_2_type = list2->type;
+        if (C_dialect != C_dialect_cplusplus || !list2_prototyped) {
+           /* In C mode, the type qualifiers (if any) on the parameter
+              types are ignored (ANSI C standard, 3.5.4.3).
+              Also when dealing with an old-style function, because it's
+              like C mode, and -- especially -- because
+              default_argument_promotion drops type qualifiers. */
+          param_1_type = skip_typerefs(param_1_type);
+          param_2_type = skip_typerefs(param_2_type);
+          if (!list2_prototyped) {
+            param_2_type = default_argument_promotion(param_2_type);
+          }  /* if */
         }  /* if */
         if (!f_types_are_compatible(param_1_type, param_2_type,
                                     allow_error_type)) {
