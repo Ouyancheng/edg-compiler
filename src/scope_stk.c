@@ -1617,7 +1617,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
        the member template (as supplied by the decl_info pointer), not that
        of the enclosing class.  If decl_info is NULL, the information from
        the class is used instead. */
-    if (decl_info == NULL) decl_info = tssp->cache.decl_info;
+    if (decl_info == NULL) decl_info = cache_for_template(tssp)->decl_info;
     enclosing_tdip = decl_info->enclosing_template_decl;
     /* If no instance symbol is passed from the caller, use the symbol
        and type from the class that is being reactivated.  Otherwise,
@@ -4032,7 +4032,7 @@ are not reactivated.
                                                            template_arg_list;
     /* Get the template declaration information associated with the class. */
     tssp = template_supplement_for_symbol(template_sym);
-    decl_info = tssp->cache.decl_info;
+    decl_info = cache_for_template(tssp)->decl_info;
     push_template_instantiation_scope(decl_info, class_type,
                                       (a_routine_ptr)NULL, class_sym,
                                       template_sym, template_arg_list);
