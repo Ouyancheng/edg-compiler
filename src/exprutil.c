@@ -6474,6 +6474,54 @@ Only used in C++.
 }  /* create_expr_temporary */
 
 
+static a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr)
+/*
+expr is the expression identifying the function to call in a normal call.
+If it is possible to determine the specific function being called, return
+a pointer to its routine entry.  Otherwise, return NULL.
+*/
+{
+  a_routine_ptr routine = NULL;
+
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_points_to_static ||
+        op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+        op == (an_expr_operator_kind)eok_rvalue_dot_static) {
+      /* A field selection of a static member.  The second operand
+         gives the function. */
+      expr = expr->variant.operation.operands->next;
+    }  /* if */
+  }  /* if */
+  if (is_routine_address_node(expr)) {
+    routine = expr->variant.routine;
+  }  /* if */
+  return routine;
+}  /* routine_from_function_expr */
+
+
+a_routine_ptr routine_from_function_operand(an_operand *operand)
+/*
+operand is the operand identifying the function to call in a normal call.
+If it is possible to determine the specific function being called, return
+a pointer to its routine entry.  Otherwise, return NULL.
+*/
+{
+  a_routine_ptr  routine = NULL;
+  a_constant_ptr con;
+
+  if (is_constant_operand(operand)) {
+    con = &operand->variant.constant;
+    if (con_is_exact_addr_of_routine(con)) {
+      routine = con->variant.address.variant.routine;
+    }  /* if */
+  } else if (is_expression_operand(operand)) {
+    routine = routine_from_function_expr(operand->variant.expression);
+  }  /* if */
+  return routine;
+}  /* routine_from_function_operand */
+
+
 static an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
                                        a_type_ptr        function_type,
                                        a_boolean         is_virtual,
@@ -6505,13 +6553,11 @@ an explicit or implicit conversion (e.g., a conversion function call).
   a_routine_type_supplement_ptr rtsp;
   an_expr_node_ptr              temp_init_node = NULL;
   a_dynamic_init_ptr            dip;
-  a_routine_ptr                 rp = NULL;
+  a_routine_ptr                 rp;
 
   function_type = skip_typerefs(function_type);
-  if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
-    /* We know which routine is being called. */
-    rp = function_node->variant.routine;
-  }  /* if */
+  /* See if we know which function is being called. */
+  rp = routine_from_function_expr(function_node);
   /* The function return type must be void or object type and not array
      type.  Half of this check is in add_to_derived_type_list.
      The check here is necessary because it is valid to declare a

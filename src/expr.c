@@ -1193,41 +1193,6 @@ is after the closing parenthesis of the argument list.
 }  /* scan_ctor_arguments */
 
 
-static a_routine_ptr routine_from_function_operand(an_operand *operand)
-/*
-operand is the operand identifying the function to call in a normal call.
-If it is possible to determine the specific function being called, return
-a pointer to its routine entry.  Otherwise, return NULL.
-*/
-{
-  a_routine_ptr  routine = NULL;
-  a_constant_ptr con;
-
-  if (is_constant_operand(operand)) {
-    con = &operand->variant.constant;
-    if (con_is_exact_addr_of_routine(con)) {
-      routine = con->variant.address.variant.routine;
-    }  /* if */
-  } else if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
-    if (is_operation_node(expr)) {
-      an_expr_operator_kind op = expr->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_points_to_static ||
-          op == (an_expr_operator_kind)eok_lvalue_dot_static ||
-          op == (an_expr_operator_kind)eok_rvalue_dot_static) {
-        /* A field selection of a static member.  The second operand
-           gives the function. */
-        an_expr_node_ptr op2 = expr->variant.operation.operands->next;
-        if (is_routine_address_node(op2)) {
-          routine = op2->variant.routine;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return routine;
-}  /* routine_from_function_operand */
-
-
 static void scan_function_call(an_operand *operand,
                                an_operand *bound_function_selector,
 			       an_operand *result)

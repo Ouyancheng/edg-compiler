@@ -1,5 +1,17 @@
 Version 3.0
 
+3/1/02   "called" flag in IL routine not set for call of static function
+         with discarded object
+
+The "called" flag in the IL a_routine entry is supposed to be set if
+the routine is called anywhere.  It was not being set for calls of
+static functions of the form
+
+  object.f()
+
+i.e., calls that specify an object that is simply discarded.
+The flag is now set correctly.
+
 2/28/02  Storage class incorrect for specialization of static template
 
 An explicit specialization should have the same linkage as an implicit

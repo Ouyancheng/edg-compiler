@@ -940,6 +940,8 @@ extern an_expr_node_ptr create_expr_temporary(
                                       a_boolean         suppress_abstract_test,
                                       a_source_position *position);
 
+extern a_routine_ptr routine_from_function_operand(an_operand *operand);
+
 extern void make_function_call(an_expr_node_ptr  function_node,
                                a_type_ptr        function_type,
                                a_boolean         is_virtual,
