@@ -1,5 +1,20 @@
 Version 2.36
 
+5/5/97    a_decl_modifiers_block
+
+The declaration routines that deal with declaration modifiers (e.g.,
+the Microsoft __declspec(...) modifier) have, in the past, passed
+around a bit set of type a_decl_modifier.  Now, they pass around a
+structure of type a_decl_modifiers_block, which includes the
+bit set and some additional declaration modifiers that require
+more than just a single bit.  This change should make it easier
+for our customers to add custom declaration modifiers, but at the
+expense of potential incompatibility with changes already made.
+This change affects only the way these modifiers are passed around
+within the front end; the IL representation of decl_modifiers has
+not been changed.  The decl_modifiers field in a_routine, for example,
+is still the bit set it has always been.
+
 5/5/97    Instantiation pragmas should not apply to inline functions
 
 When an instantiation pragma (instantiate, do_not_instantiate,
