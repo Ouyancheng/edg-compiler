@@ -68,7 +68,7 @@ in the primary IL.
      to make it possible to tell whether the intervening step has
      been added). */
   char *canonical = canonical_il_entry_of(ptr);
-  trans_unit_corresp_pointer_of(ptr) = canonical;
+  checked_trans_unit_corresp_pointer_of(ptr) = canonical;
   /* The IL lowering flag is borrowed for this process because IL
      lowering is not done on secondary translation units. */
   il_entry_prefix_of(ptr).il_lowering_flag = TRUE;
@@ -124,7 +124,7 @@ pointer of the entry pointed to by ptr, of kind "kind".
     /* This entry has a correspondence in the primary IL. */
     if (entry_to_be_merged(ptr)) {
       /* This is an entry that gets merged into its corresponding entry. */
-      char *corresp = trans_unit_corresp_pointer_of(ptr);
+      char *corresp = checked_trans_unit_corresp_pointer_of(ptr);
       /* The first time through, a copy is made, the subtree is walked,
          and a two-step correspondence-pointer chain is set up.  If the
          chain is already present, this is not the first time through,
@@ -139,8 +139,8 @@ pointer of the entry pointed to by ptr, of kind "kind".
            the end of the list).  Note that the copy is in the
            secondary translation unit file scope memory region. */
         char *copy = alloc_il(sizeof_il_entry[(int)kind]);
-        trans_unit_corresp_pointer_of(ptr) = copy;
-        trans_unit_corresp_pointer_of(copy) = corresp;
+        checked_trans_unit_corresp_pointer_of(ptr) = copy;
+        checked_trans_unit_corresp_pointer_of(copy) = corresp;
         check_assertion(!is_string_entry_kind(kind));
         /* Set the il_walk_flag to request copying. */
         il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
@@ -154,11 +154,11 @@ pointer of the entry pointed to by ptr, of kind "kind".
     if (!is_string_entry_kind(kind)) {
       char *copy = alloc_primary_file_scope_il(sizeof_il_entry[(int)kind]);
       char *canonical = canonical_il_entry_of(ptr);
-      trans_unit_corresp_pointer_of(ptr) = copy;
+      checked_trans_unit_corresp_pointer_of(ptr) = copy;
       /* Make the canonical entry for this entry point to the copy also if
          it's in a secondary translation unit. */
       if (canonical != ptr && in_secondary_trans_unit(canonical)) {
-        trans_unit_corresp_pointer_of(canonical) = copy;
+        checked_trans_unit_corresp_pointer_of(canonical) = copy;
       }  /* if */
       /* Set the il_walk_flag to request copying. */
       il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
@@ -280,7 +280,7 @@ correspondence pointer to point to the copy.
     char *copy = alloc_primary_file_scope_il(length);
 
     check_assertion(in_file_scope(ptr));
-    trans_unit_corresp_pointer_of(ptr) = copy;
+    checked_trans_unit_corresp_pointer_of(ptr) = copy;
     (void)memcpy(copy, ptr, length);
   }  /* if */
 }  /* copy_string_entry */
@@ -300,7 +300,7 @@ and remap the pointers in the copy.
        the pointers but don't copy. */
     remap_pointers_in_entry(ptr, kind);
   } else {
-    char                    *copy = trans_unit_corresp_pointer_of(ptr);
+    char                    *copy = checked_trans_unit_corresp_pointer_of(ptr);
     a_source_correspondence *scp;
 
     check_assertion_str(copy != NULL,
@@ -368,13 +368,13 @@ to the primary translation unit IL.
        the file scope in the primary translation unit, and gets merged
        into it. */
     a_scope_ptr corresp_scope = translation_units->primary_scope;
-    trans_unit_corresp_pointer_of(scope) = (char *)corresp_scope;
+    checked_trans_unit_corresp_pointer_of(scope) = (char *)corresp_scope;
     mark_to_merge(scope);
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
       /* The object lifetime of the file scope corresponds with the
          object lifetime of the corresponding scope, and gets merged into
          it. */
-      trans_unit_corresp_pointer_of(scope->lifetime) =
+      checked_trans_unit_corresp_pointer_of(scope->lifetime) =
                                                (char *)corresp_scope->lifetime;
       mark_to_merge(scope->lifetime);
     }  /* if */
@@ -386,7 +386,7 @@ to the primary translation unit IL.
       /* The namespace scope gets merged into the corresponding scope. */
       a_namespace_ptr corresp_nsp= (a_namespace_ptr)canonical_il_entry_of(nsp);
       a_scope_ptr     corresp_nsp_scope = corresp_nsp->variant.assoc_scope;
-      trans_unit_corresp_pointer_of(scope) = (char *)corresp_nsp_scope;
+      checked_trans_unit_corresp_pointer_of(scope) = (char *)corresp_nsp_scope;
       mark_to_merge(scope);
     }  /* if */
   }  /* if */
@@ -643,8 +643,8 @@ the primary translation unit, respectively) that are being merged.
   if (scope->lifetime != NULL) {
     check_assertion(scope->kind == (a_scope_kind)sck_file);
     /* Use the copy of the scope lifetime, which has remapped pointers. */
-    lifetime =
-        (an_object_lifetime_ptr)trans_unit_corresp_pointer_of(scope->lifetime);
+    lifetime = (an_object_lifetime_ptr)checked_trans_unit_corresp_pointer_of(
+                                                              scope->lifetime);
     primary_lifetime = primary_scope->lifetime;
     if (primary_lifetime == NULL) {
       /* There is no object lifetime in the primary scope, so the
@@ -705,7 +705,7 @@ unit to the primary one.
   /* Process only scopes that must be merged into their counterparts. */
   if (entry_to_be_merged(scope)) {
     /* Find the corresponding scope. */
-    primary_scope = (a_scope_ptr)trans_unit_corresp_pointer_of(scope);
+    primary_scope = (a_scope_ptr)checked_trans_unit_corresp_pointer_of(scope);
     /* For the file scope, we will be using and updating the end pointers
        in the pointers block. */
     if (scope->kind == (a_scope_kind)sck_file) {
@@ -725,7 +725,7 @@ unit to the primary one.
       }  /* if */
       for (type = scope->types; type != NULL; type = type->next) {
         a_type_ptr corresp_type =
-                               (a_type_ptr)trans_unit_corresp_pointer_of(type);
+                       (a_type_ptr)checked_trans_unit_corresp_pointer_of(type);
         if (!entry_to_be_merged(type)) {
           /* An entry that had no correspondence.  Add it to the end of
              the list. */
@@ -741,7 +741,7 @@ unit to the primary one.
              (the secondary translation unit instance has a definition and
              the primary translation unit instance does not). */
           a_type_ptr primary_type =
-                       (a_type_ptr)trans_unit_corresp_pointer_of(corresp_type);
+               (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
           corresp_type->next = primary_type->next;
           *primary_type = *corresp_type;
         }  /* if */
@@ -765,7 +765,7 @@ unit to the primary one.
            variable != NULL;
            variable = variable->next) {
         a_variable_ptr corresp_variable =
-                       (a_variable_ptr)trans_unit_corresp_pointer_of(variable);
+               (a_variable_ptr)checked_trans_unit_corresp_pointer_of(variable);
         if (!entry_to_be_merged(variable)) {
           /* An entry that had no correspondence.  Add it to the end of
              the list. */
@@ -781,7 +781,8 @@ unit to the primary one.
              variable (the secondary translation unit instance has a definition
              and the primary translation unit instance does not). */
           a_variable_ptr primary_variable =
-               (a_variable_ptr)trans_unit_corresp_pointer_of(corresp_variable);
+                   (a_variable_ptr)checked_trans_unit_corresp_pointer_of(
+                                                             corresp_variable);
           corresp_variable->next = primary_variable->next;
           *primary_variable = *corresp_variable;
           corresp_variable = primary_variable;
@@ -840,7 +841,7 @@ unit to the primary one.
            routine != NULL;
            routine = routine->next) {
         a_routine_ptr corresp_routine =
-                         (a_routine_ptr)trans_unit_corresp_pointer_of(routine);
+                 (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
         if (!entry_to_be_merged(routine)) {
           /* An entry that had no correspondence.  Add it to the end of
              the list. */
@@ -856,7 +857,8 @@ unit to the primary one.
              routine (the secondary translation unit instance has a
              definition and the primary translation unit instance does not). */
           a_routine_ptr primary_routine =
-                 (a_routine_ptr)trans_unit_corresp_pointer_of(corresp_routine);
+                   (a_routine_ptr)checked_trans_unit_corresp_pointer_of(
+                                                              corresp_routine);
           corresp_routine->next = primary_routine->next;
           *primary_routine = *corresp_routine;
           corresp_routine = primary_routine;
@@ -880,7 +882,7 @@ unit to the primary one.
       }  /* if */
       for (templ = scope->templates; templ != NULL; templ = templ->next) {
         a_template_ptr corresp_templ =
-                          (a_template_ptr)trans_unit_corresp_pointer_of(templ);
+                  (a_template_ptr)checked_trans_unit_corresp_pointer_of(templ);
         check_assertion(!entry_to_be_merged(templ));
         /* An entry that had no correspondence.  Add it to the end of
            the list. */
@@ -907,7 +909,7 @@ unit to the primary one.
       }  /* if */
       for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
         a_namespace_ptr corresp_nsp =
-                          (a_namespace_ptr)trans_unit_corresp_pointer_of(nsp);
+                   (a_namespace_ptr)checked_trans_unit_corresp_pointer_of(nsp);
         if (!entry_to_be_merged(nsp)) {
           /* An entry that had no correspondence.  Add it to the end of
              the list. */
@@ -1022,7 +1024,7 @@ to the primary IL.  This includes lowering if necessary.
          routine != NULL;
          routine = routine->next) {
       a_routine_ptr corresp_routine =
-                         (a_routine_ptr)trans_unit_corresp_pointer_of(routine);
+                 (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
       if (corresp_routine->assoc_scope != NULL_region_number &&
           corresp_routine->source_corresp.copied_from_secondary_trans_unit) {
         /* This routine definition was moved. */

@@ -272,6 +272,23 @@ that precedes the file-scope IL entry at ptr.
               SPACE_FOR_TRANS_UNIT_CORRESP_POINTER))
 
 /*
+Checked version of trans_unit_corresp_pointer_of -- when checking
+code is on, checks that the pointer is to an entry that does have
+a correspondence pointer.  Note that this may involve evaluating
+the argument more than once.
+*/
+#if CHECKING
+#define checked_trans_unit_corresp_pointer_of(ptr)                    \
+  (trans_unit_corresp_pointer_of(                                     \
+    ((in_file_scope(ptr) && in_secondary_trans_unit(ptr)) ? (void)0 :   \
+       assertion_failed(__FILE__, __LINE__, (char *)NULL, (char *)NULL), \
+     ptr)))
+#else /* !CHECKING */
+#define checked_trans_unit_corresp_pointer_of(ptr)                    \
+   trans_unit_corresp_pointer_of(ptr)
+#endif /* CHECKING */
+
+/*
 Return TRUE if the IL entry pointed to by ptr is in the file scope
 memory region.  ptr must point to something allocated in an IL memory
 region.
