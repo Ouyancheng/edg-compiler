@@ -309,6 +309,15 @@ typedef struct a_projection_descr {
 			   casts, the final cast being to the class of
 			   the original base class member.  If ambiguous is
 			   TRUE this is one of several possible paths. */
+  a_derivation_path_ptr
+		hidden_sym_path;
+			/* Pointer to a linked list of derivation path
+                           entries associated with the virtual base class(es)
+			   along the derivation paths of symbols hidden by
+			   original_symbol.  This field is updated when a
+			   projection symbol is overridden by a redeclaration
+			   of a member name, and it is referenced when
+			   dominance is computed. */
 } a_projection_descr;
 
 
@@ -418,10 +427,6 @@ typedef struct a_symbol {
 			   the current scope, i.e., another symbol with the
 			   same name is visible, and there is no reason to
 			   prefer one over the other. */
-      unsigned int
-		hidden:1;
-			/* TRUE if progenitor_symbol is hidden from visibility
-			   in the current scope by another symbol. */
       unsigned int
 		dominated:1;
 			/* TRUE if progenitor_symbol is dominated by another
