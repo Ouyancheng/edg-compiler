@@ -6574,6 +6574,12 @@ this routine is called.
                is_null_pointer_constant(&operand->variant.constant)) {
       /* Cast of a null pointer constant to a pointer or pointer-to-member
          type.  Allowed as an extension. */
+    } else if (microsoft_mode &&
+               is_pointer_type(dest_type) && is_pointer_type(operand->type) &&
+               type_pointed_to(dest_type) ==
+                               skip_typerefs(type_pointed_to(operand->type))) {
+      /* A cast that strips qualifiers from a pointer type.  Allow as an
+         extension in Microsoft mode. */
     } else {
       /* Cast to a non-integral type in a nontype template argument. */
       if (!is_error_type(dest_type)) {
