@@ -2654,6 +2654,9 @@ Display the name of an expression operator.
 #ifdef CFE
     case eok_question:          s = "eok_question";               break;
 #endif /* ifdef CFE */
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_binary_question:   s = "eok_binary_question";        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE
     case eok_substring:         s = "eok_substring";              break;
     case eok_value_substring:   s = "eok_value_substring";        break;

@@ -6510,6 +6510,13 @@ enum an_expr_operator_kind_tag {
   eok_question,         /* Conditional expression ("?" operator).  Operand
                            has been standardized to integer/logical. */
 #endif /* ifdef CIL */
+#if GNU_EXTENSIONS_ALLOWED
+  eok_binary_question,  /* Binary conditional expression ("? :" operator
+                           without an expression between the "?" and ":").
+                           This is a GNU C extension.  The first operand is
+                           not converted or compared to zero: a back end is
+                           responsible for that. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
   eok_substring,        /* Fortran character substring.  The first operand
                            is the address of the character entity; the
@@ -9130,6 +9137,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef CIL
    "?",
 #endif /* ifdef CIL */
+#if GNU_EXTENSIONS_ALLOWED
+   "?:",
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
    "(:)", "v(:)",
 #endif /* ifdef FIL */

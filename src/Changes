@@ -91,7 +91,7 @@ arrays, and the \e escape sequence. [9/10/01] Empty structs and structs with
 only a flexible array member are now also accepted in GNU C mode.
 [9/15/01] Attributes, &&label, goto *expression, builtin functions.
 [9/18/01] Statement expressions i.e., ({...}). [9/19/01] Multi-line
-strings.
+strings. [9/26/01] Binary conditional operators ("x ?: y").
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 

@@ -6192,6 +6192,14 @@ finish_new_style_cast:
           write_tok_str(" : ");
           gen_expr_with_parens(operand_2->next);
           goto done_with_operation;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_binary_question:
+          /* Two operand operator. */
+          gen_boolean_controlling_expression(operand_1);
+          write_tok_str(" ?: ");
+          gen_expr_with_parens(operand_2);
+          goto done_with_operation;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_call:
         case eok_generic_call:
         case eok_generic_member_call:

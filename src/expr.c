@@ -44,7 +44,8 @@ expr.c -- Expression scanning routines.
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  has_explicit_cv_qualifiers);
-static void process_boolean_controlling_expression(an_operand *result);
+static void process_boolean_controlling_expression(an_operand *result,
+                                                   a_boolean  validate_only);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
                                   a_source_position        *type_position,
                                   an_operand               *result,
@@ -4726,7 +4727,7 @@ the given expression is true.
   /* Scan the expression. */
   scan_expr(result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Check its type and normalize it. */
-  process_boolean_controlling_expression(result);
+  process_boolean_controlling_expression(result, /*validate_only=*/FALSE);
   expr = make_node_from_operand(result);
   expr = wrap_up_full_expression(expr);
   expr = make_operator_node((an_expr_operator_kind)eok_assume, void_type(),
@@ -10244,11 +10245,13 @@ is modified to indicate that is affiliated with the enum type.
 }  /* keep_enum_in_result_type */
 
 
-static void process_boolean_controlling_expression(an_operand *result)
+static void process_boolean_controlling_expression(an_operand *result,
+                                                   a_boolean  validate_only)
 /*
 *result is the controlling expression of an if/while/do-while/for statement,
 or of a "?" operator.  Check that it has the right type.  Convert it from a
-class type if necessary.
+class type if necessary.  If validate_only is TRUE, do not modify the operand
+except for standard operand transformations.
 */
 {
   a_boolean processed = FALSE;
@@ -10257,7 +10260,8 @@ class type if necessary.
   /* Convert from a class type to bool or scalar/pointer-to-member if
      necessary. */
   if (C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(result->type)) {
+      is_class_struct_union_type(result->type) &&
+      !validate_only) {
     a_builtin_type_kind_set type_kind_set;
     if (bool_is_keyword) {
       type_kind_set = BTK_BOOL;
@@ -10286,7 +10290,7 @@ class type if necessary.
      this is done even for the cases where a class type has been converted
      to such a type, because the subroutine does some additional checking
      and some normalization of the expression. */
-  if (check_boolean_controlling_expr(result)) {
+  if (validate_boolean_controlling_expr(result, validate_only)) {
     /* Issue a remark if the expression is constant.  (Actually, if
        it WAS constant, because the address of an extern entity -- a
        constant -- converted to bool becomes an expression, because
@@ -10412,6 +10416,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 */
 {
   an_operand            operand_2;
+  an_operand            *p_operand_2;
   an_operand            operand_3;
   a_source_position     operator_position;
   a_token_sequence_number
@@ -10434,14 +10439,23 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             types_are_the_same = FALSE;
   a_boolean             saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
+  a_boolean             binary_conditional;
 
   db_enter(4, "scan_conditional_operator");
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   question_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check the first operand's type. */
-  process_boolean_controlling_expression(operand_1);
+  /* Skip the "?" token. */
+  (void)get_token();
+
+  /* Recognize the binary form "x ? : y" accepted in GNU C mode. */
+  binary_conditional = (gcc_mode && curr_token == tok_colon);
+  /* Check the first operand's type.  Do not transform the operand to a
+     boolean value if we're dealing with the binary form, since the
+     operand's original value is also needed in that case. */
+  process_boolean_controlling_expression(operand_1,
+                                         /*validate_only=*/binary_conditional);
   /* There is a sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
 
@@ -10465,18 +10479,24 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
   }  /* if */
 
-  /* Scan the second operand.   Evaluate the expression if the first
-     operand is non-constant or a non-zero constant, and if we are currently
-     evaluating expressions. */
-  (void)get_token();
-  expr_stack->nested_construct_depth++;
-  expr_stack->evaluated = expr2_evaluated;
-  expr_stack->inside_conditional_expression = TRUE;
-  scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
-  expr_stack->inside_conditional_expression =
+  if (!binary_conditional) {
+    /* Scan the second operand.   Evaluate the expression if the first
+       operand is non-constant or a non-zero constant, and if we are currently
+       evaluating expressions. */
+    expr_stack->nested_construct_depth++;
+    expr_stack->evaluated = expr2_evaluated;
+    expr_stack->inside_conditional_expression = TRUE;
+    scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+    expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
-  expr_stack->evaluated = saved_evaluated;
-  expr_stack->nested_construct_depth--;
+    expr_stack->evaluated = saved_evaluated;
+    expr_stack->nested_construct_depth--;
+  } else {
+    /* In the binary form, the second operand is omitted and instead the
+       value of the first operand is used. */
+    operand_2 = *operand_1;
+  }  /* if */
+  p_operand_2 = binary_conditional ? (an_operand*)NULL : &operand_2;
 
   /* Save the position of the (expected) colon. */
   copy_source_position(pos_curr_token, operator_position);
@@ -10878,7 +10898,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
       /* Cast operands 2 and 3 to the result type if necessary. */
       if (!err) {
-        change_binary_operand_types(result_type, &operand_2, &operand_3);
+        /* The GNU C binary conditional case (without a "middle operand")
+           may also arrive here.  In that case, p_operand_2 is NULL, while
+           operand_2 is a copy of the controlling operand. */
+        change_binary_operand_types(result_type, p_operand_2, &operand_3);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10888,8 +10911,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   } else if (processed) {
     /* Already processed. */
   } else {
-    /* Build the expression. */
-    do_question_operation(operand_1, &operand_2, &operand_3, result_type,
+    /* Build the expression.  p_operand_2 is NULL for the GNU C extension
+       of an omitted "middle operand" (eok_binary_question). */
+    do_question_operation(operand_1, p_operand_2, &operand_3, result_type,
                           result_is_an_lvalue, result);
     if (result_is_an_lvalue) {
       /* The result is an lvalue, so its reference list is the union
@@ -15000,7 +15024,7 @@ class type that can be converted to those types.
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
   /* Check its type and normalize it. */
-  process_boolean_controlling_expression(&result);
+  process_boolean_controlling_expression(&result, /*validate_only=*/FALSE);
   expr = make_node_from_operand(&result);
   expr = wrap_up_full_expression(expr);
   pop_expr_stack();
@@ -15061,7 +15085,7 @@ to the expression created.  The variable var must have an associated symbol.
     process_integer_expression(&operand, /*is_switch_expr=*/TRUE);
   } else {
     /* Other cases are boolean controlling expressions. */
-    process_boolean_controlling_expression(&operand);
+    process_boolean_controlling_expression(&operand, /*validate_only=*/FALSE);
   }  /* if */
   expr = make_node_from_operand(&operand);
   pop_expr_stack();
