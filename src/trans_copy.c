@@ -1122,6 +1122,7 @@ not being eliminated.
       corresp_param->passed_via_copy_constructor = TRUE;
     }  /* if */
   }  /* for */
+  corresp_routine->address_taken |= routine->address_taken;
   check_assertion(param == NULL && corresp_param == NULL);
   check_assertion(routine->is_inline == corresp_routine->is_inline ||
                   /* In C mode, the inline specifier need not match. */
@@ -1858,6 +1859,7 @@ the secondary translation unit IL).
   unsigned long saved_instantiation_needed_bit_number =
                                   primary_var->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  a_boolean     saved_address_taken = primary_var->address_taken;
   a_symbol_ptr  sym = (a_symbol_ptr)(var->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_var, a_variable_ptr);
   *primary_var = *var;
@@ -1866,6 +1868,7 @@ the secondary translation unit IL).
   primary_var->instantiation_needed_bit_number =
                                          saved_instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  primary_var->address_taken |= saved_address_taken;
   establish_as_canonical(&primary_var->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the

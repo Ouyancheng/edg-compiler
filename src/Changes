@@ -1,5 +1,15 @@
 Version 3.1
 
+7/8/02   Multiple translation units, address_taken on routines and variables
+
+When a compilation involves multiple translation units (e.g., when
+exported templates are used), and the IL for those translation units
+is merged, the address_taken flags on routines and variables were not
+being merged (or-ed) correctly.  Now, they are, so that when the
+address of an entity is taken in one translation unit and the definition
+appears in another (in which the address is not taken) the address_taken
+flag is correctly set.
+
 7/2/02   Sun compatibility: Explicit instantiation of a class does not
          instantiate inline members
 
