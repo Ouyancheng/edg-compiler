@@ -2644,7 +2644,8 @@ NULL.
       /* Variable or parameter. */
       var_ptr = sym->variant.variable.ptr;
       storage_class = var_ptr->storage_class;
-      if (storage_class == (a_storage_class)sc_unspecified) {
+      if (storage_class == (a_storage_class)sc_unspecified &&
+          !is_member_of_unnamed_namespace(&var_ptr->source_corresp)) {
         /* Note that if this test succeeds (i.e., the variable has
            storage class sc_unspecified), we do not do the test for
            referenced.  That's because an external variable can be assumed
@@ -2652,8 +2653,18 @@ NULL.
            flag in the IL entry is set slightly later, in the
            sk_extern_variable processing. */
       } else if (storage_class == (a_storage_class)sc_extern) {
-        /* No warning for unused "extern" variables; this is a long-standing
-           C convention. */
+        /* Usually, we issue no warning for unused "extern" variables; this is
+           a long-standing C convention.  In unnamed namespaces, however, a
+           warning is issued for unused declarations, and an error for missing
+           definitions that were referenced. */
+        if (is_member_of_unnamed_namespace(&var_ptr->source_corresp)) {
+          if (sym->referenced) {
+            pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+          } else {
+            report_unreferenced(sym, ec_declared_but_not_referenced,
+                                es_warning);
+          }  /* if */
+        }  /* if */
       } else if (C_dialect == C_dialect_cplusplus &&
                  depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
                  is_const_qualified_type(var_ptr->type) &&
@@ -2792,6 +2803,7 @@ NULL.
       rout_ptr = sym->variant.routine.ptr;
       storage_class = rout_ptr->storage_class;
       if (storage_class == (a_storage_class)sc_unspecified &&
+          !is_member_of_unnamed_namespace(&rout_ptr->source_corresp) &&
           !rout_ptr->is_inline) {
         /* Regard functions with "unspecified" storage class to be referenced
            somewhere, even if not in the current translation unit; extern
@@ -2831,9 +2843,10 @@ NULL.
         }  /* if */
       } else if (!sym->referenced) {
         /* Unreferenced function. */
-        if (storage_class == (a_storage_class)sc_extern) {
-          /* No warning on unused "extern" routines; this is a
-             long-standing C tradition. */
+        if (storage_class == (a_storage_class)sc_extern &&
+            !is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) {
+          /* No warning on unused "extern" routines; this is a long-standing
+             C tradition.  An exception are routines in unnamed namespaces. */
         } else if (rout_ptr->is_inline && sym->defined &&
                    seq_is_in_include_file(sym->decl_position.seq)) {
           /* No diagnostic on inline non-member functions defined in a header
