@@ -1830,33 +1830,6 @@ are not checked.
 }  /* establish_trans_unit_correspondences_for_class */
 
 
-a_boolean seek_class_type_corresp(a_type_ptr  type_1,
-                                  a_type_ptr  type_2)
-/*
-Check if the given class types are in fact the same and, if so, record all
-the needed correspondence pointers for type_1 and return TRUE.  Otherwise,
-return FALSE.
-*/
-{
-  a_boolean result;
-
-  if (has_correspondence(type_1)) {
-    result = (canonical_il_entry_of(type_1) == canonical_il_entry_of(type_2));
-  } else if (trans_unit_corresp_pointer_of(type_1) == (char*)type_1) {
-    result = FALSE;
-  } else {
-    record_trans_unit_corresp(type_1, type_2);
-    establish_trans_unit_correspondences_for_class(type_1);
-    result = verify_class_type_correspondence(type_1);
-    if (!result) {
-      clear_class_type_correspondence(type_1, /*visited=*/FALSE);
-      clear_trans_unit_corresp(type_1, /*visited=*/FALSE);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* seek_class_type_corresp */
-
-
 static void find_namespace_correspondence(a_namespace_ptr  nsp)
 /*
 Look for the given namespace in another translation unit and set the
