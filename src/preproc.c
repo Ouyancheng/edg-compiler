@@ -1149,7 +1149,9 @@ Scan and process a #pragma directive.
         /* If we are generating a precompiled header file, this marks the
            end of the tokens that comprise the precompiled header.
            Write the precompiled header now, if possible. */
-        generate_precompiled_header();
+        if (create_precompiled_header || automatic_pch_processing) {
+          generate_precompiled_header();
+        }   /* if */
         while (get_token() != tok_newline);
         processed = TRUE;
       } else {
