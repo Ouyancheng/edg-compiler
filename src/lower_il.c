@@ -1410,9 +1410,14 @@ the information about that entity; it consists of the indicated prefix
 by the mangled name of the entity.  The variable has type char (arbitrarily).
 */
 {
+#if MAINTAIN_NEEDED_FLAGS
   a_variable_ptr  var;
 
-  var = make_global_var_with_prefixed_name(prefix, (an_integer_kind)ik_char,
+  var =
+#else /* !MAINTAIN_NEEDED_FLAGS */
+  (void)
+#endif /* MAINTAIN_NEEDED_FLAGS */
+        make_global_var_with_prefixed_name(prefix, (an_integer_kind)ik_char,
                                            source_corresp);
 #if MAINTAIN_NEEDED_FLAGS
   /* Since this routine is always called after normal needed flag processing
