@@ -9054,6 +9054,9 @@ initially used when processing the declaration of a partial specialization.
       /* A normal prototype (not a partial specialization). */
       prototype_ctsp->template_arg_list = templ_arg_list;
     }  /* if */
+    /* Call a routine that manages the correspondence of entities between
+      translation units to notify it of the new instance. */
+    record_instantiation(prototype_sym, tssp);
   } else {
     /* For a class nested within a class template, the member class
        symbol of the prototype instantiation is used. */
@@ -9067,9 +9070,6 @@ initially used when processing the declaration of a partial specialization.
   prototype_type->variant.class_struct_union.is_prototype_instantiation = TRUE;
   prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
   prototype_cssp->template_info = tssp;
-  /* Call a routine that manages the correspondence of entities between
-     translation units to notify it of the new instance. */
-  record_instantiation(prototype_sym, tssp);
 }  /* create_prototype_type */
 
 
