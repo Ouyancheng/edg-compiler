@@ -1749,10 +1749,12 @@ come out on the closing "}".
     /* Special error-recovery trick: this tries to deal with mismatched
        braces, in the case where a "}" is missing and thus there appears to
        be an extra "{".  If we are at function level, and the next thing
-       appears to be a declaration rather than a statement, and it's indented
-       the same or less than the opening "{" of the function, assume a "}"
-       and exit the compound statement. */
-    if (at_function_level && pos_curr_token.column <= opening_brace_column &&
+       appears to be a declaration rather than a statement, and it's not
+       indented, assume a "}" and exit the compound statement.  This trick
+       can only be used in C, because in C++ declarations can occur in
+       the middle of sequences of statements. */
+    if (C_dialect != C_dialect_cplusplus &&
+        at_function_level && pos_curr_token.column == 1 &&
         is_decl_start()) break;
   }  /* while */
   /* If a lint-style "notreached" comment was detected, suppress the
