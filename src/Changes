@@ -1,5 +1,17 @@
 Version 2.35
 
+2/19/97  Effect of unnamed non-zero-width bit field on struct's alignment
+
+A new global variable, targ_unnamed_bit_field_affects_struct_alignment, has
+been added.  When it is FALSE, an unnamed bit field affects the alignment
+of the field that follows it but not of the class/struct as a whole.  This
+was already controllable for zero-width unnamed bit fields (see
+targ_zero_width_bit_field_affects_struct_alignment), but now it can be
+controlled for all unnamed bit fields.  The default value of the variable
+is TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT, defined targ_def.h;
+setting it to FALSE creates an ABI incompatibility with versions 2.32
+through 2.34 but restores compatibility with versions prior to 2.32.
+
 2/18/97  Spurious error in template definition containing potential cast
 
 The front end erroneously treated constructs such as "(T::x ...)" as a
