@@ -507,18 +507,37 @@ Initialize target machine characteristics.
     get_integer_size_and_alignment((an_integer_kind)TARG_SIZE_T_INT_KIND,
                                    &size, &alignment);
     if (size > sizeof(long)) {
-      internal_error(
-                 "target_init: TARG_SIZE_T_INT_KIND in target.h is set wrong");
+      internal_error("target_init: target size_t is too large");
     }  /* if */
     /* The target ptrdiff_t may be no bigger than the host long. */
     get_integer_size_and_alignment((an_integer_kind)TARG_PTRDIFF_T_INT_KIND,
                                    &size, &alignment);
     if (size > sizeof(long)) {
-      internal_error(
-              "target_init: TARG_PTRDIFF_T_INT_KIND in target.h is set wrong");
+      internal_error("target_init: target ptrdiff_t is too large");
+    }  /* if */
+    /* The target char may be no bigger than the host long. */
+    get_integer_size_and_alignment((an_integer_kind)ik_char,
+                                   &size, &alignment);
+    if (size > sizeof(long)) {
+      internal_error("target_init: target char is too large");
+    }  /* if */
+    /* The target wchar_t may be no bigger than the host long. */
+    get_integer_size_and_alignment((an_integer_kind)TARG_WCHAR_T_INT_KIND,
+                                   &size, &alignment);
+    if (size > sizeof(long)) {
+      internal_error("target_init: target wchar_t is too large");
     }  /* if */
   }
-#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+#if 0
+  /* Can't enable this yet. */
+  /* When using host integers to represent target integers, make sure the
+     host integer selected is large enough. */
+  if (TARG_SIZEOF_LARGEST_INTEGER > sizeof(an_integer_value)) {
+    internal_error("target_init: an_integer_value in target.h is too small");
+  }  /* if */
+#endif /* 0 */
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   /* When using the simulated large integer approach to represent target
      integers, the sizes must be right. */
   if (BITS_IN_HOST_LARGE_INTEGER != sizeof(a_host_large_integer)*CHAR_BIT) {
@@ -539,7 +558,7 @@ Initialize target machine characteristics.
     internal_error(
     "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
   }  /* if */
-#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 #endif /* CHECKING */
 #if TARG_CHAR_BIT != CHAR_BIT
 ??=error -- the target and host characters must have the same number of bits.
