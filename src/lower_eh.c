@@ -55,7 +55,9 @@ IL lowering itself is done).
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
-/* Forward declarator needed because of mutual recursion: */
+#include "il_walk.h"
+
+/* Forward declaration needed because of mutual recursion: */
 static a_type_ptr make_base_class_spec_type(void);
 
 
@@ -1101,6 +1103,13 @@ via the typeid operator (but it contains it).
     typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
     /* Remember the variable in the type. */
     type->typeinfo_var = typeinfo_var;
+#if MAINTAIN_NEEDED_FLAGS
+    /* If the type is already marked to be kept in the IL, make sure
+       the typeinfo variable is too. */
+    if (il_entry_prefix_of(type).keep_in_il) {
+      mark_to_keep_in_il((char *)typeinfo_var, iek_variable);
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if ABI_CHANGES_FOR_RTTI
     /* Develop a string that names the type.  This must be done now because
        later the names involved might be mangled.  A pointer to the string
