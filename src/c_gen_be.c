@@ -3722,33 +3722,41 @@ process_assignment:
           goto done_with_operation;
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
+          disable_line_wrapping();
           write_tok_str("va_start(");
           dump_lvalue(operand_1);
           write_tok_ch(',');
           dump_lvalue(operand_2);
           write_tok_ch(')');
+          enable_line_wrapping();
           goto done_with_operation;
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
+          disable_line_wrapping();
           write_tok_str("va_arg(");
           dump_lvalue(operand_1);
           write_tok_ch(',');
           dump_type(expr->type, /*add_pointer_to=*/FALSE);
           write_tok_ch(')');
+          enable_line_wrapping();
           goto done_with_operation;
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
+          disable_line_wrapping();
           write_tok_str("va_end(");
           dump_lvalue(operand_1);
           write_tok_ch(')');
+          enable_line_wrapping();
           goto done_with_operation;
         case eok_va_copy:
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
+          disable_line_wrapping();
           write_tok_str("va_copy(");
           dump_lvalue(operand_1);
           write_tok_ch(',');
           dump_lvalue(operand_2);
           write_tok_ch(')');
+          enable_line_wrapping();
           goto done_with_operation;
         default:
           unexpected_condition_str("dump_expr: bad expression operator");

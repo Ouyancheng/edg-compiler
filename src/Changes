@@ -1,5 +1,14 @@
 Version 2.45
 
+12/12/00 C- and C++-generating back ends: <stdarg.h> macros and line wrapping
+
+Line wrapping is now disabled in the C- and C++-generating back ends
+while uses of the <stdarg.h> macros (e.g., va_arg) are put out (which
+is done when DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is
+TRUE).  On long output lines, that prevents generation of #line directives
+in the middle of the macro calls.  Standard C does not allow use of
+preprocessing directives in the middle of macro calls.
+
 12/12/00 Names from using-directives not found in some cases
 
 A bug in the way in which the using-directive state is saved and restored
