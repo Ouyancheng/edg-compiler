@@ -284,14 +284,12 @@ extern a_boolean op_is_null_pointer_constant(an_operand *operand);
 
 extern a_boolean op_is_zero_constant(an_operand *operand);
 
-extern void make_data_member_operand(a_field_ptr       member,
-                                     a_variable_ptr    this_param_variable,
-                                     an_operand        *result,
-                                     an_xref_entry_ptr xep);
-
 extern void make_lvalue_variable_operand(a_variable_ptr    variable,
                                          an_operand        *result,
                                          an_xref_entry_ptr xep);
+
+extern void make_rvalue_variable_operand(a_variable_ptr variable,
+                                         an_operand     *result);
 
 extern a_boolean check_object_pointer_operand(an_operand    *operand,
                                               an_error_code err_code);
@@ -310,6 +308,9 @@ extern void make_constant_operand(a_constant *constant,
 extern void clear_operand(an_operand_kind kind,
 		          an_operand      *operand);
 
+extern void set_operand_kind(an_operand      *operand,
+                             an_operand_kind kind);
+
 extern a_boolean check_lvalue_operand(an_operand *operand);
 
 extern a_boolean check_scalar_operand(an_operand *operand);
@@ -323,6 +324,9 @@ extern a_boolean check_pointer_operand(an_operand    *operand,
 extern void make_expression_operand(an_expr_node_ptr node,
                                     a_type_ptr       type,
 			            an_operand       *operand);
+
+extern void add_cast_to_node(an_expr_node_ptr *p_node,
+                             a_type_ptr       new_type);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
