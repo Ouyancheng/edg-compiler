@@ -489,6 +489,7 @@ check_abbreviation()
 --error_output
 --exceptions
 --explicit
+--export_template
 --extended_designators
 --extended_variadic_macros
 --extern_inline
@@ -545,6 +546,7 @@ check_abbreviation()
 --no_enum_overloading
 --no_exceptions
 --no_explicit
+--no_export_template
 --no_extended_designators
 --no_extended_variadic_macros
 --no_extern_inline
@@ -1049,6 +1051,8 @@ process_option()
          --no_dep_name | \
          --parse_templates | \
          --no_parse_templates | \
+         --export_template | \
+         --no_export_template | \
          --ignore_std | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
