@@ -4186,7 +4186,7 @@ cross-reference output describing this declaration.
     update_decl_pos_info(&variable_ptr->source_corresp, decl_pos_block);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Restore the scope stack.  (This is done prior to update secondary
+  /* Restore the scope stack.  This is done prior to updating secondary
      source sequence entries because otherwise we might not find such an
      entry for the case of a nondefining namespace-qualified variable
      declaration (valid in Microsoft mode only). */
