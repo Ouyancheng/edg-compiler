@@ -6696,6 +6696,9 @@ of the template.
   ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
   ssep->source_sequence_entries_disallowed =
                                        source_sequence_entries_disallowed;
+  ssep->ss_list_instantiation_insert_point
+                                 = NULL;
+  ssep->saved_last_ss_entry      = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
   ssep->last_hidden_name         = NULL;
@@ -6801,6 +6804,49 @@ of the template.
                                                 is_prototype_instantiation;
         }  /* if */
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      {
+      /* Instantiations may be triggered almost anywhere, but the source
+         sequence list for an instantiation has to be inserted at file scope.
+         The current insert point is maintained in the scope stack entry
+         for the file scope -- it is where the source sequence entries for
+         the current instantiation should appear.  Make the changes required
+         for this to happen. */
+      a_scope_stack_entry_ptr      fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+      a_source_sequence_entry_ptr  insert_point, new_last_ss_entry;
+
+      /* The insert point, if any, is in the scope stack entry for the file
+         scope. */
+      insert_point = fs_ssep->ss_list_instantiation_insert_point;
+      if (insert_point == NULL) {
+        /* A NULL insert point means the source sequence entries for the
+           instantiation may be added to the end of the file scope's source
+           sequence list. */
+      } else {
+        /* A non-NULL insert point is the point *before which* the source
+           sequence entries for the instantiation should be added.  Simply
+           clip off the segment of source sequence entries, so that
+           point->prev becomes the new end-of-list entry; the segment will
+           be restored in pop_scope. */
+        /* Save the head of the list segment that is to be clipped off. */
+        ssep->ss_list_instantiation_insert_point = insert_point;
+        /* Note the new end-of-list entry. */
+        new_last_ss_entry = insert_point->prev;
+        insert_point->prev = NULL;
+        /* Save the old end-of-list entry (it will be restored in pop_scope)
+           and replace it with the new one. */
+        ssep->saved_last_ss_entry = fs_ssep->last_source_sequence_entry;
+        fs_ssep->last_source_sequence_entry = new_last_ss_entry;
+        if (new_last_ss_entry != NULL) {
+          new_last_ss_entry->next = NULL;
+        } else {
+          fs_ssep->il_scope->source_sequence_list = NULL;
+        }  /* if */
+        /* Clear the old insert point (it will be restored in pop_scope). */
+        fs_ssep->ss_list_instantiation_insert_point = NULL;
+      }  /* if */
+      }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (kind != (a_scope_kind)sck_file) {
       ssep->in_prototype_instantiation = (ssep-1)->in_prototype_instantiation;
     }  /* if */
@@ -6860,11 +6906,8 @@ of the template.
   }  /* if */
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
-#if 0
-  /* This is subject to reconsideration, especially in connection with
-     templates. */
-#endif /* if 0 */
-  if (kind == (a_scope_kind)sck_template_instantiation ||
+  if ((kind == (a_scope_kind)sck_template_instantiation &&
+       (ssep->in_prototype_instantiation || instance_sym == NULL)) ||
       kind == (a_scope_kind)sck_template_declaration ||
       kind == (a_scope_kind)sck_pragma) {
     ssep->source_sequence_entries_disallowed =
@@ -7743,6 +7786,28 @@ End a name scope by popping an entry off the scope stack.
       update_template_param_symbols(tssp->parameters,
                                     scope_stack[prev_depth].template_arg_list);
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    {
+    /* Restore the integrity of the file-scope source sequence list -- it was
+       temporarily changed in push_scope to allow the source sequence entries
+       for the template instantiation to "float up" to the right spot in the
+       list. */
+    a_scope_stack_entry_ptr      fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    a_source_sequence_entry_ptr  saved_insert_point;
+
+    saved_insert_point = ssep->ss_list_instantiation_insert_point;
+    fs_ssep->ss_list_instantiation_insert_point = saved_insert_point;
+    if (saved_insert_point != NULL) {
+      if (fs_ssep->last_source_sequence_entry != NULL) {
+        fs_ssep->last_source_sequence_entry->next = saved_insert_point;
+        saved_insert_point->prev = fs_ssep->last_source_sequence_entry;
+      } else {
+        fs_ssep->il_scope->source_sequence_list = saved_insert_point;
+      }  /* if */
+      fs_ssep->last_source_sequence_entry = ssep->saved_last_ss_entry;
+    }  /* if */
+    }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
