@@ -120,9 +120,25 @@ is prepared to accept all of the C99 IL extensions.
 #ifndef C99_IL_EXTENSIONS_SUPPORTED
 #define C99_IL_EXTENSIONS_SUPPORTED TRUE
 #endif /* ifndef C99_IL_EXTENSIONS_SUPPORTED */
-#if !C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
+
+/*
+Flag that is TRUE when C99 IL constructs should be lowered to constructs that
+fit in the IL definition for C89.  This may result in calls to a C99 runtime
+support library.
+*/
+#ifndef DO_C99_IL_LOWERING
+#if DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED
+#define DO_C99_IL_LOWERING TRUE
+#else /* !(DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED) */
+#define DO_C99_IL_LOWERING FALSE
+#endif /* DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifndef DO_C99_IL_LOWERING */
+#if DO_C99_IL_LOWERING && !DO_IL_LOWERING
+ #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
+#endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
+#if DO_C99_IL_LOWERING && !C99_IL_EXTENSIONS_SUPPORTED
  #error -- C99 IL lowering cannot be done if C99 IL extensions not supported
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
+#endif /* DO_C99_IL_LOWERING && !C99_IL_EXTENSIONS_SUPPORTED */
 
 /*
 Flag that is TRUE if the "long long" data type and the associated language

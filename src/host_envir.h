@@ -741,22 +741,6 @@ with a C back end.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING */
 
 /*
-Flag that is TRUE when C99 IL constructs should be lowered to constructs that
-fit in the IL definition for C89.  This may result in calls to a C99 runtime
-support library.
-*/
-#ifndef DO_C99_IL_LOWERING
-#if DO_IL_LOWERING
-#define DO_C99_IL_LOWERING TRUE
-#else /* !DO_IL_LOWERING */
-#define DO_C99_IL_LOWERING FALSE
-#endif /* DO_IL_LOWERING */
-#endif /* ifndef DO_C99_IL_LOWERING */
-#if DO_C99_IL_LOWERING && !DO_IL_LOWERING
- #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
-#endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
-
-/*
 If DO_IL_LOWERING is TRUE, this gives the routine name used for the
 C++ file-scope initialization routine.  The name is not really
 significant (except as a cfront compatibility issue), but the C-generating
