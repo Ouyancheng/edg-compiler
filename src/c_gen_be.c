@@ -5951,27 +5951,21 @@ Generate C for a statement.
       if (init_stmt == NULL) {
         init_expr = NULL;
       } else {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* If source sequence entries are being generated, a common C++
-           idiom will generate a block containing an stmk_decl followed
-           by an stmk_init.  Just process the stmk_init in that case. */
-        if (init_stmt->kind == (a_statement_kind)stmk_block) {
-          a_statement_ptr stmt = init_stmt->variant.block.statements;
-          if (stmt != NULL &&
-              stmt->kind == (a_statement_kind)stmk_decl &&
-              stmt->next != NULL &&
-              stmt->next->kind == (a_statement_kind)stmk_init &&
-              stmt->next->next == NULL) {
-            init_stmt = stmt->next;
-          }  /* if */
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (init_stmt->kind == (a_statement_kind)stmk_expr) {
           init_expr = init_stmt->expr;
         } else {
           write_tok_ch('{');
           need_for_init_closing_brace = TRUE;
-          dump_statement(init_stmt);
+          if (init_stmt->kind == (a_statement_kind)stmk_block) {
+            /* Put out the statements in a block instead of the block
+               itself.  The block is generated and doesn't appear in the
+               source.  This comes up when source sequence lists are
+               configured in and stmk_decl statements are added, and
+               also when stmk_vla_decl statements are added. */
+            dump_statement_list(init_stmt->variant.block.statements);
+          } else {
+            dump_statement(init_stmt);
+          }  /* if */
           init_expr = NULL;
         }  /* if */
       }  /* if */
