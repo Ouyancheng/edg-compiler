@@ -11,7 +11,7 @@ was not recognized as a constant expression.  Now fixed.
 
 7/16/99  Ambiguity of conversion functions
 
-The front end used to fail selecting a user defined conversion function when
+The front end used to fail to select a user defined conversion function when
 another conversion function was ambiguous through multiple inheritance:
 
   struct A {
