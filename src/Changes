@@ -1,5 +1,11 @@
 Version 2.37
 
+6/20/97   Abort or internal error using non-memory mapped PCH files
+
+The routines that read memory regions from a PCH file when not using
+memory mapping did not handle NULL mem_region_table entries properly.
+This could cause an abort or an internal error.  This has been fixed.
+
 6/19/97   Internal error in partial ordering comparison of deduced array
           bounds
 

@@ -1354,7 +1354,11 @@ header information about the memory regions such as the memory_region_table.
   {
     a_memory_region_number	n;
     for (n = 0; n < mem_regions_used; ++n) {
-      read_a_memory_region(n);
+      if (mem_region_table[n] != NULL) {
+        /* A NULL memory region table entry will not have any entries written
+           to the file.  Don't try to read the memory region in this case. */
+        read_a_memory_region(n);
+      }  /* if */
     }  /* for */
   }
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
