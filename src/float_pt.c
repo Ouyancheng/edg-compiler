@@ -35,10 +35,10 @@ The problem applies to hollerith constants as well.
 
 #include "basics.h"
 #if __ANSIC__
-/* For atof: */
+/* For strtod: */
 #include <stdlib.h>
 #else
-double atof(char * str);
+EXTERN_C double strtod(char *, char **);
 #endif /* __ANSIC__ */
 #include <errno.h>
 #if __BSD__
@@ -128,7 +128,7 @@ Fetch the value from float_value (of kind kind) and return it.
   double temp;
   float  float_temp;
 
-  if (kind == (a_type_kind)fk_float) {
+  if (kind == (a_float_kind)fk_float) {
     /* Convert from float to double. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
@@ -221,7 +221,9 @@ look like an integer).  It may have a leading "-" sign.
      is cleared. */
   init_strtod();
 #endif /* ifdef SUNOS_STRTOD_BUG */
-  temp = atof(str);
+  /* strtod is used instead of atof because of a report that on some SGI
+     systems errno==ERANGE is not set properly by atof. */
+  temp = strtod(str, (char **)NULL);
   if (errno == ERANGE && temp != 0.0) {
     /* Do not give an error on cases that involve partial loss of significance,
        e.g., extremely small values like 4.9e-324. */
