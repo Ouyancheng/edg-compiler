@@ -1790,60 +1790,6 @@ not be considered further.
 }  /* check_template_arg_type_qualifiers */
 
 
-static a_boolean array_transformation_needed_on_template_reference_init(
-                                         a_type_ptr           arg_type,
-                                         a_type_ptr           param_type,
-                                         a_template_param_ptr templ_param_list)
-                                              
-/*
-A parameter of a function template, with type param_type (a reference type),
-is being matched against an argument with type arg_type (an array type).
-Return TRUE if the array --> pointer transformation should be done.
-templ_param_list is the template parameter list.
-*/
-{
-  a_boolean  transform_needed = TRUE;
-  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
-
-  /* The array --> pointer transformation is done except if the template
-     parameter is explicitly a reference to an array and if it can be
-     made to match. */
-  if (is_array_type(base_param_type) &&
-      tentatively_matches_template_type(arg_type, base_param_type,
-                                        templ_param_list)) {
-    transform_needed = FALSE;
-  }  /* if */
-  return transform_needed;
-}  /* array_transformation_needed_on_template_reference_init */
-
-
-static a_boolean function_transformation_needed_on_template_reference_init(
-                                         a_type_ptr           arg_type,
-                                         a_type_ptr           param_type,
-                                         a_template_param_ptr templ_param_list)
-                                              
-/*
-A parameter of a function template, with type param_type (a reference type),
-is being matched against an argument with type arg_type (a function type).
-Return TRUE if the function --> pointer transformation should be done.
-templ_param_list is the template parameter list.
-*/
-{
-  a_boolean  transform_needed = TRUE;
-  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
-
-  /* The function --> pointer transformation is done except if the template
-     parameter is explicitly a reference to a function and if it can be
-     made to match. */
-  if (is_function_type(base_param_type) &&
-      tentatively_matches_template_type(arg_type, base_param_type,
-                                        templ_param_list)) {
-    transform_needed = FALSE;
-  }  /* if */
-  return transform_needed;
-}  /* function_transformation_needed_on_template_reference_init */
-
-
 static a_boolean deduce_one_parameter(a_type_ptr         param_type,
                                       an_operand         *arg_operand,
                                       a_type_ptr         arg_type,
