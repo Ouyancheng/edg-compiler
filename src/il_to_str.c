@@ -22,6 +22,7 @@ il_to_str.c -- Produce an external string-form representation for various
 #include "float_pt.h"
 #include "types.h"
 #include "target.h"
+#include "symbol_tbl.h"
 
 
 void clear_il_to_str_output_control_block(
@@ -255,14 +256,25 @@ void form_symbol_name(a_symbol_ptr                          sym,
 Output the (possibly qualified) name of the indicated symbol.
 */
 {
-  if (il_header.source_language == sl_Cplusplus) {
-    a_type_ptr class_type = sym->class_of_which_a_member;
-    /* Put out the class qualifier on a class member. */
-    if (class_type != NULL) {
-      form_class_qualifier(class_type, octl);
+  char             *entry;
+  an_il_entry_kind kind;
+
+  /* See if the symbol has an associated IL entry. */
+  entry = il_entry_for_symbol(sym, &kind);
+  if (entry != NULL) {
+    /* Use the IL entry. */
+    form_name(entry, kind, octl);
+  } else {
+    /* No IL entry; use the symbol name directly. */
+    if (il_header.source_language == sl_Cplusplus) {
+      a_type_ptr class_type = sym->class_of_which_a_member;
+      /* Put out the class qualifier on a class member. */
+      if (class_type != NULL) {
+        form_class_qualifier(class_type, octl);
+      }  /* if */
     }  /* if */
+    octl->output_str(sym->header->identifier);
   }  /* if */
-  octl->output_str(sym->header->identifier);
 }  /* form_symbol_name */
 
 
