@@ -1,5 +1,13 @@
 Version 2.37
 
+7/8/97    C++-generating back end: no default arguments on specializations
+
+Specializations are not allowed to have default arguments.  The
+entity that's actually referenced is the primary template, and the
+default arguments, if any, should be declared there.  The C++-generating
+back end now suppresses default argument expressions on specializations
+put out for generated instances.
+
 7/8/97    C++-generating back end: extra "template<>" eliminated
 
 When the front end is configured to use the C++-generating back end,

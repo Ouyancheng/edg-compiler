@@ -2206,13 +2206,15 @@ parameter.
 
 static void gen_function_declarator_with_scope(a_type_ptr    type,
                                                a_scope_ptr   scope,
-                                               a_routine_ptr rout)
+                                               a_routine_ptr rout,
+                                               a_boolean     suppress_def_args)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope
 is non-NULL, in which case that is the function scope.  If this is the
 top-level type of a function declaration or definition, rout points to
-the routine; otherwise it is NULL.
+the routine; otherwise it is NULL.  suppress_def_args is TRUE if default
+arguments should be suppressed (needed for template specializations).
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
@@ -2315,8 +2317,10 @@ the routine; otherwise it is NULL.
                                              /*suppress_specifiers=*/FALSE,
                                              GDO_NO_OPTIONS);
         }  /* if */
-        /* Put out a default argument expression if there is one. */
-        gen_default_arg_expr(param);
+        if (!suppress_def_args) {
+          /* Put out a default argument expression if there is one. */
+          gen_default_arg_expr(param);
+        }  /* if */
         param = param->next;
         if (param == NULL) break;
         /* There are more parameters, so output a separator and keep
@@ -2350,7 +2354,8 @@ used as an interface to the il_to_str routines.
 */
 {
   gen_function_declarator_with_scope(type, (a_scope_ptr)NULL,
-                                     (a_routine_ptr)NULL);
+                                     (a_routine_ptr)NULL,
+                                     /*suppress_def_args=*/FALSE);
 }  /* gen_function_declarator */
 
 
@@ -3084,6 +3089,9 @@ declaration following this one is such a continuation.
 }  /* gen_typedef_definition */
 
 
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+/* ARGSUSED */ /* <-- scp is not used in that case. */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 static void gen_template_specialization_header(
                                      a_source_correspondence *scp,
                                      a_template_arg_ptr      template_arg_list)
@@ -6331,6 +6339,7 @@ TRUE if the declaration following this one is such a continuation.
   a_source_sequence_scan_state  saved_state;
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
+  a_boolean                     is_generated_instance = FALSE;
   a_function_state              state;
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
@@ -6366,6 +6375,10 @@ TRUE if the declaration following this one is such a continuation.
                           "gen_routine_decl: missing definition");
       is_definition = FALSE;
     }  /* if */
+  }  /* if */
+  if (rout->is_template_function && !rout->is_specialized) {
+    /* A generated instance. */
+    is_generated_instance = TRUE;
   }  /* if */
   check_assertion_str(rout_type != NULL,
                       "gen_routine_decl: declared_type is NULL");
@@ -6580,7 +6593,9 @@ TRUE if the declaration following this one is such a continuation.
       adv_to_signif_source_sequence_entry();
     }  /* if */
     /* Write the second part of the declarator. */
-    gen_function_declarator_with_scope(rout_type, scope, rout);
+    gen_function_declarator_with_scope(rout_type, scope, rout,
+                                       /*suppress_def_args=*/
+                                                        is_generated_instance);
     /* If the function has a throw specification, put it out here after the
        function declarator. */
     if (rtsp->exception_specification != NULL) {
