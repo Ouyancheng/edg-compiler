@@ -1,5 +1,12 @@
 Version 3.1
 
+5/15/02  Alignment problems with IL entries read from file
+
+The code that reads IL files into memory did not properly ensure
+alignment of the IL entries in configurations in which
+HOST_POINTER_ALIGNMENT is smaller than HOST_ALIGNMENT_REQUIRED.
+Now fixed.
+
 5/14/02  Microsoft compatibility: spurious error on function-style cast
 
 Contrary to the standard, the Microsoft compiler accepts a function-style

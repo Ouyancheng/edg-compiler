@@ -832,6 +832,9 @@ Initialization routine for IL reading.
         fs_prefix_size = prefix_size + SPACE_FOR_FS_ORPHAN_POINTER;
       }  /* if */
       entry_size = sizeof_il_entry[entry_kind];
+      do_host_alignment(entry_size);
+      do_host_alignment(prefix_size);
+      do_host_alignment(fs_prefix_size);
       entry_length_with_prefix   [entry_kind] = entry_size + prefix_size;
       fs_entry_length_with_prefix[entry_kind] = entry_size + fs_prefix_size;
       length_of_entry_prefix     [entry_kind] = prefix_size;
