@@ -1828,7 +1828,8 @@ do_argument_again:
           map->raw_text[map->raw_len+1] = LE_END_OF_INSERTION;
 #if DEBUG
           if (debug_level >= 4) {
-            fprintf(f_debug, "raw argument %s: \"", pp->name);
+            fprintf(f_debug, "raw argument %s: \"",
+                             pp != NULL ? pp->name : "<extra>");
             print_markered_text(map->raw_text, map->raw_len, FALSE);
             fputs("\"\n", f_debug);
           }  /* if */
@@ -1886,7 +1887,8 @@ do_argument_again:
           }  /* while */
 #if DEBUG
           if (debug_level >= 4) {
-            fprintf(f_debug, "expanded argument %s: \"", pp->name);
+            fprintf(f_debug, "expanded argument %s: \"",
+                             pp != NULL ? pp->name : "<extra>");
             /* Note that we are printing the "raw" text here, but whatever
                source modifications there are for macro expansions will
                be printed too.  This debug printing must be done at this
