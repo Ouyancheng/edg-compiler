@@ -1802,14 +1802,13 @@ is non-NULL, in which case that is the function scope.
   write_tok_ch(')');
   /* Output a cv-qualifier for a member function, if there is one. */
   if (rtsp->implicit_this_param_type != NULL) {
-    a_type_ptr underlying_type =
+    a_type_ptr           underlying_type =
                                type_pointed_to(rtsp->implicit_this_param_type);
-    for (; is_immediate_type_qualifier(underlying_type);
-         underlying_type = underlying_type->variant.typeref.type) {
+    a_type_qualifier_set qualifiers = get_type_qualifiers(underlying_type);
+    if (qualifiers != TQ_NONE) {
       write_space();
-      form_type_qualifier(underlying_type, /*suppress_const=*/FALSE,
-                          /*need_trailing_space=*/FALSE, &octl);
-    }  /* for */
+      form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, &octl);
+    }  /* if */
   }  /* if */
 }  /* gen_function_declarator_with_scope */
 
@@ -2945,7 +2944,7 @@ Generate code for a new or delete operation.
           tkind == (a_type_kind)tk_float ||
           is_class_type_kind(tkind) ||
           (tkind == (a_type_kind)tk_typeref &&
-                                   !is_immediate_type_qualifier(temp_type) )) {
+           typeref_is_typedef(temp_type))) {
         /* Simple cases that don't need parentheses. */
         need_type_parens = FALSE;
       }  /* if */
