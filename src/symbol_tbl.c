@@ -4050,6 +4050,9 @@ C and C++.
   a_scope_stack_entry_ptr ssep;
   a_boolean               must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean               must_be_tag   = (options & IDL_MUST_BE_TAG);
+  a_boolean		  skip_curr_function_scope =
+                                      (options & IDL_SKIP_CURR_FUNCTION_SCOPE);
+  a_boolean		  first_scope;
   a_boolean               must_be_type_name;
   a_boolean               look_for_projected_symbol = FALSE;
   a_boolean               add_to_active_list;
@@ -4103,8 +4106,20 @@ C and C++.
        initialization of a static data member).  Note that the slow algorithm
        is not required for member symbols on the active list because they
        are found properly on the search of the active list in the fast
-       algorithm. */
+       algorithm.  We don't need to check skip_curr_function_scope when
+       deciding whether to use the fast or slow algorithm because there
+       will always be a class reactivation scope on the stack which will
+       force the slow lookup. */
     ssep = &scope_stack[depth_scope_stack];
+#if CHECKING
+    /* IDL_SKIP_CURR_FUNCTION_SCOPE must only be used when the top scope
+       entry is for a function. */
+    if (skip_curr_function_scope) {
+      if (ssep->kind != (a_scope_kind)sck_function) {
+        internal_error("normal_id_lookup: skip_curr_function_scope error");
+      }  /* if */
+    }  /* if */
+#endif /* CHECKING */
     if (inactive_symbol_list == NULL ||
         !ssep->inactive_symbols_may_be_visible) {
       /* Fast algorithm: just search the active symbol list. */
@@ -4135,7 +4150,7 @@ C and C++.
       /* Since there is a class or class reactivation on the stack, we know the
          stack has at least two entries (the file scope and the class or
          class reactivation). */
-      for (;;) {
+      for (first_scope = TRUE;; first_scope = FALSE) {
         if (ssep->kind == (a_scope_kind)sck_class_reactivation ||
 	    ssep->kind == (a_scope_kind)sck_template_instantiation) {
           /* Look on the inactive list for a symbol from this reactivated
@@ -4183,7 +4198,13 @@ C and C++.
              if any one is the symbol desired. */
           for (;active_sym != NULL && active_sym->decl_scope == ssep->number;
                prev_active_sym = active_sym, active_sym = active_sym->next) {
-            if (is_acceptable_active_symbol(active_sym)) {
+            if (first_scope && skip_curr_function_scope) {
+              /* IDL_SKIP_CURR_FUNCTION_SCOPE is being used.  Don't accept
+                 symbols from the first scope entry.  This is used when
+		 looking up names from the initializer list of a
+		 constructor declaration.  The constructor parameters
+		 must not be visible during this lookup. */
+            } else if (is_acceptable_active_symbol(active_sym)) {
               /* Found a symbol. */
               sym = active_sym;
               goto end_lookup;
@@ -5377,7 +5398,7 @@ End a name scope by popping an entry off the scope stack.
          apply the anachronism to template classes. */
       if (kind == (a_scope_kind)sck_class_struct_union && allow_anachronisms) {
         a_type_ptr   sym_type;
-        if ((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) &&
+        if (((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type)) &&
             (sym_type = type_symbol_type(sym),
              !is_template_class_type(sym_type))) {
           sym->header->any_nested_types_on_inactive_list = TRUE;

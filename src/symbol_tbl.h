@@ -52,6 +52,14 @@ typedef int an_id_lookup_options_set;
 				   is a type name -- a typedef or tag symbol
 				   (class, struct, union, or enum) -- but
 				   return NULL instead. */
+#define IDL_SKIP_CURR_FUNCTION_SCOPE 0x10
+				/* Causes normal_id_lookup to skip over
+				   the innermost scope entry which
+				   must be a function scope.  This is
+				   used to look up the identifiers used
+				   in constructor initializer lists.  Names
+				   of parameters of the constructor must not
+				   be visible during this lookup. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

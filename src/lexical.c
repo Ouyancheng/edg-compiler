@@ -4970,7 +4970,7 @@ of the class qualifier scan.  See the declaration of "a_class_qualifier"
 for more information.
 
 When the GID_TEMPLATE_ARGS_OPTIONAL flag is set in "options" the 
-template argument list (i.e., "<int>") can be omitted.  This flag
+template argument list (e.g., "<int>") can be omitted.  This flag
 is passed to coalesce_template_class_reference.
 
 Note that there are several GID flags that affect whether class qualifiers
@@ -5133,7 +5133,7 @@ in C++ mode.
          just that it couldn't legally be anything else. */
     } else if (curr_token == tok_compl &&
                ((options & GID_DTOR_RECOGNIZED) || is_qualifier)) {
-      /* A destructor name (i.e., ~A or A::~A).  Destructor names are
+      /* A destructor name (e.g., ~A or A::~A).  Destructor names are
          always recognized after qualifiers.  If not preceded by a qualifier,
          then they are only recognized when GID_DTOR_RECOGNIZED is TRUE. */
     } else {
@@ -5487,6 +5487,9 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
         break;
       case ilm_normal:
         idl_options = IDL_NO_OPTIONS;
+        break;
+      case ilm_ctor_initializer_name:
+        idl_options = IDL_SKIP_CURR_FUNCTION_SCOPE;
         break;
 #if CHECKING
       default:

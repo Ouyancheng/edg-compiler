@@ -1,5 +1,16 @@
 Version 2.12
 
+11/16/92 Fixed bug in name lookup in ctor-initializer
+
+When lookup up the member or base class name in a constructor
+initializer a constructor parameters were incorrectly given visibility.
+A new lookup option (IDL_SKIP_CURR_FUNCTION_SCOPE) has been added to
+normal_id_lookup and a new lookup mode (ilm_ctor_initializer_name)
+has been added to coalesce_and_lookup_generalized_identifier.  These
+lookup flags support a new type of lookup that skips ignores symbols
+from the innermost function scope.  ctor_initializer has been changed
+to use the new lookup mode.
+
 11/16/92 Fixed bug with typedef'd base class name in ctor-initializer
 
 A bug has been fixed in handling base class references in ctor-initializer

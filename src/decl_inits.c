@@ -1596,11 +1596,15 @@ initialized.  These are addressed in the course of the processing.
           unget_token();
           goto scan_paren;
         }  /* if */
-        /* Scan the base class name or member name. */
+        /* Scan the base class name or member name.  The lookup mode
+	   ilm_ctor_initializer_name skips the current function scope
+	   to ensure that a constructor parameter with the same name
+	   as a member or base class is not visible. */
         {
           a_boolean gid_err;
           member_or_base_sym = coalesce_and_lookup_generalized_identifier
-                                   (GID_NO_OPTIONS, ilm_normal, &gid_err);
+                                   (GID_NO_OPTIONS, ilm_ctor_initializer_name,
+                                    &gid_err);
           err |= gid_err;
         }
         if (member_or_base_sym == NULL ||
