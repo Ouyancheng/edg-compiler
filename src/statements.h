@@ -140,7 +140,8 @@ EXTERN int	depth_stmt_stack
 
 extern a_statement_ptr add_statement(a_statement_kind kind);
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
-                                          a_boolean explicit_return_type);
+                                          a_boolean explicit_return_type,
+                                          a_boolean is_catch_clause);
 extern a_boolean curr_code_reachable(void);
 extern void new_struct_stmt_stack(
                            a_ptrdiff               *saved_container_pos,
