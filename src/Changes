@@ -1,5 +1,20 @@
 Version 3.1
 
+5/17/02  Dependent name lookup: base class incorrectly treated as dependent
+
+When using dependent name lookup mode, a dependent base class of a
+nondependent base was incorrectly treated as dependent during lookups
+in a derived class that is a template.  This has been fixed.
+
+  template <class T> struct A {
+    typedef int AA;
+  };
+  template <class T> struct B : public A<T> { };
+  class C : public B<int> { };
+  template <class T> struct D : public C {
+    AA a;  // spurious error here
+  };
+
 5/15/02  GNU C compatibility: Invalid asm operand validation code
 
 An error in the code that validates asm operand description could cause

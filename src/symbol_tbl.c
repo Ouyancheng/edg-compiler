@@ -8710,7 +8710,7 @@ if no such base-class symbol is found).
        base classes. */
     if (preferred_derivation_is_direct(bcp)) {
       new_set = find_progenitor_in_base_class(bcp, locator, options,
-					      look_in_dependent_bases);
+  				             /*look_in_dependent_bases=*/TRUE);
       if (new_set != NULL) {
         if (progenitor_set == NULL) {
           progenitor_set = new_set;
@@ -9060,25 +9060,6 @@ symbol that should be ignored as a result of the Microsoft bug.
 }  /* check_for_microsoft_type_lookup_bug */
 
 
-static a_boolean found_in_dependent_base(a_derivation_step_ptr	dsp)
-/*
-Return TRUE if any of the base classes on the derivation path specified
-by "dsp" is a base class that should be ignored during dependent
-lookup.
-*/
-{
-  a_boolean	result = FALSE;
-
-  for (; dsp != NULL; dsp = dsp->next) {
-    if (dsp->base_class->ignore_during_dependent_lookup) {
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* found_in_dependent_base */
-
-
 a_boolean find_projected_symbol(
 			a_type_ptr               class_ptr,
                         a_symbol_locator         *locator,
@@ -9238,7 +9219,8 @@ created if a projected symbol cannot be found in any of the real bases.
          lookup (because the underlying symbol would not be found). */
       if (do_dependent_name_processing &&
           is_unspecialized_template_class(class_ptr)) {
-        new_sym->is_invisible = found_in_dependent_base(path);
+        new_sym->is_invisible = path != NULL &&
+                              path->base_class->ignore_during_dependent_lookup;
       }  /* if */
       if (new_sym->ambiguous) {
         new_sym->
