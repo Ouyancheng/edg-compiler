@@ -10111,6 +10111,14 @@ TRUE if the declaration following this one is such a continuation.
         write_tok_str("__inline__ ");
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+      if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
+        /* Suppress inline if we will be putting out the Microsoft
+           __inline later. */
+      } else
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
         write_tok_str("inline ");

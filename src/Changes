@@ -1,5 +1,12 @@
 Version 3.2
 
+4/18/03  C++-generating back end: avoid putting out both inline and Microsoft
+         __inline
+
+The C++-generating back end now avoids putting out the "inline"
+specifier on a declaration if the Microsoft "__inline" specifier
+is also put out.
+
 4/18/03  Spurious ambiguity on use of conversion function
 
 A spurious ambiguity error could result if a conversion function was inherited
