@@ -2324,6 +2324,21 @@ conversion function will now be considered as a way to do the conversion.
     if (a) ;  // Formerly an error
   }
 
+This change also improves the standard conformance on non-template
+conversions to bool where one of the choices is a user-defined
+conversion to a pointer type followed by a standard conversion
+to bool (which should be considered worse than other possibilities):
+
+  struct A {
+    operator int();
+    operator char *();
+  };
+  int main() {
+    A a;
+    a ? 1 : 2;  // Formerly got ambiguity error; now operator int()
+                // is selected.
+  }
+
 9/22/00  Diagnostics on extra text after preprocessing directives
 
 Previously, extraneous text following preprocessing directives was only
