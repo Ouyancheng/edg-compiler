@@ -61,20 +61,13 @@ yet been defined.
         }  /* if */
 #endif /* DEBUG */
         rescan_reusable_cache(p_token_cache);
+#if CHECKING
+        if (curr_token != tok_lbrace && curr_token != tok_colon) {
+          internal_error("instantiate_template_class: bad 1st token in cache");
+        }  /* if */
+#endif /* CHECKING */
         (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
                          type, (a_routine_ptr)NULL);
-        if (curr_token == tok_struct) {
-          type->kind = (a_type_kind)tk_struct;
-        }  /* if */
-        /* Bypass "class", "struct" or "union". */
-        (void)get_token();
-        /* Bypass the identifier that follows it. */
-#if CHECKING
-        if (curr_token != tok_identifier) {
-          internal_error("instantiate_template_class: missing identifier");
-        }  /* if */
-#endif /* if CHECKING */
-        (void)get_token();
         /* Scan the base specifiers list, if any, and the body of the the
            class. */
         (void)scan_class_definition(type, DEPTH_OF_FILE_SCOPE,
@@ -178,7 +171,6 @@ no need to actually instantiate X<int> in the example above.
 {
   a_symbol_ptr                      sym, prev_sym;
   a_template_arg_ptr                old_list;
-  a_type_kind                       type_kind;
   a_type_ptr                        class_type;
   a_template_symbol_supplement_ptr  tssp;
 
@@ -218,15 +210,8 @@ no need to actually instantiate X<int> in the example above.
     sym->next = tssp->variant.class.instantiations;
     tssp->variant.class.instantiations = sym;
     /* Now create a new type entry. */
-    if (sym->kind == (a_symbol_kind)sk_union_tag) {
-      type_kind = (a_type_kind)tk_union;
-    } else {
-      /* Classes and structs are functionally equivalent.  If the type needs
-         to be changed to tk_struct, that will be done during the full
-         instantiation. */
-      type_kind = (a_type_kind)tk_class;
-    }  /* if */
-    sym->variant.class_struct_union.type = class_type = alloc_type(type_kind);
+    class_type = alloc_type(tssp->variant.class.type_kind);
+    sym->variant.class_struct_union.type = class_type;
     /* Record the argument list in the type.  It should be available in the
        IL at least for name generation and possibly for debuggers, too. */
     class_type->variant.class_struct_union.extra_info->
@@ -263,34 +248,39 @@ is not a class declaration, return FALSE.
   a_boolean         is_class_template_decl = FALSE;
   a_symbol_locator  locator;
   a_symbol_ptr      sym = NULL;
+  a_token_cache     local_token_cache;
+  a_type_kind       type_kind;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_class || curr_token == tok_struct ||
       curr_token == tok_union) {
+    switch (curr_token) {
+      case tok_class:  type_kind = (a_type_kind)tk_class;  break;
+      case tok_struct: type_kind = (a_type_kind)tk_struct; break;
+      case tok_union:  type_kind = (a_type_kind)tk_union;  break;
+    }  /* switch */
     /* This appears to be a class template declaration -- though it could
        be a function template declaration with a return type using one of
        these keywords.  We'll proceed on the assumption that it is indeed
        a class template until we see evidence to the contrary. */
     is_class_template_decl = TRUE;
-    /* Bypass "class", "struct", or "union".  The token has to be cached
-       because instantiation is done by class_specifier, which expects it. */
-    cache_curr_token(p_token_cache);
+    /* Bypass "class", "struct", or "union".  It has to be cached in case it
+       has to be rescanned as part of a function template declaration. */
+    clear_token_cache(&local_token_cache);
+    cache_curr_token(&local_token_cache);
     (void)get_token();
     /* Next should be the class name. */
     if (!is_qualified_name_start()) {  /* Identifier or "::". */
       /* Not an identifier.  Cache a dummy identifier token and proceed. */
       error(ec_exp_identifier);
-      curr_token = tok_identifier;
-      set_to_error_locator(locator_for_curr_id);
-      cache_curr_token(p_token_cache);
-      locator = locator_for_curr_id;
+      set_to_error_locator(locator);
     } else {
       /* Look up the identifier.  If it's a qualified name there will be an
          error down the line. */
       sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
       /* Cache the identifier and advance past it so we can discriminate
          between a class template and a function template. */
-      cache_curr_token(p_token_cache);
+      cache_curr_token(&local_token_cache);
       locator = locator_for_curr_id;
       (void)get_token();
       if (is_declarator_start()) {
@@ -299,12 +289,8 @@ is not a class declaration, return FALSE.
            to the caller, but first rewind to the start of the return type
            declaration. */
         is_class_template_decl = FALSE;
-#if 0
-        reset_token_cache_persistence(p_token_cache);
-#endif /* if 0 */
-        rescan_cached_tokens(p_token_cache);
+        rescan_cached_tokens(&local_token_cache);
         sym = NULL;
-        clear_token_cache(p_token_cache);
         goto done;
       }  /* if */
       /* Now check for a qualified name.  If it is, set the locator to an
@@ -317,6 +303,9 @@ is not a class declaration, return FALSE.
         sym = NULL;
       }  /* if */
     }  /* if */
+    /* We needed local_token_cache only in case this was not a class
+       template declaration.  But now we can assume it is. */
+    discard_token_cache(&local_token_cache);
     /* If get_normal_id_or_qualified_name returned something, we may have a
        name conflict or a redefinition. */
     if (sym != NULL) {
@@ -336,11 +325,16 @@ is not a class declaration, return FALSE.
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
                          DEPTH_OF_FILE_SCOPE, /*suppress_redecl_error=*/FALSE);
     }  /* if */
+    /* Save the type kind (corresponding to the class/struct/union token)
+       in the class template symbol's supplement -- it will be needed when
+       type entries for instantiations are created. */
+    sym->variant.template.extra_info->variant.class.type_kind = type_kind;
     /* If this is a class template definition, continue caching all the tokens
        that comprise it. */
     if (curr_token == tok_colon || curr_token == tok_lbrace) {
       sym->defined = TRUE;
-      /* Now scan the remaining tokens. */
+      /* Now scan the remaining tokens.  The token cache should already have
+         been initialized. */
       add_stop_token(tok_semicolon);
       if (curr_token == tok_colon) {
         /* Scan the tokens in the base class declarations, stopping when
@@ -375,11 +369,6 @@ is not a class declaration, return FALSE.
     } else {
       /* This is not a class template declaration, so we have no need to
          cache the tokens. */
-#if 0
-      free_token_cache(p_token_cache);
-#else
-      clear_token_cache(p_token_cache);
-#endif /* if 0 */
     }  /* if */
     /* Note that the semicolon is not cached. */
     (void)required_token(tok_semicolon, ec_exp_semicolon);
@@ -539,7 +528,7 @@ to represent the template parameters.
 #endif /* if 0 */
       /* Enter a symbol and bind an error constant to it temporarily.  At the
          point of instantiation an actual constant will be substituted. */
-      sym = enter_symbol((a_symbol_kind)sk_constant, &locator_for_curr_id,
+      sym = enter_symbol((a_symbol_kind)sk_constant, &param_locator,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);
       sym->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
       sym->variant.constant->type = param_type_ptr;
@@ -569,9 +558,28 @@ to represent the template parameters.
 
 void template_declaration(void)
 /*
+Scan a C++ template declaration.  Syntax:
+
+  template-declaration:
+
+    template < template-argument-list > declaration
+
+  template-argument:
+
+    type-argument
+    argument-declaration
+
+  type-argument:
+
+    class identifier
+
+Template declarations will declare either a class template or a function
+template; in the latter case the template argument list may include only
+type-arguments. During the scan of the template declaration a special scope
+entry is pushed on the scope stack.
 */
 {
-  a_template_param_ptr              template_param, template_param_list = NULL;
+  a_template_param_ptr              tpp, template_param_list = NULL;
   a_symbol_ptr                      sym;
   a_token_cache                     token_cache;
   a_template_symbol_supplement_ptr  tssp;
@@ -605,8 +613,19 @@ void template_declaration(void)
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
   clear_token_cache(&token_cache);
-  if (!class_template_declaration(&sym, &token_cache)) {
+  if (class_template_declaration(&sym, &token_cache)) {
+    /* The declaration was successfully scanned as a class template
+       declaration. */
+  } else {
+    /* It must be a function template declaration. */
     function_template_declaration(&sym, &token_cache);
+    /* Go back through the template params and be sure there are only type
+       args.  The other kind is allowed only for class templates. */
+    for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+      if (tpp->param_symbol->kind != (a_symbol_kind)sk_type) {
+        pos_error(ec_not_a_type_arg, &tpp->param_symbol->decl_position);
+      }  /* if */
+    }  /* for */
   }  /* if */
   tssp = sym->variant.template.extra_info;
   tssp->parameters = template_param_list;
