@@ -5484,6 +5484,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
   an_operand        operand_2;
   a_source_position operator_position;
   a_boolean         err = FALSE, processed = FALSE;
+  a_boolean         bitwise_assignment_allowed;
   a_type_ptr        result_type;
 
   db_enter(4, "scan_simple_assignment_operator");
@@ -5506,15 +5507,17 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
   } else {
-    /* The type of the assignment is the destination type with any qualifiers
-       dropped. */
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand_1->type)) {
       /* Look for C++ operator overloading cases. */
+      bitwise_assignment_allowed = 
+                                 symbol_supplement_for_class(operand_1->type)->
+                                            assignment_by_bitwise_copy_allowed;
       check_for_operator_overloading((an_opname_kind)onk_assign,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/TRUE,
-                                     /*has_predef_meaning=*/TRUE,
+                                     /*has_predef_meaning=*/
+                                                    bitwise_assignment_allowed,
                                      operand_1, &operand_2,
                                      expression_kind, &operator_position,
                                      result, &processed);
@@ -5538,6 +5541,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 #if ASSIGNMENT_TO_THIS_ALLOWED
       }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+      /* The type of the assignment is the destination type with any qualifiers
+         dropped. */
       result_type = make_unqualified_type(operand_1->type);
       /* It's okay for operand_2 to be an indefinite function. */
       do_operand_transformations(&operand_2,
