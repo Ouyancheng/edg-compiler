@@ -1383,8 +1383,7 @@ typedef struct a_template_symbol_supplement {
       a_symbol_ptr
 		prototype_instantiation;
 			/* Points to the symbol representing the prototype
-			   instantiation.  The prototype instantiation is
-			   also on the instantiations list above. */
+			   instantiation. */
       a_symbol_ptr
 		partial_specializations;
 			/* A list of class template symbols for partial
