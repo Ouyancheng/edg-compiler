@@ -8469,6 +8469,49 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 #endif /* RECORD_MACROS_IN_IL */
 #if MAINTAIN_NEEDED_FLAGS
 
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+static a_boolean eliminate_unneeded_scope_orphaned_list_headers(
+                                                       a_scope_ptr    scope,
+                                                       a_routine_ptr  rp)
+/*
+*/
+{
+  a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
+  a_scope_ptr                       sp;
+  a_boolean                         done = FALSE;
+
+  if (scope->types || scope->variables
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      || scope->src_seq_sublist_list != NULL
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                                            ) {
+    prev_solhp = NULL;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = next_solhp) {
+      next_solhp = solhp->next;
+      if (solhp->assoc_routine == rp) {
+        if (prev_solhp == NULL) {
+          il_header.scope_orphaned_list_headers = next_solhp;
+        } else {
+          prev_solhp->next = next_solhp;
+        }  /* if */
+        solhp->next = NULL;
+      }  /* if */
+    }  /* for */
+    done = TRUE;
+  } else {
+    for (sp = scope->scopes; sp != NULL; sp = sp->next) {
+      if (eliminate_unneeded_scope_orphaned_list_headers(sp, rp)) {
+        done = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return done;
+}  /* eliminate_unneeded_scope_orphaned_list_headers */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
 */
@@ -8665,6 +8708,31 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
 #endif /* DEBUG */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* Loop through the memory regions.  Skip the front end and file scope
+       memory regions. */
+    a_memory_region_number  n;
+    a_scope_ptr             sp;
+
+    for (n = FILE_SCOPE_REGION_NUMBER + 1;
+         n <= highest_used_region_number; ++n) {
+      if (mem_region_table[n] == NULL) {
+        /* This memory has aleady been freed. */
+      } else {
+        sp = il_header.region_scope_entry[n];
+        check_assertion(sp->kind == (a_scope_kind)sck_function);
+        rp = sp->variant.routine.ptr;
+        if (!rp->source_corresp.needed) {
+          rp->defined = FALSE;
+          rp->assoc_scope = NULL;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+          (void)eliminate_unneeded_scope_orphaned_list_headers(sp, rp);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+          free_memory_region(n);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   db_exit();
 }  /* eliminate_unneeded_il_entries */
 
