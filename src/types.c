@@ -1470,8 +1470,22 @@ not compared.
             param_2_type = default_argument_promotion(param_2_type);
           }  /* if */
         }  /* if */
-        if (!f_types_are_compatible(param_1_type, param_2_type,
-                                    allow_error_type)) {
+        if (f_types_are_compatible(param_1_type, param_2_type,
+                                   allow_error_type)) {
+          /* The parameter types are compatible. */
+#if PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED
+        } else if (!strict_ansi_mode && is_integral_type(param_1_type) &&
+                   f_types_are_compatible(param_1_type, list2->type,
+                                          allow_error_type)) {
+          /* As an extension, allow a case like
+               void f(char);
+               void f(c) char c; {}
+             if we know that in this implementation integer arguments
+             to prototyped functions are passed like integer arguments
+             to unprototyped functions, i.e., they are widened, perhaps
+             because they are passed in a register. */
+#endif /* PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED */
+        } else {
           /* The parameter types are not compatible. */
           goto funcs_not_compatible;
         }  /* if */

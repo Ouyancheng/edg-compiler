@@ -45,13 +45,31 @@ option.
 */
 #define DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS FALSE
 
-
 /*
 Flag that is TRUE to allow anachronisms to be accepted in the source
 language.  This is the default value for a flag that can be modified by
 a command line option.
 */
 #define DEFAULT_ALLOW_ANACHRONISMS TRUE
+
+/*
+Flag that is TRUE if integer arguments to prototyped functions are passed
+the same way as integer arguments to unprototyped functions, i.e., they are
+widened to something like "int", for example by being passed in a register.
+This relaxes an aspect of type-compatibility checking.  When this is TRUE,
+something like
+
+  void f(char);
+  void f(c) char c; {}
+
+is accepted in normal (non-strict) mode.  ANSI C says the two declarations
+above are not compatible, because an argument to the old-style function
+must be widened, whereas the argument to the prototyped function may or may
+not be widened depending on the implementation.  If we can say "this
+implementation always does widening," the two declarations can be
+considered compatible.
+*/
+#define PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED TRUE
 
 #endif /* ifndef LANG_FEAT_H */
 
