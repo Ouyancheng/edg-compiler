@@ -1,5 +1,12 @@
 Version 2.06
 
+5/3/92  Support for access declarations of overloaded functions
+
+Prior to this change, compiling a program that contained an access
+adjustment of an overloaded function resulted in an internal error (in
+new_access_adjustment).  That has been fixed, along with some minor bugs
+in processing access declarations.
+
 -------------------------------------------------------------------------------
 Version 2.05, April 30, 1992
 
