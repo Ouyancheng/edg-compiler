@@ -1098,10 +1098,12 @@ by octl.
         octl->output_str(")");
       }
       break;
+#if !C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
       form_float_kind_name(type->variant.float_kind, octl);
       octl->output_str(" complex");
       break;
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED */
     case tk_stmt_label:
       octl->output_str("<stmt-label>");
       break;
@@ -2903,9 +2905,9 @@ precedence confusion.  Do the output in the way described by octl.
 */
 {
   a_constant_repr_kind kind = constant->kind;
-#ifdef FFE
+#if defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED
   a_float_kind         fkind;
-#endif /* ifdef FFE */
+#endif /* defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED */
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, is_enum;
   a_boolean            need_reinterpret_cast = FALSE;
@@ -3169,7 +3171,7 @@ precedence confusion.  Do the output in the way described by octl.
       octl->output_str(")");
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FFE
+#if defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
       /* Complex constant. */
       fkind = con_type->variant.float_kind;
@@ -3181,7 +3183,7 @@ precedence confusion.  Do the output in the way described by octl.
                                     &constant->variant.complex_value->imag));
       octl->output_str(")");
       break;
-#endif /* ifdef FFE */
+#endif /* defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
     case ck_address:
       /* Address constant. */

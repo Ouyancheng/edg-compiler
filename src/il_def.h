@@ -1142,13 +1142,13 @@ enum a_constant_repr_kind_tag {
                            strings, as well as for CHARACTER constants. */
 #endif /* ifdef FIL */
   ck_float,             /* All sizes of float. */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+  ck_complex,           /* All sizes of C99's _Complex types.
+                           Also: Fortran Complex. */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-  ck_complex,       /* All sizes of C99's _Complex types. */
-  ck_imaginary,     /* All sizes of C99's _Imaginary types. */
+  ck_imaginary,         /* All sizes of C99's _Imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  ck_complex,           /* Complex. */
-#endif /* ifdef FIL */
 #ifdef CIL
   ck_address,           /* Address. */
   ck_ptr_to_member,	/* C++ pointer-to-member (data or function). */

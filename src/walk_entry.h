@@ -727,14 +727,15 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_unknown:
           case tk_void:
           case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
           case tk_complex:
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
           case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FFE
           case tk_fcharacter:
           case tk_hollerith:
-          case tk_complex:
           case tk_stmt_label:
           case tk_format:
           case tk_association:
