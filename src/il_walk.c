@@ -620,9 +620,9 @@ as needed.
 
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 
-static void set_per_instantiation_needed_flag(char             *entry_ptr,
-                                              an_il_entry_kind entry_kind,
-                                              unsigned long    bit_number)
+void set_per_instantiation_needed_flag(char             *entry_ptr,
+                                       an_il_entry_kind entry_kind,
+                                       unsigned long    bit_number)
 /*
 Set the per-instantiation "needed" bit numbered bit_number to indicate
 everything referenced from the indicated externally-defined entity

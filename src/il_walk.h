@@ -96,6 +96,12 @@ extern void walk_routine_scope_il(
 #endif /* IL_WALK_NEEDED */
 
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+extern void set_per_instantiation_needed_flag(char             *entry_ptr,
+                                              an_il_entry_kind entry_kind,
+                                              unsigned long    bit_number);
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+
 extern void mark_as_needed(char             *entry_ptr,
                            an_il_entry_kind entry_kind);
 
