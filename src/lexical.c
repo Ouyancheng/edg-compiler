@@ -957,6 +957,7 @@ is TRUE.
           /* Attention marker.  Find the associated source line modification
              and process it. */
           go_into_insertion(slmp, loc_in_line);
+          token_start = TRUE;
         } else if (ch == '\0') {
           /* Null indicates either the end of the whole line or the end
              of a macro expansion.  Find out which. */
@@ -1183,6 +1184,7 @@ f_raw_listing != NULL.
         /* Attention marker.  Find the associated source line modification
            and process it. */
         go_into_insertion(slmp, loc_in_line);
+        token_start = TRUE;
         if (!slmp->is_for_comment) {
           /* Keep track of whether or not there are noncomment (i.e., macro)
              modifications in the lines in the buffer. */
