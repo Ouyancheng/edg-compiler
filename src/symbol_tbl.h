@@ -568,7 +568,7 @@ typedef struct a_template_param {
   a_type_ptr    param_type;
                         /* Type entry for a formal parameter.  A unique type
                            entry is created for each template type
-                           paramter. */
+                           parameter. */
 } a_template_param;
 
 
@@ -665,7 +665,7 @@ typedef struct a_template_symbol_supplement {
       a_type_kind
 		type_kind;
 			/* The kind (tk_class, tk_struct, or tk_union) which
-			   is instatiated types will have. */
+			   the instantiated types will have. */
       a_symbol_ptr
 		member_function_templates;
 			/* Pointer to a linked list of sk_function_template

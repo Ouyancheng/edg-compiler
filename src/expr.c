@@ -6290,7 +6290,7 @@ bound_function_selector to the associated "this" pointer.
 
   /* If the identifier is the start of a C++ qualified name, get the whole
      name.  If not, look the name up as a normal identifier.  This routine
-     also handles operator names.s */
+     also handles operator names. */
   sym_ptr = coalesce_and_lookup_generalized_identifier
              (GID_NO_OPTIONS, ilm_normal, &err);
   if (locator_for_curr_id.is_semivisible_nested_type) {

@@ -3288,7 +3288,7 @@ skip_overloading:;
 #endif /* CHECKING */
       /* This is a declaration of a template function at the local scope.
          A function instantiation entry with an associated symbol and routine
-         entry aleady exist.  Be sure this local symbol is properly bound
+         entry already exist.  Be sure this local symbol is properly bound
          to the file-scope entities to which it corresponds. */
       sym->variant.routine.instance_ptr =
                                   linked_symbol->variant.routine.instance_ptr;
@@ -4443,7 +4443,7 @@ otherwise it is NULL.  The syntax is:
           }  /* if */
         }  /* if */
         if (err) {
-         /* An error occured while scanning the identifier -- use an error
+         /* An error occurred while scanning the identifier -- use an error
             locator. */
          set_to_error_locator(locator_for_curr_id);
         }  /* if */
@@ -4868,7 +4868,7 @@ caution when modifying this routine.
       if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
         tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
                                                     &err);
-        /* If an error occured while scanning the template arguments, set
+        /* If an error occurred while scanning the template arguments, set
            tag_sym to NULL.  The caller is not prepared for it to point to
            an error symbol. */
         if (err) tag_sym = NULL;

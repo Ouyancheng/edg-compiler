@@ -126,7 +126,7 @@ static a_function_instantiation_entry_ptr  instantiations_required_tail;
 
 #if DEBUG
 #define DEBUG_LINE_LENGTH 79
-/* Mmacros used within db_symbol, referencing local variables defined
+/* Macros used within db_symbol, referencing local variables defined
    in that routine. */
 /* put_separator appends the separator to the current line, along with a
    blank if the line still has room for sting_len additional characters;
@@ -151,7 +151,7 @@ static a_function_instantiation_entry_ptr  instantiations_required_tail;
   col += strlen((str));						\
 }  /* put_string */
 
-/* Determines whether the current line has a certain amount of rrom left. */
+/* Determines whether the current line has a certain amount of room left. */
 #define space_left(size)  (DEBUG_LINE_LENGTH - (size) + 1 >= col)
 
 
@@ -1542,7 +1542,7 @@ the new name and relink it into the symbol table under the new header.
 a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr  new_sym,
                                          a_symbol_ptr  other_sym)
 /*
-new_sym is a newly created function (or funtion template) symbol that
+new_sym is a newly created function (or function template) symbol that
 shares a name with other_sym, which is either an overloaded function symbol
 or another function or function template symbol.  If necessary, create an
 overloaded function symbol and add other_sym to its list.  Add new_sym to

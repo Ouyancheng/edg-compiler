@@ -721,7 +721,7 @@ yet been created, extend the template argument list to include n entries.
 
   db_enter(5, "matches_template_type");
   if (templ_type->kind == (a_type_kind)tk_template_param) {
-    /* A real type "matches" a template parameter type if it is idential to
+    /* A real type "matches" a template parameter type if it is identical to
        the real type, if any, that was previously associated with that
        template type. */
     /* For the nth template parameter find the nth template argument.  If
@@ -976,7 +976,7 @@ templ_sym).
   /* Allocate the template function symbol.  Note that it is not entered
      into the symbol table -- it will appear on a function instantiation
      list under the function template symbol and, optionally, in the overload
-     list if it is also explicity declared by the user. */
+     list if it is also explicitly declared by the user. */
   sym = make_template_function_symbol(templ_sym, source_pos);
   tssp = templ_sym->variant.template.extra_info;
   templ_rout = tssp->variant.function.routine;
@@ -1195,7 +1195,7 @@ void record_predeclared_template_function(a_symbol_ptr  templ_sym,
 
   db_enter(3, "record_predeclared_template_function");
   if (rout_sym->variant.routine.instance_ptr != NULL) {
-    /* Symbol is already marked as an instantatiation. */
+    /* Symbol is already marked as an instantiation. */
   } else {
     tp = skip_typerefs(rout_sym->variant.routine.ptr->type);
     if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym)) {
