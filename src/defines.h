@@ -527,6 +527,12 @@ Flags to be set when using the KAI inliner.
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
 
+/* Enable lowering of VLA constructs in all non-SELF_COMP non-CP_GEN_BE
+   versions. */
+#if !defined(CP_GEN_BE_VERSION) && !defined(SELF_COMP_VERSION)
+#define LOWER_VARIABLE_LENGTH_ARRAYS 1
+#endif /* !defined(CP_GEN_BE_VERSION) && !defined(SELF_COMP_VERSION) */
+
 /*
 Enable recognition of Microsoft attributes for internal versions.
 */
