@@ -5393,7 +5393,7 @@ Returns TRUE if there is an error in the specifiers.
               vacuous_decl_allowed = FALSE;
               goto process_class_specifier;
             }  /* if */
-	       }  /* if */
+          }  /* if */
 	}  /* if */
 	break;
       case tok_virtual:
