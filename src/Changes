@@ -1,5 +1,14 @@
 Version 2.28
 
+1/13/95 Internal error attempting to instantiate what should be a
+        nonreal class (found in STL example)
+
+A bug has been fixed that could result in an internal error. Under certain
+conditions the front end would attempt to generate an instantiation
+of a class for which one of the template parameters is, or contains
+another template parameter.  Such classes are supposed to be
+created as "nonreal" classes, not actual instantiations.
+
 1/12/95 Symbol reference kind for initializations
 
 A new symbol reference kind, SRK_INITIALIZATION, has been added for

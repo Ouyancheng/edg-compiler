@@ -1153,79 +1153,6 @@ instead of equivalence checking).
 }  /* equiv_template_arg_lists */
 
 
-/* Forward declaration for recursive reference. */
-static a_boolean template_arg_involves_template_param(a_template_arg_ptr tap);
-
-static a_boolean type_involves_template_param(a_type_ptr tp)
-/*
-Return TRUE if the type pointed to by tp is a template parameter type or
-has a template parameter (type or constant) in its type tree.
-*/
-{
-  a_boolean           found;
-
-  tp = skip_typerefs(tp);
-  switch (tp->kind) {
-    case tk_template_param:
-      found = TRUE;
-      break;
-    case tk_pointer:
-      found = type_involves_template_param(type_pointed_to(tp));
-      break;
-    case tk_array:
-      found = type_involves_template_param(underlying_array_element_type(tp));
-      break;
-    case tk_routine:
-      /* Check the return type and each parameter type. */
-      if (type_involves_template_param(tp->variant.routine.return_type)) {
-        found = TRUE;
-      } else {
-        a_param_type_ptr ptp = tp->variant.routine.extra_info->param_type_list;
-        found = FALSE;
-        for (; ptp != NULL; ptp = ptp->next) {
-          if (type_involves_template_param(ptp->type)) {
-            found = TRUE;
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      break;
-    case tk_ptr_to_member:
-      found = type_involves_template_param(pm_member_type(tp)) ||
-              type_involves_template_param(pm_class_type(tp));
-      break;
-    case tk_class:
-    case tk_struct:
-    case tk_union:
-      /* If the class is a nonreal class it may be assumed that it is based
-         on template parameters. */
-      found = (symbol_supplement_for_class(tp))->is_nonreal_class;
-#if CHECKING
-      if (!found) {
-        a_template_arg_ptr  tap;
-        tap = tp->variant.class_struct_union.extra_info->template_arg_list;
-        for (; tap != NULL; tap = tap->next) {
-          if (template_arg_involves_template_param(tap)) {
-            internal_error(
-                    "type_involves_template_param: bad is_nonreal_class flag");
-          }  /* if */
-        }  /* for */
-      }  /* if */
-#endif /* CHECKING */
-      break;
-    case tk_error:
-#if 0
-/* Is this correct?? */
-#endif /* if 0 */
-      found = FALSE;
-      break;
-    default:
-      found = FALSE;
-  }  /* switch */
-  return found;
-}  /* type_involves_template_param */
-
-
 static a_boolean template_arg_involves_template_param(a_template_arg_ptr tap)
 /*
 Return TRUE if the template argument entry pointed to by tap contains
@@ -1235,7 +1162,7 @@ a template parameter (type or constant).
   a_boolean  template_param_found;
 
   if (tap->is_type) {
-    template_param_found = type_involves_template_param(tap->variant.type);
+    template_param_found = is_or_contains_template_param(tap->variant.type);
   } else {
     template_param_found = (tap->variant.constant->kind ==
                                  (a_constant_repr_kind)ck_template_param);
