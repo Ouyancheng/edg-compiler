@@ -1130,6 +1130,38 @@ based on the information specified in the pragma description entry.
 }  /* cache_pragma_tokens */
 
 
+static void enter_pending_pragma(a_pragma_kind_description_ptr  pkdp,
+                                 a_source_position              *directive_pos,
+                                 a_source_position              *id_pos)
+/*
+Scan the current pragma directive, which has already been determined to be
+of a kind associated with the entry pointed to pkdp.  It may be recorded as
+either a token cache or as a character string.  *directive_pos is the source
+position of the start of the directive; *id_pos is the source position of
+the pragma identifier.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+
+  ppp = alloc_pending_pragma(pkdp);
+  ppp->id_position = *id_pos;
+  ppp->pragma_position = *directive_pos;
+  if (pkdp->make_text_not_tokens) {
+    /*  The character string representation is usually used for pragmas that
+        are to be passed to the C or C++ generating back end, but may be
+        used for other pragmas in which a character string is simpler to
+        manipulate. */
+    convert_pragma_to_string(ppp, pkdp);
+  } else {
+    /* Cache the tokens that make up the pragma directive. */
+    cache_pragma_tokens(ppp, pkdp);
+  }  /* if */
+  /* Add this pragma to the list of pragmas associated with the
+     current token. */
+  add_to_curr_token_pragma_list(ppp);
+}  /* enter_pending_pragma */
+
+
 static void proc_pragma(a_source_position *start_of_dir_position)
 /*
 Scan and process a #pragma directive.
@@ -1200,26 +1232,10 @@ Scan and process a #pragma directive.
         }  /* if */
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
         if (pkdp != NULL) {
-          /* Scan the pragma directive.  The pragma statement may be recorded
-             as either a token cache or as a character string.  The character
-             string representation is usually used for pragmas that are to
-             be passed to the C or C++ generating back end, but may be used for
-             other pragmas in which a character string is simpler to
-             manipulate. */
-          a_pending_pragma_ptr	ppp;
+          /* Scan the pragma directive, recording it as either a token cache
+             or as a character string. */
+          enter_pending_pragma(pkdp, start_of_dir_position, &id_position);
           processed = TRUE;
-          ppp = alloc_pending_pragma(pkdp);
-          ppp->id_position = id_position;
-          ppp->pragma_position = *start_of_dir_position;
-          if (pkdp->make_text_not_tokens) {
-            convert_pragma_to_string(ppp, pkdp);
-          } else {
-            /* Cache the tokens that make up the pragma directive. */
-            cache_pragma_tokens(ppp, pkdp);
-          }  /* if */
-          /* Add this pragma to the list of pragmas associated with the
-             current token. */
-          add_to_curr_token_pragma_list(ppp);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1233,7 +1249,10 @@ Scan and process a #pragma directive.
 }  /* proc_pragma */
 
 
-static void proc_ident(void)
+#if !IDENT_PRAGMA
+/*ARGSUSED*/ /* <-- *directive_pos is only used in emulating a pragma. */
+#endif /* !IDENT_PRAGMA */
+static void proc_ident(a_source_position  *directive_pos)
 /*
 Scan and process a #ident directive.
 */
@@ -1243,10 +1262,49 @@ Scan and process a #ident directive.
        directive unchanged to output. */
     pass_directive_to_output();
   } else {
+#if IDENT_PRAGMA
+    enter_pending_pragma(pragma_description_for_pragma_kind[(int)pk_ident],
+                         directive_pos, &pos_curr_token);
+#else /* !IDENT_PRAGMA */
     /* Ignore the directive. */
     flush_to_newline();
+#endif /* IDENT_PRAGMA */
   }  /* if */
 }  /* proc_ident */
+
+
+#if IDENT_PRAGMA
+void ident_pragma(a_pending_pragma_ptr ppp)
+/*
+Process a cached #pragma ident directive.  The syntax is:
+
+  #pragma ident <string>
+
+where <string> is a quoted character string (not wide chars).
+*/
+{
+  a_stop_token_array save_stop_tokens_array;
+  a_boolean          err = FALSE;
+  a_constant_ptr     cp;
+
+  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  if (curr_token != tok_string_literal ||
+      is_error_constant(&const_for_curr_token) ||
+      char_int_kind_from_string_type(const_for_curr_token.type) !=
+                                                 plain_char_int_kind) {
+    error(ec_bad_ident_string);
+    err = TRUE;
+  } else {
+    cp = alloc_unshared_constant(&const_for_curr_token);
+    (void)get_token();
+  }  /* if */
+  wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
+  if (!err) {
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+    ppp->il_pragma_entry->variant.ident_string = cp;
+  }  /* if */
+}  /* ident_pragma */
+#endif /* IDENT_PRAGMA */
 
 
 #if ALIAS_DIRECTIVE
@@ -1364,7 +1422,7 @@ execute the preprocessor directive.
   /* See if this directive marks the header stop position.  If so,
      after processing the directive, we need to call
      generate_precompiled_header. */
-  local_is_header_stop_dir =is_header_stop_position(start_of_dir_position);
+  local_is_header_stop_dir = is_header_stop_position(start_of_dir_position);
   if (is_header_stop_dir || local_is_header_stop_dir) {
     if (dir_kind == ppd_include) {
       /* When we have completed scanning of this include file, generate
@@ -1421,7 +1479,7 @@ execute the preprocessor directive.
         break;
       case ppd_ident:
         nonstandard_pp_directive();
-        proc_ident();
+        proc_ident(&start_of_dir_position);
         break;
 #if ALIAS_DIRECTIVE
       case ppd_alias:
@@ -1480,7 +1538,7 @@ execute the preprocessor directive.
     /* We are building the precompiled header prefix information.  Simply
        record information about the preprocessing directive that was
        encountered. */
-   pch_prefix_processing_for_pp_directive(dir_kind, &start_of_dir_position);
+    pch_prefix_processing_for_pp_directive(dir_kind, &start_of_dir_position);
   }  /* if */
   /* Restore the stop token set as at entry. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
