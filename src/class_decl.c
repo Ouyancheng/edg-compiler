@@ -9954,6 +9954,32 @@ one of its direct base classes.
 }  /* check_base_class_destructors */
 
 
+static a_boolean is_template_conversion_to_same_type(
+						a_symbol_ptr	sym1,
+						a_symbol_ptr	sym2)
+/*
+Return TRUE if sym1 and sym2 are conversion templates that convert to the
+same type.
+*/
+{
+  a_type_ptr	tp1, tp2;
+  a_boolean	result;
+  sym1 = fundamental_symbol_of(sym1);
+  check_assertion(sym1->kind == (a_symbol_kind)sk_function_template);
+  tp1 = sym1->variant.template_info->variant.function.
+                                    routine->type->variant.routine.return_type;
+  sym2 = fundamental_symbol_of(sym2);
+  check_assertion(sym2->kind == (a_symbol_kind)sk_function_template);
+  tp2 = sym2->variant.template_info->variant.function.
+                                    routine->type->variant.routine.return_type;
+  /* Nesting depths are ignored for this comparison because "operator T()"
+     and "operator X()" should be considered identical even if one is
+     more deeply nested than the other. */
+  result = f_identical_types(tp1, tp2, ITF_IGNORE_NESTING_DEPTH);
+  return result;
+}  /* is_template_conversion_to_same_type */
+
+
 static void check_base_class_conversion_list(a_type_ptr       class_type,
                                              a_base_class_ptr base_class,
                                              a_boolean        is_template_list,
@@ -9982,7 +10008,10 @@ class_type.  Set *updated if a projection symbol is created.
       slep = is_template_list ? cssp->conversion_template_list :
                                 cssp->conversion_list;
       for (; slep != NULL; slep = slep->next) {
-        if (slep->symbol->header == bcslep->symbol->header) {
+        if (slep->symbol->header == bcslep->symbol->header ||
+            (is_template_list &&
+             is_template_conversion_to_same_type(slep->symbol,
+                                                 bcslep->symbol))) {
           /* A conversion to the same type.  If this is from the current class
              (i.e., it is not a projection symbol) we should ignore the one
              from the base class.  If the entry on the current class list
@@ -9994,34 +10023,25 @@ class_type.  Set *updated if a projection symbol is created.
             break;
           } else if (!slep->symbol->variant.projection.is_using_decl) {
             /* A projection symbol, but not from a using-declaration.  Ignore
-               this entry if it refers to the same function as one already
-               on the list. */
+               this entry if it refers to the same function or template
+               as one already on the list. */
             a_symbol_ptr	fund_curr_sym =
                                            fundamental_symbol_of(slep->symbol);
             a_symbol_ptr	fund_base_sym =
                                          fundamental_symbol_of(bcslep->symbol);
-            if (same_entities(fund_curr_sym->variant.routine.ptr,
-                              fund_base_sym->variant.routine.ptr)) {
-              break;
-	    }  /* if */
-          }  /* if */
-        } else if (is_template_list) {
-          a_type_ptr  tp1, tp2;
-          sym = fundamental_symbol_of(slep->symbol);
-          check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
-          tp1 = sym->variant.template_info->variant.function.
-                               routine->type->variant.routine.return_type;
-          sym = fundamental_symbol_of(bcslep->symbol);
-          check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
-          tp2 = sym->variant.template_info->variant.function.
-                               routine->type->variant.routine.return_type;
-          if (f_identical_types(tp1, tp2, ITF_IGNORE_NESTING_DEPTH)) {
-            /* The base conversion template converts to the same type as
-               the current class.  Ignore it.  Nesting depths are ignored
-               for this comparison because "operator T()" and "operator X()"
-               should be considered identical even if one is more deeply
-               nested than the other. */
-            break;
+            if (fund_curr_sym->kind == (a_symbol_kind)sk_function_template) {
+              if (same_entities(fund_curr_sym->variant.template_info->
+                                         il_template_entry->canonical_template,
+                                fund_base_sym->variant.template_info->
+                                     il_template_entry->canonical_template)) {
+                break;
+              }  /* if */
+            } else {
+              if (same_entities(fund_curr_sym->variant.routine.ptr,
+                                fund_base_sym->variant.routine.ptr)) {
+                break;
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* for */
