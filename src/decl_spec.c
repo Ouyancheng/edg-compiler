@@ -945,19 +945,6 @@ skip_tag_scan:
                                 (a_name_linkage_kind)nlk_cplusplus_external;
         }  /* if */
       }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-      /* If the current declaration coexists with another declaration in the
-         current scope that effectively hides it, record that information in
-         the IL. */
-      if (!tag_sym->is_error && !is_unnamed_tag_symbol(tag_sym)) {
-        if (tag_sym->header->symbol != tag_sym &&
-            tag_sym->header->symbol->decl_scope == tag_sym->decl_scope) {
-          record_defeatable_name_hiding(tag_sym,
-                                        /*tag_hidden_by_nontag=*/TRUE,
-                                        (a_scope_ptr)NULL);
-        }  /* if */
-      }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
     srk_flags = SRK_DECLARATION;
     if (is_class_definition) srk_flags |= SRK_DEFINITION;
