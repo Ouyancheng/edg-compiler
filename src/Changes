@@ -1,6 +1,6 @@
 Version 2.17
 
-5/14/93 Diagnostic on initializing an aggregate without a initializer list
+5/14/93 Diagnostic on initializing an aggregate without an initializer list
 
 In C++ mode an error is now issued if an array is initialized other than
 with a brace-enclosed initializer list.
