@@ -5125,7 +5125,7 @@ Find a "semivisible" symbol for a member type that is no longer in scope
 by the normal lookup procedure but are visible according to the "nested
 class anachronism" (ARM 18.3.5) which, it turns out, applies in cfront to
 typedefs and enums as well.  They are visible as though they had been
-entered in the the file, function or block scope that is the containing
+entered in the file, function or block scope that is the containing
 nonclass scope (i.e., the declaration scope of the parent class).  Look
 for a qualifying symbol on the inactive list for the specified symbol
 locator.  In the case of an ambiguity, return NULL.
@@ -6398,7 +6398,7 @@ function).  Access control only exists in C++.
 
 /*
 Return TRUE if the scope stack entry kind is for something that should
-affect the the current declarative level.  In C, the current declarative
+affect the current declarative level.  In C, the current declarative
 level is the same as depth_scope_stack except when struct/union field
 scopes are active; when they are, it indicates the first non-struct-or-union
 scope.  In C++, struct/union/class scopes are real scopes; however,
