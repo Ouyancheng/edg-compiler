@@ -1,5 +1,58 @@
 Version 2.19
 
+6/30/93  Name lookup in classes whose base classes depend on template
+         parameters.
+
+We now allow template definitions to reference names that may not be
+defined until a real instantiation is done.  The declarations in
+class template A of member "a" and "b" were already accepted.  The
+declaration of "c" was rejected even though a specific definition of
+B<T> could be supplied that would make an instantiation of A possible.
+The error test on "X::Z" is now deferred until a real instantiation is
+attempted.
+
+Class templates with bases classes that are template parameters has
+been supported with limitations.  Most of these limitations have
+been eliminated by this change.  In class template C the checking
+of names such as X and X::Y is deferred until a real instantiation
+is attempted.
+
+  template <class T> struct B {
+    struct X {
+      struct Y {};
+    };
+  };
+
+  template <class T> struct A : public B<T> {  // Example 1
+    X  a;
+    X::Y  b;
+    X::Z  c;	// Not an error until a real instantiation is done
+  };
+
+  template <class T> struct C : public T {  // Example 2
+    X  a;
+    X::Y  b;
+  };
+
+  C<B> a;
+
+6/30/93  Using qualified names to reference members of class templates
+
+A bug has been fixed that would cause an error on the reference
+to AT::I in the example below.  The problem was caused by
+treating A<T> as a "prototype instantiation" when it should have
+been treated as a "nonreal" instantiation.
+
+  template <class T, class T2> struct AA {
+    typedef const T& I;
+  };
+  template <class T> struct A : public AA<T, int> { };
+  template <class T> struct B {
+    typedef A<T> AT;
+    typedef AT::I I;
+  };
+  B<int> b;
+
 6/28/93  Redundant type qualifiers
 
 Restrictions on redundant type qualifiers in C++ mode have been relaxed.
