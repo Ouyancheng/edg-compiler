@@ -2551,15 +2551,15 @@ Display the indicated class type supplement entry.
                      (unsigned long)ptr->virtual_function_info_offset);
   disp_name("anonymous_union_kind");
   switch (ptr->anonymous_union_kind) {
-    auk_none:
+    case auk_none:
       (void)printf("auk_none\n");
       break;
-    auk_variable:
+    case auk_variable:
       (void)printf("auk_variable\n");
       disp_ptr("variable", (char *)ptr->anonymous_union.variable,
                iek_variable);
       break;
-    auk_field:
+    case auk_field:
       (void)printf("auk_field\n");
       disp_ptr("field", (char *)ptr->anonymous_union.field,
                iek_field);

@@ -1256,13 +1256,13 @@ and the entry pointer is to an entry in the file scope, just return
                           (a_class_type_supplement_ptr)entry_ptr;
           walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
           switch (ptr->anonymous_union_kind) {
-            auk_none:
+            case auk_none:
               break;
-            auk_variable:
+            case auk_variable:
               remap_ptr(ptr->anonymous_union.variable, a_variable_ptr,
                         iek_variable);
               break;
-            auk_field:
+            case auk_field:
               remap_ptr(ptr->anonymous_union.field, a_field_ptr,
                         iek_field);
               break;
