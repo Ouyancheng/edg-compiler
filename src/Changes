@@ -1,5 +1,12 @@
 Version 2.23
 
+4/8/94   Cross-reference positions on qualified name references
+
+In qualified name references like x::y in an expression, the position
+indicated in the cross-reference entry for "y" has been the position of
+"x" (actually, the position of "x::y", that being the position of "x").
+That has been changed to the proper position.
+
 4/8/94   Name demangler
 
 A new utility program called edg_decode has been added.  When compiled

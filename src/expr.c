@@ -2287,7 +2287,7 @@ bound with the function in *bound_function_selector.
     if (member_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       rep = NULL;
     } else {
-      rep = ref_entry(member_sym, &pos_curr_token);
+      rep = ref_entry(member_sym, &member_position);
     }  /* if */
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
@@ -7361,7 +7361,7 @@ bound_function_selector to the associated "this" pointer.
     if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
       rep = NULL;
     } else {
-      rep = ref_entry(sym_ptr, &pos_curr_token);
+      rep = ref_entry(sym_ptr, &locator_for_curr_id.source_position);
     }  /* if */
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
