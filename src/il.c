@@ -9119,6 +9119,142 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 #endif /* RECORD_MACROS_IN_IL */
 #if MAINTAIN_NEEDED_FLAGS
 
+static void eliminate_references_from_befriended_entities(
+                                                     a_type_ptr  class_type)
+/*
+class_type is a class whose definition is being eliminated or that is being
+removed from the IL altogether.  In either case, if it has any friend
+declarations (class or funtions), those entities will have pointers back to
+class type.  Those back-pointers should be cleared.  In the process, the
+friend_classes and friend_routines pointers in class_type will also be
+cleared.
+*/
+{
+  a_class_type_supplement_ptr  ctsp, friend_ctsp;
+  a_type_ptr                   friend_class;
+  a_routine_ptr                friend_rout;
+  a_class_list_entry_ptr       clep, prev_clep, next_clep;
+
+  db_enter(4, "eliminate_references_from_befriended_entities");
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  /* Go through the befriended class. */
+  while (ctsp->friend_classes != NULL) {
+    friend_class = ctsp->friend_classes->class_type;
+    friend_ctsp = friend_class->variant.class_struct_union.extra_info;
+    if (friend_ctsp == NULL) {
+      /* This class must have been removed from the IL already (the extra_info
+         pointer is cleared when that happens). */
+      check_assertion(!il_entry_prefix_of(friend_class).keep_in_il);
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_elim")) {
+        fputs("  Befriended ", f_debug);
+        db_abbreviated_type(friend_class);
+        fputs(" is already eliminated", f_debug);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* if DEBUG */
+    } else {
+      /* Go through the list of classes that have specified friend_class
+         as a friend, find the entry that matches class_type, and link
+         around it. */
+      prev_clep = NULL;
+      clep = friend_ctsp->befriending_classes;
+      for (; clep != NULL; clep = next_clep) {
+        next_clep = clep->next;
+        if (clep->class_type == class_type) {
+#if DEBUG
+          if (debug_level >= 4 || db_flag_is_set("dump_elim")) {
+            fputs("  ", f_debug);
+            db_type_name(friend_class);
+            fputs(" no longer befriended by ", f_debug);
+            db_type_name(class_type);
+            fputc('\n', f_debug);
+          }  /* if */
+#endif /* if DEBUG */
+          /* A match -- link around it. */
+          if (prev_clep == NULL) {
+            friend_ctsp->befriending_classes = next_clep;
+          } else {
+            prev_clep->next = next_clep;
+          }  /* if */
+          /* Break out of the inner loop and continue the outer loop,
+             moving to the next class declared as a friend of class_type. */
+          break;
+        }  /* if */
+        /* No match -- keep looping. */
+        prev_clep = clep;
+      }  /* for */
+#if CHECKING
+      if (clep == NULL) {
+#if DEBUG
+        fprintf(f_debug, "class type: ");
+        db_abbreviated_type(class_type);
+        fprintf(f_debug, "\nfriend class: ");
+        db_abbreviated_type(friend_class);
+        fprintf(f_debug, "\n");
+#endif /* DEBUG */
+        unexpected_condition_str2(
+               "eliminate_references_from_befriended_entities",
+               "class not found among befriending_classes of friend class");
+      }  /* if */
+#endif /* CHECKING */
+    }  /* if */
+    /* Check the next friend class. */
+    ctsp->friend_classes = ctsp->friend_classes->next;
+  }  /* while */
+  /* Now go through the befriended routines. */
+  while (ctsp->friend_routines != NULL) {
+    friend_rout = ctsp->friend_routines->routine;
+    /* Go through the list of classes that have specified friend_rout as a
+       friend, find the entry that matches class_type, and link around it. */
+    prev_clep = NULL;
+    clep = friend_rout->befriending_classes;
+    for (; clep != NULL; clep = next_clep) {
+      next_clep = clep->next;
+      if (clep->class_type == class_type) {
+        /* A match -- link around it. */
+#if DEBUG
+          if (debug_level >= 4 || db_flag_is_set("dump_elim")) {
+            fputs("  Routine ", f_debug);
+            db_name(&friend_rout->source_corresp);
+            fputs(" no longer befriended by ", f_debug);
+            db_type_name(class_type);
+            fputc('\n', f_debug);
+          }  /* if */
+#endif /* if DEBUG */
+        if (prev_clep == NULL) {
+          friend_rout->befriending_classes = next_clep;
+        } else {
+          prev_clep->next = next_clep;
+        }  /* if */
+        /* Break out of the inner loop and continue the outer loop, moving
+           to the next routine declared as a friend of class_type. */
+        break;
+      }  /* if */
+      /* No match -- keep looping. */
+      prev_clep = clep;
+    }  /* for */
+#if CHECKING
+    if (clep == NULL) {
+#if DEBUG
+      fprintf(f_debug, "class type: ");
+      db_abbreviated_type(class_type);
+      fprintf(f_debug, "\nfriend rout: ");
+      db_name(&friend_rout->source_corresp);
+      fprintf(f_debug, "\n");
+#endif /* DEBUG */
+        unexpected_condition_str2(
+               "eliminate_references_from_befriended_entities",
+               "class not found among befriending_classes of friend routine");
+    }  /* if */
+#endif /* CHECKING */
+    /* Check the next friend function. */
+    ctsp->friend_routines = ctsp->friend_routines->next;
+  }  /* while */
+  db_exit();
+}  /* eliminate_references_from_befriended_entities */
+
+
 static void turn_class_definition_into_declaration(a_type_ptr  class_type)
 /*
 class_type identifies a class whose definition is not needed.  Turn the IL
@@ -9146,102 +9282,23 @@ entry into one representing a nondefining declaration.
   if (!C_mode()) {
     /* In C++ mode fix up the class-type-supplement and data structures
        pointed to from it. */
-    a_class_type_supplement_ptr  ctsp, friend_ctsp;
-    a_type_ptr                   friend_class;
-    a_routine_ptr                friend_rout;
-    a_class_list_entry_ptr       clep, prev_clep, next_clep;
+    a_class_type_supplement_ptr  ctsp;
     a_template_arg_ptr           template_arg_list;
+    a_class_list_entry_ptr       befriending_classes;
 
-    ctsp = class_type->variant.class_struct_union.extra_info;
     /* If the definition of class_type included friend declarations, the
        befriended classes and routines have pointers back to class_type.
        Those pointers have to be removed. */
-    /* Go through the befriended class. */
-    while (ctsp->friend_classes != NULL) {
-      friend_class = ctsp->friend_classes->class_type;
-      friend_ctsp = friend_class->variant.class_struct_union.extra_info;
-      if (friend_ctsp != NULL) {
-        /* Go through the list of classes that have specified friend_class
-           as a friend, find the entry that matches class_type, and link
-           around it. */
-        prev_clep = NULL;
-        clep = friend_ctsp->befriending_classes;
-        for (; clep != NULL; clep = next_clep) {
-          next_clep = clep->next;
-          if (clep->class_type == class_type) {
-            /* A match -- link around it. */
-            if (prev_clep == NULL) {
-              friend_ctsp->befriending_classes = next_clep;
-            } else {
-              prev_clep->next = next_clep;
-            }  /* if */
-            /* Break out of the inner loop and continue the outer loop,
-               moving to the next class declared as a friend of class_type. */
-            break;
-          }  /* if */
-          /* No match -- keep looping. */
-          prev_clep = clep;
-        }  /* for */
-#if CHECKING
-        if (clep == NULL) {
-#if DEBUG
-          fprintf(f_debug, "class type: ");
-          db_abbreviated_type(class_type);
-          fprintf(f_debug, "\nfriend class: ");
-          db_abbreviated_type(friend_class);
-          fprintf(f_debug, "\n");
-#endif /* DEBUG */
-          internal_error("friend class not found on befriending list");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* if */
-      /* Check the next friend class. */
-      ctsp->friend_classes = ctsp->friend_classes->next;
-    }  /* while */
-    /* Now go through the befriended routines. */
-    while (ctsp->friend_routines != NULL) {
-      friend_rout = ctsp->friend_routines->routine;
-      /* Go through the list of classes that have specified friend_rout as a
-         friend, find the entry that matches class_type, and link around it. */
-      prev_clep = NULL;
-      clep = friend_rout->befriending_classes;
-      for (; clep != NULL; clep = next_clep) {
-        next_clep = clep->next;
-        if (clep->class_type == class_type) {
-          /* A match -- link around it. */
-          if (prev_clep == NULL) {
-            friend_rout->befriending_classes = next_clep;
-          } else {
-            prev_clep->next = next_clep;
-          }  /* if */
-          /* Break out of the inner loop and continue the outer loop, moving
-             to the next routine declared as a friend of class_type. */
-          break;
-        }  /* if */
-        /* No match -- keep looping. */
-        prev_clep = clep;
-      }  /* for */
-#if CHECKING
-        if (clep == NULL) {
-#if DEBUG
-          fprintf(f_debug, "class type: ");
-          db_abbreviated_type(class_type);
-          fprintf(f_debug, "\nfriend rout: ");
-          db_name(&friend_rout->source_corresp);
-          fprintf(f_debug, "\n");
-#endif /* DEBUG */
-          internal_error("friend routine not found on befriending list");
-        }  /* if */
-#endif /* CHECKING */
-      /* Check the next friend function. */
-      ctsp->friend_routines = ctsp->friend_routines->next;
-    }  /* if */
+    eliminate_references_from_befriended_entities(class_type);
     /* Clear the pointers in the class_type_supplement, including the
-       assoc_scope pointer; however, the template arg list should be
-       preserved. */
+       assoc_scope pointer; however, the template arg list and the list of
+       befriending classes should be preserved. */
+    ctsp = class_type->variant.class_struct_union.extra_info;
     template_arg_list = ctsp->template_arg_list;
+    befriending_classes = ctsp->befriending_classes;
     clear_class_type_supplement(ctsp);
     ctsp->template_arg_list = template_arg_list;
+    ctsp->befriending_classes = befriending_classes;
     /* Clear flags that can only be TRUE for classes with definitions. */
     class_type->variant.class_struct_union.any_const_member = FALSE;
     class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
@@ -9815,6 +9872,12 @@ eliminated, if appropriate.
       }  /* if */
       tp->next = NULL;
       if (is_immediate_class_type(tp)) {
+        if (!C_mode()) {
+          /* If the definition of class_type included friend declarations,
+             the befriended classes and routines have pointers back to tp.
+             Those pointers have to be removed. */
+          eliminate_references_from_befriended_entities(tp);
+        }  /* if */
         /* This is a class type that has been removed from the IL (because
            it's not really needed anywhere), but just in case there's a
            reference to it somewhere that causes it to be written, clear its
