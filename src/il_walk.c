@@ -566,6 +566,7 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_class_type_supplement:
         case iek_constructor_init:
         case iek_template_arg:
+        case iek_new_delete_supplement:
         case iek_orphaned_il_list:
 #endif /* ifdef CFE */
           /* These entries do not have an il_walk_flag. */
@@ -642,6 +643,8 @@ and the entry pointer is to an entry in the file scope, just return
                                 s = "constructor init";        break;
         case iek_asm_entry:     s = "asm entry";               break;
         case iek_template_arg:  s = "template arg";            break;
+        case iek_new_delete_supplement:
+                                s = "new-delete supplement";   break;
 #endif /* ifdef CFE */
         default:                s = "<bad kind>";              break;
       }  /* switch */
@@ -834,11 +837,14 @@ and the entry pointer is to an entry in the file scope, just return
               remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
               break;
             case enk_temp_init:
-            case enk_new_init:
               walk_ptr(ptr->variant.init.dynamic_init,
                        a_dynamic_init_ptr, iek_dynamic_init);
               walk_ptr(ptr->variant.init.expr, an_expr_node_ptr,
                        iek_expr_node);
+              break;
+            case enk_new_delete:
+              walk_ptr(ptr->variant.new_delete, a_new_delete_supplement_ptr,
+                       iek_new_delete_supplement);
               break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -1278,12 +1284,14 @@ and the entry pointer is to an entry in the file scope, just return
           walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
           walk_list(ptr->template_arg_list, a_template_arg_ptr,
                     iek_template_arg);
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
           remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
                     iek_routine);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
           remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
                     iek_routine);
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
           /* Reset the pointers used during IL lowering to NULL. */
           ptr->virtual_function_table_var = NULL;
@@ -1330,6 +1338,16 @@ and the entry pointer is to an entry in the file scope, just return
           } else {
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
           }  /* if */
+        }
+        break;
+      case iek_new_delete_supplement:
+        {
+          a_new_delete_supplement_ptr ptr =
+                                        (a_new_delete_supplement_ptr)entry_ptr;
+          walk_ptr(ptr->type, a_type_ptr, iek_type);
+          walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
+          walk_ptr(ptr->arg, an_expr_node_ptr, iek_expr_node);
+          walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         }
         break;
 #endif /* ifdef CIL */
@@ -1484,6 +1502,8 @@ of each kind.
   walk_orphan_entry_list_first(a_constructor_init_ptr, iek_constructor_init);
   walk_orphan_entry_list_first(an_asm_entry_ptr, iek_asm_entry);
   walk_orphan_entry_list_first(a_template_arg_ptr, iek_template_arg);
+  walk_orphan_entry_list_first(a_new_delete_supplement_ptr,
+                               iek_new_delete_supplement);
 #endif /* ifdef CFE */
 
   db_exit();
@@ -1736,6 +1756,7 @@ them through remap_function.
   remap_orphan_entry_first(iek_constructor_init);
   remap_orphan_entry_first(iek_asm_entry);
   remap_orphan_entry_first(iek_template_arg);
+  remap_orphan_entry_first(iek_new_delete_supplement);
 #endif /* ifdef CFE */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
@@ -1786,6 +1807,7 @@ them through remap_function.
   remap_orphan_entry_last(iek_constructor_init);
   remap_orphan_entry_last(iek_asm_entry);
   remap_orphan_entry_last(iek_template_arg);
+  remap_orphan_entry_last(iek_new_delete_supplement);
 #endif /* ifdef CFE */
 
   /* Restore the previous value of the remap function pointer. */
@@ -1911,6 +1933,8 @@ entry kind passed as an argument.
                             s = "constructor-init";        break;
     case iek_asm_entry:     s = "asm-entry";               break;
     case iek_template_arg:  s = "template-arg";            break;
+    case iek_new_delete_supplement:
+                            s = "new-delete-supplement";   break;
 #endif /* ifdef CFE */
 #if ORPHAN_PROCESSING_NEEDED
     case iek_orphaned_il_list:
