@@ -4868,6 +4868,9 @@ are not already present.
 a_type_ptr make_unqualified_type(a_type_ptr type)
 /*
 Return a type that is the unqualified version of the type given by type.
+Note that this is not the routine to use to drop qualifiers when changing
+to an rvalue type, except possibly for C-mode-only code; see rvalue_type
+instead.
 */
 {
   a_type_ptr  element_type;
@@ -4901,6 +4904,45 @@ Return a type that is the unqualified version of the type given by type.
   }  /* if */
   return type;
 }  /* make_unqualified_type */
+
+
+a_type_ptr rvalue_type(a_type_ptr type)
+/*
+type is the type of an lvalue.  Return the type that the associated rvalue
+would have.  That is, drop type qualifiers as appropriate.  Array-to-pointer
+and function-to-pointer decay are not considered.
+*/
+{
+#if 0
+  /* In C++, class rvalues can have cv-qualified type. */
+#endif /* 0 */
+  type = make_unqualified_type(type);
+  return type;
+}  /* rvalue_type */
+
+
+a_type_ptr return_type_of(a_type_ptr routine_type)
+/*
+Return the type that is the return type of the given function type.  If
+the function returns a reference, the type is the type of the lvalue returned.
+Otherwise, it is the type of the rvalue returned.
+*/
+{
+  a_type_ptr return_type;
+
+  routine_type = skip_typerefs(routine_type);
+  return_type = routine_type->variant.routine.return_type;
+  if (is_reference_type(return_type)) {
+    /* The function returns a reference type.  Drop the reference to
+       get to the underlying lvalue type. */
+    return_type = type_pointed_to(return_type);
+  } else {
+    /* The conversion function returns a non-reference type, i.e.,
+       an rvalue.  Drop cv-qualifiers as appropriate. */
+    return_type = rvalue_type(return_type);
+  }  /* if */
+  return return_type;
+}  /* return_type_of */
 
 
 a_type_ptr make_field_selection_type(a_field_ptr           field,
@@ -6256,8 +6298,7 @@ for variables with reference type.
   an_expr_node_ptr node;
 
   node = alloc_expr_node((an_expr_node_kind)enk_variable);
-  /* Drop any type qualifiers on the variable type because rvalues do not have
-     type qualifiers. */
+  /* Drop any type qualifiers on the variable type as appropriate. */
   node->type = make_unqualified_type(var->type);
   node->variant.variable = var;
   return node;
