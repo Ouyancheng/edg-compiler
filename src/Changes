@@ -1,5 +1,40 @@
 Version 2.36
 
+6/2/97    Variable length arrays
+
+Support for variable length arrays, as proposed for the new C standard and
+specified in WG14/N637 (=X3J11/96-101), has been implemented in C mode.  If
+VLA_ALLOWED is configured to TRUE, the feature may be turned on and off by
+command line options --vla and --no_vla, which control global variable
+vla_enabled.  The extension is not available in C++ mode.
+
+  int f(int n) {
+    int a[n];                 /* VLA declaration */
+    return sizeof(a);         /* evaluated at run time */
+  }
+
+A VLA declaration may appear in a function parameter list or inside the body
+of a function.  Only an automatic variable may be a variable length array.
+The expression representing the dimension is evaluated at run time, as is
+the sizeof operator applied to a VLA object.  A VLA typedef declaration may
+appear only within a function.  A VLA declaration using the "[*]" syntax
+(indicating an unspecified variable dimension) may appear in function
+prototypes but not in function definitions.
+
+IL CHANGE: New flags is_vla and has_assoc_vla_dimension have been added to
+a_type.  The type entry itself does not contain a pointer to the associated
+dimension expression, because entities belonging to the file-scope memory
+region cannot point to entities belonging to a function-scope memory region;
+instead, an entry of type a_vla_dimension is placed on a linked list pointed
+to by the routine's IL scope and must be looked up (see find_vla_dimension
+in il.c).  A new expression node kind has been added, enk_runtime_sizeof,
+along with three new statement kinds: stmk_set_vla_size,
+stmk_alloc_vla_variable, and stmk_vla_typedef.
+
+The C-generating back end accepts IL containing VLA information and puts out
+VLA constructs, so VLA_ALLOWED should be configured to TRUE only if the
+underlying C compiler also supports VLAs.
+
 6/1/97    pointer_types_have_same_repr macro
 
 A macro pointer_types_have_same_repr can now be defined if an implementation
