@@ -602,6 +602,8 @@ extern void lower_expr(an_expr_node_ptr expr,
 
 #define lower_normal_expr(expr) lower_expr(expr, /*is_lvalue=*/FALSE)
 
+extern a_param_type_ptr unlowered_param_type_list(a_type_ptr routine_type);
+
 extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
                                 a_type_ptr       called_rout_type);
 

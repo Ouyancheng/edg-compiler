@@ -1868,11 +1868,8 @@ pointer can be examined.
     /* For the new-allocation case, check for the 2-argument version of delete;
        we need array information for that because we need the size of the
        entity. */
-    a_routine_ptr delete_routine = cap->variant.object.delete_routine;
-    a_routine_type_supplement_ptr
-                  delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
-                                                    variant.routine.extra_info;
-    a_param_type_ptr param1 = delete_routine_rtsp->param_type_list;
+    a_routine_ptr    delete_routine = cap->variant.object.delete_routine;
+    a_param_type_ptr param1 = unlowered_param_type_list(delete_routine->type);
     check_assertion(param1 != NULL);
     if (param1->next != NULL) {
       /* Two-argument form.  Need array information. */

@@ -3793,6 +3793,7 @@ not lowered at this time (see lower_constructor_code).
   /* Add a parameter for each virtual base class.  See the ARM, top of
      p. 296.  add_constructor_params does the similar processing for param
      variables. */
+  /* If you change this, see also unlowered_param_type_list. */
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     prev_param = first_param;
     for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
@@ -3835,6 +3836,7 @@ not lowered at this time (see lower_destructor_code).
   /* Add an int parameter that will indicate whether or not we have a
      complete object and whether or not the storage should be freed.
      add_destructor_params does the similar processing for param variables. */
+  /* If you change this, see also unlowered_param_type_list. */
   added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
   /* Note that the original parameter entries have already been lowered,
      so it is not necessary to set il_lowering_flag to ensure that the
@@ -4300,14 +4302,60 @@ a conditional operator ("?", "&&", or "||").
 }  /* lower_expr_list */
 
 
+a_param_type_ptr unlowered_param_type_list(a_type_ptr routine_type)
+/*
+routine_type is a lowered or unlowered routine type.  Return the original
+unlowered parameter type list for the routine, i.e., if the type has been
+lowered, return the list after any implicit parameters added by lowering.
+*/
+{
+  a_param_type_ptr              param;
+  a_routine_type_supplement_ptr rtsp;
+
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
+  param = rtsp->param_type_list;
+  /* Special processing is needed only if the type has already been lowered. */
+  if (visited_yet(routine_type)) {
+    /* The routine type has already been lowered, so advance past the
+       extra arguments added by lowering, if any. */
+    /* "this" parameter. */
+    if (rtsp->implicit_this_param_type != NULL) param = param->next;
+    if (rtsp->assoc_routine_is_ctor) {
+      /* For constructors, a parameter is added for each virtual base
+         class. */
+      /* Get the class type from the "this" parameter type. */
+      a_type_ptr class_type = type_pointed_to(rtsp->implicit_this_param_type);
+      class_type = skip_typerefs(class_type);
+      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+        a_base_class_ptr bcp;
+        for (bcp = class_type->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+             bcp != NULL;
+             bcp = bcp->next) {
+          if (bcp->is_virtual) param = param->next;
+        }  /* for */
+      }  /* if */
+    } else if (rtsp->assoc_routine_is_dtor) {
+      /* For destructors, a single parameter is always added. */
+      param = param->next;
+    }  /* if */
+    /* If the routine returns its value via a copy constructor, an extra
+       parameter is used to passed the address for the return value. */
+    if (rtsp->value_returned_by_cctor) param = param->next;
+  }  /* if */
+  return param;
+}  /* unlowered_param_type_list */
+
+
 void lower_arg_expr_list(an_expr_node_ptr expr_list,
                          a_type_ptr       called_rout_type)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 The expressions are the argument list for a call.  The type of the routine
-being called is called_rout_type.  Note that if the routine requires
-control arguments like a "this" pointer, such arguments are *not* in
-expr_list.
+being called is called_rout_type (the type may be lowered or not).  Note
+that if the routine requires control arguments like a "this" pointer, such
+arguments are *not* in expr_list.
 */
 {
   an_expr_node_ptr              expr;
@@ -4319,7 +4367,12 @@ expr_list.
   /* Track the current parameter type as we go through the list. */
   /* Note that we do not test rtsp->prototyped because it may have been
      cleared by lowering when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is TRUE. */
-  param = (!rtsp->old_style_params_scanned) ? rtsp->param_type_list : NULL;
+  if (rtsp->old_style_params_scanned) {
+    /* Old-style parameter list, so no parameter information. */
+    param = NULL;
+  } else {
+    param = unlowered_param_type_list(called_rout_type);
+  }  /* if */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
     lower_expr(expr, FALSE);
     if (param != NULL) {
@@ -5322,6 +5375,8 @@ call should return its value.
     rout_type = type_pointed_to(first_arg->type);
   }  /* if */
   rout_type = skip_typerefs(rout_type);
+  /* Note that the routine type can be lowered or unlowered at this point.
+     Usually it will be unlowered. */
   rtsp = rout_type->variant.routine.extra_info;
   /* Lower the expression giving the address of the routine. */
   lower_normal_expr(arg_node);

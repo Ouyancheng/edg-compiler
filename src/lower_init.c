@@ -1465,7 +1465,7 @@ The routine must have a "this" parameter.
   a_memory_region_number
                    region_to_switch_back_to = curr_il_region_number;
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
-  an_expr_node_ptr call_node, temp_arg;
+  an_expr_node_ptr call_node;
   a_routine_ptr    new_routine;
   a_type_ptr       routine_type = skip_typerefs(routine->type);
   a_type_ptr       this_param_type, pass_through_param_type;
@@ -1480,7 +1480,6 @@ The routine must have a "this" parameter.
   a_variable_ptr   this_param_var, param_var, last_param_var;
   an_expr_node_ptr this_arg, pass_through_arg;
   a_statement_ptr  call_stmt, return_stmt;
-  a_boolean        already_lowered;
 
   /* Determine any implicit arguments required for a constructor or
      destructor. */
@@ -1535,21 +1534,7 @@ The routine must have a "this" parameter.
     /* Make any additional parameter types and parameter vars beyond the
        "this" parameter (this comes up, for instance, on the copy
        constructor case). */
-    src_param_type = rtsp->param_type_list;
-    already_lowered = src_param_type != NULL && visited_yet(src_param_type);
-    if (already_lowered) {
-      /* The routine type has already been lowered (i.e., the "this"
-         parameter type is already on the explicit parameter type list).
-         Skip the first parameter type. */
-      src_param_type = src_param_type->next;
-      /* Also skip a parameter for each implicit parameter added (pointers
-         to virtual base classes). */
-      for (temp_arg = implied_arg_list;
-           temp_arg != NULL;
-           temp_arg = temp_arg->next) {
-        src_param_type = src_param_type->next;
-      }  /* if */
-    }  /* if */
+    src_param_type = unlowered_param_type_list(routine_type);
     last_param_type = new_rtsp->param_type_list;
     last_param_var = this_param_var;
     /* Do not process parameters with default argument values, since they
@@ -1561,7 +1546,8 @@ The routine must have a "this" parameter.
          not been lowered, replace it by a pointer to the object.
          Note that a second copy constructor call (i.e., one within
          the generated routine) is not necessary. */
-      if (!already_lowered && src_param_type->passed_via_copy_constructor) {
+      if (src_param_type->passed_via_copy_constructor &&
+          !visited_yet(src_param_type)) {
         pass_through_param_type = make_pointer_type(pass_through_param_type);
       }  /* if */
       param_type = alloc_param_type(pass_through_param_type);
@@ -4840,8 +4826,6 @@ destructor scope, and also lower the user code.
     an_expr_node_ptr and_node, two_constant_node, if_node;
     a_statement_ptr  call_stmt;
     a_routine_ptr    delete_routine;
-    a_routine_type_supplement_ptr
-                     delete_routine_rtsp;
     a_param_type_ptr param1;
 
     /* Make "param & 0x1". */
@@ -4884,9 +4868,7 @@ destructor scope, and also lower the user code.
        of type size_t that gives the size of the class. */
     delete_routine = ctsp->assoc_operator_delete_routine;
     check_assertion(delete_routine != NULL);
-    delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
-                                                    variant.routine.extra_info;
-    param1 = delete_routine_rtsp->param_type_list;
+    param1 = unlowered_param_type_list(delete_routine->type);
 #if CHECKING
     if (param1 == NULL) {
       internal_error("lower_destructor_code: bad delete rout 1st param");
