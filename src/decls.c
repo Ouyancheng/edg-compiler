@@ -6677,12 +6677,12 @@ return a pointer to it in *symbol_ptr.
           tp->source_corresp.name = locator->symbol_header->identifier;
         }  /* if */
       }  /* if */
-    }  /* if */
-    /* Recompute the name linkage. */
-    if (is_class_or_enum) {
-      set_name_linkage_for_type(tp);
-      if (is_immediate_enum_type(tp)) {
-        set_name_linkage_for_enumerators(tp);
+      /* Recompute the name linkage. */
+      if (is_class_or_enum) {
+        set_name_linkage_for_type(tp);
+        if (is_immediate_enum_type(tp)) {
+          set_name_linkage_for_enumerators(tp);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
