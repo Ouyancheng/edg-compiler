@@ -378,7 +378,8 @@ a parameter as "function returning type" shall be adjusted to
      that has an incomplete-type parameter, but one can complete it later. */
   if (is_array_type(*type_ptr)) {
     /* Array, adjust to pointer to element type. */
-    a_type_qualifier_set  qualifiers = (*type_ptr)->variant.array.qualifiers;
+    a_type_qualifier_set  qualifiers =
+                           skip_typerefs(*type_ptr)->variant.array.qualifiers;
     *type_ptr = make_pointer_type(array_element_type(*type_ptr));
     /* A parameter type that is restrict-qualified-array-of-T decays into
        restrict-qualified-ptr-to-T.  (Same with const and volatile in C99.) */
