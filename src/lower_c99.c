@@ -1272,13 +1272,12 @@ Transform the given cast expression into a function call (compatible with C89).
     check_assertion(expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast);
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-    if (vla_enabled && !expr->variant.operation.compiler_generated &&
+    if (vla_enabled && !tp->visited_for_vla_lowering &&
         !(tp->kind == (a_type_kind)tk_typeref && typeref_is_typedef(tp)) &&
         is_variably_modified_type(tp)) {
       /* If the cast introduces a VLA type, we need to compute its dimension
          variables. Note that compiler-generated casts may cast to variably
-         modified types, but those are always types based on user-specified
-         types (which are already processed). */
+         modified types that have already been visited. */
       an_expr_node_ptr  vla_inits = lower_vla_dimensions(tp);
       if (vla_inits != NULL) {
         expr->variant.operation.operands =
