@@ -1087,19 +1087,19 @@ by a command line option.
 */
 {
   if (!option_kind_used[(int)optk_bool_is_keyword]) {
-    /* The bool keyword is support by Microsoft Visual C++ 5.0. */
+    /* The bool keyword is supported by Microsoft Visual C++ 5.0. */
     bool_is_keyword = microsoft_version >= 1100;
   }  /* if */
   if (!option_kind_used[(int)optk_wchar_t_is_keyword]) {
     wchar_t_is_keyword = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_explicit]) {
-    /* The explicit keyword is support by Microsoft Visual C++ 5.0. */
+    /* The explicit keyword is supported by Microsoft Visual C++ 5.0. */
     explicit_keyword_enabled = microsoft_version >= 1100;
   }  /* if */
 #if !RUNTIME_USES_TYPENAME
   if (!option_kind_used[(int)optk_typename]) {
-    /* The typename keyword is support by Microsoft Visual C++ 5.0. */
+    /* The typename keyword is supported by Microsoft Visual C++ 5.0. */
     typename_enabled = microsoft_version >= 1100;
   }  /* if */
 #endif /* !RUNTIME_USES_TYPENAME */
