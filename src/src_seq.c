@@ -1057,6 +1057,11 @@ fixup_function_scope_source_sequence_list has been called.)
       db_source_sequence_entry(ssep);
     }  /* if */
 #endif /* DEBUG */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (scope_stack_ptr->ss_list_instantiation_insert_point == ssep) {
+      scope_stack_ptr->ss_list_instantiation_insert_point = ssep->next;
+    }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     /* Remove the entry from its list. */
     (void)unlink_src_seq_entry(ssep, scope_stack_ptr);
   }  /* if */
@@ -1119,16 +1124,23 @@ currently active namespace scope in which it is nested, or else the depth
 of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
 */
 {
-  a_namespace_ptr  nsp;
-  a_scope_depth    scope_depth = NO_SCOPE_DEPTH;
+  a_namespace_ptr                nsp;
+  a_scope_depth                  scope_depth = NO_SCOPE_DEPTH;
+  a_class_symbol_supplement_ptr  cssp;
 
-  if (!class_type->source_corresp.is_local_to_function) {
-    /* If this is a nested class, find the top-most class. */
-    while (class_type->source_corresp.is_class_member) {
-      class_type = class_type->source_corresp.parent.class_type;
-    }  /* while */
+  if (!class_type->source_corresp.is_local_to_function &&
+      !(cssp = symbol_supplement_for_class(class_type))->is_nonreal_class) {
+    if (class_type->variant.class_struct_union.is_template_class &&
+        !class_type->variant.class_struct_union.is_specialized) {
+      nsp = cssp->referencing_namespace;
+    } else {
+      /* If this is a nested class, find the top-most class. */
+      while (class_type->source_corresp.is_class_member) {
+        class_type = class_type->source_corresp.parent.class_type;
+      }  /* while */
+      nsp = class_type->source_corresp.parent.namespace_ptr;
+    }  /* if */
     /* Find the innermost currently active parent namespace. */
-    nsp = class_type->source_corresp.parent.namespace_ptr;
     for (;;) {
       if (nsp != NULL) {
         nsp = skip_namespace_aliases(nsp);
@@ -1152,6 +1164,16 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
         break;
       }  /* if */
     }  /* for */
+#if EXPENSIVE_CHECKING
+    { a_source_sequence_entry_ptr  ssep;
+      for (ssep = scope_stack[scope_depth].source_sequence_list;
+           ssep != NULL;
+           ssep = ssep->next) {
+        if (ss_entry_ptr(ssep, a_type_ptr) == class_type) break;
+      }  /* for */
+      check_assertion(ssep != NULL);
+    }
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
   return scope_depth;
 }  /* scope_depth_for_class_ss_list */
@@ -1160,7 +1182,7 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
 static a_scope_depth find_innermost_namespace_scope_depth(
                                          a_scope_stack_entry_ptr  sse_ptr)
 /*
-Return the innermost namespace scope relative to the indicates scope stack
+Return the innermost namespace scope relative to the indicated scope stack
 entry.  If the scope stack entry is a template instantiation scope or belong
 belongs to a template instantiation, the innermost namespace scope to return
 is that in which the instantiation is triggered, not the one in which the
