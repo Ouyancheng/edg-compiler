@@ -655,13 +655,13 @@ routine is called in C++ mode only.
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           copy_ctor_default_args_to_dynamic_init(dip);
-        }  /* if */
-        /* If the default constructor is generated and some component of the
-           class requires zeroing, initialization is not really done because
-           the value-initialization rules require that the zeroing occurs. */
-        init_done = !(ctor_rp->compiler_generated &&
-                      element_type
+          /* If the default constructor is generated and some component of the
+             class requires zeroing, initialization is not really done because
+             the value-initialization rules require that the zeroing occurs. */
+          init_done = !(ctor_rp->compiler_generated &&
+                        element_type
                         ->variant.class_struct_union.has_zero_init_component);
+        }  /* if */
       }  /* if */
       if (cssp != NULL) {
         if (exceptions_enabled && cssp->destructor != NULL) {
