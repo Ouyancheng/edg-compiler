@@ -4148,7 +4148,8 @@ entry is pushed on the scope stack.
           dtfp = instance_sym->variant.class_struct_union.extra_info->
                                                dependent_type_fixup_list;
           for (; dtfp != NULL; dtfp = dtfp->next) {
-            if (!dtfp->is_param_type && is_array_type(dtfp->variant.type)) {
+            if (dtfp->fixup_kind == (a_dependent_type_fixup_kind)
+                                                   dtfk_array_type_size) {
               /* This one was used in at least one array declaration; there
                  may be others on the list but one is enough to justify
                  instantiating the template class.  The call to do the array
