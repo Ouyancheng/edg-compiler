@@ -1295,20 +1295,20 @@ declaration.
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
-        a_decl_flag_set      di_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
-                                        DSI_TYPE_SPECIFIER_ALLOWED |
-                                        DSI_IS_PARAMETER |
-                                        DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+        a_decl_flag_set      dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
+                                         DSI_TYPE_SPECIFIER_ALLOWED |
+                                         DSI_IS_PARAMETER |
+                                         DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
         if (gcc_mode && curr_token == tok_extension) {
           /* Ignore the GNU C __extension__ annotation. */
           (void)get_token();
-          di_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+          dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
         }  /* if */
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */
-        (void)decl_specifiers(di_flags, &dso_flags, &param_storage_class,
+        (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
                               &param_type_ptr, &qualifiers, 
                               &decl_modifiers, &local_decl_pos_block);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
