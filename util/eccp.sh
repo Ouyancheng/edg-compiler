@@ -6,6 +6,7 @@
 # Initialize EDG_BASE.  This needs to be done before looking for the
 # config file below.
 #
+export EDG_BASE
 EDG_BASE=${EDG_BASE-/edg/cpfe}
 #
 # Look for a file in EDG_BASE called edg_eccp_config.  If such a file
