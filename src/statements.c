@@ -1449,6 +1449,7 @@ the associated il statement.
      current scope stack entry, then updated the field in the scope stack entry
      to point to the curr_construct_pragma list that is part of this structured
      statement stack entry. */
+  sssep->curr_construct_pragmas = NULL;
   sssep->saved_curr_list_of_curr_construct_pragmas =
            scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas;
   scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas
