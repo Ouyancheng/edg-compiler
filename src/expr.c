@@ -12075,7 +12075,21 @@ for the converted result in *constant.  Do various error checks.
 */
 {
   db_enter(3, "prep_nontype_template_argument_initializer");
-
+  if (microsoft_mode && is_reference_type(param_type)) {
+    /* In Microsoft mode, nontype template parameters of pointer type are
+       converted to reference-to-pointer-type to allow certain extension
+       behaviors.  However, it must still be possible to pass the standard
+       kind of actual argument for that parameter, an rvalue of that pointer
+       type.  We handle that by turning the rvalue pointer into an lvalue
+       with that address. */
+    a_type_ptr underlying_type = type_pointed_to(param_type);
+    if (is_pointer_type(underlying_type) &&
+        is_an_rvalue(operand) &&
+        identical_types(operand->type, underlying_type)) {
+      operand->state = (an_operand_state)os_lvalue;
+      operand->type = underlying_type;
+    }  /* if */
+  }  /* if */
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
   prep_initializer_operand(operand, param_type, (a_conv_descr_ptr)NULL,
