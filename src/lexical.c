@@ -4248,7 +4248,6 @@ set to NULL and return FALSE.
                         enter_symbol((a_symbol_kind)sk_undefined,
                                      &locator_for_curr_id,
                                      decl_scope_level,
-                                     /*symbol_to_re_enter=*/(a_symbol_ptr)NULL,
                                      /*suppress_error=*/TRUE);
           }  /* if */
           locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;

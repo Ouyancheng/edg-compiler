@@ -382,7 +382,6 @@ Initialize things related to preprocessing.
       if (assoc_symbol == NULL) {
         assoc_symbol = enter_symbol((a_symbol_kind)sk_macro, &locator,
                                     NO_SCOPE_DEPTH,
-                                    /*symbol_to_re_enter=*/(a_symbol_ptr)NULL,
                                     /*suppress_error=*/TRUE);
         assoc_symbol->variant.macro_def = alloc_macro_def();
       } else {

@@ -2257,7 +2257,6 @@ Scan and process a #define directive.
       assoc_symbol = enter_symbol((a_symbol_kind)sk_macro,
                                   &locator_for_curr_id,
                                   DEPTH_OF_FILE_SCOPE,
-                                  /*symbol_to_re_enter=*/(a_symbol_ptr)NULL,
                                   /*suppress_error=*/TRUE);
     }  /* if */
     param_list = last_param = NULL;

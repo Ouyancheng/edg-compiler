@@ -728,8 +728,11 @@ extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
 extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 				 a_symbol_locator *location,
                                  a_scope_depth    scope_depth,
-                                 a_symbol_ptr     symbol_to_re_enter,
                                  a_boolean        suppress_error);
+
+extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
+                           a_scope_depth    scope_depth,
+                           a_boolean        suppress_error);
 
 extern a_symbol_ptr make_projection_symbol(a_symbol_ptr orig_sym);
 
