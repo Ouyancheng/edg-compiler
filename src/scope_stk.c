@@ -4948,7 +4948,7 @@ End a name scope by popping an entry off the scope stack.
          if there are exported templates, because we want to eliminate
          references to entities in the secondary translation unit IL first.
          The lowering will be done later -- see
-         rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary. */
+         copy_secondary_trans_unit_IL_to_primary. */
     } else
 #endif /* DO_IL_LOWERING */
     {
