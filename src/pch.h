@@ -278,6 +278,8 @@ extern void process_prefix_pragma_hdrstop(void);
 
 extern void pch_fixup_part_2(void);
 
+extern void pch_one_time_init(void);
+
 extern void pch_init(void);
 
 #if DEBUG

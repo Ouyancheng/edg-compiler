@@ -1,5 +1,12 @@
 Version 3.4
 
+4/15/04  pch_one_time_init not called in usual way
+
+For historical reasons, pch_one_time_init was called the first time that
+pch_init was called instead of being called from fe_one_time_init as is
+the case for all of the other one_time_init routines.  For consistency,
+it is now called the same way as the other one_time_init routines.
+
 4/15/05  Possible leaked file descriptor
 
 When generating makefile dependencies and using implicit inclusion

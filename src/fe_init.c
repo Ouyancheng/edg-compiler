@@ -784,6 +784,7 @@ after the command-line processing has been done.
   lexical_one_time_init();
   macro_one_time_init();
   mem_manage_one_time_init();
+  pch_one_time_init();
   pragma_one_time_init();
   preproc_one_time_init();
   statements_one_time_init();
