@@ -10903,9 +10903,9 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
 }  /* check_operator_new_and_delete */
 
 
-void complete_class_definition(a_type_ptr         class_type,
-                               a_scope_depth      effective_decl_level,
-                               a_class_def_state  *class_state)
+static void complete_class_definition(a_type_ptr         class_type,
+                                      a_scope_depth      effective_decl_level,
+                                      a_class_def_state  *class_state)
 /*
 We have seen the complete definition of class_type belonging to scope level
 effective_decl_level.  Perform various postprocessing steps such as computing
