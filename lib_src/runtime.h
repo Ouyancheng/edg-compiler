@@ -122,7 +122,16 @@ typedef void (*a_destructor_ptr)(void*, int);
 #else /* defined(__EDG_IA64_ABI) */
 /* Explicit "C" linkage is required for compatibility with the declaration in
    cxxabi.h. */
+#ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+/* The variant form of destructor returns the this pointer. */
+EXTERN_C typedef void* (*a_destructor_ptr)(void*);
+#else /* ifndef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 EXTERN_C typedef void (*a_destructor_ptr)(void*);
+#endif /* ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+/* A special typedef is used for the destructor pointer passed to cxa_atexit
+   as it must always have the expected type even when the variant form of
+   destructor is being used. */
+EXTERN_C typedef void  (*a_cxa_dtor_ptr)(void*);
 #endif /* defined(__EDG_IA64_ABI) */
 			/* Type used to store a pointer a destructor. */
 
@@ -171,7 +180,11 @@ In the Cfront ABI, constructors return an object pointer.  In the
 IA-64 ABI, they return void.
 */
 #ifdef __EDG_IA64_ABI
+#ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+typedef void *a_ctor_return_type;
+#else /* ifndef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 typedef void a_ctor_return_type;
+#endif /* ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 #else /* ifndef __EDG_IA64_ABI */
 typedef void *a_ctor_return_type;
 #endif /* ifdef __EDG_IA64_ABI */

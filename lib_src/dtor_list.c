@@ -190,7 +190,7 @@ dso_handle is NULL.
 }  /* __cxa_finalize */
 
 
-int ABI_NAMESPACE::__cxa_atexit(a_destructor_ptr destruction_routine,
+int ABI_NAMESPACE::__cxa_atexit(a_cxa_dtor_ptr   destruction_routine,
                                 void             *object,
                                 a_dso_handle     dso_handle)
 /* 
@@ -220,7 +220,7 @@ __register_finalization_routine on the first invocation of this function.
   }  else {
     if (needed_destruction_head == NULL) __register_finalization_routine();
     ndp->object = object;
-    ndp->destruction_routine = destruction_routine;
+    ndp->destruction_routine = (a_destructor_ptr)destruction_routine;
     ndp->dso_handle = dso_handle;
     ndp->next = needed_destruction_head;
     needed_destruction_head = ndp;
