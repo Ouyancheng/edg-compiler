@@ -243,7 +243,7 @@ values.
   amsp->downward_cast_derivation = NULL;
   amsp->reversed_derivation      = FALSE;
   amsp->const_anachronism        = FALSE;
-  amsp->base_param_type          = NULL;
+  amsp->param_type               = NULL;
   clear_user_conv_descr(&amsp->user_conversion);
   amsp->warning_suggested        = ec_no_error;
 }  /* clear_arg_match_summary */
@@ -353,6 +353,7 @@ are used in resolving calls to overloaded functions.
   cfp->next = NULL;
   cfp->function_symbol = NULL;
   cfp->is_function_template = FALSE;
+  cfp->template_arg_list = NULL;
   cfp->operand_type_pattern = NULL;
   cfp->is_user_conversion = FALSE;
   clear_user_conv_descr(&cfp->user_conversion);
@@ -376,10 +377,10 @@ Free the list of candidate function entries pointed to by cfp.
 
   for (; cfp != NULL; cfp = cfp_next) {
     cfp_next = cfp->next;
+    /* Free the template argument list if any. */
+    free_template_arg_list(cfp->template_arg_list);
     /* Free the argument match entries if any. */
-    if (cfp->arg_matches != NULL) {
-      free_arg_match_summary_list(cfp->arg_matches);
-    }  /* if */
+    free_arg_match_summary_list(cfp->arg_matches);
     /* arg_operand_list is deliberately not freed, because it is shared
        with any other candidate function entries for templates. */
     /* Add the entry to the available list. */
@@ -412,15 +413,14 @@ Print a candidate function entry for debugging purposes.
   }  /* if */
   if (cfp->is_function_template) {
     fprintf(f_debug, "(function template)\n");
-  } else {
-    /* Display the arg match list. */
-    for (narg = 1, amsp = cfp->arg_matches;
-         amsp != NULL;
-         narg++, amsp = amsp->next) {
-      fprintf(f_debug, "  arg %lu: ", narg);
-      db_arg_match_summary(amsp);
-    }  /* for */
   }  /* if */
+  /* Display the arg match list. */
+  for (narg = 1, amsp = cfp->arg_matches;
+       amsp != NULL;
+       narg++, amsp = amsp->next) {
+    fprintf(f_debug, "  arg %lu: ", narg);
+    db_arg_match_summary(amsp);
+  }  /* for */
 }  /* db_candidate_function */
 
 #endif /* DEBUG */
@@ -753,6 +753,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
 
   db_enter(4, "determine_arg_match_level");
   clear_arg_match_summary(arg_summary);
+  arg_summary->param_type = param_type;
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
     arg_type = arg_operand->type;
@@ -875,9 +876,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     }  /* if */
   }  /* if */
   /* We've now done transformations for all the trivial conversions except
-     those that involve adding type qualifiers.  We therefore now have
-     the essential underlying types for the rest of the checking. */
-  arg_summary->base_param_type = param_type;
+     those that involve adding type qualifiers. */
   unqual_arg_type = skip_typerefs(arg_type);
   unqual_param_type = skip_typerefs(param_type);
   if (is_immediate_error_type(unqual_arg_type) ||
@@ -1645,46 +1644,27 @@ Compare two argument match summary entries and return
           goto have_cmp;
         }  /* if */
       }  /* if */
-      /* More subsequence checking: check for differences of type qualifiers
-         at the end of conversions (trivial conversions), like
-           float->int
-         versus
-           float->int->const int
-      */
-      param_type1 = arg_match1->base_param_type;
-      param_type2 = arg_match2->base_param_type;
-      /* Some cases (e.g., ellipsis) have no base param type. */
+      param_type1 = arg_match1->param_type;
+      param_type2 = arg_match2->param_type;
+      /* Some cases (e.g., ellipsis) have no  param_type. */
       if (param_type1 != NULL && param_type2 != NULL) {
-        if (type_qualifiers_match(param_type1, param_type2)) {
-          /* The two types have the same qualifiers, so one cannot be different
-             than the other on the basis of qualifiers. */
-        } else {
-          /* The qualifiers are different, so it's worth checking further. */
-          if (types_are_compatible(skip_typerefs(param_type1),
-                                   skip_typerefs(param_type2))) {
-            /* The underlying types are the same, so it's possible than
-               one has a subset of the other's qualifiers. */
-            if (!any_qualifier_missing(param_type1, param_type2)) {
-              /* param_type2 has a proper subset of the qualifiers in
-                 param_type1, so arg_match2 is the better match. */
-              cmp = -1;
-              goto have_cmp;
-            } else if (!any_qualifier_missing(param_type2, param_type1)) {
-              /* param_type1 has a proper subset of the qualifiers in
-                 param_type2, so arg_match1 is the better match. */
-              cmp = 1;
-              goto have_cmp;
-            }  /* if */
-          }  /* if */
-        }  /* if */
+        /* It shouldn't be necessary to check non-pointer/reference cases
+           because for non-lvalues the qualifiers don't matter.  For example:
+             void f(float, int);
+             void f(const float, float);
+               void m() {
+                 float i;
+                 f(i, 2.3);  // ambiguous
+               }
+        */
         /* More subsequence checking: check for differences of type qualifiers
-           at the end of conversions to pointer types (trivial conversions),
-           like
+           at the end of conversions to pointer and reference types, as in
              char*->void*
            versus
              char*->void*->const void*
         */
-        if (is_pointer_type(param_type1) && is_pointer_type(param_type2)) {
+        if ((is_pointer_type(param_type1)  && is_pointer_type(param_type2)) ||
+            (is_reference_type(param_type1)&& is_reference_type(param_type2))){
           under_type1 = type_pointed_to(param_type1);
           under_type2 = type_pointed_to(param_type2);
           if (type_qualifiers_match(under_type1, under_type2)) {
@@ -1736,19 +1716,65 @@ entry to the next argument match.
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
 
 
-static a_boolean function_template_matches_operand_list(
-                                         a_symbol_ptr       templ_sym,
-                                         an_arg_operand_ptr arg_operand_list,
-                                         a_template_arg_ptr *template_arg_list)
+static void check_template_arg_type_qualifiers(
+                                             a_type_ptr *arg_type,
+                                             a_type_ptr *param_type,
+                                             a_boolean  *type_qualifiers_added)
 /*
-Find out whether or not an instantiation of the function template
-templ_sym can be made to match the operands in arg_operand_list.
-If so, return TRUE and set *template_arg_list to the template argument
-list for the specific instance of the template.  Note that it has
-already been determined that the function template has the right
-number of parameters.
+Check and process the type qualifiers on an argument type *arg_type and a
+parameter type *param_type as part of trying to match a function template
+to an argument list.  Adjust the types to remove qualifiers that need
+not be considered further.  Set *type_qualifiers_added to TRUE if any
+type qualifiers are added in the conversion from *arg_type to *param_type
+(that has a different cost in overload resolution).
 */
 {
+  /* All combinations of type qualifiers are allowed in one way or
+     another.  For each qualifier (e.g., const, volatile,...):
+       (a)  If both the argument and the parameter are so-qualified
+            or not so-qualified, that's okay.
+       (b)  If the parameter is so-qualified but the argument is not,
+            that's okay, but it's one of the "less desirable" cases
+            of exact matching in overload resolution.  For example:
+              template <class T> void f(const T &p) {}
+              void m() {int i; f(i);}
+       (c)  If the argument is so-qualified but the parameter is not,
+            that can possibly be accommodated by choosing a template 
+            parameter type that is so-qualified, so we call it okay
+            here and let matches_template_type figure it out.  For
+            example:
+              template <class T> void f(T &p) {}
+              void m() {const int i = 1; f(i);}
+            "T" can be chosen to be "const int".
+     Only the qualifiers of case (c) are preserved for the call to
+     matches_template_type. */
+  /* The first step is to drop any qualifiers that the argument and
+     parameter have in common -- case (a). */
+  skip_common_type_qualifiers(arg_type, param_type);
+  if (any_qualifier_missing(*arg_type, *param_type)) {
+    /* Some type qualifiers are being added -- case (b). */
+    *type_qualifiers_added = TRUE;
+    /* All the qualifiers on the parameter type are case (b) and can be
+       removed from further consideration. */
+    *param_type = skip_typerefs(*param_type);
+  }  /* if */
+}  /* check_template_arg_type_qualifiers */
+
+
+static a_boolean function_template_matches_operand_list(
+                                                  a_candidate_function_ptr cfp)
+/*
+Find out whether or not an instantiation of the function template
+indicated in the candidate function entry *cfp can be made to match the
+argument list recorded therein.  If so, return TRUE and set template_arg_list
+in the candidate function entry to the template argument
+list for the specific instance of the template.  Note that it has
+already been determined that the function template has the right
+number of parameters, and the non-template parameter matches have been
+evaluated (but not checked to see if the match is good enough).
+*/
+{
+  a_symbol_ptr       templ_sym;
   a_param_type_ptr   ptp;
   a_template_arg_ptr templ_arg_list = NULL;
   a_boolean          matches = FALSE;
@@ -1757,11 +1783,13 @@ number of parameters.
   a_routine_type_supplement_ptr
                      rtsp;
   a_type_ptr         param_type, arg_type;
-  a_boolean          template_param;
   a_boolean          conversion_required;
+  an_arg_match_summary_ptr
+                     arg_match;
+  a_boolean          type_qualifiers_added;
 
   db_enter(4, "function_template_matches_operand_list");
-  *template_arg_list = NULL;
+  templ_sym = cfp->function_symbol;
 #if CHECKING
   if (templ_sym->kind != (a_symbol_kind)sk_function_template) {
     internal_error("function_template_matches_operand_list: bad symbol");
@@ -1777,110 +1805,85 @@ number of parameters.
   rtsp = routine->type->variant.routine.extra_info;
   /* Compare the types of the arguments to the parameter types. */
   ptp = rtsp->param_type_list;
-  arg_operand = arg_operand_list;
-  for (;ptp != NULL && arg_operand != NULL;
-       ptp = ptp->next, arg_operand = arg_operand->next) {
+  arg_operand = cfp->arg_operand_list;
+  arg_match = cfp->arg_matches;
+  for (; ptp != NULL && arg_operand != NULL;
+       ptp = ptp->next, arg_operand = arg_operand->next,
+                                                 arg_match = arg_match->next) {
     /* Try to match up the parameter type and the argument type. */
-    /* The ARM says the match must be exact, without even trivial conversions,
-       but we allow some trivial conversions anyway (involving references,
-       array and function type decay, and type qualifiers).  It seems to
-       be necessary, and cfront seems to allow those. */
-    /* The code here must match determine_arg_match_level and
-       overload_distinguishable. */
-    /* An indefinite function cannot be made to match anything. */
-    if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
-    param_type = ptp->type;
-    arg_type = arg_operand->operand.type;
-    template_param = ptp->type_involves_template_param;
-    if (is_reference_type(param_type)) {
-      /* For a reference type, the argument must be an lvalue or a function
-         designator. */
-      /* Also allow error operands. */
-      if (is_an_rvalue(&arg_operand->operand)) goto done;
-      /* Drop the reference type. */
-      param_type = type_pointed_to(param_type);
-      /* Check the top-level type qualifiers. */
-      if (any_qualifier_missing(param_type, arg_type)) {
-        /* There are some type qualifiers on the argument type that do not
-           appear on the parameter type, so some type qualifiers are being
-           dropped.  That might still be okay for a parameter containing
-           a template type. */
-        if (!template_param) goto done;
+    if (!ptp->type_involves_template_param) {
+      /* A parameter not involving a template parameter type.  The argument
+         is already known to match the parameter to some extent, but we
+         need to check that the match is good enough.  The ARM requires
+         an exact match without even trivial conversions, but we allow
+         the usual "exact" match of overload resolution (determined already)
+         and a cast to a base class (handled here, as an extension). */
+      if (arg_match->match_level == aml_exact) {
+        /* "Exact" match.  Okay. */
+      } else if (arg_match->match_level == aml_error) {
+        /* Error match.  Okay. */
+      } else if (!strict_ansi_mode &&
+                 arg_match->match_level == aml_std_conversion &&
+                 arg_match->downward_cast_derivation != NULL) {
+        /* A cast to a base class.  Okay as an extension. */
       } else {
-        /* The type qualifiers are the same, or some type qualifiers are
-           being added.  That's okay.  Type qualifiers are added in a case like
-             template <class T> void f(const T &p) {}
-             void m() {int i; f(i);}
-           Drop the extra qualifiers from the parameter type to allow
-           the matching to proceed.  The easiest way to drop them is
-           to drop all qualifiers from both the parameter and argument
-           types.  We know all the qualifiers that appear on both lists
-           would be discarded by matches_template_type anyway.
-           Again, there's no real support for this in the ARM, but it seems
-           to make sense. */
-        arg_type = skip_typerefs(arg_type);
-        param_type = skip_typerefs(param_type);
+        /* Other match: the template cannot be used. */
+        goto done;
       }  /* if */
     } else {
-      /* Not a reference. */
-      /* The argument would be converted to an rvalue and would lose its
-         top-level type qualifiers. */
-      arg_type = skip_typerefs(arg_type);
-      /* Top-level type qualifiers on the parameter type are also not important
-         (this is not supported by the ARM, but it matches the handling in
-         determine_arg_match_level). */
-      param_type = skip_typerefs(param_type);
-      /* Do the array-->pointer and function-->pointer transformations. */
-      if (is_array_type(arg_type)) {
-        arg_type = make_pointer_type(array_element_type(arg_type));
-      } else if (is_function_type(arg_type)) {
-        arg_type = make_pointer_type(arg_type);
-      }  /* if */
-    }  /* if */
-    if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
-      /* Check for cases where type qualifiers are being added down one
-         level in a pointer case, e.g., int * --> const int *.
-         This is another non-ARM trivial conversion.
-         In general, remove one level of matching pointer types. */
-      a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
-      a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
-      if (any_qualifier_missing(param_type_pointed_to,
-                                arg_type_pointed_to)) {
-        /* There are some qualifiers being dropped.  That might still
-           be okay for a parameter that contains a template type. */
-        if (!template_param) goto done;
+      /* A parameter involving a template parameter type. */
+      /* The ARM says the match must be exact, without even trivial
+         conversions, but we allow some trivial conversions anyway (involving
+         references, array and function type decay, and type qualifiers).
+         It seems to be necessary, and cfront seems to allow those. */
+      /* The code here must match determine_arg_match_level and
+         overload_distinguishable. */
+      /* An indefinite function cannot be made to match anything. */
+      if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
+      arg_match->param_type = param_type = ptp->type;
+      arg_type = arg_operand->operand.type;
+      type_qualifiers_added = FALSE;
+      if (is_reference_type(param_type)) {
+        /* For a reference type, the argument must be an lvalue or a function
+           designator. */
+        /* Also allow error operands. */
+        if (is_an_rvalue(&arg_operand->operand)) goto done;
+        /* Drop the reference type. */
+        param_type = type_pointed_to(param_type);
+        /* Check and adjust the top-level type qualifiers. */
+        check_template_arg_type_qualifiers(&arg_type, &param_type,
+                                           &type_qualifiers_added);
       } else {
-        /* The qualifiers are the same, or some qualifiers are being added.
-           Drop all the qualifiers and keep going with the types pointed
-           to. */
-        arg_type = skip_typerefs(arg_type_pointed_to);
-        param_type = skip_typerefs(param_type_pointed_to);
+        /* Not a reference. */
+        /* The argument would be converted to an rvalue and would lose its
+           top-level type qualifiers. */
+        arg_type = skip_typerefs(arg_type);
+        /* Top-level type qualifiers on the parameter type are also not
+           important (this is not supported by the ARM, but it matches the
+           handling in determine_arg_match_level). */
+        param_type = skip_typerefs(param_type);
+        /* Do the array-->pointer and function-->pointer transformations. */
+        if (is_array_type(arg_type)) {
+          arg_type = make_pointer_type(array_element_type(arg_type));
+        } else if (is_function_type(arg_type)) {
+          arg_type = make_pointer_type(arg_type);
+        }  /* if */
+      }  /* if */
+      if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
+        /* Check for cases where type qualifiers are being added down one
+           level in a pointer case, e.g., int * --> const int *.
+           This is another trivial conversion.
+           In general, remove one level of matching pointer types. */
+        arg_type = type_pointed_to(arg_type);
+        param_type = type_pointed_to(param_type);
+        /* Check and adjust the top-level type qualifiers. */
+        check_template_arg_type_qualifiers(&arg_type, &param_type,
+                                           &type_qualifiers_added);
       }  /* if */
       /* Note that we haven't checked that the underlying types are compatible.
          That happens later. */
-    }  /* if */
-    if (!template_param) {
-      /* This parameter does not involve a template parameter, so its
-         type should match without special handling.  The ARM requires
-         an exact type match.  However, we follow cfront in allowing
-         some trivial conversions (above) and a cast to a base class
-         (handled here, as an extension). */
-      if (!identical_types(arg_type, param_type)) {
-        /* Note that the base class trick tests objects of related classes
-           instead of pointers because the pointer level of appropriate
-           pointers would have been stripped off above. */
-        if (!strict_ansi_mode &&
-            is_class_struct_union_type(arg_type) &&
-            is_class_struct_union_type(param_type) &&
-            find_base_class_of(arg_type, param_type) != NULL) {
-            /* Cast to base class; okay. */
-        } else {
-          goto done;
-        }  /* if */
-      }  /* if */
-    } else {
-      /* The parameter involves a template type, so special matching is
-         required. */
+      /* Try to develop a template argument list that will allow this
+         function template to match the argument list. */
       /* As the matching is attempted, templ_arg_list is filled in with
          the bindings for the template arguments.  This is needed during the
          matching process to ensure that each argument is used consistently
@@ -1890,9 +1893,33 @@ number of parameters.
          be considered as a matching type.  This conversion is accepted
          in normal mode but not in strict ANSI mode. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
-                                 /*allow_conversion=*/FALSE,
+                                 /*allow_conversion=*/!strict_ansi_mode,
                                  &conversion_required)) {
+        /* Mismatch. */
         goto done;
+      }  /* if */
+      /* The argument can be made to match. */
+      if (conversion_required) {
+        /* The extension allowing a standard conversion of a derived class to
+           a base class was used. */
+        arg_match->match_level = aml_std_conversion;
+        determine_downward_cast_derivation(arg_type, param_type, arg_match);
+      } else {
+        /* Normal case: exact match. */
+        arg_match->match_level = aml_exact;
+        if (type_qualifiers_added) {
+          /* The match is a "less desirable" case that involves adding type
+             qualifiers.  For example:
+               template <class T> void f(T) {}
+               template <class T> void f(const T&) {}
+               void m() { int i; f(i); }
+          */
+#if 0
+          /* The wording of the ARM makes this case no worse than the
+             others.  Wait to see what X3J16/WG21 says. */
+          arg_match->less_desirable_exact_match = TRUE;
+#endif /* 0 */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1906,7 +1933,7 @@ number of parameters.
     }  /* if */
 #endif /* CHECKING */
     /* An ellipsis match is not an exact match, so this template cannot be
-       used. */
+       used.  We could allow an extension in this area, but we don't. */
     goto done;
 #if CHECKING
   } else if (ptp != NULL) {
@@ -1920,7 +1947,7 @@ number of parameters.
   }  /* if */
   /* The function template matches the operand list. */
   matches = TRUE;
-  *template_arg_list = templ_arg_list;
+  cfp->template_arg_list = templ_arg_list;
 done:
   if (!matches) {
     /* Free the template argument list if we will not use it. */
@@ -1974,9 +2001,14 @@ the final test required for overload resolution (see ARM 13.2).
         advance_arg_match(best_cfp);
         advance_arg_match(cfp);
       }  /* for */
-      /* All the argument matches have the same level.  The fact that a
-         standard conversion is needed after a conversion function can still
-         serve as a tie-breaker. */
+      /* All the argument matches have the same level. */
+      /* The fact that one function is a function template and the other
+         is not can serve as a tie-breaker. */
+      if (!best_cfp->is_function_template && cfp->is_function_template) {
+        goto check_next_function;
+      }  /* if */
+      /* The fact that a standard conversion is needed after a conversion
+         function can serve as a tie-breaker. */
       if (best_cfp->is_user_conversion &&
           !best_cfp->user_conversion.std_conversion_needed &&
           cfp->user_conversion.std_conversion_needed) {
@@ -2013,27 +2045,28 @@ is set to NULL.
   a_candidate_function_ptr candidates = *candidate_functions;
   a_candidate_function_ptr cfp, best_cfp, end_candidate_functions, cfp_next;
   unsigned long            number_in_best_match_set;
+  unsigned long            number_of_non_templates;
+  unsigned long            number_of_function_templates;
   an_arg_match_summary_ptr best_match_for_curr_arg, curr_arg;
   int                      cmp;
   a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
   a_boolean                some_require_std_conversion;
   a_boolean                some_do_not_require_std_conversion;
-  a_boolean                any_function_templates;
-  a_template_arg_ptr       template_arg_list, best_template_arg_list;
 
   db_enter(4, "select_best_candidate_functions");
   *undecidable_because_of_error = FALSE;
   /* See if there are any function templates. */
-  any_function_templates = FALSE;
+  number_of_function_templates = number_of_non_templates = 0;
   for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
     if (cfp->is_function_template) {
-      any_function_templates = TRUE;
-      break;
+      number_of_function_templates++;
+    } else {
+      number_of_non_templates++;
     }  /* if */
   }  /* for */
-  if (any_function_templates) {
+  if (number_of_function_templates != 0) {
     /* There is at least one function template.  The resolution algorithm
-       is therefore the one described in ARM 14.4:
+       is therefore essentially the one described in ARM 14.4:
          (1)  Look for an exact match on a normal function.  If there is
               exactly one, take it.  If there is more than one, the call
               is ambiguous.
@@ -2042,92 +2075,75 @@ is set to NULL.
               more than one, the call is ambiguous.
          (3)  Remove the function templates from the candidate functions
               set and do the normal overload resolution.
+       Because we allow some inexact template matches as an extension,
+       (2) and (3) are instead done as
+         (2)  Determine how well each function template matches the arguments.
+         (3)  Do normal overload resolution, including the function templates
+              in the candidate functions.  Treat a match with a function
+              template as being worse than an otherwise equivalent match with
+              a non-function template.
     */
-    /* Look for exact matches. */
-    number_in_best_match_set = 0;
-    for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-      cfp->in_best_match_set = FALSE;
-      cfp->in_best_match_set_for_some_argument = FALSE;
-      if (!cfp->is_function_template) {
-        set_first_arg_match(cfp);
-        /* Loop for each argument. */
-        while (cfp->current_arg_match != NULL) {
-          if (cfp->current_arg_match->match_level !=
+    /* Look for exact matches for non-template cases.   */
+    if (number_of_non_templates != 0) {
+      /* Note that we have to go through the entire list even though we know
+         how many non-template cases there are, because we have to clear the
+         in_best_match_set (etc.) flags on all entries if there's the
+         possibility we will find an exact match and branch to
+         create_final_list. */
+      number_in_best_match_set = 0;
+      for (cfp = candidates;  cfp != NULL; cfp = cfp->next) {
+        cfp->in_best_match_set = FALSE;
+        cfp->in_best_match_set_for_some_argument = FALSE;
+        if (!cfp->is_function_template) {
+          set_first_arg_match(cfp);
+          /* Loop for each argument. */
+          while (cfp->current_arg_match != NULL) {
+            if (cfp->current_arg_match->match_level !=
                                                (an_arg_match_level)aml_exact) {
-            /* This argument, and therefore this function, is not an exact
-               match. */
-            goto end_exact_test;
-          }  /* if */
-          cfp->in_best_match_set_for_some_argument = TRUE;
-          advance_arg_match(cfp);
-        }  /* while */
-        /* This function is an exact match. */
-        cfp->in_best_match_set = TRUE;
-        number_in_best_match_set++;
-end_exact_test:;
-      }  /* if */
-    }  /* for */
-    if (number_in_best_match_set != 0) {
-      /* There is an exact match or several.  Getting more than one match
-         is hard to do, but not impossible:
-           template <class T> void f(T, ...);
-           void f(char, ...);
-           void f(char){}
-           void m() {char c; f(c);}
-      */
-      goto create_final_list;
-    }  /* if */
-    /* There is no exact match.  Try matching the function templates. */
-    number_in_best_match_set = 0;
-    best_template_arg_list = NULL;
-    for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-      cfp->in_best_match_set = FALSE;
-      cfp->in_best_match_set_for_some_argument = FALSE;
-      if (cfp->is_function_template) {
-        if (function_template_matches_operand_list(cfp->function_symbol,
-                                                   cfp->arg_operand_list,
-                                                   &template_arg_list)) {
-          /* The template function can be made to match the operands
-             we have.  Remember the matching template.  Don't change
-             cfp->function_symbol yet because there might be more than
-             one template that matches and we want the template symbol
-             in the ambiguity message. */
-          best_cfp = cfp;
-          /* Keep only one template arg list if there are several. */
-          free_template_arg_list(best_template_arg_list);
-          best_template_arg_list = template_arg_list;
+              /* This argument, and therefore this function, is not an exact
+                 match. */
+              goto end_exact_test;
+            }  /* if */
+            cfp->in_best_match_set_for_some_argument = TRUE;
+            advance_arg_match(cfp);
+          }  /* while */
+          /* This function is an exact match. */
           cfp->in_best_match_set = TRUE;
           number_in_best_match_set++;
+end_exact_test:;
         }  /* if */
+      }  /* for */
+      if (number_in_best_match_set != 0) {
+        /* There is an exact match or several.  Getting more than one match
+           is hard to do, but not impossible:
+             template <class T> void f(T, ...);
+             void f(char, ...);
+             void f(char){}
+             void m() {char c; f(c);}
+           Whether we have one or several best matches here, the list we have
+           is the proper final list.
+        */
+        goto create_final_list;
       }  /* if */
-    }  /* for */
-    if (number_in_best_match_set == 1) {
-      /* Exactly one function template matches.  Create the template
-         function instance. */
-      best_cfp->function_symbol =
-                              find_template_function(best_cfp->function_symbol,
-                                                     &best_template_arg_list,
-                                                     source_pos);
-      best_cfp->is_function_template = FALSE;
-      goto create_final_list;
-    } else if (number_in_best_match_set > 1) {
-      /* More than one function template matches.  Ambiguity. */
-      free_template_arg_list(best_template_arg_list);
-      goto create_final_list;
     }  /* if */
-    /* No function templates match, so take them out of the candidate
-       functions set and free the entries. */
+    /* There is no exact match.  Try matching the function templates.
+       Remove those that cannot be made to match from the candidate functions
+       list (by rebuilding the list as we go through it).  The rest go on
+       to participate in the general algorithm below. */
     *candidate_functions = end_candidate_functions = NULL;
     for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
       cfp_next = cfp->next;
       cfp->next = NULL;
-      if (cfp->is_function_template) {
-        /* Free the candidate function entry for a function template.
-           Note that this call only frees one entry because the "next"
-           pointer has been cleared. */
+      if (cfp->is_function_template &&
+          !function_template_matches_operand_list(cfp)) {
+        /* A function template that cannot be made to match.  Free it instead
+           of keeping it on the list.  Note that this call only frees one
+           entry because the "next" pointer has been cleared. */
         free_candidate_function_list(cfp);
+        number_of_function_templates--;
       } else {
-        /* Not a function template entry, so keep it on the list. */
+        /* A non-template function, or a template function that can be made
+           to match the operands we have.  Keep it on the list. */
         if (end_candidate_functions == NULL) {
           *candidate_functions = cfp;
         } else {
@@ -2138,9 +2154,7 @@ end_exact_test:;
     }  /* for */
     candidates = *candidate_functions;
   }  /* if */
-  /* At this point, there are no function template entries on the
-     candidate functions list. */
-  /* If there are no functions or there is exactly one function the
+  /* If there are no functions or there is exactly one function, the
      list is already correct. */
   if (candidates != NULL && candidates->next != NULL) {
     /* The algorithm here is the one described in ARM 13.2: "The best-matching
@@ -2238,19 +2252,38 @@ end_exact_test:;
     /* Here, the intersection of the best-match sets has been made, and
        the candidates with in_best_match_set TRUE are in that set. */
     if (number_in_best_match_set > 1) {
+      /* There are two or more functions that are in the best-match set
+         for all arguments.  See if any of those are better than the others
+         for some other reason. */
+      /* If there are some function templates and some non-templates in
+         the best-match set, the non-templates are better. */
+      if (number_of_function_templates != 0 && number_of_non_templates != 0) {
+        /* Take the template functions out of the best-match set. */
+        for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+          if (cfp->in_best_match_set) {
+            if (cfp->is_function_template) {
+              cfp->in_best_match_set = FALSE;
+              number_in_best_match_set--;
+              if (number_in_best_match_set == 1) break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
       /* If the set of functions being examined is the candidates to do
          a conversion, and if some of the candidates require a standard
          conversion after the user-defined conversion and others do not,
          select the candidates that do not require the user-defined
          conversion. */
-      if (candidates->is_user_conversion) {
+      if (number_in_best_match_set > 1 && candidates->is_user_conversion) {
         some_require_std_conversion = FALSE;
         some_do_not_require_std_conversion = FALSE;
         for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-          if (cfp->user_conversion.std_conversion_needed) {
-            some_require_std_conversion = TRUE;
-          } else {
-            some_do_not_require_std_conversion = TRUE;
+          if (cfp->in_best_match_set) {
+            if (cfp->user_conversion.std_conversion_needed) {
+              some_require_std_conversion = TRUE;
+            } else {
+              some_do_not_require_std_conversion = TRUE;
+            }  /* if */
           }  /* if */
         }  /* for */
         if (some_require_std_conversion &&
@@ -2259,11 +2292,12 @@ end_exact_test:;
              the user-defined conversion performed by the candidate
              function. */
           for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-            if (cfp->user_conversion.std_conversion_needed) {
-              cfp->in_best_match_set = FALSE;
-              /* If there aren't any functions left, there's no point in
-                 continuing. */
-              if (--number_in_best_match_set == 0) goto create_final_list;
+            if (cfp->in_best_match_set) {
+              if (cfp->user_conversion.std_conversion_needed) {
+                cfp->in_best_match_set = FALSE;
+                number_in_best_match_set--;
+                if (number_in_best_match_set == 1) break;
+              }  /* if */
             }  /* if */
           }  /* for */
         }  /* if */
@@ -2322,6 +2356,18 @@ create_final_list:
         free_candidate_function_list(cfp);
       }  /* if */
     }  /* for */
+    candidates = *candidate_functions;
+  }  /* if */
+  if (candidates != NULL &&
+      candidates->is_function_template &&
+      candidates->next == NULL) {
+    /* A single candidate function template was unambiguously selected.
+       Create the template function instance. */
+    candidates->function_symbol =
+                         find_template_function(candidates->function_symbol,
+                                                &candidates->template_arg_list,
+                                                source_pos);
+    candidates->is_function_template = FALSE;
   }  /* if */
   db_exit();
 }  /* select_best_candidate_functions */

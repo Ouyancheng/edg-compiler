@@ -1,12 +1,40 @@
 Version 2.17
 
+5/6/93  Change to overload resolution involving template functions
+
+The algorithm that selects the best function during overload resolution
+now handles template functions more generally.  In particular, when
+the extensions that allow inexact matches on parameters involving
+template parameter types are used, the cost of the conversions is
+now considered in evaluating the template function.
+
+  struct B {};
+  struct D: public B {};
+  template <class T> int f(T, B*) { return 1; }
+  int f(int, B*) {return 2; }
+  void m() {
+    D* p;
+    int i = f(1, p);  // Picks non-template function
+  }
+
+
+5/6/93  Fix to conversion subsequence checking in overload resolution
+
+  void f(int);
+  void f(const int&);
+  void m() {
+    const int i = 1;
+    f(i);  // Now diagnosed as ambiguous
+  }
+
+
 5/5/93  Incorrect argument transfer method used for template functions
 
 Under certain circumstances a template function or member function of
 a template class could be generated based on an incorrect
 argument transfer method flag.  This has been corrected.
 
-5/4/93  Calls of virtual functions from constructor and destructors
+5/4/93  Calls of virtual functions from constructors and destructors
 
 Calls of virtual functions of a class from within the constructor or
 destructor of that class are now recognized as being non-virtual

@@ -151,10 +151,8 @@ typedef struct an_arg_match_summary {
 			   that the match was possible only because of the
 			   anachronism that allows a non-const function to
 			   be called for a const object. */
-  a_type_ptr    base_param_type;
-			/* The underlying type of the parameter, shorn of
-			   any top-level reference type and similar
-			   trivial-conversion baggage.  Used in looking
+  a_type_ptr    param_type;
+			/* The type of the parameter.  Used in looking
 			   for conversion subsequences involving addition
 			   of type qualifiers at the end of a conversion.
 			   NULL if not applicable (e.g., for an ellipsis). */
@@ -190,6 +188,11 @@ typedef struct a_candidate_function {
   a_byte_boolean
 		is_function_template;
 			/* TRUE if function_symbol is a function template. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* If is_function_template is TRUE, and if the
+			   proper set of template arguments has been worked
+			   out, this is it.  Otherwise, NULL. */
   char		*operand_type_pattern;
 			/* For a built-in operator, the operand type pattern
 			   string (see operand_type_pattern_for_operator).
