@@ -1,5 +1,35 @@
 Version 2.37
 
+10/16/97  Incorrect offset in virtual function table in the presence of
+          ambiguous base classes
+
+In some obscure cases involving ambiguous base classes, the offset
+in a virtual function table was incorrect and could cause a member
+function to be called with the wrong pointer.
+
+  struct A {
+    virtual void f() = 0;
+  };
+  struct B : public A { };
+  struct C : public B {
+    virtual void g() = 0;
+  };
+  struct E : public B {
+    void f() {}
+  };
+  class F;
+  F *fptr = 0;
+  struct F : public E, public C {
+    void f() { // Gets here with wrong "this" pointer.
+    virtual void g() {}
+  };
+  int main() {
+    fptr = new F;
+    C *c = fptr;
+    c->f();
+    return 0;
+  }
+
 10/16/97  One instantiation per object file
 
 In a new template instantiation mode, enabled by the command-line
