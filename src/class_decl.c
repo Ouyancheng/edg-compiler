@@ -3182,7 +3182,8 @@ function, return TRUE if at least one of the functions qualifies.  Set
         /* Look for an exact match between tp and either the parent class or
            a base class of the parent class.  (A strict reading of the ARM
            seems to disallow the base class match.) */
-        if (is_same_class_or_base_class_thereof(class_type, tp)) {
+        if (is_class_struct_union_type(tp) &&
+            is_same_class_or_base_class_thereof(class_type, tp)) {
           /* Found it. */
           found_assignment_operator_for_copy = TRUE;
           /* Now see if it a const qualified object can be copied.  If not
@@ -3193,7 +3194,8 @@ function, return TRUE if at least one of the functions qualifies.  Set
             break;
           }  /* if */
         }  /* if */
-      } else if (is_same_class_or_base_class_thereof(class_type, tp)) {
+      } else if (is_class_struct_union_type(tp) &&
+                 is_same_class_or_base_class_thereof(class_type, tp)) {
         /* The argument is not the class object by reference but rather
            the class object by value.  We accept this, but it presents a
            special set of problems. */
