@@ -157,6 +157,12 @@ typedef struct a_pragma_kind_description {
 			   IL that it does not recognize, but ignore pragmas
 			   that are in the IL but are intended to be processed
 			   by other (earlier) phases of the compilation. */
+  unsigned int  is_pseudo_pragma:1;
+                        /* TRUE if this pragma kind represents a pseudo
+			   pragma (something that is not specified in the
+			   source code as a pragma, but that is treated as
+			   a pragma).  Lint comment pragmas are examples of
+			   pseudo pragmas. */
   an_error_severity
 		error_severity;
 			/* For pbk_other pragmas, the severity of the

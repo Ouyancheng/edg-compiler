@@ -129,6 +129,7 @@ but cannot be referenced by name in a pragma directive.
   pkdp->expand_macros = expand_macros;
   pkdp->processing_C_code_in_pragma = processing_C_code_in_pragma;
   pkdp->ignore_in_back_end = ignore_in_back_end;
+  pkdp->is_pseudo_pragma = is_pseudo_pragma;
   pkdp->error_severity = error_severity;
   if (is_pseudo_pragma) {
     /* This is a pseudo-pragma (such as a lint comment) that cannot

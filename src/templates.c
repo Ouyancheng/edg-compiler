@@ -311,10 +311,7 @@ encountered, whatever their other characteristics, are included.
     if (seq_incr > 0 || column_incr > 0) {
       add_whitespace_to_template_string(seq_incr, column_incr);
     }  /* if */
-    is_pseudo_pragma =
-            (ppp->descr_ptr->kind == (a_pragma_kind)pk_lint_argsused ||
-             ppp->descr_ptr->kind == (a_pragma_kind)pk_lint_varargs_count ||
-             ppp->descr_ptr->kind == (a_pragma_kind)pk_lint_notreached);
+    is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
     if (is_pseudo_pragma) {
       /* Add comment delimiter to the template string. */
       add_string_to_template_string("/*");
@@ -330,15 +327,17 @@ encountered, whatever their other characteristics, are included.
       /* The pragma id is not part of pragma_text, so it has to be added
          explicitly. */
       add_string_to_template_string(pragma_ids[(int)ppp->descr_ptr->kind]);
-      /* Activate the cache and then go through each of its tokens. */
-      rescan_reusable_cache(&ppp->token_cache);
-      while (curr_token != tok_end_of_source) {
-        add_token_to_template_string();
-        /* Advance to the next token in the cache. */
-        (void)get_token();
-      }  /* while */
-      /* Advance past the end-of-source token. */
-      flush_past_token_cache_terminator();
+      if (ppp->token_cache.first_token != NULL) {
+	/* Activate the cache and then go through each of its tokens. */
+	rescan_reusable_cache(&ppp->token_cache);
+	while (curr_token != tok_end_of_source) {
+	  add_token_to_template_string();
+	  /* Advance to the next token in the cache. */
+	  (void)get_token();
+	}  /* while */
+	/* Advance past the end-of-source token. */
+	flush_past_token_cache_terminator();
+      }  /* if */
     }  /* if */
     if (is_pseudo_pragma) {
       /* Add terminating comment delimiter to the template string. */
