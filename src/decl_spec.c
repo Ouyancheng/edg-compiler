@@ -4356,6 +4356,12 @@ from decl_specifiers only.
       if (is_function_type(*type_ptr) ||
           (is_array_type(*type_ptr) &&
            is_function_type(underlying_array_element_type(*type_ptr)))) {
+        if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
+            scope_stack[decl_scope_level].in_prototype_instantiation) {
+          /* If we're not instantiating a template, applying a cv-qualifier
+             to a function type was probably not intended: Issue a warning. */
+          pos_warning(ec_cv_qualified_function_type, qualifier_pos);
+        }  /* if */
         *qualifiers = TQ_NONE;
       }  /* if */
     }  /* if */
