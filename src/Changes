@@ -1,5 +1,12 @@
 Version 2.37
 
+9/18/97   Error on explicit cast of pointer-to-member of derived to
+          pointer-to-member of virtual base
+
+An error is now issued (as required by the emerging standard) on
+an explicit cast from a pinter-to-member of a derived class to
+a pointer-to-member of a virtual base class.
+
 9/18/97   C++-generating back end: parentheses on ctor-init for array
 
 The C++-generating back end now puts out an empty set of parentheses

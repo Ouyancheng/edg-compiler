@@ -1838,6 +1838,12 @@ of base classes is not necessary.
     /* The cast is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     *p_node = error_node();
+  } else if (any_virtual_steps_in_derivation(bcp)) {
+    /* The base class is a virtual base of the derived class, or there's a
+       virtual step on the derivation path. */
+    pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
+                  pm_class_type((*p_node)->type), bcp->type);
+    *p_node = error_node();
   } else {
     /* Loop through the classes between the derived class and the
        base class.  Generate the necessary casts. */
