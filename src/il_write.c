@@ -758,15 +758,10 @@ Write the indicated memory region to the file f_il_output.
     { sizeof_t               total_bytes;
       a_mem_block_header_ptr hdr;
 
-      /* For all memory regions, walk the IL tree for the region to catch
-         all orphaned file scope IL entry references. */
-      if (writing_file_scope_il) {
-        /* The memory region is the file scope region. */
-        walk_file_scope_il((an_entry_process_function_ptr)NULL,
-                           (a_string_entry_process_function_ptr)NULL,
-                           (a_remap_function_ptr)NULL);
-      } else {
-        /* The memory region is a function scope. */
+      if (!writing_file_scope_il) {
+        /* The memory region is a function scope.  Walk the IL tree to
+           catch all references to file scope orphans and build the
+           right orphan list. */
         walk_routine_scope_il(region_number,
                               (an_entry_process_function_ptr)NULL,
                               (a_string_entry_process_function_ptr)NULL,
