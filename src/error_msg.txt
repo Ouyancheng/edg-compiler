@@ -963,7 +963,7 @@ ec_dual_lookup_ambiguous_name;;"ambiguous class member reference -- %nd1 used in
 ec_bad_allocate_segname;;"missing or invalid segment name in __declspec(allocate(\"...\"))"
 ec_declspec_allocate_not_allowed;;"__declspec(allocate) is not allowed on this declaration"
 ec_dupl_allocate_segname;;"a segment name has already been specified"
-ec_pm_virtual_base_from_derived_class;;"cannot convert pointer to member of derived class %t1 to pointer to member of virtual base class %t2"
+ec_pm_virtual_base_from_derived_class;;"cannot convert pointer to member of derived class %t1 to pointer to member of base class %t2 -- base class is virtual"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
