@@ -1664,7 +1664,7 @@ Display the name of an expression operator.
                                 s = "eok_pm_base_class_cast";     break;
     case eok_pm_derived_class_cast:
                                 s = "eok_pm_derived_class_cast";  break;
-    case eok_dynamic_cast:      s = "eok_dynamic_cast"            break;
+    case eok_dynamic_cast:      s = "eok_dynamic_cast";           break;
     case eok_lvalue_cast:       s = "eok_lvalue_cast";            break;
     case eok_complement:        s = "eok_complement";             break;
     case eok_ipost_incr:        s = "eok_ipost_incr";             break;
