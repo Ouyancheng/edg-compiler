@@ -1134,18 +1134,35 @@ extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 
 #if ORPHAN_PROCESSING_NEEDED
+typedef struct a_translation_unit a_translation_unit_dummy_typedef;
 /*
 Record a file-scope entry as a potential orphan.  The macro here ensures
 that once the entry is placed on an orphan list the subroutine is no
 longer called (well, except if it's the last entry on the list).
+The orphan is recorded in the current translation unit.
 */
 #define add_orphaned_file_scope_il_entry(entry_ptr, entry_kind)       \
 { if (fs_orphan_pointer_of(entry_ptr) == NULL) {                      \
-    f_add_orphaned_file_scope_il_entry((entry_ptr), (entry_kind));    \
+    f_add_orphaned_file_scope_il_entry((entry_ptr), (entry_kind),     \
+                                       curr_translation_unit);        \
   }  /* if */                                                         \
 }  /* add_orphaned_file_scope_il_entry */
-extern void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
-                                               an_il_entry_kind entry_kind);
+/*
+Like add_orphaned_file_scope_il_entry, but do not enter certain kinds
+of entries that can never be orphans (e.g., class members).  The
+orphan is recorded in the current translation unit.
+*/
+#define possibly_add_orphaned_file_scope_il_entry(entry_ptr, entry_kind) \
+{ if (fs_orphan_pointer_of(entry_ptr) == NULL) { \
+    f_possibly_add_orphaned_file_scope_il_entry((entry_ptr), (entry_kind), \
+                                                curr_translation_unit); \
+  }  /* if */ \
+}  /* possibly_add_orphaned_file_scope_il_entry */
+extern
+void f_possibly_add_orphaned_file_scope_il_entry(
+                                          char                      *entry_ptr,
+                                          an_il_entry_kind          entry_kind,
+                                          struct a_translation_unit *tup);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 #if !STANDALONE_UTILITY_PROGRAM

@@ -2747,29 +2747,31 @@ out the file name in a #line directive.
 
 #if ORPHAN_PROCESSING_NEEDED
 
-void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
-                                        an_il_entry_kind entry_kind)
+static void f_add_orphaned_file_scope_il_entry(
+                                             char                   *entry_ptr,
+                                             an_il_entry_kind       entry_kind,
+                                             a_translation_unit_ptr tup)
 /*
 Link the specified file scope IL entry onto the orphaned_file_scope_il_entries
-linked list for the designated IL entry kind.  Only IL entries in the
-file scope memory region have the necessary additional pointer space 
-allocated immediately preceding the entry.  This routine is called by
-the macro add_orphaned_file_scope_il_entry, which checks that
-fs_orphan_pointer_of(entry_ptr) == NULL for speed (this routine does
-not check that again, so it should not be called directly).
+linked list for the designated IL entry kind in the designated translation
+unit.  Only IL entries in the file scope memory region have the necessary
+additional pointer space allocated immediately preceding the entry.
+The caller must check that fs_orphan_pointer_of(entry_ptr) == NULL for
+speed.
 */
 {
   char **last_entry_ptr;
 
   check_assertion_str(in_file_scope(entry_ptr),
-    "f_add_orphaned_file_scope_...: IL entry not in file scope memory region");
+                  "f_add_orphaned_file_scope_...: IL entry not in file scope");
 #if !STANDALONE_UTILITY_PROGRAM
-  check_assertion_str(is_primary_translation_unit ==
+  check_assertion_str((tup == translation_units) ==
                       !in_secondary_trans_unit(entry_ptr),
                  "f_add_orphaned_file_scope_il_entry: wrong translation unit");
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Check if this IL entry is already on the orphaned entry list. */
-  last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
+  last_entry_ptr =
+              &tup->orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
   /* The following check was done by the macro that guards entry to this
      routine: fs_orphan_pointer_of(entry_ptr) == NULL.  If one wants this
      routine to be directly callable, the test should be done again here. */
@@ -2778,7 +2780,7 @@ not check that again, so it should not be called directly).
        list. */
     if (*last_entry_ptr == NULL) {
       /* This is the first entry on this list */
-      orphaned_file_scope_il_entries[(int)entry_kind].first_entry = 
+      tup->orphaned_file_scope_il_entries[(int)entry_kind].first_entry = 
                                                                entry_ptr;
     } else {
       /* Add to the tail of the existing list. */
@@ -2788,6 +2790,66 @@ not check that again, so it should not be called directly).
   }  /* if */
 }  /* f_add_orphaned_file_scope_il_entry */
 
+
+void f_possibly_add_orphaned_file_scope_il_entry(
+                                             char                   *entry_ptr,
+                                             an_il_entry_kind       entry_kind,
+                                             a_translation_unit_ptr tup)
+/*
+Interface to add_orphaned_file_scope_il_entry.  Adds the indicated entry
+(of the indicated kind) to the orphan lists of the indicated translation
+unit.  However, detects certain cases that cannot be orphans (e.g., class
+members), and does not enter those.
+*/
+{
+  check_assertion_str(in_file_scope(entry_ptr),
+           "possibly_add_orphaned_file_scope_...: IL entry not in file scope");
+  /* Do not put the entry on a list if it's already on a list. */
+  if (fs_orphan_pointer_of(entry_ptr) == NULL) {
+    a_boolean could_be_orphan = TRUE;
+    a_boolean do_source_corresp_check = FALSE;
+    switch (entry_kind) {
+      case iek_constant:
+        do_source_corresp_check = TRUE;
+        break;
+      case iek_variable:
+        do_source_corresp_check = TRUE;
+        break;
+      case iek_routine:
+        do_source_corresp_check = TRUE;
+        break;
+      case iek_type:
+        do_source_corresp_check = TRUE;
+        { a_type_ptr type = (a_type_ptr)entry_ptr;
+          if (is_immediate_class_type(type) ||
+              is_immediate_enum_type(type)) {
+            /* Classes and enums cannot be orphans. */
+            could_be_orphan = FALSE;
+          }  /* if */
+        }
+        break;
+      case iek_namespace:
+        could_be_orphan = FALSE;
+        break;
+      default:
+        break;
+    }  /* switch */
+    if (do_source_corresp_check && could_be_orphan) {
+      /* Named entities and class and namespace members cannot be orphans. */
+      a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
+      if (scp->name != NULL ||
+          scp->is_class_member ||
+          scp->parent.namespace_ptr != NULL) {
+        could_be_orphan = FALSE;
+      }  /* if */
+    }  /* if */
+    if (could_be_orphan) {
+      f_add_orphaned_file_scope_il_entry(entry_ptr, entry_kind, tup);
+    }  /* if */
+  }  /* if */
+}  /* possibly_add_orphaned_file_scope_il_entry */
+
+  
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 #if !STANDALONE_UTILITY_PROGRAM

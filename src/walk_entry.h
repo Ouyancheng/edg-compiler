@@ -452,7 +452,7 @@ the file scope, do not process it (but record an orphan in the latter case).
     if (!walking_file_scope && epp->file_scope) {
       /* Add non-string file scope IL entries referenced from a
          function scope to the orphaned IL entries lists. */
-      add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
+      possibly_add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
       goto end_of_routine;
     }  /* if */
     /* See if this entry has been reached already, and if so, don't process

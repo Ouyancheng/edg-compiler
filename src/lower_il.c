@@ -3233,14 +3233,8 @@ constants in other scopes.
 {
   if (crossing_into_file_scope(constant)) {
     /* Don't follow a pointer from the function scope into the file scope;
-       record it as a potential orphan instead.  Note that a class or
-       namespace member can never be an orphan, so member constants are
-       not recorded as orphans.  Likewise a named constant must be on
-       some list, so it cannot be an orphan either. */
-    if (!has_name(constant) && !constant->source_corresp.is_class_member &&
-        constant->source_corresp.parent.namespace_ptr == NULL) {
-      add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
-    }  /* if */
+       record it as a potential orphan instead. */
+    possibly_add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
   } else {
     lower_constant(constant);
   }  /* if */
@@ -5423,20 +5417,12 @@ A "possibly other scope" version of lower_type; does nothing for
 types in other scopes.  Note that because all types are in the file
 scope, any reference to a type while lowering a function is a
 reference to another scope, and is recorded as a potential orphan
-to be processed later.  Note that a class member or namespace member
-can never be an orphan, so member types are not recorded as orphans.
-Likewise a named type or a tag must be on some list, so it cannot be
-an orphan either.
+to be processed later.
 */
 {
   if (!lowering_file_scope) {
-    if (!has_name(type) && !is_immediate_class_type(type) &&
-        !is_immediate_enum_type(type) &&
-        !type->source_corresp.is_class_member &&
-        type->source_corresp.parent.namespace_ptr == NULL) {
-      add_orphaned_file_scope_il_entry((char *)(type),
-                                       (an_il_entry_kind)iek_type);
-    }  /* if */
+    possibly_add_orphaned_file_scope_il_entry((char *)(type),
+                                              (an_il_entry_kind)iek_type);
   } else {
     lower_type(type);
   }  /* if */

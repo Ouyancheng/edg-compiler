@@ -140,10 +140,13 @@ in the current IL walk.
 
   if (ptr == NULL) {
     /* Ignore NULL pointers. */
-  } else if (!in_secondary_trans_unit(ptr)) {
-    /* This entry is in the primary file IL, so do nothing. */
   } else if (!in_file_scope(ptr)) {
     /* This entry is in a function scope memory region, so do nothing. */
+  } else if (!in_secondary_trans_unit(ptr)) {
+    /* This entry is in the primary file IL, so do nothing. */
+    /* Add it as an orphan in case this reference from a secondary translation
+       unit is the only one to it. */
+    f_possibly_add_orphaned_file_scope_il_entry(ptr, kind, translation_units);
   } else if (trans_unit_copy_address_of(ptr) != NULL) {
     /* A copy address has already been assigned to this entry. */
   } else {
