@@ -467,7 +467,7 @@ and indentation is the indentation desired.
           put_string("aggregate");
         }  /* if */
         if (cssp->constructor != NULL) put_string("has ctor");
-        if (cssp->has_default_constructor) {
+        if (cssp->has_nontrivial_default_constructor) {
           put_string("has default-ctor");
         }  /* if */
         if (cssp->has_copy_constructor_for_const_object) {
@@ -1647,6 +1647,7 @@ state.
         sym_ptr->variant.class_struct_union.extra_info = cssp;
         cssp->symbols = NULL;
         cssp->constructor = NULL;
+        cssp->trivial_default_constructor = NULL;
         cssp->destructor = NULL;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
@@ -1661,7 +1662,8 @@ state.
         cssp->referencing_namespace = NULL;
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
-        cssp->has_default_constructor = FALSE;
+        cssp->has_nontrivial_default_constructor = FALSE;
+        cssp->has_user_declared_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
         cssp->has_copy_constructor_for_const_object = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
@@ -1672,7 +1674,6 @@ state.
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
         cssp->is_POD = FALSE;
-        cssp->trivial_default_constructor_defined = FALSE;
         cssp->has_operator_new = FALSE;
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;

@@ -556,7 +556,29 @@ typedef struct a_class_symbol_supplement {
 			/* Pointer to either an sk_member_function symbol (when
 			   there is only one constructor defined for the class)
 			   or an sk_overloaded_function symbol (when there are
-			   more than one); NULL if there is none. */
+			   more than one); NULL if there is none.  The set
+			   may comprise user-declared constructors, an
+			   implicitly-declared (trivial or nontrivial) copy
+			   constructor, or an implicitly-declared nontrivial
+			   default constructor.  The set is empty if the
+			   class has only a trivial default constructor (12.1
+			   [class.ctor]) and trivial copy constructor (12.8
+			   [class.copy]). */
+  a_symbol_ptr	trivial_default_constructor;
+			/* When constructor is NULL and is_POD is FALSE,
+			   pointer to an sk_member_funcion symbol for the
+			   trivial default constructor; it is never actually
+			   called (that's why it's not in the constructor set
+			   for this class), and the associated routine entry
+			   is not added to the IL, but its definition may
+			   nevertheless require diagnostics:
+			     class X { const int i; };
+			     X x;
+			   X is not a POD (private member) and the implicit
+			   definition of X::X() is ill-formed.  Note: when
+			   an implicitly declared default constructor is
+			   nontrivial, it appears on the constructor list for
+			   the class. */
   a_symbol_ptr	destructor;
 			/* Pointer to an sk_member_function symbol that
 			   identifies the destructor for this class; NULL if
@@ -653,9 +675,13 @@ typedef struct a_class_symbol_supplement {
 			   class type.  The entire list or some portion
 			   of the end of the list may be shared between
 			   classes in a given namespace. */
-  a_bit_field	has_default_constructor:1;
-			/* TRUE if a default constructor has either been
-			   declared or generated for the class. */
+  a_bit_field	has_nontrivial_default_constructor:1;
+			/* TRUE if a default constructor has been explicitly
+			   declared or a nontrivial default constructor has
+			   implicitly declared for this class. */
+  a_bit_field	has_user_declared_default_constructor:1;
+			/* TRUE if a default constructor has been explicitly
+			   declared for this class. */
   a_bit_field	has_copy_constructor:1;
 			/* TRUE if a copy constructor has either been declared
 			   or generated for the class. */
@@ -684,17 +710,10 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if the class has no constructors, no base
 			   classes, no private or protected members, and
 			   no virtual functions (ARM 8.4.1). */
-  a_bit_field	is_POD;
+  a_bit_field	is_POD:1;
 			/* TRUE if the class is a "POD" -- an aggregate with
 			   with further restrictions that make it look like a
 			   C struct or union (WP 9 [class]). */
-  a_bit_field	trivial_default_constructor_defined;
-			/* TRUE when constructor is NULL, is_POD is FALSE, and
-			   a definition of the trivial default constructor has
-			   been simulated (to issue errors that would have
-			   been put out if a default constructor were actually
-			   defined).  This flag assures that the fake
-			   definition is only done once for a class. */
   a_bit_field	has_operator_new:1;
 			/* TRUE if a member operator new() has been declared
 			   for this class or a class from which it derived. */

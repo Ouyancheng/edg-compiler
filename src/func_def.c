@@ -1002,10 +1002,10 @@ on a prior declaration.
          possible if there are default arguments in the definition.) */
       a_class_symbol_supplement_ptr  cssp;
       cssp = symbol_supplement_for_class(class_type);
-      if (!cssp->has_default_constructor &&
+      if (!cssp->has_nontrivial_default_constructor &&
           is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
         /* This is a default constructor, so set the flag. */
-        cssp->has_default_constructor = TRUE;
+        cssp->has_nontrivial_default_constructor = TRUE;
       }  /* if */
       /* There are three flags associated with copy constructors. */
       if (!cssp->has_copy_constructor_for_const_object ||
