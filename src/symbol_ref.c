@@ -1107,15 +1107,18 @@ source-sequence entries should be removed from the list.
 
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* cmudp is used only when a source sequence entry is created. */
+/*ARGSUSED*/ /* udp and prev_udp are used only for source sequence entries. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-void record_class_member_using_decl(a_class_member_using_decl_ptr  cmudp,
-                                    a_symbol_ptr                   sym,
-                                    a_source_position              *pos)
+void record_using_decl(a_symbol_ptr       sym,
+                       a_source_position  *pos,
+                       a_using_decl_ptr   udp,
+                       a_using_decl_ptr   prev_udp)
 /*
-cmudp points to a class-member-using-decl entry created to represent an
-using declaration of the inherited member sym.  If appropriate, update the
-cross reference and source sequence output.
+udp points to a using-decl entry created to represent an using declaration
+specifying fundamental symbol sym.  If appropriate, update the cross reference
+and source sequence output.  prev_udp, if non-NULL, refers to the previously
+created using-decl in a function overload set.  *pos is the source position of
+the identifier in the using-declaration.
 */
 {
   /* Update the cross reference file if it exists. */
@@ -1125,11 +1128,17 @@ cross reference and source sequence output.
     write_xref_entry(SRK_DECLARATION, sym, pos);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  update_source_sequence_list((char *)cmudp,
-                              (an_il_entry_kind)iek_class_member_using_decl,
-                              (a_source_sequence_entry_ptr)NULL);
+  if (!source_sequence_entries_disallowed) {
+    if (prev_udp == NULL) {
+      update_source_sequence_list((char *)udp,
+                                  (an_il_entry_kind)iek_using_decl,
+                                  (a_source_sequence_entry_ptr)NULL);
+    } else {
+      prev_udp->next_in_overload_set = udp;
+    }  /* if */
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-}  /* record_class_member_using_decl */
+}  /* record_using_decl */
 
 
 static a_boolean is_cfront_base_class_destructor_access_bug(

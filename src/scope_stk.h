@@ -71,10 +71,10 @@ typedef struct a_scope_pointers_block {
 		last_namespace;
 			/* End of list of namespace entries in this scope,
 			   NULL if there are none. */
-  a_using_directive_ptr
-		last_using_directive;
-			/* End of list of using-directive entries in this
-			   scope; NULL if there are none. */
+  a_using_decl_ptr
+		last_using_decl;
+			/* End of list of using-decl entries in this scope;
+			   NULL if there are none. */
   a_pragma_ptr	last_pragma;
 			/* End of list of IL pragma entries entered on the
 			   pragma_list of il_scope, NULL if none. */
@@ -813,7 +813,7 @@ Call namespace_is_enclosed_by_scope for the current scope.
 
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
-extern void add_active_using_directive(a_using_directive_ptr udp);
+extern void add_active_using_directive(a_using_decl_ptr udp);
 
 extern void report_for_init_difference(a_symbol_ptr       sym,
                                        a_source_position  *pos);

@@ -1409,7 +1409,7 @@ typedef struct an_active_using_directive {
 		next;
 			/* Next in the linked list of active using-directives
 			   associated with the current scope or namespace. */
-  a_using_directive_ptr
+  a_using_decl_ptr
 		entry;
 			/* The IL entry to which this front-end only entry
 			   corresponds; there is a one-to-one correspondence

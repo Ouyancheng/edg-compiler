@@ -4489,18 +4489,22 @@ a diagnostic should be issued by the caller.
 static void mark_class_member_using_decl_as_hidden(a_type_ptr    class_type,
                                                    a_symbol_ptr  sym)
 /*
+Set the "hidden" flag to TRUE in the using-decl entry belonging to the
+scope of the derived class indicated by class_type and associated with the
+base-class member indicated by sym.
 */
 {
-  a_class_member_using_decl_ptr  cmudp;
-  a_routine_ptr                  rp;
+  a_using_decl_ptr  udp;
+  a_routine_ptr     rp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   rp = sym->variant.routine.ptr;
-  cmudp = class_type->variant.class_struct_union.extra_info->
-                                                   class_member_using_decls;
-  for (; cmudp != NULL; cmudp = cmudp->next) {
-    if (cmudp->entity.ptr == (char *)rp) {
-      cmudp->hidden = TRUE;
+  udp = class_type->variant.class_struct_union.extra_info->
+                                                 assoc_scope->using_decls;
+  for (; udp != NULL; udp = udp->next) {
+    if (udp->entity.ptr == (char *)rp) {
+      udp->hidden = TRUE;
+      break;
     }  /* if */
   }  /* for */
 }  /* mark_class_member_using_decl_as_hidden */
@@ -7666,68 +7670,6 @@ destination type is not yet on the current class's conversion list.
 }  /* project_base_class_conversion_functions */
 
 
-static a_class_member_using_decl_ptr new_class_member_using_decl(
-                                                 a_symbol_ptr         sym,
-                                                 an_access_specifier  access)
-/*
-Allocate a class-member-using-decl entry, set its fields based on sym, and
-return a pointer to it.
-*/
-{
-  a_class_member_using_decl_ptr  cmudp;
-  an_il_entry_kind               kind;
-  char                           *entity;
-
-  /* Determine the IL entity and the entity-kind, based on the symbol. */
-  switch (sym->kind) {
-    case sk_static_data_member:
-      kind = iek_variable;
-      entity = (char *)sym->variant.static_data_member.variable;
-      break;
-    case sk_constant:
-      kind = iek_constant;
-      entity = (char *)sym->variant.constant;
-      break;
-    case sk_class_or_struct_tag:
-    case sk_union_tag:
-    case sk_enum_tag:
-    case sk_type:
-      kind = iek_type;
-      entity = (char *)type_symbol_type(sym);
-      break;
-    case sk_member_function:
-      kind = iek_routine;
-      entity = (char *)sym->variant.routine.ptr;
-      break;
-    case sk_field:
-      kind = iek_field;
-      entity = (char *)sym->variant.field.ptr;
-      break;
-    case sk_function_template:
-    case sk_class_template:
-#if RECORD_TEMPLATES_IN_IL
-      kind = iek_template;
-      entity = (char *)sym->variant.template_info->il_template_entry;
-      break;
-#else /* !RECORD_TEMPLATES_IN_IL */
-      /* When these symbol kinds are encountered and RECORD_TEMPLATES_IN_IL
-         is FALSE, fall through to the internal error -- the routine should
-         not have been called. */
-#endif /* RECORD_TEMPLATES_IN_IL */
-    default:
-      unexpected_condition_str2("new_class_member_using_decl:",
-                                "unexpected symbol kind");
-  }  /* switch */
-  /* Allocate a class member using declb entry of the appropriate kind. */
-  cmudp = alloc_class_member_using_decl(kind);
-  cmudp->access = access;
-  /* Add a pointer to the correct IL entity. */
-  cmudp->entity.ptr = entity;
-
-  return cmudp;
-}  /* new_class_member_using_decl */
-
-
 static void member_using_declaration(a_type_ptr           class_type,
                                      an_access_specifier  access)
 /*
@@ -7738,14 +7680,14 @@ declaration appears, and access is the current access (explicitly specified
 or implicit) controlling the declaration.
 */
 {
-  a_symbol_ptr                   sym, declared_sym;
-  a_symbol_ptr                   new_sym, other_sym, fund_sym;
-  a_base_class_ptr               bcp;
-  a_boolean                      err = FALSE;
-  a_boolean                      is_overloaded;
-  a_symbol_locator               locator;
-  a_class_member_using_decl_ptr  cmudp;
-  a_source_position              decl_pos;
+  a_symbol_ptr       sym, declared_sym;
+  a_symbol_ptr       new_sym, other_sym, fund_sym;
+  a_base_class_ptr   bcp;
+  a_boolean          err = FALSE;
+  a_boolean          is_overloaded;
+  a_symbol_locator   locator;
+  a_using_decl_ptr   udp, prev_udp = NULL;
+  a_source_position  decl_pos;
 
   db_enter(3, "member_using_declaration");
   add_stop_token(tok_semicolon);
@@ -7980,19 +7922,15 @@ or implicit) controlling the declaration.
 #endif /* !RECORD_TEMPLATES_IN_IL */
           /* Create a class member using decl entry to represent this
              declaration in the IL. */
-          cmudp = new_class_member_using_decl(fund_sym, access);
-          /* Attach it the class type entry. */
-          cmudp->next = class_type->variant.class_struct_union.
-                                        extra_info->class_member_using_decls;
-          class_type->variant.class_struct_union.extra_info->
-                                            class_member_using_decls = cmudp;
+          udp = make_using_decl(fund_sym, &decl_pos);
           /* Record the class that was actually specified in the qualified
              name in the source. */
-          cmudp->class_specified_in_qualifier =
-                                         declared_sym->parent.class_type;
-          /* Update cross-reference and source sequence info, if required. */
-          record_class_member_using_decl(cmudp, fund_sym,
-                                         &locator_for_curr_id.source_position);
+          udp->qualifier.class_type = declared_sym->parent.class_type;
+          udp->access = access;
+          udp->is_class_member = TRUE;
+          /* Update cross-reference and source-sequence info, if required. */
+          record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
+          prev_udp = udp;
 #if !RECORD_TEMPLATES_IN_IL
         }  /* if */
 #endif /* !RECORD_TEMPLATES_IN_IL */

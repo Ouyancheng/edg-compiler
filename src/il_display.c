@@ -2673,8 +2673,8 @@ do_assoc_type:
       /* Fall through. */
     case sck_function:
     case sck_block:
-      disp_ptr("using_directives", (char *)ptr->using_directives,
-               iek_using_directive);
+    case sck_class_struct_union:
+      disp_ptr("using_decls", (char *)ptr->using_decls, iek_using_decl);
       break;
     default:;
   }  /* if */
@@ -2984,20 +2984,51 @@ Display the indicated namespace entry.
 }  /* disp_namespace */
 
 
-static void disp_using_directive(a_using_directive_ptr  ptr)
+static void disp_using_decl(a_using_decl_ptr  ptr)
 /*
 Display the indicated using-directive entry.
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_using_directive);
-  disp_ptr("assoc_namespace", (char *)ptr->assoc_namespace, iek_namespace);
+  disp_ptr("next", (char *)ptr->next, iek_using_decl);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
   disp_unsigned_long("position.seq", (unsigned long)ptr->position.seq);
   disp_unsigned_long("position.column", (unsigned long)ptr->position.column);
+  disp_boolean("is_using_directive", ptr->is_using_directive);
+  if (!ptr->is_using_directive) {
+    /* Either a class member using-declaration or a nonmember
+       using-declaration. */
+    disp_boolean("is_class_member", ptr->is_class_member);
+    if (ptr->is_class_member) {
+      /* Class member using-declaration. */
+      disp_access("access", ptr->access);
+      if (ptr->hidden) disp_boolean("hidden", TRUE);
+      disp_ptr("qualifier.class_type",
+               (char *)ptr->qualifier.class_type, iek_type);
+    } else {
+      /* Nonmember using-declaration. */
+      disp_ptr("qualifier.namespace_ptr",
+               (char *)ptr->qualifier.namespace_ptr, iek_namespace);
+    }  /* if */
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);
+  if (ptr->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+    disp_ptr("next_in_overload_set", (char *)ptr->next_in_overload_set,
+             iek_using_decl);
+#if RECORD_TEMPLATES_IN_IL
+  } else if (ptr->entity.kind == (a_byte_il_entry_kind)iek_template) {
+    a_template_ptr  tp = (a_template_ptr)ptr->entity.ptr;
+    if (tp->kind == (a_template_kind)templk_function ||
+        tp->kind == (a_template_kind)templk_member_function) {
+      disp_ptr("next_in_overload_set", (char *)ptr->next_in_overload_set,
+               iek_using_decl);
+    }  /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-}  /* disp_using_directive */
+}  /* disp_using_decl */
 
 
 static void disp_dynamic_init(a_dynamic_init_ptr ptr)
@@ -3095,21 +3126,6 @@ Display the indicated local_static_variable_init entry.
   disp_initializer(ptr->init_kind, &ptr->initializer);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_local_static_variable_init */
-
-
-static void disp_class_member_using_decl(a_class_member_using_decl_ptr ptr)
-/*
-Display the indicated class_member_using_decl entry.
-*/
-{
-  disp_ptr("next", (char *)ptr->next, iek_class_member_using_decl);
-  disp_access("access", ptr->access);
-  if (ptr->hidden) disp_boolean("hidden", TRUE);
-  disp_ptr("entity", (char *)ptr->entity.ptr,
-           (an_il_entry_kind)ptr->entity.kind);
-  disp_ptr("class_specified_in_qualifier",
-           (char *)ptr->class_specified_in_qualifier, iek_type);
-}  /* disp_class_member_using_decl */
 
 
 static void disp_overriding_virtual_function (
@@ -3238,10 +3254,6 @@ Display the indicated class type supplement entry.
       default:
         (void)printf("**BAD ANONYMOUS UNION KIND**\n");
     }  /* switch */
-  }  /* if */
-  if (ptr->class_member_using_decls != NULL) {
-    disp_ptr("class_member_using_decls", (char *)ptr->class_member_using_decls,
-             iek_class_member_using_decl);
   }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
@@ -3573,8 +3585,8 @@ This routine is called during IL walking.
         case iek_namespace:
           disp_namespace((a_namespace_ptr)entry_ptr);
           break;
-        case iek_using_directive:
-          disp_using_directive((a_using_directive_ptr)entry_ptr);
+        case iek_using_decl:
+          disp_using_decl((a_using_directive_ptr)entry_ptr);
           break;
         case iek_dynamic_init:
           disp_dynamic_init((a_dynamic_init_ptr)entry_ptr);
@@ -3582,10 +3594,6 @@ This routine is called during IL walking.
         case iek_local_static_variable_init:
           disp_local_static_variable_init(
                                  (a_local_static_variable_init_ptr)entry_ptr);
-          break;
-        case iek_class_member_using_decl:
-          disp_class_member_using_decl(
-                                 (a_class_member_using_decl_ptr)entry_ptr);
           break;
         case iek_overriding_virtual_function:
           disp_overriding_virtual_function(

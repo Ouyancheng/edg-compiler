@@ -1273,8 +1273,7 @@ do_set_proper_definition_needed_flag:
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-        remap_ptr(ptr->source_sequence_entry,
-                  a_source_sequence_entry_ptr,
+        remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
         walk_string_ptr(ptr->pragma_text, iek_other_text, 0);
@@ -1462,8 +1461,8 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_needed_on_list(ptr->namespaces, a_namespace_ptr, iek_namespace,
                             kind);
-        walk_list_not_needed(ptr->using_directives, a_using_directive_ptr,
-                             iek_using_directive);
+        walk_list_not_needed(ptr->using_decls, a_using_decl_ptr,
+                             iek_using_decl);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
         walk_list(ptr->local_static_variable_inits,
@@ -1687,14 +1686,22 @@ do_set_proper_definition_needed_flag:
       }
       break;
 #if !NEEDED_FLAG_WALK
-    case iek_using_directive:
+    case iek_using_decl:
       {
-        a_using_directive_ptr ptr = (a_using_directive_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_using_directive_ptr, iek_using_directive);
-        remap_ptr(ptr->assoc_namespace, a_namespace_ptr, iek_namespace);
+        a_using_decl_ptr ptr = (a_using_decl_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_using_decl_ptr, iek_using_decl);
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
+        if (ptr->is_class_member) {
+          remap_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
+        } else {
+          remap_ptr(ptr->qualifier.namespace_ptr, a_namespace_ptr,
+                    iek_namespace);
+        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !KEEP_IN_IL_WALK
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
+        remap_ptr(ptr->next_in_overload_set, a_using_decl_ptr, iek_using_decl);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
       }
       break;
@@ -1761,17 +1768,6 @@ do_set_proper_definition_needed_flag:
       }
       break;
 #if !NEEDED_FLAG_WALK
-    case iek_class_member_using_decl:
-      {
-        a_class_member_using_decl_ptr ptr =
-                                     (a_class_member_using_decl_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_class_member_using_decl_ptr,
-                       iek_class_member_using_decl);
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
-        remap_ptr(ptr->class_specified_in_qualifier, a_type_ptr, iek_type);
-      }
-      break;
     case iek_overriding_virtual_function:
       {
         an_overriding_virtual_function_ptr ptr =
@@ -1886,9 +1882,6 @@ after_entry_from_class:
           walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
           remap_ptr_not_needed(ptr->virtual_function_info_base_class,
                                a_base_class_ptr, iek_base_class);
-          walk_list_not_needed(ptr->class_member_using_decls,
-                               a_class_member_using_decl_ptr,
-                               iek_class_member_using_decl);
           walk_list_not_needed(ptr->friend_routines, a_routine_list_entry_ptr,
                                iek_routine_list_entry);
           walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
@@ -2287,11 +2280,8 @@ of each kind.
 #endif /* ifdef FFE */
 #ifdef CFE
   walk_orphan_entry_list_for_entry_kind(a_namespace_ptr, iek_namespace);
-  walk_orphan_entry_list_for_entry_kind(a_using_directive_ptr,
-                                        iek_using_directive);
+  walk_orphan_entry_list_for_entry_kind(a_using_decl_ptr, iek_using_decl);
   walk_orphan_entry_list_for_entry_kind(a_dynamic_init_ptr, iek_dynamic_init);
-  walk_orphan_entry_list_for_entry_kind(a_class_member_using_decl_ptr,
-                                        iek_class_member_using_decl);
   walk_orphan_entry_list_for_entry_kind(an_overriding_virtual_function_ptr,
                                         iek_overriding_virtual_function);
   walk_orphan_entry_list_for_entry_kind(a_derivation_step_ptr,

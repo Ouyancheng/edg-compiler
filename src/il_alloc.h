@@ -57,8 +57,6 @@ extern void free_template_arg_list(a_template_arg_ptr  tap);
 
 extern a_base_class_ptr alloc_base_class(void);
 
-extern a_class_member_using_decl_ptr alloc_class_member_using_decl(
-                                                      an_il_entry_kind kind);
 extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
 
 extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);
@@ -145,7 +143,7 @@ extern void set_scope_kind(a_scope_ptr    sp,
 
 extern a_namespace_ptr alloc_namespace(a_boolean  is_alias);
 
-extern a_using_directive_ptr alloc_using_directive(void);
+extern a_using_decl_ptr alloc_using_decl(void);
 
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,

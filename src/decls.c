@@ -6386,26 +6386,28 @@ Return a pointer to the variable that is declared.
 static void make_using_directive(a_namespace_ptr    nsp,
                                  a_source_position  *pos)
 /*
-Create a using-directive entry for the specified namespace, add it to the
-current scope's list using directives, and "activate" it to assure that
-inactive-list symbols belonging to the namespace will be found during
-name lookup.
+Create a using-decl entry for a using-directive that specifies the indicated
+namespace, add it to the current scope's list of using-decl entries, and
+"activate" it to assure that inactive-list symbols belonging to the namespace
+will be found during name lookup.
 */
 {
-  a_using_directive_ptr          udp;
+  a_using_decl_ptr  udp;
 
   /* Create the using-directive entry. */
-  udp = alloc_using_directive();
+  udp = alloc_using_decl();
   udp->position = *pos;
-  udp->assoc_namespace = nsp;
-  add_to_using_directives_list(udp);
+  udp->entity.kind = (a_byte_il_entry_kind)iek_namespace;
+  udp->entity.ptr = (char *)nsp;
+  udp->is_using_directive = TRUE;
+  add_to_using_decls_list(udp);
   /* Activate it. */
   add_active_using_directive(udp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (nsp->source_corresp.name != NULL) {
     /* Not a compiler-generated using directive for an unnamed namespace. */
     update_source_sequence_list((char *)udp,
-                                (an_il_entry_kind)iek_using_directive,
+                                (an_il_entry_kind)iek_using_decl,
                                 (a_source_sequence_entry_ptr)NULL);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6794,6 +6796,35 @@ A using-directive entry is created and activated for the current scope.
 }  /* using_directive */
 
 
+a_using_decl_ptr make_using_decl(a_symbol_ptr      sym,
+                                 a_source_position *pos)
+/*
+Allocate a using-decl entry, set its fields based on sym, add it to the list
+for the current scope, and return a pointer to it.  This routine is used for
+class member using-declarations and nonmember using-declarations; similar
+processing is done for using-directives by make_using_directive.
+*/
+{
+  a_using_decl_ptr  udp;
+  an_il_entry_kind  kind;
+  char              *entity;
+
+  /* Determine the IL entity and the entity-kind, based on the symbol. */
+  entity = il_entry_for_symbol(sym, &kind);
+  check_assertion_str(kind != (an_il_entry_kind)iek_none,
+                      "make_using_decl: no IL entry for symbol");
+  /* Allocate a using-decl entry, and make it point to the IL entity. */
+  udp = alloc_using_decl();
+  udp->entity.kind = (a_byte_il_entry_kind)kind;
+  udp->entity.ptr = entity;
+  udp->position = *pos;
+  /* Attach it the list for the current scope. */
+  add_to_using_decls_list(udp);
+
+  return udp;
+}  /* make_using_decl */
+
+
 static void nonmember_using_declaration(void)
 /*
 Scan a using_declaration in a nonclass scope.  Its syntax is:
@@ -6804,12 +6835,14 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 */
 {
-  a_symbol_ptr             sym, new_sym, overload_sym, other_decl;
+  a_symbol_ptr             sym, new_sym, overload_sym, other_decl, fund_sym;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
   a_boolean                is_list = FALSE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_namespace_ptr          nsp;
+  a_using_decl_ptr         udp, prev_udp = NULL;
+  a_source_position        decl_pos;
 
   db_enter(3, "nonmember_using_declaration");
   /* Bypass "using". */
@@ -6911,6 +6944,7 @@ current scope.
              the declaration. */
         } else {
           /* Create the new sk_namespace_projection symbol(s). */
+          decl_pos = locator_for_curr_id.source_position;
           for (; sym != NULL; sym = is_list ? sym->next : NULL) {
             locator = locator_for_curr_id;
             clear_specific_symbol(locator);
@@ -6927,9 +6961,8 @@ current scope.
                  overload_sym. */
               continue;
             } else if (conflicts_with_previous_function_decl(
-                                     fundamental_symbol_of(sym),
-                                     overload_sym,
-                                     &locator_for_curr_id.source_position)) {
+                                                  fundamental_symbol_of(sym),
+                                                  overload_sym, &decl_pos)) {
               /* A function introduced by a using declaration cannot have the
                  same type as a function already declared in the scope
                  (WP 7.3.3 [namespace.udecl] paragraph 12).  The diagnostic
@@ -6947,6 +6980,27 @@ current scope.
             }  /* if */
             set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                                      (a_namespace_ptr)NULL);
+            fund_sym = fundamental_symbol_of(new_sym);
+#if !RECORD_TEMPLATES_IN_IL
+            if (fund_sym->kind == (a_symbol_kind)sk_class_template ||
+                fund_sym->kind == (a_symbol_kind)sk_function_template) {
+              /* When RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for
+                 the using-decl to point to, don't put out an entry. */
+            } else {
+#endif /* !RECORD_TEMPLATES_IN_IL */
+              /* Create a using-decl entry to represent this declaration in
+                 the IL. */
+              udp = make_using_decl(fund_sym, &decl_pos);
+              /* Record the class that was actually specified in the qualified
+                 name in the source. */
+              udp->qualifier.namespace_ptr = nsp;
+              /* Update cross-reference and source-sequence info, if
+                 required. */
+              record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
+              prev_udp = udp;
+#if !RECORD_TEMPLATES_IN_IL
+            }  /* if */
+#endif /* !RECORD_TEMPLATES_IN_IL */
           }  /* for */
         }  /* if */
       }  /* if */

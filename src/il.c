@@ -591,42 +591,66 @@ Dump a virtual base class entry, for debug purposes.
 }  /* db_virtual_base_class */
 
 
-static void db_class_member_using_decl(a_class_member_using_decl_ptr cmudp)
+static void db_using_decl(a_using_decl_ptr udp)
 /*
-Dump information on a class member using-decl entry, for debug purposes.
+Dump information on a using-decl entry, for debug purposes.
 */
 {
   a_source_correspondence  *sc;
   char                     *str;
 
-  switch (cmudp->entity.kind) {
-    case iek_variable:   str = "static data member";  break;
-    case iek_field:      str = "field";               break;
-    case iek_routine:    str = "member function";     break;
-    case iek_type:       str = "member type";         break;
-    case iek_constant:   str = "member constant";     break;
-#if RECORD_TEMPLATES_IN_IL
-    case iek_template:   str = "template";            break;
-#endif /* RECORD_TEMPLATES_IN_IL */
-    default:             str = NULL;                  break;
-  }  /* switch */
-  fputs("\n    ", f_debug);
-  if (str == NULL) {
-    fputs("<bad entity kind>", f_debug);
-  } else {
-    db_access_control(cmudp->access);
-    sc = source_corresp_for_il_entry(cmudp->entity.ptr,
-                                     (an_il_entry_kind)cmudp->entity.kind);
+  if (!udp->is_using_directive) {
+    /* A using-declaration. */
+    sc = source_corresp_for_il_entry(udp->entity.ptr,
+                                     (an_il_entry_kind)udp->entity.kind);
     check_assertion(sc != NULL);
-    fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
-    db_name(sc);
-    if (cmudp->hidden) fprintf(f_debug, ", hidden");
-    if (cmudp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
-      fputs(",\n        ", f_debug);
-      db_type(((a_routine_ptr)cmudp->entity.ptr)->type);
+    fputs("\n    ", f_debug);
+    if (udp->is_class_member) {
+      /* A class member using-declaration. */
+      switch (udp->entity.kind) {
+        case iek_variable:   str = "static data member";  break;
+        case iek_field:      str = "field";               break;
+        case iek_routine:    str = "member function";     break;
+        case iek_type:       str = "member type";         break;
+        case iek_constant:   str = "member constant";     break;
+#if RECORD_TEMPLATES_IN_IL
+        case iek_template:   str = "template";            break;
+#endif /* RECORD_TEMPLATES_IN_IL */
+        default:             str = NULL;                  break;
+      }  /* switch */
+    } else {
+      /* A nonmember using declaration. */
+      switch (udp->entity.kind) {
+        case iek_variable:   str = "variable";  break;
+        case iek_routine:    str = "function";     break;
+        case iek_type:       str = "type";         break;
+        case iek_constant:   str = "constant";     break;
+#if RECORD_TEMPLATES_IN_IL
+        case iek_template:   str = "template";            break;
+#endif /* RECORD_TEMPLATES_IN_IL */
+        default:             str = NULL;                  break;
+      }  /* switch */
+    }  /* if */
+    if (str == NULL) {
+      fputs("<bad entity kind>", f_debug);
+    } else {
+      if (udp->is_class_member) {
+        db_access_control(udp->access);
+        fputc(' ', f_debug);
+      }  /* if */
+      fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
+      if (!udp->is_class_member && sc->parent.namespace_ptr == NULL) {
+        fputs("::", f_debug);
+      }  /* if */
+      db_name(sc);
+      if (udp->hidden) fprintf(f_debug, ", hidden");
+      if (udp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+        fputs(",\n        ", f_debug);
+        db_type(((a_routine_ptr)udp->entity.ptr)->type);
+      }  /* if */
     }  /* if */
   }  /* if */
-}  /* db_class_member_using_decl */
+}  /* db_using_decl */
 
 
 void db_function_param_list(a_type_ptr  tp)
@@ -772,9 +796,9 @@ class_struct_union:
           } /* for */
         }  /* if */
         if (ctsp != NULL && ctsp->assoc_scope != NULL) {
-          a_variable_ptr                vp = ctsp->assoc_scope->variables;
-          a_routine_ptr                 rp = ctsp->assoc_scope->routines;
-          a_class_member_using_decl_ptr cmudp = ctsp->class_member_using_decls;
+          a_variable_ptr    vp = ctsp->assoc_scope->variables;
+          a_routine_ptr     rp = ctsp->assoc_scope->routines;
+          a_using_decl_ptr  udp = ctsp->assoc_scope->using_decls;
 
           db_virtual_function_info(tp, /*nesting_depth=*/0);
           if (any_virtual_base_classes) {
@@ -799,10 +823,10 @@ class_struct_union:
                     ctsp->highest_virtual_function_number);
             for (; rp != NULL; rp = rp->next) db_member_function(rp);
           }  /* if */
-          if (cmudp != NULL) {
+          if (udp != NULL) {
             fputs("\n  using decls:", f_debug);
-            for (; cmudp != NULL; cmudp = cmudp->next) {
-              db_class_member_using_decl(cmudp);
+            for (; udp != NULL; udp = udp->next) {
+              db_using_decl(udp);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -2425,10 +2449,9 @@ which must be either the file scope or a namespace scope.
 }  /* add_to_namespaces_list */
 
 
-void add_to_using_directives_list(a_using_directive_ptr  udp)
+void add_to_using_decls_list(a_using_decl_ptr  udp)
 /*
-Add the given using-directive entry to the using_directives list for the
-current scope.
+Add the given using-decl entry to the using_decls list for the current scope.
 */
 {
   a_scope_stack_entry_ptr     ssep;
@@ -2438,13 +2461,13 @@ current scope.
   ssep = &scope_stack[depth_scope_stack];
   sp = ensure_il_scope_exists(ssep);
   pointers_block = assoc_pointers_block_of(ssep);
-  if (sp->using_directives == NULL) {
-    sp->using_directives = udp;
+  if (sp->using_decls == NULL) {
+    sp->using_decls = udp;
   } else {
-    pointers_block->last_using_directive->next = udp;
+    pointers_block->last_using_decl->next = udp;
   }  /* if */
-  pointers_block->last_using_directive = udp;
-}  /* add_to_using_directives_list */
+  pointers_block->last_using_decl = udp;
+}  /* add_to_using_decl_list */
 
 
 void add_to_scopes_list(a_scope_ptr             scope_ptr,
@@ -8151,22 +8174,39 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           fprintf(f_debug, "***BAD END-OF-CONSTRUCT KIND %s***",
                            il_entry_kind_names[(int)sseocp->entity.kind]);
       }  /* switch */
-    } else if (kind == (an_il_entry_kind)iek_class_member_using_decl) {
-      a_class_member_using_decl_ptr  cmudp;
-      cmudp = (a_class_member_using_decl_ptr)ssep->entity.ptr;
-      fputs(": \"", f_debug);
-      if (cmudp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-        db_type_name((a_type_ptr)cmudp->entity.ptr);
-      } else {
-        db_name(&((a_field_ptr)cmudp->entity.ptr)->source_corresp);
+    } else if (kind == (an_il_entry_kind)iek_using_decl) {
+      a_using_decl_ptr         udp = (a_using_decl_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu", udp->position.seq);
+      if (udp->is_using_directive) {
+        /* A namespace directive. */
+        fputs(", using-directive", f_debug);
+      } else if (udp->is_class_member) {
+        fputs(", ", f_debug);
+        db_access_control(udp->access);
       }  /* if */
-      fputc('"', f_debug);
-    } else if (kind == (an_il_entry_kind)iek_using_directive) {
-      a_using_directive_ptr  udp;
-      udp = (a_using_directive_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu): \"", udp->position.seq);
-      db_name(&udp->assoc_namespace->source_corresp);
-      fputc('"', f_debug);
+      fputs("): \"", f_debug);
+      /* Loop through the names in the overload set, if required. */
+      for (;;) {
+        if (!udp->is_using_directive && !udp->is_class_member) {
+          /* Nonmember using-declaration -- check for global qualifier. */
+          a_source_correspondence  *scp;
+          scp = source_corresp_for_il_entry(udp->entity.ptr,
+                                           (an_il_entry_kind)udp->entity.kind);
+          if (scp != NULL && scp->parent.namespace_ptr == NULL) {
+            fputs("::", f_debug);
+          }  /* if */
+        }  /* if */
+        if (udp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          db_type_name((a_type_ptr)udp->entity.ptr);
+        } else {
+          db_name(&((a_field_ptr)udp->entity.ptr)->source_corresp);
+        }  /* if */
+        fputc('"', f_debug);
+        if (udp->hidden) fputs(" (hidden)", f_debug);
+        udp = udp->next_in_overload_set;
+        if (udp == NULL) break;
+        fputs(", \"", f_debug);
+      }  /* for */
     } else if (kind == (an_il_entry_kind)iek_instantiation_directive) {
       an_instantiation_directive_ptr  idp;
       idp = (an_instantiation_directive_ptr)ssep->entity.ptr;

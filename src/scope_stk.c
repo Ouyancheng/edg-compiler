@@ -269,8 +269,8 @@ return a pointer to the new entry. Reuse a freed entry if possible.
     num_active_using_directives_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  audp->entry               = NULL;
-  audp->next                = NULL;
+  audp->entry = NULL;
+  audp->next  = NULL;
   return audp;
 }  /* alloc_active_using_directive */
 
@@ -305,30 +305,31 @@ with ssep, looking for namespace scopes.
 
 
 /* Forward declaration. */
-static
-void add_active_using_directive_to_scope(a_using_directive_ptr    udp,
-                                         a_scope_stack_entry_ptr  ssep);
+static void add_active_using_directive_to_scope(a_using_decl_ptr         udp,
+                                                a_scope_stack_entry_ptr  ssep);
 
-
-static
-void add_active_using_directives_for_namespace(a_namespace_ptr         nsp,
+static void add_active_using_directives_for_namespace(
+                                               a_namespace_ptr         nsp,
                                                a_scope_stack_entry_ptr ssep)
 /*
 Create active using directive entries for any using directives present
 in the specified namespace.
 */
 {
-  a_using_directive_ptr	udp = nsp->variant.assoc_scope->using_directives;
+  a_using_decl_ptr  udp = nsp->variant.assoc_scope->using_decls;
+
   while (udp != NULL) {
-    add_active_using_directive_to_scope(udp, ssep);
+    if (udp->is_using_directive) {
+      /* A using-directive. */
+      add_active_using_directive_to_scope(udp, ssep);
+    }  /* if */
     udp = udp->next;
   }  /* while */
 }  /* add_active_using_directives_for_namespace */
 
 
-static
-void add_active_using_directive_to_scope(a_using_directive_ptr    udp,
-                                         a_scope_stack_entry_ptr  ssep)
+static void add_active_using_directive_to_scope(a_using_decl_ptr         udp,
+                                                a_scope_stack_entry_ptr  ssep)
 /*
 Allocate a new active using directive entry, initialize its fields, and
 link it into a list of active using directives for the current scope.
@@ -344,8 +345,9 @@ on the list for the scope, a new entry is not added.
   a_scope_depth				curr_depth = scope_depth_of(ssep);
   a_boolean				add_to_list = FALSE;
 
+  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
   /* Get a pointer to the namespace to be used. */
-  nsp = skip_namespace_aliases(udp->assoc_namespace);
+  nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
   ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
   nssp = ns_sym->variant.namespace_info.extra_info;
   /* Determine the depth at which this using directive applies. */
@@ -363,9 +365,10 @@ on the list for the scope, a new entry is not added.
        for this scope.  Look through the list to find out. */
     audp = ssep->active_using_directives;
     for (; audp != NULL; audp = audp->next) {
-      if (skip_namespace_aliases(audp->entry->assoc_namespace) == nsp) break;
+      a_namespace_ptr  nsp2 = (a_namespace_ptr)audp->entry->entity.ptr;
+      if (skip_namespace_aliases(nsp2) == nsp) break;
     }  /* for */
-    add_to_list = audp == NULL;
+    add_to_list = (audp == NULL);
   }  /* if */
   if (add_to_list) {
     /* Add the using directive to the active list for this scope. */
@@ -402,10 +405,9 @@ on the list for the scope, a new entry is not added.
 }  /* add_active_using_directive_to_scope */
 
 
-void add_active_using_directive(a_using_directive_ptr udp)
+void add_active_using_directive(a_using_decl_ptr udp)
 /*
-Add a new active using directive entry that was specified in
-the current scope.
+Add a new active using directive entry that was specified in the current scope.
 */
 {
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
@@ -420,26 +422,27 @@ the current scope.
        new namespaces transitively referenced by the new using directive,
        must be added to the previous scope stack entries. */
     /* Note: This code does not need to deal with scopes being skipped
-       as a consequence of instantiation scopes because there no way that
+       as a consequence of instantiation scopes because there is no way that
        a using directive can be added to a namespace scope as a consequence
        of a template instantiation. */
     namespace_added_to = ssep->il_scope->variant.assoc_namespace;
     namespace_added_to = skip_namespace_aliases(namespace_added_to);
     for (;; ssep--) {
       an_active_using_directive_ptr	audp;
+      a_namespace_ptr                   audp_nsp;
+
       /* Look for namespace_added_to on the list of active using directives for
          this scope. */
       audp = ssep->active_using_directives;
       for (; audp != NULL; audp = audp->next) {
-        a_namespace_ptr	audp_namespace;
-        audp_namespace = skip_namespace_aliases(audp->entry->assoc_namespace);
-        if (audp_namespace == namespace_added_to) break;
+        audp_nsp = (a_namespace_ptr)audp->entry->entity.ptr;
+        if (skip_namespace_aliases(audp_nsp) == namespace_added_to) {
+          /* The enclosing namespace is on the list.  Add the using directive
+             to this scope. */
+          add_active_using_directive_to_scope(udp, ssep);
+          break;
+        }  /* if */
       }  /* for */
-      if (audp != NULL) {
-        /* The enclosing namespace is on the list.  Add the using directive
-           to this scope. */
-        add_active_using_directive_to_scope(udp, ssep);
-      }  /* if */
       if (ssep->kind == (a_scope_kind)sck_file) break;
     }  /* for */
   }  /* if */
@@ -652,7 +655,7 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_routine                 = NULL;
   spbp->last_asm_entry               = NULL;
   spbp->last_namespace               = NULL;
-  spbp->last_using_directive         = NULL;
+  spbp->last_using_decl              = NULL;
   spbp->last_pragma                  = NULL;
 #if RECORD_HIDDEN_NAMES_IN_IL
   spbp->last_hidden_name             = NULL;

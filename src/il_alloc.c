@@ -39,7 +39,6 @@ static unsigned long
 		num_routine_type_supplements_allocated,
 		num_based_type_list_members_allocated,
 		num_class_type_supplements_allocated,
-		num_class_member_using_decls_allocated,
 		num_class_list_entries_allocated,
 		num_routine_list_entries_allocated,
 		num_overriding_virtual_functions_allocated,
@@ -81,7 +80,7 @@ static unsigned long
 		num_pragmas_allocated,
 		num_object_lifetimes_allocated,
 		num_namespaces_allocated,
-		num_using_directives_allocated,
+		num_using_decls_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
@@ -707,31 +706,6 @@ to it.
 }  /* alloc_base_class */
 
 
-a_class_member_using_decl_ptr alloc_class_member_using_decl(
-                                                       an_il_entry_kind kind)
-/*
-Allocate a class-member-using-decl entry, initialize its fields, and return a
-pointer to it.
-*/
-{
-  a_class_member_using_decl_ptr cmudp;
-
-  cmudp = (a_class_member_using_decl_ptr)alloc_il(
-                                           sizeof(a_class_member_using_decl));
-#if DEBUG
-  num_class_member_using_decls_allocated++;
-#endif /* DEBUG */
-  cmudp->next                         = NULL;
-  cmudp->access                       = (an_access_specifier)as_public;
-  cmudp->hidden                       = FALSE;
-  cmudp->entity.kind                  = (a_byte_il_entry_kind)kind;
-  cmudp->entity.ptr                   = (char *)NULL;
-  cmudp->class_specified_in_qualifier = NULL;
-
-  return cmudp;
-}  /* alloc_class_member_using_decl */
-
-
 a_class_list_entry_ptr alloc_list_entry_for_class(void)
 /*
 Allocate a class-list-entry, initialize its fields, and return a pointer to it.
@@ -808,7 +782,6 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
-  ctsp->class_member_using_decls          = NULL;
   ctsp->befriending_classes               = NULL;
   ctsp->friend_routines                   = NULL;
   ctsp->friend_classes                    = NULL;
@@ -2090,28 +2063,35 @@ it.  The entry is allocated in the file scope memory region.
 }  /* alloc_namespace */
 
 
-a_using_directive_ptr alloc_using_directive(void)
+a_using_decl_ptr alloc_using_decl(void)
 /*
-Allocate a using-directive entry, initialize its fields, and return a pointer
-to it.
+Allocate a using-decl entry, initialize its fields, and return a pointer to it.
 */
 {
-  a_using_directive_ptr  udp;
+  a_using_decl_ptr  udp;
 
-  db_enter(5, "alloc_using_directive");
-  udp = (a_using_directive_ptr)alloc_cil(sizeof(a_using_directive));
+  db_enter(5, "alloc_using_decl");
+  udp = (a_using_decl_ptr)alloc_cil(sizeof(a_using_decl));
 #if DEBUG
-  num_using_directives_allocated++;
+  num_using_decls_allocated++;
 #endif /* DEBUG */
-  udp->next = NULL;
-  udp->assoc_namespace = NULL;
-  udp->position = null_source_position;
+  udp->next                  = NULL;
+  udp->position              = null_source_position;
+  udp->entity.kind           = (a_byte_il_entry_kind)iek_none;
+  udp->entity.ptr            = (char *)NULL;
+  udp->is_using_directive    = FALSE;
+  udp->is_class_member       = FALSE;
+  udp->hidden                = FALSE;
+  udp->access                = (an_access_specifier)as_public;
+  udp->qualifier.class_type  = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   udp->source_sequence_entry = NULL;
+  udp->next_in_overload_set  = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
   db_exit();
   return udp;
-}  /* alloc_using_directive */
+}  /* alloc_using_decl */
 
 
 void set_scope_kind(a_scope_ptr    sp,
@@ -2193,7 +2173,7 @@ points to the associated routine if the kind is sck_function.
   sp->asm_entries                 = NULL;
   sp->scopes                      = NULL;
   sp->namespaces                  = NULL;
-  sp->using_directives            = NULL;
+  sp->using_decls                 = NULL;
   sp->dynamic_inits               = NULL;
   sp->local_static_variable_inits = NULL;
   sp->pragmas                     = NULL;
@@ -2470,9 +2450,6 @@ Display and return the amount of space used for various IL tables.
                 a_based_type_list_member);
   db_space_used("class type supplement", num_class_type_supplements_allocated,
                 a_class_type_supplement);
-  db_space_used("class member using decls",
-                num_class_member_using_decls_allocated,
-                a_class_member_using_decl);
   db_space_used("class list entry", num_class_list_entries_allocated,
                 a_class_list_entry);
   db_space_used("routine list entry", num_routine_list_entries_allocated,
@@ -2540,8 +2517,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used("object lifetime", num_object_lifetimes_allocated,
                 an_object_lifetime);
   db_space_used("namespace", num_namespaces_allocated, a_namespace);
-  db_space_used("using-directive", num_using_directives_allocated,
-                a_using_directive);
+  db_space_used("using-decl", num_using_decls_allocated, a_using_decl);
   db_space_used("scope", num_scopes_allocated, a_scope);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   db_space_used("source sequence entry", num_source_sequence_entries_allocated,
@@ -2651,7 +2627,6 @@ in il_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_template_args),
 #if DEBUG
-      pch_saved_var_array_elem(num_class_member_using_decls_allocated),
 #if !ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(num_accessible_base_classes_allocated),
 #endif /* !ABI_CHANGES_FOR_RTTI */
@@ -2691,7 +2666,7 @@ in il_init.)
       pch_saved_var_array_elem(num_routines_allocated),
       pch_saved_var_array_elem(num_object_lifetimes_allocated),
       pch_saved_var_array_elem(num_namespaces_allocated),
-      pch_saved_var_array_elem(num_using_directives_allocated),
+      pch_saved_var_array_elem(num_using_decls_allocated),
       pch_saved_var_array_elem(num_scopes_allocated),
       pch_saved_var_array_elem(num_source_files_allocated),
       pch_saved_var_array_elem(num_statements_allocated),
@@ -2755,7 +2730,6 @@ of the front end.
   num_routine_type_supplements_allocated = 0;
   num_based_type_list_members_allocated  = 0;
   num_class_type_supplements_allocated   = 0;
-  num_class_member_using_decls_allocated = 0;
   num_class_list_entries_allocated       = 0;
   num_routine_list_entries_allocated     = 0;
   num_overriding_virtual_functions_allocated
@@ -2801,7 +2775,7 @@ of the front end.
   num_pragmas_allocated                  = 0;
   num_object_lifetimes_allocated         = 0;
   num_namespaces_allocated               = 0;
-  num_using_directives_allocated         = 0;
+  num_using_decls_allocated              = 0;
   num_scopes_allocated                   = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;

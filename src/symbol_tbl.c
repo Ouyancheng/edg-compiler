@@ -4564,6 +4564,13 @@ with an IL entry, return NULL, and leave kind set to iek_none.
       entry_ptr = (char *)sym->variant.namespace_info.ptr;
       *kind = iek_namespace;
       break;
+#if RECORD_TEMPLATES_IN_IL
+    case sk_function_template:
+    case sk_class_template:
+      entry_ptr = (char *)sym->variant.template_info->il_template_entry;
+      if (entry_ptr != NULL) *kind = iek_template;
+      break;
+#endif /* RECORD_TEMPLATES_IN_IL */
     default:;
       /* Other cases ignored. */
   }  /* switch */

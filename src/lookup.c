@@ -2595,7 +2595,7 @@ as follows:
 
 */
 {
-  a_using_directive_ptr			udp;
+  a_using_decl_ptr			udp;
   a_symbol_ptr				sym;
   a_namespace_symbol_supplement_ptr	nssp = NULL;
 
@@ -2603,9 +2603,9 @@ as follows:
      from the file scope entry.  For namespace scopes, get it from the
      scope associated with the namespace. */
   if (ns_ptr == NULL) {
-    udp = il_header.primary_scope->using_directives;
+    udp = il_header.primary_scope->using_decls;
   } else {
-    udp = ns_ptr->variant.assoc_scope->using_directives;
+    udp = ns_ptr->variant.assoc_scope->using_decls;
     nssp = symbol_supplement_for_namespace(ns_ptr);
   }  /* if */
   /* Set a flag that indicates that this namespace is being processed so
@@ -2620,31 +2620,35 @@ as follows:
      returned may differ depending on the lookup options so we need
      to check each symbol to make sure we return the appropriate one. */
   for (; udp != NULL; udp = udp->next) {
-    a_namespace_symbol_supplement_ptr	next_nssp;
-    a_namespace_ptr			assoc_namespace;
-    assoc_namespace = skip_namespace_aliases(udp->assoc_namespace);
-    next_nssp = symbol_supplement_for_namespace(assoc_namespace);
-    /* Skip this namespace if we have already looked in it. */
-    if (next_nssp->visited_by_qualified_lookup) continue;
-    sym = lookup_in_namespace(locator, assoc_namespace, options,
-                              orig_ns_ptr, synth_sym, any_errors);
-    if (sym != NULL && !sym->synthesized_namespace_projection) {
-      /* If this lookup found a symbol, add it to the lookup set.
-         Don't do this if it is already a synthesized namespace
-         projection -- such symbols are already represented in synth_sym. */
-      if (*synth_sym == NULL) {
-        /* Look for an existing synthesized namespace projection symbol
-           from a previous lookup that can be reused. */
-        *synth_sym = find_synthesized_projection_symbol
+    if (udp->is_using_directive) {
+      a_namespace_symbol_supplement_ptr	next_nssp;
+      a_namespace_ptr			assoc_namespace;
+
+      assoc_namespace =
+                  skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
+      next_nssp = symbol_supplement_for_namespace(assoc_namespace);
+      /* Skip this namespace if we have already looked in it. */
+      if (next_nssp->visited_by_qualified_lookup) continue;
+      sym = lookup_in_namespace(locator, assoc_namespace, options,
+                                orig_ns_ptr, synth_sym, any_errors);
+      if (sym != NULL && !sym->synthesized_namespace_projection) {
+        /* If this lookup found a symbol, add it to the lookup set.
+           Don't do this if it is already a synthesized namespace
+           projection -- such symbols are already represented in synth_sym. */
+        if (*synth_sym == NULL) {
+          /* Look for an existing synthesized namespace projection symbol
+             from a previous lookup that can be reused. */
+          *synth_sym = find_synthesized_projection_symbol
                                     (locator, options,
                                      /*qualified_lookup=*/TRUE, orig_ns_ptr);
+        }  /* if */
+        /* Add the new symbol to an existing lookup set.  Note that
+           *synth_sym may be NULL at this point. */
+        *synth_sym = add_symbol_to_lookup_set(*synth_sym, sym, locator,
+                                              /*qualified_lookup=*/TRUE,
+                                              orig_ns_ptr, options,
+                                              any_errors);
       }  /* if */
-      /* Add the new symbol to an existing lookup set.  Note that
-         *synth_sym may be NULL at this point. */
-      *synth_sym = add_symbol_to_lookup_set(*synth_sym, sym, locator,
-                                            /*qualified_lookup=*/TRUE,
-                                            orig_ns_ptr, options,
-                                            any_errors);
     }  /* if */
   }  /* for */
   /* Clear the flag that indicates this namespace is being processed. */

@@ -313,12 +313,10 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* ifdef FIL */
 #ifdef CIL
   iek_namespace,	/* a_namespace */
-  iek_using_directive,	/* a_using_directive */
+  iek_using_decl,	/* a_using_decl */
   iek_dynamic_init,	/* a_dynamic_init */
   iek_local_static_variable_init,
 			/* a_local_static_variable_init */
-  iek_class_member_using_decl,
-			/* a_class_member_using_decl */
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
   iek_derivation_step,  /* a_derivation_step */
@@ -440,10 +438,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* ifdef FIL */
 #ifdef CIL
 /* iek_namespace */			"namespace",
-/* iek_using_directive */		"using-directive",
+/* iek_using_decl */			"using-decl",
 /* iek_dynamic_init */			"dynamic-init",
 /* iek_local_static_variable_init */	"local-static-variable-init",
-/* iek_class_member_using_decl */	"class-member-using-decl",
 /* iek_overriding_virtual_function */ 	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
 /* iek_base_class_derivation */		"base-class-derivation",
@@ -707,7 +704,8 @@ typedef struct an_instantiation_directive {
 			/* Entry identifying the entity (a class, function,
 			   or static data member) specified in the template
 			   instantiation directive. */
-}  an_instantiation_directive;
+} an_instantiation_directive;
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
@@ -973,35 +971,79 @@ typedef struct a_namespace {
 
 
 /*
-Data structure representing a using-directive -- namely, a declaration of
-the form "using namespace N", where N is a namespace name.  (Not be to
-confused with a using-declaration, which is of the form "using N::x" or
-"using ::x".)
+Data structure describing a using-declaration or a using-directive.  A class
+member using-declaration has the form "using A::y" (where A is the name of a
+base class of the class in which the declaration appears).  A nonmember
+using-declaration has the form "using N::y" (where N is a namespace name) or
+"using ::y".  A using-directive is of the form "using namespace N", where N
+is a namespace name.
 */
-typedef struct a_using_directive *a_using_directive_ptr;
-typedef struct a_using_directive {
-  a_using_directive_ptr
+typedef struct a_using_decl *a_using_decl_ptr;
+typedef struct a_using_decl {
+  a_using_decl_ptr
 		next;
-			/* Next in a linked list of using-directives for the
+			/* Next in a linked list of using-decl entries for the
 			   current scope; NULL for the last on the list. */
-  a_namespace_ptr
-		assoc_namespace;
-			/* Pointer to the associated namespace entry; may
-			   point to an entry for which is_namespace_alias is
-			   TRUE. */
- a_source_position
+  a_source_position
 		position;
-			/* Source position of keyword "using" in this
-			   using-directive. */
+			/* Source position of the start of the
+			   using-declaration or using-directive. */
+  a_tagged_pointer
+		entity;
+			/* Entry identifying the entity specified in the
+			   using-declaration or using-directive; when a
+			   using-declaration specifies an overload set, each
+			   function or function template is recorded
+			   individually. */
+  a_bit_field	is_using_directive;
+			/* TRUE if this is a using-directive and FALSE if it
+			   is a using-declaration. */
+  a_bit_field	is_class_member;
+			/* When is_using_directive is FALSE, this flag is TRUE
+			   if this is a class member using-declaration and
+			   FALSE if it is a nonmember using-declaration. */
+  a_bit_field	hidden;
+			/* For class member using-declarations only, TRUE if
+			   a base class member brought into a derived class
+			   by a using-declaration is subsequently hidden by a
+			   declaration in the derived class. */
+  an_access_specifier
+                access;
+			/* For class member using-declarations only, the
+			   adjusted access for the indicated base class
+			   member. */
+  a_parent_class_or_namespace
+		qualifier;
+			/* For using-declarations only, the class or namespace
+			   that was actually specified in the qualified name
+			   that appeared in the source code (which not
+			   necessarily the same as the parent of that which is
+			   referred to by entity.ptr).  For class member
+			   using-declarations, use the class_type variant;
+			   otherwise, use the namespace_ptr variant, which
+			   will be NULL when the global qualifier ("::") was
+			   specified. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;
 			/* Pointer to source sequence entry that represents
-			   the place this using-directive appears within the
-			   current file, namespace, function, or block scope
-			   relative to other declarations, statements, etc. */
+			   the place this using-declaration or using-directive
+			   appears within the current scope relative to other
+			   declarations, statements, etc.  It may be NULL
+			   if the entry refers to a member of an overload set,
+			   since only one member of set (namely, the head of
+			   the list linked by the next_in_overload_set pointer)
+			   actually points to (and is pointed to by) the
+			   source-sequence entry for the declaration. */
+  a_using_decl_ptr
+		next_in_overload_set;
+			/* Pointer to the next in a linked list of using-decl
+			   entries that represent members of an overload set
+			   referred to by a single using-declaration.  NULL
+			   when the entry is not a member of an overload set
+			   or is the last in the chain. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-} a_using_directive;
+} a_using_decl;
 
 
 /*
@@ -2342,36 +2384,6 @@ typedef struct a_template_arg {
 /* Data structures related to C++ classes (type entries of kind tk_class,
    tk_struct, and tk_union). */
 
-typedef struct a_class_member_using_decl *a_class_member_using_decl_ptr;
-typedef struct a_class_member_using_decl {
-  /* Representation of a C++ using declaration appearing inside a class
-     body and of an access declaration, which adjusts the access to a
-     base class member. */
-  a_class_member_using_decl_ptr
-                next;   /* Next in a linked list of class member using
-			   declaration entries. */
-  an_access_specifier
-                access; /* The access control kind for a base member,
-                           possibly adjusting the access that had been
-			   specified for the base class as a whole. */
-  a_byte_boolean
-		hidden;
-			/* TRUE if a base class member brought into a derived
-			   class by a using-declaration is subsequently
-			   hidden by a declaration in the derived class. */
-  a_tagged_pointer
-		entity;
-			/* The entity (field, function, member type, etc.)
-			   specified in the using declaration. */
-  a_type_ptr
-		class_specified_in_qualifier;
-			/* The class that was actually specified in the
-			   qualified name that appeared in the source code;
-			   not necessarily the same as the parent of the
-			   base-class member referred to by entity.ptr. */
-} a_class_member_using_decl;
-
-
 typedef struct an_overriding_virtual_function
                                          *an_overriding_virtual_function_ptr;
 typedef struct an_overriding_virtual_function {
@@ -2735,12 +2747,6 @@ typedef struct a_class_type_supplement {
 			/* If anonymous_union_kind == auk_field, pointer to
 			   the unnamed field entry whose type is the anonymous
 			   union; otherwise NULL. */
-  a_class_member_using_decl_ptr
-                class_member_using_decls;
-                        /* A list of entries representing using-declarations
-			   that specify base class members; NULL if there
-			   are none and/or if the current class is not a
-			   derived class (i.e., if base_classes is NULL). */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that
@@ -6510,11 +6516,18 @@ typedef struct a_scope {
 			   only to namespace-alias entries in sck_function
 			   and sck_block scopes, to either in sck_file and
 			   sck_namespace scopes; NULL otherwise. */
-  a_using_directive_ptr
-		using_directives;
-			/* List of using-directives appearing within the
-			   current sck_file, sck_namespace, sck_function, or
-			   sck_block scope (C++ only). */
+  a_using_decl_ptr
+		using_decls;
+			/* List of using-declarations and/or using-directives
+			   appearing within the current scope (C++ only).  If
+			   this is an sck_file, sck_namespace, sck_function,
+			   or sck_block scope, this list may be a mix of
+			   nonmember using-declarations and using-directives
+			   (and may be NULL if no such declarations appeared);
+			   if it is an sck_class_struct_union scope, the list
+			   will only contain class member using-declarations
+			   (and will be NULL if there are none and/or if the
+			   associated class is not a derived class). */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
