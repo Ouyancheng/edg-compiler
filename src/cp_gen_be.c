@@ -1544,6 +1544,70 @@ is the pointer-to-member type we want to end up with.
 }  /* gen_pm_derived_casts */
 
 
+static void gen_pm_constant(a_constant_ptr constant,
+                            a_boolean      suppress_cast)
+/*
+Generate a pointer-to-member constant.  If suppress_cast is TRUE, suppress
+any implicit cast(s) of the constant.
+*/
+{
+  a_type_ptr              orig_type = constant->type;
+  a_type_ptr              con_type = skip_typerefs(orig_type);
+  a_source_correspondence *scp = NULL;
+  a_boolean               need_cast_close_paren = FALSE;
+  an_il_entry_kind        entry_kind;
+
+  /* If the constant is implicitly cast to another type, ... */
+  if (!suppress_cast && constant->implicit_cast) {
+    /* ... then prefix the constant with an explicit cast. */
+    write_tok_ch('(');
+    gen_cast(orig_type);
+    need_cast_close_paren = TRUE;
+  }  /* if */
+  /* See if this is a pointer to data member or pointer to member function. */
+  if (constant->variant.ptr_to_member.is_function_ptr) {
+    a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
+    if (rout != NULL) scp = &rout->source_corresp;
+    entry_kind = iek_routine;
+  } else {
+    a_field_ptr field = constant->variant.ptr_to_member.variant.field;
+    if (field != NULL) scp = &field->source_corresp;
+    entry_kind = iek_field;
+  }  /* if */
+  if (scp == NULL) {
+    /* A null pointer-to-member.  implicit_cast will be TRUE, so a cast
+       to the right type has been put out above. */
+    write_tok_ch('0');
+  } else {
+    /* A non-null pointer-to-member. */
+    a_base_class_ptr bcp = constant->variant.ptr_to_member.casting_base_class;
+    write_tok_ch('(');
+    if (!suppress_cast && bcp != NULL) {
+      /* The pointer-to-member has been cast to another class.  Put in
+         proper casts.  Note that implicit_cast will be set and therefore
+         the final cast has already been issued above. */
+      if (bcp->is_virtual) {
+        /* For virtual base classes, the single cast generated above is
+           enough.  In fact, we don't want to choose among the possible
+           paths to the virtual base class if there are several. */
+      } else {
+        a_derivation_step_ptr path = bcp->derivation->path;
+        /* Cast to the proper result type. */
+        if (constant->variant.ptr_to_member.cast_to_base) {
+          gen_pm_base_casts(path, con_type);
+        } else {
+          gen_pm_derived_casts(path, con_type);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    write_tok_ch('&');
+    gen_qualified_name(scp, entry_kind);
+    write_tok_ch(')');
+  }  /* if */
+  if (need_cast_close_paren) write_tok_ch(')');
+}  /* gen_pm_constant */
+
+
 static void gen_address_constant(a_constant_ptr constant,
                                  a_boolean      do_indirection)
 /*
@@ -1717,8 +1781,10 @@ Output the indicated constant.
   if (orig_type != NULL) {
     con_type = skip_typerefs(orig_type);
     /* See if we need a cast to the constant result type. */
-    if (kind == (a_constant_repr_kind)ck_address) {
-      /* Don't do this here for address constants (they're handled below). */
+    if (kind == (a_constant_repr_kind)ck_address ||
+        kind == (a_constant_repr_kind)ck_ptr_to_member) {
+      /* Don't do this here for address constants or pointer-to-member
+         constants (they're handled in the subroutines). */
     } else {
       /* If the constant is implicitly cast to another type, ... */
       if (constant->implicit_cast) {
@@ -1825,49 +1891,7 @@ Output the indicated constant.
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
-      { a_source_correspondence *scp = NULL;
-        an_il_entry_kind        entry_kind;
-        if (constant->variant.ptr_to_member.is_function_ptr) {
-          a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
-          if (rout != NULL) scp = &rout->source_corresp;
-          entry_kind = iek_routine;
-        } else {
-          a_field_ptr field = constant->variant.ptr_to_member.variant.field;
-          if (field != NULL) scp = &field->source_corresp;
-          entry_kind = iek_field;
-        }  /* if */
-        if (scp == NULL) {
-          /* A null pointer-to-member.  implicit_cast will be TRUE, so a cast
-             to the right type has been put out above. */
-          write_tok_ch('0');
-        } else {
-          /* A non-null pointer-to-member. */
-          a_base_class_ptr bcp =
-                            constant->variant.ptr_to_member.casting_base_class;
-          write_tok_ch('(');
-          if (bcp != NULL) {
-            /* The pointer-to-member has been cast to another class.  Put in
-               proper casts.  Note that implicit_cast will be set and therefore
-               the final cast has already been issued above. */
-            if (bcp->is_virtual) {
-              /* For virtual base classes, the single cast generated above is
-                 enough.  In fact, we don't want to choose among the possible
-                 paths to the virtual base class if there are several. */
-            } else {
-              a_derivation_step_ptr path = bcp->derivation->path;
-              /* Cast to the proper result type. */
-              if (constant->variant.ptr_to_member.cast_to_base) {
-                gen_pm_base_casts(path, con_type);
-              } else {
-                gen_pm_derived_casts(path, con_type);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          write_tok_ch('&');
-          gen_qualified_name(scp, entry_kind);
-          write_tok_ch(')');
-        }  /* if */
-      }
+      gen_pm_constant(constant, /*suppress_cast=*/FALSE);
       break;
     case ck_aggregate:     /* Should only appear in initializer constants. */
     case ck_dynamic_init:  /* Should only appear in initializer constants. */
@@ -1925,6 +1949,27 @@ conversions on nonconstants are handled in eok_cast processing.
 }  /* is_implicitly_cast_integral_constant */
 
 
+static a_boolean pm_cast_is_unambiguous(a_constant_ptr constant)
+/*
+constant points at a ck_ptr_to_member constant.  If the constant requires
+a cast to a derived class, and the cast is unambiguous when done in
+one step instead of class-by-class, return TRUE.
+*/
+{
+  a_boolean unambiguous_cast = FALSE;
+
+  if (constant->variant.ptr_to_member.casting_base_class != NULL &&
+      !constant->variant.ptr_to_member.cast_to_base) {
+    /* See if there is another base class with the same name as the one
+       we're starting from.  If not, the cast is unambiguous. */
+    if (!constant->variant.ptr_to_member.casting_base_class->ambiguous) {
+      unambiguous_cast = TRUE;
+    }  /* if */
+  }  /* if */
+  return unambiguous_cast;
+}  /* pm_cast_is_unambiguous */
+
+
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type)
 /*
@@ -1980,6 +2025,14 @@ initialized is not a reference.
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
+  } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+             pm_cast_is_unambiguous(constant)) {
+    /* A pointer-to-member constant cast to a derived class where there
+       is only one copy of the base class (the usual case) -- we can avoid
+       the class-by-class casts to the derived type.  This is actually
+       necessary to get around a cfront bug -- cfront generates bad C code for
+       casts like that in initializer constants. */
+    gen_pm_constant(constant, /*suppress_cast=*/TRUE);
   } else if (type != NULL && is_reference_type(type)) {
     /* Initializing a reference. */
     if (constant->kind == (a_constant_repr_kind)ck_address) {
