@@ -1823,7 +1823,7 @@ error code.
       m = "invalid instantiation pragma argument";
       break;
     case ec_not_instantiatable_entity:
-      m = "%nf is not a template function, class, member function or static data member";
+      m = "%nf is not a template function, class, member function, or static data member";
       break;
     case ec_compiler_generated_function_cannot_be_instantiated:
       m = "compiler generated function %n cannot be instantiated";
