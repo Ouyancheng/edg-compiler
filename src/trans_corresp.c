@@ -1723,7 +1723,14 @@ is in fact valid.
     }  /* if */
     scp = &routine->source_corresp,
     corresp_scp = &corresp_routine->source_corresp;
-    match = verify_name_correspondence(routine);
+    if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
+      /* Conversion operators aren't identified by name.  For example,
+         different instantiations could differ in name because different
+         typedefs were used to identify them (and that's OK). */
+      match = (routine->special_kind == corresp_routine->special_kind);
+    } else {
+      match = verify_name_correspondence(routine);
+    }  /* if */
     if (match &&
         (!f_types_are_compatible(routine->type, corresp_routine->type,
                                  TCF_SEEK_CORRESP |
