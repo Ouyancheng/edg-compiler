@@ -1439,8 +1439,10 @@ Display the indicated variable.
   disp_boolean("by_address", (a_boolean)ptr->by_address);
 #endif /*ifdef FFE */
 #ifdef CFE
-  disp_boolean("referenced_non_locally",
-               (a_boolean)ptr->referenced_non_locally);
+  if (ptr->referenced_non_locally) {
+    disp_boolean("referenced_non_locally",
+                 (a_boolean)ptr->referenced_non_locally);
+  }  /* if */
 #endif /*ifdef CFE */
   if (ptr->is_template_static_data_member) {
     disp_boolean("is_template_static_data_member",
@@ -1460,6 +1462,16 @@ Display the indicated variable.
   if (ptr->specific_def) {
     disp_boolean("specific_def", (a_boolean)ptr->specific_def);
   }  /* if */
+#if DO_INLINING
+  if (ptr->param_value_has_been_changed) {
+    disp_boolean("param_value_has_been_reset",
+                 (a_boolean)ptr->param_value_has_been_reset);
+  }  /* if */
+  if (ptr->param_used_more_than_once) {
+    disp_boolean("param_used_more_than_once",
+                 (a_boolean)ptr->param_used_more_than_once);
+  }  /* if */
+#endif DO_INLINING
   disp_name("init_kind");
   switch (ptr->init_kind) {
     case initk_none:

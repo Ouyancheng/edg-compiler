@@ -4519,6 +4519,8 @@ to it.
   vp->instance_required           = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   vp->specific_def		  = FALSE;
+  vp->param_value_has_been_changed= FALSE;
+  vp->param_used_more_than_once   = FALSE;
 #endif /* ifdef CIL */
 #ifdef FIL
   vp->by_address                  = FALSE;
