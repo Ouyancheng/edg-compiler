@@ -1,5 +1,11 @@
 Version 2.19
 
+8/7/93  Cross-reference output
+
+Some minor bugs were fixed.  The symptom of the bug was that some
+references to arrays came out as "address-taken" where in fact
+"modified" or "referenced" was more accurate.
+
 8/6/93  Folding of constant addressing expressions to constants in the IL
 
 Constant addressing expressions that appear as initializer expressions

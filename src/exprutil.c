@@ -1295,8 +1295,11 @@ except for casts to ambiguous or inaccessible base classes.
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
-    /* Restore the original source position, etc. */
-    restore_operand_details(operand, &orig_operand);
+    /* Restore the original source position, etc.  Keep the cross-reference
+       information (useful when this is a pointer to a class being cast to
+       a base class, or a pointer to an array being cast to a pointer to
+       the first element). */
+    restore_operand_details_incl_xref(operand, &orig_operand);
   }  /* if */
 }  /* cast_operand */
 
@@ -3901,20 +3904,24 @@ All other cases are left alone.
   an_operand orig_operand;
 
   if (is_array_type(operand->type)) {
-    orig_operand = *operand;
     if (is_an_rvalue(operand)) {
       /* An array rvalue -- error. */
       error_in_operand(ec_bad_rvalue_array, operand);
     } else if (is_an_lvalue(operand)) {
       /* An array lvalue -- convert to a pointer. */
+      orig_operand = *operand;
       /* Convert to an rvalue that is the pointer, and change its type
          from pointer-to-array to pointer-to-array-element. */
       ptr_type = make_pointer_type(array_element_type(operand->type));
       take_address_of_lvalue(operand);
       cast_operand(ptr_type, operand, /*is_implicit_cast=*/TRUE);
+      /* Restore the original source position, etc.  Keep the
+         cross-reference entries because if the pointer to the array is
+         used in a subscript operation or the like we would like to
+         change the kind of reference back to modified or referenced
+         instead of address-taken. */
+      restore_operand_details_incl_xref(operand, &orig_operand);
     }  /* if */
-    /* Restore the original source position, etc. */
-    restore_operand_details(operand, &orig_operand);
   }  /* if */
 }  /* conv_array_operand_to_pointer_operand */
 
@@ -3990,10 +3997,12 @@ operand.
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
   operand->came_from_reference = FALSE;
+  /* Restore the original source position etc.  Keep the cross-reference
+     entries because if the function is called we would like to be able
+     ro change the reference to referenced instead of address-taken. */
+  restore_operand_details_incl_xref(operand, &orig_operand);
   /* Change the kind in the cross-reference entries to address-taken. */
   change_xref_kinds(operand->xref_entries_list, srk_address_taken);
-  /* Restore the original source position etc. */
-  restore_operand_details(operand, &orig_operand);
 }  /* conv_function_designator_to_ptr_to_function */
 
 
