@@ -1411,6 +1411,7 @@ fields, and return a pointer to it.
   tdip->parameters = NULL;
   tdip->declaration_scope = NO_SCOPE_NUMBER;
   tdip->enclosing_scope = NULL;
+  tdip->enclosing_template_decl = NULL;
 #if DEBUG
   num_template_decl_info_allocated++;
 #endif /* DEBUG */

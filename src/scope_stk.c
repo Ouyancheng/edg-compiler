@@ -1560,12 +1560,17 @@ to the namespace and class that must be reactivated.
 
 static
 a_boolean push_enclosing_instantiation_scope(
-                                      a_type_ptr  parent_class,
-	  		              a_boolean   *instantiation_scope_pushed)
+                      a_template_decl_info_ptr	decl_info,
+                      a_type_ptr		parent_class,
+	              a_boolean			*instantiation_scope_pushed)
 /*
 This routine is used when instantiating a function that was declared
 within a template class definition.  The context must be reactivated
 so that names used in the template definition can be looked up properly.
+parent_class is the class that must be reactivated.  instantiation_scope_pushed
+is set to TRUE if a template instantiation scope needed to be pushed
+as part of reactivating the class.  decl_info is the template declaration
+information for the template being instantiated.
 */
 {
   a_type_ptr                        class_type;
@@ -1587,9 +1592,20 @@ so that names used in the template definition can be looked up properly.
       /* Push an template instantiation scope associated with the
          class in which this template was defined.  Don't do this if
          the prototype instantiation is already in process. */
+      a_template_decl_info_ptr	enclosing_tdip;
       template_arg_list = class_type->variant.class_struct_union.extra_info->
                                                            template_arg_list;
-      (void)push_template_instantiation_scope(tssp->cache.decl_info,
+      /* Determine which template declaration information is to be used
+         when pushing the instantiation scope for the enclosing class.
+         For a member template defined outside of the class you need
+         to use the template parameter list from the definition of
+         the member template, not that of the enclosing class. */
+      if (decl_info->enclosing_template_decl != NULL) {
+        enclosing_tdip = decl_info->enclosing_template_decl;
+      } else {
+        enclosing_tdip = tssp->cache.decl_info;
+      }  /* if */
+      (void)push_template_instantiation_scope(enclosing_tdip,
 					      class_type,
 					      (a_routine_ptr)NULL,
 					      instance_sym, template_sym,
@@ -1662,6 +1678,7 @@ scopes.
        a template class).  If it is a template class, push an instantiation
        scope for the enclosing scope. */
     nested_instantiation = push_enclosing_instantiation_scope(
+                                             decl_info,
                                              parent_class,
                                              &parent_instantiation_pushed);
   }  /* if */

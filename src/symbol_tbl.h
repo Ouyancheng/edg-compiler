@@ -904,6 +904,16 @@ typedef struct a_template_decl_info {
   a_scope_ptr	enclosing_scope;
 		/* The scope containing the template declaration of which
 		   these tokens are a part. */
+  a_template_decl_info_ptr
+		enclosing_template_decl;
+		/* If the template declaration appeared as part of a nested
+		   template declaration (i.e., a single declaration that
+		   includes more than one "template <...>" clause), this
+		   points to the template declaration information of
+		   the enclosing template declaration information structure
+                   (i.e., the "template <..." to the left of the current
+		   one in the declaration).  Contains NULL for the leftmost
+		   "template <...>" clause in a declaration. */
 } a_template_decl_info;
 
 

@@ -6076,6 +6076,7 @@ as the current token; otherwise, it is consumed.
   a_template_cache_segment_ptr	    cache_segments;
   a_scope_ptr			    enclosing_scope;
   a_template_decl_info_ptr	    template_decl_info;
+  a_template_decl_info_ptr	    prev_template_decl_info = NULL;
   a_scope_depth			    effective_decl_level;
   an_access_specifier		    access = (an_access_specifier)as_public;
   unsigned long			    number_of_template_decl_scopes = 0;
@@ -6165,6 +6166,11 @@ as the current token; otherwise, it is consumed.
        that contain tokens from this declaration. */
     template_decl_info = alloc_template_decl_info();
     template_decl_info->enclosing_scope = enclosing_scope;
+    /* If there are multiple template parameter lists in a single
+       declaration, create a link to the template parameter list
+       declaration that preceded the current one. */
+    template_decl_info->enclosing_template_decl = prev_template_decl_info;
+    prev_template_decl_info = template_decl_info;
     if (curr_token == tok_lt) {
       (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, (a_routine_ptr)NULL);
