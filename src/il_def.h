@@ -397,6 +397,8 @@ typedef enum /*an_il_entry_kind*/ {
                         /* a_routine_list_entry */
   iek_class_type_supplement,
 			/* a_class_type_supplement */
+  iek_template_param_type_supplement,
+			/* a_template_param_type_supplement */
   iek_constructor_init, /* a_constructor_init */
   iek_asm_entry,        /* an_asm_entry */
   iek_template_arg,     /* a_template_arg */
@@ -523,6 +525,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_class_list_entry */		"class-list-entry",
 /* iek_routine_list_entry */		"routine-list-entry",
 /* iek_class_type_supplement */		"class-type-supplement",
+/* iek_template_param_type_supplement */"template_param_type_supplement",
 /* iek_constructor_init */		"constructor-init",
 /* iek_asm_entry */			"asm-entry",
 /* iek_template_arg */			"template-arg",
@@ -1134,7 +1137,8 @@ enum a_constant_repr_kind_tag {
 #ifdef CIL
 			/* Used in C++, not in C. */
   ck_template_param,	/* Nontype parameter in a class template declaration
-                           (C++ front end only). */
+			   (C++ front end only, except when prototype
+			   instantiations are passed to a back end). */
 #endif /* ifdef CIL */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
@@ -1843,7 +1847,8 @@ typedef struct a_constant {
 			   with the storage allocation". */
     } init_repeat;
 #ifdef CIL
-    /* When kind == ck_template_param (C++ front end only): */
+    /* When kind == ck_template_param (C++ front end only, except when
+       prototype instantiations are passed to a back end): */
     struct {
       a_template_param_constant_kind
 		kind;
@@ -1960,7 +1965,9 @@ enum a_type_kind_tag {
                            (const or volatile) to a type. */
   tk_ptr_to_member,     /* Pointer-to-member (C++ only). */
   tk_template_param,	/* Type parameter in a (class or function) template
-			   declaration (C++ front end only). */
+			   declaration (C++ front end only, except when
+			   prototype instantiations are passed to a
+			   back end). */
 #endif /* ifdef CIL */
 #ifdef FIL
   tk_fcharacter,        /* Fortran character. */
@@ -4138,7 +4145,8 @@ typedef struct a_type {
 		type;
 			/* Type of the member pointed to. */
     } ptr_to_member;
-    /* When kind == tk_template_param (C++ front end only): */
+    /* When kind == tk_template_param (C++ front end only, except when
+       prototype instantiations are passed to a back end): */
     struct {
       a_template_param_type_kind
 		kind;

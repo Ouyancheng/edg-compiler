@@ -622,6 +622,57 @@ Display a_source_file entry.
 }  /* disp_source_file */
 
 
+static void disp_template_param_constant(a_constant *ptr)
+/*
+Display a ck_template_param constant.
+*/
+{
+  (void)printf("ck_template_param\n");
+  disp_name("kind");
+  switch (ptr->variant.template_param.kind) {
+    case tpck_param:
+      (void)printf("tpck_param\n");
+      disp_template_param_coordinate(
+                             &ptr->variant.template_param.variant.coordinates);
+      break;
+    case tpck_expression:
+      (void)printf("tpck_expression\n");
+      disp_ptr("expr", (char *)ptr->variant.template_param.expr, iek_expr);
+      break;
+    case tpck_member:
+      (void)printf("tpck_member\n");
+      disp_boolean("is_address",
+                   (a_boolean)ptr->variant.template_param.is_address);
+      break;
+    case tpck_unknown_function:
+      (void)printf("tpck_unknown_function\n");
+      disp_ptr("conversion_type",
+               (char *)ptr->variant.template_param.conversion_type,
+               iek_type);
+      break;
+    case tpck_cast:
+      (void)printf("tpck_cast\n");
+      disp_ptr("constant", (char *)ptr->variant.template_param.constant,
+               iek_constant);
+      break;
+    case tpck_sizeof:
+      (void)printf("tpck_sizeof\n");
+      goto do_type_cases;
+    case tpck_alignof:
+      (void)printf("tpck_alignof\n");
+      goto do_type_cases;
+    case tpck_uuidof:
+      (void)printf("tpck_uuidof\n");
+do_type_cases:
+      disp_ptr("type", (char *)ptr->variant.template_param.type, iek_type);
+      break;
+    default:
+      (void)printf("**BAD TEMPLATE PARAM CONSTANT KIND**\n");
+      break;
+  }  /* switch */    
+}  /* disp_template_param_constant */
+
+
 static void disp_constant(a_constant_ptr ptr)
 /*
 Display the indicated constant entry.
@@ -784,6 +835,9 @@ display_constant_value:
                  (a_host_large_unsigned)ptr->variant.designator.array_element);
       }  /* if */
       break;
+    case ck_template_param:
+      disp_template_param_constant(ptr);
+      break;
 #ifdef FFE
     case ck_init_position:
       (void)printf("ck_init_position\n");
@@ -795,7 +849,6 @@ display_constant_value:
       break;
     case ck_hex_octal: /* Front end only. */
 #endif /* ifdef FFE */
-    case ck_template_param: /* Front end only. */
     default:
       printf("**BAD CONSTANT KIND**\n");
   }  /* switch */
@@ -1260,6 +1313,18 @@ do_struct_union:
                iek_type);
       disp_ptr("type", (char *)ptr->variant.ptr_to_member.type, iek_type);
       break;
+    case tk_template_param:
+      (void)printf("tk_template_param\n");
+      disp_name("kind");
+      switch (ptr->variant.template_param.kind) {
+        case tptk_param:   (void)printf("tptk_param\n");    break;
+        case tptk_member:  (void)printf("tptk_member\n");   break;
+        case tptk_unknown: (void)printf("tptk_unknown\n");  break;
+        default:           (void)printf("**BAD TEMPLATE PARAM TYPE KIND**\n");
+      }  /* switch */
+      disp_template_param_type_supplement(
+                                       ptr->variant.template_param.extra_info);
+      break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case tk_fcharacter:
@@ -1306,8 +1371,6 @@ do_struct_union:
       (void)printf("tk_blockdata\n");
       break;
 #endif /* ifdef FFE */
-    case tk_template_param:
-      /* Front end only. */
     default:
       (void)printf("**BAD TYPE KIND**\n");
   }  /* switch */
@@ -3861,6 +3924,27 @@ Display the indicated class type supplement entry.
 }  /* disp_class_type_supplement */
 
 
+static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
+/*
+Display the indicated template parameter coordinate.
+*/
+{
+  disp_unsigned_long("coordinates.position", (unsigned long)ptr->position);
+  disp_unsigned_long("coordinates.depth", (unsigned long)ptr->depth);
+}  /* disp_template_param_coordinate */
+
+
+static void disp_template_param_type_supplement(
+                                      a_template_param_type_supplement_ptr ptr)
+/*
+Display the indicated template parameter type supplement.
+*/
+{
+  disp_ptr("class_type", (char *)ptr->class_type, iek_type);
+  disp_template_param_coordinate(&ptr->coordinates);
+}  /* disp_template_param_type_supplement */
+
+
 static void disp_constructor_init(a_constructor_init_ptr ptr)
 /*
 Display the indicated constructor init entry.
@@ -4037,6 +4121,7 @@ This routine is called during IL walking.
 {
   /* Do not display entries that are displayed at the point of use. */
   switch (entry_kind) {
+    case iek_template_param_type_supplement:
     case iek_routine_type_supplement:
     case iek_based_type_list_member:
     case iek_block:

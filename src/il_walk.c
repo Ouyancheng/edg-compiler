@@ -1610,6 +1610,7 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_class_list_entry);
   remap_orphan_entry_first(iek_routine_list_entry);
   remap_orphan_entry_first(iek_class_type_supplement);
+  remap_orphan_entry_first(iek_template_param_type_supplement);
   remap_orphan_entry_first(iek_constructor_init);
   remap_orphan_entry_first(iek_asm_entry);
   remap_orphan_entry_first(iek_template_arg);
@@ -1703,6 +1704,7 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_class_list_entry);
   remap_orphan_entry_last(iek_routine_list_entry);
   remap_orphan_entry_last(iek_class_type_supplement);
+  remap_orphan_entry_last(iek_template_param_type_supplement);
   remap_orphan_entry_last(iek_constructor_init);
   remap_orphan_entry_last(iek_asm_entry);
   remap_orphan_entry_last(iek_template_arg);

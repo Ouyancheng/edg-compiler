@@ -599,15 +599,22 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #endif /* ifdef FFE */
           case ck_template_param:
-#ifdef PARSED_TEMPLATES_IN_IL
             if (ptr->source_corresp.is_class_member) {
               a_type_ptr  parent_type = ptr->source_corresp.parent.class_type;
               walk_ptr(parent_type, a_type_ptr, iek_type);
             }  /* if */
             switch (ptr->variant.template_param.kind) {
+              case tpck_param:
+              case tpck_member:
+                /* No action required. */
+                break;
               case tpck_expression:
                 walk_ptr(ptr->variant.template_param.variant.expr,
                          an_expr_node_ptr, iek_expr_node);
+                break;
+              case tpck_unknown_function:
+                walk_ptr(ptr->variant.template_param.variant.conversion_type,
+                         a_type_ptr, iek_type);
                 break;
               case tpck_cast:
                 walk_ptr(ptr->variant.template_param.variant.constant,
@@ -620,15 +627,10 @@ the file scope, do not process it (but record an orphan in the latter case).
                          a_type_ptr, iek_type);
                 break;
               default:
-                break;
+                unexpected_condition_str(
+                   "walk_entry_and_subtree: bad template param constant kind");
             }  /* switch */
             break;
-#else /* !PARSED_TEMPLATES_IN_IL */
-            /* Front end only. */
-#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-            break;
-#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-#endif /* PARSED_TEMPLATES_IN_IL */
           default:
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
@@ -833,16 +835,10 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #endif /* ifdef FFE */
           case tk_template_param:
-#ifdef PARSED_TEMPLATES_IN_IL
-            walk_ptr(ptr->variant.template_param.extra_info->class_type,
-                     a_type_ptr, iek_type);
+            walk_ptr(ptr->variant.template_param.extra_info,
+                     a_template_param_type_supplement_ptr,
+                     iek_template_param_type_supplement);
             break;
-#else /* !PARSED_TEMPLATES_IN_IL */
-            /* Front end only. */
-#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-            break;
-#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-#endif /* PARSED_TEMPLATES_IN_IL */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");
         }  /* switch */
@@ -1527,7 +1523,6 @@ do_set_proper_definition_needed_flag:
 #if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(ptr->text, iek_other_text, 0);
 #endif /* RECORD_TEMPLATE_STRINGS */
-#ifdef PARSED_TEMPLATES_IN_IL
         if (ptr->template_info != NULL) {
           switch (ptr->kind) {
             case templk_class:
@@ -1541,7 +1536,6 @@ do_set_proper_definition_needed_flag:
               break;
           }  /* switch */
         }  /* if */
-#endif /* PARSED_TEMPLATES_IN_IL */
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
         clear_pointer_if_remapping(ptr->template_info);
@@ -2217,6 +2211,13 @@ after_entry_from_class:
         }  /* if */
       }
       break;
+    case iek_template_param_type_supplement:
+      {
+        a_template_param_type_supplement_ptr ptr =
+                               (a_template_param_type_supplement_ptr)entry_ptr;
+        remap_ptr(ptr->class_type, a_type_ptr, iek_type);
+      }
+      break;
     case iek_constructor_init:
       {
         a_constructor_init_ptr ptr = (a_constructor_init_ptr)entry_ptr;
@@ -2606,6 +2607,8 @@ of each kind.
                                         iek_routine_list_entry);
   walk_orphan_entry_list_for_entry_kind(a_class_type_supplement_ptr,
                                         iek_class_type_supplement);
+  walk_orphan_entry_list_for_entry_kind(a_template_param_type_supplement_ptr,
+                                        iek_template_param_type_supplement);
   walk_orphan_entry_list_for_entry_kind(a_constructor_init_ptr,
                                         iek_constructor_init);
   walk_orphan_entry_list_for_entry_kind(an_asm_entry_ptr, iek_asm_entry);
