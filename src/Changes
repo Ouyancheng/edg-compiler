@@ -1,5 +1,19 @@
 Version 2.46
 
+1/16/01  C++-generating back end: missing parentheses in "->*" output
+
+Parentheses were sometimes missing around the first operand of a "->*"
+operation as put out by the C++-generating back end.  This could cause
+the generated code to be uncompilable.  Now fixed.
+
+  class A {
+    void f(A *obj) {
+      typedef int A::* T;
+      T p;
+      (&obj[0])->*p;
+    }
+  };
+
 1/16/01  Keeping instance-required flag on decider virtual function in
          unreferenced class
 

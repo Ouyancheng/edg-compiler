@@ -4302,7 +4302,7 @@ this selection.
     write_tok_str(".*");
   } else {
     /* "->*" form. */
-    gen_expression(object_expr);
+    gen_expr_with_parens(object_expr);
     write_tok_str("->*");
   }  /* if */
   gen_expr_with_parens(pm_expr);
