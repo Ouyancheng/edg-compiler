@@ -950,10 +950,12 @@ Instantiate the body of the template function associated with tip.
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
                    rout_sym, tip->template_sym, tip->arg_list);
-  /* We wait till after the push_scope call before calling mark_defined
-     because the fact that a template instantiation scope is on the scope stack
-     affects some decisions in that routine. */
-  mark_defined(rout_sym, &rout_sym->decl_position);
+  if (!rout_sym->defined) {
+    /* We wait till after the push_scope call before calling mark_defined
+       because the fact that a template instantiation scope is on the scope
+       stack affects some decisions in that routine. */
+    mark_defined(rout_sym, &rout_sym->decl_position);
+  }  /* if */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
