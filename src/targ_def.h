@@ -815,6 +815,27 @@ Float types:
 			   targ_alignof_long_double. */
 #endif /* !defined(TARG_ALIGNOF_LONG_DOUBLE) */
 
+
+/*
+Type used to perform host floating point computations.  If double and long
+double are the same size, this can be double.  If long double is larger
+than double, it should be long double.
+*/
+#ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if USING_ISO_C
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE TRUE
+#else /* !USING_ISO_C */
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE FALSE
+#endif /* !USING_ISO_C */
+#endif /* ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+typedef long double a_host_fp_value;
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+typedef double a_host_fp_value;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+
+
 /*
 Type used to represent float quantities internally:
 
@@ -824,8 +845,9 @@ address or the value of the item.)
 typedef struct an_internal_float_value {
   /* The type here must match the code in float_pt.c.  The default
      declaration assumes that target floating constants are represented in
-     a host double, which is what the default float_pt.c does. */
-  a_byte bytes[sizeof(double)];
+     a host double or long double, which are the types supported by the
+     default version of float_pt.c. */
+  a_byte bytes[sizeof(a_host_fp_value)];
   /*lint -esym(768,an_internal_float_value::bytes)*/
 } an_internal_float_value;
 
@@ -1284,8 +1306,13 @@ in generated C code.
 */
 #ifndef LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if C_GEN_BE_GENERATES_ANSI_C
-/* Generating ANSI C. */
+/* Generating ANSI C.  If "long double" is used as the host floating point
+   representation, put out "long double" in the generated C. */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C FALSE
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C TRUE
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
 /* Generating K&R C. */
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C TRUE

@@ -96,12 +96,262 @@ value for any error.
 }  /* strtod_interface */
 
 
-static void store_double(double                  temp,
-                         a_float_kind            kind,
-                         an_internal_float_value *float_value,
-                         a_boolean               *err)
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+
+#if DEBUG
+void db_long_double(long double d)
 /*
-Store the double value in temp into float_value.  float_value has float_kind
+Display a long double, for debugging purposes.
+*/
+{
+  fprintf(f_debug, "%.40Le\n", d);
+}  /* db_long_double */
+#endif /* DEBUG */
+
+long double str_to_long_double(char * str)
+/*
+Convert a string to a long double.
+*/
+{
+  long double	temp;
+  static char	buf[60];
+  a_boolean	err = FALSE;
+  char		*ptr;
+
+  (void)sscanf(str, "%Lf", &temp);
+  /* Check for overflow or underflow by converting the number back to a
+     string. */
+  (void)sprintf(buf, "%.40Le", temp);
+  ptr = buf;
+  if (*ptr == '-') ptr++;
+  if (temp == 0.0L) {
+    a_boolean	nonzero = FALSE;
+    /* The result value is zero, make sure the input string was all zeros. */
+    for (;;) {
+      char	ch = *ptr++;
+      if (ch == '\0') break;
+      if (!isdigit((unsigned char)ch)) break;
+      if (ch != '0') {
+        nonzero = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    err = nonzero;
+  } else {
+    /* If the result string is not numeric, assume it is something like
+       "Infinity". */
+    err = !isdigit((unsigned char)*ptr);
+  }  /* if */
+  /* Set errno to indicate an error. */
+  errno = err ? ERANGE : 0;
+  return temp;
+}  /* str_to_long_double */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+
+static void conv_host_fp_to_float(a_host_fp_value	temp,
+				  a_boolean		*err,
+				  float			*result)
+/*
+Convert "temp" from a_host_fp_value (double or long double) to float.
+Set "err" if an overload would result from the conversion.  If the
+conversion can be done, return the result in "result".
+*/
+{
+#if USING_ISO_C
+#ifdef FLT_MAX
+#define CAN_DO_FLT_MAX_TEST TRUE
+#endif /* ifdef FLT_MAX */
+#endif /* USING_ISO_C */
+#ifndef CAN_DO_FLT_MAX_TEST
+#define CAN_DO_FLT_MAX_TEST FALSE
+#endif /* ifndef CAN_DO_FLT_MAX_TEST */
+#if CAN_DO_FLT_MAX_TEST
+  /* FLT_MAX is available, so we can use it to test for overflow.  We do
+     this before converting to float in case an overflow on such a
+     conversion would cause a float exception. */
+  static a_boolean init_done = FALSE;
+  static double    double_flt_max;
+  static float     float_flt_max;
+  /* Initialize double_flt_max to FLT_MAX converted as a double.  This
+     might be slightly larger than FLT_MAX evaluated as a float (because
+     of greater precision), but it's what the conversion of the actual
+     FLT_MAX will yield, so it's the right value to use for the overflow
+     comparison.  float_flt_max is that value converted to float. */
+  if (!init_done) {
+    init_done = TRUE;
+    /* Macros to turn FLT_MAX into a string: */
+#define str2_flt_max(x) #x
+#define str1_flt_max(x) str2_flt_max(x)
+    double_flt_max = strtod_interface(str1_flt_max(FLT_MAX));
+#undef str2_flt_max
+#undef str1_flt_max
+    check_assertion_str2(errno == 0, "conv_host_fp_to_float:",
+                         "error on conversion of FLT_MAX");
+    float_flt_max = (float)double_flt_max;
+  }  /* if */
+  if ((temp >= 0.0) ? temp > double_flt_max : temp < -double_flt_max) {
+    float float_temp = (float)temp;
+    if ((temp >= 0.0) ? (float_temp == float_flt_max) :    /*lint !e777*/
+                        (float_temp == -float_flt_max)) {  /*lint !e777*/
+      /* The number is slightly larger than the official maximum float, but
+         on conversion to float it rounds to the maximum float, so it's
+         okay. */
+    } else {
+      /* Overflow. */
+      *err = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* CAN_DO_FLT_MAX_TEST */
+  if (!*err) {
+    /* Convert to float and store a float in float_value. */
+    float float_temp = (float)temp;
+    *result = float_temp;
+    if (float_temp == 0.0 && temp != 0.0) {
+      /* Underflow. */
+      *err = TRUE;
+#if !CAN_DO_FLT_MAX_TEST
+    } else {
+      /* FLT_MAX is not available.  Check for overflow.  This is crude,
+         but it's hard to do much here that is portable. */
+      double double_temp;
+      /* Convert back to double again to see if we get the same thing. */
+      double_temp = (double)float_temp;
+      if (double_temp == temp) {
+        /* Got the original number back, so everything is okay.  This also
+           handles NaNs and infinities in the source double, so they do not
+           get into the tests below. */
+      } else if (temp < 10000.0 && temp > -10000.0) {
+        /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
+           overflow. */
+      } else {
+        /* One last shot -- on machines with NaNs and infinities, printing
+           such a thing often prints "Infinity" or the like.  Print the
+           number and see if the first character is a digit.  Note that
+           above we ruled out the case where the source double is a NaN
+           or infinity. */
+        char float_string[15], *ptr;
+        (void)sprintf(float_string, "%.2e", float_temp);
+        ptr = float_string;
+        if (*ptr == '-') ptr++;
+        if (!isdigit((unsigned char)*ptr)) {
+          /* Probably overflow. */
+          *err = TRUE;
+        }  /* if */
+      }  /* if */
+#endif /* !CAN_DO_FLT_MAX_TEST */
+    }  /* if */
+  }  /* if */
+#undef CAN_DO_FLT_MAX_TEST
+}  /* conv_host_fp_to_float */
+
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+
+static void conv_host_fp_to_double(a_host_fp_value	temp,
+				   a_boolean		*err,
+		 		   double		*result)
+/*
+Convert "temp" from a_host_fp_value (double or long double) to double.
+Set "err" if an overload would result from the conversion.  If the
+conversion can be done, return the result in "result".
+*/
+{
+#if USING_ISO_C
+#ifdef DBL_MAX
+#define CAN_DO_DBL_MAX_TEST TRUE
+#endif /* ifdef DBL_MAX */
+#endif /* USING_ISO_C */
+#ifndef CAN_DO_DBL_MAX_TEST
+#define CAN_DO_DBL_MAX_TEST FALSE
+#endif /* ifndef CAN_DO_DBL_MAX_TEST */
+#if CAN_DO_DBL_MAX_TEST
+  /* DBL_MAX is available, so we can use it to test for overflow.  We do
+     this before converting to double in case an overflow on such a
+     conversion would cause a float exception. */
+  static a_boolean	init_done = FALSE;
+  static long double	long_double_dbl_max;
+  static double		double_dbl_max;
+  /* Initialize long_double_dbl_max to DBL_MAX converted as a long double.
+     This might be slightly larger than DBL_MAX evaluated as a double (because
+     of greater precision), but it's what the conversion of the actual
+     DBL_MAX will yield, so it's the right value to use for the overflow
+     comparison.  double_dbl_max is that value converted to double. */
+  if (!init_done) {
+    init_done = TRUE;
+    /* Macros to turn DBL_MAX into a string: */
+#define str2_dbl_max(x) #x
+#define str1_dbl_max(x) str2_dbl_max(x)
+    long_double_dbl_max = str_to_long_double(str1_dbl_max(DBL_MAX));
+#undef str2_dbl_max
+#undef str1_dbl_max
+    check_assertion_str2(errno == 0, "conv_host_fp_to_double:",
+                         "error on conversion of DBL_MAX");
+    double_dbl_max = (double)long_double_dbl_max;
+  }  /* if */
+  if ((temp >= 0.0) ? temp > long_double_dbl_max
+                    : temp < -long_double_dbl_max) {
+    double double_temp = (double)temp;
+    if ((temp >= 0.0) ? (double_temp == double_dbl_max) :    /*lint !e777*/
+                        (double_temp == -double_dbl_max)) {  /*lint !e777*/
+      /* The number is slightly larger than the official maximum double, but
+         on conversion to double it rounds to the maximum double, so it's
+         okay. */
+    } else {
+      /* Overflow. */
+      *err = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* CAN_DO_DBL_MAX_TEST */
+  if (!*err) {
+    /* Convert to double and store a double in double_value. */
+    double double_temp = (double)temp;
+    *result = double_temp;
+    if (double_temp == 0.0 && temp != 0.0) {
+      /* Underflow. */
+      *err = TRUE;
+#if !CAN_DO_DBL_MAX_TEST
+    } else {
+      /* DBL_MAX is not available.  Check for overflow.  This is crude,
+         but it's hard to do much here that is portable. */
+      double long_double_temp;
+      /* Convert back to long double again to see if we get the same thing. */
+      long_double_temp = (long double)double_temp;
+      if (long_double_temp == temp) {
+        /* Got the original number back, so everything is okay.  This also
+           handles NaNs and infinities in the source long double, so they
+           do not get into the tests below. */
+      } else if (temp < 10000.0 && temp > -10000.0) {
+        /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
+           overflow. */
+      } else {
+        /* One last shot -- on machines with NaNs and infinities, printing
+           such a thing often prints "Infinity" or the like.  Print the
+           number and see if the first character is a digit.  Note that
+           above we ruled out the case where the source long double is a NaN
+           or infinity. */
+        char double_string[45], *ptr;
+        (void)sprintf(double_string, "%.2e", double_temp);
+        ptr = double_string;
+        if (*ptr == '-') ptr++;
+        if (!isdigit((unsigned char)*ptr)) {
+          /* Probably overflow. */
+          *err = TRUE;
+        }  /* if */
+      }  /* if */
+#endif /* !CAN_DO_DBL_MAX_TEST */
+    }  /* if */
+  }  /* if */
+#undef CAN_DO_DBL_MAX_TEST
+}  /* conv_host_fp_to_double */
+
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+
+
+static void store_host_fp_value(a_host_fp_value         temp,
+	                        a_float_kind            kind,
+	                        an_internal_float_value *float_value,
+	                        a_boolean               *err)
+/*
+Store the value in temp into float_value.  float_value has float_kind
 kind.  Set *err TRUE if there is an error.  If *err is already TRUE,
 do nothing.
 */
@@ -112,124 +362,67 @@ do nothing.
     memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
       /* Converting to float. */
-#if USING_ISO_C
-#ifdef FLT_MAX
-#define CAN_DO_FLT_MAX_TEST TRUE
-#endif /* ifdef FLT_MAX */
-#endif /* USING_ISO_C */
-#ifndef CAN_DO_FLT_MAX_TEST
-#define CAN_DO_FLT_MAX_TEST FALSE
-#endif /* ifndef CAN_DO_FLT_MAX_TEST */
-#if CAN_DO_FLT_MAX_TEST
-      /* FLT_MAX is available, so we can use it to test for overflow.  We do
-         this before converting to float in case an overflow on such a
-         conversion would cause a float exception. */
-      static a_boolean init_done = FALSE;
-      static double    double_flt_max;
-      static float     float_flt_max;
-      /* Initialize double_flt_max to FLT_MAX converted as a double.  This
-         might be slightly larger than FLT_MAX evaluated as a float (because
-         of greater precision), but it's what the conversion of the actual
-         FLT_MAX will yield, so it's the right value to use for the overflow
-         comparison.  float_flt_max is that value converted to float. */
-      if (!init_done) {
-        init_done = TRUE;
-        /* Macros to turn FLT_MAX into a string: */
-#define str2_flt_max(x) #x
-#define str1_flt_max(x) str2_flt_max(x)
-        double_flt_max = strtod_interface(str1_flt_max(FLT_MAX));
-#undef str2_flt_max
-#undef str1_flt_max
-        check_assertion_str(errno == 0,
-                            "store_double: error on conversion of FLT_MAX");
-        float_flt_max = (float)double_flt_max;
-      }  /* if */
-      if ((temp >= 0.0) ? temp > double_flt_max : temp < -double_flt_max) {
-        float float_temp = (float)temp;
-        if ((temp >= 0.0) ? (float_temp == float_flt_max) :    /*lint !e777*/
-                            (float_temp == -float_flt_max)) {  /*lint !e777*/
-          /* The number is slightly larger than the official maximum float, but
-             on conversion to float it rounds to the maximum float, so it's
-             okay. */
-        } else {
-          /* Overflow. */
-          *err = TRUE;
-        }  /* if */
-      }  /* if */
-#endif /* CAN_DO_FLT_MAX_TEST */
+      float	float_temp;
+      conv_host_fp_to_float(temp, err, &float_temp);
       if (!*err) {
-        /* Convert to float and store a float in float_value. */
-        float float_temp = (float)temp;
-        if (float_temp == 0.0 && temp != 0.0) {
-          /* Underflow. */
-          *err = TRUE;
-#if !CAN_DO_FLT_MAX_TEST
-        } else {
-          /* FLT_MAX is not available.  Check for overflow.  This is crude,
-             but it's hard to do much here that is portable. */
-          double double_temp;
-          /* Convert back to double again to see if we get the same thing. */
-          double_temp = (double)float_temp;
-          if (double_temp == temp) {
-            /* Got the original number back, so everything is okay.  This also
-               handles NaNs and infinities in the source double, so they do not
-               get into the tests below. */
-          } else if (temp < 10000.0 && temp > -10000.0) {
-            /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
-               overflow. */
-          } else {
-            /* One last shot -- on machines with NaNs and infinities, printing
-               such a thing often prints "Infinity" or the like.  Print the
-               number and see if the first character is a digit.  Note that
-               above we ruled out the case where the source double is a NaN
-               or infinity. */
-            char float_string[15], *ptr;
-            (void)sprintf(float_string, "%.2e", float_temp);
-            ptr = float_string;
-            if (*ptr == '-') ptr++;
-            if (!isdigit((unsigned char)*ptr)) {
-              /* Probably overflow. */
-              *err = TRUE;
-            }  /* if */
-          }  /* if */
-#endif /* !CAN_DO_FLT_MAX_TEST */
-        }  /* if */
         (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
       }  /* if */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+    } else if (kind == (a_float_kind)fk_double) {
+      /* Convert from an internal long double to a double. */
+      double	double_temp;
+      conv_host_fp_to_double(temp, err, &double_temp);
+      if (!*err) {
+        (void)memcpy((char *)float_value, (char *)&double_temp,
+                     sizeof(double));
+      }  /* if */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     } else {
-      /* Store a double in float_value. */
+      /* Store a host floating value into a float_value of the same kind
+         (either double or long double). */
       /* Use memcpy to copy the value since float_value might not be correctly
          aligned. */
-      (void)memcpy((char *)float_value, (char *)&temp, sizeof(double));
+      (void)memcpy((char *)float_value, (char *)&temp,
+                   sizeof(a_host_fp_value));
     }  /* if */
   }  /* if */
-#undef CAN_DO_FLT_MAX_TEST
-}  /* store_double */
+}  /* store_host_fp_value */
 
 
-static double fetch_double(a_float_kind            kind,
-                           an_internal_float_value *float_value)
+static a_host_fp_value fetch_host_fp_value(
+				a_float_kind            kind,
+				an_internal_float_value *float_value)
 /*
 Fetch the value from float_value (of kind kind) and return it.
 */
 {
-  double temp;
-  float  float_temp;
+  a_host_fp_value	temp;
 
   if (kind == (a_float_kind)fk_float) {
+    float	float_temp;
     /* Convert from float to double. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
     temp = float_temp;
-  } else {
-    /* The value is already double. */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  } else if (kind == (a_float_kind)fk_double) {
+    double	double_temp;
+    /* Convert from double to long double. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
-    (void)memcpy((char *)&temp, (char *)float_value, sizeof(double));
+    (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
+    temp = double_temp;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  } else {
+    /* float_value can be double or long double, depending on
+       USE_LONG_DOUBLE_FOR_HOST_FP_VALUE. */
+    /* Use memcpy to copy the value since float_value might not be correctly
+       aligned. */
+    (void)memcpy((char *)&temp, (char *)float_value, sizeof(a_host_fp_value));
   }  /* if */
   return temp;
-}  /* fetch_double */
+}  /* fetch_host_fp_value */
 
 
 void fp_change_kind(an_internal_float_value *old_value,
@@ -245,7 +438,7 @@ depends on the rounding mode, *depends_on_rounding_mode is returned TRUE
 (*new_value is set anyway).
 */
 {
-  double temp;
+  a_host_fp_value temp;
 
   /* Note that conversion between float and double must not be done unless
      it is required, since the contents of the value might be hollerith
@@ -256,8 +449,8 @@ depends on the rounding mode, *depends_on_rounding_mode is returned TRUE
   *depends_on_rounding_mode = FALSE;
   if (old_kind != new_kind) {
     /* There is a change of size.  Fetch the old, convert, store the new. */
-    temp = fetch_double(old_kind, old_value);
-    store_double(temp, new_kind, new_value, err);
+    temp = fetch_host_fp_value(old_kind, old_value);
+    store_host_fp_value(temp, new_kind, new_value, err);
   } else {
     /* There is no change of size, so just copy. */
     /* Use memcpy to copy the value since the values might not be correctly
@@ -283,10 +476,15 @@ type.  The string need not have a decimal point or exponent (it can
 look like an integer).  It may have a leading "-" sign.
 */
 {
-  double temp;
-
   /* This is a simplistic version, which should probably be replaced by
      something "real" for a given implementation. */
+  a_host_fp_value	temp;
+
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* Convert the number. */
+  temp = str_to_long_double(str);
+  *err = (errno != 0);
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   /* Convert the number. */
   temp = strtod_interface(str);
   if (errno == ERANGE && temp != 0.0) {
@@ -296,7 +494,8 @@ look like an integer).  It may have a leading "-" sign.
     if ((temp >= 0.0) ? temp < 1.0 : temp > -1.0) errno = 0;
   }  /* if */
   *err = (errno != 0);
-  store_double(temp, kind, float_value, err);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  store_host_fp_value(temp, kind, float_value, err);
 }  /* fp_string_to_float */
 
 
@@ -307,15 +506,25 @@ Convert the float value float_value to a string in an internal static
 variable, and return a pointer to that null-terminated string.
 */
 {
-  static char str[30];
-  double      temp;
+  static char		str[60];
+  a_host_fp_value	temp;
 
-  temp = fetch_double(kind, float_value);
+  temp = fetch_host_fp_value(kind, float_value);
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  if (kind == (a_float_kind)fk_float) {
+    (void)sprintf(str, "%.9Le", temp);
+  } else if (kind == (a_float_kind)fk_double) {
+    (void)sprintf(str, "%.18Le", temp);
+  } else {
+    (void)sprintf(str, "%.40Le", temp);
+  }  /* if */
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   if (kind == (a_float_kind)fk_float) {
     (void)sprintf(str, "%.9e", temp);
   } else {
     (void)sprintf(str, "%.18e", temp);
   }  /* if */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   return (str);
 }  /* fp_to_string */
 
@@ -330,7 +539,7 @@ kind "kind" in *float_value. Return *err TRUE if there is some error.
 */
 {
   *err = FALSE;
-  store_double((double)int_value, kind, float_value, err);
+  store_host_fp_value((a_host_fp_value)int_value, kind, float_value, err);
 }  /* fp_host_large_integer_to_float */
 
 #ifdef CFE
@@ -346,7 +555,7 @@ Convert unsigned_value to a floating-point value of kind "kind" in
 */
 {
   *err = FALSE;
-  store_double((double)unsigned_value, kind, float_value, err);
+  store_host_fp_value((a_host_fp_value)unsigned_value, kind, float_value, err);
 }  /* fp_host_large_unsigned_to_float */
 
 #endif /* ifdef CFE */
@@ -363,13 +572,13 @@ Convert float_value to a host large integer value in int_value.  Return
 *depends_on_rounding_mode is returned TRUE (*int_value is set anyway).
 */
 {
-  double temp;
+  a_host_fp_value temp;
 
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
-  temp = fetch_double(kind, float_value);
-  if (temp > (double)(MAX_HOST_LARGE_INTEGER) ||
-      temp < (double)MIN_HOST_LARGE_INTEGER) {
+  temp = fetch_host_fp_value(kind, float_value);
+  if (temp > (a_host_fp_value)(MAX_HOST_LARGE_INTEGER) ||
+      temp < (a_host_fp_value)MIN_HOST_LARGE_INTEGER) {
     /* Floating value is too big or too small. */
     *err = TRUE;
   } else {
@@ -392,12 +601,13 @@ rounding mode, *depends_on_rounding_mode is returned TRUE
 (*unsigned_value is set anyway).
 */
 {
-  double temp;
+  a_host_fp_value temp;
 
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
-  temp = fetch_double(kind, float_value);
-  if (temp > (double)(MAX_HOST_LARGE_UNSIGNED) || temp < (double)0) {
+  temp = fetch_host_fp_value(kind, float_value);
+  if (temp > (a_host_fp_value)(MAX_HOST_LARGE_UNSIGNED) ||
+      temp < (a_host_fp_value)0) {
     /* Floating value is too big or too small. */
     *err = TRUE;
   } else {
@@ -456,8 +666,15 @@ nbytes == 0 means put all zero bytes in *float_value.
   if (host_little_endian) {
     p += nbytes;
   } else {
-    p += (float_kind == (a_float_kind)fk_float) ? sizeof(float) :
-                                                  sizeof(double);
+    int	fp_size;
+    switch (float_kind) {
+      case fk_float: fp_size = sizeof(float); break;
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+      case fk_long_double: fp_size = sizeof(long double); break;
+#endif /*  USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+      default: fp_size = sizeof(double); break;
+    }  /* switch */
+    p += fp_size;
     p -= nbytes;
   }  /* if */
   /* Copy the bytes into the right place. */
@@ -479,7 +696,7 @@ Return TRUE if the constant (a float constant) is a floating zero of
 any precision.
 */
 {
-  return (fetch_double(kind, float_value) == 0.0);
+  return (fetch_host_fp_value(kind, float_value) == 0.0);
 }  /* fp_is_zero_constant */
 
 
@@ -496,14 +713,14 @@ to TRUE.  If the result depends on the rounding mode,
 *depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
-  double tempr, temp1, temp2;
+  a_host_fp_value	tempr, temp1, temp2;
 
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
-  temp1 = fetch_double(kind, value_1);
-  temp2 = fetch_double(kind, value_2);
+  temp1 = fetch_host_fp_value(kind, value_1);
+  temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 + temp2;
-  store_double(tempr, kind, result, err);
+  store_host_fp_value(tempr, kind, result, err);
 }  /* fp_add */
 
 
@@ -520,14 +737,14 @@ to TRUE.  If the result depends on the rounding mode,
 *depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
-  double tempr, temp1, temp2;
+  a_host_fp_value tempr, temp1, temp2;
 
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
-  temp1 = fetch_double(kind, value_1);
-  temp2 = fetch_double(kind, value_2);
+  temp1 = fetch_host_fp_value(kind, value_1);
+  temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 - temp2;
-  store_double(tempr, kind, result, err);
+  store_host_fp_value(tempr, kind, result, err);
 }  /* fp_subtract */
 
 
@@ -542,12 +759,12 @@ There is a separate routine for this (rather than using fp_subtract
 and a zero constant) because of IEEE floating-point requirements.
 */
 {
-  double tempr, temp1;
+  a_host_fp_value tempr, temp1;
 
   *err = FALSE;
-  temp1 = fetch_double(kind, value_1);
+  temp1 = fetch_host_fp_value(kind, value_1);
   tempr = -temp1;
-  store_double(tempr, kind, result, err);
+  store_host_fp_value(tempr, kind, result, err);
 }  /* fp_negate */
 
 
@@ -564,14 +781,14 @@ to TRUE.  If the result depends on the rounding mode,
 *depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
-  double tempr, temp1, temp2;
+  a_host_fp_value tempr, temp1, temp2;
 
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
-  temp1 = fetch_double(kind, value_1);
-  temp2 = fetch_double(kind, value_2);
+  temp1 = fetch_host_fp_value(kind, value_1);
+  temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 * temp2;
-  store_double(tempr, kind, result, err);
+  store_host_fp_value(tempr, kind, result, err);
 }  /* fp_multiply */
 
 
@@ -588,19 +805,19 @@ to TRUE.  If the result depends on the rounding mode,
 *depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
-  double tempr, temp1, temp2;
+  a_host_fp_value tempr, temp1, temp2;
 
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
-  temp1 = fetch_double(kind, value_1);
-  temp2 = fetch_double(kind, value_2);
+  temp1 = fetch_host_fp_value(kind, value_1);
+  temp2 = fetch_host_fp_value(kind, value_2);
   if (temp2 == 0.0) {
     /* Division by zero.  This is also checked by the caller for a specific
        error message. */
     *err = TRUE;
   } else {
     tempr = temp1 / temp2;
-    store_double(tempr, kind, result, err);
+    store_host_fp_value(tempr, kind, result, err);
   }  /* if */
 }  /* fp_divide */
 
@@ -619,10 +836,10 @@ values:
 */
 {
   int    cmp;
-  double temp1, temp2;
+  a_host_fp_value temp1, temp2;
 
-  temp1 = fetch_double(kind, value_1);
-  temp2 = fetch_double(kind, value_2);
+  temp1 = fetch_host_fp_value(kind, value_1);
+  temp2 = fetch_host_fp_value(kind, value_2);
   *unordered = FALSE;
   if (temp1 > temp2) {
     cmp = 1;

@@ -20,7 +20,6 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
-#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
@@ -88,9 +87,10 @@ Flags to be set when using the KAI inliner.
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #ifdef sparc
 #define USE_INIT_SECTION_IN_GENERATED_C 1
-#endif
+#endif /* sparc */
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define TARG_JMP_BUF_NUM_ELEMENTS 12
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
@@ -178,6 +178,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 1
 #define LONG_LONG_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #ifndef OPTIMIZED_VERSION
 #define OPTIMIZED_VERSION 1
 #endif /* !defined(OPTIMIZED_VERSION) */
@@ -213,7 +214,7 @@ Flags to be set when using the KAI inliner.
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
-#define TARG_SIZEOF_LONG_DOUBLE 8
+#define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 6
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
@@ -242,7 +243,7 @@ Flags to be set when using the KAI inliner.
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
-#define TARG_SIZEOF_LONG_DOUBLE 8
+#define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
 #ifndef CHECKING
 #define CHECKING 1

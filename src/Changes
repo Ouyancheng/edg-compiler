@@ -1,5 +1,16 @@
 Version 2.39
 
+6/17/98   Ability to use long double to represent floating point values
+
+Formerly, the floating-point routines provided in float_pt.c used
+a host "double" to represent floating-point constants.  If the target
+long double was larger than the host double, some constants could not
+be represented.  The front end can now be configured to use a host
+"long double" to represent floating-point constants by setting the
+USE_LONG_DOUBLE_FOR_HOST_FP_VALUE in targ_def.h.  The default is TRUE
+when an ISO C compiler is used to build the front end, or FALSE when
+a K&R/pcc compiler is used.
+
 6/17/98   Common offsetof variants allowed in nontype template expressions
 
 The common variants of the macro offsetsof use operations that aren't,
