@@ -4927,7 +4927,6 @@ points to the template parameter list.
         case tk_class:
         case tk_struct:
         case tk_union:
-          complete_class_type_is_needed(type);
           match = matches_template_type_for_class_type(type, templ_type,
                                                        templ_arg_list,
                                                        templ_param_list);
@@ -4936,6 +4935,7 @@ points to the template parameter list.
             /* See if the type matches a base class type of actual argument
                type.  This is allows a Derived<T> to be passed to a function
                expecting a Base<T> as an argument. */
+            complete_class_type_is_needed(type);
             bcp = type->variant.class_struct_union.extra_info->base_classes;
             while (bcp != NULL) {
               match = matches_template_type_for_class_type(bcp->type,
