@@ -49,7 +49,7 @@ EXTERN a_boolean
 			   with ANSI C (i.e., asm). */
 EXTERN a_boolean
                 cfront_compatibility_mode /* = FALSE */;
-                        /* -c option:  accept language features supported
+                        /* -b option:  accept language features supported
                             by cfront release 2.1. */
 EXTERN a_boolean
                 allow_anachronisms
