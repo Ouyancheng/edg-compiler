@@ -2083,6 +2083,9 @@ extern a_routine_ptr select_copy_constructor(
 extern char *il_entry_for_symbol(a_symbol_ptr      sym,
                                  an_il_entry_kind  *kind);
 
+extern a_source_correspondence *source_corresp_entry_for_symbol(
+                                                         a_symbol_ptr sym_ptr);
+
 extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);
 
@@ -2281,35 +2284,9 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
 extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
-/* Record use information (for cross-reference, etc.). */
-extern void record_symbol_declaration(
-                            a_symbol_reference_kind      srk_flags,
-                            a_symbol_ptr                 sym_ptr,
-                            a_source_position            *source_position,
-                            a_source_sequence_entry_ptr  ssep);
 
-extern void record_symbol_reference(a_symbol_reference_kind  kind,
-                                    a_symbol_ptr             sym_ptr,
-                                    a_source_position        *source_position,
-                                    a_boolean                update_il_entry);
-
-#define mark_defined(sym, pos)                                          \
-  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, (sym),    \
-                            (pos), (a_source_sequence_entry_ptr)NULL)
-#define mark_declared(sym, pos)                                         \
-  record_symbol_declaration(SRK_DECLARATION, (sym), (pos),              \
-                            (a_source_sequence_entry_ptr)NULL)
-
-#define mark_referenced(sym, err_pos)                                   \
-  record_symbol_reference(SRK_REFERENCE, (sym), (err_pos),              \
-                          /*update_il_entry=*/TRUE)
-
-extern void record_access_adjustment(an_access_adjustment_ptr  aap,
-                                     a_symbol_ptr              sym,
-                                     a_source_position         *pos);
-
-extern void mark_variable_value_set(a_symbol_ptr  sym);
-
+extern a_scope_depth scope_depth_of(a_symbol_ptr  sym,
+                                    a_boolean     *is_local_to_function);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
