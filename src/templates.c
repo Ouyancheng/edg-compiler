@@ -59,7 +59,8 @@ static void update_instantiation_required_for_template_class_members
 Calls update_instantiation_required_flag for all member functions and
 static data members declared in the class.  This needs to be called after
 the class instantiation is complete so that the function or static data
-member instantiation has access to the complete class.
+member instantiation has access to the complete class.  This routine calls
+itself recursively to process classes nested within this class.
 */
 {
   a_class_type_supplement_ptr	ctsp;
@@ -67,6 +68,7 @@ member instantiation has access to the complete class.
   a_symbol_ptr			sym;
   a_template_instance_ptr	tip;
   a_routine_ptr			rout;
+  a_type_ptr			type;
   
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* Normally, function instantiation entries are not marked for actual
@@ -114,6 +116,14 @@ member instantiation has access to the complete class.
       var = var->next;
     }  /* while */
   }  /* if */
+  /* Process any classes nested within this class. */
+  type = ctsp->assoc_scope->types;
+  while (type != NULL) {
+    if (is_class_struct_union_type(type)) {
+      update_instantiation_required_for_template_class_members(type);
+    }  /* if */
+    type = type->next;
+  }  /* while */
 }  /* update_instantiation_required_for_template_class_members */
 
 
