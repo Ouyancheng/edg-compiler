@@ -5077,8 +5077,9 @@ parameters.
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file variable definitions into the instantiation files.
-       (Some variables -- like certain type_info objects -- are not subject
-       to this constraint and should not be externalized.) */
+       (Some static variables -- like certain type_info objects -- are not
+       subject to this constraint and are put out in every slice that
+       references them.) */
     if ((variable->instantiation_needed_bit_number != 0) ?
                             (needed_flag_bit_number !=
                                    variable->instantiation_needed_bit_number) :
@@ -6488,8 +6489,9 @@ if this routine has a body (dump nothing if it has no body).
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file routine definitions into the instantiation files.
-       (Exceptions are inline functions and routines that are explicitly
-       marked not to be externalized.) */
+       (Exceptions are inline functions and certain static routines that
+       are explicitly marked to be put into every slice that references
+       them.) */
     if (rout->instantiation_needed_bit_number != 0) {
       /* This routine is an instantiation and goes out only it its own
          file. */
