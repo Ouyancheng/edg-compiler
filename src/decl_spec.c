@@ -260,6 +260,7 @@ caution when modifying this routine.
          name. */
       tag_err = TRUE;
     } else {
+      check_ambiguity_and_verify_access(&locator_for_curr_id);
       tag_sym = locator_for_curr_id.specific_symbol;
       if (tag_sym != NULL) {
         reduce_projection_symbol_to_fundamental_symbol(tag_sym);
