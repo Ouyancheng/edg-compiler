@@ -3648,10 +3648,13 @@ static void set_virtual_base_class_offsets(a_layout_block_ptr  lob)
 Reserve space at the end of the class object for virtual base classes.
 */
 {
-  a_class_type_supplement_ptr	ctsp;
+  a_class_type_supplement_ptr  ctsp;
 #if !TARG_REUSE_TAIL_PADDING
-  an_unnormalized_bit_offset	zero = 0;
+  an_unnormalized_bit_offset   zero = 0;
 #endif /* !TARG_REUSE_TAIL_PADDING */
+#if IA64_ABI
+  a_layout_block               saved_lob;
+#endif /* IA64_ABI */
   
   db_enter(4, "set_virtual_base_class_offsets");
 
@@ -3660,6 +3663,14 @@ Reserve space at the end of the class object for virtual base classes.
     /* Record the size and alignment of the class before space is added for
        virtual base classes. */
     pad_bit_field(lob);
+#if IA64_ABI
+    /* The size without virtual base classes includes all subobjects that have
+       been laid out thus far, including the padding needed for trailing empty
+       bases.  However, allocation of virtual bases should start at the point
+       before that padding. */
+    saved_lob = *lob;
+    adjust_size_for_empty_bases(lob);
+#endif /* IA64_ABI */
     ctsp->size_without_virtual_base_classes = lob->byte_offset;
     ctsp->alignment_without_virtual_base_classes = lob->alignment;
 #if IA64_ABI
@@ -3671,6 +3682,11 @@ Reserve space at the end of the class object for virtual base classes.
         error(struct_too_large_error());
         lob->any_overflow = TRUE;
       }  /* if */
+    } else {
+      /* Restore the layout state to that before any padding was added for
+         trailing empty bases.  Early GNU implementations of the ABI fail to
+         do this. */
+      *lob = saved_lob;
     }  /* if */
 #endif /* IA64_ABI */
 #if !TARG_REUSE_TAIL_PADDING
