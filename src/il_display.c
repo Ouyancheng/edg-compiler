@@ -546,8 +546,9 @@ Display the indicated source correspondence entry.
     disp_boolean("  has_associated_pragma", TRUE);
   }  /* if */
 #if NEED_NAME_MANGLING
-  /* Do not print out name_has_been_mangled and
-     mangled_name_cannot_be_included_in_other_name, which are used only in
+  /* Do not print out name_has_been_mangled,
+     mangled_name_cannot_be_included_in_other_name, and
+     final_name_mangling_pending, which are used only in
      the front end. */
 #endif /* NEED_NAME_MANGLING */
   if (scp->static_used_by_instantiation) {

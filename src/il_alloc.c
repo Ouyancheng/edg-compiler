@@ -3476,6 +3476,7 @@ in il_alloc_init.)
 #if NEED_NAME_MANGLING
   def_source_corresp.name_has_been_mangled = FALSE;
   def_source_corresp.mangled_name_cannot_be_included_in_other_name = FALSE;
+  def_source_corresp.final_name_mangling_pending = FALSE;
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   def_source_corresp.qualification_needed = FALSE;
