@@ -1719,7 +1719,7 @@ scope.
   a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
 
   if (is_reactivation) ps_options |= PS_IS_REACTIVATION;
-  (void)push_scope_full(sck_file, file_scope_number,
+  (void)push_scope_full((a_scope_kind)sck_file, file_scope_number,
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,

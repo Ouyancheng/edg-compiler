@@ -90,6 +90,12 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_cl_too_many_arguments)*/
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES ||
           COMPILE_MULTIPLE_TRANSLATION_UNITS */
+#if !COMPILE_MULTIPLE_SOURCE_FILES
+/*lint -esym(769,ec_cl_output_file_incompatible_with_multiple_inputs)*/
+/*lint -esym(769,ec_cl_pch_incompatible_with_multiple_inputs)*/
+/*lint -esym(769,ec_cl_ii_file_name_incompatible_with_multiple_inputs)*/
+/*lint -esym(769,ec_cl_one_instantiation_per_object_incompatible_with_multiple_inputs)*/
+#endif /* !COMPILE_MULTIPLE_SOURCE_FILES */
 #if USE_MMAP_FOR_MEMORY_REGIONS
 /*lint -esym(769,ec_cl_invalid_pch_size)*/
 /*lint -esym(769,ec_cl_pch_must_be_first)*/
