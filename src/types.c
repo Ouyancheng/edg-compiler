@@ -1659,8 +1659,13 @@ and alignment requirements are meant to imply interchangeability as
 arguments to functions, return values, and members of unions".  
 Interchangeability is a less strict matching than compatibility:
 compatible types are interchangeable, but interchangeable types need
-not be compatible.  This routine is called to check printf arguments
-and arguments of old-style calls.
+not be compatible.  This routine is called to check printf arguments,
+arguments of old-style calls, and to allow some otherwise questionable
+pointer compatibility (i.e., pointers to interchangeable types are
+considered compatible, with a warning).  Note that the caller of this
+routine must either (a) issue a warning if something is made legal by
+that fact that the types are interchangeable, or (b) be checking something
+that is not required to be checked by the ANSI C standard.
 */
 {
   a_boolean       interch = FALSE;
@@ -1694,7 +1699,8 @@ and arguments of old-style calls.
   } else if (type_1->kind == (a_type_kind)tk_integer) {
     /* Look for two integral types that differ only in signedness, or
        two character types. */
-    if (strict_ansi_mode) {
+    if (strict_ansi_mode &&
+        strict_ansi_error_severity == (an_error_severity)es_error) {
       /* In strict ANSI mode (C or C++), two integral types are interchangeable
          if they're the same type with signedness ignored. */
       /* Reduce the integral kinds to canonical (signedness-free) versions. */
