@@ -4388,6 +4388,7 @@ tokens should be rescanned.
   if (cache != NULL) clear_token_cache(cache);
   if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
     *has_global_qualifier = *is_file_scope_qualifier = is_qualifier = TRUE;
+    if (cache != NULL) cache_curr_token(cache);
     (void)get_token();
   }  /* if */
   /* See if we have an identifier followed by "::". */
