@@ -231,6 +231,10 @@ typedef int	a_scope_depth;
 typedef a_byte a_storage_class;
 
 #ifdef CIL
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_opname_kind;
+
 enum an_access_specifier_tag {
   /* C++ access control:  "public", "private", or "protected" for class
      members or "public" (meaning no access control) for other entities. */
@@ -2192,6 +2196,10 @@ typedef struct a_constant {
 			   the name can be looked up in the parent class.
 			   Used in the front end only; cannot be used
 			   in back ends. */
+          an_opname_kind
+		opname_kind;
+			/* If the unknown function represents an overloaded
+			   operator function, this is the operator kind. */
         } unknown_function;
         /* When template param constant kind == tpck_cast or tpck_address: */
         a_constant_ptr
@@ -6095,8 +6103,6 @@ enum an_opname_kind_tag {
   onk_question,          /* "?" -- only used in front end. */
   onk_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_opname_kind;
 #endif /* ifdef CIL */
 
 #define is_new_operator(op)                                         \

@@ -588,6 +588,8 @@ ck_template_param constant.
       cp->variant.template_param.variant.unknown_function.conversion_type =
                                                                           NULL;
       cp->variant.template_param.variant.unknown_function.symbol = NULL;
+      cp->variant.template_param.variant.unknown_function.opname_kind =
+                                                                      onk_none;
       break;
     case tpck_cast:
     case tpck_address:

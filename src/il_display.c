@@ -71,6 +71,7 @@ static an_il_to_str_output_control_block
 static void disp_ptr(char             *ptr_name,
                      char             *entry_ptr,
                      an_il_entry_kind entry_kind);
+static void disp_opname_kind_name(an_opname_kind kind);
 static void disp_template_arg_list(char                *name,
                                    a_template_arg_ptr  ptr);
 
@@ -741,10 +742,19 @@ Display a ck_template_param constant.
       if (ptr->variant.template_param.is_qualified_name) {
         disp_boolean("is_qualified_name", TRUE);
       }  /* if */
-      disp_ptr("conversion_type",
-               (char *)ptr->variant.template_param.variant.unknown_function.
-                                                               conversion_type,
-               iek_type);
+      { a_type_ptr conversion_type =
+          ptr->variant.template_param.variant.unknown_function.conversion_type;
+        if (conversion_type != NULL) {
+          disp_ptr("conversion_type", (char *)conversion_type, iek_type);
+        }  /* if */
+      }
+      { an_opname_kind opname_kind = 
+              ptr->variant.template_param.variant.unknown_function.opname_kind;
+        if (opname_kind != (an_opname_kind)onk_none) {
+          disp_name("opname_kind");
+          disp_opname_kind_name(opname_kind);
+        }  /* if */
+      }
       /* unknown_function.symbol is front-end-only and is not printed. */
       break;
     case tpck_cast:

@@ -1927,6 +1927,9 @@ has an explicit template argument list, given by template_arg_list.
   a_type_ptr              conversion_type =
                                          con->variant.template_param.variant.
                                               unknown_function.conversion_type;
+  an_opname_kind	  opname_kind = 
+                                         con->variant.template_param.variant.
+                                              unknown_function.opname_kind;
   a_special_function_kind special_kind = (a_special_function_kind)sfk_none;
 #if IA64_ABI
   a_boolean               need_nested_name_close = FALSE;
@@ -1941,10 +1944,12 @@ has an explicit template argument list, given by template_arg_list.
 #endif /* IA64_ABI */
   if (conversion_type != NULL) {
     special_kind = (a_special_function_kind)sfk_conversion;
+  } else if (opname_kind != (an_opname_kind)onk_none) {
+    special_kind = sfk_operator;
   }  /* if */
   mangled_function_base_name(&con->source_corresp,
                              special_kind,
-                             (an_opname_kind)onk_none,
+                             opname_kind,
                              /*num_operands=*/0,
                              conversion_type,
                              mctl);

@@ -1,5 +1,21 @@
 Version 3.1
 
+10/15/02 Incorrect mangled name for dependent operator name constants
+
+If a pointer-to-member function that refers to a dependent operator name
+is used in the signature of a function template, an incorrect mangled name
+could be generated (containing the unmangled form of the operator).  This
+has been fixed.
+
+  struct B {
+    int operator+(int) { return 0; }
+  };
+  template <int (B::*P)(int)> struct A {};
+  template <class T> void f(A<&T::operator+> *) {}
+  int main() {
+    f<B>(0);
+  }
+
 10/14/02 Missing diagnostic on "T::template *"
 
 No diagnostic was issued if the template keyword (used for disambiguation
