@@ -5470,6 +5470,8 @@ caution when modifying this routine.
                    scope_stack[*effective_decl_level].kind ==
                                    (a_scope_kind)sck_func_prototype ||
                    scope_stack[*effective_decl_level].kind ==
+                                   (a_scope_kind)sck_template_instantiation ||
+                   scope_stack[*effective_decl_level].kind ==
                                    (a_scope_kind)sck_template_declaration) {
               (*effective_decl_level)--;
             }  /* while */

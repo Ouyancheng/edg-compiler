@@ -1,5 +1,14 @@
 Version 2.15
 
+2/23/93  Tag names first used in an argument list inside a template class
+
+In this example struct X should be entered in the global scope bug was
+not.  This has been corrected.
+
+template <class T> struct A {
+	friend void f(struct X x);
+};
+
 2/23/93  Improved error recovery when scanning template arguments
 
 Error recovery has been improved when too many template arguments are
