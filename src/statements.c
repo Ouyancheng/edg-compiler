@@ -207,14 +207,32 @@ the current statement sequence.
        i.e., the dependent statement of the "if" is labeled, and therefore
        two dependent statements are required under the if, which only allows
        one.  It also happens for "continue" labels.  For cases like this,
-       we create an additional block to contain the list of statements.
-       Note that we don't try to reuse an existing block if the dependent
-       statement is one.  That doesn't reflect the source structure as clearly,
-       and we wouldn't want to do it if there were declarations (or worse,
-       declarations requiring destructor calls) inside the block. */
-    extra_block = alloc_statement((a_statement_kind)stmk_block);
-    extra_block->variant.block.statements = *head_ptr;
-    *head_ptr = extra_block;
+       we create an additional block to contain the list of statements. 
+       If the dependent statement is a block (because the source dependent
+       statement is a block), that block is used. */
+    if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
+        (*head_ptr)->variant.block.extra_info->assoc_scope == NULL) {
+      /* There is an existing block from a source construct.  Find the 
+         end of its statement list, and add there.  Note that blocks that
+         contain declarations are ruled out: we don't want to add a
+         statement inside such a block.  (That's especially true in
+         C++, where the end of the block may kick off destructor calls
+         which must be done before the statement being added is executed.)
+         Also note that the top compound statement of a switch never has
+         an associated scope at this point (the scope gets added at the
+         closing brace), so it's acceptable, which is what we want. */
+      extra_block = *head_ptr;
+      temp_stmt = extra_block->variant.block.statements;
+      if (temp_stmt != NULL) {
+        while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
+      }  /* if */
+      sssep->last_dep_statement = temp_stmt;
+    } else {
+      /* Create a new block to allow additional statements. */
+      extra_block = alloc_statement((a_statement_kind)stmk_block);
+      extra_block->variant.block.statements = *head_ptr;
+      *head_ptr = extra_block;
+    }  /* if */
     head_ptr = &extra_block->variant.block.statements;
     sssep->extra_block = extra_block;
   } /* if */
