@@ -1149,7 +1149,7 @@ is TRUE.
   a_std_conv_descr  std_conversion;
   a_base_class_ptr  bcp;
   a_boolean         ambiguous;
-  a_boolean         arg_operand_is_constant;
+  a_boolean         arg_operand_is_constant, arg_converted_to_rvalue = FALSE;
   a_constant_ptr    arg_operand_constant;
   an_operand        implicit_arg_operand;
   a_type_ptr        orig_param_type = param_type;
@@ -1382,6 +1382,7 @@ is TRUE.
     if (types_are_compatible(default_argument_promotion(unqual_arg_type),
                              unqual_param_type)) {
       arg_summary->match_level = aml_promotion;
+      arg_converted_to_rvalue = TRUE;
       goto have_level;
     }  /* if */
     /* Try a match involving standard conversions.  This is case [3] in
@@ -1409,6 +1410,7 @@ is TRUE.
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
+      arg_converted_to_rvalue = TRUE;
       if (cfront_2_1_mode && param_is_reference &&
           std_conversion.cast_base_class == NULL) {
         /* cfront 2.1 has a bug: when a reference parameter is initialized
@@ -1526,7 +1528,7 @@ have_level:;
       arg_summary->anachronism_used = TRUE;
     }  /* if */
     if (!source_can_be_rvalue &&
-        (arg_summary->match_level != aml_exact ||
+        (arg_converted_to_rvalue ||
          (arg_operand != NULL && is_an_rvalue(arg_operand)))) {
       /* You can't bind a reference to non-const to an rvalue.  This was a
          post-ARM change (in the ARM, the binding would be okay in overload
