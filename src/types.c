@@ -2070,6 +2070,7 @@ for exact pointer equality.
   a_boolean                     ignore_type_qualifiers = FALSE;
   a_boolean                     error_matches_anything = 
                         (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
+  a_boolean			allow_default_calling_convention = FALSE;
 
   db_enter(5, "f_types_are_compatible");
 
@@ -2080,6 +2081,10 @@ for exact pointer equality.
     ignore_type_qualifiers = TRUE;
     flags &= ~TCF_IGNORE_TYPE_QUALIFIERS;
   }  /* if */
+  if (flags & TCF_ALLOW_DEFAULT_CALLING_CONVENTION) {
+    allow_default_calling_convention = TRUE;
+    flags &= ~TCF_ALLOW_DEFAULT_CALLING_CONVENTION;
+  }  /* if */
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2087,9 +2092,21 @@ for exact pointer equality.
   } else {
     /* Test for a qualifier mismatch. */
     a_boolean qualifier_mismatch = FALSE;
-    if (!ignore_type_qualifiers &&
-        !type_qualifiers_match(type_1, type_2)) {
-      qualifier_mismatch = TRUE;
+    if (!ignore_type_qualifiers) {
+      a_type_qualifier_set	qualifiers_1 = get_type_qualifiers(type_1);
+      a_type_qualifier_set	qualifiers_2 = get_type_qualifiers(type_2);
+#if MICROSOFT_KEYWORDS_ALLOWED
+      /* Certain qualifiers that have no calling convention are considered
+         to have the default calling convention.  Add this before checking
+         for equality. */
+      if (microsoft_mode && allow_default_calling_convention) {
+        qualifiers_1 |= TQ_DEFAULT_CALLING_CONVENTION;
+        qualifiers_2 |= TQ_DEFAULT_CALLING_CONVENTION;
+      }  /* if */
+#endif /* MICROSOFT_QUALIFIERS_ALLOWED */
+      if (qualifiers_1 != qualifiers_2) {
+        qualifier_mismatch = TRUE;
+      }  /* if */
     }  /* if */
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);

@@ -2422,6 +2422,9 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 					  TQ_STDCALL)
 			/* Macro that specifies the qualifier bits used to
 			   represent calling convention information. */
+#define TQ_DEFAULT_CALLING_CONVENTION (TQ_CDECL)
+			/* Macro that specifies the default calling 
+			   convention. */
 #define TQ_ALL_MICROSOFT_QUALIFIERS      (TQ_CDECL |			\
 					  TQ_FASTCALL |			\
 					  TQ_STDCALL)

@@ -273,6 +273,12 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_IGNORE_TYPE_QUALIFIERS 0x2
 			/* Ignore type qualifiers at the first level.  In C++,
 			   this includes qualifiers on array element types. */
+
+#define TCF_ALLOW_DEFAULT_CALLING_CONVENTION 0x04
+			/* If a type does not have a calling convention
+			   qualifier, assume that it uses the default
+			   calling convention. */
+
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
