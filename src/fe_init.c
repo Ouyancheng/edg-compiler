@@ -291,6 +291,10 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_signed,    "signed");
     enter_keyword((a_token_kind)tok_volatile,  "volatile");
   }  /* if */
+  if (c99_mode || gcc_mode) {
+    /* Enable keywords available in both C99 and GNU C mode. */
+    enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
+  }  /* if */
   if (c99_mode) {
     /* Enable keywords required in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");
@@ -300,7 +304,6 @@ Install the keywords in the symbol table.
        constant that is the name of the function currently being defined. */
     enter_keyword((a_token_kind)tok_function_name, "__func__");
     /* Enable new type names. */
-    enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
     enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
     enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
     /* EDG-specific token representing the imaginary number "i" (i*i == -1). */

@@ -7794,8 +7794,10 @@ The IL is already available when this routine is called.
          "double and long double must be the same size when generating K&R C");
   }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-  /* In C99 mode we want to see "_Bool" rather "bool" or the type underlying
-     _Bool. */
+  /* In C99 mode we want to see "_Bool" rather than "bool" or the type
+     underlying _Bool.  Note that usually this request is pointless,
+     because C99 lowering rewrites _Bool.  But if that were turned off, we
+     would want _Bool to be output. */
   octl.render_c99_bool = c99_mode;
 }  /* c_gen_be_init */
 

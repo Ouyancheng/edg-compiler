@@ -9914,8 +9914,8 @@ Initialize for the C++/C-generating back end.
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   octl.suppress_not_yet_defined_typedefs = TRUE;
-  /* In C99 mode we want to see "_Bool" rather "bool" or the type underlying
-     _Bool. */
+  /* In C99 mode we want to see "_Bool" rather than "bool" or the type
+     underlying _Bool. */
   octl.render_c99_bool = c99_mode;
 }  /* init_cp_gen_be */
 

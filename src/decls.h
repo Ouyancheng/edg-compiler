@@ -99,12 +99,11 @@ extensions.
 */
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define or_is_c99_type_keyword(tok)                                       \
-  || (c99_mode &&                                                         \
-      ((tok) == tok_c99_bool  ||                                          \
-       (tok) == tok_c99_complex || (tok) == tok_c99_imaginary))
+  || ((tok) == tok_c99_bool ||                                            \
+      (tok) == tok_c99_complex || (tok) == tok_c99_imaginary)
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define or_is_c99_type_keyword(tok)                                       \
-  || (c99_mode && (tok) == tok_c99_bool)
+  || ((tok) == tok_c99_bool)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 
