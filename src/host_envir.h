@@ -635,7 +635,7 @@ The number of lines of the instantiation information file that are reserved
 and do not contain instantiation list entries.
 */
 #ifndef INSTANTIATION_INFO_LINES_RESERVED
-#define INSTANTIATION_INFO_LINES_RESERVED 1
+#define INSTANTIATION_INFO_LINES_RESERVED 2
 #endif /* ifndef INSTANTIATION_INFO_LINES_RESERVED */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
