@@ -56,7 +56,8 @@ extern a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
 
 extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout);
 
-extern void define_special_member_function(a_routine_ptr  rout_ptr);
+extern void define_special_member_function(a_routine_ptr  rout_ptr,
+                                           a_type_ptr     class_type);
 
 extern void reference_to_implicitly_invoked_function(a_symbol_ptr  sym);
 
