@@ -4487,6 +4487,46 @@ assignment operator.
 }  /* select_assignment_operator */
 
 
+static a_statement_ptr make_assignment_call(an_expr_node_ptr  source_expr,
+                                            an_expr_node_ptr  dest_expr,
+                                            a_routine_ptr     rp,
+                                            a_boolean         pass_by_value,
+                                            a_source_position *err_pos)
+/*
+Return a statement pointer that represents a call to an assignment operator.
+source_expr points to the node that is the source of the assignment; it may
+require additional modification.  dest_expr points to the destination node.
+rp is the pointer to the routine entry for the assignment operator.
+pass_by_value is TRUE if the source_expr is passed by value, FALSE if it is
+passed by reference.  *err_pos is the source position for diagnostics.
+*/
+{
+  a_param_type_ptr  ptp;
+  a_type_ptr        tp;
+  a_statement_ptr   sp;
+
+  /* Get the first parameter of the assignment operator, which represents the
+     source type. */
+  ptp = skip_typerefs(rp->type)->variant.routine.extra_info->param_type_list;
+  if (pass_by_value) {
+    source_expr = add_indirection_to_node(source_expr);
+    /* Make sure a copy constructor call is added if one is needed. */
+    source_expr = prep_rvalue_arg_expr(source_expr, ptp, err_pos);
+  } else {
+    /* If the assignment operator takes an argument that is a base class
+       instead of the current class we need a cast. */
+    tp = ptp->type;
+    if (is_reference_type(tp)) {
+      /* Change the reference type to a pointer type. */
+      tp = make_pointer_type(type_pointed_to(tp));
+    }  /* if */
+    cast_node(&source_expr, tp, /*is_implicit_cast=*/TRUE, err_pos);
+  }  /* if */
+  sp = make_call_assignment_statement(rp, dest_expr, source_expr, err_pos);
+  return sp;
+}  /* make_assignment_call */
+
+
 static void make_default_assignment_body(a_scope_ptr        scope,
                                          a_source_position  *err_pos)
 /*
@@ -4579,15 +4619,8 @@ operator routine or do bitwise assignment.
             /* Error has already been issued in the subroutine. */
             continue;
           }  /* if */
-          if (pass_by_value) {
-            source_expr = add_indirection_to_node(source_expr);
-            /* Make sure a copy constructor call is added if one is needed. */
-            ptp = skip_typerefs(rp->type)->variant.routine.extra_info->
-                                                               param_type_list;
-            source_expr = prep_rvalue_arg_expr(source_expr, ptp, err_pos);
-          }  /* if */
-          sp = sp->next = make_call_assignment_statement(rp, dest_expr,
-                                                         source_expr, err_pos);
+          sp = sp->next = make_assignment_call(source_expr, dest_expr, rp,
+                                               pass_by_value, err_pos);
         }  /* if */
       }  /* if */
       /* Advance to the next base class. */
@@ -4691,18 +4724,8 @@ operator routine or do bitwise assignment.
                       make_operator_node((an_expr_operator_kind)eok_padd_subsc,
                                          dest_expr->type, dest_expr);
             }  /* if */
-            if (pass_by_value) {
-              /* The assignment operator function takes its source by value. */
-              source_expr = add_indirection_to_node(source_expr);
-              /* Make sure a copy constructor call is added if one is
-                 needed. */
-              ptp = skip_typerefs(rp->type)->variant.routine.extra_info->
-                                                               param_type_list;
-              source_expr = prep_rvalue_arg_expr(source_expr, ptp, err_pos);
-            }  /* if */
-            /* Make the call of the assignment operator function. */
-            call_stmt = make_call_assignment_statement(rp, dest_expr,
-                                                       source_expr, err_pos);
+            call_stmt = make_assignment_call(source_expr, dest_expr, rp,
+                                             pass_by_value, err_pos);
             if (array_type != NULL) {
               /* Array case; the call goes under the do-while. */
               sp->variant.loop_statement = call_stmt;
