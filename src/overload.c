@@ -4978,7 +4978,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
        but this is used in jcool and tools.h++. */
     match_level = aml_std_conversion;
   } else {
-    a_type_ptr operand_type = operand->type;
+    a_type_ptr operand_type = rvalue_type(operand->type);
     if (type_code == BOOL_TYPE_CODE) {
       /* A bool operand is wanted. */
       if (is_bool_type(operand_type)) {

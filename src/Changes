@@ -1,5 +1,22 @@
 Version 2.37
 
+8/25/97   Cost of builtin conversions in overload resolution should ignore
+          cv-qualifiers
+
+The determination of the cost of conversions on builtin types in
+overload resolution was sometimes incorrect when lvalues with
+cv-qualified types were involved.  Now fixed.
+
+  const int i = 1;
+  struct X {
+    X(const int);
+  };
+  void operator-(const X&, const int);
+  enum E { BIG = 99 } ;
+  void f() {
+    BIG - i;  // Not ambiguous
+  }
+
 8/25/97   C++-generating back end: qualified name changes to deal with
           MSVC++ bugs
 
