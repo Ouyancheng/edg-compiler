@@ -1,5 +1,19 @@
 Version 2.46
 
+2/11/01  C99 aggregate initialization: incorrect processing for
+         const struct member initialized from non-const expression
+
+C99 aggregate initialization did not correctly handle some cases
+where the initializer expression has a class type and the member being
+initialized has the const-qualified version of the same type.
+Now fixed.
+
+  struct A { int i; };
+  int main () {
+    struct A aa = {0};
+    const struct A a[] = {aa};  // Formerly got error in C99 mode
+  }
+
 2/10/01  C++-generating back end: output of template-dependent switch
          case values in prototype instantiations
 

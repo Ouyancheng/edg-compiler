@@ -14232,7 +14232,8 @@ This routine is also called in C99 mode.
     /* See whether the expression can be converted to the aggregate class
        type. */
     if (c99_mode ?
-          types_are_compatible(result.type, required_type) :
+          types_are_compatible_ignoring_qualifiers(result.type,
+                                                   required_type) :
           (conversion_to_class_possible(&result,
                                         required_type,
                                         /*try_bitwise_copy=*/TRUE,
