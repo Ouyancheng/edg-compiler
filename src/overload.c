@@ -2056,7 +2056,7 @@ that are marked "explicit" are ignored.
   a_boolean                overloaded_function_case;
   a_symbol_ptr             function_symbol, proj_function_symbol;
   a_type_ptr               routine_type;
-  a_routine_ptr            rout;
+  a_routine_ptr            routine;
   a_routine_type_supplement_ptr
                            rtsp;
   a_param_type_ptr         param;
@@ -2096,11 +2096,11 @@ that are marked "explicit" are ignored.
        a selector. */
     if (function_symbol->kind == (a_symbol_kind)sk_function_template) {
       /* Template -- might be a member function template. */
-      rout = function_symbol->variant.template_info->variant.function.routine;
+      routine=function_symbol->variant.template_info->variant.function.routine;
     } else {
-      rout = function_symbol->variant.routine.ptr;
+      routine = function_symbol->variant.routine.ptr;
     }  /* if */
-    routine_type = skip_typerefs(rout->type);      
+    routine_type = skip_typerefs(routine->type);      
     if (routine_type_is_nonstatic_member_function(routine_type)) {
       some_function_needs_selector = TRUE;
     }  /* if */
@@ -2138,9 +2138,10 @@ that are marked "explicit" are ignored.
     }  /* if */
     narg = 0;
 #endif /* DEBUG */
-    local_template_arg_list = template_arg_list;
-    /* arg_match_list and end_arg_match_list are set early so we know,
-       upon goto to reject_function, what has to be freed. */
+    /* local_template_arg_list, arg_match_list, and end_arg_match_list are
+       set early so we know, upon goto to reject_function, what has to be
+       freed. */
+    local_template_arg_list = NULL;
     arg_match_list = end_arg_match_list = NULL;
     /* Remove namespace projections, if any. */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
@@ -2149,8 +2150,8 @@ that are marked "explicit" are ignored.
     if (!function_template_case) {
       /* The symbol is not a function template (i.e., it's a normal
          function). */
-      rout = function_symbol->variant.routine.ptr;
-      routine_type = rout->type;
+      routine = function_symbol->variant.routine.ptr;
+      routine_type = routine->type;
       if (template_arg_list != NULL) {
         /* An explicit list of template arguments (e.g., f<int>) rules out
            non-templates. */
@@ -2158,8 +2159,8 @@ that are marked "explicit" are ignored.
       }  /* if */
     } else {
       /* The symbol is a function template. */
-      rout = function_symbol->variant.template_info->variant.function.routine;
-      routine_type = rout->type;
+      routine=function_symbol->variant.template_info->variant.function.routine;
+      routine_type = routine->type;
       if (template_arg_list != NULL) {
         /* Substitute the explicitly-specified template arguments into the
            template and get the updated routine type.  This also creates
@@ -2175,7 +2176,7 @@ that are marked "explicit" are ignored.
     }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
-    if (effects_copy_initialization && rout->is_explicit_constructor) {
+    if (effects_copy_initialization && routine->is_explicit_constructor) {
       /* Constructors marked "explicit" are to be ignored. */
       goto reject_function;
     }  /* if */
@@ -2268,11 +2269,24 @@ that are marked "explicit" are ignored.
       } else {
         /* Both the actual argument and formal parameter are available.
            See how well they match. */
-        determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
-                                  param->type,
-                                  /*try_user_conversions=*/
+        if (function_template_case && 
+            routine->special_kind == (a_special_function_kind)sfk_constructor&&
+            param->type == routine->source_corresp.parent.class_type) {
+          /* The routine is a member template constructor, and it's
+             threatening to become a copy constructor that copies its
+             own type by value, which is not allowed.  Avoid looking for
+             a copy constructor here, since that would cause a recursion
+             loop.  If this routine is selected, an error will be issued
+             on the attempt to instantiate the function. */
+          arg_match->match_level = aml_exact;
+          arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
+        } else {
+          determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+                                    param->type,
+                                    /*try_user_conversions=*/
                                                   !effects_copy_initialization,
-                                  arg_match);
+                                    arg_match);
+        }  /* if */
         /* If no match is possible, go on to the next function. */
         if (arg_match->match_level == aml_none) goto reject_function;
       }  /* if */
@@ -2336,7 +2350,8 @@ that are marked "explicit" are ignored.
                type. */
             selector_match_with_this_param(bound_function_selector,
                                            selector_is_object_pointer,
-                                           rout, this_param_type, this_match);
+                                           routine,
+                                           this_param_type, this_match);
             /* Set the "next" pointer again, because it is cleared by
                selector_match_with_this_param. */
             this_match->next = this_match_next;
@@ -2373,19 +2388,21 @@ that are marked "explicit" are ignored.
       /* If we are analyzing a constructor to resolve an implicit or
          explicit conversion, set "conversion" appropriately.
          Note that this can happen for the template case also, with a
-         member template, but "rout" in that case is still the
+         member template, but "routine" in that case is still the
          prototype instantiation version of the routine.  The true
          routine is not know until later, when the template is chosen
          and instantiated. */
       a_candidate_function_ptr candidate = *candidate_functions;
       candidate->is_user_conversion = TRUE;
-      if (!function_template_case) candidate->conversion.routine = rout;
+      if (!function_template_case) candidate->conversion.routine = routine;
     }  /* if */
     goto next_function;
 reject_function:
     /* The function is not suitable. */
     /* Free any argument match summary entries built for it. */
     free_arg_match_summary_list(arg_match_list);
+    /* Free any template argument list built for it. */
+    free_template_arg_list(local_template_arg_list);
 next_function:;
     /* Keep looping to try all the functions in the overload set. */
   }  /* for */
@@ -4230,6 +4247,7 @@ This routine is only used in C++ mode.
   a_routine_ptr             conversion_routine;
   a_symbol_list_entry_ptr   slep;
   a_type_ptr                source_type, conv_routine_type, return_type;
+  a_type_ptr                eff_this_param_type;
   an_arg_match_summary      this_match;
   an_arg_match_summary_ptr  this_match_ptr;
   a_std_conv_descr          std_conversion;
@@ -4276,6 +4294,9 @@ This routine is only used in C++ mode.
                 "try_conversion_function_match: considering ", 2); 
     }  /* if */
 #endif /* DEBUG */
+    /* Set template_arg_list early so that, on goto to reject_function, we
+       know what has to be freed. */
+    template_arg_list = NULL;
     base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
     function_template_case = (base_conversion_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
@@ -4290,7 +4311,6 @@ This routine is only used in C++ mode.
       conversion_routine = tssp->variant.function.routine;
       conv_routine_type = conversion_routine->type;
       return_type = return_type_of(conv_routine_type);
-      template_arg_list = NULL;
       if (!matches_template_type(rvalue_type(dest_type),
                                  return_type,
                                  &template_arg_list,
@@ -4299,7 +4319,7 @@ This routine is only used in C++ mode.
                                  MTT_NO_FLAGS,
                                  (a_base_class_ptr *)NULL)) {
         /* Type deduction failed, so the conversion function is not viable. */
-        goto next_function;
+        goto reject_function;
       }  /* if */
       /* Make a version of the routine type with the proper types/values
          substituted for the template parameters. */
@@ -4307,7 +4327,7 @@ This routine is only used in C++ mode.
                                                    template_arg_list, 
                                                    base_conversion_symbol,
                                                    (a_template_param_ptr)NULL);
-      if (conv_routine_type == NULL) goto next_function;
+      if (conv_routine_type == NULL) goto reject_function;
     }  /* if */
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;
@@ -4467,57 +4487,58 @@ This routine is only used in C++ mode.
         /* The result does not have to be forced to an rvalue. */
       }  /* if */
     }  /* if */
+    /* Give up on this function if it does not return a type we can use. */
+    if (!compatible) goto reject_function;
     if (need_lvalue_result && !result_is_an_lvalue) {
       /* We need an lvalue result but the conversion function does
          not return one.  This was tested previously, but since then
          result_is_an_lvalue may have been changed to FALSE. */
-      compatible = FALSE;
+      goto reject_function;
     }  /* if */
-    if (compatible) {
-      /* This conversion function meets the requirements for result type.
-          However, we must also see whether or not it can be called for this
-          argument (i.e., are the type qualifiers okay), and how good the
-          match is. */
-      a_type_ptr eff_this_param_type =
-                           this_param_type_for_overload_res(conv_routine_type,
-                                                            conversion_symbol);
-      selector_match_with_this_param(source_operand,
-                                     /*selector_is_object_pointer=*/FALSE,
-                                     conversion_routine,
-                                     eff_this_param_type,
-                                     &this_match);
-      /* Ignore this function if it cannot be called for this argument. */
-      if (this_match.match_level != aml_none) {
-        /* The routine is viable. */
-        /* Add the conversion function to the candidate functions list. */
-        this_match_ptr = alloc_arg_match_summary();
-        *this_match_ptr = this_match;
-        if (function_template_case) {
-          add_function_template_to_candidate_functions_list(
-                                                   conversion_symbol,
-                                                   template_arg_list,
-                                                   this_match_ptr,
-                                                   candidate_functions);
-          /* candidate->conversion.routine and
-             candidate->conversion.routine_symbol are not set now.
-             They are set later if the function is instantiated. */
-        } else {
-          /* The routine is not a template. */
-          add_function_to_candidate_functions_list(conversion_symbol,
-                                                   this_match_ptr,
-                                                   candidate_functions);
-          candidate = *candidate_functions;
-          candidate->conversion.routine = conversion_routine;
-          candidate->conversion.routine_symbol = conversion_symbol;
-        }  /* if */
-        candidate = *candidate_functions;
-        candidate->is_user_conversion = TRUE;
-        candidate->conversion.class_object_adjustment_required =
+    /* This conversion function meets the requirements for result type.
+        However, we must also see whether or not it can be called for this
+        argument (i.e., are the type qualifiers okay), and how good the
+        match is. */
+    eff_this_param_type = this_param_type_for_overload_res(conv_routine_type,
+                                                           conversion_symbol);
+    selector_match_with_this_param(source_operand,
+                                   /*selector_is_object_pointer=*/FALSE,
+                                   conversion_routine,
+                                   eff_this_param_type,
+                                   &this_match);
+    /* Ignore this function if it cannot be called for this argument. */
+    if (this_match.match_level == aml_none) goto reject_function;
+    /* The routine is viable. */
+    /* Add the conversion function to the candidate functions list. */
+    this_match_ptr = alloc_arg_match_summary();
+    *this_match_ptr = this_match;
+    if (function_template_case) {
+      add_function_template_to_candidate_functions_list(conversion_symbol,
+                                                        template_arg_list,
+                                                        this_match_ptr,
+                                                        candidate_functions);
+      /* candidate->conversion.routine and
+         candidate->conversion.routine_symbol are not set now.
+         They are set later if the function is instantiated. */
+    } else {
+      /* The routine is not a template. */
+      add_function_to_candidate_functions_list(conversion_symbol,
+                                               this_match_ptr,
+                                               candidate_functions);
+      candidate = *candidate_functions;
+      candidate->conversion.routine = conversion_routine;
+      candidate->conversion.routine_symbol = conversion_symbol;
+    }  /* if */
+    candidate = *candidate_functions;
+    candidate->is_user_conversion = TRUE;
+    candidate->conversion.class_object_adjustment_required =
                                               class_object_adjustment_required;
-        candidate->conversion.std = std_conversion;
-        candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
-      }  /* if */
-    }  /* if */
+    candidate->conversion.std = std_conversion;
+    candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
+    goto next_function;
+reject_function:
+    /* Function was rejected.  Free anything allocated for it. */
+    free_template_arg_list(template_arg_list);
 next_function:;
   }  /* for */
   db_exit();
