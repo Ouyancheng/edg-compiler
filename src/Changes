@@ -1,5 +1,12 @@
 Version 2.32
 
+5/2/96  Macros output by C++-generating back end
+
+The C++-generating back end has been changed so that it will output macros.
+It outputs #defines at the end of the generated code, however, so that
+they will not affect the already-macro-expanded code otherwise generated.
+This comes into play only when RECORD_MACROS_IN_IL is set to TRUE.
+
 5/2/96  Cfront-compatible handling of copy assignment operators
 
 Global variable allow_copy_assignment_op_with_base_class_param has been
