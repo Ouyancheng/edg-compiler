@@ -7936,7 +7936,8 @@ the operator.
                                          /*ctor_conversion_case=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*from_arg_dep_lookup=*/
-                                                 (nonmember_functions_symbol !=
+                                                 (slep != symbol_list ||
+                                                  nonmember_functions_symbol !=
                                                   normal_sym),
                                          dependent_call,
                                          &candidate_functions,
