@@ -9181,6 +9181,19 @@ Set the specific symbol to the associated nonfundamental symbol.
       normal_sym = NULL;
     }  /* if */
   }  /* if */
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    if (normal_sym != NULL && class_sym != NULL) {
+      /* In a prototype instantiation, if the name found is a template
+         parameter and we also found a normal symbol, disregard the
+         class symbol because there may not actually be one in a real
+         instantiation. */
+      if (class_sym->kind == (a_symbol_kind)sk_type &&
+          class_sym->variant.type.ptr->kind ==
+                                              (a_type_kind)tk_template_param) {
+        class_sym = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (normal_sym != NULL && class_sym != NULL) {
     /* There are two symbols -- see if they are equivalent.  If the
        normal symbol refers to a class and the class symbol refers to the
