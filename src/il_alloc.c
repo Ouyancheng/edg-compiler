@@ -3310,31 +3310,33 @@ you will need to modify or remove these tests.
 {
   int	expected;
   struct pointer_alignment_test {
-    char	dummy;
+    char	dummy;  /*lint -esym(754, pointer_alignment_test::dummy)*/
     void	*ptr;
   };
   struct il_entry_prefix_alignment_test {
     char	dummy;
+		/*lint -esym(754, il_entry_prefix_alignment_test::dummy)*/
     an_il_entry_prefix
 		prefix;
   };
   struct host_alignment_test {
-    char	dummy;
+    char	dummy;  /*lint -esym(754, host_alignment_test::dummy)*/
     a_constant	constant;
   };
-  expected = offsetof(struct host_alignment_test, constant);
+  expected = offsetof(struct host_alignment_test, constant);  /*lint !e413*/
   if (expected != HOST_ALIGNMENT_REQUIRED) {
     fprintf(stderr, "Expected HOST_ALIGNMENT_REQUIRED is %d\n", expected);
     internal_error(
     "check_host_alignment...: HOST_ALIGNMENT_ALIGNMENT set incorrectly");
   }  /* if */
-  expected = offsetof(struct pointer_alignment_test, ptr);
+  expected = offsetof(struct pointer_alignment_test, ptr);  /*lint !e413*/
   if (expected != HOST_POINTER_ALIGNMENT) {
     fprintf(stderr, "Expected HOST_POINTER_ALIGNMENT is %d\n", expected);
     internal_error(
     "check_host_alignment...: HOST_POINTER_ALIGNMENT set incorrectly");
   }  /* if */
-  expected = offsetof(struct il_entry_prefix_alignment_test, prefix);
+  expected = offsetof(struct il_entry_prefix_alignment_test,
+                      prefix);  /*lint !e413*/
   if (expected != HOST_IL_ENTRY_PREFIX_ALIGNMENT) {
     fprintf(stderr, "Expected HOST_IL_ENTRY_PREFIX_ALIGNMENT is %d\n",
             (int)HOST_IL_ENTRY_PREFIX_ALIGNMENT);
