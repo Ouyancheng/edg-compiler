@@ -3412,12 +3412,35 @@ scope depth.
   ssep = &scope_stack[scope_depth];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
-  if (sp->variables == NULL) {
-    sp->variables = var_ptr;
+  /* Variables requiring static allocation go on one list, those for stack
+     and register allocation on another. */
+  if (var_ptr->storage_class == (a_storage_class)sc_static ||
+      var_ptr->storage_class == (a_storage_class)sc_extern ||
+      var_ptr->storage_class == (a_storage_class)sc_unspecified) {
+#if CHECKING
+    if (!in_file_scope(var_ptr)) {
+      internal_error("add_to_variables_list: var not in file scope region");
+    }  /* if */
+#endif /* CHECKING */
+    if (sp->variables == NULL) {
+      sp->variables = var_ptr;
+    } else {
+      ssep->last_variable->next = var_ptr;
+    }  /* if */
+    ssep->last_variable = var_ptr;
   } else {
-    ssep->last_variable->next = var_ptr;
+#if CHECKING
+    if (in_file_scope(var_ptr)) {
+      internal_error("add_to_variables_list: var in file scope region");
+    }  /* if */
+#endif /* CHECKING */
+    if (sp->nonstatic_variables == NULL) {
+      sp->variables = var_ptr;
+    } else {
+      ssep->last_nonstatic_variable->next = var_ptr;
+    }  /* if */
+    ssep->last_nonstatic_variable = var_ptr;
   }  /* if */
-  ssep->last_variable = var_ptr;
   var_ptr->next = NULL;
 }  /* add_to_variables_list */
 
