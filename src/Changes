@@ -1,5 +1,24 @@
 Version 2.45
 
+8/21/00  C++ generating back end: invalid redeclaration of typedef class name
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE, the
+front end would occasionally attempt to forward declare a class whose name
+was set by a typedef declaration only.  This would result in invalid
+generated code.  For example:
+
+  template<class T> C {};
+  typedef struct { C<int> c; } S;
+
+would result in (excluding #line directives):
+
+  template < class T > class C { };
+  struct S;                      // <-- Invalid forward declaration
+  template<> class C< int>  { }; 
+  typedef struct { C< int>  c; } S; 
+
+This is now fixed.
+
 8/21/00  Exceptions on by default in strict C++ mode
 
 Exceptions are now enabled by default when strict C++ mode is enabled.
