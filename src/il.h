@@ -251,9 +251,6 @@ extern void switch_il_region(a_memory_region_number region_number);
 extern void switch_to_file_scope_region(
                              a_memory_region_number *region_to_switch_back_to);
 
-extern void switch_to_function_scope_region(
-                             a_memory_region_number *region_to_switch_back_to);
-
 extern void switch_back_to_original_region(
                               a_memory_region_number region_to_switch_back_to);
 

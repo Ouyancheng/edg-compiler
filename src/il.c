@@ -1388,30 +1388,6 @@ region_to_switch_back_to for use later by switch_back_to_original_region.
 }  /* switch_to_file_scope_region */
 
 
-void switch_to_function_scope_region(
-                              a_memory_region_number *region_to_switch_back_to)
-/*
-Switch to the function-scope memory region if not already there.  Set
-region_to_switch_back_to for use later by switch_back_to_original_region.
-*/
-{
-  a_memory_region_number  region;
-
-  region = scope_stack[depth_scope_stack].il_memory_region;
-#if CHECKING
-  if (region == FILE_SCOPE_REGION_NUMBER) {
-    internal_error("switch_to_function_scope_region: no func scope region");
-  }  /* if */
-#endif /* CHECKING */
-  if (curr_il_region_number != region) {
-    *region_to_switch_back_to = curr_il_region_number;
-    switch_il_region(region);
-  } else {
-    *region_to_switch_back_to = NULL_region_number;
-  }  /* if */
-}  /* switch_to_function_scope_region */
-
-
 void switch_back_to_original_region(
                                a_memory_region_number region_to_switch_back_to)
 /*
