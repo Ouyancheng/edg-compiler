@@ -24,91 +24,73 @@ templates.c -- Support for C++ templates.
 #include "types.h"
 
 
-static a_boolean instantiate_template_class(a_type_ptr  type)
+a_boolean instantiate_template_class(a_type_ptr  type)
 /*
+This routine should be called from check_for_uninstantiated_template_class,
+which determines that type is incomplete type.  If
+it also turns out to be a template type, this routine attempts to
+instantiate it; it might not be able to if the template itself has not
+yet been defined.
 */
 {
   a_symbol_ptr                      template_sym;
   a_template_symbol_supplement_ptr  tssp;
-  a_boolean                         success = FALSE;
   a_token_cache                     *p_token_cache;
 
   db_enter(3, "instantiate_template_class");
-  type = skip_typerefs(type);
-  template_sym = (symbol_supplement_for_class(type))->class_template;
-  if (template_sym == NULL) {
-    /* Not a class based on a class template.  Return FALSE. */
-  } else {
-    /* There is a class template from which to generate this class. */
-    tssp = template_sym->variant.template.extra_info;
-    p_token_cache = &tssp->template_body;
-    if (p_token_cache->first_token == NULL) {
-      /* The template itself has not yet been instantiated.  The caller will
-         issue an incomplete-type error.  Return FALSE. */
+  if (is_array_type(type)) type = underlying_array_element_type(type);
+  if (type != NULL && is_class_struct_union_type(type)) {
+    type = skip_typerefs(type);
+    template_sym = (symbol_supplement_for_class(type))->class_template;
+    if (template_sym == NULL) {
+      /* Not a class based on a class template. */
     } else {
-      /* We proceed with the instantiation. */
+      /* There is a class template from which to generate this class. */
+      tssp = template_sym->variant.template.extra_info;
+      p_token_cache = &tssp->template_body;
+      if (p_token_cache->first_token == NULL) {
+        /* The template itself has not yet been defined.  The caller will
+           issue an incomplete-type error. */
+      } else {
+        /* We proceed with the instantiation. */
 #if DEBUG
-      if (debug_level >= 3) {
-        fprintf(f_debug, "instantiating: ");
-        db_type(skip_typerefs(type));
-        db_symbol(template_sym, "\nbased on: ", 2);
-      }  /* if */
+        if (debug_level >= 3) {
+          fprintf(f_debug, "instantiating: ");
+          db_type(skip_typerefs(type));
+          db_symbol(template_sym, "\nbased on: ", 2);
+        }  /* if */
 #endif /* DEBUG */
-      rescan_cached_tokens(p_token_cache);
-      (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
-                       type, (a_routine_ptr)NULL);
-      if (curr_token == tok_struct) {
-        type->kind = (a_type_kind)tk_struct;
-      }  /* if */
-      /* Bypass "class", "struct" or "union". */
-      (void)get_token();
-      /* Bypass the identifier that follows it. */
+        rescan_cached_tokens(p_token_cache);
+        (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
+                         type, (a_routine_ptr)NULL);
+        if (curr_token == tok_struct) {
+          type->kind = (a_type_kind)tk_struct;
+        }  /* if */
+        /* Bypass "class", "struct" or "union". */
+        (void)get_token();
+        /* Bypass the identifier that follows it. */
 #if CHECKING
-      if (curr_token != tok_identifier) {
-        internal_error("instantiate_template_class: missing identifier");
-      }  /* if */
+        if (curr_token != tok_identifier) {
+          internal_error("instantiate_template_class: missing identifier");
+        }  /* if */
 #endif /* if CHECKING */
-      (void)get_token();
-      /* Scan the base specifiers list, if any, and the body of the the
-         class. */
-      (void)scan_class_definition(type, DEPTH_OF_FILE_SCOPE,
-                                  /*is_local_class=*/FALSE);
-      pop_scope();
-      /* In the normal case the current token should be end_of_source, which
-         was inserted to mark the end of the cached token stream. If necessary,
-         keep flushing until end-of-source is found. */
-      while (curr_token != tok_end_of_source) (void)get_token();
-      /* Advance past the end-of-source token. */
-      (void)get_token();
-      /* Return TRUE. */
-      success = TRUE;
+        (void)get_token();
+        /* Scan the base specifiers list, if any, and the body of the the
+           class. */
+        (void)scan_class_definition(type, DEPTH_OF_FILE_SCOPE,
+                                    /*is_local_class=*/FALSE);
+        pop_scope();
+        /* In the normal case the current token should be end_of_source,
+           which was inserted to mark the end of the cached token stream.
+           If necessary, keep flushing until end-of-source is found. */
+        while (curr_token != tok_end_of_source) (void)get_token();
+        /* Advance past the end-of-source token. */
+        (void)get_token();
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
-  return success;
 }  /* instantiate_template_class */
-
-
-a_boolean try_template_class_instantiation(a_type_ptr  type)
-/*
-*/
-{
-  a_boolean  success = FALSE;
-
-  if (C_dialect == C_dialect_cplusplus) {
-    if (is_class_struct_union_type(type)) {
-#if CHECKING
-      if (skip_typerefs(type)->size != 0) {
-        /* We assume the check for size (is_incomplete_type or is_object_type)
-           has already been done. */
-        internal_error("try_template_class_instantiation: nonzero size");
-      }  /* if */
-#endif /* CHECKING */
-      success = instantiate_template_class(type);
-    }  /* if */
-  }  /* if */
-  return success;
-}  /* try_template_class_instantiation */
 
 
 static a_boolean equiv_class_template_arg_lists(a_template_arg_ptr  list1,
