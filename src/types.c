@@ -863,6 +863,7 @@ step on the derivation list serves to confirm the match.
               goto done;
             }  /* if */
           }  /* if */
+#if 0
         } else if (equivalent_paths(bcp->derivation->path,
                    base_class->derivation->path)) {
           new_base_class = bcp;
@@ -876,6 +877,21 @@ step on the derivation list serves to confirm the match.
             if (step->base_class->type ==
                           base_class->derivation->path->base_class->type &&
                 congruent_paths(step, base_class->derivation->path)) {
+              new_base_class = bcp;
+              goto done;
+            }  /* if */
+          }  /* for */
+#endif /* if 0 */
+        } else {
+          /* Neither bcp nor base_class is virtual, one or both is ambiguous,
+             and there is no disambiguator.  The last avenue for confirming
+             a match is to check for path congruence, including cases where
+             the paths are congruent once we move far enough along bcp's
+             derivation -- for instance, if the derivation of bcp is A==>B==>C
+             and the derivation of base_class is B==>C. */
+          step = bcp->derivation->path;
+          for (; step != NULL; step = step->next) {
+            if (congruent_paths(step, base_class->derivation->path)) {
               new_base_class = bcp;
               goto done;
             }  /* if */
