@@ -2661,9 +2661,11 @@ user-defined conversions.
               an_error_severity  saved_error_threshold = error_threshold;
 
               error_threshold = es_catastrophe;
-              if (local_constant.expr == NULL) {
+              if (local_constant.expr == NULL ||
+                  /* Ignore the expression attached to an enum constant. */
+                  is_enum_constant(&operand->variant.constant)) {
                 /* The cast is applied to a simple constant that contains no
-                   operations.  Create an expression node to which the cast
+                   expression.  Create an expression node to which the cast
                    history can be attached. */
                 local_constant.expr = make_node_from_operand(operand);
               }  /* if */

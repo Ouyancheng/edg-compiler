@@ -1,5 +1,20 @@
 Version 2.46
 
+2/12/01  RECORD_CONSTANT_EXPRESSIONS_IN_IL, enums with typedef type
+
+In some cases involving enum constants whose values are given by
+expressions, and whose type is attached to a typedef, the expression
+recorded for the implicit cast to the typedef type when
+RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE retained the expression
+associated with the constant definition, when that should have been
+cleared.  This caused incorrect output from the C++-generating back
+end on such cases.  Now fixed.
+
+  typedef enum {a, b=a+1} eType;
+  void f() {
+    eType v=b;  // C++-generating back end output had "a+1" instead of "b"
+  }
+
 2/12/01  Spurious error on partial specialization within class template
 
 Spurious errors could be issued on certain partial specialization
