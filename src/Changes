@@ -1,5 +1,10 @@
 Version 2.33
 
+8/9/96  Microsoft compatibility: __declspec on constructor declarations
+
+In Microsoft compatibility mode __declspec(...) and __inline are now
+accepted on constructor declarations.
+
 8/7/96  Configuration flags for building DOS and Windows versions
 
 Previously, the __MSDOS__ configuration flag was required to be set
