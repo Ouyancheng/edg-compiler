@@ -76,6 +76,8 @@ is at least size_needed.  Called by ensure_asm_func_body_buffer_space.
 static void add_to_asm_func_buffer(char      *start_char,
                                    sizeof_t  len)
 /*
+Add len characters to the asm function body buffer, beginning at start_char
+(a pointer to a piece of text in the source program).
 */
 {
   /* Ensure that asm_func_body_buffer has enough space left to accommodate
@@ -196,6 +198,13 @@ non-NULL, also append the characters in the comment, through but not including
 
 a_statement_ptr scan_asm_function_body(void)
 /*
+Scan the body of an asm function.  This means proceeding token by token until
+the matching right brace is found (the current token is the first token
+immediately following the left brace).  For each token, copy the source text
+directly into the asm function body buffer; when the entire text of the asm
+function body has been copied, a string of appropriate size is allocated in
+the memory region of the asm function and the buffer is copied to it.  An
+stmk_asm statement is returned to the caller.
 */
 {
   a_statement_ptr  stmt;
