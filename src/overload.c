@@ -639,12 +639,18 @@ a related class, fill in downward_cast_derivation in *arg_summary.
   if (related_class_pointers(source_type, dest_type, &downward_cast, &bcp)) {
     /* Cast to base class (no need to check downward_cast; downward
        is the only direction allowed as an implicit conversion). */
-    arg_summary->downward_cast_derivation = bcp->derivation;
+#if 0
+    /* Should consider all derivations. */
+#endif /* 0 */
+    arg_summary->downward_cast_derivation = preferred_derivation_of(bcp)->path;
   } else if (related_member_pointers(source_type, dest_type, &downward_cast,
                                      &bcp)) {
     /* Likewise for casts of pointers-to-members; note, however, that
        implicit casts there are from base to derived. */
-    arg_summary->downward_cast_derivation = bcp->derivation;
+#if 0
+    /* Should consider all derivations. */
+#endif /* 0 */
+    arg_summary->downward_cast_derivation = preferred_derivation_of(bcp)->path;
     arg_summary->reversed_derivation = TRUE;
   }  /* if */
 }  /* determine_downward_cast_derivation */
@@ -1087,7 +1093,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* The argument is a derived class and the parameter is a base class,
        so the conversion can be done. */
     arg_summary->match_level = aml_std_conversion;
-    arg_summary->downward_cast_derivation = bcp->derivation;
+#if 0
+    /* Should consider all derivations. */
+#endif /* 0 */
+    arg_summary->downward_cast_derivation = preferred_derivation_of(bcp)->path;
     if (param_is_reference) {
       /* This case falls under the reference standard conversions (ARM 4.7). */
       /* The operand need not be forced to an rvalue. */
@@ -1992,8 +2001,11 @@ evaluated (but not checked to see if the match is good enough).
         /* The extension allowing a standard conversion of a derived class to
            a base class was used. */
         arg_match->match_level = aml_std_conversion;
+#if 0
+        /* Should consider all derivations. */
+#endif /* 0 */
         arg_match->downward_cast_derivation =
-                                            base_class_conv_needed->derivation;
+                         preferred_derivation_of(base_class_conv_needed)->path;
         /* Save information needed to check whether or not a copy
            constructor is needed. */
         class_copy_case = TRUE;
