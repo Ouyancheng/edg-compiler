@@ -1,5 +1,12 @@
 Version 2.41
 
+12/14/98  Template information files and automatic instantiation mode
+
+A bug was introduced in version 2.37 that caused template information
+files (either .ti or .ii, depending on configuration) to be created
+even when automatic instantiation is not enabled.  This has been
+fixed.
+
 12/14/98  Microsoft compatibility: constructor declaration using typedef
 
 In Microsoft compatibility mode a constructor may now be declared (within
