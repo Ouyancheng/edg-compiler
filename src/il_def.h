@@ -987,43 +987,6 @@ typedef struct a_trans_unit_corresp {
 } a_trans_unit_corresp;
 
 
-/*
-Macro that returns the trans_unit_corresp for an IL entry that has a source
-correspondence.
-*/
-#define trans_unit_corresp_of(ptr)					\
-  (((a_source_correspondence*)(ptr))->trans_unit_corresp)
-
-/*
-Macro that returns the canonical IL entry pointer for an IL entry that
-has a source correspondence.  If the entry has no correspondence pointer,
-a NULL pointer is returned.
-*/
-#define canonical_il_entry_of(ptr)					\
-  (char*)(trans_unit_corresp_of(ptr) != NULL ? trans_unit_corresp_of(ptr) \
-                                             : NULL)
-
-/*
-Return TRUE if two IL entries (that have source correspondence entries)
-refer to the same IL entity.  If the pointers differ, check the
-translation unit correspondence pointers.
-*/
-#define same_entities(ptr1, ptr2)					\
-  ((ptr1) == (ptr2) ||							\
-   (trans_unit_corresp_of(ptr1) == trans_unit_corresp_of(ptr2) &&	\
-    trans_unit_corresp_of(ptr1) != NULL))
-
-
-/*
-Return TRUE if two base classes refer to the same IL entry.  If the
-pointers differ, check the translation unit correspondence pointers.
-*/
-#define same_base_classes(ptr1, ptr2)					\
-  ((ptr1) == (ptr2) ||							\
-   ((ptr1)->trans_unit_corresp == (ptr2)->trans_unit_corresp &&		\
-    (ptr1)->trans_unit_corresp != NULL))
-
-
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
