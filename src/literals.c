@@ -443,7 +443,7 @@ processing).
   if (is_wide) {
     int_kind = (an_integer_kind)TARG_WCHAR_T_INT_KIND;
   } else if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
-    int_kind == (an_integer_kind)ik_char;
+    int_kind = (an_integer_kind)ik_char;
   } else {
     int_kind = (an_integer_kind)ik_int;
   }  /* if */
