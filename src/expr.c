@@ -10718,7 +10718,9 @@ variable:
           break;
         case sk_routine:
 normal_function:
-          if (arg_dependent_lookup_enabled && next_token() == tok_lparen) {
+          if (!C_mode() &&
+              arg_dependent_lookup_enabled &&
+              next_token() == tok_lparen) {
             /* In C++, the name in a function call is subject to
                argument-dependent lookup, so treat this function as
                if it is an overloaded function. */

@@ -2153,6 +2153,7 @@ enable_microsoft_mode:
     extern_inline_allowed = FALSE;
     operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
     string_literals_are_const = FALSE;
+    arg_dependent_lookup_enabled = FALSE;
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
