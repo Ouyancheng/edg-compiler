@@ -294,7 +294,7 @@ fixed.
 
 11/29/99 Template template parameters
 
-Template template parameters are now implemented, for example:
+Template template parameters are now implemented.  For example:
 
   template <template <class X> class T> struct A {
     T<int>	ti;
@@ -311,7 +311,7 @@ Template template parameters are now implemented, for example:
  }
 
 One aspect of template template parameters, the specification of which
-is unclear in the standard, remains unimplemented.  We currently to
+is unclear in the standard, remains unimplemented.  We currently
 do not allow the declaration of a template template parameter to depend
 on another template parameter.  Other compilers that we tried also failed
 to compile cases such as this:
@@ -322,7 +322,7 @@ to compile cases such as this:
   template <int N> struct B {};
   A<int, B> ab;
 
-We will revisit this aspect of the feature pending clarification by
+We will revisit this aspect of the feature after clarification by
 the standard committee.
 
 11/29/99 RECORD_TEMPLATES_IN_IL renamed to RECORD_TEMPLATE_STRINGS
