@@ -6628,6 +6628,10 @@ Generate C from the intermediate language.
     /* Generating one C file per instantiation.  For the primary file, use
        bit number 1 in the per-instantiation "needed" bit vector. */
     needed_flag_bit_number = 1;
+    /* Delete any old version of the list file. */
+    if (is_regular_file(il_header.instantiation_file_list_name)) {
+      delete_file(il_header.instantiation_file_list_name);
+    }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Do initialization. */
