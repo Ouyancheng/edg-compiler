@@ -1655,7 +1655,11 @@ Output the definition of the indicated enum type.
     /* Output the value if it's not the next value in sequence. */
     if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
       write_tok_str(" = ");
-      dump_constant(enum_con);
+      /* We use form_integer_constant because we want to handle the
+         -INT_MAX-1 case, and we don't use gen_constant/form_constant
+         because we want to suppress the cast to the enum type. */
+      form_integer_constant(enum_con, /*suppress_cast=*/TRUE,
+                            /*need_parens=*/TRUE, &octl);
       next_enum_value = *enum_con;
     }  /* if */
     enum_con = enum_con->next;
