@@ -46,6 +46,14 @@ extern a_boolean proc_debug_option(char *debug_option);
 }  /* db_space_used */
 
 
+#define db_space_used_general(name, counter, type)                            \
+{ num = counter; size = sizeof(type); total = num*size;               \
+  fprintf(f_debug, "%25s %8lu %8lu %8lu (gen. storage)\n", name, num, \
+          size, total); 					      \
+  grand_total += total;                                               \
+}  /* db_space_used_general */
+
+
 #define db_space_lost(avail_list, counter, type)                \
 { type          *ptr;                                                 \
   unsigned long count = 0;                                            \
@@ -62,10 +70,21 @@ extern a_boolean proc_debug_option(char *debug_option);
 }  /* db_space_used_lost */
 
 
+#define db_space_used_lost_general(name, avail_list, counter, type)      \
+{ db_space_used_general(name, counter, type);                            \
+  db_space_lost(avail_list, counter, type);                        	 \
+}  /* db_space_used_lost_general */
+
+
 /* Prints a "miscellaneous" line including a name, a number (printed under
    the "total" column, and a remark. */
 #define db_space_used_other(name, number, remarks)			\
   fprintf(f_debug, "%25s %8s %8s %8lu %s\n", name,  "", "", number, remarks);
+
+/* Prints a "miscellaneous" line including a name, a floating point number
+   (printed under the "total" column, and a remark. */
+#define db_space_used_float_other(name, number, remarks)		\
+  fprintf(f_debug, "%25s %8s %8s %8.2f %s\n", name,  "", "", number, remarks);
 
 
 /* Prints the grand total. */

@@ -7250,64 +7250,58 @@ for space tracking purposes.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  fprintf(f_debug, "\nSymbol table use:\n");
-  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+  db_space_used_header("Symbol table use:");
 
-#define write_one(name, counter, type)                                \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
-  grand_total += total;                                               \
-}  /* write_one */
+  db_space_used("symbol", num_symbols_allocated, a_symbol);
+  db_space_used("symbol header", num_symbol_headers_allocated,
+                a_symbol_header);
+  db_space_used("conversion header", num_conversion_headers_allocated,
+                a_conversion_header);
+  db_space_used("Name strings", symbol_name_string_space, char);
+  db_space_used("extern symbol descr", num_extern_symbol_descrs_allocated,
+                an_extern_symbol_descr);
+  db_space_used("extern type fixup", num_extern_type_fixups_allocated,
+                an_extern_type_fixup);
+  db_space_used("class symbol supplement",
+                num_class_symbol_supplements_allocated,
+                a_class_symbol_supplement);
+  db_space_used("template symbol suppl.",
+                num_template_symbol_supplements_allocated,
+                a_template_symbol_supplement);
+  db_space_used("template param", num_template_params_allocated,
+                a_template_param);
+  db_space_used_lost("param ids", avail_param_ids, num_param_ids_allocated,
+                     a_param_id);
+  db_space_used("template instance", num_template_instances_allocated,
+                a_template_instance);
+  db_space_used("conversion list entry", num_conversion_list_entries_allocated,
+                a_conversion_list_entry);
+  db_space_used("projection symbol descr", num_projection_descrs_allocated,
+                a_projection_descr);
 
-  write_one("symbol", num_symbols_allocated, a_symbol);
-  write_one("symbol header", num_symbol_headers_allocated, a_symbol_header);
-  write_one("conversion header", num_conversion_headers_allocated,
-            a_conversion_header);
-  write_one("Name strings", symbol_name_string_space, char);
-  write_one("extern symbol descr", num_extern_symbol_descrs_allocated,
-            an_extern_symbol_descr);
-  write_one("extern type fixup", num_extern_type_fixups_allocated,
-            an_extern_type_fixup);
-  write_one("class symbol supplement", num_class_symbol_supplements_allocated,
-            a_class_symbol_supplement);
-  write_one("template symbol suppl.",
-            num_template_symbol_supplements_allocated,
-            a_template_symbol_supplement);
-  write_one("template param", num_template_params_allocated,
-            a_template_param);
-  write_one("param ids", num_param_ids_allocated, a_param_id);
-  write_one("template instance", num_template_instances_allocated,
-            a_template_instance);
-  write_one("conversion list entry", num_conversion_list_entries_allocated,
-            a_conversion_list_entry);
-  write_one("projection symbol descr", num_projection_descrs_allocated,
-            a_projection_descr);
-
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
+  db_space_used_total();
 
   /* Print some symbol table performance statistics. */
   (void)fputc('\n', f_debug);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Percent of buckets used", "", "",
-                   (100 * num_used_symbol_buckets) / SYMBOL_TABLE_SIZE);
+  db_space_used_other
+                   ("Percent of buckets used",
+                    (100 * num_used_symbol_buckets) / SYMBOL_TABLE_SIZE, "");
+
   if (num_used_symbol_buckets != 0) {
-    fprintf(f_debug, "%25s %8s %8s %8.2f\n", "Avg non-empty bucket len","", "",
-                     (double)num_symbol_headers_in_hash_table /
-                     (double)num_used_symbol_buckets);
+    db_space_used_float_other("Avg non-empty bucket len",
+                             (double)num_symbol_headers_in_hash_table /
+                             (double)num_used_symbol_buckets, "");
   }  /* if */
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Number of searches", "", "",
-                                         num_searches_for_symbols);
+  db_space_used_other("Number of searches", num_searches_for_symbols, "");
   if (num_searches_for_symbols != 0) {
-    fprintf(f_debug, "%25s %8s %8s %8.2f\n", "Avg compares/search", "", "",
-                     (double)num_compares_for_symbols /
-                     (double)num_searches_for_symbols);
+    db_space_used_float_other("Avg compares/search",
+                             (double)num_compares_for_symbols /
+                             (double)num_searches_for_symbols, "");
   }  /* if */
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Number of fast id lookups", "", "",
-                                         num_fast_id_lookups);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Number of slow id lookups", "", "",
-                                         num_slow_id_lookups);
+  db_space_used_other("Number of fast id lookups", num_fast_id_lookups, "");
+  db_space_used_other("Number of slow id lookups", num_slow_id_lookups, "");
 
   return grand_total;
-#undef write_one
 }  /* show_symbol_space_used */
 #endif /* DEBUG */
 

@@ -17,6 +17,7 @@ macro.c -- Macro definition and expansion routines.
 #include "basics.h"
 #include "lexical.h"
 #include "preproc.h"
+#include "debug.h"
 #include "error.h"
 #include "il.h"
 #include "symbol_tbl.h"
@@ -3243,42 +3244,25 @@ Display and return the amount of space used for various macro tables.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  fprintf(f_debug, "\nMacro table use:\n");
-  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+  db_space_used_header("Macro table use:");
 
-#define write_one(name, counter, type)                                \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
-  grand_total += total;                                               \
-}  /* write_one */
-
-/* Write one line for an item allocated in general storage. */
-#define write_one_general(name, counter, type)                        \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu (gen. storage)\n", name, num, \
-                   size, total);                                      \
-  grand_total += total;                                               \
-}  /* write_one_general */
-
-  write_one("macro param", num_macro_params_allocated, a_macro_param);
-  write_one("macro def", num_macro_defs_allocated, a_macro_def);
-  write_one_general("macro arg", num_macro_args_allocated, a_macro_arg);
-  write_one_general("Macro arg text", macro_arg_raw_text_space, char);
-  write_one("Param name strings", param_name_string_space, char);
-  write_one("Macro definition text", macro_definition_space, char);
+  db_space_used("macro param", num_macro_params_allocated, a_macro_param);
+  db_space_used("macro def", num_macro_defs_allocated, a_macro_def);
+  db_space_used_general("macro arg", num_macro_args_allocated, a_macro_arg);
+  db_space_used_general("Macro arg text", macro_arg_raw_text_space, char);
+  db_space_used("Param name strings", param_name_string_space, char);
+  db_space_used("Macro definition text", macro_definition_space, char);
 
   total = after_end_of_macro_buffer - macro_buffer;
-  fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "macro_buffer",
-                   "", "", total);
+  db_space_used_other("macro_buffer", total, "(gen. storage)");
   grand_total += total;
   if (C_dialect == C_dialect_pcc) {
     total = after_end_of_aux_buffer_for_pcc_macros - aux_buffer_for_pcc_macros;
-    fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "Aux pcc buffer",
-                     "", "", total);
+    db_space_used_other("Aux pcc buffer", total, "(gen. storage)");
     grand_total += total;
   }  /* if */
 
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
+  db_space_used_total();
 
   return (grand_total);
 }  /* show_macro_space_used */
