@@ -5103,6 +5103,9 @@ instantiations are recorded in the IL.
   rp = make_routine(function_type, (a_storage_class)sc_extern,
                     prototype_instantiations_in_il ?
                             depth_innermost_namespace_scope : NO_SCOPE_DEPTH);
+  /* Treat this as a prototype instantiation so that it doesn't end up in
+     the IL if prototype_instantiations_in_il is FALSE. */
+  rp->is_prototype_instantiation = TRUE;
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
   if (locator->is_class_member) {
