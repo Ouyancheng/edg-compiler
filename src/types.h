@@ -272,8 +272,13 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_IGNORE_TYPE_QUALIFIERS 0x2
 			/* Ignore type qualifiers at the first level.  In C++,
 			   this includes qualifiers on array element types. */
+#define TCF_REDECLARATION 0x4
+			/* This is a top-level compatibility check for a
+			   redeclaration.  It's important in C++ because it's
+			   the only context in which known- and unknown-bound
+			   array types are "compatible" (WP 3.5). */
 #if MICROSOFT_KEYWORDS_ALLOWED
-#define TCF_IGNORE_CALLING_CONVENTIONS 0x4
+#define TCF_IGNORE_CALLING_CONVENTIONS 0x8
 			/* Ignore the calling conventions on top-level
 			   function types. */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
@@ -290,26 +295,37 @@ extern a_boolean calling_conventions_are_compatible(a_type_ptr type1,
 extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                         a_type_ptr              type_2,
                                         a_type_compat_flags_set flags);
-/* Three macros to be used in calling f_types_are_compatible, since they short
-   circuit some of the processing in common cases.  Use types_are_compatible
-   when an error type should be treated as compatible with any type; use
-   types_are_strictly_compatible when an error type is incompatible with any
-   type, including an error type; use types_are_compatible_ignoring_qualifiers
-   to check compatibility while ignoring first-level qualifiers; use
-   routine_types_are_compatible to check types of routines, ignoring
-   calling convention modifiers. */
-#define types_are_compatible(t1, t2) \
-	 ((t1) == (t2) ||            \
+/*
+Several macros to be used in calling f_types_are_compatible, since they short
+circuit some of the processing in common cases.
+*/
+/* Use types_are_compatible when an error type should be treated as compatible
+   with any type. */
+#define types_are_compatible(t1, t2)                                  \
+	 ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING))
-#define types_are_strictly_compatible(t1, t2)                             \
-         ((t1) == (t2) ? !is_error_type(t1) :                             \
+/* Use types_are_redecl_compatible for special handling in C++ of known- and
+   unknown-bound arrays; othewise it's the same as types_are_compatible. */
+#define types_are_redecl_compatible(t1, t2)                           \
+	 ((t1) == (t2) ||                                             \
+          f_types_are_compatible((t1), (t2),                          \
+                                 TCF_REDECLARATION |                  \
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING))
+/* Use types_are_strictly_compatible when an error type is incompatible with
+   any type, including an error type. */
+#define types_are_strictly_compatible(t1, t2)                         \
+         ((t1) == (t2) ? !is_error_type(t1) :                         \
             f_types_are_compatible((t1), (t2), TCF_NO_FLAGS))
+/* Use types_are_compatible_ignoring_qualifiers to check compatibility while
+   ignoring first-level qualifiers. */
 #define types_are_compatible_ignoring_qualifiers(t1, t2)              \
   ((t1) == (t2) ||                                                    \
    f_types_are_compatible((t1), (t2),                                 \
                           TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
                           TCF_IGNORE_TYPE_QUALIFIERS))
+/* Use routine_types_are_compatible to check types of routines, ignoring
+   calling convention modifiers. */
 #if MICROSOFT_KEYWORDS_ALLOWED
 #define routine_types_are_compatible(t1, t2, extra_flags)             \
          ((t1) == (t2) ||                                             \
