@@ -3226,7 +3226,7 @@ put out for them).
 */
 {
   a_param_type_ptr              param;
-  a_boolean                     skipped_argument;
+  a_boolean                     first_argument = TRUE;
   a_routine_type_supplement_ptr rtsp;
 
   rout_type = skip_typerefs(rout_type);
@@ -3234,10 +3234,8 @@ put out for them).
   param = rtsp->param_type_list;
   write_tok_ch('(');
   for (; arg != NULL;) {
-    skipped_argument = FALSE;
     if (skip_num > 0) {
       /* Skip an argument. */
-      skipped_argument = TRUE;
       skip_num--;
     } else if (arg->generated_default_arg) {
       /* This expression came from a default argument, so don't put it out
@@ -3246,17 +3244,18 @@ put out for them).
          following expressions would also be default arguments, so
          exit the loop. */
       break;
-    } else if (param != NULL && param->passed_via_copy_constructor) {
-      /* For an argument passed using a copy constructor, optimize out
-         the copy constructor reference. */
-      check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
-                          "gen_argument_list: cctor arg not enk_temp_init");
-      gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
-                       /*parenthesized_init=*/FALSE,
-                       /*force_parens=*/FALSE);
     } else {
-      /* Normal case. */
-      if (param != NULL) {
+      /* The argument must be put out. */
+      if (!first_argument) write_tok_str(", ");
+      if (param != NULL && param->passed_via_copy_constructor) {
+        /* For an argument passed using a copy constructor, optimize out
+           the copy constructor reference. */
+        check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
+                            "gen_argument_list: cctor arg not enk_temp_init");
+        gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
+                         /*parenthesized_init=*/FALSE,
+                         /*force_parens=*/FALSE);
+      } else if (param != NULL) {
         /* Parameter type known. */
         gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
       } else {
@@ -3265,10 +3264,8 @@ put out for them).
       }  /* if */
     }  /* if */
     arg = arg->next;
-    if (arg != NULL) {
-      if (!skipped_argument) write_tok_str(", ");
-      if (param != NULL) param = param->next;
-    }  /* if */
+    if (param != NULL) param = param->next;
+    first_argument = FALSE;
   }  /* for */
   write_tok_ch(')');
 }  /* gen_argument_list */
