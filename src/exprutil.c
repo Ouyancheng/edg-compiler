@@ -2205,7 +2205,7 @@ static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
 /*
 Determine the type that would result from applying the integral promotions
 (3.2.1.1) to the type of node.  Return the promoted type, which may be
-the same as the original type.  Type qualifiers, if any, are dropped.
+the same as the original type.  The node is assumed to be an rvalue.
 The node is not actually promoted; it is up to the caller to do the cast
 if desired.  This routine handles a special case involving integral promotions
 of bit-fields, where the size in bits is needed in addition to the base type.
@@ -2337,7 +2337,10 @@ a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
 /*
 Determine the type that would result from applying the integral promotions
 (3.2.1.1) to *operand.  Return the promoted type, which may be
-the same as the original type.  Type qualifiers, if any, are dropped.
+the same as the original type.  The operand may be an rvalue or an lvalue;
+if it is an lvalue, the type returned is the promoted version of the
+rvalue type for that lvalue (i.e., some cv-qualifiers are dropped even
+if the type is not integral).
 */
 {
   a_type_ptr promoted_type;
@@ -2348,7 +2351,11 @@ the same as the original type.  Type qualifiers, if any, are dropped.
     promoted_type =
                node_type_after_integral_promotion(operand->variant.expression);
   } else {
-    promoted_type = type_after_integral_promotion(operand->type);
+    promoted_type = operand->type;
+    /* If the operand is an lvalue, use the type it would have if it were
+       an rvalue. */
+    if (is_an_lvalue(operand)) promoted_type = rvalue_type(promoted_type);
+    promoted_type = type_after_integral_promotion(promoted_type);
   }  /* if */
 
   return promoted_type;
@@ -2358,7 +2365,7 @@ the same as the original type.  Type qualifiers, if any, are dropped.
 void promote_operand(an_operand *operand)
 /*
 Determine the integral promotion and do the promotion on an operand.
-See 3.2.1.1 in the standard.
+See 3.2.1.1 in the standard.  The operand must be an rvalue.
 */
 {
   cast_operand(operand_type_after_integral_promotion(operand), operand,
@@ -2368,7 +2375,8 @@ See 3.2.1.1 in the standard.
 
 void arg_default_promote_operand(an_operand *argument_operand)
 /*
-Do default argument promotions on an argument operand.
+Do default argument promotions on an argument operand.  If the operand is
+an lvalue, it is converted to an rvalue before doing the promotions.
 */
 {
   a_type_ptr arg_type;
@@ -2492,6 +2500,7 @@ that the type is arithmetic, and does not actually change the result type.
 See section 3.2.1.5 of the standard.  In C++, when wchar_t is a keyword,
 wchar_t is represented by one of the normal integral types and obeys
 the same conversion rules as its underlying type.  Likewise for bool.
+The operands can be lvalues or rvalues.
 */
 {
   a_type_ptr      type_1;
@@ -2535,7 +2544,9 @@ the same conversion rules as its underlying type.  Likewise for bool.
       /* Neither operand had type float; do the integral promotions on both
 	 operands and try to get the result type from that. */
       type_1 = operand_type_after_integral_promotion(operand_1);
+      type_1 = skip_typerefs(type_1);
       type_2 = operand_type_after_integral_promotion(operand_2);
+      type_2 = skip_typerefs(type_2);
 
       ikind_1 = is_integral_type(type_1) ? type_1->variant.integer.int_kind :
                                            (an_integer_kind)ik_last;

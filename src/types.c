@@ -1514,24 +1514,25 @@ a_type_ptr type_after_integral_promotion(a_type_ptr type)
 /*
 Determine the type that would result from applying the integral promotions
 (3.2.1.1) to type.  Return the promoted type, which may be the same
-as the original type.  Type qualifiers (if any) are dropped.
-See also node_type_after_integral_promotion for integral promotions for
-bit fields.  In C++, when wchar_t is a keyword, wchar_t is represented
-by one of the existing integer kinds.  For promotion purposes, it is
-treated in the same way as its underlying type.
+as the original type.  See also node_type_after_integral_promotion for
+integral promotions for bit field expressions.  Note that this routine
+expects to receive an rvalue type.
 */
 {
-  register a_type_ptr promoted_type;
+  a_type_ptr promoted_type = type;
+  a_type_ptr unqual_type = skip_typerefs(type);
 
   db_enter(5, "type_after_integral_promotion");
 
-  promoted_type = skip_typerefs(type);
-  if (is_integral(promoted_type)) {
-    if (promoted_type->variant.integer.bool_type) {
+  if (is_integral(unqual_type)) {
+    if (unqual_type->variant.integer.bool_type) {
       /* bool always promotes to int. */
       promoted_type = integer_type((an_integer_kind)(ik_int));
     } else {
-      switch (promoted_type->variant.integer.int_kind) {
+      /* In C++, when wchar_t is a keyword, wchar_t is represented
+         by one of the existing integer kinds.  For promotion purposes, it is
+         treated in the same way as its underlying type. */
+      switch (unqual_type->variant.integer.int_kind) {
         case ik_char:
           if (targ_has_signed_chars) goto do_signed_char;
           goto do_unsigned_char;
@@ -1600,7 +1601,7 @@ do_signed_char:;
     /* In C++, enumeration types lose their enumeration identity when they
        get promoted. */
     if (C_dialect == C_dialect_cplusplus &&
-        promoted_type->variant.integer.enum_type) {
+        unqual_type->variant.integer.enum_type) {
       /* Make a "plain" version of this enum type, i.e., the same underlying
          integral type but not tagged as an enum. */
       promoted_type = integer_type(promoted_type->variant.integer.int_kind);
@@ -1620,23 +1621,23 @@ node; it just returns the type that the node should be.  It is up to
 the caller to do the cast.  See also scan_function_call; it depends
 on the fact that the default argument promotions on an integral type
 are simply the integral promotions (to handle the bit-field integral
-promotions case).
+promotions case).  Note that this routine expects to receive an rvalue
+type.
 */
 {
-  a_type_ptr new_type;
+  a_type_ptr new_type = old_type;
+  a_type_ptr unqual_type = skip_typerefs(old_type);
 
-  new_type = skip_typerefs(old_type);
-  if (is_integral(new_type)) {
+  if (is_integral(unqual_type)) {
     /* For integral types, do the integral promotions. */
-    new_type = type_after_integral_promotion(new_type);
-  } else if (is_floating(new_type)) {
+    new_type = type_after_integral_promotion(old_type);
+  } else if (is_floating(unqual_type)) {
     /* Promote float to double. */
-    if (new_type->variant.float_kind == (a_float_kind)fk_float) {
+    if (unqual_type->variant.float_kind == (a_float_kind)fk_float) {
       new_type = float_type((a_float_kind)fk_double);
     }  /* if */
   }  /* if */
-
-  return(new_type);
+  return new_type;
 }  /* default_argument_promotion */
 
 
