@@ -142,7 +142,7 @@ call the static initializer functions.
      exit is called during static initialization, any constructed objects
      will be destroyed. */
 #if USE_ATEXIT
-  atexit((void_c_functino_ptr)__call_dtors);
+  atexit((void_c_function_ptr)__call_dtors);
 #elif defined(sun)
   on_exit((void_c_function_ptr)__call_dtors, (char *)NULL);
 #endif /* USE_ATEXIT */
