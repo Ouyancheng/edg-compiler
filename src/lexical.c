@@ -3436,8 +3436,12 @@ it, we skip tokens until the closing delimiter.
     }  /* while */
     if (curr_token == tok_end_of_source) {
       /* Comment unclosed at end of source. */
-      error_position = comment_start_pos;
-      error(ec_comment_unclosed_at_eof);
+      if (!building_pch_prefix) {
+        /* Only issue this warning during the real compilation, not
+           during the PCH prefix scan. */
+        error_position = comment_start_pos;
+        error(ec_comment_unclosed_at_eof);
+      }  /* if */
       /* Consider the comment closed. */
       goto end_of_comment;
     }  /* if */
@@ -3818,8 +3822,12 @@ normal_comment:
                the file in which it was opened). */
             if (read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE)) {
               /* End of file encountered, unclosed comment. */
-              error_position = comment_start_pos;
-              error(ec_comment_unclosed_at_eof);
+              if (!building_pch_prefix) {
+                /* Only issue this warning during the real compilation, not
+                   during the PCH prefix scan. */
+                error_position = comment_start_pos;
+                error(ec_comment_unclosed_at_eof);
+              }  /* if */
               /* Consider the comment closed. */
               goto end_of_comment;
             }  /* if */
@@ -3830,7 +3838,11 @@ normal_comment:
             /* Check for possible nested comment, issue a warning.  This
                helps catch unclosed comments. */
             if (ch == '/' && *(curr_char_loc+1) == '*') {
-              warning_at_line_pos(ec_nested_comment, curr_char_loc);
+              if (!building_pch_prefix) {
+                /* Only issue this warning during the real compilation, not
+                   during the PCH prefix scan. */
+                warning_at_line_pos(ec_nested_comment, curr_char_loc);
+              }  /* if */
             }  /* if */
             /* Advance to the next character position. */
             curr_char_loc++;
