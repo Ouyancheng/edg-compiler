@@ -5346,14 +5346,17 @@ return a pointer to it in *symbol_ptr.
            ordinary C. */
         /* If this a member type check to be sure the access isn't being
            changed. */
-        if (!C_mode() && class_type != NULL) {
+        if (!C_mode() && class_type != NULL && !is_error_type(tp)) {
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
-          if (type_symbol_type(sym)->source_corresp.access !=
-                                               ssep->current_access) {
-            pos_sy_diagnostic(any_cfront_mode() ?
-                                es_warning : es_discretionary_error,
+          if (tp->source_corresp.access != ssep->current_access) {
+            /* Access for previous declaration does not correspond to access
+               for current declaration. */
+            pos_sy_diagnostic(strict_ansi_mode ?
+                                strict_ansi_discretionary_severity :
+                                es_warning,
                               ec_cannot_change_access,
                               &locator->source_position, sym);
+            /* Stay with the access specified on the original declaration. */
           }  /* if */
         }  /* if */
         /* However, in C++ we may still need an sk_type symbol,

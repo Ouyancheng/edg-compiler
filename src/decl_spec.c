@@ -1669,13 +1669,26 @@ the template.
                                strict_ansi_error_severity : es_warning,
                            ec_qualifier_in_member_declaration, &tag_position);
           }  /* if */
-          /* Be sure the access is consistent. */
-          if (!is_friend_decl &&
-              ssep->current_access !=
-                          type_symbol_type(tag_sym)->source_corresp.access) {
-            pos_sy_diagnostic(any_cfront_mode() ?
-                                es_warning : es_discretionary_error,
-                              ec_cannot_change_access, &tag_position, tag_sym);
+          if (!is_friend_decl) {
+            /* Be sure the access is consistent on the redeclaration. */
+            if (ssep->current_access != class_type->source_corresp.access) {
+              /* The access specified for the previous declaration does not
+                 correspond to the access for current declaration. */
+              an_error_code      error_code;
+              an_error_severity  severity;
+
+              /* If this is a definition, use the current access instead of
+                 that specified on the original declaration. */
+              if (is_class_definition) {
+                class_type->source_corresp.access = ssep->current_access;
+                error_code = ec_redecl_changes_access;
+              } else {
+                error_code = ec_cannot_change_access;
+              }  /* if */
+              severity = strict_ansi_mode ?
+                           strict_ansi_discretionary_severity : es_warning;
+              pos_sy_diagnostic(severity, error_code, &tag_position, tag_sym);
+            }  /* if */
           }  /* if */
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other
@@ -2030,6 +2043,7 @@ to indicate whether an enumeration is actually defined.
   a_type_ptr               class_of_which_a_member;
   an_access_specifier      access;
   a_scope_depth            effective_decl_level = decl_scope_level;
+  a_boolean                inside_class_definition;
   a_boolean                is_redeclaration;
   a_boolean                namespace_extension_pushed = FALSE;
   a_source_position        tag_position;
@@ -2043,9 +2057,11 @@ to indicate whether an enumeration is actually defined.
                                      (a_scope_kind)sck_class_struct_union) {
     class_of_which_a_member = scope_stack[decl_scope_level].assoc_type;
     access = scope_stack[decl_scope_level].current_access;
+    inside_class_definition = TRUE;
   } else {
     class_of_which_a_member = NULL;
     access = (an_access_specifier)as_public;
+    inside_class_definition = FALSE;
   }  /* if */
   clear_decl_pos_block(&local_decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2223,15 +2239,21 @@ to indicate whether an enumeration is actually defined.
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
       mark_defined(tag_sym, &locator.source_position);
-      if (!C_mode() && tag_sym->is_class_member) {
+      if (!C_mode() && inside_class_definition) {
         /* enum_type is a class member and is being defined having been
            forward-declared. */
+        check_assertion(tag_sym->is_class_member == TRUE);
         if (enum_type->source_corresp.access != access) {
-          pos_sy_diagnostic(any_cfront_mode() ?
-                              es_warning : es_discretionary_error,
-                            ec_cannot_change_access, &locator.source_position,
-                            tag_sym);
-          access = enum_type->source_corresp.access;
+          /* The access specified for the previous declaration does not
+             correspond to the access for current declaration. */
+          pos_sy_diagnostic(strict_ansi_mode ?
+                              strict_ansi_discretionary_severity :
+                              es_warning,
+                            ec_redecl_changes_access,
+                            &locator.source_position, tag_sym);
+           /* Since this is a definition, use the current access instead of
+             that specified on the original declaration. */
+          enum_type->source_corresp.access = access;
         }  /* if */
       }  /* if */
     } else if (curr_token == tok_semicolon && !strict_ansi_mode) {

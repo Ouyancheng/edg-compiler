@@ -1,5 +1,22 @@
 Version 2.39
 
+4/22/98   Access inconsistency on redeclaration of member type
+
+It is a violation of the standard to declare a nested class (or other
+member type) with one access and redeclare or define it with another
+access.  We used to always issue an error on such redeclarations (except in
+cfront-compatibility mode), but with this change we have relaxed the
+restriction a bit.  A diagnostic is still issued -- a warning now except in
+strict ANSI mode; beyond that, the access associated with the definition is
+now assigned to the member type.
+
+  class A {
+    struct N;
+  public:
+    struct N { };      // Warning (or discretionary error in strict mode)
+  };
+  A::N x;              // Access error is no longer issued
+
 4/21/98   Spurious "not a template" error during disambiguation prescan of
           an initializer expression
 
