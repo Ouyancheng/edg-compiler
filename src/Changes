@@ -1,5 +1,20 @@
 Version 2.44
 
+7/31/00  Missing diagnostic on friend declaration with too many template
+         parameter clauses
+
+The front end failed to issue an error on an unqualified friend template
+declaration that contained multiple template parameter clauses.  In
+addition, the subsequent use of offending template could result in confusing
+diagnostics.  This has been fixed.
+
+  class A {
+  template <class T1> template <class T2> friend struct C;
+  };
+  template <class T> struct C { };
+  C<int> c;
+
+
 7/31/00  Missing diagnostic or internal error on typedef with destructor name
 
 Depending on the configuration, the following kind of code would either pass

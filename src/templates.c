@@ -9400,7 +9400,6 @@ instantiation.
     }  /* if */
   }  /* if */
   if (!locator.is_qualified_name && !decl_state->decl_scope_err &&
-      !decl_state->is_template_friend &&
       decl_state->number_of_template_param_clauses > 1) {
     /* This is a declaration of class template that is not a friend, but
        it has multiple template parameter lists.  This is an error
