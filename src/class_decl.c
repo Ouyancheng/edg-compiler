@@ -7668,7 +7668,8 @@ skip_tag_scan:
         if (tag_sym->header->symbol != tag_sym &&
             tag_sym->header->symbol->decl_scope == tag_sym->decl_scope) {
           record_defeatable_name_hiding(tag_sym,
-                                        /*tag_hidden_by_nontag=*/TRUE);
+                                        /*tag_hidden_by_nontag=*/TRUE,
+                                        (a_scope_ptr)NULL);
         }  /* if */
       }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
