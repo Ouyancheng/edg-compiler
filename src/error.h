@@ -596,7 +596,8 @@ typedef enum /*an_error_code*/ {
   ec_throw_specification_not_allowed,
   ec_template_and_instance_linkage_conflict,
   ec_conversion_function_not_usable,
-  ec_tag_kind_incompatible_with_template_parameter
+  ec_tag_kind_incompatible_with_template_parameter,
+  ec_template_operator_new
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
