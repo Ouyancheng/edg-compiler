@@ -497,31 +497,24 @@ type is legal.
           if (!C_mode() && is_class_struct_union_type(new_type_ptr)) {
             /* In C++ mode class rvalues can have type qualifiers, so allow
                a function returning a qualified class type. */
-          } else {
-            /* Except for "restrict", type qualifiers on a function return
-               type are meaningless. */
-            if (C_mode() && is_void_type(skip_typerefs(new_type_ptr))) {
-              if (strict_ansi_mode) {
-                /* A return type of "const void" or "volatile void" is not
-                   pormitted in strict C mode. */
-                diagnostic(strict_ansi_error_severity,
-                           ec_type_qualifier_on_void_return_type);
-              } else {
-                /* Issue just a remark for "volatile void" -- gcc uses that to
-                   indicate a function (like exit()) that does not return. */
-                diagnostic(get_type_qualifiers(new_type_ptr) == TQ_VOLATILE ?
-                                                    es_remark : es_warning,
-                           ec_useless_type_qualifier_on_return_type);
-              }  /* if */
 #if RESTRICT_ALLOWED
-            } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
-              /* Exactly one type qualifier -- "restrict".  No warning. */
+          } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
+            /* Exactly one type qualifier -- "restrict".  No warning. */
 #endif /* RESTRICT_ALLOWED */
-            } else if (is_reference_type(new_type_ptr)) {
-              /* A diagnostic will already have been issued. */
-            } else {
-              warning(ec_useless_type_qualifier_on_return_type);
+          } else if (is_reference_type(new_type_ptr)) {
+            /* A diagnostic will already have been issued. */
+          } else {
+            /* Type qualifiers on a function return type are meaningless.
+               Note, however, that it is left as part of the type. */
+            an_error_severity  severity = es_warning;
+
+            if (C_mode() && is_void_type(skip_typerefs(new_type_ptr)) &&
+                get_type_qualifiers(new_type_ptr) == TQ_VOLATILE) {
+              /* Issue just a remark for "volatile void" -- gcc uses that to
+                 indicate a function (like exit()) that does not return. */
+              severity = es_remark;
             }  /* if */
+            diagnostic(severity, ec_useless_type_qualifier_on_return_type);
           }  /* if */
         }  /* if */
         if (err) new_type_ptr = error_type();
