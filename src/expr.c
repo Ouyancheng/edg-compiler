@@ -1821,6 +1821,9 @@ bound with the function in *bound_function_selector.
           /* In pcc mode, something like 0->x is valid. */
           pcc_mode_integral_pointer_case = TRUE;
           orig_class_struct_union_type = NULL;  /* Defensive programming. */
+        } else if (is_template_param_type(operand_1->type)) {
+          /* Allow a template parameter type in a prototype instantiation. */
+          orig_class_struct_union_type = type_of_unknown_templ_param_nontype;
         } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
         } else {
@@ -1836,6 +1839,12 @@ bound with the function in *bound_function_selector.
     /* Check that the left operand is (a pointer to) a complete class,
        struct, or union, for either operator. */
     if (!err) {
+      if (is_template_param_type(orig_class_struct_union_type)) {
+        /* For a template parameter type, switch to the corresponding
+           proxy class. */
+        orig_class_struct_union_type =
+                  proxy_class_for_template_param(orig_class_struct_union_type);
+      }  /* if */
       if (!pcc_mode_integral_pointer_case) {
         /* Drop any qualifiers or typedefs on the class/struct/union type. */
         class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
@@ -1848,8 +1857,8 @@ bound with the function in *bound_function_selector.
       }  /* if */
       /* No error is issued yet if the first operand is not (a pointer to)
          a class, because (a) pcc mode allows fields to be selected from
-         non-class pointers and integral values, and (b) C++ allows
-         p->int::~int(). */
+         non-class pointers and integral values, (b) C++ allows
+         p->int::~int(), and (c) prototype instantiations. */
       need_operand_1_type_check = TRUE;
     }  /* if */
   }  /* if */
