@@ -2597,7 +2597,12 @@ aggregate, set *keep_constant to TRUE.
            constant.  This comes up in C mode when IL lowering is used to
            lower nonconstant initializers.  (However, the repeated constant
            will be actually constant.) */
-        lower_constant(repeated_con);
+        if (c99_mode) {
+          lower_c99_constant(repeated_con);
+        } else {
+          lower_constant(repeated_con);
+        }  /* if */
+        *keep_constant = TRUE;
       } else {
 #if CHECKING
         if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
@@ -2660,7 +2665,13 @@ aggregate, set *keep_constant to TRUE.
     /* Find the next member in the aggregate. */
     if (array_aggr) {
       /* Array -- go on to next element. */
-      ipmp->curr_elem++;
+      if (con_ptr->kind != (a_constant_repr_kind)ck_init_repeat) {
+        ipmp->curr_elem++;
+      } else {
+        /* For an init-repeat constant, advance the right number of
+           elements in the array. */
+        ipmp->curr_elem += con_ptr->variant.init_repeat.count;
+      }  /* if */
     } else {
       /* Class or struct -- go on to next field (nonstatic data member). */
       ipmp->curr_field = next_initializable_field(ipmp->curr_field->next);
