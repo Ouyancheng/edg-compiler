@@ -502,7 +502,7 @@ to indicate whether the class/struct/union is actually defined.
   a_source_position       tag_position;
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
-
+  a_boolean               namespace_deactivation_required = FALSE;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -690,7 +690,30 @@ skip_tag_scan:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (tag_sym != NULL && tag_sym->is_class_member) {
+    }  /* if */
+    if (tag_sym != NULL) {
+      if (!tag_sym->is_class_member) {
+        if (is_class_definition && tag_sym->parent.namespace_ptr != NULL) {
+          /* The class being defined was originally declared a namespace
+             member.  Determine (1) whether it's legal in this context and
+             if so, (2) whether a scope stack entry needs to be pushed. */
+          if (!namespace_is_enclosed_by_curr_scope(tag_sym)) {
+            /* This declaration appears within a namespace scope in which
+               the name cannot be defined -- it is a member (directly or
+               indirectly) of a namespace that is not enclosed by the current
+               namespace scope (see WP 7.3.1.4). */
+            sym_error(ec_bad_scope_for_definition, tag_sym);
+            tag_sym = NULL;
+            set_to_error_locator(locator);
+          } else if (ssep->il_scope->kind != (a_scope_kind)sck_namespace ||
+                     tag_sym->parent.namespace_ptr !=
+                                   ssep->il_scope->variant.assoc_namespace) {
+            /* Push a namespace reactivation scope. */
+            push_namespace_reactivation_scope(tag_sym->parent.namespace_ptr);
+            namespace_deactivation_required = TRUE;
+          }  /* if */
+        }  /* if */
+      } else {
         /* Nested class. */
         if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
             tag_sym->parent.class_type == ssep->assoc_type) {
@@ -887,6 +910,8 @@ skip_tag_scan:
     } else {
       err = TRUE;
     }  /* if */
+    /* If necessary, pop the namespace reactivation scope. */
+    if (namespace_deactivation_required) pop_namespace_reactivation_scope();
   }  /* if */
   if (err) {
     *type_ptr = error_type();
