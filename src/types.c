@@ -1164,9 +1164,11 @@ which do the initial test for exact pointer equality.
                        type_2->variant.float_kind);
           break;
         case tk_pointer:
-          /* For pointers and references, they both be pointers or both
-             references and must point to identical types. */
-          if (type_1->variant.pointer.is_reference ==
+          /* For pointers and references, they must point to identical types.
+             To be IL identical, they need not be both pointers or both
+             references. */
+          if (il_identical ||
+              type_1->variant.pointer.is_reference ==
                                         type_2->variant.pointer.is_reference) {
             identical = f_identical_types(type_1->variant.pointer.type,
                                           type_2->variant.pointer.type,
@@ -1346,7 +1348,7 @@ types_are_compatible, which does the initial test for exact pointer equality.
           compat = (type_1->variant.float_kind == type_2->variant.float_kind);
           break;
         case tk_pointer:
-          /* For pointers and references, they both be pointers or both
+          /* For pointers and references, they must be both pointers or both
              references and must point to compatible types. */
           if (type_1->variant.pointer.is_reference ==
                                         type_2->variant.pointer.is_reference) {
@@ -1535,7 +1537,9 @@ and arguments of old-style calls.
                 ikind2 == (an_integer_kind)ik_long)) {
       interch = TRUE;
     }  /* if */
-  } else if (type_1->kind == (a_type_kind)tk_pointer) {
+  } else if (type_1->kind == (a_type_kind)tk_pointer &&
+             !type_1->variant.pointer.is_reference &&
+             !type_2->variant.pointer.is_reference) {
     /* Pointer types.  Get the underlying types. */
     ptr_type1 = skip_typerefs(type_1->variant.pointer.type);
     ptr_type2 = skip_typerefs(type_2->variant.pointer.type);
@@ -1552,6 +1556,16 @@ and arguments of old-style calls.
   db_exit();
   return interch;
 }  /* interchangeable_types */
+
+
+/*
+Return TRUE if type_1 does not have some top-level type qualifier that
+type_2 has.
+*/
+#define fewer_qualifiers(type_1, type_2)                              \
+  ((is_const_qualified_type(type_2) && !is_const_qualified_type(type_1)) || \
+   (is_volatile_qualified_type(type_2) &&                             \
+                                    !is_volatile_qualified_type(type_1)))
 
 
 static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
@@ -1749,10 +1763,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);
          ARM 4.6 (pointer conversions: qualifiers cannot be dropped
          implicitly). */
-      if ((is_const_qualified_type(source_type_pointed_to) &&
-           !is_const_qualified_type(dest_type_pointed_to)) ||
-          (is_volatile_qualified_type(source_type_pointed_to) &&
-           !is_volatile_qualified_type(dest_type_pointed_to))) {
+      if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
         okay = FALSE;
       }  /* if */
     }  /* if */
@@ -1841,12 +1852,8 @@ reference type.  See ARM 4.7.
     if (okay) {
       /* The types pointed to must be such that the type pointed to by the
          left has all the qualifiers of the type pointed to by the right.
-         This is not said by the ARM, but it makes sense by analogy with the
-         pointer case. */
-      if ((is_const_qualified_type(source_type_pointed_to) &&
-           !is_const_qualified_type(dest_type_pointed_to)) ||
-          (is_volatile_qualified_type(source_type_pointed_to) &&
-           !is_volatile_qualified_type(dest_type_pointed_to))) {
+         See ARM 8.4.3. */
+      if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
         okay = FALSE;
       }  /* if */
     }  /* if */
