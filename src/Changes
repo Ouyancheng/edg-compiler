@@ -1,5 +1,17 @@
 Version 3.0
 
+5/1/02   Explicit instantiation of pure virtual permitted
+
+An error was issued on an attempt to instantiate a pure virtual function,
+but such instantiations are allowed by the standard.  The error has
+been removed.
+
+  template<class T> struct A {
+     virtual void f() = 0;
+  };
+  template<class T> void A<T>::f() {}
+  template void A<int>::f();
+
 4/29/02  Failure to diagnose address of bit field in C mode initializer
 
 The front end failed to issue an error on taking the address of a bit

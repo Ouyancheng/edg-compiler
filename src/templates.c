@@ -18621,13 +18621,6 @@ instantiated.  Pure virtual functions cannot be instantiated.
                        ec_inline_function_cannot_be_instantiated,
                        sym);
       }  /* if */
-    } else if (routine->pure_virtual) {
-      result = FALSE;
-      if (issue_errors) {
-        sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
-                       ec_pure_virtual_function_cannot_be_instantiated,
-                       sym);
-      }  /* if */
     }  /* if */
   } else {
     check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
