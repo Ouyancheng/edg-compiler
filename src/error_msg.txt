@@ -843,7 +843,7 @@ ec_entity_cannot_be_specialized;;"%nf is not an entity that can be explicitly sp
 ec_specialization_of_referenced_entity;;"explicit specialization of %n must precede its first use"
 ec_template_param_in_elab_type;;"template parameter %s may not be used in an elaborated type specifier"
 ec_old_specialization_not_allowed;;"specializing %n requires \"template<>\" syntax"
-ec_bad_member_template_friend_decl;;"\"template<>\" syntax is required when declaring a member function template instance as a friend"
+REMOVED;ec_bad_member_template_friend_decl;;"\"template<>\" syntax is required when declaring a member function template instance as a friend"
 ec_nonstd_asm_decl_within_template;;"nonstandard \"asm\" declaration is not supported inside a template"
 ec_cl_old_specializations_option_only_in_cplusplus;;"option \"old_specializations\" can be used only when compiling C++"
 ec_nonstd_old_specialization;;"specializing %n without \"template<>\" syntax is nonstandard"

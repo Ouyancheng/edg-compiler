@@ -1,5 +1,22 @@
 Version 2.33
 
+7/29/96 Making a member function template instance a friend
+
+Version 2.32 did not support friend declarations that refer to member
+function template instances.  This occurred because the syntax to be
+used was not clear in the Working Paper.  This was clarified during
+the July meeting of X3J16/WG21.  The syntax illustrated by example #1
+is the form to be used.  The syntax illustrated by example #2 is not
+permitted. 
+
+  class A {
+    template <class T> void f(T);
+  };
+  class B {
+    friend void A::f(int);  // #1, now permitted
+    template <> friend void A::f(int);  // #2, not permitted
+  };
+
 7/29/96 Internal error caused by error recovery following invalid template
         argument list
 

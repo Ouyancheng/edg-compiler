@@ -7171,7 +7171,6 @@ any non-empty template parameter lists that were scanned.
 }  /* template_declaration */
 
 
-static
 a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
                                              a_type_ptr        type)
 /*
