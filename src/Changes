@@ -1,5 +1,18 @@
 Version 2.43
 
+11/18/99 Typedef of operator names
+
+The front end now correctly diagnoses attempts to introduce an operator name
+as a typedef name:
+
+  struct S {
+    typedef int operator new();  // Now correctly diagnosed
+  };
+
+Previously, such declarations usually resulted in a slightly misleading
+diagnostic, but occasionally no diagnostic was issued or the front end
+aborted.
+
 11/17/99 Aborts while recovering from syntax errors in templates
 
 Various syntax errors in class definitions occuring in the scope of a template
