@@ -3461,8 +3461,14 @@ a template parameter.
        is a nonreal class member. */
     a_template_symbol_supplement_ptr	tssp;
     a_template_ptr			templ_ptr;
+    a_symbol_ptr			templ_sym;
     templ_ptr = tap->variant.templ;
-    tssp = template_supplement_for_template(templ_ptr);
+    /* Look at the argument template, not the original symbol (which,
+       unlike other template parameters, always points to the prototype
+       argument symbol). */
+    templ_sym = symbol_for_template(templ_ptr);
+    templ_sym = template_argument_if_template_template_param(templ_sym);
+    tssp = templ_sym->variant.template_info;
     template_param_found = tssp->is_nonreal_member ||
                          tssp->variant.class_template.template_template_param;
   }  /* if */
