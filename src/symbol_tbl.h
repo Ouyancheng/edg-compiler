@@ -96,6 +96,24 @@ enum a_symbol_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_symbol_kind;
 
+
+#if DEBUG
+/*
+Table of names corresponding to symbol kinds, for debug purposes.
+*/
+EXTERN char	*db_sym_names[(int)sk_last + 1]
+#if VAR_INITIALIZERS
+= {
+   "keyword", "macro", "constant", "type", "class-or-struct", "union",
+   "enum", "variable", "field", "static-data-member", "member-function",
+   "routine", "label", "undefined", "extern-variable", "extern-routine",
+   "last" /* used to check that initialization is right. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* DEBUG */
+
+
 /*
 There are different "name spaces" in each scope (see standard, 3.1.2.3).
 The following define the name spaces and a mapping from symbol kind to
