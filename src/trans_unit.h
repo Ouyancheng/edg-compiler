@@ -49,12 +49,17 @@ typedef struct a_translation_unit {
 			   to be a separate structure so that the file scope
 			   can be reactivated while preserving the pointers
 			   to lists of IL entries, symbols, etc. */
+  a_source_file_ptr
+		source_file;
+			/* The source file for the primary source file of the
+			   translation unit. */
 } a_translation_unit;
 
 
 extern void trans_unit_early_init(void);
 
-extern void process_translation_unit(a_boolean	is_primary);
+extern void process_translation_unit(char	*file_name,
+				     a_boolean	is_primary);
 
 extern void switch_translation_unit(a_translation_unit_ptr	tup);
 
@@ -74,6 +79,10 @@ EXTERN a_boolean
 			/* TRUE when processing the primary translation
 			   unit.  FALSE when processing secondary translation
 			   units. */
+
+EXTERN char	*trans_unit_file_name;
+			/* Name of the primary source file for the current
+			   translation unit. */
 
 EXTERN a_boolean
 		translation_unit_needed_only_for_exported_templates;

@@ -216,14 +216,17 @@ a pointer to the entry created.
   tup->variables_block = alloc_fe(trans_unit_var_block_size);
   tup->primary_scope = NULL;
   clear_scope_pointers_block(&tup->file_scope_pointers_block);
+  tup->source_file = NULL;
   return tup;
 }  /* alloc_translation_unit */
 
 
-void process_translation_unit(a_boolean	is_primary)
+void process_translation_unit(char	*file_name,
+			      a_boolean	is_primary)
 /*
 This routine processes a translation unit (a source file and any
-files included by that source file).  is_primary is TRUE if the
+files included by that source file).  file_name is the name of the
+primary source file of the translation unit.  is_primary is TRUE if the
 translation unit is the primary translation unit.
 
 There is usually one translation unit per compilation.  When the
@@ -248,6 +251,7 @@ treated as separate translation units of a single compilation.
   }  /* if */
   /* Initialize the front end. */
   is_primary_translation_unit = is_primary;
+  trans_unit_file_name = file_name;
   compute_il_prefix_size();
   if (is_primary_translation_unit) fe_init_part_1();
   trans_unit = alloc_translation_unit();
@@ -301,6 +305,7 @@ One-time initialization for trans_unit variables.
     register_pch_saved_variables(saved_vars);
   }  /* if */
   register_trans_unit_variable(is_primary_translation_unit);
+  register_trans_unit_variable(trans_unit_file_name);
   register_trans_unit_variable(
                           translation_unit_needed_only_for_exported_templates);
 }  /* trans_unit_one_time_init */
@@ -330,6 +335,7 @@ of the front end are called.
   trans_unit_variables_tail = NULL;
   trans_unit_var_block_size = 0;
   is_primary_translation_unit = FALSE;
+  trans_unit_file_name = NULL;
 #if CHECKING
   any_translation_units_allocated = FALSE;
 #endif /* CHECKING */

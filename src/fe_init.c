@@ -857,14 +857,16 @@ first line of the file.
     il_header.primary_source_file = NULL;
   }  /* if */
   open_file_and_push_input_stack(
-               strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
-                      primary_source_file_name),
+               strcpy(alloc_il((sizeof_t)(strlen(trans_unit_file_name)+1)),
+                      trans_unit_file_name),
                /*use_search_path=*/FALSE,
                /*is_include_file=*/FALSE,
                /*is_system_include=*/FALSE,
                /*is_preinclude=*/FALSE,
                /*is_implicit_include=*/FALSE,
                /*is_include_next=*/FALSE);
+  /* Save the source file pointer for this translation unit. */
+  curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
   if (preinclude_file_name != NULL && !using_a_pch_file) {
     /* There is a preinclude file to be included at the beginning of
        the compilation. */

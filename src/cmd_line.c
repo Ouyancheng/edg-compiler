@@ -3426,19 +3426,21 @@ multiple translation units.
 Call the translation unit routine for the secondary translation units.
 */
 {
+  char	*file_name;
+
   while (argc_file_list > 0) {
     /* There is another file. */
     argc_file_list--;
-    primary_source_file_name = *(argv_file_list)++;
+    file_name = *(argv_file_list)++;
     if (put_dir_of_each_opened_source_file_on_incl_search_path) {
       /* Update the first entry of the include file search list, the one
          that contains the directory of the primary source file. */
       /* If you change this, see the similar code in proc_command_line. */
       dir_name_of_primary_source_file = 
-                                    gs_directory_of(primary_source_file_name);
+                                    gs_directory_of(file_name);
       change_primary_include_search_dir(dir_name_of_primary_source_file);
     }  /* if */
-    process_translation_unit(/*is_primary=*/FALSE);
+    process_translation_unit(file_name, /*is_primary=*/FALSE);
   }  /* while */
 }  /* proc_secondary_translation_units */
 

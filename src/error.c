@@ -69,6 +69,12 @@ static a_boolean
 				   information about templates currently
 				   being instantiated) is required after
 				   an error message is issued. */
+
+static a_source_file_ptr
+		diag_primary_source_file;
+				/* Pointer to the primary source file
+				   associated with the diagnostic currently
+				   being processed. */
 				   
 /*
 Category codes for the various parts of the processing for multi-line
@@ -3053,6 +3059,76 @@ Return TRUE if the diagnostic should be suppressed.
   return suppress_diagnostic;
 }  /* diagnostic_already_issued_for_prototype */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+/* Forward declaration. */
+static void diag_message(an_error_code              error_code,
+                         a_source_position          *error_pos,
+                         an_error_severity          severity,
+                         a_diagnostic_category_kind diag_kind);
+
+
+static void display_trans_unit_context(
+			a_source_position	*error_pos,
+			an_error_severity	severity,
+			a_boolean		add_detected_prefix)
+/*
+This routine is called when the diagnostic that is being issued is for
+a translation unit other than the primary one.  Output a context message
+that indicates the translation unit that is associated with the message.
+
+error_pos and severity are the position and severity of the original message.
+
+When add_detected_prefix is TRUE, the error code returned will refer to
+a message that includes the text (e.g., "detected during ") that is
+used when only a single line of context information is being supplied.
+When multiple context lines are being displayed, the "detected during"
+message appears by itself on a separate line.
+*/
+{
+  an_error_code			context_error_code;
+  a_diagnostic_category_kind	context_diag_kind;
+
+  /* If only one line of context is being issued, then it is
+     considered the "primary" context line.  Otherwise a header
+     was issued above and the context lines are handled as list
+     elements. */
+  if (add_detected_prefix) {
+    context_diag_kind = dck_context_primary;
+    context_error_code = ec_det_during_compilation_of_secondary_trans_unit;
+  } else {
+    context_diag_kind = dck_list;
+    context_error_code = ec_compilation_of_secondary_trans_unit_context;
+  }  /* if */
+  init_error_params();
+  error_msg_strings[1] = diag_primary_source_file->file_name;
+  diag_message(context_error_code, error_pos, severity, context_diag_kind);
+}  /* display_trans_unit_context */
+
+
+static a_boolean in_secondary_translation_unit(a_source_position *pos)
+/*
+Determine whether "pos" represents a position in a secondary translation
+unit.  If so, set a global variable to indicate the source file that is
+associated with the translation unit that it is in.
+*/
+{
+  a_boolean	result;
+
+  if (translation_units->next == NULL) {
+    /* Optimize the case where there is only one translation unit. */
+    result = FALSE;
+  } else {
+    /* Get the primary source file associated with this position. */
+    diag_primary_source_file = primary_source_file_for_seq(pos->seq);
+    /* It is a secondary translation unit if it is not the first entry
+       on the list. */
+    result = diag_primary_source_file != translation_units->source_file;
+  }  /* if */
+  return result;
+}  /* in_secondary_translation_unit */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void diag_message(an_error_code              error_code,
                          a_source_position          *error_pos,
@@ -3203,6 +3279,7 @@ and doing any required expansions, the diagnostic is written.
       int		num_of_contexts = 0;
       a_symbol_ptr	sym;
       an_error_code	context_error_code;
+      a_boolean		in_secondary_trans_unit;
       /* Check whether we need to supply additional context information. */
       a_scope_depth	sd;
       for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
@@ -3212,6 +3289,10 @@ and doing any required expansions, the diagnostic is written.
           num_of_contexts++;
         }  /* if */
       }  /* for */
+      /* If we are in a secondary translation unit, we need a context line
+         to specify the translation unit name. */
+      in_secondary_trans_unit = in_secondary_translation_unit(error_pos);
+      if (in_secondary_trans_unit) num_of_contexts++;
       /* Issue the original message. */
       context_required = num_of_contexts > 0;
       write_diagnostic(error_code, error_pos, severity, diag_kind);
@@ -3248,6 +3329,11 @@ and doing any required expansions, the diagnostic is written.
           diag_message(context_error_code,
                        error_pos, severity, context_diag_kind);
         }  /* for */
+        if (in_secondary_trans_unit) {
+          display_trans_unit_context(error_pos, severity,
+                                     /*add_detected_prefix=*/
+                                                         num_of_contexts == 1);
+        }  /* if */
         /* Issue an "end context" message to indicate that all of the
            context information has been supplied. */
         init_error_params();

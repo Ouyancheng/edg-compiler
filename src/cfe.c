@@ -89,7 +89,7 @@ int EDG_MAIN(int argc, char *argv[])
     /* Get the front end starting time. */
     if (display_compilation_time) get_timer(&fe_start_time);
     /* Process the source file. */
-    process_translation_unit(/*is_primary=*/TRUE);
+    process_translation_unit(primary_source_file_name, /*is_primary=*/TRUE);
     /* Do wrap-up processing for the front end (before the back end). */
     fe_wrapup();
     if (display_compilation_time) {
