@@ -1,5 +1,17 @@
 Version 2.38
 
+1/5/97    Change in copy-initialization rules to support auto_ptr
+
+The definition for auto_ptr accepted for the C++ standard depends on
+a quirk of the definition of copy-initialization for classes that
+we did not implement.  It is now implemented.
+
+To make this quirk work right, the anachronism that allows binding
+a reference to nonconst to a class rvalue must be disabled, so the
+default value of DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM has been
+changed to FALSE.  The anachronism continues to be enabled in cfront
+and Microsoft C++ modes.
+
 1/5/97    Microsoft compatibility: improved handing of __asm blocks
 
 In some cases the front end did not correctly handle Microsoft __asm

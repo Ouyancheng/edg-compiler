@@ -69,7 +69,7 @@ which controls the anachronism of allowing a reference to nonconst to bind
 to a class rvalue of the right type.
 */
 #ifndef DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM
-#define DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM TRUE
+#define DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM FALSE
 #endif /* ifndef DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM */
 
 /*

@@ -1140,6 +1140,7 @@ by a command line option.
   if (!option_kind_used[(int)optk_allow_dollar_in_id_chars]) {
     allow_dollar_in_id_chars = TRUE;
   }  /* if */
+  allow_nonconst_ref_anachronism = TRUE;
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1342,6 +1343,7 @@ common_cfront_mode_settings:
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
+        allow_nonconst_ref_anachronism = TRUE;
         long_lifetime_temps = TRUE;
         bool_is_keyword = FALSE;
         explicit_keyword_enabled = FALSE;

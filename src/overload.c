@@ -65,6 +65,7 @@ Clear a conversion description.
   conv->unusable                       = FALSE;
   conv->class_object_adjustment_required = FALSE;
   conv->conversion_for_direct_reference_binding = FALSE;
+  conv->copy_initialization_done_as_direct = FALSE;
   clear_std_conv_descr(&conv->std);
 }  /* clear_conv_descr */
 
@@ -1562,6 +1563,19 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
       goto have_level;
+    } else if (ref_type_qualifiers_dropped &&
+               (identical_types(unqual_arg_type, unqual_param_type) ||
+                (arg_is_class_type && param_is_class_type &&
+                 find_base_class_of(arg_type, param_type) != NULL))) {
+      /* This is a case where cv-qualifiers are dropped in a reference
+         binding, and the underlying types are reference-related (see
+         [dcl.init.ref] in the C++ standard).  This cannot be made to match.
+         For example:
+           volatile int vi;
+           const int &r = vi;
+         Note that this test is necessary to avoid infinite recursion
+         when trying to analyze an argument to a copy constructor that
+         is more cv-qualified than the constructor can handle. */
     } else if (param_is_class_type && source_can_be_rvalue &&
                /* Bitwise copies are not tried here because they were
                   considered above, and bitwise copies that drop type
@@ -6333,6 +6347,9 @@ because of an error.  This routine is used only in C++ mode.
   a_type_ptr                    class_type, source_type;
   a_candidate_function_ptr      candidate_functions;
   a_boolean                     matched_except_for_missing_selector = FALSE;
+  a_boolean                     source_is_class, type_is_same;
+  a_boolean                     type_is_same_or_derived;
+  a_boolean                     copy_initialization_done_as_direct = FALSE;
   a_symbol_ptr                  class_symbol, constructor_symbol;
   a_class_symbol_supplement_ptr cssp;
   an_arg_operand_ptr            arg_operand_list;
@@ -6359,6 +6376,19 @@ because of an error.  This routine is used only in C++ mode.
   source_type = skip_typerefs(source_type);
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
+  /* Look for a relationship between the source and destination type. */
+  type_is_same = identical_types(source_type, class_type);
+  source_is_class = is_class_struct_union_type(source_type);
+  bcp = (source_is_class && !type_is_same) ?
+                            find_base_class_of(source_type, class_type) : NULL;
+  type_is_same_or_derived = type_is_same || bcp != NULL;
+  if (is_copy_initialization && type_is_same_or_derived) {
+    /* Copy-initialization from the same class type or a derived class
+       thereof is treated as direct-initialization.  See [dcl.init].
+       This is strange, but the definition of auto_ptr depends on it. */
+    is_copy_initialization = FALSE;
+    copy_initialization_done_as_direct = TRUE;
+  }  /* if */
   /* Check for a same-class bitwise copy.  The derived-class bitwise copy
      is checked for below.  A bitwise copy cannot be done if the source
      has a volatile type (the generated notional bitwise copy constructor
@@ -6367,7 +6397,7 @@ because of an error.  This routine is used only in C++ mode.
                       cssp->construction_by_bitwise_copy_allowed &&
                       !any_qualifier_in_set_missing(TQ_CONST,
                                                     source_qualifiers);
-  if (bitwise_copy_okay && identical_types(class_type, source_type)) {
+  if (bitwise_copy_okay && type_is_same) {
     /* The source and destination types are the same class type, and a
        bitwise copy is allowed on that type.  That means there are no
        copy constructors, and therefore the bitwise copy is the best
@@ -6397,7 +6427,7 @@ because of an error.  This routine is used only in C++ mode.
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
-    if (is_class_struct_union_type(source_type)) {
+    if (source_is_class) {
       /* The source type is a class, so conversion functions might be
          applicable. */
       /* If the source type is a template class, instantiate it to make its
@@ -6410,9 +6440,7 @@ because of an error.  This routine is used only in C++ mode.
            class into the destination class, or the source class has template
            conversion functions.  See if there is a conversion function that
            does the job. */
-        if (is_copy_initialization && 
-            (identical_types(source_type, class_type) ||
-             find_base_class_of(source_type, class_type) != NULL)) {
+        if (is_copy_initialization && type_is_same_or_derived) {
           /* In copy-initialization, if the source type is the same as the
              destination type, or a derived class thereof, only constructors
              are supposed to be used.  WP [dcl.init]. */
@@ -6428,9 +6456,7 @@ because of an error.  This routine is used only in C++ mode.
     }  /* if */
     /* If no functions are viable, check for the possibility of a bitwise
        copy from a derived class to a base class. */
-    if (candidate_functions == NULL && bitwise_copy_okay &&
-        is_class_struct_union_type(source_type) &&
-        (bcp = find_base_class_of(source_type, class_type)) != NULL &&
+    if (candidate_functions == NULL && bitwise_copy_okay && bcp != NULL &&
         /* Watch out for the case where the source type's definition
            has been partially processed -- we know that the destination
            type is a base class, but the source class is still
@@ -6496,6 +6522,9 @@ because of an error.  This routine is used only in C++ mode.
   } else {
     /* Free the candidate functions list. */
     free_candidate_function_list(candidate_functions);
+  }  /* if */
+  if (okay && copy_initialization_done_as_direct) {
+    conversion->copy_initialization_done_as_direct = TRUE;
   }  /* if */
   if (ctor_arg_conversion != NULL && !ctor_arg_conversion_set) {
     clear_conv_descr(ctor_arg_conversion);
@@ -7675,9 +7704,10 @@ happen only in C++ mode.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (elision_done) {
+  if (elision_done && !conversion->copy_initialization_done_as_direct) {
     /* Copy constructor elision is being done.  Check access to the elided
-       copy constructor. */
+       copy constructor.  This is not done for the copy initialization
+       cases that are treated as direct initializations. */
     check_access_to_elided_copy_constructor(elision_source_type,
                                             &source_operand->position);
   }  /* if */

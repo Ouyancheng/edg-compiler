@@ -86,6 +86,12 @@ typedef struct a_conv_descr {
 			   converts an initializer using a conversion function
 			   that returns a reference in order to produce an
 			   lvalue that a reference can be directly bound to. */
+  a_byte_boolean
+		copy_initialization_done_as_direct;
+			/* If TRUE, the conversion is a copy initialization
+			   that, following the rules in [dcl.init] of the
+			   C++ standard, is done as if it were a direct
+			   initialization. */
   a_std_conv_descr
 		std;	/* The standard conversion part of the conversion. */
 } a_conv_descr;
