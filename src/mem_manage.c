@@ -1325,6 +1325,9 @@ Do one-time initialization of variables related to the mem_manage routines.
   num_of_mem_alloc_history_entries = 0;
   size_of_mem_alloc_history = 0;
   mem_alloc_history_entries_used = 0;
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(file_scope_region_number);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
   allocated_in_region = NULL;
@@ -1348,9 +1351,6 @@ Do one-time initialization of variables related to the mem_manage routines.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
-  /* Register variables that must be saved and restored when switching
-     between translation units. */
-  register_trans_unit_variable(file_scope_region_number);
 }  /* mem_manage_one_time_init */
 
 
