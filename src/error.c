@@ -1133,6 +1133,9 @@ error code.
     case ec_ambiguous_operator_function:
       m = "more than one operator function matches these operands";
       break;
+    case ec_inaccessible_conversion_function:
+      m = "conversion function is inaccessible";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
