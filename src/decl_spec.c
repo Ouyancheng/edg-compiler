@@ -2512,6 +2512,46 @@ from decl_specifiers only.
 }  /* add_type_qualifiers */
 
 
+/* Define a bit vector to be used within decl_specifiers to track which
+   specifiers have been encountered. */
+typedef long a_decl_specifiers_set;
+#define DS_NONE (a_decl_specifiers_set)(0x0)
+			/* No decl-specifiers have been scanned. */
+#define DS_STORAGE_CLASS (a_decl_specifiers_set)(0x1)
+			/* A storage class has been scanned. */
+#define DS_TYPE_QUALIFIER (a_decl_specifiers_set)(0x2)
+			/* A type qualifier (including "restrict" and the
+			   microsoft type qualifiers "near" and "far") has
+			   been scanned. */
+#define DS_TYPE (a_decl_specifiers_set)(0x4)
+			/* A basic type or a size or "signed" or "unsigned"
+			   has been scanned. */
+#define DS_FRIEND (a_decl_specifiers_set)(0x8)
+			/* "friend" has been scanned (C++ only). */
+#define DS_VIRTUAL (a_decl_specifiers_set)(0x10)
+			/* "virtual" has been scanned (C++ only). */
+#define DS_EXPLICIT (a_decl_specifiers_set)(0x20)
+			/* "explicit" has been scanned (C++ only). */
+#define DS_INLINE (a_decl_specifiers_set)(0x40)
+			/* "inline" has been scanned (C++ only). */
+#define DS_MUTABLE  (a_decl_specifiers_set)(0x80)
+			/* "mutable" has been scanned (C++ only). */
+#define DS_LINKAGE_SPEC (a_decl_specifiers_set)(0x100)
+			/* A linkage specification (e.g., extern "C", has
+			   been scanned.  This can occur only in Microsoft
+			   C++ mode. */
+#define DS_DECLSPEC (a_decl_specifiers_set)(0x200)
+			/* "__declspec(...)" has been scanned (Microsoft mode
+			   only). */
+#define DS_MICROSOFT_INLINE (a_decl_specifiers_set)(0x1000)
+			/* "__inline" has been scanned (Microsoft mode
+			   only). */
+#define DS_OVERLOAD (a_decl_specifiers_set)(0x400)
+			/* "overload" has been scanned (a C++ anachronism). */
+#define DS_VOID (a_decl_specifiers_set)(0x800)
+			/* "void" was scanned as the very first specifier. */
+
+
 a_boolean decl_specifiers(a_decl_flag_set       input_flags,
                           a_decl_flag_set       *output_flags,
                           a_storage_class       *storage_class,
@@ -2620,7 +2660,6 @@ definition (e.g., "typedef int T; struct A { ... } T x;").
 Returns TRUE if there is an error in the specifiers.
 */
 {
-  int                        num_specifiers;
   a_symbol_ptr               curr_token_type_symbol;
   a_boolean                  err = FALSE;
   a_boolean                  bad_combination_of_type_specifiers = FALSE;
@@ -2632,18 +2671,16 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  vacuous_decl_allowed;
   a_boolean                  declares_something = FALSE;
   a_boolean                  defines_something = FALSE;
-  a_boolean                  void_first_specifier;
   a_boolean                  type_specifier_allowed;
   a_boolean                  dangling_type_specifier = FALSE;
   a_boolean                  is_elaborated_type_specifier = FALSE;
-  a_boolean                  is_friend_decl = FALSE;
-  a_boolean                  is_inline = FALSE;
   an_error_severity          es;
   a_basic_type               basic_type = bt_none;
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
   a_source_position          restrict_pos;
   a_boolean                  bad_type_name_error;
+  a_decl_specifiers_set      decl_specifiers_seen;
 
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
@@ -2651,12 +2688,11 @@ Returns TRUE if there is an error in the specifiers.
   *type_ptr = NULL;
   *qualifiers = TQ_NONE;
   *decl_modifiers = DM_NONE;
-  void_first_specifier = (curr_token == tok_void);
+  decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
-  num_specifiers = 0;
   /* Loop for each declaration specifier. */
   for (;;) {
     switch (curr_token) {
@@ -2687,8 +2723,7 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_storage_class_not_allowed);
           err = TRUE;
 #endif /* ASM_FUNCTION_ALLOWED */
-        } else if (*storage_class != (a_storage_class)sc_unspecified ||
-                   (*output_flags & DSO_MUTABLE)) {
+        } else if (decl_specifiers_seen & (DS_MUTABLE | DS_STORAGE_CLASS)) {
           /* More than  one storage class may not be specified. */
           error(ec_mult_storage_classes);
           err = TRUE;
@@ -2701,23 +2736,21 @@ Returns TRUE if there is an error in the specifiers.
               (input_flags & DSI_IS_OLD_STYLE_PARAM_DECL)) {
             /* Error will be handled by caller. */
             *storage_class = (a_storage_class)sc_typedef;
+            decl_specifiers_seen |= DS_STORAGE_CLASS;
           } else {
             error(ec_bad_param_storage_class);
             err = TRUE;
           }  /* if */
-        } else if (is_inline && curr_token != tok_static &&
+        } else if ((decl_specifiers_seen & DS_INLINE) &&
+                   curr_token != tok_static &&
                    (!extern_inline_allowed || curr_token != tok_extern)) {
           /* "inline static" is allowed; if extern_inline_allowed is TRUE, so
              is "inline extern"; otherwise, we issue an error. */
           error(ec_bad_storage_class_with_inline);
           err = TRUE;
-        } else if (is_friend_decl
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                   /* In Microsoft-compatibility mode a friend function can
-                      be declared "static" or "extern". */
-                   && !microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                     ) {
+        } else if ((decl_specifiers_seen & DS_FRIEND) && !microsoft_mode) {
+          /* Note: in Microsoft-compatibility mode a friend function can
+             be declared "static" or "extern". */
           error(ec_storage_class_in_friend_decl);
           err = TRUE;
         } else if (curr_token == tok_mutable) {
@@ -2728,13 +2761,14 @@ Returns TRUE if there is an error in the specifiers.
             /* Aside from interactions with storage classes, errors cannot
                be issued on mutable until the declarator has been scanned.
                Just return a flag to the caller. */
+            decl_specifiers_seen |= DS_MUTABLE;
             *output_flags |= DSO_MUTABLE;
           }  /* if */
         } else if ((input_flags & DSI_IS_SPECIALIZATION) &&
                    curr_token != tok_static) {
           error(ec_storage_class_not_allowed);
           err = TRUE;
-        } else if (is_member_decl && !is_friend_decl &&
+        } else if (is_member_decl && !(decl_specifiers_seen & DS_FRIEND) &&
                    curr_token != tok_static && curr_token != tok_typedef) {
           error(ec_bad_member_storage_class);
           err = TRUE;
@@ -2762,8 +2796,7 @@ Returns TRUE if there is an error in the specifiers.
           err = TRUE;
         } else {
           if (C_dialect != C_dialect_pcc && !err) {
-            if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
-                                 (is_inline ? 1 : 0)) {
+            if (decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)) {
               /* Issue a diagnostic if the storage class is not the first
                  specifier (except for "inline" or "friend"). */
               diagnostic(strict_ansi_mode ? es_warning : es_remark,
@@ -2786,6 +2819,7 @@ Returns TRUE if there is an error in the specifiers.
               internal_error("decl_specifiers: bad storage class");
 #endif /* CHECKING */
           }  /* switch */
+          decl_specifiers_seen |= DS_STORAGE_CLASS;
         }  /* if */
         break;
 #if ASM_FUNCTION_ALLOWED
@@ -2796,8 +2830,8 @@ Returns TRUE if there is an error in the specifiers.
         if (*storage_class == (a_storage_class)sc_asm) {
           error(ec_dupl_decl_specifier);
           err = TRUE;
-        } else if (!(input_flags & DSI_ASM_ALLOWED) || is_inline ||
-                   *storage_class != (a_storage_class)sc_unspecified) {
+        } else if (!(input_flags & DSI_ASM_ALLOWED) ||
+                   (decl_specifiers_seen & (DS_INLINE | DS_STORAGE_CLASS))) {
           /* asm is not allowed if we've already seen a storage class or
              inline. */
           error(ec_asm_not_allowed);
@@ -2807,6 +2841,7 @@ Returns TRUE if there is an error in the specifiers.
              strictly speaking it's more like "inline" as an attribute of a
              routine declaration). */
           *storage_class = (a_storage_class)sc_asm;
+          decl_specifiers_seen |= DS_STORAGE_CLASS;
         }  /* if */
         break;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -2820,12 +2855,6 @@ Returns TRUE if there is an error in the specifiers.
           a_decl_modifier	new_modifiers;
           a_source_position	specifier_start_pos;
 
-          if (num_specifiers > 0 && *decl_modifiers != DM_NONE) {
-            /* There must have already been at least one __declspec or
-               __inline specifier.  Count all the Microsoft specifiers as a
-               single specifier, since they are packaged in a single bitset. */
-            --num_specifiers;
-          }  /* if */
           specifier_start_pos = pos_curr_token;
           /* A Microsoft storage class modifier.  If this is a __declspec,
              scan the list of declaration modifiers. */
@@ -2835,9 +2864,11 @@ Returns TRUE if there is an error in the specifiers.
                                                /*is_class_decl=*/FALSE,
                                                (a_type_qualifier_set *)NULL,
                                                &err);
+              decl_specifiers_seen |= DS_DECLSPEC;
               break;
             case tok_microsoft_inline:
 	      new_modifiers = DM_MICROSOFT_INLINE;
+              decl_specifiers_seen |= DS_MICROSOFT_INLINE;
               break;
             default:
               unexpected_condition();
@@ -2877,6 +2908,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_CONST;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
       case tok_volatile:
@@ -2895,6 +2927,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_VOLATILE;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
 #if RESTRICT_ALLOWED
@@ -2912,6 +2945,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           *qualifiers |= TQ_RESTRICT;
           restrict_pos = pos_curr_token;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
 #endif /* RESTRICT_ALLOWED */
@@ -2924,6 +2958,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_UNALIGNED;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
       case tok_near:
@@ -2942,6 +2977,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_NEAR;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
       case tok_far:
@@ -2960,6 +2996,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_FAR;
+          decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2976,27 +3013,25 @@ Returns TRUE if there is an error in the specifiers.
 	     declaration. */
 	  error(ec_bad_specifier_outside_class_decl);
 	  err = TRUE;
-	} else if (*output_flags & DSO_FRIEND) {
+	} else if (decl_specifiers_seen & DS_FRIEND) {
 	  /* Only one "friend" specifier at at time. */
 	  error(ec_dupl_decl_specifier);
 	  err = TRUE;
 	} else {
+          decl_specifiers_seen |= DS_FRIEND;
 	  *output_flags |= DSO_FRIEND;
-          is_friend_decl = TRUE;
-          if (num_specifiers != 0) {
-            if (*storage_class != (a_storage_class)sc_unspecified
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                /* In Microsoft-compatibility mode a friend function can be
-                   declared "static". */
-                && !microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                  ) {
+          if (decl_specifiers_seen != DS_FRIEND) {
+            if ((decl_specifiers_seen & DS_STORAGE_CLASS) &&
+                (!microsoft_mode ||
+                 *storage_class == (a_storage_class)sc_static)) {
               error(ec_storage_class_in_friend_decl);
               err = TRUE;
               *storage_class = (a_storage_class)sc_unspecified;
-            } else if (*output_flags & DSO_MUTABLE) {
+              decl_specifiers_seen &= ~(DS_STORAGE_CLASS);
+            } else if (decl_specifiers_seen & DS_MUTABLE) {
               error(ec_storage_class_in_friend_decl);
               err = TRUE;
+              decl_specifiers_seen &= ~(DS_MUTABLE);
               *output_flags &= ~DSO_MUTABLE;
             }  /* if */
           } else {
@@ -3102,7 +3137,7 @@ Returns TRUE if there is an error in the specifiers.
           /* "virtual" may not appear in a function parameter specification. */
           error(ec_bad_param_specifier);
           err = TRUE;
-        } else if (is_friend_decl) {
+        } else if (decl_specifiers_seen & DS_FRIEND) {
           error(ec_virtual_not_allowed);
           err = TRUE;
         } else if (!is_member_decl) {
@@ -3114,11 +3149,12 @@ Returns TRUE if there is an error in the specifiers.
           /* Must be a member function template -- virtual is not allowed. */
           error(ec_virtual_function_template);
           err = TRUE;
-        } else if (*output_flags & DSO_VIRTUAL) {
+        } else if (decl_specifiers_seen & DS_VIRTUAL) {
           /* Only one "virtual" specifier at at time. */
           error(ec_dupl_decl_specifier);
           err = TRUE;
         } else {
+          decl_specifiers_seen |= DS_VIRTUAL;
           *output_flags |= DSO_VIRTUAL;
         }  /* if */
         break;
@@ -3135,12 +3171,12 @@ Returns TRUE if there is an error in the specifiers.
           /* "inline" allowed on certain function declarations only. */
           error(ec_inline_not_allowed);
           err = TRUE;
-	} else if (is_inline) {
+	} else if (decl_specifiers_seen & DS_INLINE) {
 	  /* Only one "inline" specifier at at time. */
 	  error(ec_dupl_decl_specifier);
 	  err = TRUE;
 	} else {
-          is_inline = TRUE;
+          decl_specifiers_seen |= DS_INLINE;
 	  *output_flags |= DSO_INLINE;
 	}  /* if */
 	break;
@@ -3154,11 +3190,12 @@ Returns TRUE if there is an error in the specifiers.
           /* It's only allowed inside a class definition. */
           error(ec_explicit_not_allowed);
           err = TRUE;
-        } else if (*output_flags & DSO_EXPLICIT) {
+        } else if (decl_specifiers_seen & DS_EXPLICIT) {
           /* Disallow duplicates. */
           error(ec_dupl_decl_specifier);
           err = TRUE;
         } else {
+          decl_specifiers_seen |= DS_EXPLICIT;
           *output_flags |= DSO_EXPLICIT;
         }  /* if */
         break;
@@ -3168,7 +3205,9 @@ Returns TRUE if there is an error in the specifiers.
              stop scanning on "void" when a basic type has already been scanned
              in a typedef. */
           if (basic_type != bt_none &&
-              *storage_class == (a_storage_class)sc_typedef) goto exit_loop;
+              *storage_class == (a_storage_class)sc_typedef) {
+            goto exit_loop;
+          }  /* if */
         }  /* if */
         /* Fall-through to next case. */
       case tok_char:
@@ -3199,6 +3238,11 @@ Returns TRUE if there is an error in the specifiers.
               internal_error("decl_specifiers: bad type specifier");
 #endif /* CHECKING */
           }  /* switch */
+          if (curr_token == tok_void && decl_specifiers_seen == DS_NONE) {
+            decl_specifiers_seen = DS_VOID;
+          } else {
+            decl_specifiers_seen |= DS_TYPE;
+          }  /* if */
         }  /* if */
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3231,6 +3275,7 @@ Returns TRUE if there is an error in the specifiers.
               default:;
             }  /* switch */
           }  /* if */
+          decl_specifiers_seen |= DS_TYPE;
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3276,6 +3321,7 @@ Returns TRUE if there is an error in the specifiers.
           } else {
             size = size_long;
           }  /* if */
+          decl_specifiers_seen |= DS_TYPE;
         }  /* if */
         break;
       case tok_signed:
@@ -3300,6 +3346,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           /* First specification of sign. */
           sign = (curr_token == tok_signed) ? sign_signed : sign_unsigned;
+          decl_specifiers_seen |= DS_TYPE;
         }  /* if */
         break;
       case tok_class:
@@ -3312,9 +3359,10 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
+            if (decl_specifiers_seen != DS_NONE) vacuous_decl_allowed = FALSE;
             if (!class_specifier(
-                          vacuous_decl_allowed, is_friend_decl,
+                          vacuous_decl_allowed,
+                          (decl_specifiers_seen & DS_FRIEND) != 0,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
@@ -3339,6 +3387,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           &dummy_type, &dummy_flag, &dummy_flag);
           }  /* if */
+          decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
         }  /* if */
         break;
@@ -3349,7 +3398,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (num_specifiers > 0 || strict_ansi_mode) {
+            if (decl_specifiers_seen != DS_NONE || strict_ansi_mode) {
               vacuous_decl_allowed = FALSE;
             }  /* if */
             enum_specifier(vacuous_decl_allowed, type_ptr,
@@ -3373,6 +3422,7 @@ process_class_specifier:
             enum_specifier(/*vacuous_decl_allowed=*/FALSE,
                            &dummy_type, &dummy_flag, &dummy_flag);
           }  /* if */
+          decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
         }  /* if */
         break;
@@ -3398,6 +3448,7 @@ process_class_specifier:
             /* Scan the specifier anyway, but throw it away. */
             typename_specifier(&dummy_type);
           }  /* if */
+          decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
         }  /* if */
         break;
@@ -3406,6 +3457,7 @@ process_class_specifier:
            cfront compatibility mode only).  Ignore it and advance to the
            next token. */
         diagnostic(anachronism_error_severity, ec_overload_anachronism);
+        decl_specifiers_seen |= DS_OVERLOAD;
         break;
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
@@ -3430,17 +3482,11 @@ process_class_specifier:
              left paren is a right paren or the start of a formal parameter
              declaration. */
           if (is_member_decl &&
-              num_specifiers == (((*output_flags & DSO_VIRTUAL) ? 1 : 0) +
-                                 ((*storage_class ==
-                                     (a_storage_class)sc_static) ? 1 : 0) +
-                                 ((*output_flags & DSO_EXPLICIT) ? 1 : 0) +
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                 /* In microsoft mode __declspec(...) and
-                                    __inline are also permitted with
-                                    constructor declarations. */
-                                 ((*decl_modifiers != DM_NONE) ? 1 : 0) +
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                 (is_inline ? 1 : 0))) {
+              !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
+                                         DS_EXPLICIT | DS_INLINE |
+                                         DS_DECLSPEC | DS_MICROSOFT_INLINE)) &&
+              (*storage_class == sc_unspecified ||
+               *storage_class == sc_static)) {
             a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
             a_type_ptr               class_type;
 
@@ -3541,6 +3587,7 @@ process_class_specifier:
             /* Ambiguity error was issued. */
             err = TRUE;
             basic_type = bt_typedef;
+            decl_specifiers_seen |= DS_TYPE;
             *type_ptr = error_type();
           } else {
             if (locator_for_curr_id.is_semivisible_nested_type) {
@@ -3565,6 +3612,7 @@ process_class_specifier:
               /* Save the type. */
               basic_type = bt_typedef;
               *type_ptr = type_symbol_type(curr_token_type_symbol);
+              decl_specifiers_seen |= DS_TYPE;
             }  /* if */
           }  /* if */
           break;
@@ -3580,6 +3628,7 @@ process_class_specifier:
           err = TRUE;
           basic_type = bt_typedef;
           *type_ptr = error_type();
+          decl_specifiers_seen |= DS_TYPE;
           break;
         }  /* if */
         if (locator_for_curr_id.is_operator_name ||
@@ -3588,7 +3637,8 @@ process_class_specifier:
              "A::operator int"." */
           goto operator_or_conversion_name;
         }  /* if */
-        if (locator_for_curr_id.is_destructor_name && !is_friend_decl &&
+        if (locator_for_curr_id.is_destructor_name &&
+            !(decl_specifiers_seen & DS_FRIEND) &&
 	    (simplify_curr_class_qualified_name() ||
 	     !locator_for_curr_id.is_qualified_name)) {
           /* This identifier represents something like "A::~A".  This
@@ -3609,7 +3659,7 @@ process_class_specifier:
           /* An error was detected in scanning a class template id.  Since
              a template id can only be a type, treat it as an error type. */
           bad_type_name_error = TRUE;
-        } else if (num_specifiers == 0 &&
+        } else if (decl_specifiers_seen == DS_NONE &&
                    !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
           /* If this is the first specifier, and this identifier is undefined,
              assume that we are dealing with a name that was supposed to be
@@ -3618,7 +3668,7 @@ process_class_specifier:
              only to things like prototyped parameter declarations and
              members of structs/unions. */
           bad_type_name_error = TRUE;
-        } else if (num_specifiers == 0 &&
+        } else if (decl_specifiers_seen == DS_NONE &&
                    is_error_locator(locator_for_curr_id) &&
                    locator_for_curr_id.is_global_qualified_name) {
           /* An error was detected in scanning a qualified name that started
@@ -3664,14 +3714,13 @@ process_class_specifier:
           err = TRUE;
           basic_type = bt_typedef;
           *type_ptr = error_type();
+          decl_specifiers_seen |= DS_TYPE;
           break;
         }  /* if */
-        if (num_specifiers ==
-                     ((is_friend_decl ? 1 : 0) + (is_inline ? 1 : 0))) {
-
+        if (!(decl_specifiers_seen & ~(DS_FRIEND | DS_INLINE))) {
           /* A function declaration without declaration specifiers is
              permitted. */
-          if (num_specifiers == 0) {
+          if (decl_specifiers_seen == DS_NONE) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
           /* Set the type appropriately if this the name of a constructor
@@ -3694,7 +3743,7 @@ process_class_specifier:
             }  /* if */
           }  /* if */
           goto exit_loop;
-        } else if (is_friend_decl) {
+        } else if (decl_specifiers_seen & DS_FRIEND) {
           /* Clear the specific symbol pointer in the locator so that
              subsequent lookups will be done correctly. */
           clear_specific_symbol(locator_for_curr_id);
@@ -3721,7 +3770,7 @@ operator_or_conversion_name:
                Errors for both are issued in declarator. */
           }  /* if */
         } else if (locator_for_curr_id.is_operator_name &&
-                   is_member_decl && !is_friend_decl) {
+                   is_member_decl && !(decl_specifiers_seen & DS_FRIEND)) {
           if (is_new_operator(locator_for_curr_id.variant.opname) ||
               is_delete_operator(locator_for_curr_id.variant.opname)) {
             /* We are inside a class definition, so an operator new or
@@ -3754,7 +3803,7 @@ operator_or_conversion_name:
       case tok_compl:
 destructor_name:
         if (is_member_decl) {
-          if (num_specifiers == 0) {
+          if (decl_specifiers_seen == DS_NONE) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
           *output_flags |= DSO_DESTRUCTOR;
@@ -3774,7 +3823,7 @@ destructor_name:
            the loop (we've taken all we're supposed to).  The first time,
            this is an error. */
 something_unexpected:
-        if (num_specifiers == 0) {
+        if (decl_specifiers_seen == DS_NONE) {
           if (!(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
             syntax_error(ec_exp_type_specifier);
             err = TRUE;
@@ -3787,7 +3836,6 @@ something_unexpected:
     }  /* switch */
     (void)get_token();
 no_get_token:
-    num_specifiers++;
     /* Check for special conditions that will cause this loop to terminate. */
     if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers in a
@@ -3822,14 +3870,14 @@ no_get_token:
   }  /* for */
 
 exit_loop:
-  if (void_first_specifier && num_specifiers == 1) {
+  if (decl_specifiers_seen == DS_VOID) {
     /* Set the output_flags bit to indicate that the sequence of specifiers
        had just one specifier, and it was "void". */
     *output_flags |= DSO_JUST_VOID;
   } else if (is_elaborated_type_specifier) {
-    if (!err && *qualifiers == TQ_NONE && !defines_something && 
-        !(*output_flags & DSO_VIRTUAL) && !(*output_flags & DSO_INLINE) &&
-        *storage_class == (a_storage_class)sc_unspecified) {
+    if (!err && !defines_something &&
+        !(decl_specifiers_seen & (DS_STORAGE_CLASS | DS_INLINE |
+                                  DS_VIRTUAL | DS_TYPE_QUALIFIER))) {
       *output_flags |= DSO_ELABORATED_TYPE_SPECIFIER;
     }  /* if */
   }  /* if */
