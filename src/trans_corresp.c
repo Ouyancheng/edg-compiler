@@ -2166,7 +2166,7 @@ type.
 
 
 a_boolean seek_type_corresp(a_type_ptr  type_1,
-                                  a_type_ptr  type_2)
+                            a_type_ptr  type_2)
 /*
 Check if the given class types are in fact the same and, if so, record all
 the needed correspondence pointers for type_1 and return TRUE.  Otherwise,
@@ -2176,8 +2176,19 @@ return FALSE.
   a_boolean result;
 
   if (has_correspondence(type_1)) {
+    /* The type is already pointing to a corresponding entry in another
+       translation unit.  We only need to check if type_2 is also in the
+       set of corresponding entries. */
     result = (canonical_il_entry_of(type_1) == canonical_il_entry_of(type_2));
   } else {
+    /* type_1 either hasn't been visited yet, or it was found not to have a
+       correspondence.  Even in the latter case it is possible that type_2
+       is a corresponding entry because it might not have been considered
+       earlier (e.g., because it hadn't been instantiated yet).  To check
+       for this possibility, we establish the correspondence and then
+       verify it.  If verification finds that the types do not after all
+       match, the type is restored to its previous state wrt. correspondence
+       checking. */
     a_boolean  visited =
                      (trans_unit_corresp_pointer_of(type_1) == (char*)type_1);
     clear_type_correspondence(type_1, /*visited=*/FALSE);
