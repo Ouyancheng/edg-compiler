@@ -4372,6 +4372,7 @@ in C++ mode.  See ARM 13.
                    old_extra_info, new_extra_info;
   a_type_ptr       old_this_param_type, new_this_param_type;
   a_boolean        old_this_qualified, new_this_qualified;
+  a_boolean        linkages_compat;
 
   db_enter(5, "overload_distinguishable");
   *err_code = ec_no_error;
@@ -4441,9 +4442,10 @@ in C++ mode.  See ARM 13.
        the types are distinguishable.  (This only happens when name-linkages
        other than "C" and "C++" are supported by an implementation, and
        only then when routines can be overloaded based on name-linkage.) */
-    if (!routine_linkages_are_compatible(
-                         old_extra_info->routine_name_linkage,
-                         new_extra_info->routine_name_linkage)) {
+    linkages_compat = routine_linkages_are_compatible(
+                                 old_extra_info->routine_name_linkage,
+                                 new_extra_info->routine_name_linkage);
+    if (!linkages_compat) {
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
