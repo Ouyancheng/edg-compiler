@@ -99,8 +99,10 @@ returned TRUE if there was an error of some kind.
         array_length = array_type->variant.array.number_of_elements;
         if (num_elems > array_length) {
           /* The string is longer than the array.  Check to see if the
-             string will fit if we drop the final null.  See 3.5.7. */
-          if (num_elems-1 == array_length) {
+             string will fit if we drop the final null.  See 3.5.7.  In C++
+             the truncation of the final null is not supported (ARM 8.4.2). */
+          if (num_elems-1 == array_length &&
+              C_dialect != C_dialect_cplusplus) {
             /* Decrement the string length, and change its type,
                thus "dropping" the final null.  Note that this depends on
                the string not being shared. */
