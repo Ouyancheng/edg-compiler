@@ -2512,7 +2512,7 @@ in il_init.)
   /* Set the default "routine name linkage", which is the value to which the
      routine_name_linkage field of a routine type supplement is initialized. */
   default_routine_name_linkage = C_mode() ?
-                                   (a_name_linkage_kind)nlk_none :
+                                   (a_name_linkage_kind)nlk_external :
                                    (a_name_linkage_kind)nlk_cplusplus_external;
 
   /* Set the default source correspondence variable to default values. */
