@@ -486,14 +486,13 @@ type is legal.
            of zero, which is the case for the partial array and pointer
            types. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type) ||
+        if (is_object_type(temp_type) || is_pointer_type(temp_type) ||
             (temp_type->kind == (a_type_kind)tk_array &&
-             temp_type->variant.array.number_of_elements != 0) ||
-            temp_type->kind == (a_type_kind)tk_pointer) {
+             temp_type->variant.array.number_of_elements != 0)) {
           /* Okay. */
         } else if (temp_type->kind == (a_type_kind)tk_ptr_to_member &&
                    temp_type->variant.ptr_to_member.type == NULL) {
-          /* This is an incomplete ptr-to-member type, presumably an
+          /* This is an incomplete ptr-to-member type, presumably a
              pointer to member function.  Okay. */
         } else if (is_class_struct_union_type(temp_type)) {
           /* As an extension, allow arrays of incomplete struct or union
@@ -1432,7 +1431,8 @@ scope is that of a class definition.
          function declared within a class definition, a qualifier on the
          function is illegal (ARM 8.2.5).  Further, a const or volatile
          qualifier appearing on a constructor or destructor is not allowed
-         (ARM 9.3.1). */
+         (ARM 9.3.1).  However, qualifiers on a pointer to member function
+         are permitted. */
       if (member_function_parent_type == NULL ||
           (!is_nonstatic_member_function &&
            scope_stack[decl_scope_level].kind ==
