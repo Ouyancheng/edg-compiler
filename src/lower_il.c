@@ -263,6 +263,7 @@ in the cleanup entry.
   cap->next = NULL;
   cap->applies_on_block_exit = applies_on_block_exit;
   cap->applies_on_exception_cleanup = applies_on_exception_cleanup;
+  cap->destructor_wrapper_cleanup = FALSE;
   cap->region_number = NULL_EH_REGION_NUMBER;
   cap->kind = kind;
   switch (kind) {
@@ -5779,8 +5780,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 }  /* lower_expr */
 
 
-static void lower_statement_list(a_statement_ptr statement_list,
-                                 a_statement_ptr *last_statement)
+void lower_statement_list(a_statement_ptr statement_list,
+                          a_statement_ptr *last_statement)
 /*
 Do IL lowering of the indicated list of statements and everything under it.
 Return a pointer to the last statement in *last_statement, or NULL if
@@ -5988,6 +5989,8 @@ is updated.
       }  /* if */
       lower_destructor_dynamic_init(&cap->variant.object.dynamic_init,
                                     &cap->variant.object.init_pos_descr,
+                                    /*dtor_case=*/FALSE,
+                                    /*have_complete_object=*/TRUE,
                                     effective_insert_loc);
     } else if (cap->kind == cak_try_block) {
       /* Exiting a try block. */
@@ -7143,18 +7146,20 @@ Do IL lowering of the indicated scope and everything under it.
     return_memo_list = NULL;
     if (exceptions_enabled) eh_function_lower_init();
     /* Lower the executable code. */
-    /* Note that the statements are done after the declarations, and they
-       are done only for functions, not for blocks; the statements in the
-       block scopes get lowered from this call for the function, so it would
-       be a mistake to do them again when lowering the block scopes. */
-    lower_statement(scope->assoc_block);
     if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
-      /* For a constructor, add wrapper code around the user code. */
+      /* For a constructor, add wrapper code around the user code, and also
+         lower the user code. */
       lower_constructor_code(scope);
     } else if (routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
-      /* For a destructor, add wrapper code around the user code. */
+      /* For a destructor, add wrapper code around the user code, and also
+         lower the user code. */
       lower_destructor_code(scope);
+    } else {
+      /* Normal case.  Lower the statements.  Note that this call (at the
+         function level) lowers all the statements in the function, even those
+         inside block scopes. */
+      lower_statement(scope->assoc_block);
     }  /* if */
     /* Add prologue code for exceptions. */
     if (exceptions_enabled) add_eh_function_prologue(scope);

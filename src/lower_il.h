@@ -140,6 +140,11 @@ typedef struct a_cleanup_action {
 		applies_on_exception_cleanup;
 			/* TRUE if the indicated cleanup must be done on
 			   cleanup for a thrown exception. */
+  a_byte_boolean
+		destructor_wrapper_cleanup;
+			/* TRUE if the indicated cleanup is a destruction
+			   needed for exception cleanup inside destructor
+			   wrapper code. */
   a_cleanup_region_number
 		region_number;
 			/* Destructible object region number for exception
@@ -541,6 +546,9 @@ extern void lower_virtual_function_call(an_expr_node_ptr expr);
 
 extern void lower_call(an_expr_node_ptr      expr,
                        an_init_pos_descr_ptr ipdp);
+
+extern void lower_statement_list(a_statement_ptr statement_list,
+                                 a_statement_ptr *last_statement);
 
 extern void lower_statement(a_statement_ptr statement);
 

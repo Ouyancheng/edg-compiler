@@ -89,9 +89,11 @@ extern void lower_dynamic_init(a_dynamic_init_ptr       dip,
                                a_boolean                *keep_dynamic_init);
 
 extern void lower_destructor_dynamic_init(
-                                       a_dynamic_init_ptr     dip,
-                                       an_init_pos_descr_ptr  ipdp,
-                                       an_insert_location_ptr insert_location);
+                                   a_dynamic_init_ptr     dip,
+                                   an_init_pos_descr_ptr  ipdp,
+                                   a_boolean              dtor_case,
+                                   a_boolean              have_complete_object,
+                                   an_insert_location_ptr insert_location);
 
 extern void lower_new_delete(an_expr_node_ptr expr);
 

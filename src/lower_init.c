@@ -47,6 +47,11 @@ static a_cleanup_action_ptr
 		end_cleanup_actions_for_local_static_variables;
 			/* List of cleanup actions for local static variables.
 			   These are saved and output at the file scope. */
+static an_insert_location
+		dtor_wrapper_prologue_insert_location;
+			/* Insert location in the wrapper prologue for
+			   a destructor, used to insert exception handling
+			   setup code. */
 
 
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
@@ -1676,10 +1681,11 @@ The necessary statements are inserted at *insert_location and
 *insert_location is updated.  If ipdp->whole_array is TRUE, this
 call is handling all the elements of an array.  If first_time_test_var
 is non-NULL, it points to a variable entry for the first-time-test variable
-that controls access to this initialization.  If dtor_case is TRUE, do
-the destruction indicated in the dynamic init immediately and ignore the
-initialization.  If the dynamic initialization is part of a constructor
-initializer, ctor_init points to the constructor-init entry.
+that controls access to this initialization.  If dtor_case is TRUE, we
+are generating a destructor wrapper; do the destruction indicated in
+the dynamic init but ignore any initialization.  If the dynamic
+initialization is part of a constructor initializer, ctor_init points
+to the constructor-init entry.
 */
 {
   a_constant_ptr next_con;
@@ -1690,6 +1696,7 @@ initializer, ctor_init points to the constructor-init entry.
     /* In a destructor case, so the "initialization" is really
        destruction. */
     lower_destructor_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
+                                  dtor_case, /*have_complete_object=*/TRUE,
                                   insert_location);
   } else {
     /* Normal initialization. */
@@ -1741,8 +1748,9 @@ aggr_const points to a ck_aggregate constant that contains one or more
 ck_dynamic_init dynamic initializations.  The ck_aggregate constant is
 the initial value for the entity described by ipdp.  If first_time_test_var
 is non-NULL, it points to a variable entry for the first-time-test variable
-that controls access to this initialization.  If dtor_case is TRUE, this
-"initialization" is a destruction to be done immediately.  If the dynamic
+that controls access to this initialization.  If dtor_case is TRUE, we
+are generating a destructor wrapper; do the destruction indicated in
+the aggregate init but ignore any initialization.  If the dynamic
 initialization is part of a constructor initializer, ctor_init points to
 the constructor-init entry.  Insert statements to implement the
 initialization at *insert_location and update *insert_location.  If there
@@ -2164,6 +2172,39 @@ later will be made conditional on the temporary.
 }  /* add_conditional_destruction_temp */
 
 
+static a_cleanup_action_ptr alloc_destruction_cleanup_action(
+                            a_dynamic_init_ptr    dip,
+                            an_init_pos_descr_ptr ipdp,
+                            a_boolean             applies_on_block_exit,
+                            a_boolean             applies_on_exception_cleanup)
+/*
+Allocate a cak_destruction cleanup action entry and return a pointer to it.
+The dynamic initialization for which the destruction must be done is
+given by dip, and the object to be destroyed is described by ipdp.
+applies_on_block_exit and applies_on_exception_cleanup are the values for
+the like-named flags in the cleanup entry.
+*/
+{
+  a_cleanup_action_ptr cap;
+
+  cap = alloc_cleanup_action(cak_destruction,
+                             applies_on_block_exit,
+                             applies_on_exception_cleanup);
+  /* Copy the entire dynamic init entry in case the original one gets
+     modified. */
+  cap->variant.object.dynamic_init = *dip;
+  cap->variant.object.init_pos_descr = *ipdp;
+  /* If this is an initialization within an aggregate, we must save the
+     init_pos_modifier list.  However, the list runs through the stack,
+     so we must make an allocated copy. */
+  if (ipdp->modifiers != NULL) {
+    cap->variant.object.init_pos_descr.modifiers =
+                                  copy_init_pos_modifier_list(ipdp->modifiers);
+  }  /* if */
+  return cap;
+}  /* alloc_destruction_cleanup_action */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         a_variable_ptr         first_time_test_var,
@@ -2417,24 +2458,13 @@ do_assignment:;
        destructor part of the initialization is only there for exception
        cleanup.  For the file-scope initialization routine "on block exit"
        gets interpreted as "in the the file-scope termination routine." */
-    cap = alloc_cleanup_action(cak_destruction,
-                               /*applies_on_block_exit*/(ctor_init == NULL),
-                               /*applies_on_exception_cleanup=*/TRUE);
-    /* Copy the entire dynamic init entry because it may be modified below
-       to make it a valid C dynamic initialization. */
-    cap->variant.object.dynamic_init = *dip;
+    cap = alloc_destruction_cleanup_action(dip, ipdp,
+                                 /*applies_on_block_exit=*/(ctor_init == NULL),
+                                 /*applies_on_exception_cleanup=*/TRUE);
     /* Clear the destructor field in the dynamic init entry to make it legal
        C IL. */
     dip->destructor = NULL;
-    cap->variant.object.init_pos_descr = *ipdp;
     cap->variant.object.is_expr_temporary = is_expr_temporary;
-    /* If this is an initialization within an aggregate, we must save the
-       init_pos_modifier list.  However, the list runs through the stack,
-       so we must make an allocated copy. */
-    if (ipdp->modifiers != NULL) {
-      cap->variant.object.init_pos_descr.modifiers =
-                                  copy_init_pos_modifier_list(ipdp->modifiers);
-    }  /* if */
     if (first_time_test_var != NULL) {
       /* Destruction of local static variables must happen at the end of
          the file scope if the initialization has been done (i.e., if the
@@ -2471,7 +2501,7 @@ do_assignment:;
          the end of the current scope.  Put a cleanup action on the
          cleanup list.  For processing of file-scope dynamic inits, put
          the entry on the file-scope list. */
-      /* Put the new entry on the front of the existing list. */
+      /* Put the new entry on the front of the existing cleanup list. */
       add_cleanup_action_to_context_list(cap, 
                                          processing_file_scope_init_routine ?
                                              file_scope_context :
@@ -2519,12 +2549,17 @@ do_assignment:;
 
 void lower_destructor_dynamic_init(a_dynamic_init_ptr     dip,
                                    an_init_pos_descr_ptr  ipdp,
+                                   a_boolean              dtor_case,
+                                   a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location)
 /*
 Do IL lowering on a dynamic initialization entry that represents a destructor
 call in a destructor's init list.  dip points to the dynamic initialization,
-and ipdp identifies the entity to be destroyed.  The statements are inserted at
-*insert_location and *insert_location is updated.
+and ipdp identifies the entity to be destroyed.  If dtor_case is TRUE, we
+are generating a destructor wrapper; do the destruction indicated in
+the dynamic init but ignore any initialization.  If have_complete_object 
+is TRUE, the entity being destroyed is a complete object.  The statements
+are inserted at *insert_location and *insert_location is updated.
 */
 {
   an_expr_node_ptr  entity_node;
@@ -2542,6 +2577,21 @@ and ipdp identifies the entity to be destroyed.  The statements are inserted at
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
+  if (exceptions_enabled && dtor_case) {
+    /* Generate an exception cleanup action for a destruction in a destructor
+       wrapper. */
+    a_cleanup_action_ptr cap;
+    cap = alloc_destruction_cleanup_action(dip, ipdp,
+                                        /*applies_on_block_exit=*/FALSE,
+                                        /*applies_on_exception_cleanup=*/TRUE);
+    cap->destructor_wrapper_cleanup = TRUE;
+    add_cleanup_action_to_context_list(cap, curr_context,
+                                       &dtor_wrapper_prologue_insert_location);
+    /* Insert an assignment to set the current exception handling region
+       to this new region.  That gets set before the *previous* cleanup
+       action. */
+    set_region_on_prev_destructor_wrapper_cleanup(cap, insert_location);
+  }  /* if */
   /* Make an expression for the object to be destroyed. */
   entity_node = make_init_entity_node(ipdp);
   /* Generate code for the destructor call. */
@@ -2551,7 +2601,7 @@ and ipdp identifies the entity to be destroyed.  The statements are inserted at
                               insert_location);
   } else {
     /* Destruction of simple entity (non-array). */
-    add_destructor_call(dip, entity_node, /*have_complete_object=*/TRUE,
+    add_destructor_call(dip, entity_node, have_complete_object,
                         insert_location);
   }  /* if */
   error_position = saved_error_position;
@@ -3664,7 +3714,6 @@ constructor, but may instead be after an assignment to "this".
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
   an_expr_node_ptr       vaddr_node, vbptr_node, vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
-  a_context              context;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -3713,10 +3762,6 @@ constructor, but may instead be after an assignment to "this".
            initialization).
      [endfor]
   */
-  /* Push a subscope region context around the generation of the wrapper
-     code so that cleanup code for any temporaries created within the
-     wrapper will be generated at the end of the wrapper code. */
-  push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
      initialization supplied by the front end.  Every base class and member
@@ -3724,7 +3769,8 @@ constructor, but may instead be after an assignment to "this".
      classes, (2) normal base classes, (3) data members.  The order within
      each section is source declaration order. */
   ctor_init = scope->variant.routine.constructor_inits;
-  scope->variant.routine.constructor_inits = NULL;
+  /* The list is not cleared here, because it may be used again if there
+     is more than one assignment to "this" in a constructor. */
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
   class_type =
@@ -3886,34 +3932,52 @@ constructor, but may instead be after an assignment to "this".
     lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
                     class_type, insert_location);
   }  /* for */
-  /* Generate any cleanup actions for temporaries built within the
-     wrapper code. */
-  gen_cleanup_actions(curr_context, insert_location);
-  pop_context();
 }  /* add_constructor_wrapper_code */
 
 
 void lower_constructor_code(a_scope_ptr scope)
 /*
 Insert constructor wrapper code around the user code in the indicated
-constructor scope.
+constructor scope, and also lower the user code.
 */
 {
+  a_statement_ptr    user_code_stmts =
+                                  scope->assoc_block->variant.block.statements;
+  a_statement_ptr    last_statement;
   an_insert_location insert_location;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
+  /* Note that NEW_CAN_BE_FOLDED_INTO_CTOR is always true if
+     ASSIGNMENT_TO_THIS_ALLOWED is true. */
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
-  /* Add the wrapper code at the start of the routine. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
+  /* Assignment to "this" is allowed. */
   /* If there is an assignment to "this" in the body of the constructor,
-     do not issue the wrapper code here; it will be issued after each
+     do not issue the wrapper code here; it is issued after each
      assignment to "this". */
   if (!ctor_routine->assignment_to_this_done) {
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    /* Start off with code to allocate storage if "this" is NULL:
-         if (this != NULL || (this = new-rout(size)) != NULL)
-       The entire rest of the routine (both wrapper code and user code)
-       are placed in the dependent statement of the "if". */
+    /* Add the wrapper code at the start of the routine. */
+    set_block_start_insert_location(scope->assoc_block, &insert_location);
+    add_constructor_wrapper_code(scope, &insert_location);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  }  /* if */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+
+  /* Lower the user code in the constructor. */
+  lower_statement_list(user_code_stmts, &last_statement);
+
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+  /* Add code to allocate storage if "this" is NULL:
+       if (this != NULL || (this = new-rout(size)) != NULL)
+     The entire rest of the routine (both wrapper code and user code)
+     is placed in the dependent statement of the "if". */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  /* The allocation code is not added if there is an assignment to "this"
+     in the constructor. */
+  if (!ctor_routine->assignment_to_this_done) {
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     a_variable_ptr     this_param_var = scope->variant.routine.parameters;
     a_type_ptr         class_type, int_type;
     an_expr_node_ptr   size_node, call_node, assign_node;
@@ -3962,21 +4026,13 @@ constructor scope.
                                    int_type, this_compare_node);
       /* Make "if (this != NULL || (this = new-rout(size)) != NULL)". */
       enclose_routine_in_if(scope, if_node, &block_stmt, this_param_var);
-      set_block_start_insert_location(block_stmt, &insert_location);
-    } else {
-      /* No default operator new. */
-      set_block_start_insert_location(scope->assoc_block, &insert_location);
     }  /* if */
-#else /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
-    set_block_start_insert_location(scope->assoc_block, &insert_location);
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-    /* Add the wrapper code. */
-    add_constructor_wrapper_code(scope, &insert_location);
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
 #if ASSIGNMENT_TO_THIS_ALLOWED
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+  /* Clear the list of constructor inits. */
+  scope->variant.routine.constructor_inits = NULL;
 }  /* lower_constructor_code */
 
 
@@ -3989,14 +4045,13 @@ Generate code to implement the constructor_init entry pointed to by ctor_init,
 one that appears on the constructor_init list for a destructor.
 this_param_var is the "this" parameter variable for the overall object
 being destroyed.  If have_complete_object is TRUE, the entity being
-initialized is a complete object.  The statements created are inserted
+destroyed is a complete object.  The statements created are inserted
 at *insert_location, and *insert_location is updated.
 */
 {
   an_init_pos_descr    ipd;
   an_init_pos_modifier ipm;
   a_dynamic_init_ptr   dip;
-  an_expr_node_ptr     subentity_node;
   a_boolean            keep_constant;
 
   /* Develop a position description for the entity to destroy. */
@@ -4025,9 +4080,8 @@ at *insert_location, and *insert_location is updated.
 #endif /* CHECKING */
   } else {
     /* Normal case; generate the code to do the destruction. */
-    subentity_node = make_init_entity_node(&ipd);
-    add_destructor_call(dip, subentity_node, have_complete_object,
-                        insert_location);
+    lower_destructor_dynamic_init(dip, &ipd, /*dtor_case=*/TRUE,
+                                  have_complete_object, insert_location);
   }  /* if */
 }  /* lower_dtor_init */
 
@@ -4035,7 +4089,7 @@ at *insert_location, and *insert_location is updated.
 void lower_destructor_code(a_scope_ptr scope)
 /*
 Insert destructor wrapper code around the user code in the indicated
-destructor scope.
+destructor scope, and also lower the user code.
 */
 {
   a_base_class_ptr       bcp;
@@ -4045,6 +4099,7 @@ destructor scope.
                          ctsp;
   a_constructor_init_ptr ctor_init;
   an_insert_location     insert_location, insert_location2;
+  a_statement_ptr        user_code_stmts, epilogue_block;
   a_statement_ptr        top_level_stmt, prev_stmt, label_stmt;
   an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
   an_expr_node_ptr       compare_node;
@@ -4097,19 +4152,15 @@ destructor scope.
      return;
   */
   int_type = integer_type((an_integer_kind)ik_int);
-  set_block_start_insert_location(scope->assoc_block, &insert_location);
-  /* The constructor_inits list contains a list of destructions.  Each
-     destruction is a default call supplied by the front end.  Every
-     base class and member that requires a destructor appears, in the
-     order (1) data members, (2) normal base classes, (3) virtual base
-     classes.  The order within each section is source declaration order. */
-  ctor_init = scope->variant.routine.constructor_inits;
-  scope->variant.routine.constructor_inits = NULL;
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
   complete_obj_param_var = this_param_var->next;
   class_type = dtor_routine->source_corresp.class_of_which_a_member;
   ctsp = class_type->variant.class_struct_union.extra_info;
+  /* Remember where the user code (if any) is. */
+  user_code_stmts = scope->assoc_block->variant.block.statements;
+  /* Generate prologue code at the start of the routine. */
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* If the current class has any virtual functions, generate code to
      set the virtual function table pointer in the current class. */
   primary_vtbl_var = ctsp->virtual_function_table_var;
@@ -4178,10 +4229,99 @@ destructor scope.
                                         &insert_location);
     }  /* if */
   }  /* for */
-  /* The user code in the destructor follows this point.  All returns in the
-     destructor have been put on the return_memo_list.  See if the first
-     of them (i.e., the last encountered in the routine) is a top-level
-     return. */
+  /* Now generate epilogue wrapper code to destroy members and base classes.
+     This is done early, and into a block off to the side, so that the
+     proper exception cleanup actions can be put on the cleanup list before
+     the user code is lowered.  Later, the epilogue block will be inserted
+     into the destructor at the right place. */
+  /* The constructor_inits list contains a list of destructions.  Each
+     destruction is a default call supplied by the front end.  Every
+     base class and member that requires a destructor appears, in the
+     order (1) data members, (2) normal base classes, (3) virtual base
+     classes.  The order within each section is source declaration order. */
+  ctor_init = scope->variant.routine.constructor_inits;
+  scope->variant.routine.constructor_inits = NULL;
+  if (ctor_init == NULL) {
+    /* No constructor_init entries, so not epilogue block is needed. */
+    epilogue_block = NULL;
+  } else {
+    /* Save the prologue insert location as the place to insert exception
+       handling initialization code. */
+    dtor_wrapper_prologue_insert_location = insert_location;
+    epilogue_block = alloc_statement((a_statement_kind)stmk_block);
+    set_block_start_insert_location(epilogue_block, &insert_location);
+    /* Generate a destructor call for each data member that appears on the
+       ctor_init list. */
+    for (; ctor_init != NULL &&
+                         ctor_init->kind == (a_constructor_init_kind)cik_field;
+         ctor_init = ctor_init->next) {
+      lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/TRUE,
+                      &insert_location);
+    }  /* for */
+    /* Generate a destructor call for each non-virtual direct base class
+       that appears on the ctor_init list. */
+    for (; ctor_init != NULL &&
+             ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
+         ctor_init = ctor_init->next) {
+      lower_dtor_init(ctor_init, this_param_var,
+                      /*have_complete_object=*/FALSE,
+                      &insert_location);
+    }  /* for */
+    /* If any items remain on the ctor_init list, they must be for virtual
+       base classes. */
+    if (ctor_init != NULL) {
+#if CHECKING
+      if (ctor_init->kind != (a_constructor_init_kind)cik_virtual_base_class) {
+        internal_error("lower_destructor_code: bad ctor_init item kind");
+      }  /* if */
+#endif /* CHECKING */
+      /* Put out code that tests whether or not the virtual base classes need
+         to be destroyed.  This is done by testing whether or not the
+         added parameter indicates we have a whole object. */
+      /* Note that we can do a "!= 0" test instead of a bit test because the
+         0x1 bit (for "free storage") would only be on for a whole object. */
+      /* Make an expression node pointing to the zero constant. */
+      zero_constant_node = node_for_integer_constant(0L,
+                                                     (an_integer_kind)ik_int);
+      /* Make an expression node for the parameter. */
+      complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
+      /* Make a node comparing the parameter against zero. */
+      complete_obj_param_node->next = zero_constant_node;
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                        int_type, complete_obj_param_node);
+      /* Make an "if" statement with a block statement under it:
+           if (param != 0) {}
+                            ^--- additional statements will be inserted.
+      */
+      insert_if_statement(compare_node, &insert_location, &insert_location2);
+      /* Destroy any virtual base classes on the ctor_init list. */
+      for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+        lower_dtor_init(ctor_init, this_param_var,
+                        /*have_complete_object=*/FALSE, &insert_location2);
+      }  /* for */
+      /* Note that the "if" created above effectively ends here. */
+    }  /* if */
+    if (exceptions_enabled) {
+      /* Set the exception cleanup region before the last destructor call
+         in the epilogue, if any. */
+      set_region_on_prev_destructor_wrapper_cleanup((a_cleanup_action_ptr)NULL,
+                                                    &insert_location);
+      /* Set the region number at the end of the prologue (i.e., just before
+         going into user code) to the first cleanup region for the wrapper
+         cleanup. */
+      assign_region_number_to_eh_curr_region(
+                                       (a_cleanup_region_number)0,
+                                       &dtor_wrapper_prologue_insert_location);
+    } /* if */
+  }  /* if */
+  /* Now lower the user code.  Note that the cleanup actions for the
+     exception cleanup for the wrapper code are already on the cleanup
+     list. */
+  lower_statement_list(user_code_stmts, &top_level_stmt);
+  /* Now figure out where to attach the epilogue code. */
+  /* All returns in the destructor have been put on the return_memo_list.
+     See if the first of them (i.e., the last encountered in the routine)
+     is a top-level return. */
   for (prev_stmt = NULL,
            top_level_stmt = scope->assoc_block->variant.block.statements;
        top_level_stmt != NULL;
@@ -4242,55 +4382,9 @@ destructor scope.
       free_return_memo_list(rmp);
     }  /* for */
   }  /* if */
-  /* Generate a destructor call for each data member that appears on the
-     ctor_init list. */
-  for (; ctor_init != NULL &&
-                         ctor_init->kind == (a_constructor_init_kind)cik_field;
-       ctor_init = ctor_init->next) {
-    lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/TRUE,
-                    &insert_location);
-  }  /* for */
-  /* Generate a destructor call for each non-virtual direct base class
-     that appears on the ctor_init list. */
-  for (; ctor_init != NULL &&
-             ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
-       ctor_init = ctor_init->next) {
-    lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/FALSE,
-                    &insert_location);
-  }  /* for */
-  /* If any items remain on the ctor_init list, they must be for virtual
-     base classes. */
-  if (ctor_init != NULL) {
-#if CHECKING
-    if (ctor_init->kind != (a_constructor_init_kind)cik_virtual_base_class) {
-      internal_error("lower_destructor_code: bad ctor_init item kind");
-    }  /* if */
-#endif /* CHECKING */
-    /* Put out code that tests whether or not the virtual base classes need
-       to be destroyed.  This is done by testing whether or not the
-       added parameter indicates we have a whole object. */
-    /* Note that we can do a "!= 0" test instead of a bit test because the
-       0x1 bit (for "free storage") would only be on for a whole object. */
-    /* Make an expression node pointing to the zero constant. */
-    zero_constant_node = node_for_integer_constant(0L,
-                                                   (an_integer_kind)ik_int);
-    /* Make an expression node for the parameter. */
-    complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
-    /* Make a node comparing the parameter against zero. */
-    complete_obj_param_node->next = zero_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
-                                      int_type, complete_obj_param_node);
-    /* Make an "if" statement with a block statement under it:
-         if (param != 0) {}
-                          ^--- additional statements will be inserted.
-    */
-    insert_if_statement(compare_node, &insert_location, &insert_location2);
-    /* Destroy any virtual base classes on the ctor_init list. */
-    for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-      lower_dtor_init(ctor_init, this_param_var,
-                      /*have_complete_object=*/FALSE, &insert_location2);
-    }  /* for */
-    /* Note that the "if" created above effectively ends here. */
+  /* Add the epilogue block created earlier, if there is one. */
+  if (epilogue_block != NULL) {
+    insert_statement(epilogue_block, &insert_location);
   }  /* if */
   /* Add code to free the storage if the "free" bit (0x1) is on in the
      added parameter:

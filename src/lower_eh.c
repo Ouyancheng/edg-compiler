@@ -53,6 +53,19 @@ static a_boolean
 			/* TRUE if there are any try blocks in the current
 			   function. */
 
+static a_constant_ptr
+		last_destructor_wrapper_cleanup_region_prev_region_constant;
+			/* If non-NULL, points at the previous region constant
+			   in the region table entry for the last region
+			   generated for a destructor wrapper cleanup.
+			   This is used to patch that value when another
+			   wrapper cleanup is processed. */
+static a_boolean
+		destructor_wrapper_region_set_fixup_needed;
+			/* If TRUE, there is an assignment to the current eh
+			   region number that needs to be emitted by calling
+			   set_region_on_prev_destructor_wrapper_cleanup.
+			   This is needed in destructor wrappers. */
 
 /*
 Pointer to the typeinfo struct type (used to represent runtime type
@@ -1411,7 +1424,13 @@ region.  context is not allowed to be NULL on entry, but cap may be.
      associated region. */
   for (;; context = context->parent, cap = context->cleanup_actions) {
     /* Ignore entries that are not regions. */
-    for (; cap != NULL && !cap->applies_on_exception_cleanup;
+    /* Also ignore destructor wrapper cleanup entries except the first
+       one (the destructor wrapper entries are on the list in region
+       number order, but you execute them from the beginning of that
+       sequence rather than the end). */
+    for (; cap != NULL &&
+           (!cap->applies_on_exception_cleanup ||
+            (cap->destructor_wrapper_cleanup && cap->next != NULL));
          cap = cap->next) {}
     if (cap != NULL) break;
     /* Stop at the function context.  There can be cleanup actions in the
@@ -1421,6 +1440,83 @@ region.  context is not allowed to be NULL on entry, but cap may be.
   }  /* for */
   return cleanup_region_number(cap);
 }  /* context_cleanup_region_number */
+
+
+static void assign_to_eh_curr_region(an_expr_node_ptr   node,
+                                     an_insert_location *insert_location)
+/*
+Insert an assignment to set __eh_curr_region to the given expression node.
+The assignment is inserted at *insert_location and *insert_location is
+updated.
+*/
+{
+  (void)insert_var_assignment_statement(make_eh_curr_region_var(),
+                                        (an_expr_operator_kind)eok_iassign,
+                                        node, insert_location);
+}  /* assign_to_eh_curr_region */
+
+
+void assign_region_number_to_eh_curr_region(
+                                     a_cleanup_region_number region_number,
+                                     an_insert_location      *insert_location)
+/*
+Insert an assignment to set __eh_curr_region to the given region number.
+The assignment is inserted at *insert_location and *insert_location is
+updated.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = node_for_integer_constant((long)region_number,
+                                   TARG_REGION_NUMBER_INT_KIND);
+  assign_to_eh_curr_region(node, insert_location);
+}  /* assign_to_eh_curr_region */
+
+
+void set_eh_curr_region(a_context_ptr      context,
+                        an_insert_location *insert_location)
+/*
+Generate code at *insert_location to set the global variable __eh_curr_region
+to indicate the destruction region that applies to the last cleanup action
+on the list attached to the indicated context.  If there are no cleanup
+actions in that context, set __eh_curr_region to NULL_EH_REGION_NUMBER.
+*/
+{
+  a_cleanup_region_number region_number;
+
+  /* Get the region number of the last cleanup action in the region. */
+  region_number = context_cleanup_region_number(context,
+                                                context->cleanup_actions);
+  /* Generate an assignment statement to set __eh_curr_region. */
+  assign_region_number_to_eh_curr_region(region_number, insert_location);
+}  /* set_eh_curr_region */
+
+
+void set_region_on_prev_destructor_wrapper_cleanup(
+                                         a_cleanup_action_ptr cap,
+                                         an_insert_location   *insert_location)
+/*
+Generate an assignment that sets the current region number at the previous
+destructor wrapper cleanup, to the region number of the cleanup action *cap.
+If cap is NULL, set the current region number to NULL_EH_REGION_NUMBER.
+Remember insert_location as the insert location for this assignment on the
+next call to this routine.
+*/
+{
+  static an_insert_location prev_insert_location;
+
+  if (destructor_wrapper_region_set_fixup_needed) {
+    /* This is not the first call to this routine in this function.  Set
+       the region number at the previous insert location. */
+    a_cleanup_region_number region_number = cleanup_region_number(cap);
+    /* Generate an assignment statement to set __eh_curr_region. */
+    assign_region_number_to_eh_curr_region(region_number,
+                                           &prev_insert_location);
+  }  /* if */
+  /* Remember the insert location for next time. */
+  prev_insert_location = *insert_location;
+  destructor_wrapper_region_set_fixup_needed = TRUE;
+}  /* set_region_on_prev_destructor_wrapper_cleanup */
 
 
 /*
@@ -1438,7 +1534,7 @@ Add an entry to the region table (which describes destructible objects)
 for the object described in cap.  Create the region table variable if
 necessary.  Also insert (at *insert_location) initialization code for
 the proper entry in the object address table and code to set
-eh_curr_region to the region number for the region created.  cap must
+__eh_curr_region to the region number for the region created.  cap must
 already be linked on the list of cleanup actions so its "next"
 pointer can be examined.
 */
@@ -1471,14 +1567,13 @@ pointer can be examined.
   /* Assign a region number to this entry. */
   cap->region_number = next_region_number++;
   /* Insert an assignment statement that sets the global variable
-     eh_curr_region to the region number for this entry. */
-  (void)insert_var_assignment_statement(
-                                  make_eh_curr_region_var(),
-                                  (an_expr_operator_kind)eok_iassign,
-                                  node_for_integer_constant(
-                                                  (long)cap->region_number,
-                                                  TARG_REGION_NUMBER_INT_KIND),
-                                  insert_location);
+     __eh_curr_region to the region number for this entry.  Don't do
+     this in destructor wrappers (the assignment gets done explicitly
+     at the right time). */
+  if (!cap->destructor_wrapper_cleanup) {
+    assign_region_number_to_eh_curr_region(cap->region_number,
+                                           insert_location);
+  }  /* if */
   /* Switch to the file scope memory region so the variable and initialization
      constants will be allocated there. */
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -1519,9 +1614,31 @@ pointer can be examined.
   set_unsigned_integer_constant_with_overflow_check(handle_con,
                                                     handle_number,
                                                     TARG_VAR_HANDLE_INT_KIND);
-  /* Make the previous region index number. */
-  prev_region_number = context_cleanup_region_number(curr_context, cap->next);
+  /* Make the previous region index number.  In the destructor wrapper
+     case the list runs backwards, so link the previous last entry to
+     this one and link this one to null for now. */
   prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  if (cap->destructor_wrapper_cleanup) {
+    if (last_destructor_wrapper_cleanup_region_prev_region_constant != NULL) {
+      /* Fix the "previous region" value in the last entry of the table so
+         it points at this new entry. */
+      set_unsigned_integer_value(
+                 &last_destructor_wrapper_cleanup_region_prev_region_constant->
+                                                         variant.integer_value,
+                 (unsigned long)cleanup_region_number(cap));
+    }  /* if */
+    /* Remember this constant so it can be fixed up if there is another
+       wrapper cleanup following this one. */
+    last_destructor_wrapper_cleanup_region_prev_region_constant = prev_con;
+    /* The previous region number on this new entry is null (for now; it
+       will be fixed up if there is another wrapper cleanup region after
+       this one). */
+    prev_region_number = max_region_number;
+  } else {
+    /* Normal case (not destructor wrapper). */
+    prev_region_number = context_cleanup_region_number(curr_context,
+                                                       cap->next);
+  }  /* if */
   set_unsigned_integer_constant(prev_con, prev_region_number,
                                 TARG_REGION_NUMBER_INT_KIND);
   /* Make the flags constant. */
@@ -1541,31 +1658,6 @@ pointer can be examined.
      entered. */
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* region_table_entry */
-
-
-void set_eh_curr_region(a_context_ptr      context,
-                        an_insert_location *insert_location)
-/*
-Generate code at *insert_location to set the global variable __eh_curr_region
-to indicate the destruction region that applies to the last cleanup action
-on the list attached to the indicated context.  If there are no cleanup
-actions in that context, set eh_curr_region to NULL_EH_REGION_NUMBER.
-*/
-{
-  a_cleanup_region_number region_number;
-
-  /* Get the region number of the last cleanup action in the region. */
-  region_number = context_cleanup_region_number(context,
-                                                context->cleanup_actions);
-  /* Generate an assignment statement to set curr_eh_region. */
-  (void)insert_var_assignment_statement(
-                                  make_eh_curr_region_var(),
-                                  (an_expr_operator_kind)eok_iassign,
-                                  node_for_integer_constant(
-                                                  (long)region_number,
-                                                  TARG_REGION_NUMBER_INT_KIND),
-                                  insert_location);
-}  /* set_eh_curr_region */
 
 
 static a_variable_ptr make_exception_type_spec_array_var(void)
@@ -1722,11 +1814,8 @@ inserted at *insert_location.
                     ehse_function_saved_region_number_field);
     /* Copy stack_frame.variant.function.saved_region_number into
        the global variable __eh_curr_region. */
-    (void)insert_var_assignment_statement(
-                                      make_eh_curr_region_var(),
-                                      (an_expr_operator_kind)eok_iassign,
-                                      stack_frame_function_saved_region_number,
-                                      insert_location);
+    assign_to_eh_curr_region(stack_frame_function_saved_region_number,
+                             insert_location);
   }  /* if */
   /* Add __curr_eh_stack_entry = local_frame.next; */
   local_frame_next = field_rvalue_selection_expr(var_lvalue_expr(stack_frame),
@@ -1901,7 +1990,7 @@ is given by "scope".  Called only if exceptions are enabled.
                                         array_var_lvalue_expr(array_table_var),
                                         &insert_location);
     }  /* if */
-    /* Generate an assignment to save eh_curr_region in the stack. */
+    /* Generate an assignment to save __eh_curr_region in the stack. */
     /* Make an expression for
        throw_frame.variant.function.saved_region_number */
     func_frame_function_saved_region_number = 
@@ -1918,7 +2007,7 @@ is given by "scope".  Called only if exceptions are enabled.
                                       var_rvalue_expr(
                                                     make_eh_curr_region_var()),
                                       &insert_location);
-    /* Reset eh_curr_region_var to max_region_number (all 1 bits). */
+    /* Reset __eh_curr_region to max_region_number (all 1 bits). */
     (void)insert_var_assignment_statement(eh_curr_region_var,
                                           (an_expr_operator_kind)eok_iassign,
                                           node_for_integer_constant(
@@ -2249,6 +2338,8 @@ IL lowering for exceptions.
   region_table_var = NULL;
   next_region_number = 0;
   any_try_blocks_in_function = FALSE;
+  last_destructor_wrapper_cleanup_region_prev_region_constant = NULL;
+  destructor_wrapper_region_set_fixup_needed = FALSE;
 }  /* eh_function_lower_init */
 
 
