@@ -2719,8 +2719,11 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
   /* Add the symbol to the overloaded function list. */
-  *overload_sym = add_symbol_to_overload_list(sym_ptr, other_sym,
-                                              (a_namespace_ptr)NULL);
+  *overload_sym = 
+          add_symbol_to_overload_list(sym_ptr, other_sym,
+                                      (other_sym->is_class_member ?
+                                            (a_namespace_ptr)NULL :
+                                            other_sym->parent.namespace_ptr));
   /* Return a pointer to the newly created symbol as well. */
   return sym_ptr;
 }  /* enter_overloaded_symbol */
