@@ -3946,6 +3946,33 @@ name.
      processing.
   */
   routine_type = skip_typerefs(routine->type);
+  /* See if the function is a class member function or a member of a
+     namespace. */
+  is_member = (routine->source_corresp.is_class_member ||
+               routine->source_corresp.parent.namespace_ptr != NULL);
+#if IA64_ABI
+  if (!suppress_prefix) add_str_to_mangled_name("_Z", mctl);
+  if (is_in_namespace_std(routine)) {
+    is_member = FALSE;
+    add_str_to_mangled_name("St", mctl);
+  } else if (is_member) {
+    /* Mark the start of the nested name. */
+    if (routine->source_corresp.is_class_member) {
+      add_prefix_for_local_class_if_necessary(
+                                     routine->source_corresp.parent.class_type,
+                                     mctl);
+    }  /* if */
+    add_to_mangled_name('N', mctl);
+    if (routine->source_corresp.is_class_member) {
+      /* Class member function.  Put out the qualifiers on the member function
+         type. */
+      mangled_encoding_for_function_qualifiers(routine_type, mctl);
+    }  /* if */
+    /* Put out the name of the class or namespace of which this function
+       is a member. */
+    mangled_parent_qualifier(&routine->source_corresp, mctl);
+  }  /* if */
+#endif /* IA64_ABI */
   /* See if the function should be mangled as a template.  In the modern C++
      language, template functions are mangled using the template arguments
      and the prototype for the function.  This allows overloading of function
@@ -4014,33 +4041,6 @@ name.
   if (routine->source_corresp.is_class_member) {
     ++num_operands;
   }  /* if */
-  /* See if the function is a class member function or a member of a
-     namespace. */
-  is_member = (routine->source_corresp.is_class_member ||
-               routine->source_corresp.parent.namespace_ptr != NULL);
-#if IA64_ABI
-  if (!suppress_prefix) add_str_to_mangled_name("_Z", mctl);
-  if (is_in_namespace_std(routine)) {
-    is_member = FALSE;
-    add_str_to_mangled_name("St", mctl);
-  } else if (is_member) {
-    /* Mark the start of the nested name. */
-    if (routine->source_corresp.is_class_member) {
-      add_prefix_for_local_class_if_necessary(
-                                     routine->source_corresp.parent.class_type,
-                                     mctl);
-    }  /* if */
-    add_to_mangled_name('N', mctl);
-    if (routine->source_corresp.is_class_member) {
-      /* Class member function.  Put out the qualifiers on the member function
-         type. */
-      mangled_encoding_for_function_qualifiers(routine_type, mctl);
-    }  /* if */
-    /* Put out the name of the class or namespace of which this function
-       is a member. */
-    mangled_parent_qualifier(&routine->source_corresp, mctl);
-  }  /* if */
-#endif /* !IA64_ABI */
   if (routine->special_kind == (a_special_function_kind)sfk_operator) {
     opname_kind = routine->variant.opname_kind;
   }  /* if */
