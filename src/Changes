@@ -1,5 +1,20 @@
 Version 2.30
 
+5/25/95  Incorrect diagnostic in invalid instantiation
+
+If a template parameter dependent base class attempts to use the
+derived class in a context that requires a complete type, a
+spurious "duplicate base class name" diagnostic may be issued.
+This has been corrected, resulting in an appropriate "incomplete
+type not allowed" diagnostic as indicated below.
+
+  template <class T> struct A {
+    friend void f(T){}  // T must be a complete type
+  };
+  template <class T> struct X : public A< X<T> > {};
+  X<int> x;
+
+
 5/25/95  "Delayed" definition of nested classes
 
 The definition of a nested class outside its enclosing class is now

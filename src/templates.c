@@ -476,28 +476,6 @@ declaration as a whole.
 
 #endif /* RECORD_TEMPLATES_IN_IL */
 
-static a_boolean instantiation_of_type_is_in_progress(a_type_ptr tp)
-/*
-Return TRUE if a class/struct/union scope for tp, which represents a template
-class, is currently on the scope stack.  If it is, that means an instantiation
-for tp is currently in progress.
-*/
-{
-  a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
-  a_boolean               found = FALSE;
-
-  /* Loop through the scope stack. */
-  for (; ssep != &scope_stack[0]; ssep--) {
-    if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-        ssep->il_scope->variant.assoc_type == tp) {
-      found = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return found;
-}  /* instantiation_in_progress */
-
-
 static void set_instantiation_required_for_template_class_members
 						(a_type_ptr	class_type)
 /*
@@ -666,7 +644,7 @@ might not be able to if the template itself has not yet been defined.
          instantiation is still be processed.  We simply ignore the
          instantiation request which will typically result in an incomplete
          type not allowed error to be issued by the caller. */
-    } else if (instantiation_of_type_is_in_progress(class_type)) {
+    } else if (cssp->instantiation_in_progress) {
       /* This particular template class (not just some other one based on
          the same template) is currently being instantiated. */
     } else if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
@@ -689,6 +667,7 @@ might not be able to if the template itself has not yet been defined.
          class template.  It will be decremented when the instantiation is
          complete. */
       ++(tssp->pending_instantiations);
+      cssp->instantiation_in_progress = TRUE;
 #if DEBUG
       if (debug_level >= 3) {
         fprintf(f_debug, "instantiating: ");
@@ -740,6 +719,7 @@ might not be able to if the template itself has not yet been defined.
       flush_past_token_cache_terminator();
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
+      cssp->instantiation_in_progress = FALSE;
       --(tssp->pending_instantiations);
       /* If this instantiation occurred in the midst of a class definition,
          the instantiation may be dependent upon nested types from the class.
@@ -793,15 +773,18 @@ encountered.
   a_token_cache                     *p_token_cache;
   a_symbol_ptr                      instance_sym;
   a_template_arg_ptr                template_arg_list;
+  a_class_symbol_supplement_ptr     cssp;
 
   db_enter(3, "instantiate_class_template");
   tssp = template_sym->variant.template_info;
   p_token_cache = &tssp->token_cache;
+  instance_sym = (a_symbol_ptr)prototype_type->source_corresp.assoc_info;
+  cssp = instance_sym->variant.class_struct_union.extra_info;
 #if CHECKING
   if (p_token_cache->first_token == NULL) {
     /* The template itself has not yet been defined. */
     internal_error("instantiate_class_template: bad cache");
-  } else if (instantiation_of_type_is_in_progress(prototype_type)) {
+  } else if (cssp->instantiation_in_progress) {
     /* The template is currently being instantiated. */
     internal_error("instantiate_class_template: already being instantiated");
   };
@@ -811,13 +794,13 @@ encountered.
     db_symbol(template_sym, "prototype instantiation of: ", 2);
   }  /* if */
 #endif /* DEBUG */
-  instance_sym = (a_symbol_ptr)prototype_type->source_corresp.assoc_info;
   instance_sym->variant.class_struct_union.extra_info->
                                           is_prototype_instantiation = TRUE;
   /* Save a pointer to the prototype instantiation. */
   tssp->variant.class_template.prototype_instantiation = instance_sym;
   template_arg_list = prototype_type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
+  cssp->instantiation_in_progress = TRUE;
   (void)push_template_instantiation_scope(tssp->declaration_scope,
 					  prototype_type,
 					  (a_routine_ptr)NULL, instance_sym,
@@ -839,6 +822,7 @@ encountered.
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
   pop_scope();
+  cssp->instantiation_in_progress = FALSE;
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */

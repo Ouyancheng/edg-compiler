@@ -685,6 +685,10 @@ typedef struct a_class_symbol_supplement {
   unsigned int	any_nonreal_base_classes:1;
 			/* For a prototype instantiation this is TRUE
 			   if any of its base classes are nonreal classes. */
+  unsigned int	instantiation_in_progress:1;
+			/* For an real instantiation, this is TRUE if the
+			   full instantiation is in the process of being
+			   generated. */
 } a_class_symbol_supplement;
 
 

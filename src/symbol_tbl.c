@@ -1425,6 +1425,7 @@ state.
         cssp->is_specific_template_def = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
+        cssp->instantiation_in_progress = FALSE;
       }
       break;
     case sk_variable:
