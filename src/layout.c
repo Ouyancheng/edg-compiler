@@ -273,10 +273,10 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   a_constant    constant;
   a_type_ptr    bit_field_type;
 
-  /* Bit field.  ANSI says the type of a bit-field must be int, unsigned int,
+  /* ANSI C says the type of a bit-field must be int, unsigned int,
      or signed int, but we also allow enums and integral types (see A.6.5.8
-     in the Common Extensions appendix).  pcc allows those same things, so
-     the ANSI and pcc behaviors are the same. */
+     in the Common Extensions appendix).  pcc and C++ (ARM 9.6) allow any
+     integral or enum type. */
   bit_field_type = skip_typerefs(base_type);
   if (!is_integral_type(bit_field_type)) {
     /* Error, not an integral type. */
@@ -290,9 +290,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     }  /* if */
     bit_field_type = integer_type((an_integer_kind)ik_int);
   } else {
-    /* Integral base type.  In strict ANSI mode, give a diagnostic about a
+    /* Integral base type.  In strict ANSI C mode, give a diagnostic about a
        nonstandard base type (anything other than int, unsigned int, and
-       signed int).  In C++, however, any integer type is allowed (ARM 9.6). */
+       signed int). */
     if (C_dialect != C_dialect_cplusplus && strict_ansi_mode) {
       if (bit_field_type->variant.integer.enum_type ||
           (bit_field_type->variant.integer.int_kind !=
@@ -303,6 +303,8 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Note that if the base type was not integral it has been replaced by
+     "int" by this point. */
   /* Advance past the colon. */
   (void)get_token();
   /* Scan the integral size in bits of the bit-field. */
@@ -345,35 +347,43 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
            type that is unnamed (an extension). */
         bit_field_size = UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE;
       }  /* if */
-    } else if (bit_field_type->variant.integer.enum_type) {
-      /* The integral type is an enum type.  Give a warning if any of the
-         enumeration's constants will not fit in the bit field, and determine
-         whether the bit field should be signed or unsigned. */
-      check_enum_type_for_bit_field(bit_field_type, bit_field_size,
-                                    &is_signed);
-    } else if (bit_field_type->variant.integer.explicitly_signed) {
-      /* The integral type was explicitly signed in the source, e.g.,
-         "signed int" instead of just "int".  (This information comes
-         from the type entry itself.)  That forces the bit field to
-         be signed.  The integral type already has the right kind and
-         signedness. */
-      is_signed = TRUE;
-      /* Give a warning for an explicitly signed one-bit field; ANSI C
-         allows it, but it's strange. */
-      if (bit_field_size == 1) warning(ec_signed_one_bit_field);
-    } else if (bit_field_type->variant.integer.int_kind ==
-                                                     (an_integer_kind)ik_int) {
-      /* The integral type is a "plain" int, i.e., it's int, it's not
-         explicitly signed, and it's not an enum type.  This is converted
-         to the target preference with regard to signedness.  A one-bit field
-         is probably not intended to be signed, so make it unsigned. */
-      is_signed = TRUE;
-      if (bit_field_size == 1 || TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) {
-        is_signed = FALSE;
-        bit_field_type = integer_type((an_integer_kind)ik_unsigned_int);
-      }  /* if */
     }  /* if */
   }  /* if */
+  /* Determine the signedness of the bit field. */
+  if (bit_field_type->variant.integer.enum_type) {
+    /* The integral type is an enum type.  Give a warning if any of the
+       enumeration's constants will not fit in the bit field, and determine
+       whether the bit field should be signed or unsigned. */
+    check_enum_type_for_bit_field(bit_field_type, bit_field_size, &is_signed);
+  } else if (bit_field_type->variant.integer.explicitly_signed) {
+    /* The integral type was explicitly signed in the source, e.g.,
+       "signed int" instead of just "int".  (This information comes
+       from the type entry itself.)  That forces the bit field to
+       be signed.  The integral type already has the right kind and
+       signedness.  Note that this won't happen in pcc mode because "signed"
+       is not part of the pcc language. */
+    is_signed = TRUE;
+  } else if (bit_field_type->variant.integer.int_kind ==
+                                                     (an_integer_kind)ik_int) {
+    /* The integral type is a "plain" int, i.e., it's int, it's not
+       explicitly signed, and it's not an enum type.  This is converted
+       to the target preference with regard to signedness.  A one-bit field
+       is probably not intended to be signed, so make it unsigned. */
+    is_signed = TRUE;
+    if (bit_field_size == 1 || TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) {
+      is_signed = FALSE;
+      bit_field_type = integer_type((an_integer_kind)ik_unsigned_int);
+    }  /* if */
+  } else {
+    /* Determine the signedness of the bit field from the signedness
+       of the base type. */
+    is_signed =
+             int_kind_is_signed[(int)bit_field_type->variant.integer.int_kind];
+  }  /* if */
+  /* Give a warning for a signed one-bit field; ANSI C allows it, but it's
+     strange. */
+  if (is_signed && bit_field_size == 1) warning(ec_signed_one_bit_field);
+  /* Set base_type to bit_field_type with the proper type qualifiers. */
   if (bit_field_type == skip_typerefs(base_type)) {
     /* The original type, base_type, has turned out to be correct after all.
        Use it directly to avoid wasting the type qualifiers, if any. */
