@@ -796,34 +796,37 @@ is called.
 
   check_assertion_str(in_file_scope(ptr) && in_secondary_trans_unit(ptr),
                       "f_mark_to_merge: bad input pointer");
-  /* Set a flag to request merging.  The IL lowering flag is borrowed
-     for this process because IL lowering is not done on secondary
-     translation units. */
-  il_entry_prefix_of(ptr).il_lowering_flag = TRUE;
-  /* Get the copy address set if it is not set already. */
-  copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/TRUE);
-  primary = trans_unit_copy_address_of(ptr);
-  check_assertion_str(primary != NULL,
-                      "f_mark_to_merge: copy address is not set");
-  check_assertion_str(!in_secondary_trans_unit(primary),
-                      "f_mark_to_merge: copy address is in sec trans unit");
-  /* Allocate space for a copy in the secondary translation unit IL
-     so we will have a version with all the pointers remapped appropriately.
-     The original entry points to the copy, which points (via its
-     copy address pointer) to the primary IL. */
-  check_assertion(!is_string_entry_kind(kind));
-  copy = alloc_il(sizeof_il_entry[(int)kind]);
-  trans_unit_copy_address_of(ptr) = copy;
-  trans_unit_copy_address_of(copy) = primary;
-  /* Set the flag to request copying. */
-  set_entry_needs_copy_flag(ptr);
+  /* If the flag is set already, do nothing. */
+  if (!il_entry_prefix_of(ptr).il_lowering_flag) {
+    /* Set a flag to request merging.  The IL lowering flag is borrowed
+       for this process because IL lowering is not done on secondary
+       translation units. */
+    il_entry_prefix_of(ptr).il_lowering_flag = TRUE;
+    /* Get the copy address set if it is not set already. */
+    copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/TRUE);
+    primary = trans_unit_copy_address_of(ptr);
+    check_assertion_str(primary != NULL,
+                        "f_mark_to_merge: copy address is not set");
+    check_assertion_str(!in_secondary_trans_unit(primary),
+                        "f_mark_to_merge: copy address is in sec trans unit");
+    /* Allocate space for a copy in the secondary translation unit IL
+       so we will have a version with all the pointers remapped appropriately.
+       The original entry points to the copy, which points (via its
+       copy address pointer) to the primary IL. */
+    check_assertion(!is_string_entry_kind(kind));
+    copy = alloc_il(sizeof_il_entry[(int)kind]);
+    trans_unit_copy_address_of(ptr) = copy;
+    trans_unit_copy_address_of(copy) = primary;
+    /* Set the flag to request copying. */
+    set_entry_needs_copy_flag(ptr);
 #if DEBUG
-  if (db_trace("trans_copy", ptr, kind)) {
-    fprintf(f_debug, "assigned addr for copy in secondary at %lx:\n",
-                     (unsigned long)copy);
-    db_entity_info(ptr, kind);
-  }  /* if */
+    if (db_trace("trans_copy", ptr, kind)) {
+      fprintf(f_debug, "assigned addr for copy in secondary at %lx:\n",
+                       (unsigned long)copy);
+      db_entity_info(ptr, kind);
+    }  /* if */
 #endif /* DEBUG */
+  }  /* if */
 }  /* f_mark_to_merge */
 
 /*
@@ -1873,7 +1876,7 @@ end_of_variable_list_add:;
       /* Add the dynamic initializations of "scope" to the end of the
          dynamic initializations list of "primary scope". */
       a_dynamic_init_ptr copied_inits =
-               (a_dynamic_init_ptr)canonical_il_entry_of(scope->dynamic_inits);
+          (a_dynamic_init_ptr)transitive_copy_address_of(scope->dynamic_inits);
       a_dynamic_init_ptr last_dyn_init = primary_scope->dynamic_inits;
       if (last_dyn_init == NULL) {
         primary_scope->dynamic_inits = copied_inits;
@@ -2138,7 +2141,7 @@ into the primary translation unit il_header.
        that it is now defined in the primary translation unit. */
     check_assertion(translation_units->il_header.main_routine == NULL);
     translation_units->il_header.main_routine =
-                  (a_routine_ptr)canonical_il_entry_of(il_header.main_routine);
+             (a_routine_ptr)transitive_copy_address_of(il_header.main_routine);
   }  /* if */
 }  /* merge_il_headers */
 
@@ -2166,7 +2169,7 @@ classes, where it points to the primary IL copy.  Update the
     a_boolean     overwrite = (!local_member_function &&
                                entry_to_be_merged(routine));
     a_routine_ptr primary_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
+                            (a_routine_ptr)transitive_copy_address_of(routine);
     if (overwrite && primary_routine->on_inline_function_list) {
       /* There is already a list entry for the routine in the primary IL. */
     } else {
@@ -2186,7 +2189,7 @@ of the routine in the secondary translation unit, except for member
 functions of local classes, where it points to the primary IL copy.
 */
 {
-  a_routine_ptr primary_rout = (a_routine_ptr)canonical_il_entry_of(rout);
+  a_routine_ptr primary_rout = (a_routine_ptr)transitive_copy_address_of(rout);
 
   check_assertion(!in_secondary_trans_unit(primary_rout) &&
                   primary_rout->source_corresp.
@@ -2294,7 +2297,8 @@ two-pass sweep.
        static data members. */
     a_variable_ptr var;
     for (var = scope->variables; var != NULL; var = var->next) {
-      a_variable_ptr corresp_var = (a_variable_ptr)canonical_il_entry_of(var);
+      a_variable_ptr corresp_var =
+                               (a_variable_ptr)transitive_copy_address_of(var);
       set_variable_instantiation_needed_bit_number(corresp_var);
     }  /* for */
   }  /* if */
