@@ -2096,6 +2096,10 @@ typedef struct a_constant {
                         /* Used for long, int, short, and char, in both
                            signed and unsigned forms, and for enumerated
                            type constants. */
+#if UPC_EXTENSIONS_ALLOWED
+			/* When kind == ck_upc_threads, integer_value is
+			   the multiple of THREADS to be represented. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* Used for all INTEGER and LOGICAL constants. */

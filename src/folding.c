@@ -1546,8 +1546,7 @@ to the constant is maintained, by adding a cast if necessary.
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode &&
-      ((constant->kind == (a_constant_repr_kind)ck_upc_threads &&
-        new_type->kind != (a_type_kind)tk_integer) ||
+      (constant->kind == (a_constant_repr_kind)ck_upc_threads &&
        constant->kind == (a_constant_repr_kind)ck_upc_mythread)) {
     /* THREADS and MYTHREAD are not compile-time constants and should
        therefore not be folded. */

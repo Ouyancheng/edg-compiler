@@ -6991,17 +6991,17 @@ the appropriate value instead.
     constant = alloc_constant(kind);
     constant->type = integer_type((an_integer_kind)ik_int);
     if (kind == (a_constant_repr_kind)ck_upc_threads) {
-      /* Set the value to "1" so we can declared arrays of size THREADS. */
+      /* ck_upc_threads represents an integer multiple of the dynamic THREADS
+         value.  Since THREADS == 1*THREADS, we set the integer_value variant
+         field to one. */
       set_integer_value(&constant->variant.integer_value,
                         (a_host_large_integer)1);
-    }  /* if */
-    if (is_error_type(constant->type)) {
-      make_error_operand(operand);
     } else {
-      clear_operand((an_operand_kind)ok_constant, operand);
-      copy_constant(constant, &operand->variant.constant);
-      operand->type = constant->type;
+      /* ck_upc_mythread has no variant fields. */
     }  /* if */
+    clear_operand((an_operand_kind)ok_constant, operand);
+    copy_constant(constant, &operand->variant.constant);
+    operand->type = constant->type;
     operand->state = (an_operand_state)os_rvalue;
     set_operand_position_to_pos_curr_token(operand);
   }  /* if */
