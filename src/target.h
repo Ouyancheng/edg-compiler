@@ -743,6 +743,16 @@ EXTERN a_targ_alignment
 			/* The maximum value which a "pack alignment" value
 			   may have.  Initialized to the default value but
 			   reconfigurable. */
+
+EXTERN a_targ_alignment
+		targ_maximum_intrinsic_alignment
+#if VAR_INITIALIZERS
+                                            = TARG_MAXIMUM_INTRINSIC_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* The maximum alignment value which the target can
+			   take advantage of.  Initialized to the default
+			   value but reconfigurable. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean

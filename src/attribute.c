@@ -548,8 +548,8 @@ function returns the address of the last attribute.
 #if USER_CONTROL_OF_STRUCT_PACKING
           case ak_aligned:
             /* If there is no argument to the "aligned" attribute, then
-               the maximum alignment used on the target is implied. */
-            attribute->variant.alignment = targ_maximum_pack_alignment;
+               the maximum alignment useful on the target is implied. */
+            attribute->variant.alignment = targ_maximum_intrinsic_alignment;
             break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
           default:

@@ -1495,7 +1495,7 @@ processing.
 Set the minimum and maximum values which a "pack alignment" value may have.
 This is an alignment that is the maximum alignment for a nonstatic data
 member of a class; it can force a member to be aligned at a lesser alignment
-than its type type would normally require.
+than its type would normally require.
 */
 #ifndef TARG_MINIMUM_PACK_ALIGNMENT
 #define TARG_MINIMUM_PACK_ALIGNMENT 1
@@ -1511,6 +1511,17 @@ than its type type would normally require.
 			/* Default value, used to initialize global variable
 			   targ_maximum_pack_alignment. */
 #endif /* !defined(TARG_MAXIMUM_PACK_ALIGNMENT) */
+/*
+The maximum alignment the target can take advantage of.  (On some platforms
+very high pack alignments are allowed, but they do not provide any advantage
+in terms of memory bandwidth.)  This value is used in GNU C mode to determine
+the alignment of entities with an "aligned" attribute without arguments.
+This is the default value used to initialize global variable
+targ_maximum_intrinsic_alignment.
+*/
+#ifndef TARG_MAXIMUM_INTRINSIC_ALIGNMENT
+#define TARG_MAXIMUM_INTRINSIC_ALIGNMENT 8
+#endif /* !defined(TARG_MAXIMUM_INTRINSIC_ALIGNMENT) */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
