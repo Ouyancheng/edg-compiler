@@ -188,6 +188,7 @@ Overloaded Function".
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
           if (has_matching_template_function(sym, dest_underlying_type,
+                                             (a_template_arg_ptr)NULL,
                                              /*is_decl_context=*/FALSE)) {
             /* This template can generate an instance of the appropriate
                type.  Add the matching template to a list of matching
@@ -209,6 +210,7 @@ Overloaded Function".
                            &templ_arg_list, &ambiguous);
         /* Generate a partial instantiation of the matching instance. */
         match_sym = matching_template_function(sym, dest_underlying_type,
+                                               (a_template_arg_ptr)NULL,
                                                /*is_decl_context=*/FALSE);
         *match_level = aml_exact;
         number_of_matches = ambiguous ? 2 : 1;

@@ -2656,6 +2656,75 @@ Return the template nesting depth of the specified template parameter.
 }  /* nesting_depth_of_template_param */
 
 
+static a_template_arg_ptr create_initial_template_arg_list(
+			a_template_param_ptr      templ_param_list,
+			a_template_arg_ptr        partial_arg_list)
+/*
+Create a template argument list that corresponds in kind with the template
+parameter list specified by templ_param_list.  Each template argument in the
+list that is created initially contains a NULL type or constant pointer.
+If partial_arg_list is non-NULL it will point to an explicitly specified
+template argument list.  When partial_arg_list is provided, it is used to
+supply the values for the specified arguments.  This is only done if the
+arguments specified by partial_arg_list match in kind the parameter list
+that was specified (i.e., type parameters correspond with type arguments).
+If the supplied partial_arg_list does not match the parameter list, no
+new argument list is created and a NULL pointer is returned.
+*/
+{
+  a_template_arg_ptr	tap;
+  a_template_param_ptr	tpp;
+  a_boolean		arg_kind_mismatch = FALSE;
+  a_template_arg_ptr	new_list = NULL;
+
+  if (partial_arg_list != NULL) {
+    for (tpp = templ_param_list, tap = partial_arg_list;
+         tpp != NULL && tap != NULL; tpp = tpp->next, tap = tap->next) {
+      a_boolean			is_type_param;
+      is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
+      if (is_type_param != tap->is_type) {
+        arg_kind_mismatch = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (!arg_kind_mismatch) {
+    a_template_arg_ptr		prev_tap = NULL;
+    a_template_arg_ptr		specified_tap;
+    /* Loop through the template parameter list and create a template
+       argument entry of the appropriate type for each parameter. */
+    for (tpp = templ_param_list, specified_tap = partial_arg_list;
+         tpp != NULL;
+         tpp = tpp->next,
+           specified_tap = specified_tap == NULL
+                                              ? NULL : specified_tap->next) {
+      a_template_arg_ptr	tap;
+      a_boolean			is_type_param;
+      is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
+      tap = alloc_template_arg(is_type_param);
+      if (specified_tap != NULL) {
+        /* An argument value was supplied.  Copy it to the newly created
+           template argument. */
+        if (is_type_param) {
+          tap->variant.type = specified_tap->variant.type;
+        } else {
+          tap->variant.constant = specified_tap->variant.constant;
+        }  /* if */
+      }  /* if */
+      if (prev_tap == NULL) {
+        /* First iteration -- the start of the list. */
+        new_list = tap;
+      } else {
+        /* Add to the end of the list. */
+        prev_tap->next = tap;
+      }  /* if */
+      prev_tap = tap;
+    }  /* for */
+  }  /* if */
+  return new_list;
+}  /* create_initial_template_arg_list */
+
+
 static a_template_arg_ptr get_template_arg_by_list_pos(
                                     a_template_param_ptr      templ_param_list,
                                     a_template_arg_ptr        *templ_arg_list,
@@ -2674,24 +2743,8 @@ are deduced.
   if (*templ_arg_list == NULL) {
     /* The template argument list does not exist yet.  Create an
        argument list with NULL type/constant pointers. */
-    a_template_param_ptr	tpp;
-    a_template_arg_ptr		prev_tap = NULL;
-    /* Loop through the template parameter list and create a template
-       argument entry of the appropriate type for each parameter. */
-    for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
-      a_template_arg_ptr	tap;
-      a_boolean			is_type_param;
-      is_type_param = tpp->param_symbol->kind == (a_symbol_kind)sk_type;
-      tap = alloc_template_arg(is_type_param);
-      if (prev_tap == NULL) {
-        /* First iteration -- the start of the list. */
-        *templ_arg_list = tap;
-      } else {
-        /* Add to the end of the list. */
-        prev_tap->next = tap;
-      }  /* if */
-      prev_tap = tap;
-    }  /* for */
+    *templ_arg_list = create_initial_template_arg_list(
+				templ_param_list, (a_template_arg_ptr)NULL);
   }  /* if */
   /* For the nth template parameter find the nth template argument. */
   for (tap = *templ_arg_list; pos > 1; pos--, tap = tap->next);
@@ -4301,19 +4354,22 @@ type based on the template argument list and the template parameter list
 }  /* make_template_function */
 
 
-a_boolean is_match_for_function_template(a_symbol_ptr         templ_sym,
-                                         a_type_ptr           curr_type,
-                                         a_template_arg_ptr   *templ_arg_list,
-                                         a_symbol_ptr         *instance_sym,
-                                         a_template_param_ptr templ_param_list,
-					 a_boolean	      is_decl_context)
+a_boolean is_match_for_function_template(
+				a_symbol_ptr		templ_sym,
+				a_type_ptr		curr_type,
+				a_template_arg_ptr	*templ_arg_list,
+				a_symbol_ptr		*instance_sym,
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	explicit_arg_list,
+				a_boolean		is_decl_context)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If such a template
 function exists, return its symbol.  Otherwise, try to generate a template
 arg list to serve as the basis for creating one.  If either a symbol can
 be found or a template arg list can be created, return TRUE; otherwise,
-return FALSE.
+return FALSE.  explicit_arg_list is non-NULL if an explicitly specified
+template argument list was provided.
 
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
@@ -4338,7 +4394,6 @@ type should not be used in the matching process.
     internal_error("is_match_for_function_template: expected routine type");
   }  /* if */
 #endif /* CHECKING */
-  *templ_arg_list = NULL;
   *instance_sym = NULL;
   /* sym is the symbol for a template function to be returned.  Returning NULL
      means no template function could be found or created. */
@@ -4370,6 +4425,16 @@ type should not be used in the matching process.
     /* One routine has an ellipsis argument and the other does not.
        This cannot be a match. */
     goto done;
+  }  /* if */
+  *templ_arg_list = NULL;
+  if (explicit_arg_list != NULL) {
+    /* If an explicit template argument list was specified, initialize the
+       new template argument list with the specified list.  If the new
+       list that is returned is NULL, the explicit argument list didn't
+       match the template parameter list, so no further checking of this
+       template should be done. */
+    *templ_arg_list = create_initial_template_arg_list(templ_param_list,
+                                                       explicit_arg_list);
   }  /* if */
   /* Make a pass over the entries representing instantiations of the function
      template to see if any of them match the current type signature. */
@@ -4436,6 +4501,7 @@ done:
 
 a_symbol_ptr matching_template_function(a_symbol_ptr        templ_sym,
                                         a_type_ptr          curr_type,
+				 	a_template_arg_ptr  explicit_arg_list,
 					a_boolean	    is_decl_context)
 /*
 Search for a template function based on the function template represented
@@ -4446,7 +4512,9 @@ return a pointer to the symbol; otherwise, return NULL.
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
 function has an implicit this parameter type, so the implicit this
-type should not be used in the matching process.
+type should not be used in the matching process.  explicit_arg_list is
+non-NULL if an explicitly specified template argument list was provided.
+
 */
 {
   a_symbol_ptr          		sym;
@@ -4465,7 +4533,9 @@ type should not be used in the matching process.
   templ_param_list = tssp->cache.decl_info->parameters;
   if (is_match_for_function_template(templ_sym, curr_type,
                                      &templ_arg_list, &sym,
-                                     templ_param_list, is_decl_context)) {
+                                     templ_param_list,
+				     explicit_arg_list,
+                                     is_decl_context)) {
     if (sym != NULL) {
       /* A match has been found -- just return a pointer to it. */
     } else {
@@ -4480,6 +4550,7 @@ type should not be used in the matching process.
 
 a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,
                                          a_type_ptr         curr_type,
+					 a_template_arg_ptr explicit_arg_list,
 		  		         a_boolean	    is_decl_context)
 /*
 Search for a template function based on the function template represented
@@ -4490,7 +4561,8 @@ that an actual instance is not generated if one does not already exist.
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
 function has an implicit this parameter type, so the implicit this
-type should not be used in the matching process.
+type should not be used in the matching process.  explicit_arg_list is
+non-NULL if an explicitly specified template argument list was provided.
 */
 {
   a_symbol_ptr          		sym;
@@ -4509,7 +4581,9 @@ type should not be used in the matching process.
   templ_param_list = tssp->cache.decl_info->parameters;
   result = is_match_for_function_template(templ_sym, curr_type,
                                           &templ_arg_list, &sym,
-                                          templ_param_list, is_decl_context);
+                                          templ_param_list,
+					  explicit_arg_list,
+					  is_decl_context);
   /* Free any template arguments that may have been created. */
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   return result;
@@ -4552,6 +4626,7 @@ the function instantiation entry and set all the pointers.
     tp = skip_typerefs(rout_sym->variant.routine.ptr->type);
     if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym,
                                        templ_param_list,
+                                       (a_template_arg_ptr)NULL,
 				       /*is_decl_context=*/TRUE)) {
       /* A match has been found. */
 #if CHECKING
@@ -8468,12 +8543,18 @@ any non-empty template parameter lists that were scanned.
 }  /* template_declaration */
 
 
-a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
-                                             a_type_ptr        type)
+a_symbol_ptr find_matching_template_instance(
+			a_symbol_ptr		sym,
+			a_type_ptr		type,
+			a_template_arg_ptr	explicit_arg_list,
+			a_boolean		explicit_arg_list_present)
 /*
 sym is some kind of function symbol.  type is the type declared for a
-function template instance;  Return in the symbol for the instance, or
-NULL if no instance is found.
+function template instance.  explicit_arg_list is an explicitly specified
+template argument list, which may be NULL.  explicit_arg_list_present
+is TRUE if an explicit argument list was provided, even an empty one
+(in which case explicit_arg_list would be NULL).  Return in the symbol
+for the instance, or NULL if no instance is found.
 */
 {
   a_symbol_ptr  		orig_sym;
@@ -8483,9 +8564,12 @@ NULL if no instance is found.
   a_partial_order_candidate_ptr	candidates_list = NULL;
 
   orig_sym = sym;
-  if (sym->is_class_member) {
+  if (sym->is_class_member && explicit_arg_list_present == NULL) {
     /* A member function symbol, find the member function that matches
-       the specified type. */
+       the specified type.  This is used to find a normal member function
+       of a template class.  Skip this step when an explicit template
+       argument list has been specified, as this implies that the entity
+       to be found must be a template. */
     new_sym = member_function_redecl_sym(sym, type);
     if (new_sym != NULL) any_found = TRUE;
   }  /* if */
@@ -8507,7 +8591,7 @@ NULL if no instance is found.
          that matches the type we are looking for. */
       if (sym->kind != (a_symbol_kind)sk_function_template) continue;
       any_templates = TRUE;
-      if (has_matching_template_function(sym, type,
+      if (has_matching_template_function(sym, type, explicit_arg_list,
                                          /*is_decl_context=*/TRUE)) {
         /* This template can generate an instance of the appropriate
            type.  Add the matching template to a list of matching
@@ -8532,7 +8616,7 @@ NULL if no instance is found.
         sym_error(ec_ambiguous_overloaded_function, orig_sym);
         new_sym = NULL;
       } else {
-        new_sym = matching_template_function(sym, type,
+        new_sym = matching_template_function(sym, type, explicit_arg_list,
                                              /*is_decl_context=*/TRUE);
       }  /* if */
     }  /* for */
@@ -8554,8 +8638,10 @@ NULL if no instance is found.
 }  /* find_matching_template_instance */
 
 
-a_boolean has_matching_template_instance(a_symbol_ptr      sym,
-                                         a_type_ptr        type)
+a_boolean has_matching_template_instance(
+				a_symbol_ptr		sym,
+                                a_type_ptr		type,
+				a_template_arg_ptr	explicit_arg_list)
 /*
 sym is some kind of function symbol.  type is the type declared for a
 function template instance;  Return TRUE if one or more function template
@@ -8586,6 +8672,7 @@ by type.
     /* Look for a match on the list of instantiations. */
     if (lookup_sym != NULL) {
       found = has_matching_template_function(lookup_sym, type,
+                                             explicit_arg_list,
                                              /*is_decl_context=*/TRUE);
       if (found) break;
     }  /* for */
@@ -8795,7 +8882,9 @@ that follows.
         reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
       if (is_function_type(type) && is_function_or_template_symbol(sym)) {
-        sym = find_matching_template_instance(sym, type);
+        sym = find_matching_template_instance(
+                                        sym, type, locator.template_arg_list,
+                                        (a_boolean)locator.is_template_id);
         if (sym == NULL) {
           /* No match was found and an error was issued. */
         } else if (sym->variant.routine.instance_ptr == NULL) {
@@ -10867,7 +10956,9 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       /* The symbol found is a function, and the type returned from declarator
          is a function type.  Match this declaration with a previous
          declaration or a template instance. */
-      new_sym = find_matching_template_instance(sym, type);
+      new_sym = find_matching_template_instance(
+                                          sym, type, locator.template_arg_list,
+                                          (a_boolean)locator.is_template_id);
       if (new_sym != NULL) {
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,

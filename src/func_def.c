@@ -1056,7 +1056,8 @@ on a prior declaration.
          If the type matches an instance of a member function template,
          then this is probably an attempt to define a function using
          the old specialization syntax.  Issue an error to that effect. */
-      if (has_matching_template_instance(orig_sym, type_ptr)) {
+      if (has_matching_template_instance(orig_sym, type_ptr,
+                                         locator->template_arg_list)) {
         pos_sy_error(ec_old_specialization_not_allowed,
                      &locator->source_position, orig_sym);
       } else {

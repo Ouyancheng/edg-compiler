@@ -6685,7 +6685,6 @@ a_token_kind next_token_with_seq_number(a_token_sequence_number *seq)
 Return the next token after the current one while leaving the current
 token unchanged.  This is used in recursive-descent parsing routines
 to peek ahead at the next token and decide on a path through the syntax.
-This routine cannot be used when fetching raw preprocessing tokens.
 If seq is not NULL, return the token sequence number of the next token
 in the location pointed to by seq.
 */
@@ -7294,13 +7293,18 @@ Flush tokens in an argument list.
 }  /* flush_to_end_of_arg_list */
 
 
-static
-a_template_arg_ptr scan_nonreal_member_template_arg_list(void)
+static a_template_arg_ptr scan_unknown_template_arg_list(void)
 /*
-The template is a member of a proxy or nonreal class.  This occurs
-as a result of constructs like T::A<int>.  In such cases there is
-no template parameter list to use as a basis for the template
-arguments that are scanned.
+Scan a template argument list associated with an unknown template
+parameter list.  This is done when scanning the template arguments
+for an explicitly specified function template argument list, when
+the specific template whose arguments are being scanned may not be
+known yet.
+
+It is also done when the template is a member of a proxy or nonreal class.
+This occurs as a result of constructs like T::A<int>.  In such cases there is
+no template parameter list to use as a basis for the template arguments that
+are scanned.
 
 For each argument, determine whether it is a type or nontype.  This is
 done using the disambiguation routines.
@@ -7340,7 +7344,7 @@ done using the disambiguation routines.
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
   return arg_list;
-}  /* scan_nonreal_member_template_arg_list */
+}  /* scan_unknown_template_arg_list */
 
 
 static
@@ -7480,10 +7484,39 @@ this routine.  Its value is unchanged if no errors are detected.
 }  /* scan_template_argument_list */
 
 
-a_symbol_ptr coalesce_template_class_reference
-			(a_symbol_ptr		   template_sym,
-			 an_identifier_options_set options,
-			 a_boolean		   *err)
+static void invalid_end_of_template_arg_list(void)
+/*
+This routine is called when the end of a template argument list is reached
+but the current token is not ">".  The main purpose of this routine is
+to more gracefully handle the case when a ">>" appears where a ">" was
+expected, and there is currently more than one template argument list in
+the process of being scanned.
+*/
+{
+  if (curr_token == tok_shift_right &&
+      scope_stack[depth_scope_stack].pending_templ_arg_lists > 1) {
+    /* A ">>" that appears to have been intended to close two template
+       argument lists.  Issue a special diagnostic for this case and insert a
+       ">" into the token stream that will close the outer template
+       argument list. */
+    a_token_cache 	cache;
+    error(ec_exp_gt_not_shift_right);
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    curr_token = tok_gt;
+    cache_curr_token(&cache);
+    rescan_cached_tokens(&cache);
+  } else {
+    /* There are not two template argument lists pending.  Simply issue an
+       "expected '>'" error. */
+    syntax_error(ec_exp_gt);
+  }  /* if */
+}  /* invalid_end_of_template_arg_list */
+
+
+a_symbol_ptr coalesce_template_class_reference(
+			a_symbol_ptr			template_sym,
+			an_identifier_options_set	options,
+			a_boolean			*err)
 /*
 The current identifier is a class template name.  Look for an optional
 template argument list.  If an argument list is present, scan the argument
@@ -7668,7 +7701,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        have been supplied.  This kind of scan is also done when there
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
-    arg_list = scan_nonreal_member_template_arg_list();
+    arg_list = scan_unknown_template_arg_list();
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -7678,23 +7711,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
   set_err_pos_to_curr_token();
   if (curr_token != tok_gt) {
     if (!any_errors) {
-      if (curr_token == tok_shift_right &&
-          scope_stack[depth_scope_stack].pending_templ_arg_lists > 1) {
-        /* Special error handling for the case when a ">>" appears where a
-           ">" was expected, and there is currently more than one template
-           argument list in the process of being scanned in the current
-           scope.  Issue a special diagnostic for this case and insert a
-           ">" into the token stream that will close the outer template
-           argument list. */
-        a_token_cache 	cache;
-        error(ec_exp_gt_not_shift_right);
-        clear_token_cache(&cache, /*reusable=*/FALSE);
-        curr_token = tok_gt;
-        cache_curr_token(&cache);
-        rescan_cached_tokens(&cache);
-      } else {
-        syntax_error(ec_exp_gt);
-      }  /* if */
+      /* Report the error and gracefully recover if a ">>" was used in place
+         of "> >". */
+      invalid_end_of_template_arg_list();
     }  /* if */
     any_errors = TRUE;
   }  /* if */
@@ -7799,8 +7818,7 @@ normal_exit:
   }  /* if */
   /* When we return to the caller the current identifier should be an 
      identifier and the locator should point to the template class that we
-     have just looked up.  If the current token is an end of source marker,
-     unget that token so that we don't bypass it. */
+     have just looked up. */
   curr_token = tok_identifier;
   /* Update the locator to reflect the new symbol that is being returned.
      We start by restoring the locator as it was when this routine was
@@ -7845,6 +7863,81 @@ skip_processing:
 }  /* coalesce_template_class_reference */
 
 
+static a_symbol_ptr coalesce_template_function_reference(
+			a_symbol_ptr			template_sym,
+			a_boolean			*err)
+/*
+The current identifier is a function template symbol or an overload set
+containing a function template symbol, and is followed by a template
+argument list.  Scan the template argument list and update the
+locator to point to it.  The template arguments are not scanned with
+respect to a particular template parameter list because, in the general
+case, you don't know which of several potential parameter lists is
+the one actually associated with this reference.
+*/
+{
+  a_source_position             start_position;
+  a_template_arg_ptr            arg_list = NULL;
+  a_memory_region_number        region_to_switch_back_to;
+  a_symbol_locator		orig_locator;
+  a_boolean			any_errors = FALSE;
+
+  db_enter(3, "coalesce_template_function_reference");
+  /* Save source position for error reporting. */
+  start_position = pos_curr_token;
+  /* Save the current locator. */
+  orig_locator = locator_for_curr_id;
+  /* Always allocate template arguments at the file scope. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  add_stop_token(tok_gt);
+  add_stop_token(tok_lbrace);
+  add_stop_token(tok_semicolon);
+  /* Get the angle bracket token. */
+  (void)get_token();
+  check_assertion(curr_token == tok_lt);
+  /* Get token following opening angle bracket. */
+  (void)get_token();
+  /* Increment the number of template argument lists that are being scanned. */
+  scope_stack[depth_scope_stack].pending_templ_arg_lists++;
+  /* Scan the template argument list. */
+  arg_list = scan_unknown_template_arg_list();
+  /* We should now be at the closing angle bracket.  Note that we don't
+     scan the token after the closing angle because we update the current
+     token below to represent the original identifier with the newly
+     found template class symbol. */
+  set_err_pos_to_curr_token();
+  if (curr_token != tok_gt) {
+    /* Report the error and gracefully recover if a ">>" was used in place
+       of "> >". */
+    invalid_end_of_template_arg_list();
+    any_errors = TRUE;
+  }  /* if */
+  /* Decrement the number of template argument lists that are being scanned. */
+  scope_stack[depth_scope_stack].pending_templ_arg_lists--;
+  switch_back_to_original_region(region_to_switch_back_to);
+  remove_stop_token(tok_gt);
+  remove_stop_token(tok_lbrace);
+  remove_stop_token(tok_semicolon);
+  if (curr_token != tok_gt) {
+    /* Below we will set curr_token to tok_identifier.  Do an unget
+       of the token that stopped the flush so that it can be processed
+       later. */
+    unget_token();
+  }  /* if */
+  /* Upon return, the locator should refer to the symbol that was passed
+     in, but should also include the template argument list. */
+  curr_token = tok_identifier;
+  locator_for_curr_id = orig_locator;
+  locator_for_curr_id.is_template_id = TRUE;
+  locator_for_curr_id.template_arg_list = arg_list;
+  /* Set source position for error reporting. */
+  error_position = start_position;
+  *err = any_errors;
+  db_exit();
+  return template_sym;
+}  /* coalesce_template_function_reference */
+
+
 static a_boolean symbol_is_or_contains_template(a_symbol_ptr sym)
 /*
 Return TRUE if sym points to a template symbol or an overload set
@@ -7865,6 +7958,35 @@ containing a function template symbol.
   }  /* if */
   return result;
 }  /* symbol_is_or_contains_template */
+
+
+static a_symbol_ptr coalesce_template_id(
+			a_symbol_ptr			template_sym,
+			an_identifier_options_set	options,
+			a_boolean			*err)
+/*
+This routine is called when an identifier is followed by "<" sign that
+may be the start of a template argument list.  If the symbol is a function
+template symbol, or an overload set containing one or more templates,
+coalesce_template_function_reference is called to scan the argument list.
+Otherwise, coalesce_template_class_reference is called to either scan
+the class template argument list or diagnose an invalid template reference.
+*/
+{
+  a_symbol_ptr	result_sym;
+
+  if (template_sym != NULL &&
+      template_sym->kind != (a_symbol_kind)sk_class_template &&
+      symbol_is_or_contains_template(template_sym)) {
+    /* A function template symbol or overload set containing a function
+       template symbol. */
+    result_sym = coalesce_template_function_reference(template_sym, err);
+  } else {
+    /* A class template symbol or a potential error case. */
+    result_sym = coalesce_template_class_reference(template_sym, options, err);
+  }  /* if */
+  return result_sym;
+}  /* coalesce_template_id */
 
 
 static a_boolean f_check_for_template_declarator_errors(
@@ -8428,10 +8550,9 @@ selection operator, in which case it points to the type of the left operand.
         next_tok == tok_lt) {
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template
-         or if the next token is a "<" (the latter case is handled here
-         for error recovery purposes). */
-      qualifier_sym = coalesce_template_class_reference(qualifier_sym,
-                                                        options, &err);
+         or if the next token is a "<" (which could be a function template
+         reference or an error case). */
+      qualifier_sym = coalesce_template_id(qualifier_sym, options, &err);
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
@@ -8657,10 +8778,10 @@ selection operator, in which case it points to the type of the left operand.
                next_tok == tok_lt)) {
             /* Process a template reference.  This is considered a potential
                template reference if the symbol points to a class template
-               or if the next token is a "<" (the latter case is handled here
-               for error recovery purposes). */
-            qualifier_sym = coalesce_template_class_reference(qualifier_sym,
-                                                              options, &err);
+               or if the next token is a "<" (which could be a function
+               template reference or an error case). */
+            qualifier_sym = coalesce_template_id(qualifier_sym,
+                                                 options, &err);
             /* We can only now determine whether this template reference is
                followed by a "::".  If it is not, break out of the qualifier
                loop. */

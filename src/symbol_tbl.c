@@ -4411,6 +4411,7 @@ next_delete_symbol:;
             fund_sym = fundamental_symbol_of(sym);
             if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
               if (has_matching_template_function(fund_sym, tp,
+                                                 (a_template_arg_ptr)NULL,
                                                  /*is_decl_context=*/TRUE)) {
                 /* We have a match.  Add the matching template to a list of
                    matching candidates.  Any poorer matches will be removed
@@ -4435,6 +4436,7 @@ next_delete_symbol:;
                    template instance can be returned. */
                 corresp_op_delete_sym =
                          matching_template_function(template_sym, tp,
+                                                    (a_template_arg_ptr)NULL,
                                                     /*is_decl_context=*/TRUE);
               }  /* if */
             }  /* if */

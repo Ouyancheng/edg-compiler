@@ -132,30 +132,37 @@ extern a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
                                            a_source_position   *source_pos);
 
 extern a_boolean is_match_for_function_template(
-                                       a_symbol_ptr         templ_sym,
-                                       a_type_ptr           curr_type,
-                                       a_template_arg_ptr   *templ_arg_list,
-                                       a_symbol_ptr         *instance_sym,
-                                       a_template_param_ptr templ_param_list,
-                                       a_boolean	    is_decl_context);
+				a_symbol_ptr		templ_sym,
+				a_type_ptr		curr_type,
+				a_template_arg_ptr	*templ_arg_list,
+				a_symbol_ptr		*instance_sym,
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	explicit_arg_list,
+				a_boolean		is_decl_context);
 
 extern a_symbol_ptr matching_template_function
                                   (a_symbol_ptr        function_template_sym,
                                    a_type_ptr          curr_type,
+				   a_template_arg_ptr  explicit_arg_list,
 				   a_boolean	       is_decl_context);
 
 extern
 a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,
                                          a_type_ptr         curr_type,
+					 a_template_arg_ptr explicit_arg_list,
                                          a_boolean          is_decl_context);
 
 extern
-a_boolean has_matching_template_instance(a_symbol_ptr      sym,
-                                         a_type_ptr        type);
+a_boolean has_matching_template_instance(
+				a_symbol_ptr		sym,
+                                a_type_ptr		type,
+				a_template_arg_ptr	explicit_arg_list);
 
-extern
-a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
-                                             a_type_ptr        type);
+extern a_symbol_ptr find_matching_template_instance(
+			a_symbol_ptr		sym,
+			a_type_ptr		type,
+			a_template_arg_ptr	templ_arg_list,
+			a_boolean		explicit_arg_list_present);
 
 extern int compare_function_templates(
 				a_symbol_ptr 		templ_sym1,

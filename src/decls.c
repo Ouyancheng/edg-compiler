@@ -1506,6 +1506,7 @@ by id_linkage.
           if (other_decl->kind == (a_symbol_kind)sk_function_template) {
             /* Look for a match on the list of instantiations. */
             if (has_matching_template_function(other_decl, type,
+                                               locator->template_arg_list,
                                               /*is_decl_context=*/TRUE)) {
               /* This template can generate an instance of the appropriate
                  type.  Add the matching template to a list of matching
@@ -1529,6 +1530,7 @@ by id_linkage.
                            &templ_arg_list, &ambiguous);
           /* Generate a partial instantiation of the matching instance. */
           sym = matching_template_function(best_sym, type,
+                                           locator->template_arg_list,
                                            /*is_decl_context=*/TRUE);
           other_decl = best_sym;
           match = sym;
@@ -4701,6 +4703,7 @@ is not a template declaration scope.
 
           if (is_match_for_function_template(sym, tp, &templ_arg_list, &dummy,
                                              templ_param_list,
+                                             (a_template_arg_ptr)NULL,
                                              /*is_decl_context=*/TRUE)) {
             sym_error(ec_template_instance_already_used,
                       (a_symbol_ptr)rp->source_corresp.assoc_info);
@@ -8072,7 +8075,8 @@ continue_with_declaration:
             is_member_redecl = member_function_redecl_sym(
                                               tmp_sym, local_type_ptr) != NULL;
             is_template_instance = has_matching_template_instance(
-                                                      tmp_sym, local_type_ptr);
+                                                    tmp_sym, local_type_ptr,
+                                                    locator.template_arg_list);
             if (!is_member_redecl && is_template_instance) {
               pos_sy_error(ec_old_specialization_not_allowed,
                            &locator.source_position, tmp_sym);
