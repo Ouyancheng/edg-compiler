@@ -233,9 +233,7 @@ typedef enum /*an_error_code*/ {
   ec_cast_to_qualified_type,
   ec_unrecognized_char_escape,
   ec_undefined_preproc_id,
-#if ASM_STATEMENT_ALLOWED
   ec_exp_asm_string,
-#endif /* ASM_STATEMENT_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   ec_asm_func_must_be_prototyped,
   ec_bad_asm_func_ellipsis,
@@ -458,7 +456,9 @@ typedef enum /*an_error_code*/ {
   ec_incomplete_return_type_not_allowed,
   ec_protected_access_problem,
   ec_param_not_allowed,
-  ec_unimplemented_keyword
+  ec_unimplemented_keyword,
+  ec_asm_not_allowed,
+  ec_nonstd_asm_declaration
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

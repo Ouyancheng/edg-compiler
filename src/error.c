@@ -786,11 +786,9 @@ error code.
     case ec_undefined_preproc_id:
       m = "zero used for undefined preprocessing identifier";
       break;
-#if ASM_STATEMENT_ALLOWED
     case ec_exp_asm_string:
       m = "expected an asm string";
       break;
-#endif /* ASM_STATEMENT_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
     case ec_asm_func_must_be_prototyped:
       m = "an asm function must be prototyped";
@@ -1465,6 +1463,12 @@ error code.
       break;
     case ec_unimplemented_keyword:
       m = "%n is reserved for future use as a keyword";
+      break;
+    case ec_asm_not_allowed:
+      m = "\"asm\" declaration not allowed";
+      break;
+    case ec_nonstd_asm_declaration:
+      m = "\"asm\" declaration is nonstandard";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
