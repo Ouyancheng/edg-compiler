@@ -453,11 +453,12 @@ function-local entities in the IA-64 ABI.
                           sep->symbol->variant.variable.discriminator+1;
           break;
         case sk_class_or_struct_tag:
+        case sk_union_tag:
           sym->variant.class_struct_union.extra_info->discriminator =
                           sep->symbol->variant.class_struct_union.extra_info
                                      ->discriminator+1;
           break;
-        case sk_union_tag:
+        case sk_enum_tag:
           sym->variant.enumeration.discriminator =
                           sep->symbol->variant.enumeration.discriminator+1;
           break;
