@@ -8581,6 +8581,9 @@ Clear the fields of a function information block to default values.
   func_info->is_implicit_declaration     = FALSE;
   func_info->function_type_from_typedef  = FALSE;
   func_info->any_default_args            = FALSE;
+#if ASM_FUNCTION_ALLOWED
+  func_info->is_asm_function             = FALSE;
+#endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declarator_ssep                = NULL;
   func_info->prototype_scope_ss_entry_start = NULL;

@@ -776,6 +776,11 @@ typedef struct a_func_info_block {
   unsigned int	any_default_args:1;
 			/* TRUE if the function type declaration included
 			   the declarations of default arguments. */
+#if ASM_FUNCTION_ALLOWED
+  unsigned int	is_asm_function:1;
+			/* TRUE if the function type declaration included the
+			   asm specifier. */
+#endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		declarator_ssep;
