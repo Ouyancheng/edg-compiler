@@ -1408,6 +1408,48 @@ specified by "attributes" contains only standalone attributes.
 }  /* verify_standalone_attributes */
 
 
+static an_ms_attribute_arg_ptr duplicate_ms_attribute_args(
+                                                an_ms_attribute_arg_ptr  orig)
+/*
+Return a duplicate of the given list of attribute arguments.
+*/
+{
+  an_ms_attribute_arg_ptr  result = NULL, *p_msaap = &result;
+
+  while (orig != NULL) {
+    *p_msaap = alloc_ms_attribute_arg(orig->kind);
+    **p_msaap = *orig;
+    orig = orig->next;
+    p_msaap = &((*p_msaap)->next);
+  }  /* while */
+  return result;
+}  /* duplicate_ms_attribute_args */
+
+
+an_ms_attribute_ptr duplicate_ms_attributes(an_ms_attribute_ptr  orig)
+/*
+Return a duplicate of the given list of attributes.  The attribute arguments
+(if any) are also duplicated.  However, other items these attributes and
+arguments point to (like character strings) are shared.
+*/
+{
+  an_ms_attribute_ptr  result = NULL, *p_msap = &result, prev_msap = NULL;
+
+  while (orig != NULL) {
+    *p_msap = alloc_ms_attribute();
+    **p_msap = *orig;
+    if (prev_msap != NULL) {
+      prev_msap->next = *p_msap;
+    }  /* if */
+    (*p_msap)->arg_list = duplicate_ms_attribute_args(orig->arg_list);
+    prev_msap = *p_msap;
+    orig = orig->next_in_block;
+    p_msap = &((*p_msap)->next_in_block);
+  }  /* while */
+  return result;
+}  /* duplicate_ms_attributes */
+
+
 #if DEBUG
 
 unsigned long db_show_ms_attrib_space_used(unsigned long grand_total)

@@ -34,6 +34,7 @@ il.c -- Construction of intermediate language trees.
 #include "symbol_ref.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "decl_spec.h"
+#include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "trans_corresp.h"
 #if DO_IL_LOWERING
@@ -7446,6 +7447,12 @@ in the new param type will be NULL.
       new_ptp->has_default_arg = FALSE;
       new_ptp->default_arg_expr = NULL;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Duplicate the Microsoft attributes list (if any). */
+    if (ptp->ms_attributes != NULL) {
+      new_ptp->ms_attributes = duplicate_ms_attributes(ptp->ms_attributes);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
     /* Note: the name associated with the original param type entry is
        preserved in the copy. */
