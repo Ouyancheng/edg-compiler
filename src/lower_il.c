@@ -3871,59 +3871,21 @@ and return that base class, or NULL if the base class shares its virtual
 function table with bcp->derived_class.
 */
 {
-  a_base_class_derivation_ptr derivation;
-  a_derivation_step_ptr       step;
+  a_base_class_ptr derived;
 
   check_assertion(bcp->shares_virtual_function_info);
-  /* Loop until we find the most derived base that shares its virtual function
-     table with bcp. */
-  while (bcp != NULL && bcp->shares_virtual_function_info) {
-    /* If the base class is at offset zero, and shares its virtual function
-       info, then it must share with the most derived class. */
-    if (bcp->offset == 0) {
+  while (bcp->shares_virtual_function_info) {
+    if (bcp->derived_class->variant.class_struct_union.extra_info->
+                                                  primary_base_class == bcp) {
       bcp = NULL;
       break;
+    } else {
+      /* Loop until we find the most derived base that shares its virtual
+         function table with bcp. */
+      derived = base_classes_of(bcp->derived_class);
+      while (derived->primary_base_class != bcp) derived = derived->next;
+      bcp = derived;
     }  /* if */
-    /* In general, bcp is virtual.  The parent may occur along any one of the
-       possible derivations -- and checking that the parent expects to share a
-       virtual function table with a base of this type is not sufficient,
-       since that could be true along multiple derivations.  Consider:
-
-         class A { virtual void f(); };
-         class B : virtual public A {};
-         class C : virtual public A {};
-         class D : public B, C {};
-
-       Both B and C will share their virtual function tables with A, when they
-       are the most derived class in the object.  But, in D, only B will share
-       with A. */
-    for (derivation = bcp->derivation; derivation != NULL; 
-         derivation = derivation->next) {
-      if (derivation->direct) {
-        /* The base is a direct base -- but not at offset zero.  Therefore, it
-           does not share with the most derived class and there is no sharing
-           to be found along this derivation. */
-      } else {
-        /* An indirect base class. */
-        step = derivation->path;
-        /* Iterate down the list until we find a base class that shares
-           a virtual function table with bcp.  We can tell that it shares a
-           virtual function table by looking at its offset; if it is at the 
-           same location as bcp, it shares a virtual function table. */
-        while (step->base_class->offset != bcp->offset) step = step->next;
-        /* If we reached the base class itself, then bcp does not share with
-           any of the bases in this derivation. */
-        if (step->base_class == bcp) continue;
-        /* Remember the base class we've found.  We may not be done at this
-           point; if the new bcp is virtual we have to consider the
-           derivations of the virtual base as well. */
-        bcp = step->base_class;
-        break;
-      }  /* if */
-    }  /* for */
-    /* We should have found a sharing base class along one of the 
-       derivations. */
-    check_assertion(derivation != NULL);
   }  /* while */
   return bcp;
 }  /* find_base_sharing_virtual_function_table */
@@ -4343,6 +4305,11 @@ for bcp, a base class which is known to require a virtual function table.
   if (bcp->is_virtual) {
     /* If bcp is a virtual base, we need vcall offsets. */
     result = TRUE;
+  } else if (!base_class_has_vtbl(bcp)) {
+    /* Non-virtual base classes that don't have their own vtables do not need
+       vcall offsets.  If the virtual base does not have its own vtable, the
+       (possibly indirect) primary base of that virtual base will emit the
+       vcall offsets. */
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* bcp might be a base class of a virtual base that does not itself
        require a virtual function table (because it does not explicitly
@@ -4405,10 +4372,12 @@ process only those bases below bcp.
     (void)make_var_for_virtual_function_table(class_type,
                                               (a_base_class_ptr)NULL,
                                               (a_base_class_ptr)NULL);
-    *index += -ctsp->first_vcall_offset_index - 1;
-    if (ctsp->highest_virtual_function_number != 
-        VIRTUAL_FUNCTION_NUMBER_NONE) {
-      *index += ctsp->highest_virtual_function_number + 1;
+    if (needs_virtual_function_table(class_type)) {
+      *index += -ctsp->first_vcall_offset_index - 1;
+      if (ctsp->highest_virtual_function_number != 
+          VIRTUAL_FUNCTION_NUMBER_NONE) {
+        *index += ctsp->highest_virtual_function_number + 1;
+      }  /* if */
     }  /* if */
   } else if (base_class_needs_virtual_function_table(bcp, class_type) &&
              !base_class_has_vtbl(bcp)) {
@@ -5194,96 +5163,100 @@ end_of_routine:
 static void add_vcall_offsets(a_constant_ptr   *first_con,
                               a_constant_ptr   *last_con,
                               a_base_class_ptr vbase,
-                              a_base_class_ptr bcp,
                               a_base_class_ptr ctor_bcp,
                               a_targ_size_t    vbase_offset)
 /*
 *first_con and *last_con give the endpoints of the aggregate constant that
 initializes a virtual function table.  Add virtual call offsets to the
 beginning of it.  vbase is the virtual base for which we are adding vcall
-offsets.  bcp is either vbase itself, or one of its direct or indirect bases;
-it is the base that we are currently processing.  bcp->derived_class will be
-the same as vbase->derived_class.  If ctor_bcp is non-NULL, it is the base
-class for vbase->derived_class as a subobject of some larger class type that
-is the actual complete object type (used in determining layout).  The
-vbase_offset gives the offset to the virtual base class whose vtable is 
-being made.
+offsets.  If ctor_bcp is non-NULL, it is the base class for
+vbase->derived_class as a subobject of some larger class type that is the
+actual complete object type (used in determining layout).  The vbase_offset
+gives the offset to the virtual base class whose vtable is being made.
 */
 {
-  a_base_class_ptr                   b, disambiguator, b_in_derived;
+  a_base_class_ptr                   bcp, disambiguator;
   a_base_class_ptr                   overrider_bcp;
   a_class_type_supplement_ptr        ctsp;
-  a_routine_ptr                      rout, overrider;
   an_overriding_virtual_function_ptr ovfp;
   a_targ_ptrdiff_t                   offset;
+  a_vcall_offset_entry_ptr           voep;
 
-  check_assertion(bcp->derived_class == vbase->derived_class);
-  ctsp = bcp->type->variant.class_struct_union.extra_info;
-  /* Add vcall offsets for bcp's primary base. */
-  b = ctsp->primary_base_class;
-  if (b != NULL && b->direct && !b->is_virtual) {
-    /* Find the base (in the derived class) that corresponds to b. */
-    disambiguator = find_disambiguator(bcp, b);
-    b_in_derived = corresponding_base_class(b, vbase->derived_class, 
-                                            disambiguator);
-    add_vcall_offsets(first_con, last_con, vbase, b_in_derived, ctor_bcp,
-                      vbase_offset);
-  }  /* if */
-  /* Add vcall offsets for bcp. */
-  for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
-    /* Skip non-virtual functions. */
-    if (!rout->is_virtual) continue;
-    /* Alternate entry points of constructors and destructors are not
-       expected here. */
-    check_assertion(rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
-    /* Find the routine and base class in which this function is overridden.
-       If the function was not overridden, then we can use bcp as the
-       overrider; start with that assumption. */
-    overrider = rout;
+  /* Go through the vcall offset entries for vbase, adding them to the 
+     virtual table.  */
+  ctsp = vbase->type->variant.class_struct_union.extra_info;
+  for (voep = ctsp->vcall_offsets; voep != NULL; voep = voep->next) {
+    /* If this vcall offset entry will be put out in a primary base class it
+       should not be put out again here. */
+    if (voep->is_primary) continue;
+    bcp = voep->base_class;
+    if (bcp == NULL) {
+      bcp = vbase;
+    } else {
+      /* Find the base corresponding to bcp in vbase->derived_class. */
+      disambiguator = find_disambiguator(vbase, bcp);
+      bcp = corresponding_base_class(bcp, vbase->derived_class, 
+                                     disambiguator);
+    }  /* if */
+    /* Find the class in which this routine was overridden. */
     overrider_bcp = bcp;
     for (ovfp = bcp->overriding_virtual_functions; ovfp != NULL; 
          ovfp = ovfp->next) {
-      /* If we found a match, stop. */
-      if (ovfp->primary_function == rout) {
+      if (ovfp->primary_function == voep->routine) {
         overrider_bcp = ovfp->base_class;
-        overrider = ovfp->overriding_function;
         break;
       }  /* if */
     }  /* for */
-    /* If we have already created a vcall offset for this routine in the
-       virtual function table for vbase, we do not need another one. */
-    if (overrider->vcall_offset_index_set) continue;
-    /* Find the overrider_bcp in the complete object. */
-    if (ctor_bcp != NULL && overrider_bcp != NULL) {
-      disambiguator = find_disambiguator(ctor_bcp, overrider_bcp);
-      overrider_bcp = corresponding_base_class(overrider_bcp,
-                                               ctor_bcp->derived_class,
-                                               disambiguator);
-    } else if (ctor_bcp != NULL) {
-      overrider_bcp = ctor_bcp;
-    } /* if */
+    /* In a construction vtable, find the base corresponding to bcp in the
+       most derived class. */
+    if (ctor_bcp != NULL) {
+      if (overrider_bcp == NULL) {
+        overrider_bcp = ctor_bcp;
+      } else {
+        disambiguator = find_disambiguator(ctor_bcp, overrider_bcp);
+        overrider_bcp = corresponding_base_class(overrider_bcp, 
+                                                 ctor_bcp->derived_class,
+                                                 disambiguator);
+      }  /* if */
+    }  /* if */
     /* The offset is the offset from vbase to overrider_bcp -- where both are
        considered in the complete object. */
     offset = ((overrider_bcp != NULL) ? overrider_bcp->offset : 0) -
                                                                  vbase_offset;
     add_vtbl_entry_init(offset, (a_routine_ptr)NULL, (a_variable_ptr)NULL,
                         first_con, last_con, /*prepend=*/TRUE);
-    /* Remember that we have generated a vcall offset for this routine.  It
-       does not matter what value we use for the index. */
-    overrider->vcall_offset_index_set = TRUE;
-  }  /* for */
-  /* Now, add vcall offsets for bcp's non-primary bases. */
-  for (b = base_classes_of(bcp->type); b != NULL; b = b->next) {
-    if (b->direct && !b->is_virtual && b != ctsp->primary_base_class) {
-      /* Find the base (in the derived class) that corresponds to b. */
-      disambiguator = find_disambiguator(bcp, b);
-      b_in_derived = corresponding_base_class(b, vbase->derived_class, 
-                                              disambiguator);
-      add_vcall_offsets(first_con, last_con, vbase, b_in_derived, ctor_bcp,
-                        vbase_offset);
-    }  /* if */
   }  /* for */
 }  /* add_vcall_offsets */
+
+
+static a_boolean virtual_functions_match(a_routine_ptr r1,
+                                         a_routine_ptr r2)
+/*
+There is a match between r1 and r2 if there could exist a function which
+overrides both of them, i.e., if they have the same signature.  This condition
+is different from checking that both routines have the same overrider; it is
+possible that they are from distinct subobjects and no single function
+overrides both of them.  
+*/
+{
+  a_boolean    result = FALSE;
+  a_symbol_ptr sym1, sym2;
+
+  /* The routines should not have been lowered yet. */
+  check_assertion(!visited_yet(r1));
+  check_assertion(!visited_yet(r2));
+
+  sym1 = (a_symbol_ptr)r1->source_corresp.assoc_info;
+  sym2 = (a_symbol_ptr)r2->source_corresp.assoc_info;
+  if (sym1 != NULL && sym2 != NULL && sym1->header == sym2->header &&
+      param_types_are_compatible(r1->type, r2->type, TCF_NO_FLAGS) &&
+      this_param_types_correspond(r1->type, r2->type,
+                                  /*check_as_conversion=*/FALSE,
+                                  /*check_as_operands=*/FALSE)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* virtual_functions_match */
 
 #endif /* IA64_ABI */
 
@@ -5307,11 +5280,9 @@ zero).
 */
 {
 #if IA64_ABI
-  a_base_class_ptr                   bcp, derived_bcp;
+  a_base_class_ptr                   derived_bcp;
   a_derivation_step_ptr              step;
-  an_overriding_virtual_function_ptr ovfp;
   a_vcall_offset_entry_ptr           voep;
-  a_routine_ptr                      overrider;
 #endif /* IA64_ABI */
 
   *vcall_index = 0;
@@ -5338,40 +5309,13 @@ zero).
   }  /* while */
   if (derived_bcp != overriding_bcp) {
     check_assertion(derived_bcp->is_virtual);
-    if (derived_bcp != overridden_bcp) {
-      /* Find a base of derived_bcp->type that has the same type as
-         overridden_bcp and has no virtual steps in its derivation.  It
-         doesn't matter which one we find because they will all have the
-         same vcall offsets. */
-      bcp = base_classes_of(derived_bcp->type);
-      for (;;) {
-        check_assertion(bcp != NULL);
-        if (bcp->type == overridden_bcp->type &&
-            !any_virtual_steps_in_derivation(bcp)) {
-          /* Now, look through the override list in bcp to find the
-             overriding function -- if any -- associated with the primary
-             function. */
-          for (ovfp = bcp->overriding_virtual_functions; ovfp != NULL;
-               ovfp = ovfp->next) {
-            if (ovfp->primary_function == primary_function) break;
-          }  /* for */
-          if (ovfp != NULL) {
-            overrider = ovfp->overriding_function;
-          } else {
-            overrider = primary_function;
-          }  /* if */
-          break;
-        } /* if */
-        bcp = bcp->next;
-      }  /* for */
-    } else {
-      overrider = primary_function;
-    } /* if */
     /* Look through the derived_bcp to find the overrider on the vcall
        offset list. */
     voep = derived_bcp->type->variant.class_struct_union.extra_info->
                                                              vcall_offsets;
-    while (voep->routine != overrider) voep = voep->next;
+    while (!virtual_functions_match(voep->routine, primary_function)) {
+      voep = voep->next;
+    }  /* while */
     *vcall_index = voep->vcall_offset_index;
     /* The delta (i.e., the fixed offset) will be the offset required to
        reach the virtual base. */
@@ -5530,7 +5474,7 @@ table.
   }  /* for */
   /* Add virtual call offsets to the beginning of the virtual table. */
   if (bcp != NULL && emit_vcall_offsets_in_virtual_function_table(bcp)) {
-    add_vcall_offsets(first_con, last_con, bcp, bcp, ctor_bcp,
+    add_vcall_offsets(first_con, last_con, bcp, ctor_bcp,
                       (derived_bcp != NULL) ? derived_bcp->offset : 0);
   }  /* if */
 #endif /* IA64_ABI */
@@ -5685,27 +5629,6 @@ done:
   *next_entry_number = entry_number;
 }  /* fill_virtual_function_table */
 
-#if IA64_ABI
-
-static void clear_vcall_offset_index_set(a_type_ptr class_type)
-/*
-Clear the vcall_offset_index_set for all the routines declared
-in class type.
-*/
-{
-  a_class_type_supplement_ptr ctsp;
-  a_routine_ptr               rout;
-
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp->assoc_scope != NULL) {
-    for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
-      rout->vcall_offset_index_set = FALSE;
-    }  /* for */
-  }  /* if*/
-}  /* clear_vcall_offset_index_set */
-
-#endif /* IA64_ABI */
-
 #if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 /*ARGSUSED*/ /* <-- ctor_bcp is not used in this mode. */
 #endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
@@ -5746,10 +5669,26 @@ table.
   a_memory_region_number      region_to_switch_back_to;
   a_base_class_ptr            derived_bcp;
 #if IA64_ABI
-  a_base_class_ptr            b;
   a_constant_ptr              start_of_vtbl = NULL, end_of_vtbl = NULL;
+  a_boolean                   main_vtbl = FALSE;
 #endif /* IA64_ABI */
 
+#if IA64_ABI
+  if (ctor_bcp != NULL || bcp == NULL) {
+    main_vtbl = TRUE;
+  } else if (!needs_virtual_function_table(class_type)) {
+    a_base_class_ptr primary;
+    for (primary = class_type->variant.class_struct_union.extra_info->
+                                                           primary_base_class;
+         primary != NULL;
+         primary = nominal_primary_base(primary)) {
+      if (primary == bcp) {
+        main_vtbl = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }   /* if */
+#endif /* IA64_ABI */
   /* Find the appropriate virtual function table variable. */
   if (bcp == NULL) {
 #if ABI_CHANGES_FOR_RTTI
@@ -5808,7 +5747,7 @@ table.
 #endif /* !IA64_ABI */
   /* Set the linkage on the virtual function table variable. */
 #if IA64_ABI
-  if (bcp == NULL || ctor_bcp != NULL) {
+  if (main_vtbl) {
 #endif /* IA64_ABI */
     if (force_static) {
       /* When told to by the flag force_static (e.g., for an internally-linked
@@ -5862,7 +5801,7 @@ table.
     /* Start the initialization by creating a ck_aggregate constant and
        making it the initial value of the variable. */
 #if IA64_ABI
-    if (bcp != NULL && ctor_bcp == NULL) {
+    if (!main_vtbl) {
       first_con = &start_of_vtbl;
       last_con = &end_of_vtbl;
     } else
@@ -5947,13 +5886,7 @@ table.
                                 ctor_bcp, derived_bcp, 
                                 &next_entry_number, first_virtual);
 #if IA64_ABI
-    /* Clear the vcall_offset_index on all of the routines in
-       class_type and its bases. */
-    clear_vcall_offset_index_set(class_type);
-    for (b = base_classes_of(class_type); b != NULL; b = b->next) {
-      clear_vcall_offset_index_set(b->type);
-    }  /* for */
-    if (bcp != NULL && ctor_bcp == NULL) {
+    if (!main_vtbl) {
       aggr_con = vtbl_var->initializer.constant;
       check_assertion(aggr_con != NULL);
       aggr_con->variant.aggregate.last_constant->next = start_of_vtbl;
@@ -6061,7 +5994,8 @@ process only those bases below bcp.
   }  /* if */
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* Make a virtual function table for this type. */
-  if (bcp == NULL || base_class_has_vtbl(bcp)) {
+  if ((bcp == NULL) ? needs_virtual_function_table(class_type) :
+                      base_class_has_vtbl(bcp)) {
     /* Generate the virtual function table variable for the class
        itself. */
     define_one_virtual_function_table(class_type, (a_base_class_ptr)bcp,
@@ -6403,18 +6337,21 @@ added_to_list:;
 
 #if IA64_ABI
 
-static void compute_vcall_offset_indices(a_type_ptr       class_type,
-                                         a_base_class_ptr bcp)
+static a_vcall_offset_entry_ptr* compute_vcall_offset_indices(
+                                         a_type_ptr                class_type,
+                                         a_base_class_ptr          bcp,
+                                         a_vcall_offset_entry_ptr* next_offset)
 /* 
-Compute the vcall offset indices for routines in class_type, when
-class_type is used as a virtual base.  bcp is the subobject of class_type
-to process, or NULL if the complete object should be processed.
+Compute the vcall offset indices for routines in class_type, when class_type
+is used as a virtual base.  bcp is the subobject of class_type to process, or
+NULL if the complete object should be processed.  next_offset points to the
+location where the next offset should be added.  The value returned is
+the new location where the next offset should be added.
 */
 {
   a_type_ptr                         base_type;
   a_class_type_supplement_ptr        ctsp, base_ctsp;
-  a_routine_ptr                      rout, overrider;
-  an_overriding_virtual_function_ptr ovfp;
+  a_routine_ptr                      rout;
   a_base_class_ptr                   b, b_in_derived, disambiguator;
   a_vcall_offset_entry_ptr           voep;
 
@@ -6424,7 +6361,7 @@ to process, or NULL if the complete object should be processed.
   base_ctsp = base_type->variant.class_struct_union.extra_info;
   /* Add vcall offsets for the primary base. */
   b = base_ctsp->primary_base_class;
-  if (b != NULL && b->direct && !b->is_virtual) {
+  if (b != NULL) {
     /* Find the base (in the derived class) that corresponds to b. */
     if (bcp != NULL) {
       disambiguator = find_disambiguator(bcp, b);
@@ -6433,7 +6370,8 @@ to process, or NULL if the complete object should be processed.
     } else {
       b_in_derived = b;
     }  /* if */
-    compute_vcall_offset_indices(class_type, b_in_derived);
+    next_offset = compute_vcall_offset_indices(class_type, b_in_derived, 
+                                               next_offset);
   }  /* if */
   /* Go through all of the routines in this type, adding vcall offsets.
      Sometimes, when processing a compiler-generated class, there is no
@@ -6447,33 +6385,31 @@ to process, or NULL if the complete object should be processed.
     /* Alternate entry points of constructors and destructors are not
        expected here. */
     check_assertion(rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
-    /* Look for an overrider.  Assume it will be the original function until
-       shown otherwise. */
-    overrider = rout;
-    if (bcp != NULL) {
-      for (ovfp = bcp->overriding_virtual_functions;
-           ovfp != NULL; 
-           ovfp = ovfp->next) {
-        /* If we found a match, stop. */
-        if (ovfp->primary_function == rout) {
-          overrider = ovfp->overriding_function;
-          break;
-        }  /* if */
-      }  /* for */
+    /* The routine should not have been lowered yet. */
+    check_assertion(!visited_yet(rout));
+    /* See if we already have an entry for this routine.  */
+    for (voep = ctsp->vcall_offsets; voep != NULL; voep = voep->next) {
+      /* There is a match between rout and voep->routine if there could exist
+         a function which overrides both of them, i.e., if they have the
+         same signature.  This condition is different from checking that both
+         routines have the same overrider; it is possible that they are from
+         distinct subobjects and no single function overrides both of 
+         them.  */
+      if (virtual_functions_match(rout, voep->routine)) break;
+    }  /* for */
+    if (voep != NULL) continue;
+    /* Create a new vcall offset entry. */
+    voep = alloc_vcall_offset_entry();
+    voep->routine = rout;
+    voep->base_class = bcp;
+    if (bcp && any_virtual_steps_in_derivation(bcp)) {
+      voep->is_primary = TRUE;
     } else {
-      ovfp = NULL;
+      voep->is_primary = FALSE;
     }  /* if */
-    /* If we have not calculated a vcall offset for this routine, do so 
-       now. */
-    if (!overrider->vcall_offset_index_set) {
-      overrider->vcall_offset_index_set = TRUE;
-      /* Add an entry to the vcall offset list. */
-      voep = alloc_vcall_offset_entry();
-      voep->next = ctsp->vcall_offsets;
-      ctsp->vcall_offsets = voep;
-      voep->routine = overrider;
-      voep->vcall_offset_index = ctsp->next_negative_virtual_table_index--;
-    }  /* if */
+    voep->vcall_offset_index = ctsp->next_negative_virtual_table_index--;
+    *next_offset = voep;
+    next_offset = &voep->next;
   }  /* for */
   /* Now, add vcall offsets for bcp's bases. */
   for (b = base_classes_of(base_type); b != NULL; b = b->next) {
@@ -6486,9 +6422,11 @@ to process, or NULL if the complete object should be processed.
       } else {
         b_in_derived = b;
       }  /* if */
-      compute_vcall_offset_indices(class_type, b_in_derived);
+      next_offset = compute_vcall_offset_indices(class_type, b_in_derived, 
+                                                 next_offset);
     }  /* if */
   }  /* for */
+  return next_offset;
 }  /* compute_vcall_offset_indices */
 
 
@@ -6543,7 +6481,9 @@ come from bcp.
   }  /* if */
   /* Process vcall offsets. */
   if (bcp == NULL || bcp->is_virtual) {
-    compute_vcall_offset_indices(class_type, bcp);
+    a_vcall_offset_entry_ptr* next_offset = &ctsp->vcall_offsets;
+    while (*next_offset != NULL) next_offset = &(*next_offset)->next;
+    (void)compute_vcall_offset_indices(class_type, bcp, next_offset);
   }  /* if */
 }  /* compute_vbase_and_vcall_offset_indices */
 
@@ -6578,11 +6518,6 @@ routine assumes the class type is as complete as it will ever get.
       /* Compute the virtual base and virtual call offsets for this class. */
       compute_vbase_and_vcall_offset_indices(class_type, 
                                              (a_base_class_ptr)NULL);
-      /* Clear the vcall offset index for the routines in class_type. */
-      clear_vcall_offset_index_set(class_type);
-      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        clear_vcall_offset_index_set(bcp->type);
-      }  /* for */
       /* Make a dummy field for the base class with which we share our
          virtual function table, if any. */
       bcp = ctsp->primary_base_class;

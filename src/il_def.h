@@ -4168,12 +4168,23 @@ typedef struct a_vcall_offset_entry {
   a_routine_ptr	routine;   
 			/* A pointer to the routine, which will always have
 			   the is_virtual flag set. */
+  a_base_class_ptr
+		base_class;
+			/* The base class from which this routine comes, or
+			   NULL if this routine comes from the most derived
+			   class. */
   a_virtual_table_index
 		vcall_offset_index;
 			/* The index into the virtual table where the virtual
 			   call offset will be located.	 This entry gives the
 			   offset from the virtual base to the overriding
 			   class. */
+  a_byte_boolean
+		is_primary;
+			/* True if this vcall offset entry will appear in a
+			   vtable for a primary base of the most derived
+			   class, rather than in the vtable of the most
+			   derived class. */
 } a_vcall_offset_entry;
 
 #endif /* DO_IL_LOWERING && IA64_ABI */
@@ -6737,11 +6748,6 @@ typedef struct a_routine {
 			/* TRUE if this routine is a member of a class and was
 			   declared inline (explicitly or implicitly) in
 			   the class definition. */
-  a_bit_field	vcall_offset_index_set:1;
-			/* TRUE if the vcall offset associated with this
-			   routine has been set.  This flag is set and reset
-			   multiple times; it has no meaning outside of
-			   lowering. */
   a_bit_field	use_comdat:1;
 			/* TRUE if this routine should be placed in a COMDAT
 			   group.  The group used should be the same as the

@@ -884,7 +884,9 @@ it.
   voep = (a_vcall_offset_entry_ptr)alloc_il(sizeof(a_vcall_offset_entry));
   voep->next               = NULL;
   voep->routine            = NULL;
+  voep->base_class         = NULL;
   voep->vcall_offset_index = 0;
+  voep->is_primary         = FALSE;
 
   return voep;
 }  /* alloc_vcall_offset_entry */
@@ -2026,7 +2028,6 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI
   rp->inline_in_class_definition  = FALSE;
-  rp->vcall_offset_index_set      = FALSE;
   rp->use_comdat                  = FALSE;
   rp->ctor_dtor_kind              = (a_ctor_or_dtor_kind)cdk_none;
 #endif /* DO_IL_LOWERING && IA64_ABI */

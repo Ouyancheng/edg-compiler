@@ -2012,7 +2012,7 @@ finding the appropriate "A in D" -- the one whose path is ==>B==A), and
 setting the offset field in the latter.
 */
 {
-  a_base_class_ptr ref_bcp, bcp;
+  a_base_class_ptr ref_bcp, bcp, disambiguator;
 
   db_enter(4, "set_base_class_offsets");
 #if IA64_ABI
@@ -2036,10 +2036,15 @@ setting the offset field in the latter.
   /* Loop through the reference base classes, the direct base classes of
      the proximate_derivation base class. */
   for (; ref_bcp != NULL; ref_bcp = ref_bcp->next) {
-    if (ref_bcp->direct) {
-      bcp = corresponding_base_class(ref_bcp,
-                                     proximate_derivation->derived_class,
-                                     proximate_derivation);
+    disambiguator = find_disambiguator(proximate_derivation, ref_bcp);
+    bcp = corresponding_base_class(ref_bcp,
+                                   proximate_derivation->derived_class,
+                                   disambiguator);
+    if (ref_bcp->direct
+#if IA64_ABI
+        || proximate_derivation->primary_base_class == bcp
+#endif /* IA64_ABI */
+                                                          ) {
       if (!bcp->is_virtual) {
         /* Nonvirtual base class. */
         bcp->offset = proximate_derivation->offset + ref_bcp->offset;

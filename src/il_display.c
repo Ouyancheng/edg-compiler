@@ -4665,8 +4665,14 @@ Display the indicated vcall offset entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_vcall_offset_entry);
   disp_ptr("routine", (char *)ptr->routine, iek_routine);
+  if (ptr->base_class != NULL) {
+    disp_ptr("base_class", (char *)ptr->base_class, iek_base_class);
+  }  /* if */
   disp_host_large_integer("vcall_offset_index", 
                           (a_host_large_integer)ptr->vcall_offset_index);
+  if (ptr->is_primary) {
+    disp_boolean("is_primary", TRUE);
+  }  /* if */
 }  /* disp_vcall_offset_entry */
 
 #endif /* DO_IL_LOWERING && IA64_ABI */
