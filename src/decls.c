@@ -9846,7 +9846,13 @@ continue_with_declaration:
        a type specifier keyword.  Issue a missing-semicolon error, since
        the type specifier can be taken as introducing a new declaration. */
     set_err_pos_to_curr_token();
-    if (!declares_something || is_old_style_param_decl) {
+    if (is_old_style_param_decl && declares_something) {
+      /* An old style param declaration that introduces a named struct or
+         enum type but has no declarator for the parameter. */
+      pos_error(ec_decl_should_be_of_param, &decl_start_pos);
+    } else if (!declares_something) {
+      /* A declaration that introduces an unnamed struct or enum type but has
+         no declarator.  May or may not be in an old-style param list. */
       error(ec_exp_identifier);
     }  /* if */
     error(ec_exp_semicolon);
