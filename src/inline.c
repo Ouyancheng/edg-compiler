@@ -63,14 +63,18 @@ Interface macro to copy_expr_tree.
 
 
 static a_variable_remapping_for_inlining_ptr
-                      alloc_variable_remapping_for_inlining(a_variable_ptr var)
+                   alloc_variable_remapping_for_inlining(
+                           a_variable_ptr                        var,
+                           a_variable_remapping_for_inlining_ptr *p_last_remap)
 /*
 Allocate and initialize an entry used to record a variable remapping in effect
 during inlining of a function call.  var is the variable that will be remapped.
-The entry is placed on the variable_remappings_for_inlining global list.
+The entry is placed at the end of the variable_remappings_for_inlining global
+list.  *p_last_remap points to the last entry on that list, or is NULL if
+the last entry is not known; it is updated on return.
 */
 {
-  a_variable_remapping_for_inlining_ptr vrip;
+  a_variable_remapping_for_inlining_ptr vrip, last_remap = *p_last_remap;
 
   if (avail_variable_remappings_for_inlining != NULL) {
     /* Reuse an entry previously allocated and freed. */
@@ -84,17 +88,31 @@ The entry is placed on the variable_remappings_for_inlining global list.
     num_variable_remappings_for_inlining++;
 #endif /* DEBUG */
   }  /* if */
-  vrip->next = variable_remappings_for_inlining;
-  variable_remappings_for_inlining = vrip;
+  if (last_remap == NULL) {
+    /* Find last entry on list. */
+    last_remap = variable_remappings_for_inlining;
+    if (last_remap != NULL) {
+      while (last_remap->next != NULL) last_remap = last_remap->next;
+    }  /* if */
+  } else {
+    check_assertion(last_remap->next == NULL);
+  }  /* if */
+  if (last_remap == NULL) {
+    variable_remappings_for_inlining = vrip;
+  } else {
+    last_remap->next = vrip;
+  }  /* if */
+  vrip->next = NULL;
+  *p_last_remap = vrip;
   vrip->orig_variable = var;
   vrip->kind = vrk_none;
   vrip->arg_expr = NULL;
-  vrip->arg_expr_next = NULL;
   vrip->orig_temporary = NULL;
   vrip->temporary_used = FALSE;
   vrip->remapping_used = FALSE;
   vrip->local_temporary_okay = FALSE;
   vrip->local_temporary_reused = FALSE;
+  vrip->evaluate_arg_for_side_effects = FALSE;
   return vrip;
 }  /* alloc_variable_remapping_for_inlining */
 
@@ -150,7 +168,7 @@ Display the indicated variable remapping for debugging purposes.
 
 #endif /* DEBUG */
 
-static a_variable_ptr make_remapping_temporary(
+static void make_remapping_temporary(
                           a_variable_remapping_for_inlining_ptr
                                     vrip,
                           a_boolean expr_temp,
@@ -199,7 +217,6 @@ variable.
                                     is_temp_for_constructor_this_inlined_param;
   temp_var->is_temp_for_unmodified_inlined_param =
                                     is_temp_for_unmodified_inlined_param;
-  return temp_var;
 }  /* make_remapping_temporary */
 
 
@@ -373,24 +390,24 @@ body has any side effects that can affect the values of argument expressions.
 
 
 static void set_up_variable_remapping_for_inlining(
-                                           a_scope_ptr        scope,
-                                           an_expr_node_ptr   arg_expr_list,
-                                           an_insert_location *insert_location)
+                                           a_scope_ptr      scope,
+                                           an_expr_node_ptr arg_expr_list,
+                                           a_boolean        expr_insert)
 /*
 We are beginning an attempt to inline a call of the routine whose scope
 is "scope" with the (already lowered) arguments arg_expr_list.  Generate
 temporary variables for parameters and local variables and establish a
 remapping list to be used when expanding the body of the function.
-The code is inserted at *insert_location, and *insert_location is updated.
+expr_insert is TRUE if the inlining is being done at the expression
+level rather than the statement level.  No code is inserted yet to
+set the temporary variables; see finish_variable_remapping_for_inlining.
 */
 {
-  a_variable_ptr   param_var, var, temp_var;
-  an_expr_node_ptr arg, arg_next;
+  a_variable_ptr   param_var, var;
+  an_expr_node_ptr arg;
   a_variable_remapping_for_inlining_ptr
-                   vrip;
+                   vrip, last_remap = NULL;
   a_routine_ptr    routine = scope->variant.routine.ptr;
-  a_statement_ptr  stmt;
-  a_boolean        expr_insert = is_expr_insert_location(insert_location);
 #if DEBUG
   a_boolean        first = TRUE;
 #endif /* DEBUG */
@@ -411,7 +428,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
   /* Process the parameters. */
   for (param_var = scope->variant.routine.parameters, arg = arg_expr_list;
        param_var != NULL;
-       param_var = param_var->next, arg = arg_next) {
+       param_var = param_var->next, arg = arg->next) {
     check_assertion_str(arg != NULL,
                         "set_up_variable_remapping_...: too few args");
     /* Detach the argument expression from the rest of the list so it can
@@ -421,17 +438,13 @@ The code is inserted at *insert_location, and *insert_location is updated.
        if no remapping is required on the parameter, the remap entry is
        still needed to preserve the information needed for the relinking
        on failure. */
-    arg_next = arg->next;
-    arg->next = NULL;
-    vrip = alloc_variable_remapping_for_inlining(param_var);
+    vrip = alloc_variable_remapping_for_inlining(param_var, &last_remap);
     vrip->arg_expr = arg;
-    vrip->arg_expr_next = arg_next;
     if (!param_var->source_corresp.referenced) {
       /* We don't need the parameter if it's not referenced.  However, if
          the argument has side effects, we need to evaluate it. */
       if (node_has_side_effects(arg, (a_boolean *)NULL)) {
-        stmt = insert_expr_statement(arg, insert_location);
-        set_stmt_pos_to_code_pos_for_lowering(stmt);
+        vrip->evaluate_arg_for_side_effects = TRUE;
       }  /* if */
     } else {
       /* The parameter is referenced, so it has to be remapped. */
@@ -491,15 +504,11 @@ The code is inserted at *insert_location, and *insert_location is updated.
         vrip->variant.expr = arg;
       } else {
         /* A temporary is needed for the parameter. */
-        temp_var = make_remapping_temporary(vrip, expr_insert,
-                                            param_is_constructor_this,
-                                            param_is_unmodified);
-        /* Initialize the variable to the argument value. */
-        stmt = insert_var_assignment_statement(temp_var,
-                                               (an_expr_operator_kind)eok_last,
-                                               arg, insert_location);
-        set_stmt_pos_to_code_pos_for_lowering(stmt);
-        temp_var->initialization_rewritten_as_assignment = TRUE;
+        make_remapping_temporary(vrip, expr_insert,
+                                 param_is_constructor_this,
+                                 param_is_unmodified);
+        /* We will need to generate code to initialize the variable to
+           the argument value.  See finish_variable_remapping_for_inlining. */
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) {
@@ -522,8 +531,8 @@ The code is inserted at *insert_location, and *insert_location is updated.
     /* We don't need the variable if it's not referenced. */
     if (var->source_corresp.referenced) {
       /* Remap the local variable to a temporary. */
-      vrip = alloc_variable_remapping_for_inlining(var);
-      temp_var = make_remapping_temporary(
+      vrip = alloc_variable_remapping_for_inlining(var, &last_remap);
+      make_remapping_temporary(
                     vrip, expr_insert,
                     (a_boolean)var->is_temp_for_constructor_this_inlined_param,
                     (a_boolean)var->is_temp_for_unmodified_inlined_param);
@@ -556,14 +565,25 @@ temporarily remapped to something else, restore the original mapping.
 }  /* restore_mapping_to_temporary */
 
 
-static void finish_variable_remapping_for_inlining(void)
+static void finish_variable_remapping_for_inlining(
+                                           a_statement_ptr    block_stmt,
+                                           an_insert_location *insert_location)
 /*
 We have gotten to the end of the inlining of a function call, and
 successfully.  Put the temporary variables previously created into the
-calling context scope.
+calling context scope, and generate code to initialize the temporaries
+for parameters from the argument expressions.  If block_stmt is non-NULL,
+it indicates a block at the start of which any generated code should be
+added.  If it is NULL, *insert_location indicates an expression for the
+expanded call, and any generated code should be added preceding that
+expression, and *insert_location updated to allow further insertion
+following the original expression.
 */
 {
   a_variable_remapping_for_inlining_ptr vrip;
+  a_statement_ptr                       stmt;
+  an_insert_location                    local_insert_location;
+  a_boolean                             any_code_inserted = FALSE;
 
   /* Look at each remapping established. */
   for (vrip = variable_remappings_for_inlining;
@@ -574,6 +594,22 @@ calling context scope.
          other remapping, but it was used at some point when it was
          a vrk_temporary remapping, switch it back. */
       restore_mapping_to_temporary(vrip);
+    }  /* if */
+    if (vrip->arg_expr != NULL &&
+        (vrip->kind == vrk_temporary ||
+         vrip->evaluate_arg_for_side_effects)) {
+      /* Some code will have to be inserted.  Set up the insert location for
+         that the first time it's needed. */
+      if (!any_code_inserted) {
+        any_code_inserted = TRUE;
+        if (block_stmt != NULL) {
+          set_block_start_insert_location(block_stmt, &local_insert_location);
+        } else {
+          /* For an expression insert location, create an expression off
+             to the side and insert it at the end of processing. */
+          set_expr_creation_insert_location(&local_insert_location);
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (vrip->kind == vrk_temporary) {
       /* A temporary. */
@@ -591,34 +627,34 @@ calling context scope.
           add_to_reusable_temporaries_list(temp_var);
         }  /* if */
       }  /* if */
+      if (vrip->arg_expr != NULL) {
+        /* Add code to initialize the temporary from the argument
+           expression. */
+        vrip->arg_expr->next = NULL;
+        stmt = insert_var_assignment_statement(temp_var,
+                                               (an_expr_operator_kind)eok_last,
+                                               vrip->arg_expr,
+                                               &local_insert_location);
+        set_stmt_pos_to_code_pos_for_lowering(stmt);
+        temp_var->initialization_rewritten_as_assignment = TRUE;
+      }  /* if */
+    } else if (vrip->evaluate_arg_for_side_effects) {
+      /* The argument expression must be evaluated for its side effects
+         but it isn't stored into the parameter because the parameter
+         isn't used. */
+      vrip->arg_expr->next = NULL;
+      stmt = insert_expr_statement(vrip->arg_expr, &local_insert_location);
+      set_stmt_pos_to_code_pos_for_lowering(stmt);
     }  /* if */
   }  /* for */
+  if (any_code_inserted && block_stmt == NULL) {
+    /* Some code was generated, so insert it at the position provided by
+       the caller. */
+    check_assertion(is_expr_insert_location(insert_location));
+    insert_expr(insert_location->variant.expr, &local_insert_location);
+    *insert_location = local_insert_location;
+  }  /* if */
 }  /* finish_variable_remapping_for_inlining */
-
-
-static void relink_argument_expressions_on_failure(void)
-/*
-Inlining of a call has failed for some reason.  Relink the argument expressions
-of the original call into a list again.  (They were broken apart and used
-separately in assignments to parameter temporaries.)
-*/
-{
-  a_variable_remapping_for_inlining_ptr vrip;
-
-  /* Look at each remapping established. */
-  for (vrip = variable_remappings_for_inlining;
-       vrip != NULL;
-       vrip = vrip->next) {
-    if (vrip->arg_expr != NULL) {
-      vrip->arg_expr->next = vrip->arg_expr_next;
-      /* Clear the result_is_not_used flag, which may have been set if
-         the argument expression was evaluated as a statement only to get
-         its side effects, if the parameter is not referenced within the
-         called function. */
-      vrip->arg_expr->result_is_not_used = FALSE;
-    }  /* if */
-  }  /* for */
-}  /* relink_argument_expressions_on_failure */
 
 
 static a_variable_remapping_for_inlining_ptr
@@ -1505,13 +1541,16 @@ statement).
           block_stmt = alloc_statement((a_statement_kind)stmk_block);
           set_block_start_insert_location(block_stmt, &insert_location);
         } else {
+          block_stmt = NULL;
           set_expr_creation_insert_location(&insert_location);
         }  /* if */
         check_assertion_str(variable_remappings_for_inlining == NULL,
                            "do_inlining_of_call: remappings list is non-NULL");
         /* Create new variables for parameters and local variables. */
         arg = arg->next;  /* Advance to first argument. */
-        set_up_variable_remapping_for_inlining(scope, arg, &insert_location);
+        set_up_variable_remapping_for_inlining(
+                                          scope, arg,
+                                          /*expr_insert=*/(statement == NULL));
         /* Copy the code of the function, replacing references to the
            parameters and variables. */
         expand_statement_inline(scope->assoc_block, &insert_location,
@@ -1521,17 +1560,12 @@ statement).
              routine.  The statement or expression created above is just
              discarded. */
           routine->need_out_of_line_copy = TRUE;
-          /* Relink the argument expressions of the call by their "next"
-             pointers. */
-          relink_argument_expressions_on_failure();
         } else {
           /* Inlining was successful. */
           /* Now that inlining is known to have succeeded, add the temporary
              variables to the current scope. */
-          finish_variable_remapping_for_inlining();
+          finish_variable_remapping_for_inlining(block_stmt, &insert_location);
           if (statement != NULL) {
-            /* Replace the original call statement by overwriting it with
-               the block statement containing the inlined code. */
             /* Eliminate any extra unnecessary blocks that are present.
                This happens if no parameter assignments were generated. */
             a_statement_ptr inner_stmt;
@@ -1546,6 +1580,8 @@ statement).
                 break;
               }  /* if */
             }  /* for */
+            /* Replace the original call statement by overwriting it with
+               the block statement containing the inlined code. */
             copy_statement(block_stmt, statement);
           } else {
             an_expr_node_ptr inlined_call_expr = insert_location.variant.expr;

@@ -1,5 +1,21 @@
 Version 2.46
 
+3/14/01  Abort in inlining with non-inlinable function
+
+An abort in inlining has been corrected.  The abort came up on
+a call of a non-inlinable function that has more than one
+argument, where the first argument must be evaluated for
+side effects but need not be stored in a temporary because the
+corresponding parameter is not used, and some other argument is
+non-constant.
+
+  int g();
+  inline int f(int, int j) { int l = j; }  // Not inlinable because of
+                                           // missing return
+  int main () {
+    int i = f(g(), g());
+  }
+
 3/12/01  Incorrect parent pointer in static data member template entry
 
 When using PROTOTYPE_INSTANTIATIONS_IN_IL, the template entry created for

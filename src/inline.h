@@ -33,7 +33,7 @@ while expanding an inline function call.
 */
 typedef enum /*a_variable_remapping_kind*/ {
   vrk_none,		/* No remapping; used in entries that exist only to
-			   record the arg_expr and arg_expr_next fields. */
+			   record the arg_expr field. */
   vrk_temporary,	/* Variable is remapped to a temporary variable. */
   vrk_constant_expr	/* Variable is remapped to a constant-valued
 			   expression. */
@@ -63,10 +63,8 @@ typedef struct a_variable_remapping_for_inlining {
      to restore the "next" pointer between argument expressions if the
      inlining fails. */
   an_expr_node_ptr
-		arg_expr,
-		arg_expr_next;
-			/* Argument expression and the original "next" pointer
-			   thereof.  arg_expr is NULL if this information is
+		arg_expr;
+			/* Argument expression; NULL if this information is
 			   not applicable. */
   a_variable_ptr
 		orig_temporary;
@@ -90,6 +88,11 @@ typedef struct a_variable_remapping_for_inlining {
 		local_temporary_reused;
 			/* TRUE if this remapping reuses a previously-allocated
 			   reusable temporary variable. */
+  a_byte_boolean
+		evaluate_arg_for_side_effects;
+			/* TRUE if the argument expression need not be saved
+			   (because the parameter is not referenced) but it
+			   should be evaluated for its side effects. */
 } a_variable_remapping_for_inlining;
 
 
