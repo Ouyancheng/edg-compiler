@@ -8751,10 +8751,11 @@ respectively.
     class_state->last_field_is_incomplete_array = FALSE;
   } else if (microsoft_mode || (c99_mode && !strict_ansi_mode)) {
     /* In Microsoft and GNU modes a class or struct may include a member
-       whose type contains a final field that is an unknown-size array, but
-       only if the member with such a type is the last field.  If the previous
-       field was of such a type, no error was issued, in case it was the last
-       field; issue the error now. */
+       whose type contains a final field that is an unknown-size array (in
+       nonstrict C99 mode, we accept this as an extension).  In non-GNU modes,
+       such a member be the last field.  If the previous field was of such a
+       type, no error was issued, in case it was the last field; issue the
+       error now. */
     if (!is_union_type(class_type) &&
         class_type->variant.class_struct_union.
                               contains_flexible_array_member) {
