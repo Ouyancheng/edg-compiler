@@ -1219,6 +1219,43 @@ class specified, remove it.
 
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
+a_scope_depth active_scope_depth_of_namespace(a_namespace_ptr  nsp)
+/*
+If the namespace scope indicated by nsp is no longer on the scope stack,
+return the current innermost active namespace scope.  If the scope is on
+the scope stack, return the depth of the entry that was pushed as the
+result of an explicit source construct (as opposed to an entry pushed
+for a template instantiation).
+*/
+{
+  a_scope_depth  scope_depth;
+
+  nsp = skip_namespace_aliases(nsp);
+  scope_depth = nsp->variant.assoc_scope->depth_in_scope_stack;
+  if (scope_depth == NO_SCOPE_DEPTH) {
+    /* nsp is no longer active on the stack.  Use the innermost enclosing
+       namespace. */
+    scope_depth = depth_innermost_namespace_scope;
+  }  /* if */
+  while (scope_depth != DEPTH_OF_FILE_SCOPE) {
+    if (scope_stack[scope_depth].kind == (a_scope_kind)sck_namespace ||
+        scope_stack[scope_depth].explicitly_declared_namespace_extension) {
+      /* Found a currently active namespace scope among the namespace
+         parents of class_type.  Note that namespace extension scopes
+         qualify as "active" only when they correspond to an explicit
+         extension-namespace-definition (7.3.1). */
+      break;
+    } else {
+      /* Must not be an active namespace scope.  Advance to the enclosing
+         namespace. */
+      scope_depth = scope_stack[scope_depth-1].
+                                       depth_innermost_namespace_scope;
+    }  /* if */
+  }  /* while */
+  return scope_depth;
+}  /*  */
+
+
 a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type)
 /*
 If class_type is a "real" non-local class, return the depth of the innermost
@@ -1258,28 +1295,7 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
     if (nsp == NULL) {
       scope_depth = DEPTH_OF_FILE_SCOPE;
     } else {
-      nsp = skip_namespace_aliases(nsp);
-      scope_depth = nsp->variant.assoc_scope->depth_in_scope_stack;
-      if (scope_depth == NO_SCOPE_DEPTH) {
-        /* nsp is no longer active on the stack.  Use the innermost enclosing
-           namespace. */
-        scope_depth = depth_innermost_namespace_scope;
-      }  /* if */
-      while (scope_depth != DEPTH_OF_FILE_SCOPE) {
-        if (scope_stack[scope_depth].kind == (a_scope_kind)sck_namespace ||
-            scope_stack[scope_depth].explicitly_declared_namespace_extension) {
-          /* Found a currently active namespace scope among the namespace
-             parents of class_type.  Note that namespace extension scopes
-             qualify as "active" only when they correspond to an explicit
-             extension-namespace-definition (7.3.1). */
-          break;
-        } else {
-          /* Must not be an active namespace scope.  Advance to the enclosing
-             namespace. */
-          scope_depth = scope_stack[scope_depth-1].
-                                           depth_innermost_namespace_scope;
-        }  /* if */
-      }  /* while */
+      scope_depth = active_scope_depth_of_namespace(nsp);
     }  /* if */
 #if EXPENSIVE_CHECKING
     /* Verify that the source sequence entry for class_type really is on the
@@ -1336,15 +1352,7 @@ template is defined.
     }  /* if */
   }  /* for */
   depth = sse_ptr->depth_innermost_namespace_scope;
-  for (;;) {
-    sse_ptr = &scope_stack[depth];
-    if (sse_ptr->kind != (a_scope_kind)sck_namespace_extension ||
-        sse_ptr->explicitly_declared_namespace_extension) {
-      break;
-    }  /* if */
-    sse_ptr--;
-    depth = sse_ptr->depth_innermost_namespace_scope;
-  }  /* for */
+  depth = active_scope_depth_of_namespace(scope_stack[depth].assoc_namespace);
 #if CHECKING
   switch (scope_stack[depth].kind) {
     case sck_file:
