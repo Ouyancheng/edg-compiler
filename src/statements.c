@@ -5484,11 +5484,17 @@ Scan a case label definition.  The syntax is:
        label value is in the "long" range. */
     if (sssep != NULL) {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      an_expr_node_ptr expr = NULL;
-      if (!identical_types(constant.type, sssep->switch_selector_type)) {
+      an_expr_node_ptr expr = constant.expr;
+      if (expr == NULL &&
+          !identical_types(constant.type, sssep->switch_selector_type)) {
         /* Record the original constant as the expression the converted
            constant came from. */
-        expr = alloc_node_for_constant(&constant);
+        /* Avoid problems with cases allowed in cfront and Microsoft
+           mode where a member constant reference like p->n is allowed
+           in a constant expression. */
+        if (!constant.source_corresp.is_class_member) {
+          expr = alloc_node_for_constant(&constant);
+        }  /* if */
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       type_change_constant(&constant, sssep->switch_selector_type,
