@@ -4287,7 +4287,7 @@ specification allow a variable-sized array as the top type.
   a_boolean         err = FALSE;
   a_source_position start_position, type_position;
   a_source_position new_position;
-  a_type_ptr        new_type, base_new_type, ptr_new_type;
+  a_type_ptr        new_type, base_new_type, ptr_new_type, element_type;
   a_type_ptr        unqual_new_type, unqual_base_new_type;
   an_expr_node_ptr  new_array_dimension, sizeof_node;
   an_operand        sizeof_operand;
@@ -4382,7 +4382,7 @@ specification allow a variable-sized array as the top type.
     /* A "new" of an array returns a pointer to the initial element.
        Note that this is only done for one level, e.g., new int [i][10]
        returns int (*)[10] not int * (ARM 5.3.3). */
-    base_new_type = array_element_type(new_type);
+    base_new_type = element_type = array_element_type(new_type);
     array_new = TRUE;
     /* Check for a variable size on the first dimension.  Extract the
        expression for the dimension. */
@@ -4403,7 +4403,8 @@ specification allow a variable-sized array as the top type.
   }  /* if */
   unqual_base_new_type = skip_typerefs(base_new_type);
   ptr_new_type = make_pointer_type(base_new_type);
-  /* The operand of a new must be an object type. */
+  /* Check that the type to be allocated is valid.  It must be an object
+     type. */
   if (err) {
     /* Error already issued (operator not valid in this kind of expression). */
   } else if (!is_object_type(base_new_type)) {
@@ -4424,13 +4425,42 @@ specification allow a variable-sized array as the top type.
     err = TRUE;
   } else {
     /* Valid type. */
+  }  /* if */
+  if (array_new) {
+     /* For multi-dimensional arrays: even though only one level of array is
+        dropped to determine the pointer type, all levels must be dropped
+        to get the real base type to do allocation and initialization.  In
+        particular, we want to know if the underlying type of a
+        multi-dimensional array is a class, so we can know whether or not
+        to call a constructor or a class-specific new[].  Note that the
+        original first-level element type is retained in element_type. */
+    /* Also determine the effective number of elements. */
+    if (new_array_dimension != NULL) {
+      /* Variable-length array; count is deferred to runtime. */
+      effective_num_of_elements = 0;
+    } else {
+      effective_num_of_elements =
+                    unqual_new_type->variant.array.variant.number_of_elements;
+    }  /* if */
+    while (is_array_type(base_new_type)) {
+      check_assertion(
+                  !unqual_base_new_type->variant.array.is_variable_size_array);
+      effective_num_of_elements *=
+                unqual_base_new_type->variant.array.variant.number_of_elements;
+      base_new_type = array_element_type(unqual_base_new_type);
+      unqual_base_new_type = skip_typerefs(base_new_type);
+    }  /* while */
+  }  /* if */
+  if (!err) {
     /* Compute the allocation size in bytes. */
     if (new_array_dimension != NULL) {
-      a_type_ptr element_type = unqual_base_new_type;
       /* The type is a variable-dimension array, as in
            new char[i+1]
          The amount to allocate is the size of the array element times
          the expression giving the number of elements. */
+      /* Note that the original first-level element type was retained in
+         element_type (that matters for multi-dimension arrays). */
+      element_type = skip_typerefs(element_type);
       /* Cast the dimension expression to size_t (it's already an integral
          type). */
       cast_node(&new_array_dimension, integer_type(targ_size_t_int_kind),
@@ -4452,6 +4482,8 @@ specification allow a variable-sized array as the top type.
       /* Not a variable-dimension array.  The size is known at compile
          time, as in
            new char[17]
+         or
+           new int
       */
       set_integer_constant(&sizeof_constant, (long)unqual_new_type->size,
                            targ_size_t_int_kind);
@@ -4499,30 +4531,6 @@ specification allow a variable-sized array as the top type.
     /* We check later for function_symbol != NULL.  We don't set err
        here for that case because it shouldn't affect the scanning of
        the initial value. */
-  }  /* if */
-  if (array_new) {
-    /* Array new.  Determine the effective number of elements. */
-    if (new_array_dimension != NULL) {
-      /* Variable-length array; count is deferred to runtime. */
-      effective_num_of_elements = 0;
-    } else {
-      effective_num_of_elements =
-                    unqual_new_type->variant.array.variant.number_of_elements;
-    }  /* if */
-    while (is_array_type(base_new_type)) {
-      /* For multi-dimensional arrays: even though only one level of array is
-         dropped to determine the pointer type and to do allocation, all levels
-         must be dropped to get the real base type to do initialization.  In
-         particular, we want to know if the underlying type of a
-         multi-dimensional array is a class, so we can know whether or not
-         to call a constructor. */
-      check_assertion(
-                  !unqual_base_new_type->variant.array.is_variable_size_array);
-      effective_num_of_elements *=
-                unqual_base_new_type->variant.array.variant.number_of_elements;
-      base_new_type = array_element_type(unqual_base_new_type);
-      unqual_base_new_type = skip_typerefs(base_new_type);
-    }  /* while */
   }  /* if */
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
