@@ -45,11 +45,20 @@ Variables and constants related to the scope_stack:
 			   time it is reallocated; also the initial
 			   allocation. */
 
+static a_function_shareable_constants_table_ptr
+		avail_function_shareable_constants_tables;
+			/* A list of the function shareable constant tables
+			   that have been freed and are available for
+			   reuse. */
+
 #if DEBUG
-#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 /*
 Counts of tables allocated, to track total use of memory.
 */
+static unsigned long
+		num_function_shareable_constants_tables_allocated;
+
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 static unsigned long
 		num_string_literal_table_entries_allocated,
 		num_string_literal_tables_allocated;
@@ -673,6 +682,43 @@ assign one now.
 }  /* f_assign_string_literal_sequence_number */
 
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+
+a_function_shareable_constants_table_ptr
+alloc_function_shareable_constants_table(void)
+/*
+Allocate a shareable constants hash table for the innermost function
+scope.
+*/
+{
+  a_function_shareable_constants_table_ptr	fsctp;
+
+  if (avail_function_shareable_constants_tables != NULL) {
+    fsctp = avail_function_shareable_constants_tables;
+    avail_function_shareable_constants_tables = fsctp->next;
+    /* The hash table is cleared before it is returned to the available
+       list so it need not be initialized here. */
+  } else {
+    fsctp = alloc_fe_of_type(a_function_shareable_constants_table);
+    memzero(fsctp->table, sizeof(fsctp->table));
+#if DEBUG
+    num_function_shareable_constants_tables_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  fsctp->next = NULL;
+  return fsctp;
+}  /* alloc_function_shareable_constants_table */
+
+
+void free_function_shareable_constants_table(
+				a_function_shareable_constants_table_ptr fsctp)
+/*
+Return a function shareable constant table to the available list.
+*/
+{
+  fsctp->next = avail_function_shareable_constants_tables;
+  avail_function_shareable_constants_tables = fsctp;
+}  /* free_function_shareable_constants_table */
+
 
 a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope)
 /*
@@ -1664,7 +1710,8 @@ the scope being pushed.
   ssep->vla_fixup_list           = NULL;
   ssep->extern_type_fixup_list   = NULL;
   ssep->generated_entities       = NULL;
-  ssep->shareable_constants_list = NULL;
+  ssep->shareable_constants_table
+                                 = NULL;
   ssep->last_routine_fixup       = NULL;
   ssep->last_parameter           = NULL;
   ssep->last_nonstatic_variable  = NULL;
@@ -6219,11 +6266,11 @@ the symbol table space used routine.  The space used by the scope_stack
 routines is reported as part of the symbol table memory used.
 */
 {
-#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   unsigned long	num;
   unsigned long	size;
   unsigned long	total;
 
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   db_space_used_lost("string literal tables", avail_string_literal_tables,
                      num_string_literal_tables_allocated,
                      a_string_literal_table);
@@ -6232,6 +6279,10 @@ routines is reported as part of the symbol table memory used.
                      num_string_literal_table_entries_allocated,
                      a_string_literal_table_entry);
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+  db_space_used_lost("func. shareable constants",
+                     avail_function_shareable_constants_tables,
+                     num_function_shareable_constants_tables_allocated,
+                     a_function_shareable_constants_table);
   return grand_total;
 }  /* db_show_scope_stack_space_used */
 
@@ -6252,6 +6303,7 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(avail_names_hidden_by_old_for_init),
       pch_saved_var_array_elem(name_linkage_stack),
       pch_saved_var_array_elem(avail_name_linkage_stack_entries),
+      pch_saved_var_array_elem(avail_function_shareable_constants_tables),
       pch_saved_var_array_elem(
                   function_body_processing_delayed_on_some_func_in_primary_il),
 #if IA64_ABI && NEED_NAME_MANGLING
@@ -6337,6 +6389,7 @@ of the front end.
   avail_names_hidden_by_old_for_init = NULL;
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;
+  avail_function_shareable_constants_tables = NULL;
 #if IA64_ABI && NEED_NAME_MANGLING
   avail_collision_tables = NULL;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
@@ -6344,6 +6397,7 @@ of the front end.
   avail_string_literal_tables = NULL;
   avail_string_literal_table_entries = NULL;
 #if DEBUG
+  num_function_shareable_constants_tables_allocated = 0;
   num_string_literal_table_entries_allocated = 0;
   num_string_literal_tables_allocated = 0;
 #endif /* DEBUG */

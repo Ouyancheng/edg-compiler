@@ -1,5 +1,11 @@
 Version 3.2
 
+3/27/03  Performance improvement of string literals in IA-64 ABI
+
+Special processing is required for function-scope string literals when
+using the IA-64 ABI.  The performance has been improved for functions
+that use a very large number of string literals.
+
 3/26/03  GNU C++ mode: Syntax for pure virtual function declarations
 
 In GNU C++ mode, the front end now accepts, in addition to the "= 0" form,

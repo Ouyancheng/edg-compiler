@@ -48,6 +48,25 @@ typedef int a_push_scope_options_set;
 			/* TRUE to indicate that a file scope is being
 			   reactivated. */
 
+#define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
+			/* Size of the shareable constants hash table for
+			   a function. */
+
+/*
+A structure used to represent a shareable constant table for the constants
+associated with a given function.
+*/
+typedef struct a_function_shareable_constants_table
+		*a_function_shareable_constants_table_ptr;
+typedef struct a_function_shareable_constants_table {
+  a_function_shareable_constants_table_ptr
+		next;	/* Pointer to the next table on the available list. */
+  a_constant_ptr
+		table[SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE];
+			/* The hash table for a given function. */
+} a_function_shareable_constants_table;
+
+
 /*
 Structure that is logically (and historically) part of a_scope_stack_entry,
 but which must persist longer than a scope stack entry for namespace scopes
@@ -473,10 +492,10 @@ typedef struct a_scope_stack_entry {
 		generated_entities;
 			/* Set of constants generated in the current scope.
 			   (NULL if no such constants were generated.) */
-  a_constant_ptr
-		shareable_constants_list;
-			/* List of shared constants for the current scope.
-			   Only used if the scope is a function scope.
+  a_function_shareable_constants_table_ptr
+		shareable_constants_table;
+			/* Hash table of shared constants for the current
+			   scope.  Only used if the scope is a function scope.
 			   These are constants that refer to something local
 			   to the scope, and therefore cannot be shared at 
 			   the file scope.  The only meaningful case is
@@ -1096,6 +1115,12 @@ Call namespace_is_enclosed_by_scope for the current scope.
   (namespace_is_enclosed_by_scope((sym), &scope_stack[depth_scope_stack]))
 
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
+
+extern a_function_shareable_constants_table_ptr
+alloc_function_shareable_constants_table(void);
+
+extern void free_function_shareable_constants_table(
+			a_function_shareable_constants_table_ptr fsctp);
 
 extern void add_active_using_directive(a_using_decl_ptr udp,
 				       a_scope_depth    depth);

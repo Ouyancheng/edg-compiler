@@ -3922,8 +3922,7 @@ to refine the hash value developed in hash_constant.
 
 a_constant_hash_value hash_constant(a_constant *cp)
 /*
-Return the hash value for the indicated constant, which gives the proper
-bucket of the shareable_constants_table to use for the constant.
+Return the hash value for the indicated constant.
 */
 {
   a_constant_hash_value hash_value;
@@ -4051,8 +4050,6 @@ bucket of the shareable_constants_table to use for the constant.
        NULL pointer constants for a lot of different types. */
     hash_value += hash_type(cp->type);
   }  /* if */
-  /* Reduce the value modulo the table size. */
-  hash_value %= SIZE_SHAREABLE_CONSTANTS_TABLE;
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "hash_constant, hash_value = %u\n",
@@ -4861,21 +4858,36 @@ put it on a list of constants).
          on the list of shared constants for the current function.  Bear
          in mind that the only constants likely to be on this list
          are those that represent the address of a local variable, so the
-         list is going to be fairly short. */
+         list is going to be fairly short.  In certain cases (e.g., when
+         using the IA-64 ABI) the list also contains string literals. */
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
         /* No function on the scope stack (we're probably in IL lowering).
            There's no list of shareable constants. */
         list_ptr = NULL;
       } else {
-        list_ptr = &scope_stack[depth_innermost_function_scope].
-                                                      shareable_constants_list;
+        /* Look for the constant in the hash table of constants shared
+           at the function level. */
+        a_function_shareable_constants_table_ptr	fsctp;
+        fsctp = scope_stack[depth_innermost_function_scope].
+                                                     shareable_constants_table;
+        if (fsctp == NULL) {
+          /* This is the first use of the hash table for this function.
+             Allocate it now. */
+          fsctp = alloc_function_shareable_constants_table();
+          scope_stack[depth_innermost_function_scope]
+                                            .shareable_constants_table = fsctp;
+        }  /* if */
+        /* Determine the bucket of the hash table to use. */
+        hash_value = hash_constant(cp) %
+                                       SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE;
+        list_ptr = &fsctp->table[hash_value];
       }  /* if */
     } else {
       /* The constant can be shared at the file scope. */
       /* Look for a copy of the constant value in the
          shareable_constants_table. */
       /* Determine the bucket of the hash table to use. */
-      hash_value = hash_constant(cp);
+      hash_value = hash_constant(cp) % SIZE_SHAREABLE_CONSTANTS_TABLE;
       list_ptr = &shareable_constants_table[hash_value];
     }  /* if */
     if (!string_literals_shared &&
@@ -4985,13 +4997,27 @@ list), and liberate the constants therein by clearing their "next" fields.
 */
 {
   a_constant_ptr scp, next_scp;
+  a_function_shareable_constants_table_ptr
+                 fsctp;
+  int	         bucket;
 
-  scp = scope_stack[depth_innermost_function_scope].shareable_constants_list;
-  for (; scp != NULL; scp = next_scp) {
-    next_scp = scp->next;
-    scp->next = NULL;
-  }  /* for */
-  scope_stack[depth_innermost_function_scope].shareable_constants_list = NULL;
+  fsctp = scope_stack[depth_innermost_function_scope]
+                                                    .shareable_constants_table;
+  if (fsctp != NULL) {
+    for (bucket = 0;
+         bucket < SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE; ++bucket) {
+      scp = fsctp->table[bucket];
+      for (; scp != NULL; scp = next_scp) {
+        next_scp = scp->next;
+        scp->next = NULL;
+      }  /* for */
+      /* The table should be cleared before it is freed. */
+      fsctp->table[bucket] = NULL;
+    }  /* for */
+    free_function_shareable_constants_table(fsctp);
+    scope_stack[depth_innermost_function_scope]
+                                             .shareable_constants_table = NULL;
+  }  /* if */
 }  /* empty_func_shareable_constants_table */
 
 
