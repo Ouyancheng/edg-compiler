@@ -1666,11 +1666,7 @@ be NULL if we don't yet know which instance we are dealing with.
 {
   a_namespace_ptr	nsp = NULL;
 
-  if (arg_dependent_lookup_enabled) {
-    /* Referencing namespace processing is suppressed when argument dependent
-       lookup is done because the special lookup implemented the rules
-       that preceded argument dependent lookup. */
-  } else if (instance_sym == NULL) {
+  if (instance_sym == NULL) {
     /* We don't know which instance is being used yet. */
   } else if (instance_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
              instance_sym->kind == (a_symbol_kind)sk_union_tag) {
@@ -1967,8 +1963,7 @@ they should be used for the outermost instantiation scope.
   }  /* if */
   /* The context scope is the innermost namespace scope at this point,
      except when the referencing namespace is the file scope (because
-     the file scope cannot be reactivated).  Note that reference_nsp will
-     always be NULL when argument dependent lookup is being done. */
+     the file scope cannot be reactivated). */
   if (reference_nsp != NULL) {
     context_depth = depth_innermost_namespace_scope;
   } else {
