@@ -1280,6 +1280,7 @@ Display the indicated field.
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
+  if (ptr->is_mutable) disp_boolean("is_mutable", TRUE);
 }  /* disp_field */
 
 #endif /* ifdef CFE */

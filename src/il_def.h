@@ -3488,6 +3488,10 @@ typedef struct a_field {
 			     class A { union { int i, j }; } x;
 			   the IL to represent the source construct "x.i" is
 			   "x.<anonymous-parent-object>.i". */
+  unsigned int	is_mutable:1;
+			/* TRUE if the "mutable" specifier appeared on the
+			   declaration of this nonstatic data member (C++
+			   only). */
   bitfield_to_avoid_codecenter_warnings();
 } a_field;
 

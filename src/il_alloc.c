@@ -1176,6 +1176,7 @@ to it.
   fp->is_bit_field         = FALSE;
   fp->bit_field_is_signed  = FALSE;
   fp->is_anonymous_parent_object = FALSE;
+  fp->is_mutable           = FALSE;
 #if CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /*CHECKING */
