@@ -1900,8 +1900,8 @@ returned to the caller.
         if (functions_only) {
           /* Add this entry to a new list of entries that still need to
              be processed. */
-          if (new_list != NULL) new_list->next = tcsp;
           tcsp->next = new_list;
+          new_list = tcsp;
           continue;
         }  /* if */
         tssp = tcsp->template_info;

@@ -1,5 +1,14 @@
 Version 2.37
 
+8/21/97   Member class bodies not removed when nonclass template instantiations
+          are included in the source sequence list
+
+When source sequence lists are being generated and when nonclass
+template instantiations are included in the source sequence lists,
+member class bodies were not being removed from the enclosing token
+cache.  This would result in spurious errors if the program attempted
+to specialize the member class.
+
 8/20/97   Spurious error on instantiation of class with specialized
           static data member
 
