@@ -7734,6 +7734,7 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
   }  /* if */
   aedp->next = NULL;
   aedp->sym = NULL;
+  aedp->overload_sym = NULL;
   aedp->position = pos_curr_token;
   aedp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   return aedp;
@@ -7752,10 +7753,12 @@ Put the freed entry on the available list to be reused.
 
 
 static void record_access_error(a_symbol_ptr		sym,
+				a_symbol_ptr		overload_sym,
 				a_symbol_locator	*locator)
 /*
 An access error on "sym" has been detected.  "locator" is the
-corresponding symbol locator.  If access checking is not being
+corresponding symbol locator.  If "sym" is a member of an overload set,
+"overload_sym" is the symbol for the set.  If access checking is not being
 deferred, issue the error now.  Otherwise, create an access error
 entry so that the access error can be rechecked or discarded later.
 */
@@ -7779,6 +7782,7 @@ entry so that the access error can be rechecked or discarded later.
     an_access_error_descr_ptr	aedp;
     aedp = alloc_access_error_descr();
     aedp->sym = sym;
+    aedp->overload_sym = overload_sym;
     aedp->position = locator->source_position;
     aedp->token_sequence_number = curr_token_sequence_number;
     if (ssep->deferred_access_checks == NULL) {
@@ -7848,7 +7852,7 @@ accepted even though the injected class symbol is ambiguous.
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible.  Issue the error or record it
        for later checking if access checking is deferred. */
-    record_access_error(sym, locator);
+    record_access_error(sym, (a_symbol_ptr)NULL, locator);
   }  /* if */
 }  /* f_check_ambiguity_and_verify_access */
 
@@ -7878,9 +7882,18 @@ access.
     a_boolean			remove_from_list = TRUE;
     if (aedp != NULL) {
       for (; aedp != NULL; aedp = next_aedp) {
+        a_boolean	accessible;
         next_aedp = aedp->next;
         aedp->next = NULL;
-        if (!have_access_to_symbol(aedp->sym)) {
+        /* Errors originally checked by overload_check_ambiguity... must
+           be rechecked here using have_access_across_derivations. */
+        if (aedp->overload_sym != NULL) {
+          accessible = have_access_across_derivations(aedp->sym,
+                                                      aedp->overload_sym);
+        } else {
+          accessible = have_access_to_symbol(aedp->sym);
+        }  /* if */
+        if (!accessible) {
           /* The access check still failed. */
           if (ssep->defer_access_checks) {
             /* Keep the entry on the list. */
@@ -8036,7 +8049,7 @@ kinds of symbols.
                                         overloaded_symbol)) {
       /* The symbol is not accessible.  Issue the error or record it
          for later checking if access checking is deferred. */
-      record_access_error(fundamental_symbol_of(locator->specific_symbol),
+      record_access_error(locator->specific_symbol, overloaded_symbol,
                           locator);
     }  /* if */
   }  /* if */
@@ -11060,4 +11073,3 @@ of the front end.
 * Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
-

@@ -2798,6 +2798,10 @@ typedef struct an_access_error_descr {
 		*sym;
 			/* Symbol that the program was trying to access
 			   that should be included in the error message. */
+  struct a_symbol
+		*overload_sym;
+			/* If "sym" is a member of an overload set, this
+			   points to the set. */
   a_source_position
 		position;
 			/* Position to be used when the error is issued. */
