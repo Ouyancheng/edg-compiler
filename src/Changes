@@ -1,5 +1,33 @@
 Version 2.21
 
+11/17/93 Diagnostic when instantiating a member of a class specialization
+
+An error should have be issued when an attempt is made to instantiate a
+member of a class specialization.  An error was being diagnosed when
+the "#pragma instantiate A<unsigned char*>::f" syntax was used, but not
+when the declaration style syntax was used.
+
+  template <class T> struct A {
+    void f();
+  };
+  struct A<unsigned char*> {
+    void f();
+  };
+  void A<unsigned char*>::f() {}
+  #pragma instantiate void A<unsigned char*>::f()
+
+
+11/17/93 Name lookup in instantiation pragmas
+
+Under certain conditions names were not looked up properly when
+processing instantiation pragmas.  This could result in an internal
+error or a spurious error while processing the pragma.
+
+  typedef unsigned char* T;
+  typedef void T2;
+  template <class T> void ft(T) {}
+  #pragma instantiate T2 ft(T)
+
 11/16/93 Restrictions on target type of conversion operator
 
 An error is now issued on declaring a conversion operator whose target
