@@ -314,6 +314,58 @@ this case and add it to the list for the current scope.
 }  /* record_defeatable_name_hiding */
 
 
+static void add_to_hidden_name_fixup_list(a_symbol_ptr  sym_ptr)
+/*
+*/
+{
+  a_scope_depth               depth;
+  a_boolean                   is_local_to_function;
+  a_namespace_ptr             nsp;
+  a_symbol_list_entry_ptr     slep;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  check_assertion(!sym_ptr->is_class_member);
+  nsp = sym_ptr->parent.namespace_ptr;
+  if (nsp != NULL) {
+    pointers_block = &namespace_supplement_for_namespace(nsp)->pointers_block;
+  } else {
+    depth = scope_depth_of_symbol(sym_ptr, &is_local_to_function);
+    if (depth == NO_SCOPE_DEPTH) {
+      pointers_block = NULL;
+    } else {
+      pointers_block = assoc_pointers_block_of(&scope_stack[depth]);
+    }  /* if */
+  }  /* if */
+  if (pointers_block != NULL) {
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+      db_symbol(sym_ptr, "Deferring hidden name check: ", 2);
+    }  /* if */
+#endif /* DEBUG */
+    slep = alloc_symbol_list_entry();
+    slep->symbol = sym_ptr;
+    slep->next = pointers_block->hidden_name_fixup_list;
+    pointers_block->hidden_name_fixup_list = slep;
+  }  /* if */
+}  /* add_to_hidden_name_fixup_list */
+
+
+void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list)
+/*
+*/
+{
+  a_symbol_list_entry_ptr  slep;
+
+  if (*list != NULL) {
+    for (slep = *list; slep != NULL; slep = slep->next) {
+      check_for_defeatable_name_hiding(slep->symbol);
+    }  /* for */
+    free_list_of_symbol_list_entries(*list);
+    *list = NULL;
+  }  /* if */
+}  /* check_hidden_name_fixup_list */
+
+
 void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr)
 /*
 Determine whether "defeatable hidden-name information" should be put out for
@@ -323,12 +375,13 @@ know to use elaborated type specifiers and/or :: qualification to defeat name
 hiding.
 */
 {
-  a_symbol_locator  locator;
-  a_boolean         is_local_to_function;
-  a_symbol_ptr      old_sym_ptr;
-  a_scope_ptr       sp;
-  a_namespace_ptr   nsp;
-  a_boolean         tag_hidden_by_nontag, global_hidden_by_nonglobal;
+  a_symbol_locator         locator;
+  a_boolean                is_local_to_function;
+  a_symbol_ptr             old_sym_ptr;
+  a_scope_ptr              sp;
+  a_namespace_ptr          nsp;
+  a_boolean                tag_hidden_by_nontag, global_hidden_by_nonglobal;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   if (sym_ptr->is_error) {
     /* Ignore error symbols. */
@@ -341,8 +394,20 @@ hiding.
   } else if (is_unnamed_tag_symbol(sym_ptr)) {
     /* No name hiding for unnamed entities. */
   } else if (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
-             scope_stack[depth_scope_stack].in_prototype_instantiation) {
+             ssep->in_prototype_instantiation) {
     /* We don't deal with class template definitions. */
+  } else if (!sym_ptr->is_class_member &&
+             ssep->kind == (a_scope_kind)sck_class_struct_union &&
+             (ssep->il_scope->
+                   variant.assoc_type->source_corresp.is_local_to_function ||
+              sym_ptr->parent.namespace_ptr != NULL) &&
+              scope_depth_of_symbol(sym_ptr, &is_local_to_function) !=
+                                                       DEPTH_OF_FILE_SCOPE) {
+    /* We are inside a local class or namespace member class and a name is
+       introduced (e.g., by a friend declaration) and injected into an
+       enclosing scope.  Put the symbol on a fixup list and process it once
+       we pop out to that scope. */
+    add_to_hidden_name_fixup_list(sym_ptr);
   } else {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
@@ -402,18 +467,23 @@ hiding.
                                                       DEPTH_OF_FILE_SCOPE) {
          /* A friend declaration of a file-scope entity.  Determine whether
             a global qualifier is needed.  It is needed if there is an
-            intervening namespace scope.  It is also needed if there is an
             intervening declaration (say, in an enclosing block scope) that
             hides the file-scope declaration. */
-        if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE ||
-            ((old_sym_ptr =
+        if ((old_sym_ptr =
                 normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP)) != NULL &&
-             old_sym_ptr != sym_ptr)) {
-          tag_hidden_by_nontag = FALSE;
-          global_hidden_by_nonglobal = TRUE;
-          record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                        global_hidden_by_nonglobal,
-                                        (a_scope_ptr)NULL);
+            old_sym_ptr != sym_ptr) {
+          an_il_entry_kind  kind;
+          if (il_entry_for_symbol(sym_ptr, &kind) ==
+                            il_entry_for_symbol(old_sym_ptr, &kind)) {
+            /* The intervening declaration is probably a block-extern
+               declaration, so the global qualifier is not required. */
+          } else {
+            tag_hidden_by_nontag = FALSE;
+            global_hidden_by_nonglobal = TRUE;
+            record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
+                                          global_hidden_by_nonglobal,
+                                          (a_scope_ptr)NULL);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {

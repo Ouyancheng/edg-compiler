@@ -1131,12 +1131,12 @@ be NULL, in which case nothing is done.
   a_symbol_list_entry_ptr	slep_tail;
   if (slep != NULL) {
     /* Find the last entry on the list. */
-    for (slep_tail = slep;
-         slep_tail->next != NULL; slep_tail = slep_tail->next);
+    slep_tail = slep;
+    while (slep_tail->next != NULL) slep_tail = slep_tail->next;
     /* Add the current available list to the end of the list passed by the
        caller. */
     slep_tail->next = avail_symbol_list_entries;
-    avail_symbol_list_entries = slep_tail;
+    avail_symbol_list_entries = slep;
   }  /* if */
 }  /* free_list_of_symbol_list_entries */
 
