@@ -4777,22 +4777,36 @@ sequence entry.
   /* If generating a member of a class within the class, set the right access
      mode for the member. */
   gen_member_access_specifier_for_decl_of(&var->source_corresp);
-  /* Output the storage class. */
+  /* Determine the proper storage class to display. */
   storage_class = var->storage_class;
-  if (var->source_corresp.class_of_which_a_member != NULL) {
-    /* Static data member. */
+  if (curr_name_context_is_a_class()) {
+    /* We're currently inside a class definition.  The storage class doesn't
+       have the usual meaning: for example, "static" means a static member.
+       The only case that comes here, however, is declarations of static data
+       members.  It's not possible to declare of define a nonmember variable
+       or a static data member of another class inside a class, */
+    storage_class = (a_storage_class)sc_static;
+  } else {
+    /* A declaration or definition outside of a class (at file scope or
+       inside a function). */
     if (is_definition) {
-      /* Definition -- no storage class. */
-      storage_class = (a_storage_class)sc_unspecified;
+      /* This is the definition of the variable, so by and large the
+         storage class from the IL entry applies. */
+      if (var->source_corresp.class_of_which_a_member != NULL) {
+        /* A static data member definition.  Use no storage class. */
+        storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
     } else {
-      /* Declaration -- static storage class. */
-      storage_class = (a_storage_class)sc_static;
-    }  /* if */
-  } else if (!is_definition) {
-    /* The variable is not defined (here), so use "extern" instead of no
-       storage class. */
-    if (storage_class == (a_storage_class)sc_unspecified) {
-      storage_class = (a_storage_class)sc_extern;
+      /* A declaration of a variable. */
+      /* The variable is not defined (here), so use "extern" instead of no
+         storage class.  Also use "extern" for file-scope static variables
+         declared extern inside functions. */
+      if (storage_class == (a_storage_class)sc_unspecified ||
+          (storage_class == (a_storage_class)sc_static &&
+           curr_function_scope != NULL &&
+           !var->source_corresp.is_local_to_function)) {
+        storage_class = (a_storage_class)sc_extern;
+      }  /* if */
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
@@ -4950,7 +4964,7 @@ declaration or definition.
   a_type_ptr                    rout_type, unqual_rout_type, rout_class_type;
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean                     is_definition = FALSE;
-  a_boolean                     decl_within_class = FALSE, friend_decl = FALSE;
+  a_boolean                     decl_within_class = FALSE;
   a_storage_class               storage_class;
   a_name_context                context;
   a_scope_ptr                   scope = NULL;
@@ -5001,43 +5015,48 @@ declaration or definition.
     scope = il_header.region_scope_entry[scope_region_number];
   }  /* if */
   rout_class_type = rout->source_corresp.class_of_which_a_member;
-  /* Check for special declarations within a class. */
+  /* Determine the proper storage class to display. */
+  storage_class = rout->storage_class;
   if (curr_name_context_is_a_class()) {
-    /* We're currently inside a class definition. */
-    if (curr_name_context_class() == rout_class_type){
+    /* We're currently inside a class definition.  The storage class doesn't
+       have the usual meaning: "extern" is never used, and "static" means
+       a static member.  Suppress the storage class (it gets set to static
+       later for static member functions).  Even friend declarations and
+       definitions get no storage class. */
+    storage_class = (a_storage_class)sc_unspecified;
+    /* Check the kind of declaration within a class. */
+    if (curr_name_context_class() == rout_class_type) {
       /* This is a declaration or definition of a member function inside
-         its class. */
+         its own class. */
       decl_within_class = TRUE;
+      if (rout_class_type != NULL && rtsp->implicit_this_param_type == NULL) {
+        /* Static member function. */
+        storage_class = (a_storage_class)sc_static;
+      }  /* if */
     } else {
       /* This is a declaration of a nonmember or member of another class
          inside a class: this is a friend declaration. */
-      friend_decl = TRUE;
-    }  /* if */
-  }  /* if */
-  /* Output the storage class. */
-  storage_class = rout->storage_class;
-  /* Determine the proper storage class to display. */
-  if (friend_decl) {
-    /* Suppress the storage class on a friend declaration; "friend" is
-       used instead. */
-    storage_class = (a_storage_class)sc_unspecified;
-    write_tok_str("friend ");
-  } else if (rout_class_type != NULL) {
-    /* Member function. */
-    if (rtsp->implicit_this_param_type == NULL) {
-      /* Static member function. */
-      storage_class = (a_storage_class)sc_static;
-    } else {
-      /* Nonstatic member function. */
-      /* Suppress the storage class. "static" means something else within
-         the class, and we don't want to use "extern" ever. */
-      storage_class = (a_storage_class)sc_unspecified;
+      /* Friend is used instead of a storage class. */
+      write_tok_str("friend ");
     }  /* if */
   } else {
-    /* Nonmember function. */
-    if (!is_definition) {
-      /* The function is not defined (here), so use "extern". */
-      if (storage_class == (a_storage_class)sc_unspecified) {
+    /* A declaration or definition outside of a class (at file scope or
+       inside a function). */
+    if (is_definition) {
+      /* This is the definition of the function, so by and large the
+         storage class from the IL entry applies. */
+      if (rout_class_type != NULL) {
+        /* A member function definition.  Use no storage class. */
+        storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
+    } else {
+      /* A declaration of a function. */
+      /* The function is not defined (here), so use "extern" instead of
+         no storage class.  Also use "extern" for file-scope static routines
+         declared extern inside functions. */
+      if (storage_class == (a_storage_class)sc_unspecified ||
+          (storage_class == (a_storage_class)sc_static &&
+           curr_function_scope != NULL)) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */
