@@ -2998,7 +2998,7 @@ in result (depending on which operator is indicated by op).  This folds the
 GNU C++ minimum and maximum operators ("<?" and ">?").
 */
 {
-  a_boolean  unordered;
+  a_boolean    unordered;
   a_float_kind float_kind =
                            skip_typerefs(constant_1->type)->variant.float_kind;
   int          order = fp_compare(float_kind,
@@ -3007,7 +3007,7 @@ GNU C++ minimum and maximum operators ("<?" and ">?").
                                   &unordered);
 
   if (op == (an_expr_operator_kind)eok_fgnu_min) {
-    if (order < 0) {
+    if (!unordered && order < 0) {
       /* The first constant is less than the second. */
       copy_constant(constant_1, result);
     } else {
@@ -3015,7 +3015,7 @@ GNU C++ minimum and maximum operators ("<?" and ">?").
     }  /* if */
   } else {
     /* Evaluate the C++ maximum operator. */
-    if (order > 0) {
+    if (!unordered && order > 0) {
       copy_constant(constant_1, result);
     } else {
       copy_constant(constant_2, result);
