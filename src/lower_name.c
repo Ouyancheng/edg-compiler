@@ -1256,12 +1256,11 @@ given by tap.
 */
 {
   a_template_ptr                   temp = tap->variant.templ;
-  a_template_symbol_supplement_ptr tssp=template_supplement_for_template(temp);
 
-  if (tssp->variant.class_template.template_template_param) {
+  if (temp->kind == (a_template_kind)templk_template_template_param) {
     /* The value of the argument is itself a template template parameter. */
     mangled_encoding_for_template_parameter(
-                                     &tssp->variant.class_template.coordinates,
+                                     &temp->coordinates,
                                      (a_template_arg *)NULL,
                                      mctl);
   } else {
@@ -1611,7 +1610,7 @@ that fact should be put out.
         /* Yes, this is a template template parameter. */
         is_template_template_param = TRUE;
         mangled_encoding_for_template_parameter(
-                                     &tssp->variant.class_template.coordinates,
+                                     &tssp->il_template_entry->coordinates,
                                      type->variant.class_struct_union.
                                                  extra_info->template_arg_list,
                                      mctl);

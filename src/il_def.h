@@ -7612,6 +7612,11 @@ typedef struct a_template {
 			   This is used only for "nonreal" templates and for
 			   template template parameters, and is used to
 			   determine if two such templates are equivalent. */
+  a_template_param_coordinate
+		coordinates;
+			/* For a class template associated with a template
+			   template parameter, provides the list position and
+			   nesting depth of the parameter. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_decl_ptr
 		template_decl;

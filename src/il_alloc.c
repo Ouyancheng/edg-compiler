@@ -2826,6 +2826,8 @@ fields, and return a pointer to it.
   tp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tp->template_info = NULL;
+  tp->coordinates.position = 0;
+  tp->coordinates.depth = NO_NESTING_DEPTH;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   tp->template_decl = NULL;
   tp->prototype_instantiation.type = NULL;

@@ -1472,7 +1472,7 @@ Return the template nesting depth of the specified template parameter.
                    variant.template_param.variant.coordinates.depth;
     } else {
       /* A template template parameter. */
-      depth = tpp->variant.templ->variant.class_template.coordinates.depth;
+      depth = tpp->variant.templ->il_template_entry->coordinates.depth;
     }  /* if */
   }  /* if */
   return depth;
@@ -3350,8 +3350,8 @@ equivalent template parameter lists.
     /* Template template parameters must be at the same coordinates. */
     a_template_param_coordinate_ptr	coordinates1;
     a_template_param_coordinate_ptr	coordinates2;
-    coordinates1 = &tssp1->variant.class_template.coordinates;
-    coordinates2 = &tssp2->variant.class_template.coordinates;
+    coordinates1 = &tssp1->il_template_entry->coordinates;
+    coordinates2 = &tssp2->il_template_entry->coordinates;
     must_be_identical = FALSE;
     if (coordinates1->position != coordinates2->position ||
         !equiv_nesting_depths(coordinates1->depth, coordinates2->depth)) {
@@ -4164,13 +4164,13 @@ match is found.
         a_template_nesting_depth	depth_of_template;
         depth_of_template = nesting_depth_of_template_param(templ_param_list);
         if (depth_of_template ==
-                        templ_tssp->variant.class_template.coordinates.depth) {
+                        templ_tssp->il_template_entry->coordinates.depth) {
           /* The depths match. */
           a_template_param_list_pos	list_pos;
           a_template_ptr		templ_ptr;
           a_template_arg_ptr		tap;
           /* Get the template argument that corresponds with this parameter. */
-          list_pos = templ_tssp->variant.class_template.coordinates.position;
+          list_pos = templ_tssp->il_template_entry->coordinates.position;
           tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
                                              list_pos);
           check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
@@ -5158,7 +5158,7 @@ Otherwise, return the original template.
        template argument.  Find the template argument that matches this
        template parameter use it. */
     a_template_param_coordinate_ptr	coordinates;
-    coordinates = &tssp->variant.class_template.coordinates;
+    coordinates = &templ->coordinates;
     if (coordinates->depth != depth) {
       /* A template parameter from a different nesting depth.  Simply
          leave this template unsubstituted. */
@@ -10470,9 +10470,8 @@ parameter entry for the parameter.
   templ_ptr->template_info = tssp;
   tssp->variant.class_template.template_template_param = TRUE;
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
-  tssp->variant.class_template.coordinates.depth =
-					      parent_decl_state->nesting_depth;
-  tssp->variant.class_template.coordinates.position = template_param_list_pos;
+  templ_ptr->coordinates.depth = parent_decl_state->nesting_depth;
+  templ_ptr->coordinates.position = template_param_list_pos;
   tssp->il_template_entry = templ_ptr;
   tssp->variant.class_template.argument_template = sym;
   set_template_cache_info(&tssp->cache,

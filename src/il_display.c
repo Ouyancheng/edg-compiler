@@ -3201,6 +3201,10 @@ Display the indicated template.
     case templk_member_class:
       (void)printf("templk_member_class\n");
       break;
+    case templk_template_template_param:
+      (void)printf("templk_template_template_param\n");
+      disp_template_param_coordinate(&ptr->coordinates);
+      break;
     default:
       (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */

@@ -1581,11 +1581,6 @@ typedef struct a_template_symbol_supplement {
 		friend_info;
 			/* Information about default arguments of friend
 			   templates declared in this class template. */
-      a_template_param_coordinate
-		coordinates;
-			/* For a class template associated with a template
-			   template parameter, provides the list position and
-			   nesting depth of the parameter. */
       a_symbol_ptr
 		argument_template;
 			/* For a class template associated with a template
