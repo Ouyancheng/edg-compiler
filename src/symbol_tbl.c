@@ -5260,7 +5260,8 @@ must a tag.  Projection symbols are not considered in the lookup.
   }  /* if */
 #endif /* CHECKING */
   sym = locator->specific_symbol;
-  if (sym != NULL && is_acceptable_symbol(sym)) {
+  if (sym != NULL) {
+    check_assertion(is_acceptable_symbol(sym));
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
@@ -7875,6 +7876,19 @@ secondary status.
             }  /* if */
             sssdp->decl_position = scp->decl_position;
             sssdp->entity = ssep->entity;
+            if (kind == (an_il_entry_kind)iek_type) {
+              a_type_ptr  tp = (a_type_ptr)sssdp->entity.ptr;
+              if (tp->autonomous_primary_tag_decl) {
+                /* The current declaration is the primary declaration of a
+                   class or enum (its definition, namely) and the previous
+                   declaration, originally listed as the primary declaration,
+                   is being demoted to a secondary declaration.  The "automous
+                   tag decl" flag gets moved to the secondary declaration
+                   entry, and the flag in the type entry is cleared. */
+                sssdp->autonomous_tag_decl = TRUE;
+                tp->autonomous_primary_tag_decl = FALSE;
+              }  /* if */
+            }  /* if */
             /* Update the tagged-pointer of the current source sequence entry
                to refer to the secondary-decl entry. */
             ssep->entity.kind =
