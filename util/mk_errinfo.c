@@ -714,7 +714,7 @@ Write the tag lookup table to the error data file.
   for (i = 0; i < number_of_tags; ++i) {
     /* If this is not the first time through, terminate the previous line. */
     if (i != 0) fprintf(data_output_file, ",\n");
-    fprintf(data_output_file, "  \"%s\", %s", tag_info[i].tag,
+    fprintf(data_output_file, "  { \"%s\", %s }", tag_info[i].tag,
             tag_info[i].enumerator);
   }  /* for */
   fprintf(data_output_file, "\n}\n");
