@@ -55,6 +55,16 @@ typedef int an_id_lookup_options_set;
 				   return NULL instead. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
+/*
+The definition of a_symbol_locator refers to declarations from il_def.h,
+but lexical.h requires a_symbol_locator to be defined.  So the former is
+included here, and the latter is included after a_symbol_locator is
+declared.
+*/
+#ifndef IL_H
+#include "il.h"
+#endif /* ifndef IL_H */
+
 
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
@@ -98,21 +108,16 @@ typedef struct a_symbol_locator {
     /* When both is_operator_name and is_conversion_name are FALSE, both
        variants are undefined. */
     /* When is_operator_name is TRUE: */
-    int		op_token;
+    an_opname_kind
+		opname;
 			/* The token that identifies the operator when an
 			   operator name is scanned.  For () and [] operators
 			   the identifying tokens are tok_lparen and
-			   tok_lbracket, respectively.  Declared as int
-			   rather than a_token_kind because of mutual
-			   dependency between symbol_tbl.h and lexical.h;
-			   requires cast when accessed. */
+			   tok_lbracket, respectively. */
     /* When is_conversion_name is TRUE: */
-    char*	conversion_result_type;
+    a_type_ptr  conversion_result_type;
 			/* The return type when a user-defined conversion
-			   name is scanned.  Declared as char* rather than
-			   a_type_ptr because of mutual dependency between
-			   symbol_tbl.h and il_def.h; requires cast when
-			   accessed. */
+			   name is scanned. */
   } variant;
 } a_symbol_locator;
 
@@ -154,9 +159,6 @@ Clear a symbol locator.
 #ifndef LEXICAL_H
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
-#ifndef IL_H
-#include "il.h"
-#endif /* ifndef IL_H */
 #ifndef TRANS_LIMS_H
 #include "trans_lims.h"
 #endif /* ifndef trans_lims.h */
@@ -625,10 +627,10 @@ EXTERN a_symbol_header_ptr
 
 /*
 Table of pointers to symbol headers for C++ operator name symbols, for
-names like "operator+".  Indexed by token value.
+names like "operator+".  Indexed by opname kind.
 */
 EXTERN a_symbol_header_ptr
-		opname_symbol_table[(int)tok_last];
+		opname_symbol_table[(int)onk_last];
 
 /*
 Symbol information related to the current token:
@@ -925,6 +927,7 @@ extern void change_class_locator_into_constructor_locator(
                                                     a_symbol_locator *locator);
 
 extern void make_opname_locator(a_token_kind      token,
+                                an_opname_kind    opname,
                                 a_symbol_locator  *locator,
                                 a_source_position *pos);
 
