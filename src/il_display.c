@@ -2870,6 +2870,8 @@ Display the indicated hidden-name entry.
                ptr->qualification_needed);
   disp_boolean("elaborated_type_specifier_needed",
                ptr->elaborated_type_specifier_needed);
+  disp_boolean("partially_hidden_by_microsoft_injected_class_name",
+               ptr->partially_hidden_by_microsoft_injected_class_name);
 }  /* disp_hidden_name */
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

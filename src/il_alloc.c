@@ -2904,6 +2904,7 @@ in il_init.)
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   def_source_corresp.qualification_needed = FALSE;
+  def_source_corresp.partially_hidden_by_microsoft_injected_class_name = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;
