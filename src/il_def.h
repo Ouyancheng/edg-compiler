@@ -672,6 +672,21 @@ typedef struct an_access_adjustment {
   } variant;
 } an_access_adjustment;
 
+typedef struct a_virtual_base_class *a_virtual_base_class_ptr;
+typedef struct a_virtual_base_class {
+  a_virtual_base_class_ptr
+		next;
+			/* Next in linked list of base class entries. */
+  a_type_ptr	class;
+                        /* Pointer to the tk_class or tk_struct type entry
+			   representing a virtual base class of the current
+			   derived class.  Both directly and indirectly
+			   inherited virtual base classes are represented. */
+  a_targ_size_t data_section_offset;
+			/* Byte offset of the data section of this virtual
+			   base class within the current derived class. */
+} a_virtual_base_class;
+
 typedef struct a_base_class *a_base_class_ptr;
 typedef struct a_base_class {
   /* An entry describing a base class from which the current class is
@@ -680,7 +695,8 @@ typedef struct a_base_class {
      classes from which the base class is derived are represented in its
      own list of base class entries. */
   a_base_class_ptr
-                next;   /* Next in linked list of base class entries. */
+                next;
+			/* Next in linked list of base class entries. */
   a_type_ptr    class;
                         /* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived
@@ -705,8 +721,10 @@ typedef struct a_class_list_entry *a_class_list_entry_ptr;
 typedef struct a_class_list_entry {
   /* An entry used to represent a member of an arbitrary set of classes. */
   a_class_list_entry_ptr
-                next;   /* Next in a linked list of class list entries. */
-  a_type_ptr    class;  /* The tk_class, tk_struct, or tk_union type entry. */
+                next;
+			/* Next in a linked list of class list entries. */
+  a_type_ptr    class;
+			/* The tk_class, tk_struct, or tk_union type entry. */
 } a_class_list_entry;
 
 /* Entry containing additional information about a class type (tk_class,
@@ -719,6 +737,14 @@ typedef struct a_class_type_supplement {
                         /* A linked list of entries describing the base
                            classes from which this class is directly
                            derived. */
+  a_virtual_base_class_ptr
+                virtual_base_classes;
+                        /* A linked list of entries describing all the
+                           virtual base classes, both directly and indirectly
+                           inherited, that are included within this class. */
+  a_targ_size_t size_without_virtual_base_classes;
+                        /* The size in bytes of the class, excluding the
+                           virtual base classes from which it derives. */
   an_access_adjustment_ptr
                 access_adjustments;
                         /* A list of entries adjusting access control on
