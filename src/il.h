@@ -546,6 +546,15 @@ those containing source correspondence information.)
 #define has_name(entry) ((entry)->source_corresp.name != NULL)
 
 /*
+Macro that returns TRUE if a class/struct/union or enum tag type is unnamed
+or is marked as being originally unnamed.
+*/
+#define is_unnamed_or_originally_unnamed_tag(tag_type)                   \
+  ((tag_type)->source_corresp.name == NULL ||                            \
+   (is_immediate_class_type(tag_type) &&                                 \
+    (tag_type)->variant.class_struct_union.originally_unnamed))
+
+/*
 Return the original unmangled name of an entity, given a pointer to
 its source correspondence entry.
 */
