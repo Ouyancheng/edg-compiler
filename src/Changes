@@ -312,8 +312,8 @@ Template template parameters are now implemented.  For example:
     A<B>   ab;
     g(ab);
     B<int> bi;
-   f(bi);
- }
+    f(bi);
+  }
 
 One aspect of template template parameters, the specification of which
 is unclear in the standard, remains unimplemented.  We currently
