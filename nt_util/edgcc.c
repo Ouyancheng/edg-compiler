@@ -156,10 +156,67 @@ static int return_status = 0;
 			/* Return status of this command. */
 static a_boolean debug = FALSE;
 			/* Should debugging information be displayed. */
+
+#define CURR_DIR_NAME_SIZE 2048
+			/* Maximum size of the current directory name. */
+
+static char	curr_dir_name[CURR_DIR_NAME_SIZE];
+			/* Name of the current working directory. */
+
 #if 0
 static char		temp_file[L_tmpnam];
 			/* Temporary file for miscellaneous use. */
 #endif /* 0 */
+
+
+/*
+Determine whether getcwd or getwd should be used to get the current
+directory.  getwd is used on BSD, getcwd on other systems.
+*/
+#if __MICROSOFT_OS__
+#define USE_GETCWD 1
+#include <direct.h>
+#else /* !__MICROSOFT_OS___ */
+#if __BSD__
+#include <sys/param.h>
+EXTERN_C char* getwd(char *pathname);
+#define USE_GETCWD 0
+#else /* !__BSD__ */
+#include <unistd.h>
+#define USE_GETCWD 1
+#endif /* __BSD__ */
+#endif /* __MICROSOFT_OS__ */
+
+
+static void internal_error(char*   error_string)
+/*
+Prints an internal error message and exits with a catastrophic error
+exit status.
+*/
+{
+  fprintf(stderr, "%s: internal error: %s\n", "edgcc", error_string);
+#if EXIT_ON_INTERNAL_ERROR
+  exit(RC_CATASTROPHE);
+#else /* !EXIT_ON_INTERNAL_ERROR */
+  (void)fflush(stderr);
+  abort();
+#endif /* EXIT_ON_INTERNAL_ERROR */
+}  /* internal_error */
+
+
+static void get_curr_dir_name(void)
+/*
+Get the current directory name and save it in curr_dir_name.
+*/
+{
+#if USE_GETCWD
+  if (getcwd(curr_dir_name, CURR_DIR_NAME_SIZE) == NULL) {
+    internal_error("getcwd failed");
+  }  /* if */
+#else /* !USE_GETCWD */
+  (void)getwd(curr_dir_name);
+#endif /* USE_GETCWD */
+}  /* get_curr_dir_name */
 
 
 /* Forward declaration of cleanup routine. */
@@ -743,6 +800,8 @@ Startup initialization.
   /* Get the name of a temporary file for use by the driver. */
   (void)tmpnam(temp_file);
 #endif /* 0 */
+  /* Get the current directory name. */
+  get_curr_dir_name();
   /* Get the name of the EDG base directory which contains the
      bin and lib directories. */
   edg_base = getenv("EDG_BASE");
@@ -815,67 +874,63 @@ Startup initialization.
 }  /* init */
 
 
-static void update_instantiation_info_file(char *file_name)
+static void update_template_info_file(char *file_name)
 /*
-If there is a .ii file, rewrite it with the current command line
-information.
+If there is a .ti file, update it with the necessary driver information.
 */
 {
-  char			*ii_file_name;
-  FILE			*ii_file;
-  a_command_line	instantiation_list;
+  char			*ti_file_name;
+  FILE			*ti_file;
+  a_command_line	file_contents;
   int			i;
   a_cl_argument_ptr	clap;
   a_cl_argument_ptr	prev_clap;
 
-  ii_file_name = derived_name(file_name, INSTANTIATION_FILE_SUFFIX);
-  ii_file = fopen(ii_file_name, "r");
-  if (ii_file != NULL) {
-    /* Read in the existing instantiation list.  First, skip over the
-       lines reserved for the driver. */
-    for (i = 0; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
-      read_input_line(ii_file);
-    }  /* for */
-    init_command_line(&instantiation_list);
-    while (read_input_line(ii_file)) {
+  ti_file_name = derived_name(file_name, TEMPLATE_INFO_FILE_SUFFIX);
+  ti_file = fopen(ti_file_name, "r");
+  if (ti_file != NULL) {
+    /* Read in the existing file. */
+    init_command_line(&file_contents);
+    while (read_input_line(ti_file)) {
       /* Use the command line as a linked list to store the instantiation
          list. */
       char	*name;
       name = copy_of_string(string_buffer);
-      add_cl_argument(&instantiation_list, name);
+      add_cl_argument(&file_contents, name);
     }  /* while */
-    fclose(ii_file);
-    ii_file = fopen(ii_file_name, "w");
-    if (ii_file == NULL) {
-      fprintf(stderr, "Could not reopen instantiation information file.");
+    fclose(ti_file);
+    ti_file = fopen(ti_file_name, "w");
+    if (ti_file == NULL) {
+      fprintf(stderr, "Could not reopen template information file.");
       error_exit();
     }  /* if */
     /* Write the command line to the file. */
+    fputs("cmd:", ti_file);
     clap = instantiation_command_line.args;
     while (clap != NULL) {
-      fputs(clap->str, ii_file);
-      putc(' ', ii_file);
+      fputs(clap->str, ti_file);
+      putc(' ', ti_file);
       clap = clap->next;
     }  /* while */
-    fprintf(ii_file, "-c %s\n", file_name);
-    /* Write empty lines for any other lines reserved for the driver. */
-    for (i = 1; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
-      putc('\n', ii_file);
-    }  /* for */
-    /* Write the instantiation list. */
-    clap = instantiation_list.args;
+    fprintf(ti_file, "-c\n", file_name);
+    /* Write the current directory. */
+    fprintf(ti_file, "dir:%s\n", curr_dir_name);
+    /* Write the name of the file being compiled. */
+    fprintf(ti_file, "fnm:%s\n", file_name);
+    /* Write the original information from the file. */
+    clap = file_contents.args;
     while (clap != NULL) {
-      fputs(clap->str, ii_file);
-      putc('\n', ii_file);
+      fputs(clap->str, ti_file);
+      putc('\n', ti_file);
       prev_clap = clap;
       clap = clap->next;
       /* Free the space used to store the string. */
       free(prev_clap->str);
       free_cl_argument(prev_clap);
     }  /* while */
-    fclose(ii_file);
+    fclose(ti_file);
   }  /* if */
-}  /* update_instantiation_info_file */
+}  /* update_template_info_file */
 
 
 
@@ -909,8 +964,8 @@ Compile a file and generate an object file.
   if (status == 0 && !fe_only && !preprocess_only) {
     /* Write the compilation command line into the instantiation
        information file. */
-    update_instantiation_info_file(file_name);
-    /* Compiler the generated C file. */
+    update_template_info_file(file_name);
+    /* Compile the generated C file. */
     int_c_file_name = derived_name(file_name, GEN_C_FILE_SUFFIX);
     init_command_line(&cl);
     add_cl_argument(&cl, C_COMMAND);
