@@ -6549,9 +6549,6 @@ destructor scope, and also lower the user code.
 }  /* lower_destructor_code */
 
 
-#if !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-/*ARGSUSED*/ /* needed_bit_number is not used in that case. */
-#endif /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 void b_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
 /*
 Do lowering on the file-scope dynamic initializations list.  Generate
@@ -6569,8 +6566,8 @@ be included in the initialization routine.
                      grcontext;
   a_memory_region_number
                      region_number;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
   unsigned long      eff_needed_bit_number = needed_bit_number;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
   a_dynamic_init_ptr dip_prev = NULL;
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if !USE_INIT_SECTION_IN_GENERATED_C
