@@ -231,6 +231,12 @@ typedef int a_decl_flag_set;
 #define DSO_JUST_VOID 0x80
 			/* If this bit is set the keyword "void" was found,
 			   and nothing else. */
+#define DSO_DANGLING_TYPE_SPECIFIER 0x100
+			/* If this bit is set a malformed type specification
+			   was detected, probably caused by a missing
+			   semicolon following an class, struct, union, or
+			   enum declaration.  Error reporting is left to the
+			   caller in such cases. */
 
 extern a_boolean declaration_specifiers(a_decl_flag_set	input_flags,
 					a_decl_flag_set	*output_flags,
