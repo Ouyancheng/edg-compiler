@@ -348,6 +348,18 @@ source program.
 */
 #ifndef GENERATE_SOURCE_SEQUENCE_LISTS
 #define GENERATE_SOURCE_SEQUENCE_LISTS TRUE
+#endif /* ifndef GENERATE_SOURCE_SEQUENCE_LISTS */
+
+/*
+Flag that is TRUE if source sequence lists are being generated and if they
+should include information about comments.
+*/
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+#define COMMENTS_IN_SOURCE_SEQUENCE_LISTS TRUE   /* You can change this. */
+#endif /* ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#define COMMENTS_IN_SOURCE_SEQUENCE_LISTS FALSE  /* Do not change this. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /*
