@@ -2092,10 +2092,6 @@ Display the indicated throw-specification entry.
   disp_ptr("next", (char *)ptr->next, iek_throw_spec_type);
   disp_ptr("type", (char *)ptr->type, iek_type);  
   disp_boolean("redundant", (a_boolean)ptr->redundant);
-  disp_unsigned_long("decl_position.seq",
-                     (unsigned long)ptr->decl_position.seq);
-  disp_unsigned_long("decl_position.column",
-                     (unsigned long)ptr->decl_position.column);
 }  /* disp_throw_spec_type */
 
 
@@ -2106,10 +2102,12 @@ Display the indicated throw-specification entry.
 {
   disp_ptr("throw_spec_type_list", (char *)ptr->throw_spec_type_list,
            iek_throw_spec_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_unsigned_long("throw_position.seq",
                      (unsigned long)ptr->throw_position.seq);
   disp_unsigned_long("throw_position.column",
                      (unsigned long)ptr->throw_position.column);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_throw_specification */
 
 

@@ -930,13 +930,8 @@ typedef struct a_throw_spec_type {
 			/* A pointer to the type of the exception. */
   a_byte_boolean
 		redundant;
-			/* TRUE when previous entry on the list has the same
+			/* TRUE when a previous entry on the list has the same
 			   type. */
-  a_source_position
-		decl_position;
-			/* Source position of the declaration of this
-			   exception specification -- the source position of
-			   "throw". */
 } a_throw_spec_type;
 
 
@@ -952,11 +947,13 @@ typedef struct a_throw_specification {
 			     void f() throw (int,char);
                            or NULL if no exceptions will be thrown, e.g.,
 			     void f() throw ();              */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		throw_position;
 			/* Source position of the declaration of this
 			   exception specification -- the source position of
 			   "throw". */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_throw_specification;
 #endif /* ifdef CIL */
 

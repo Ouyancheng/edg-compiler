@@ -4656,8 +4656,10 @@ region.
   num_throw_specifications_allocated++;
 #endif /* DEBUG */
   tsp->throw_spec_type_list = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   tsp->throw_position.seq = 0;
   tsp->throw_position.column = SP_COL_UNKNOWN;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return tsp;
 }  /* alloc_throw_specification */
@@ -4679,8 +4681,6 @@ region.
   tstp->next = NULL;
   tstp->type = NULL;
   tstp->redundant = FALSE;
-  tstp->decl_position.seq = 0;
-  tstp->decl_position.column = SP_COL_UNKNOWN;
 
   return tstp;
 }  /* alloc_throw_spec_type */

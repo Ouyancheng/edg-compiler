@@ -1698,7 +1698,9 @@ specification is handled later (see check_throw_specification).
     pos_error(ec_no_exception_support, &pos_curr_token);
   } else {
     tsp = alloc_throw_specification();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     tsp->throw_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     func_info->throw_specification = tsp;
   }  /* if */
   /* Bypass "throw". */
@@ -1724,10 +1726,6 @@ specification is handled later (see check_throw_specification).
     /* Allocate the throw spec type entry. */
     tstp = alloc_throw_spec_type();
     type_pos = pos_curr_token;
-#if 0
-    /* Is this needed? */
-#endif /* if 0 */
-    tstp->decl_position = pos_curr_token;
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/FALSE)) {
       /* Error. */
