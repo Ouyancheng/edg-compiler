@@ -9584,6 +9584,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           a_type_ptr                    rout_type;
           a_routine_type_supplement_ptr rtsp;
           an_expr_node_ptr              arg_node = operand_node->next;
+          /* Extract the routine type. */
           if (op == (an_expr_operator_kind)eok_pm_call) {
             rout_type = pm_member_type_possibly_lowered(operand_node->type);
           } else {
@@ -9591,9 +9592,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           }  /* if */
           rout_type = skip_typerefs(rout_type);
           rtsp = rout_type->variant.routine.extra_info;
+          /* Lower the expression giving the address of the routine. */
           lower_normal_expr(operand_node);
           /* If the routine has a "this" parameter or caller-supplied
-             result location, lower them separately. */
+             result location, lower it separately. */
           if (rtsp->implicit_this_param_type != NULL) {
             lower_normal_expr(arg_node);
             arg_node = arg_node->next;
@@ -9604,8 +9606,31 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           }  /* if */
           lower_arg_expr_list(arg_node, rout_type);
         } else {
+          /* Normal (non-call) case. */
           lower_expr_list(operand_node, is_lvalue_mask,
                           is_conditional_operator);
+        }  /* if */
+        if (expr->variant.operation.assignment_returns_lvalue) {
+          /* lvalue-returning assignment operator.  Rewrite
+               x = y          really: &x = y
+             using an rvalue-returning operator as
+               ((x = y), x)   really: ((&x = y), &x)
+             If necessary, make a reusable copy of x. */
+          an_expr_node_ptr new_assign_node;
+          expr->variant.operation.assignment_returns_lvalue = FALSE;
+          /* Make a copy of the assignment node that is an rvalue
+             assignment. */
+          new_assign_node = copy_node(expr);
+          new_assign_node->type = type_pointed_to(expr->type);
+          /* Attach a copy of the lvalue address to it, for the second
+             operand of the comma operator. */
+          new_assign_node->next = make_reusable_copy(operand_node);
+          /* Change the original node to a comma node. */
+          set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                            expr->type, new_assign_node);
+          /* Continue lowering with the rvalue assignment node.  Note that
+             operand_node is still set correctly. */
+          expr = new_assign_node;
         }  /* if */
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
@@ -9727,25 +9752,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             /* No action on most operators. */
             break;
         }  /* switch */
-        if (expr->variant.operation.assignment_returns_lvalue) {
-          /* lvalue-returning assignment operator.  Rewrite
-               x = y          really: &x = y
-             using an rvalue-returning operator as
-               ((x = y), x)   really: ((&x = y), &x)
-             If necessary, make a reusable copy of x. */
-          an_expr_node_ptr new_assign_node;
-          expr->variant.operation.assignment_returns_lvalue = FALSE;
-          /* Make a copy of the assignment node that is an rvalue
-             assignment. */
-          new_assign_node = copy_node(expr);
-          new_assign_node->type = type_pointed_to(expr->type);
-          /* Attach a copy of the lvalue address to it, for the second
-             operand of the comma operator. */
-          new_assign_node->next = make_reusable_copy(operand_node);
-          /* Change the original node to a comma node. */
-          set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                            expr->type, new_assign_node);
-        }  /* if */
       }  /* if */
       break;
     case enk_constant:

@@ -1,3 +1,15 @@
+Version 2.13
+
+1/6/93 IL lowering bug
+
+In lower_expr in IL lowering, a piece of code checked the
+assignment_returns_lvalue flag in an expression node and then did
+a transformation to an rvalue assignment.  In some cases (in particular,
+a cast of a pointer-to-member-function to another pointer-to-member-function
+type), the expression node at that point was no longer an operation
+node, so that flag was in effect undefined.  An internal error
+was sometimes issued.
+
 1/5/93 Uninitialized const and ref members of class object
 
 We now do a better job of detecting cases where an aggregate class
@@ -43,8 +55,6 @@ and the types of C<A>.m, C<B>.m, and C<int>.m would all be the same.
 The language definition currently offers no guidance for deciding between
 the alternatives.  Cfront issues an error for using a template parameter
 name in an elaborated type specifier.
-
-Version 2.13
 
 12/22/92 Bug in && and || operator processing
 
