@@ -12434,6 +12434,19 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     if (is_void_type(operand.type)) {
       /* Cannot throw a void expression. */
       error_in_operand(ec_void_throw, &operand);
+    } else if (is_incomplete_type(operand.type)) {
+      /* Cannot throw an incomplete type. */
+      error_in_operand(ec_incomplete_type_not_allowed, &operand);
+    } else if (is_pointer_type(operand.type)) {
+      /* Cannot throw a pointer to incomplete type, except a pointer
+         to (possibly cv-qualified) void. */
+      if (!is_void_type(type_pointed_to(operand.type))) {
+        if (!microsoft_mode) {
+          error_in_operand(ec_ptr_incomplete_throw, &operand);
+        } else {
+          pos_warning(ec_ptr_incomplete_throw, &operand.position);
+        }  /* if */
+      }  /* if */
     } else if (is_abstract_class_type(operand.type)) {
       report_abstract_class_error(ec_abstract_class_object_not_allowed,
                                   operand.type, &operand.position);
