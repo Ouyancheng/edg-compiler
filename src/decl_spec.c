@@ -2774,6 +2774,12 @@ Returns TRUE if there is an error in the specifiers.
           a_decl_modifier	new_modifiers;
           a_source_position	specifier_start_pos;
 
+          if (num_specifiers > 0 && *decl_modifiers != DM_NONE) {
+            /* There must have already been at least one __declspec or
+               __inline specifier.  Count all the Microsoft specifiers as a
+               single specifier, since they are packaged in a single bitset. */
+            --num_specifiers;
+          }  /* if */
           specifier_start_pos = pos_curr_token;
           /* A Microsoft storage class modifier.  If this is a __declspec,
              scan the list of declaration modifiers. */
@@ -3360,6 +3366,12 @@ process_class_specifier:
                                  ((*storage_class ==
                                      (a_storage_class)sc_static) ? 1 : 0) +
                                  ((*output_flags & DSO_EXPLICIT) ? 1 : 0) +
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                 /* In microsoft mode __declspec(...) and
+                                    __inline are also permitted with
+                                    constructor declarations. */
+                                 ((*decl_modifiers != DM_NONE) ? 1 : 0) +
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                  (is_inline ? 1 : 0))) {
             a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
             a_type_ptr               class_type;
