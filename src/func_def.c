@@ -1189,10 +1189,6 @@ member declaration (allowed in Microsoft mode only).
         sym->variant.routine.ptr->compiler_generated = FALSE;
         sym->variant.routine.ptr->is_inline = FALSE;
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (sym->ambiguous) {
-      pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   if (sym == NULL || (sym->defined && !microsoft_out_of_class_redecl)) {
