@@ -38,8 +38,12 @@ char (instead of int), which saves some space in the executable program.
 
 8/29/93  Jumping past initializing declarations
 
-We now issue a diagnostic (an error in C++ mode, a warning in C mode) on
-jumping past an initializing declaration, as required by ARM 6.7.
+We now issue a diagnostic (an error in C++ mode, a warning in C mode) on a
+goto or switch statement that produces a transfer of control that bypasses
+an initializing declaration, as required by ARM 6.7.  (However, to be
+consistent with cfront 2.1, only a warning is issued in cfront
+compatibility mode for jumping over an initialization in a switch
+statement.)
 
 8/27/93  Large unsigned values for enumerations
 
