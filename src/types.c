@@ -2848,7 +2848,7 @@ pointers to members).
   clear_std_conv_descr(std_conv);
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
-  if (is_ptr_to_member_type(source_type)) {
+  if (is_ptr_to_member(source_type)) {
     /* Pointer-to-member --> pointer-to-member.  Allowed if the types pointed
        to are the same (ignoring the difference in "this" parameter types)
        and the classes involved are the same or the destination class is an
@@ -2872,6 +2872,7 @@ pointers to members).
            the cast is done. */
         okay = TRUE;
         std_conv->cast_base_class = bcp;
+        std_conv->reversed_cast = TRUE;
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {
@@ -3045,7 +3046,7 @@ See conversion_possible.
                                    suppress_extensions,
                                    default_warning_code,
                                    std_conv);
-  } else if (is_ptr_to_member_type(dest_type)) {
+  } else if (is_ptr_to_member(dest_type)) {
     /* Conversion to a C++ pointer-to-member type. */
     okay = impl_ptr_to_member_conversion(source_type,
                                          source_is_constant, source_constant,
