@@ -414,6 +414,34 @@ should include information about comments.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /*
+Flag that is TRUE if source sequence lists are being generated and if they
+should include function template instantiations.
+*/
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#ifndef FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+/* You can change this: */
+#define FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS TRUE
+#endif /* ifndef FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+/* Do not change this: */
+#define FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+/*
+Flag that is TRUE if source sequence lists are being generated and if they
+should include class template instantiations.
+*/
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#ifndef CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+/* You can change this: */
+#define CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS TRUE
+#endif /* ifndef CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+/* Do not change this: */
+#define CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+/*
 Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
 language to C intermediate language, allowing the C++ front end to be used
 with a C back end.
