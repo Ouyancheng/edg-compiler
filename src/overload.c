@@ -12184,7 +12184,8 @@ to be acceptable, and *conversion describes it.
       /* Initializing a reference to NULL, which is not allowed:
            int &p = *(int *)0;
       */
-      if (!strict_ansi_mode) {
+      if (!strict_ansi_mode ||
+          !curr_expr_is_potentially_evaluated()) {
         pos_warning(ec_null_reference, &source_operand->position);
       } else {
         error_in_operand(ec_null_reference, source_operand);

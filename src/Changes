@@ -1,5 +1,19 @@
 Version 3.5
 
+5/17/04  Null reference in unevaluated expression
+
+Code that binds a reference to a null address has formerly gotten
+an error in strict mode and a warning otherwise.  Now, if the
+context is an unevaluated expression (e.g., inside a sizeof)
+a warning is issued even in strict mode.
+
+  class String;                                  
+  int func(const String &);                      
+  int main(int argc, char **argv) {              
+    sizeof(func(*((String*)0)));  // Formerly an error in strict mode;
+                                  // now a warning.
+  }
+
 5/17/04  Inline function referenced only in default argument not removed
 
 An inline function referenced only in a default argument expression,
