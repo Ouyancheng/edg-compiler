@@ -112,7 +112,8 @@ extern void fp_subtract(a_float_kind            kind,
 extern void fp_negate(a_float_kind            kind,
                       an_internal_float_value *value_1,
                       an_internal_float_value *result,
-                      a_boolean               *err);
+                      a_boolean               *err,
+                      a_boolean               *depends_on_fp_mode);
 
 extern void fp_multiply(a_float_kind            kind,
                         an_internal_float_value *value_1,

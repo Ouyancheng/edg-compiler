@@ -1493,6 +1493,9 @@ to TRUE.  If the result depends on the floating-point mode,
   temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 + temp2;
   store_host_fp_value(tempr, kind, result, err);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* fp_add */
 
 
@@ -1517,18 +1520,24 @@ to TRUE.  If the result depends on the floating-point mode,
   temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 - temp2;
   store_host_fp_value(tempr, kind, result, err);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* fp_subtract */
 
 
 void fp_negate(a_float_kind            kind,
                an_internal_float_value *value_1,
                an_internal_float_value *result,
-               a_boolean               *err)
+               a_boolean               *err,
+               a_boolean               *depends_on_fp_mode)
 /*
 Negate the floating-point value value_1 and put the result in result.
 The result has kind "kind".  If there is any error, set *err to TRUE.
-There is a separate routine for this (rather than using fp_subtract
-and a zero constant) because of IEEE floating-point requirements.
+If the result depends on the floating-point mode, *depends_on_fp_mode
+is returned TRUE (*result is set anyway).  There is a separate routine
+for this (rather than using fp_subtract and a zero constant) because
+of IEEE floating-point requirements.
 */
 {
   a_host_fp_value tempr, temp1;
@@ -1537,6 +1546,9 @@ and a zero constant) because of IEEE floating-point requirements.
   temp1 = fetch_host_fp_value(kind, value_1);
   tempr = -temp1;
   store_host_fp_value(tempr, kind, result, err);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (!is_finite(temp1)) *depends_on_fp_mode = TRUE;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* fp_negate */
 
 
@@ -1561,6 +1573,9 @@ to TRUE.  If the result depends on the floating-point mode,
   temp2 = fetch_host_fp_value(kind, value_2);
   tempr = temp1 * temp2;
   store_host_fp_value(tempr, kind, result, err);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* fp_multiply */
 
 
@@ -1594,6 +1609,9 @@ to TRUE.  If the result depends on the floating-point mode,
   {
     tempr = temp1 / temp2;
     store_host_fp_value(tempr, kind, result, err);
+#if TARG_HAS_IEEE_FLOATING_POINT
+    if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
   }  /* if */
 }  /* fp_divide */
 

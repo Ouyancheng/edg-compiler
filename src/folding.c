@@ -1971,9 +1971,10 @@ Do the negate operation on all types of integers.
 
 
 static void do_fnegate(a_constant        *constant,
-		       a_constant        *result,
-		       an_error_code     *err_code,
-		       an_error_severity *err_severity)
+                       a_constant        *result,
+                       an_error_code     *err_code,
+                       an_error_severity *err_severity,
+                       a_boolean         *depends_on_fp_mode)
 /*
 Do the negate operation on all types of float and imaginary values.
 */
@@ -1989,7 +1990,7 @@ Do the negate operation on all types of float and imaginary values.
   set_constant_kind(result, constant->kind);
 
   fp_negate(float_kind, &constant->variant.float_value,
-            &result->variant.float_value, &err);
+            &result->variant.float_value, &err, depends_on_fp_mode);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;
@@ -2005,12 +2006,13 @@ Do the negate operation on all types of float and imaginary values.
 static void do_xnegate(a_constant        *constant,
                        a_constant        *result,
                        an_error_code     *err_code,
-                       an_error_severity *err_severity)
+                       an_error_severity *err_severity,
+                       a_boolean         *depends_on_fp_mode)
 /*
 Do the negate operation on all types of complex.
 */
 {
-  a_boolean    err, accum_err = FALSE;
+  a_boolean    err, accum_err = FALSE, depends_on_mode;
   a_type_ptr   constant_type = skip_typerefs(constant->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
 
@@ -2021,13 +2023,15 @@ Do the negate operation on all types of complex.
   fp_negate(float_kind,
             &constant->variant.complex_value->real,
             &result->variant.complex_value->real,
-            &err);
+            &err, &depends_on_mode);
   accum_err |= err;
+  *depends_on_fp_mode = depends_on_mode;
   fp_negate(float_kind,
             &constant->variant.complex_value->imag,
             &result->variant.complex_value->imag,
-            &err);
+            &err, &depends_on_mode);
   accum_err |= err;
+  *depends_on_fp_mode |= depends_on_mode;
   if (accum_err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
@@ -2128,6 +2132,7 @@ the reason is that the constant is a template parameter constant).
 {
   an_error_code     err_code;
   an_error_severity err_severity;
+  a_boolean         depends_on_fp_mode = FALSE;
 
   db_enter(5, "unary_operation");
 
@@ -2164,14 +2169,16 @@ the reason is that the constant is a template parameter constant).
     } else {
       switch (op) {
         case eok_fnegate:
-          do_fnegate(constant, result, &err_code, &err_severity);
+          do_fnegate(constant, result, &err_code, &err_severity,
+                     &depends_on_fp_mode);
           break;
         case eok_inegate:
           do_inegate(constant, result, &err_code, &err_severity);
           break;
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xnegate:
-          do_xnegate(constant, result, &err_code, &err_severity);
+          do_xnegate(constant, result, &err_code, &err_severity,
+                     &depends_on_fp_mode);
           break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_unary_plus:
@@ -2195,6 +2202,7 @@ the reason is that the constant is a template parameter constant).
       issue_folding_diagnostic(err_code, err_severity, constant_context,
                                evaluated_context, did_not_fold,
                                err_pos, result);
+      if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
     /* If the source constant was formed using operations that are not allowed
        in forming a null pointer constant, the result cannot be used as
@@ -2203,6 +2211,11 @@ the reason is that the constant is a template parameter constant).
                           constant->null_pointer_constant_ruled_out ||
                           constant->kind != (a_constant_repr_kind)ck_integer ||
                           constant->implicit_cast;
+    if (depends_on_fp_mode && !constant_context) {
+      /* In a non-constant context, leave an operation to be done at runtime
+         if its result depends on the floating-point mode. */
+      *did_not_fold = TRUE;
+    }  /* if */
   }  /* if */
 
   db_exit();
@@ -3363,7 +3376,7 @@ static void do_jmultiply(a_constant        *constant_1,
 Do the multiplication operation on two imaginary numbers (any precision).
 */
 {
-  a_boolean    err, accum_err = FALSE;
+  a_boolean    err, accum_err = FALSE, depends_on_mode;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
 
@@ -3375,11 +3388,13 @@ Do the multiplication operation on two imaginary numbers (any precision).
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
               &result->variant.float_value, &err,
-              depends_on_fp_mode);
+              &depends_on_mode);
   accum_err |= err;
+  *depends_on_fp_mode = depends_on_mode;
   fp_negate(float_kind, &result->variant.float_value,
-            &result->variant.float_value, &err);
+            &result->variant.float_value, &err, &depends_on_mode);
   accum_err |= err;
+  *depends_on_fp_mode |= depends_on_mode;
   if (accum_err) {
     *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
@@ -3401,12 +3416,13 @@ static void do_jdivide(a_constant        *constant_1,
 Do the division of a real number by an imaginary number (any precision).
 */
 {
-  a_boolean    err, accum_err = FALSE;
+  a_boolean    err, accum_err = FALSE, depends_on_mode;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
+  *depends_on_fp_mode = FALSE;
 
   /* Check for division by zero to give a specific error message. */
   if (!IEEE_handling_on_float_operation_exceptions &&
@@ -3419,11 +3435,13 @@ Do the division of a real number by an imaginary number (any precision).
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
               &result->variant.float_value, &err,
-              depends_on_fp_mode);
+              &depends_on_mode);
     accum_err |= err;
+    *depends_on_fp_mode = depends_on_mode;
     fp_negate(float_kind, &result->variant.float_value,
-              &result->variant.float_value, &err);
+              &result->variant.float_value, &err, &depends_on_mode);
     accum_err |= err;
+    *depends_on_fp_mode |= depends_on_mode;
     if (accum_err) {
       *err_code = ec_bad_complex_operation_result;
       *err_severity = es_error;
@@ -3436,12 +3454,14 @@ Do the division of a real number by an imaginary number (any precision).
 }  /* do_jdivide */
 
 
-static void do_real_imag_add_subtract(a_constant            *constant_1,
-                                      an_expr_operator_kind op,
-                                      a_constant            *constant_2,
-                                      a_constant            *result,
-                                      an_error_code         *err_code,
-                                      an_error_severity     *err_severity)
+static void do_real_imag_add_subtract(
+                                     a_constant            *constant_1,
+                                     an_expr_operator_kind op,
+                                     a_constant            *constant_2,
+                                     a_constant            *result,
+                                     an_error_code         *err_code,
+                                     an_error_severity     *err_severity,
+                                     a_boolean             *depends_on_fp_mode)
 /*
 Do mixed real/imaginary addition and subtraction, i.e.,
 
@@ -3460,6 +3480,7 @@ preservation of negative zeroes.
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
+  *depends_on_fp_mode = FALSE;
 
   set_constant_kind(result, (a_constant_repr_kind)ck_complex);
   switch (op) {
@@ -3479,7 +3500,7 @@ preservation of negative zeroes.
       fp_negate(float_kind,
                 &constant_2->variant.float_value,
                 &result->variant.complex_value->imag,
-                &err);
+                &err, depends_on_fp_mode);
       break;
     case eok_jfsubtract:
       /* Imaginary - real. */
@@ -3487,7 +3508,7 @@ preservation of negative zeroes.
       fp_negate(float_kind,
                 &constant_2->variant.float_value,
                 &result->variant.complex_value->real,
-                &err);
+                &err, depends_on_fp_mode);
       break;
     default:
       unexpected_condition_str("do_real_imag_add_subtract: bad operator");
@@ -4015,7 +4036,6 @@ as the position for any diagnostics issued.
   an_error_severity err_severity;
   a_boolean         depends_on_fp_mode = FALSE;
 
-
   db_enter(5, "binary_operation");
 
   *did_not_fold = FALSE;
@@ -4230,7 +4250,8 @@ as the position for any diagnostics issued.
         case eok_jfsubtract:
           /* Mixed real/imaginary addition/subtraction. */
           do_real_imag_add_subtract(constant_1, op, constant_2, result,
-                                    &err_code, &err_severity);
+                                    &err_code, &err_severity,
+                                    &depends_on_fp_mode);
           break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 

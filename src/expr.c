@@ -29,6 +29,9 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "literals.h"
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -181,8 +184,8 @@ first_op_volatile_test:
          unqualified version of the type. */
       operand_type = node->variant.operation.operands->type;
       if (is_pointer_type(operand_type)) {
-        a_type_ptr underlying_type = type_pointed_to(operand_type);
-        has_side_effects = is_volatile_qualified_type(underlying_type);
+        a_type_ptr und_type = type_pointed_to(operand_type);
+        has_side_effects = is_volatile_qualified_type(und_type);
       }  /* if */
       break;
     case eok_vacuous_destructor_call:
@@ -209,6 +212,40 @@ first_op_volatile_test:
       suppress = TRUE;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_fnegate:
+    case eok_fadd:
+    case eok_fsubtract:
+    case eok_fmultiply:
+    case eok_fdivide:
+    case eok_feq:
+    case eok_fne:
+    case eok_fgt:
+    case eok_flt:
+    case eok_fge:
+    case eok_fle:
+    case eok_fgnu_min:
+    case eok_fgnu_max:
+      if (c99_mode) {
+        /* In C99, the floating-point status flags can be tested, so a
+           floating-point operation is considered to have side effects. */
+        a_boolean fp_operations_can_cause_side_effects = FALSE;
+        /* Floating-point operations can cause side effects unless
+           FENV_ACCESS is set to off.  Outside of the front end proper,
+           we don't know the current state of that flag so we assume
+           side effects are possible. */
+        if (!in_front_end) {
+          fp_operations_can_cause_side_effects = TRUE;
+#if DO_IL_LOWERING
+        } else if (il_lowering_underway) {
+          fp_operations_can_cause_side_effects = TRUE;
+#endif /* DO_IL_LOWERING */
+        } else {
+          fp_operations_can_cause_side_effects =
+                  (curr_fenv_access_state != (a_stdc_pragma_value)stdc_pv_off);
+        }  /* if */
+        if (fp_operations_can_cause_side_effects) has_side_effects = TRUE;
+      }  /* if */
+      break;
     default:;
   }  /* switch */
 
@@ -3712,11 +3749,11 @@ operation is a pointer-to-member (see ARM 5.3).
       err = TRUE;
       make_error_operand(result);
     } else {
-      a_type_ptr       void_star_type = make_pointer_type(void_type());
+      a_type_ptr       void_star_tp = make_pointer_type(void_type());
       an_expr_node_ptr node =
                    alloc_expr_node((an_expr_node_kind)enk_address_of_ellipsis);
-      node->type = void_star_type;
-      make_expression_operand(node, void_star_type, result);
+      node->type = void_star_tp;
+      make_expression_operand(node, void_star_tp, result);
       if (strict_ansi_mode) {
         diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_ellipsis);
       }  /* if */
