@@ -1092,7 +1092,7 @@ required.
 */
 {
   a_type_ptr             tp1, tp2;
-  a_boolean              compatible;
+  a_boolean              compatible = FALSE;
 
   db_enter(4, "return_types_are_override_compatible");
   tp1 = type_of_overriding_routine->variant.routine.return_type;
@@ -1107,7 +1107,6 @@ required.
     a_base_class_ptr       bcp;
     a_derivation_step_ptr  dsp;
 
-    compatible = FALSE;
     if ((is_reference_type(tp1) && is_reference_type(tp2)) ||
         (is_pointer_type(tp1) && is_pointer_type(tp2))) {
       /* Both types are references or both are pointers. */
