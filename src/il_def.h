@@ -334,6 +334,14 @@ typedef struct a_dynamic_init {
   a_dynamic_init_kind
 		kind;	/* Kind of dynamic initialization (constant,
 			   expression, constructor, aggregate). */
+  unsigned int	follows_an_exec_statement:1;
+			/* TRUE if this initialization is pointed to from
+			   an stmk_init and the stmk_init appears after
+			   some executable statements in its block (which
+			   can only happen in C++).  One would think that
+			   this belongs in the stmk_init, but putting it
+			   here makes it accessible from both the stmk_init
+			   and the variable being initialized. */
   union {
     /* When kind == dik_none: no variant fields. */
     /* When kind == dik_member_copy and dik_base_class_copy: no variant fields.

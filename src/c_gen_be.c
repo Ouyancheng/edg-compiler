@@ -5249,7 +5249,12 @@ Otherwise, return NULL.
     a_dynamic_init_ptr dip = variable->initializer.dynamic;
     if (dip->kind == (a_dynamic_init_kind)dik_constant) {
       /* The variable has a constant dynamic initializer. */
-      init_con = variable->initializer.dynamic->variant.constant;
+      if (dip->follows_an_exec_statement) {
+        /* C++ case -- the initialization is in the middle of a block and
+           should not be treated as a constant initialization. */
+      } else {
+        init_con = variable->initializer.dynamic->variant.constant;
+      }  /* if */
     }  /* if */
 #endif /* ifdef CFE */
   }  /* if */

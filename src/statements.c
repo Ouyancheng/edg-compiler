@@ -31,89 +31,6 @@ statements.c -- Scanning of statements.
 #include "mem_manage.h"
 
 
-/*
-Indication of whether or not code is reachable from the code immediately
-preceding.
-*/
-typedef enum /*a_reachability_code*/ {
-  rc_reachable,		/* Code is reachable. */
-  rc_unreachable,	/* Code is unreachable. */
-  rc_unreachable_error_given
-			/* Code is unreachable, and a warning to that effect
-			   has already been issued, or the warning has been
-			   suppressed by a lint-style "notreached" comment.
-			   Such code is considered reachable, either from
-			   the preceding dead code, or because a "notreached"
-			   comment is wrong (we cannot, after all, allow a
-			   comment to affect the semantics of the program). */
-} a_reachability_code;
-
-/*
-Stack indicating nesting of structured statements.  There is an entry
-on this stack for each current structured statement.  A structured statement
-is one that can contain other statements.
-*/
-typedef enum /*a_struct_stmt_kind*/ {
-  /* Types of structured statements. */
-  ssk_compound,		/* Compound statement, i.e., { ... }. */
-  ssk_if,		/* if statement. */
-  ssk_switch,		/* switch statement. */
-  ssk_while,		/* while (...) {} statement. */
-  ssk_do,		/* do {} while (...); statement. */
-  ssk_for		/* for (...; ...; ...) {} statement. */
-} a_struct_stmt_kind;
-
-typedef struct a_struct_stmt_stack_entry *a_struct_stmt_stack_entry_ptr;
-typedef struct a_struct_stmt_stack_entry {
-  /* An entry on the structured statement stack, describing one
-     current structured statement. */
-  a_struct_stmt_kind
-		kind;	/* Kind of structured statement. */
-  a_boolean	in_else_of_if;
-			/* TRUE when kind == ssk_if and we are in the
-			   "else" clause. */
-  a_statement_ptr
-		statement;
-			/* The associated IL statement.  Indirectly,
-			   also gives the pointer to the first dependent
-			   statement of the structured statement. */
-  a_switch_clause_ptr
-		curr_switch_clause;
-			/* When kind == stmk_switch, this points to the
-			   current switch clause, or is NULL if there
-			   is no current switch clause. */
-  a_statement_ptr
-		last_dep_statement;
-			/* Points to the last dependent statement under
-			   the structured statement.  NULL if there are
-			   no dependent statements. */
-  a_label_ptr	break_label,
-		continue_label;
-			/* Labels to be branched to for a break or
-			   continue out of this statement.  NULL until
-			   needed. */
-  a_type_ptr	switch_selector_type;
-			/* The type of the switch selector expression
-			   (int or long). */
-  a_boolean	switch_has_default_clause:1;
-			/* TRUE if the structured statement is a switch and
-			   it has a default clause. */
-  a_boolean	rout_type_explicitly_specified:1;
-			/* TRUE if the current routine was declared with an
-			   explicit return type.  This flag is set in the
-			   top level statement stack entry only. */
-  a_reachability_code
-		start_reachable;
-			/* Indicates whether or not the start of the structured
-			   statement is reachable. */
-  a_reachability_code
-		end_reachable;
-			/* Indicates whether or not the end of the structured
-			   statement is reachable.  The end is reachable
-			   if the end of any clause is reachable or if it's
-			   possible to execute none of the clauses. */
-} a_struct_stmt_stack_entry;
-
 static a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack_container = NULL;
 			/* A dynamically allocated array of structured
@@ -131,16 +48,6 @@ static a_struct_stmt_stack_entry_ptr
 static sizeof_t	size_struct_stmt_stack_container = 0;
 			/* Size of struct_stmt_stack_container, in terms of
 			   the number of elements. */
-static a_struct_stmt_stack_entry_ptr
-		struct_stmt_stack = NULL;
-			/* The currently active structured statement stack
-			   itself.  The current entry is [depth_stmt_stack].
-			   Entry [0] is for the main block of the current
-			   function, if we are currently inside a function.
-			   Note that in C++ there can be more than one such
-			   stack, though only one is active at a time.  The
-			   struct_stmt_stack array is actually a subarray of
-			   struct_stmt_stack_container. */
 #define STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION 30
 			/* The number of elements added to struct_stmt_stack
 			   each time it is reallocated; also the initial
@@ -549,6 +456,8 @@ the associated il statement.
   sssep->switch_has_default_clause
                               = FALSE;
   sssep->rout_type_explicitly_specified
+                              = FALSE;
+  sssep->any_exec_statement_seen
                               = FALSE;
   sssep->start_reachable      = code_reachable;
   sssep->end_reachable        = rc_unreachable;  /* So far. */
@@ -1762,7 +1671,7 @@ Scan a statement.  Add it to the current statement sequence.
 */
 {
   a_label_ptr      label;
-  a_boolean        prev_was_label = FALSE;
+  a_boolean        prev_was_label = FALSE, is_declaration = FALSE;
 
   db_enter(3, "statement");
 
@@ -1895,6 +1804,7 @@ expr_statement:
                  is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
                                   /*real_declarator_allowed=*/TRUE)) {
         /* Scan a declaration (C++ only). */
+        is_declaration = TRUE;
         local_declaration();
       } else {
         /* expression-statement (3.6.3). */
@@ -1906,6 +1816,11 @@ expr_statement:
       }  /* if */
       break;
   }  /* switch */
+  /* If the statement was an executable statement, set a flag indicating
+     that an executable statement has been seen in the current block. */
+  if (!is_declaration) {
+    struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
+  }  /* if */
 
   db_exit();
 }  /* statement */

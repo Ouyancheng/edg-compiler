@@ -553,31 +553,7 @@ also create an stmk_init statement at the current point in the code.
   db_enter(4, "gen_dynamic_initialization");
   /* Build the dynamic initialization entry. */
   new_dip = alloc_dynamic_init(dip->kind);
-  switch (dip->kind) {
-    case dik_none:
-      break;
-    case dik_constant:
-      new_dip->variant.constant = dip->variant.constant;
-      break;
-    case dik_expression:
-      new_dip->variant.expression = dip->variant.expression;
-      break;
-    case dik_constructor:
-      new_dip->variant.constructor.routine = dip->variant.constructor.routine;
-      new_dip->variant.constructor.args = dip->variant.constructor.args;
-      break;
-    case dik_nonconstant_aggregate:
-      new_dip->variant.aggregate.aggr_const =
-                                  dip->variant.aggregate.aggr_const;
-      new_dip->variant.aggregate.dynamic_init_list =
-                                  dip->variant.aggregate.dynamic_init_list;
-      break;
-#if CHECKING
-    default:
-      internal_error("gen_dynamic_initialization: bad kind");
-#endif /* CHECKING */
-  }  /* switch */
-  new_dip->destructor = dip->destructor;
+  *new_dip = *dip;
   /* Attach the dynamic initialization entry to the scope list. */
   add_to_dynamic_inits_list(new_dip);
   /* Make the variable point at the dynamic initialization. */
@@ -974,10 +950,20 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
       if (dynamic_init_required && !err) {
-        /* Issue a warning for a dynamic initialization in an unreachable
-           block. */
-        if (depth_stmt_stack >= 0 && !curr_code_reachable()) {
-          pos_warning(ec_initialization_not_reachable, source_pos);
+        if (depth_stmt_stack >= 0) {
+          /* We are in executable code (i.e., inside a function or block
+             rather than at file scope). */
+          /* Issue a warning for a dynamic initialization in an unreachable
+             block. */
+          if (!curr_code_reachable()) {
+            pos_warning(ec_initialization_not_reachable, source_pos);
+          }  /* if */
+          /* If this dynamic init appears after some executable code
+             in its block, set a flag to that effect in the dynamic
+             init entry (it identifies the initialization as a C++ case). */
+          if (struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen) {
+            local_di.follows_an_exec_statement = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Generate a dynamic initialization entry (based on local_di) and

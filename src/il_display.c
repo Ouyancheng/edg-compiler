@@ -2420,6 +2420,10 @@ Display the indicated dynamic_init structure.
   if (ptr->destructor != NULL) {
     disp_ptr("destructor", (char *)ptr->destructor, iek_routine);
   }  /* if */
+  if (ptr->follows_an_exec_statement) {
+    disp_boolean("follows_an_exec_statement",
+                 (a_boolean)ptr->follows_an_exec_statement);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:

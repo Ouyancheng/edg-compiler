@@ -3360,6 +3360,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->next       = NULL;
   dip->variable   = NULL;
   dip->destructor = NULL;
+  dip->follows_an_exec_statement = FALSE;
   set_dynamic_init_kind(dip, kind);
 }  /* clear_dynamic_init */
 
