@@ -18,7 +18,9 @@ default operator new() when memory cannot be allocated.
 #include "runtime.h"
 #include "new.h"
 
+#ifndef NULL
 #define NULL 0
+#endif /* ifndef NULL */
 
 extern "C" STD_NAMESPACE::__new_handler _new_handler = NULL;
 
