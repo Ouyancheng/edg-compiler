@@ -1405,7 +1405,10 @@ associated global variables will also have been set).
 			/* Used in climbing through the source line
 			   modifications that enclose the macro invocation,
 			   to determine inertness or pcc mode recursion.
-			   Nothing is reallocated during that process. */
+			   Nothing is reallocated during that process.
+			   Also for copying the filename in __FILE__
+			   expansion, where it points to an unmovable
+			   string. */
   char            *rtp;
 			/* Points to a macro replacement string, which is
 			   not in the reallocated areas. */
@@ -1555,9 +1558,26 @@ end_scan_for_macro_modifs:;
         /* Convert the sequence number to a file name. */
         conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
                                   &line_number, &at_end_of_source);
+        /* Determine the file name length.  Count each backslash as
+           two characters because it must be escaped in the string. */
+        repl_text_len = 0;
+        for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
+          if (*temp_ptr == '\\') repl_text_len++;
+          repl_text_len++;
+        }  /* for */
+        /* Allocate space for the filename string. */
         /* "+3" in the following is for the two quotes and the null. */
-        ensure_arg_raw_text_space(strlen(file_name)+3, special_macro_arg);
-        (void)sprintf(repl_text, "\"%s\"", file_name);
+        ensure_arg_raw_text_space(repl_text_len+3, special_macro_arg);
+        /* Copy the filename, expanding each backslash to two backslashes. */
+        text_loc = repl_text;
+        *text_loc++ = '"';  /* Opening quote. */
+        for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
+          if (*temp_ptr == '\\') *text_loc++ = '\\';
+          *text_loc++ = *temp_ptr;
+        }  /* for */
+        *text_loc++ = '"';  /* Closing quote. */
+        *text_loc = '\0';   /* Final null. */
+        /* repl_text_len gets recomputed below. */
       } else if (macro_symbol == defined_macro_symbol) {
         /* "defined".  This is not, strictly speaking, a macro -- it's
            an operator allowed only in #if expressions.  However, it is
