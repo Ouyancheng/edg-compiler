@@ -4752,7 +4752,7 @@ symbol.  Otherwise, return NULL.
     /* If the symbol found is a class template symbol and we are inside an
        instantiation of the class, use the template class symbol associated
        with the current instantiation. */
-    current_class_symbol_if_class_template(&assoc_symbol);
+    (void)current_class_symbol_if_class_template(&assoc_symbol);
   }  /* if */
   if (assoc_symbol != NULL) {
     if (assoc_symbol->kind != tag_kind) {

@@ -1048,9 +1048,9 @@ assumed if the return type is omitted.
   (void)get_token();
   /* Push a pragma scope.  This makes certain other scopes (e.g.,
      template declaration) invisible for name lookup purposes. */
-  push_scope(sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
-	     (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-	     (a_template_arg_ptr)NULL);
+  (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+	           (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+	           (a_template_arg_ptr)NULL);
   start_pos = pos_curr_token;
   if (is_generalized_identifier_start(GID_NO_OPTIONS) &&
       next_token() == tok_newline) {
