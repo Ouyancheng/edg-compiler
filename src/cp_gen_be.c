@@ -267,7 +267,8 @@ Also set *p_type to the class type.  Called only in C mode.
   *p_type = NULL;
   if ((an_il_entry_kind)ssep->entity.kind == iek_type) {
     a_type_ptr type = (a_type_ptr)ssep->entity.ptr;
-    if (type->kind == (a_type_kind)tk_struct) {
+    if (type->kind == (a_type_kind)tk_struct ||
+        type->kind == (a_type_kind)tk_union) {
       /* Since this is used in C mode, there is no class type supplement,
          so test for the presence of fields as an indication of the fact that
          the struct is defined.  Structs with no fields will be seen as
