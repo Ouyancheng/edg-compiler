@@ -420,7 +420,7 @@ and indentation is the indentation desired.
       db_abbreviated_type(type);
     } 
   }  /* if */
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
   if (sym->kind == (a_symbol_kind)sk_variable ||
       sym->kind == (a_symbol_kind)sk_static_data_member) {
     if (sym->variant.variable != NULL) {
@@ -1798,7 +1798,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
       case onk_subscript:      opstr = "[]";          break;
       case onk_new:            opstr = " new";        break;
       case onk_delete:         opstr = " delete";     break;
-      default:                 opstr = token_names[token];
+      default:                 opstr = token_names[(int)token];
     }  /* switch */
     opname_length = OPERATOR_LEN + strlen(opstr);
     hdr_ptr->identifier_length = opname_length;
@@ -1865,7 +1865,7 @@ in the conversion header list; if there is none, a new one is created.
          because the name is not needed for anything but debug output. */
       sym_hdr->identifier_length = DEFAULT_NAME_LEN;
       sym_hdr->identifier = alloc_il((sizeof_t)DEFAULT_NAME_LEN + 1);
-      (void)strcpy(sym_hdr->identifier, default_name, DEFAULT_NAME_LEN);
+      (void)strcpy(sym_hdr->identifier, default_name);
 #if DEBUG
       symbol_name_string_space += DEFAULT_NAME_LEN+1;
 #endif /* DEBUG */
@@ -3585,7 +3585,7 @@ End a name scope by popping an entry off the scope stack.
         fputs(", kind = ", f_debug);
         db_scope_kind(kind);
       }  /* if */
-      fputc('\n', f_debug);
+      (void)fputc('\n', f_debug);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -3759,8 +3759,8 @@ is called only in C++.
   }  /* if */
 #endif /* CHECKING */
   /* Push an entry for the scope. */
-  push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
-             class_type, (a_routine_ptr)NULL);
+  (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
+                   class_type, (a_routine_ptr)NULL);
 }  /* push_class_reactivation_scope */
 
 
@@ -4012,7 +4012,7 @@ for space tracking purposes.
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
 
   /* Print some symbol table performance statistics. */
-  fputc('\n', f_debug);
+  (void)fputc('\n', f_debug);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Percent of buckets used", "", "",
                    (100 * num_used_symbol_buckets) / SYMBOL_TABLE_SIZE);
   if (num_used_symbol_buckets != 0) {

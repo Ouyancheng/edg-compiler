@@ -1343,9 +1343,9 @@ of characters written on the final line.
         len--;
       }  /* while */
       /* Start a new line and indent. */
-      fputc('\n', file);
+      (void)fputc('\n', file);
       for (*line_len = 0; *line_len < INDENT_AMOUNT; (*line_len)++) {
-        fputc(' ', file);
+        (void)fputc(' ', file);
       }  /* for */
     }  /* while */
     /* Print the final piece of the text (in the usual case, this prints
@@ -1531,18 +1531,18 @@ string is null-terminated.
       /* Start with the severity code character. */
       switch (severity) {
         case es_remark:
-          fputc('R', f_raw_listing);
+          (void)fputc('R', f_raw_listing);
           break;
         case es_warning:
-          fputc('W', f_raw_listing);
+          (void)fputc('W', f_raw_listing);
           break;
         case es_error:
-          fputc('E', f_raw_listing);
+          (void)fputc('E', f_raw_listing);
           break;
         case es_catastrophe:
         case es_command_line_error:
         case es_internal_error:
-          fputc('C', f_raw_listing);
+          (void)fputc('C', f_raw_listing);
           break;
 #if CHECKING
         case es_none:
@@ -1550,7 +1550,7 @@ string is null-terminated.
           internal_error("write_diagnostic: bad severity (2)");
 #endif /* CHECKING */
       }  /* switch */
-      fputc(' ', f_raw_listing);
+      (void)fputc(' ', f_raw_listing);
       /* Determine the source position (file, line number). */
       if (error_pos->seq == 0) {
         /* Error position is in the command line or in initialization. */

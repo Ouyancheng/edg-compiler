@@ -3895,7 +3895,7 @@ return_from_token_scan:
       fprintf(f_debug, ", ");
       db_constant(&const_for_curr_token);
     }  /* if */
-    fputc('\n', f_debug);
+    (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   return (curr_token = ctoken);
@@ -4280,21 +4280,22 @@ only in C++ mode.
   } else {
     /* It must be an overloaded operator name (or an error). */
     opname = opname_kind_for_token[(int)token];
-    if (opname == onk_function_call || opname == onk_subscript) {
+    if (opname == (an_opname_kind)onk_function_call ||
+        opname == (an_opname_kind)onk_subscript) {
       /* Two-token operators: () and [].  Peek ahead to the next token; if
          it's the right one, swallow it and leave the opname kind as is.
          Otherwise change the opname kind to onk_none so that an error will
          be issued. */
-      if (next_token() == (opname == onk_function_call) ?
-                                  tok_rparen : tok_rbracket) {
+      if (next_token() == (opname == (an_opname_kind)onk_function_call) ?
+                                                tok_rparen : tok_rbracket) {
         /* Advance to the second token. */
         (void)get_token();
       } else {
         /* Error case. */
-        opname = onk_none;
+        opname = (an_opname_kind)onk_none;
       }  /* if */
     }  /* if */
-    if (opname == onk_none) {
+    if (opname == (an_opname_kind)onk_none) {
       /* syntax_error is deliberately not called. */
       error(ec_exp_operator);
       /* Put back the current token and make a fake error identifier. */
@@ -4687,7 +4688,7 @@ of the front end.
                  "lexical_init: initialization of token_names is not correct");
   }  /* if */
   /* Check that the table of opname kinds is correctly initialized. */
-  if (opname_kind_for_token[(int)tok_last] != onk_last) {
+  if (opname_kind_for_token[(int)tok_last] != (an_opname_kind)onk_last) {
     internal_error("lexical_init: bad init of opname_kind_for_token");
   }  /* if */
 #endif /* CHECKING */
