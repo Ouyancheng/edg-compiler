@@ -1,5 +1,12 @@
 Version 2.38
 
+11/18/97  Option to put out "long double" as "double" in generated C
+
+The type "long double" has been put out as "double" when generating
+K&R C code.  Now, there is an option LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
+that controls this behavior independently, so that it can be requested
+also when the output is ANSI/ISO C.
+
 11/18/97  Generated output for #ident and #pragma ident
 
 #ident and #pragma ident are both represented the same way in the IL,

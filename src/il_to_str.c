@@ -475,7 +475,8 @@ way described by octl.
 {
   char *str;
 
-  if (octl->c_generating_back_end && octl->gen_pcc_code) {
+#if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
+  if (octl->c_generating_back_end) {
     if (kind == (a_float_kind)fk_long_double) {
       /* When generating K&R C from the C-generating back end, put out
          "double" for "long double" and issue a one-time-only warning. */
@@ -487,6 +488,7 @@ way described by octl.
       kind = (a_float_kind)fk_double;
     }  /* if */
   }  /* if */
+#endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
   str = float_kind_name(kind);
 #if CHECKING
   if (*str == '*'

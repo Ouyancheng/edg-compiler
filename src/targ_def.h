@@ -1282,6 +1282,20 @@ generating K&R C.)
 #endif /* !defined(SUPPRESS_CONST_IN_GENERATED_C) */
 
 /*
+Control whether "long double" is put out as "long double" or as "double"
+in generated C code.
+*/
+#ifndef LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
+#if C_GEN_BE_GENERATES_ANSI_C
+/* Generating ANSI C. */
+#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C FALSE
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
+/* Generating K&R C. */
+#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C TRUE
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#endif /* ifndef LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
+
+/*
 If ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C is TRUE, "register" will be put
 out for register variables whose address is taken.  This can occur when
 compiling ANSI C code in SVR4 C compatibility mode.

@@ -20,6 +20,7 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
