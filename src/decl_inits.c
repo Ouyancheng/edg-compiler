@@ -936,7 +936,7 @@ The syntax is:
     if (cssp != NULL && cssp->destructor != NULL) {
       local_di.destructor = cssp->destructor->variant.routine;
       /* Check that the destructor is accessible and mark it referenced. */
-      reference_to_special_member_function(cssp->destructor);
+      reference_to_implicitly_invoked_function(cssp->destructor);
       initialization_is_dynamic = TRUE;
     }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
@@ -1054,7 +1054,7 @@ the default constructor (if one exists) is called.
           if (cssp->destructor != NULL) {
             /* Check that the destructor is accessible and mark it
                referenced. */
-            reference_to_special_member_function(cssp->destructor);
+            reference_to_implicitly_invoked_function(cssp->destructor);
             local_di.destructor = cssp->destructor->variant.routine;
           }  /* if */
           if (var_type != tp) {
@@ -1085,7 +1085,7 @@ the default constructor (if one exists) is called.
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
         local_di.destructor = cssp->destructor->variant.routine;
         /* Check that the destructor is accessible and mark it referenced. */
-        reference_to_special_member_function(cssp->destructor);
+        reference_to_implicitly_invoked_function(cssp->destructor);
         gen_dynamic_initialization(var, &local_di);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
            doesn't count as initialization. */
@@ -1683,7 +1683,7 @@ though neither constructors nor initialization is involved here.)
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         dip->destructor = cssp->destructor->variant.routine;
         /* Check that the destructor is accessible and mark it referenced. */
-        reference_to_special_member_function(cssp->destructor);
+        reference_to_implicitly_invoked_function(cssp->destructor);
         /* Attach the new dynamic init entry to the constructor initializer. */
         cip->initializer = dip;
         /* Add the constructor init to the end of the appropriate list. */
@@ -1740,7 +1740,7 @@ though neither constructors nor initialization is involved here.)
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = cssp->destructor->variant.routine;
           /* Check that the destructor is accessible and mark it referenced. */
-          reference_to_special_member_function(cssp->destructor);
+          reference_to_implicitly_invoked_function(cssp->destructor);
           if (array_type != NULL) {
             /* We have an array of objects with destructors.  Create a dynamic
                init entry to handle the aggregate. */

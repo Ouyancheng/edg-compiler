@@ -4218,12 +4218,6 @@ handled separately.
 }  /* reference_to_implicitly_invoked_function */
 
 
-void reference_to_special_member_function(a_symbol_ptr  sym)
-{
-  reference_to_implicitly_invoked_function(sym);
-}  /* reference_to_special_member_function */
-
-
 static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
                                                      a_boolean     *const_okay)
 /*
