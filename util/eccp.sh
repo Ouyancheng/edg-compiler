@@ -686,7 +686,8 @@ do
           ;;
         -I | --include_directory)
           # Convert relative -I paths to absolute ones, if necessary.
-          if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
+          if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 -a \
+               "$1" != "-" ] ; then
             absolute_path=`expr match $1 '/.*'`
             if [ $absolute_path -eq 0 ] ; then
               # The directory is a relative path.  Add the current directory
@@ -742,11 +743,13 @@ do
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
             dir_name=`expr $1 : '-I\(.*\)'`    # Get the string after the -I
-            absolute_path=`expr match $dir_name '/.*'`
-            if [ $absolute_path -eq 0 ] ; then
-              # The directory is a relative path.  Add the current directory
-              # to convert it to an absolute path
-              curr_param=-I`pwd`/$dir_name
+            if [ "$dir_name" != "-" ] ; then
+              absolute_path=`expr match $dir_name '/.*'`
+              if [ $absolute_path -eq 0 ] ; then
+                # The directory is a relative path.  Add the current directory
+                # to convert it to an absolute path
+                curr_param=-I`pwd`/$dir_name
+              fi
             fi
           fi
           ;;
@@ -755,11 +758,13 @@ do
           # if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
             dir_name=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
-            absolute_path=`expr match $dir_name '/.*'`
-            if [ $absolute_path -eq 0 ] ; then
-              # The directory is a relative path.  Add the current directory
-              # to convert it to an absolute path
-              curr_param=--include_directory=`pwd`/$dir_name
+            if [ "$dir_name" != "-" ] ; then
+              absolute_path=`expr match $dir_name '/.*'`
+              if [ $absolute_path -eq 0 ] ; then
+                # The directory is a relative path.  Add the current directory
+                # to convert it to an absolute path
+                curr_param=--include_directory=`pwd`/$dir_name
+              fi
             fi
           fi
           ;;
