@@ -4788,7 +4788,7 @@ the target type to be used).
     /* See if the operand type matches the type code. */
     type_code = *type_pattern_position;
     if (specific_type == NULL) {
-      /* Non-pointer or non-specific pointer type required. */
+      /* Non-specific builtin type required. */
       if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
            an appropriate built-in type. */
@@ -4825,12 +4825,12 @@ the target type to be used).
         }  /* if */
       }  /* if */
     } else {
-      /* A specific pointer or pointer to member type is required.  Check
-         that the operand can be converted to the pointer type passed in. */
+      /* A specific type is required.  Check that the operand can be
+         converted to the type passed in. */
       if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
-           the pointer type. */
-        /* If this operand is the one that suggested this pointer type,
+           the specific type. */
+        /* If this operand is the one that suggested this specific type,
            we already know it is compatible.  However, we still have to
            call conversion_from_class_possible to get the conversion field
            set in the arg_match entry. */
@@ -4850,8 +4850,6 @@ the target type to be used).
           arg_match->param_type = specific_type;
         }  /* if */
       } else {
-        a_boolean        ptr_to_member_case = (*type_pattern_position ==
-                                                      PTR_TO_MEMBER_TYPE_CODE);
         a_boolean        cfront_null_ptr_constant_case;
         a_std_conv_descr std_conv;
         a_boolean        source_is_constant;
@@ -4866,7 +4864,9 @@ the target type to be used).
         cfront_null_ptr_constant_case =
                                any_cfront_mode() &&
                                source_is_constant &&
-                               is_null_pointer_constant(source_constant);
+                               is_null_pointer_constant(source_constant) &&
+                               (is_pointer_type(specific_type) ||
+                                is_ptr_to_member_type(specific_type));
         if (cfront_null_ptr_constant_case &&
             (!source_constant->is_simple_zero ||
              (cfront_3_0_mode &&
@@ -4879,23 +4879,12 @@ the target type to be used).
              This one isn't.   cfront 3.0 doesn't allow null pointer
              conversions on relational operators. */
           arg_match->match_level = aml_none;
-        } else if (ptr_to_member_case ?
-              impl_ptr_to_member_conversion(
-                                    operand_type,
-                                    source_is_constant,
-                                    source_constant,
-                                    specific_type,
-                                    /*check_as_operands_not_conversion=*/TRUE,
-                                    &std_conv) :
-              impl_pointer_conversion(
-                                    operand_type,
-                                    source_is_constant,
-                                    source_constant,
-                                    specific_type,
-                                    /*check_as_operands_not_conversion=*/TRUE,
-                                    /*suppress_extensions=*/TRUE,
-                                    ec_no_error, /* arbitrary */
-                                    &std_conv)) {
+        } else if (impl_conversion_possible(operand_type,
+                                            source_is_constant,
+                                            source_constant,
+                                            specific_type,
+                                            /*suppress_extensions=*/TRUE,
+                                            ec_no_error, &std_conv)) {
           /* The conversion can be done. */
           if (cfront_null_ptr_constant_case) {
             /* cfront uses standard weighting for these. */
@@ -4931,49 +4920,49 @@ the target type to be used).
 }  /* try_builtin_operands_match */
 
 
-static a_boolean pointer_type_previously_handled(
-                                   a_type_ptr pointer_type,
-                                   a_type_ptr class_type,
-                                   a_type_ptr previous_class_type_considered,
-                                   a_type_ptr previous_pointer_type_considered)
+static a_boolean specific_type_previously_handled(
+                                  a_type_ptr specific_type,
+                                  a_type_ptr class_type,
+                                  a_type_ptr previous_class_type_considered,
+                                  a_type_ptr previous_specific_type_considered)
 /*
-Helper routine for try_pointer_builtin_operands_match.  Return TRUE if
-pointer_type has already been tried as a target pointer or pointer-to-member
-type.  class_type, if non-NULL, indicates the current operand class type.
-previous_class_type_considered, if non-NULL, indicates the class type of
-a previous operand converted to pointer; previous_pointer_type_considered,
-if non-NULL, indicates the pointer type of a previous non-class operand.
+Helper routine for try_corresp_builtin_operands_match.  Return TRUE if
+specific_type has already been tried as a target specific type.
+class_type, if non-NULL, indicates the current operand class type.
+previous_class_type_considered, if non-NULL, indicates the type of a
+previous class operand already considered; previous_specific_type_considered,
+if non-NULL, indicates the type of a previous non-class operand already
+considered.
 */
 {
-  a_boolean previously_handled;
+  a_boolean previously_handled = FALSE;
 
-  previously_handled = FALSE;
-  if (previous_pointer_type_considered != NULL &&
-      identical_types(previous_pointer_type_considered, pointer_type)) {
+  if (previous_specific_type_considered != NULL &&
+      identical_types(previous_specific_type_considered, specific_type)) {
     /* This type was the type of a previous non-class operand;
        it's already been considered. */
     previously_handled = TRUE;
   } else if (previous_class_type_considered != NULL) {
-    /* Some pointer types were tried on a previous class operand, so
-       check to see if the pointer type we're considering was
+    /* Some types were tried on a previous class operand, so
+       check to see if the specific type we're considering was
        already processed on the previous operand.  It was if the
        underlying class types of the operands are the same or if
        the previous class has a conversion function that converts
-       to the pointer type we're considering. */
+       to the specific type we're considering. */
     if (class_type == previous_class_type_considered ||
         find_conversion_function(previous_class_type_considered,
-                                 pointer_type) != NULL) {
-      /* This pointer type was tried when the first operand was
+                                 specific_type) != NULL) {
+      /* This specific type was tried when the first operand was
          processed, so do not try it again (if we did, it would
         look like an ambiguity). */
       previously_handled = TRUE;
     }  /* if */
   }  /* if */
   return previously_handled;
-}  /* pointer_type_previously_handled */
+}  /* specific_type_previously_handled */
 
 
-static void try_pointer_builtin_operands_match(
+static void try_corresp_builtin_operands_match(
                          an_opname_kind           kind,
                          char                     *operand_type_pattern,
                          a_boolean                first_operand_must_be_lvalue,
@@ -4992,35 +4981,34 @@ in some way, e.g., two pointers that must have the same type.
 */
 {
   an_arg_operand_ptr       arg_operand;
-  a_type_ptr               pointer_type, operand_type, class_type;
+  a_type_ptr               specific_type, operand_type, class_type;
   char                     *type_pattern_position;
   a_symbol_ptr             conversion_symbol, base_conversion_symbol;
   a_symbol_list_entry_ptr  slep;
   a_type_ptr               conv_routine_type, return_type;
   a_type_ptr               previous_class_type_considered;
-  a_type_ptr               previous_pointer_type_considered;
-  a_boolean                any_ptr_conversion_function_this_operand;
+  a_type_ptr               previous_specific_type_considered;
+  a_boolean                any_approp_conversion_function_this_operand;
 
-  db_enter(4, "try_pointer_builtin_operands_match");
-  /* The reason the pointer case is more complicated than other cases is
-     that it is not sufficient to ask "can this class-type operand be
-     converted to any pointer type?" -- we must ask whether both of the
-     pointer operands can be converted to a specific pointer type or
-     something compatible with it. */
+  db_enter(4, "try_corresp_builtin_operands_match");
+  /* The reason the corresponding-types case is more complicated than other
+     cases is, to pick a pointer example, that it is not sufficient to ask
+     "can this class-type operand be converted to any pointer type?" --
+     we must ask whether both of the pointer operands can be converted to
+     a specific pointer type or something compatible with it. */
   /* Loop through the two operands. */
   previous_class_type_considered = NULL;
-  previous_pointer_type_considered = NULL;
+  previous_specific_type_considered = NULL;
   for (type_pattern_position = operand_type_pattern,
          arg_operand = arg_operand_list;
        arg_operand != NULL;
        type_pattern_position++, arg_operand = arg_operand->next) {
     operand_type = arg_operand->operand.type;
     if (is_class_struct_union_type(operand_type)) {
-      /* This operand takes a pointer type and the operand value has a class
-         type.  Look for conversion functions that convert the class type
-         to any pointer type. */
+      /* This operand has a class type.  Look for conversion functions that
+         convert the class type to an appropriate type. */
       class_type = skip_typerefs(operand_type);
-      any_ptr_conversion_function_this_operand = FALSE;
+      any_approp_conversion_function_this_operand = FALSE;
       /* Look at all the conversion functions for the source class. */
       for (slep = symbol_supplement_for_class(class_type)->conversion_list;
            slep != NULL;
@@ -5033,57 +5021,53 @@ in some way, e.g., two pointers that must have the same type.
           /* We've found a conversion function to an appropriate type.  Make
              sure it's not a type we've already checked while examining a
              previous operand.  If it is, ignore it. */
-          pointer_type = return_type;
-          if (!pointer_type_previously_handled(
-                                           pointer_type, class_type,
-                                           previous_class_type_considered,
-                                           previous_pointer_type_considered)) {
-            /* Try matching the operands, with the chosen pointer type
-               as the target type for operands that must be pointers. */
-            any_ptr_conversion_function_this_operand = TRUE;
+          specific_type = return_type;
+          if (!specific_type_previously_handled(
+                                          specific_type, class_type,
+                                          previous_class_type_considered,
+                                          previous_specific_type_considered)) {
+            /* Try matching the operands, with the chosen specific type. */
+            any_approp_conversion_function_this_operand = TRUE;
             try_builtin_operands_match(kind, operand_type_pattern,
                                        first_operand_must_be_lvalue,
                                        arg_operand_list,
                                        candidate_functions,
-                                       pointer_type);
+                                       specific_type);
           }  /* if */
         }  /* if */
       }  /* for */
-      /* Remember if we've processed any class types with pointer conversion
-         functions. */
-      if (any_ptr_conversion_function_this_operand) {
+      /* Remember if we've processed any class types. */
+      if (any_approp_conversion_function_this_operand) {
         previous_class_type_considered = class_type;
       }  /* if */
     } else {
-      /* The operand requires a pointer and the value supplied does not
-         have a class type.  If it has a pointer type try that type as the
-         target type. */
+      /* The operand does not have a class type.  See if standard conversions
+         can be used to get to the desired type. */
       /* Do array --> pointer and function --> pointer transformations. */
       operand_type = do_implicit_type_transformations(operand_type,
                                                       &arg_operand->operand);
       operand_type = skip_typerefs(operand_type);
       if (type_matches_type_code(operand_type, *type_pattern_position)) {
         /* The operand has an appropriate type. */
-        pointer_type = operand_type;
+        specific_type = operand_type;
         /* If the type has been previously handled, ignore it. */
-        if (!pointer_type_previously_handled(
-                                           pointer_type, (a_type_ptr)NULL,
-                                           previous_class_type_considered,
-                                           previous_pointer_type_considered)) {
-          previous_pointer_type_considered = pointer_type;
-          /* Try matching the operands, with the chosen pointer type
-             as the target type for operands that must be pointers. */
+        if (!specific_type_previously_handled(
+                                          specific_type, (a_type_ptr)NULL,
+                                          previous_class_type_considered,
+                                          previous_specific_type_considered)) {
+          previous_specific_type_considered = specific_type;
+          /* Try matching the operands, with the chosen specific type. */
           try_builtin_operands_match(kind, operand_type_pattern,
                                      first_operand_must_be_lvalue,
                                      arg_operand_list,
                                      candidate_functions,
-                                     pointer_type);
+                                     specific_type);
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
   db_exit();
-}  /* try_pointer_builtin_operands_match */
+}  /* try_corresp_builtin_operands_match */
 
 
 static void try_conversions_for_builtin_operator(
@@ -5145,7 +5129,7 @@ can be used, it is added to the candidate_functions list.
          enumerates the types that can be generated by the applicable
          conversion functions. */
       operand_type_pattern++;
-      try_pointer_builtin_operands_match(kind, operand_type_pattern,
+      try_corresp_builtin_operands_match(kind, operand_type_pattern,
                                          first_operand_must_be_lvalue,
                                          arg_operand_list,
                                          candidate_functions);
