@@ -8125,6 +8125,9 @@ to be acceptable, and *conversion describes it.
   operand_was_rvalue = is_an_rvalue(source_operand);
   if (is_error_operand(source_operand)) {
     /* Leave an error operand alone. */
+  } else if (is_error_type(base_dest_type)) {
+    /* If the reference is to an error type, return an error operand. */
+    conv_to_error_operand(source_operand);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */

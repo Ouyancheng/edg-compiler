@@ -1,5 +1,14 @@
 Version 2.35
 
+2/21/97  Error recovery problem: binding reference to error type
+
+On the following case, an error recovery problem caused an abort.
+This has been fixed.
+
+  void f(int);
+  void f(int&);
+  A& p = f;   // "A" is undeclared, abort in recovery
+
 2/20/97  Internal error on ill-formed conversion operator template
 
 An internal error could result if a conversion operator template
