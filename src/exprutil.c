@@ -4944,24 +4944,7 @@ expression to "!= 0" form if necessary.
           }  /* if */
           /* If the top of the expression is not an operator that returns
              a boolean 0/1, add a "!= 0" of the right kind on top. */
-          switch (op) {
-            case eok_land: case eok_lor: case eok_not:
-            case eok_ieq: case eok_feq: case eok_peq:
-            case eok_ine: case eok_fne: case eok_pne:
-            case eok_igt: case eok_fgt: case eok_pgt:
-            case eok_ilt: case eok_flt: case eok_plt:
-            case eok_ige: case eok_fge: case eok_pge:
-            case eok_ile: case eok_fle: case eok_ple:
-            case eok_pmne: case eok_pmeq:
-              /* The expression already has a appropriate operator on top,
-                 so leave it alone. */
-              add_ne_0 = FALSE;
-              break;
-            default:
-              /* Add an appropriate "!= 0" on top of the expression. */
-              add_ne_0 = TRUE;
-              break;
-          }  /* switch */
+          add_ne_0 = !is_operator_returning_bool(op);
 	}  /* if */
         if (add_ne_0) {
           /* Add a "!= 0" of the appropriate type on top of the expression

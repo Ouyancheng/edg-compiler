@@ -5988,6 +5988,34 @@ and return a pointer to it.
 }  /* node_for_integer_constant */
 
 
+a_boolean is_operator_returning_bool(an_expr_operator_kind op)
+/*
+Return TRUE iff the indicated operator returns a bool (C++) or int (C)
+result.  These are the operators for which an implicit "!= 0" need not
+be added on a tested condition in the IL.
+*/
+{
+  a_boolean returns_bool;
+
+  switch (op) {
+    case eok_land: case eok_lor: case eok_not:
+    case eok_ieq: case eok_feq: case eok_peq:
+    case eok_ine: case eok_fne: case eok_pne:
+    case eok_igt: case eok_fgt: case eok_pgt:
+    case eok_ilt: case eok_flt: case eok_plt:
+    case eok_ige: case eok_fge: case eok_pge:
+    case eok_ile: case eok_fle: case eok_ple:
+    case eok_pmne: case eok_pmeq:
+      returns_bool = TRUE;
+      break;
+    default:
+      returns_bool = FALSE;
+      break;
+  }  /* switch */
+  return returns_bool;
+}  /* is_operator_returning_bool */
+
+
 an_expr_node_ptr copy_node(an_expr_node_ptr expr)
 /*
 Allocate a copy of an expression node and return a pointer to it.

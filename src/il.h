@@ -384,6 +384,8 @@ extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
 extern an_expr_node_ptr node_for_integer_constant(long            value,
                                                   an_integer_kind kind);
 
+extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);
+
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list);
