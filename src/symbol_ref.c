@@ -648,8 +648,7 @@ hidden name checking on its own members, too.
 */
 {
   a_base_class_ptr  bcp = base_classes_of(class_type);
-  a_symbol_ptr      sym_ptr, old_sym_ptr;
-  a_symbol_locator  locator;
+  a_symbol_ptr      sym_ptr;
 
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
