@@ -1303,25 +1303,24 @@ indication like "f(void)::".
 
   /* Get the block number. */
   p = get_number(ptr, &block_number, dctl);
-  /* Check for the two underscores following the block number. */
-  if (p[0] != '_' || p[1] != '_') {
-    bad_mangled_name(dctl);
-  } else {
+  /* Check for the two underscores following the block number.  For local
+     class names, there is no following function name. */
+  if (p[0] == '_' && p[1] == '_') {
     p += 2;
+    /* Put out the function name. */
+    if (nchars != 0) nchars -= (p - ptr);
+    p = full_demangle_identifier(p, nchars, dctl);
+    /* Put out the block number if needed.  Block 0 is the top-level block
+       of the function, and need not be identified. */
+    if (block_number != 0) {
+     char buffer[30];
+      write_id_str("[block ", dctl);
+      (void)sprintf(buffer, "%lu", block_number);
+      write_id_str(buffer, dctl);
+      write_id_ch(']', dctl);
+    }  /* if */
+    write_id_str("::", dctl);
   }  /* if */
-  /* Put out the function name. */
-  if (nchars != 0) nchars -= (p - ptr);
-  p = full_demangle_identifier(p, nchars, dctl);
-  /* Put out the block number if needed.  Block 0 is the top-level block
-     of the function, and need not be identified. */
-  if (block_number != 0) {
-    char buffer[30];
-    write_id_str("[block ", dctl);
-    (void)sprintf(buffer, "%lu", block_number);
-    write_id_str(buffer, dctl);
-    write_id_ch(']', dctl);
-  }  /* if */
-  write_id_str("::", dctl);
   return p;
 }  /* demangle_function_local_indication */
 

@@ -1,5 +1,11 @@
 Version 3.0
 
+4/17/02  Demangling of local class names
+
+A bug in the demangling of local class names has been fixed.
+An example of a mangled name that was not demangled correctly
+is __STF____dt__10LC2__L6097Fv__test_1_c_garr1.
+
 4/3/02   Demangling of sizeof(expression)
 
 A new encoding for a sizeof operator applied to an expression is
