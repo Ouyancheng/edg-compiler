@@ -5327,7 +5327,9 @@ scope_number.
 
   for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
     if (sym->kind == (a_symbol_kind)sk_label &&
-        sym->decl_scope == scope_number) break;
+        (scope_number == NO_SCOPE_NUMBER || sym->decl_scope == scope_number)) {
+      break;
+    }  /* if */
   }  /* for */
   return sym;
 }  /* find_label_symbol */

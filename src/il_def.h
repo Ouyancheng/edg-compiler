@@ -6035,6 +6035,11 @@ typedef struct a_label {
 			   statement (Fortran) or has its address
 			   taken (GNU-extended C). */
 #endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	locally_declared:1;
+			/* TRUE if this label was declared in a GNU C
+			   __label__ declaration. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
   a_label_kind  kind;
                         /* Kind of label: executable, format, specification.
@@ -8766,7 +8771,8 @@ typedef struct a_scope {
 #endif /* ifdef CIL */
   a_label_ptr   labels; /* List of local labels of this scope, NULL
                            if none.  Only used at the function scope level
-                           (NULL otherwise). */
+                           and for locally declared labels in GNU C mode
+			   (NULL otherwise). */
   a_routine_ptr routines;
                         /* List of local routines of this scope, NULL
                            if none.  Includes both routines with definitions

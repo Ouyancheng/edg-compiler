@@ -167,10 +167,9 @@ token is the lexical token that corresponds to both.  Enter both keywords.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 static void enter_gnu_keyword(a_token_kind token,
-			      char         *keyword)
+                              char         *keyword)
 /*
 The GNU compiler accepts many keyword in three forms: as is, with a
 double-underscore prefix (e.g., __attribute), and with both a
@@ -198,7 +197,6 @@ variants.
   enter_keyword(token, buffer);
 }  /* enter_gnu_keyword */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void enter_unimplemented_keyword(char          *keyword,
 					an_error_code error_code)
@@ -353,12 +351,11 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
     enter_keyword((a_token_kind)tok_decorated_function_name,
                   "__PRETTY_FUNCTION__");
-    enter_keyword((a_token_kind)tok_inline, "inline");
-    enter_keyword((a_token_kind)tok_typeof, "typeof");
+    enter_gnu_keyword((a_token_kind)tok_inline, "inline");
+    enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
+    enter_gnu_keyword((a_token_kind)tok_label, "label");
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     /* Enable alternative token spellings. */
-    enter_keyword((a_token_kind)tok_inline, "__inline__");
-    enter_keyword((a_token_kind)tok_typeof, "__typeof__");
     enter_keyword((a_token_kind)tok_asm, "__asm__");
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED

@@ -5747,6 +5747,33 @@ Set the output position to match the statement position given by *spos.
   set_output_position(&pos);
 }  /* set_output_position_for_stmt */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void dump_local_label_declarations(a_scope_ptr  scope)
+/*
+*/
+{
+  a_label_ptr  label;
+  a_boolean    local_label_found = FALSE;
+
+  for (label = scope->labels; label != NULL; label = label->next) {
+    if (label->locally_declared) {
+      if (local_label_found) {
+        write_tok_str(", ");
+      } else {
+        write_tok_str("__label__  ");
+      }  /* if */
+      dump_label_name(label);
+      local_label_found = TRUE;
+    }  /* if */
+  }  /* for */
+  if (local_label_found) {
+    write_tok_str(";");
+    end_output_line();
+  }  /* if */
+}  /* dump_local_label_declarations */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void dump_block_declarations(a_statement_ptr statement)
 /*
@@ -5783,6 +5810,9 @@ Dump out the declarations (if any) for a block.
     /* Subscopes are processed when the associated block statement is
        encountered. */
     /* Local types are dumped out as part of the file scope. */
+#if GNU_EXTENSIONS_ALLOWED
+    dump_local_label_declarations(scope);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     dump_scope_pragmas(scope);
     dump_scope_variables(scope,
                          /*interleave_asm_decls=*/FALSE,

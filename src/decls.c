@@ -183,6 +183,11 @@ optimization is suppressed.
   } else if (is_type_start(expr_context)) {
     /* Is start of type. */
     is_start = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (curr_token == tok_label) {
+    /* A GNU C local label declaration. */
+    is_start = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_identifier &&
              !is_error_locator(locator_for_curr_id)) {
     /* A special check to produce better error recovery in certain cases.
@@ -7062,15 +7067,19 @@ symbol has already been entered as an undefined symbol.
 }  /* decl_default_function */
 
 
-a_label_ptr scan_label(a_boolean is_definition)
+a_label_ptr scan_label(a_boolean  is_definition,
+                       a_boolean  is_declaration)
 /*
-Scan a label as part of a statement label or goto statement.  Return a
-pointer to the IL label.  The current token should be a label identifier.
-is_definition is TRUE if the label is being scanned as part of a label.
+Scan a label as part of a statement label, a goto statement, or a GNU C local
+label declaration.  Return a pointer to the IL label.  The current token
+should be a label identifier.  is_definition is TRUE if the label is being
+scanned as part of a label definition.  is_declaration is TRUE if the label
+is being scanned as part of a GNU C local label declaration.
 */
 {
-  a_symbol_ptr      label_sym;
-  a_label_ptr       label;
+  a_symbol_ptr  label_sym;
+  a_label_ptr   label;
+  a_boolean     err = FALSE;
 
   a_source_position start_pos;
 
@@ -7081,35 +7090,57 @@ is_definition is TRUE if the label is being scanned as part of a label.
     (void)required_token(tok_identifier, ec_exp_identifier);
     set_to_error_locator(locator_for_curr_id);
     label_sym = NULL;
+    err = TRUE;
   } else {
     /* See if the label identifier is already in the symbol table. */
+    a_scope_number  scope_number;
+    scope_number = gcc_mode ? NO_SCOPE_NUMBER
+                            : scope_stack[depth_innermost_function_scope].
+                                                             il_scope->number;
     label_sym = find_label_symbol(locator_for_curr_id.symbol_header,
-                                  scope_stack[depth_innermost_function_scope].
-                                                             il_scope->number);
+                                  scope_number);
+    if (is_declaration && label_sym != NULL) {
+      if (label_sym->decl_scope ==
+                             scope_stack[decl_scope_level].il_scope->number) {
+        /* A duplicate declaration. */
+        sym_error(ec_already_defined, label_sym);
+        err = TRUE;
+      } else {
+        /* The new declaration is going to hide the old one. */
+        label_sym = NULL;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (label_sym == NULL) {
-    /* Enter the label identifier into the symbol table.  This is done
-       at the function level even if we are inside some blocks.  Use
-       a locator with an undefined source position; the decl_position will
-       be handled explicitly shortly. */
+    /* Enter the label identifier into the symbol table.  This is normally
+       done at the function level even if we are inside some blocks.  The
+       exception is a GNU C local label declaration.  Use a locator with an
+       undefined source position; the decl_position will be handled
+       explicitly shortly. */
+    a_scope_depth  depth = is_declaration ? decl_scope_level
+                                          : depth_innermost_function_scope;
     locator_for_curr_id.source_position = null_source_position;
     label_sym = enter_symbol((a_symbol_kind)sk_label, &locator_for_curr_id,
-                             depth_innermost_function_scope,
-                             /*suppress_error=*/TRUE);
+                             depth, /*suppress_error=*/TRUE);
     /* Allocate the IL label and attach it to the symbol. */
     label_sym->variant.label.ptr = label = alloc_label();
+#if GNU_EXTENSIONS_ALLOWED
+    label->locally_declared = is_declaration;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     add_to_labels_list(label);
     set_source_corresp(&label->source_corresp, label_sym);
     /* The exec_stmt field stays NULL to indicate that the declaration
        has not been (fully?) processed yet. */
   }  /* if */
-  if (!is_error_locator(locator_for_curr_id)) {
+  if (!err) {
     /* Record the right kind of reference to the label symbol. */
     if (is_definition) {
       /* Note that we want mark_defined is called even if the symbol
          was previously entered.  Labels are strange in that a reference
          can come up before a declaration. */
       mark_defined(label_sym, &pos_curr_token);
+    } else if (is_declaration) {
+      mark_declared(label_sym, &pos_curr_token);
     } else {
       mark_referenced(label_sym, &pos_curr_token);
       /* Set the decl_position in case no declaration shows up, so we

@@ -7553,22 +7553,26 @@ Add the given routine to the asm entries list for the current scope.
 
 void add_to_labels_list(a_label_ptr label_ptr)
 /*
-Add the given label to the labels list for the function (not current) scope.
+Add the given label to the labels list of the appropriate scope.  Usually,
+that is the current function scope, but for locally declared labels it
+might be the current block scope.
 */
 {
+  a_scope_ptr  scope = label_ptr->locally_declared ?
+                                        scope_stack[decl_scope_level].il_scope
+                                      : innermost_function_scope;
   /* Get pointer to the current function scope entry. */
 #if CHECKING
   if (innermost_function_scope == NULL) {
     internal_error("add_to_labels_list: not inside function");
   }  /* if */
 #endif /* CHECKING */
-  if (innermost_function_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+  if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
     /* The function scope is on the scope stack. */
-    a_scope_stack_entry_ptr ssep =
-                  &scope_stack[innermost_function_scope->depth_in_scope_stack];
+    a_scope_stack_entry_ptr ssep = &scope_stack[scope->depth_in_scope_stack];
     /* Add the label at the end of the list. */
-    if (innermost_function_scope->labels == NULL) {
-      innermost_function_scope->labels = label_ptr;
+    if (scope->labels == NULL) {
+      scope->labels = label_ptr;
     } else {
       ssep->last_label->next = label_ptr;
     }  /* if */
@@ -7578,8 +7582,8 @@ Add the given label to the labels list for the function (not current) scope.
     /* The function scope is not on the scope stack, as in generated routines
        in IL lowering. */
     /* Add the label at the beginning of the list. */
-    label_ptr->next = innermost_function_scope->labels;
-    innermost_function_scope->labels = label_ptr;
+    label_ptr->next = scope->labels;
+    scope->labels = label_ptr;
   }  /* if */
 }  /* add_to_labels_list */
 

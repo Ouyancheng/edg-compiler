@@ -259,7 +259,8 @@ void check_old_specialization_allowed(a_symbol_ptr       sym,
 
 extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
-extern a_label_ptr scan_label(a_boolean is_definition);
+extern a_label_ptr scan_label(a_boolean  is_definition,
+                              a_boolean  is_declaration);
 
 extern a_boolean scan_name_linkage_string(a_name_linkage_kind *kind);
 

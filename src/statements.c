@@ -4670,7 +4670,8 @@ GNU allows a syntax similar to Fortran's assigned goto:
   /* Do not insert code here. */
   {
     /* Scan the label identifier. */
-    sp->variant.label.ptr = scan_label(/*is_definition=*/FALSE);
+    sp->variant.label.ptr = scan_label(/*is_definition=*/FALSE,
+                                       /*is_declaration=*/FALSE);
     if (!C_mode()) {
       /* Set the object lifetime.  It is a provisional setting and may
 	 be changed based on the lifetime of the label definition. */
@@ -5871,8 +5872,8 @@ rescan_statement:
         wrapup_decl_statement();
         /* Scan the label identifier, and enter it into the symbol table
            if needed. */
-        label = scan_label(/*is_definition=*/TRUE);
-        /* See if the label has already been declared. */
+        label = scan_label(/*is_definition=*/TRUE, /*is_declaration=*/FALSE);
+        /* See if the label has already been defined. */
         if (label->variant.exec_stmt != NULL) {
           sym_error(ec_already_defined,
                     (a_symbol_ptr)label->source_corresp.assoc_info);
@@ -6041,6 +6042,35 @@ expr_statement:
 }  /* statement */
 
 
+static void local_label_declaration(a_boolean  is_statement_expr)
+/*
+Scan a GNU C local label declaration of the form:
+	__label__ l1, l2, ..., ln;
+Normally, they should only appear at the beginning of a statement expression.
+*/
+{
+  check_assertion(gcc_mode && curr_token == tok_label);
+  if (!is_statement_expr) {
+    warning(ec_local_labels_only_in_statement_expressions);
+  }  /* if */
+  (void)get_token();
+  ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+  add_stop_token(tok_semicolon);
+  do {
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+      break;
+    } else {
+      /* Scan the label declaration.  An error will be issued if this is a
+         duplicate declaration. */
+      (void)scan_label(/*is_definition=*/FALSE, /*is_declaration=*/TRUE);
+    }  /* if */
+  } while (loop_token(tok_comma));
+  required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+}  /* local_label_declaration */
+
+
 a_statement_ptr compound_statement(a_boolean  at_function_level,
                                    a_boolean  explicit_return_type,
                                    a_boolean  is_catch_clause,
@@ -6151,6 +6181,11 @@ e.g., ({ ... }).
   /* This is the only place within a compound statement where C99 predefined
      pragmas are permitted. */
   if (c99_mode) check_for_stdc_pragmas();
+  /* It is also the only place where a GNU C local label can be declared.
+     Normally, such labels should only appear in statement expressions. */
+  while (gcc_mode && curr_token == tok_label) {
+    local_label_declaration(is_statement_expr);
+  }  /* if */
 
   /* Scan the sequence of statements. */
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {

@@ -3752,7 +3752,7 @@ current token on entry.
 
   /* Scan the operand.  This must be a single label.  */
   (void)get_token();
-  label = scan_label(/*is_definition=*/FALSE);
+  label = scan_label(/*is_definition=*/FALSE, /*is_declaration=*/FALSE);
 
   if (err) {
     make_error_operand(result);

@@ -223,6 +223,7 @@ typedef enum /*a_token_kind*/ {
   tok_typename,
   /* Recognized in GNU C mode only. */
   tok_typeof,
+  tok_label,
   tok_extension,
   /* Recognized in cfront compatibility mode only. */
   tok_overload,
@@ -279,7 +280,8 @@ EXTERN char	*token_names[(int)tok_last+1]
    "template", "this", "throw", "try", "virtual", "wchar_t",
    "const_cast", "dynamic_cast", "explicit", "export", "mutable", "namespace",
    "reinterpret_cast", "static_cast", "typeid", "using",
-   "bool", "false", "true", "typename", "__typeof__", "__extension__",
+   "bool", "false", "true", "typename",
+   "__typeof__", "__label__", "__extension__",
    "overload", "unimplemented", "error", "removed default arg",
    "last" /* used to check that initialization is right. */
   }
@@ -656,6 +658,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_true */
    (an_opname_kind)onk_none,          /* tok_typename */
    (an_opname_kind)onk_none,          /* tok_typeof */
+   (an_opname_kind)onk_none,          /* tok_label */
    (an_opname_kind)onk_none,          /* tok_extension */
    (an_opname_kind)onk_none,          /* tok_overload */
    (an_opname_kind)onk_none,          /* tok_unimplemented */

@@ -7526,6 +7526,34 @@ switch statement.
   }  /* for */
 }  /* gen_statement_list */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void gen_local_label_declarations(a_scope_ptr  scope)
+/*
+Generate the local label declarations (a GNU C extension) of the given scope
+(if any).
+*/
+{
+  a_label_ptr  label;
+  a_boolean    local_label_found = FALSE;
+
+  for (label = scope->labels; label != NULL; label = label->next) {
+    if (label->locally_declared) {
+      if (local_label_found) {
+        write_tok_str(", ");
+      } else {
+        write_tok_str("__label__  ");
+      }  /* if */
+      gen_unqualified_name(&label->source_corresp, iek_label);
+      local_label_found = TRUE;
+    }  /* if */
+  }  /* for */
+  if (local_label_found) {
+    write_tok_str(";");
+  }  /* if */
+}  /* gen_local_label_declarations */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_block_statement(a_statement_ptr statement)
 /*
@@ -7550,6 +7578,9 @@ Generate code for a block statement ("{ ... }").
   if (scope != NULL) {
     push_name_context(scope);
     need_context_pop = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    gen_local_label_declarations(scope);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Generate the statements inside the block. */
   gen_statement_list(statement->variant.block.statements,
