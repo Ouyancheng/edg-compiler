@@ -369,7 +369,8 @@ this routine will create such a correspondence entry.
 {
   a_trans_unit_corresp_ptr  *tcp1, *tcp2;
 
-  check_assertion(entity1 != NULL && entity2 != NULL && entity1 != entity2);
+  check_assertion_str(entity1 != NULL && entity2 != NULL && entity1 != entity2,
+                      "f_set_trans_unit_corresp: bad input");
   trace_corresp_check(entity1);
 #if DEBUG
   if (kind != (an_il_entry_kind)iek_base_class &&
@@ -411,7 +412,8 @@ this routine will create such a correspondence entry.
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
     /* Both entity1 and entity2 have correspondence sets already.  One of
        them must be a singleton and can therefore be freed. */
-    check_assertion((*tcp1)->count == 1);
+    check_assertion_str((*tcp1)->count == 1,
+                        "set_trans_unit_corresp: correspondence busy");
     free_trans_unit_corresp(*tcp1);
   }  /* if */
   /* Add entity1 to the correspondence set of entity2. */
@@ -435,8 +437,8 @@ this routine will create such a correspondence entry.
                            (char*)(entity1), (char*)(entity2))
 
 
-void f_set_no_trans_unit_corresp(an_il_entry_kind  kind,
-                                 char              *entity)
+static void f_set_no_trans_unit_corresp(an_il_entry_kind  kind,
+                                        char              *entity)
 /*
 Mark the given IL entry as having no correspondence in another translation
 unit.  This is done by having the correspondence pointer point to the IL entry
@@ -487,7 +489,8 @@ has not yet been examined for a matching entry in another translation unit.
 #endif /* CHECKING */
   } else {
     /* Reuse the correspondence entry. */
-    check_assertion((*tcp)->count == 1);
+    check_assertion_str((*tcp)->count == 1,
+                        "set_no_trans_unit_corresp: correspondence busy");
   }  /* if */
   change_canonical_entry(*tcp, entity);
   if (!in_secondary_trans_unit(entity)) {
@@ -1746,6 +1749,7 @@ other entities.  (Not significant in C mode: C enumerators have no linkage.)
             same_parents(sym, enum_sym)) {
           if (may_have_correspondence(sym)) {
             if (sym->kind == (a_symbol_kind)sk_constant &&
+                seek_type_corresp(type, sym->variant.constant->type) &&
                 same_entities(enumerator, sym->variant.constant)) {
               /* We found a corresponding enumerator in another TU. */
             } else {

@@ -2384,16 +2384,28 @@ In that case, type_1 will have its correspondence set to type_2.
 {
   a_boolean   changed = FALSE;
   a_type_ptr  new_type_1 = *type_1, new_type_2 = *type_2;
+  a_boolean   is_class_1 = is_immediate_class_type(new_type_1),
+              is_class_2 = is_immediate_class_type(new_type_2),
+              is_enum_1 = is_immediate_enum_type(new_type_1),
+              is_enum_2 = is_immediate_enum_type(new_type_2);
 
+  /* For unnamed types (classes and enums), the correspondence matching is
+     driving by type comparisons.  If we are comparing two unnamed types of
+     the same kind, seek if perhaps the types do correspond to each other. */
   if (seek_corresp &&
-      is_immediate_class_type(new_type_1) &&
-      is_immediate_class_type(new_type_2) &&
-      (!has_name(new_type_1) ||
-       new_type_1->variant.class_struct_union.originally_unnamed) &&
-      (!has_name(new_type_2) ||
-       new_type_2->variant.class_struct_union.originally_unnamed)) {
+      (is_class_1 && is_class_2 &&
+       (!has_name(new_type_1) ||
+        new_type_1->variant.class_struct_union.originally_unnamed) &&
+       (!has_name(new_type_2) ||
+        new_type_2->variant.class_struct_union.originally_unnamed)) ||
+      (is_enum_1 && is_enum_2 &&
+       (!has_name(new_type_1) ||
+        new_type_1->variant.integer.originally_unnamed) &&
+       (!has_name(new_type_2) ||
+        new_type_2->variant.integer.originally_unnamed))) {
     (void)seek_type_corresp(new_type_1, new_type_2);
   }  /* if */
+  /* Convert each type to its canonical entry if applicable. */
   if (is_immediate_class_type(new_type_1) ||
       is_immediate_enum_type(new_type_1) ||
       (new_type_1->kind == (a_type_kind)tk_typeref &&
