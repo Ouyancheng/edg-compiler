@@ -3882,6 +3882,10 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
 
   db_enter(4, "add_switch_clause");
 
+  /* Set any_exec_statement_seen manually.  Normally, it is set when a
+     statement is added to the IL, but case labels don't have an associated
+     IL statement. */
+  top_sssep->any_exec_statement_seen = TRUE;
   /* Check to see if the constant (or default) already appears somewhere
      in the switch clauses.  Also remember where the last entry is for later
      addition of a new entry at the end of the list. */
