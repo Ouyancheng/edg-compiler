@@ -1,5 +1,11 @@
 Version 2.41
 
+1/23/99   Preinclude command-line option uses include search path
+
+The command-line preinclude option now searches the include search
+path for the indicated file name.  Formerly, the file was searched
+for only in the current directory.
+
 1/23/99   Implicitly-generated operator= allows rvalue as left operand
 
 Assignment of an object of class type in C++ is defined in terms of calling

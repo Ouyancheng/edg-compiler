@@ -902,11 +902,11 @@ first line of the file.
                /*is_preinclude=*/FALSE);
   if (preinclude_file_name != NULL) {
     /* There is a preinclude file to be included at the beginning of
-       compilation. */
+       the compilation. */
     open_file_and_push_input_stack(
                strcpy(alloc_il((sizeof_t)(strlen(preinclude_file_name)+1)),
                       preinclude_file_name),
-               /*use_search_path=*/FALSE,
+               /*use_search_path=*/TRUE,
                /*is_include_file=*/TRUE,
                /*is_system_include=*/FALSE,
                /*is_preinclude=*/TRUE);
