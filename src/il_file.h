@@ -80,6 +80,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* ifdef CIL */
   sizeof(a_block),
   sizeof(a_statement),
+  sizeof(an_object_lifetime),
   sizeof(a_scope),
   1 /* iek_id_name */,
   1 /* iek_string_text */,

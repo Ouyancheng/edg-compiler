@@ -94,6 +94,7 @@ static unsigned long
 		num_statements_allocated,
 		num_constructor_inits_allocated,
 		num_pragmas_allocated,
+		num_object_lifetimes_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
@@ -1050,6 +1051,10 @@ Dump the contents of the indicated expression node for debug purposes.
         }  /* if */
       }  /* if */
       fputs("\n", f_debug);
+      break;
+    case enk_object_lifetime:
+      fputs("object lifetime:\n", f_debug);
+      db_expr_node(node->variant.object_lifetime.expr, level + 2);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
@@ -4824,7 +4829,14 @@ Initialize a dynamic_init entry of the kind specified.
   dip->next       = NULL;
   dip->variable   = NULL;
   dip->destructor = NULL;
+  dip->lifetime   = NULL;
+  dip->prev_in_lifetime = NULL;
+  dip->dynamic_inits_unordered_with_respect_to_this_one = NULL;
+  dip->entity.kind = iek_none;
+  dip->entity.ptr = NULL;
+  dip->init_expr_lifetime = NULL;
   dip->follows_an_exec_statement = FALSE;
+  dip->inside_conditional_expression = FALSE;
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -5472,6 +5484,8 @@ to it.
 #endif /* CHECKING */
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
+  lp->parent_lifetime = NULL;
+  lp->lifetime_following_label = NULL;
 #ifdef FIL
   lp->kind = (a_label_kind)lk_executable;
   lp->used_in_assign = FALSE;
@@ -5568,6 +5582,7 @@ fields to default values.
       ndsp->arg          = NULL;
       ndsp->dynamic_init = NULL;
       ndsp->delete_routine = NULL;
+      ndsp->lifetime_of_uninitialized_storage = NULL;
       break;
     case enk_throw:
       /* Allocate the supplement for a throw. */
@@ -5579,6 +5594,10 @@ fields to default values.
       tsp->type         = NULL;
       tsp->dynamic_init = NULL;
       tsp->accessible_base_classes = NULL;
+      break;
+    case enk_object_lifetime:
+      node->variant.object_lifetime.expr = NULL;
+      node->variant.object_lifetime.ptr  = NULL;
       break;
 #if CHECKING
     default:
@@ -6560,6 +6579,7 @@ to it.
   scp->constant_list    = NULL;
   scp->statements       = NULL;
   clear_stmt_source_position(scp->break_position);
+  scp->lifetime         = NULL;
   return scp;
 }  /* alloc_switch_clause */
 
@@ -6687,6 +6707,10 @@ fields to default values.
     case stmk_try_block:
       sp->variant.try_block.statement = NULL;
       sp->variant.try_block.handlers  = NULL;
+      break;
+    case stmk_object_lifetime:
+      sp->variant.object_lifetime.statement = NULL;
+      sp->variant.object_lifetime.ptr       = NULL;
       break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
@@ -6966,7 +6990,36 @@ pragma has not yet been found for the given IL entity).
 }  /* find_assoc_pragma */
 
 #if !STANDALONE_UTILITY_PROGRAM
-           
+
+an_object_lifetime_ptr alloc_object_lifetime(
+                                        an_il_entry_kind       kind,
+                                        char                   *entry_ptr,
+                                        an_object_lifetime_ptr parent_lifetime)
+/*
+Allocate an object lifetime entry whose associated entity is kind/entry_ptr,
+set its parent lifetime to parent_lifetime, clear its fields to default values,
+and return a pointer to it.  An object lifetime entry represents a lifetime
+(e.g., for a temporary), which may be the same as a scope or may be some
+subscope region.
+*/
+{
+  an_object_lifetime_ptr olp;
+
+  db_enter(5, "alloc_object_lifetime");
+
+  olp = (an_object_lifetime_ptr)alloc_cil(sizeof(an_object_lifetime));
+#if DEBUG
+  num_object_lifetimes_allocated++;
+#endif /* DEBUG */
+  olp->entity.kind = (a_byte_il_entry_kind)kind;
+  olp->entity.ptr = entry_ptr;
+  olp->dynamic_inits = NULL;
+  olp->parent_lifetime = parent_lifetime;
+  db_exit();
+  return olp;
+}  /* alloc_object_lifetime */
+
+
 a_scope_ptr alloc_scope(a_scope_kind   kind,
                         a_scope_number number,
                         a_routine_ptr  assoc_routine)
@@ -7015,6 +7068,7 @@ points to the associated routine if the kind is sck_function.
 #endif /* CHECKING */
   }  /* switch */
   sp->assoc_block          = NULL;
+  sp->lifetime             = NULL;
   sp->constants            = NULL;
   sp->types                = NULL;
   sp->variables            = NULL;
@@ -7093,6 +7147,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       char      *s;
       a_statement_ptr   sp = (a_statement_ptr)ssep->entity.ptr;
 
+      while (sp->kind == (a_statement_kind)stmk_object_lifetime) {
+        /* For an object lifetime statement, display the underlying
+           statement. */
+        sp = sp->variant.object_lifetime.statement;
+      }  /* while */
       switch (sp->kind) {
         case stmk_expr:           s = "expr";     break;
         case stmk_if:             s = "if";       break;
@@ -7107,23 +7166,30 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       /*case stmk_init:           Missing on purpose. */
         case stmk_asm:            s = "asm";      break;
         case stmk_try_block:      s = "try";      break;
+      /*case stmk_object_lifetime:Handled above.      */
         default:  s = "*** BAD STMT KIND ***"; break;
       }  /* if */
       fprintf(f_debug, " (at %lu): %s",
              seq_number_from_stmt_source_position(sp->position), s);
       if (sp->kind == (a_statement_kind)stmk_expr) {
         if (sp->expr != NULL) {
-          switch (sp->expr->kind) {
+          an_expr_node_ptr node = sp->expr;
+          if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+            /* For an object lifetime expression, display the underlying
+               expression. */
+            node = node->variant.object_lifetime.expr;
+          }  /* if */
+          switch (node->kind) {
             case enk_operation:
               fprintf(f_debug, " (operator %s)",
-                      db_operator_names[sp->expr->variant.operation.kind]);
+                      db_operator_names[node->variant.operation.kind]);
               break;
             case enk_throw:
               fprintf(f_debug, " (throw)");
               break;
             case enk_new_delete:
               fprintf(f_debug, " (%s)",
-                      sp->expr->variant.new_delete->is_new ? "new" : "delete");
+                      node->variant.new_delete->is_new ? "new" : "delete");
               break;
             default:;
           }  /* switch */
@@ -8412,6 +8478,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("constructor init", num_constructor_inits_allocated,
                 a_constructor_init);
   db_space_used("pragma", num_pragmas_allocated, a_pragma);
+  db_space_used("object lifetime", num_object_lifetimes_allocated,
+                an_object_lifetime);
   db_space_used("scope", num_scopes_allocated, a_scope);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   db_space_used("source sequence entry", num_source_sequence_entries_allocated,
@@ -8624,6 +8692,7 @@ in il_init.)
       pch_saved_var_array_elem(num_routine_list_entries_allocated),
       pch_saved_var_array_elem(num_routine_type_supplements_allocated),
       pch_saved_var_array_elem(num_routines_allocated),
+      pch_saved_var_array_elem(num_object_lifetimes_allocated),
       pch_saved_var_array_elem(num_scopes_allocated),
       pch_saved_var_array_elem(num_searches_for_shareable_constants),
       pch_saved_var_array_elem(num_shareable_constants),
@@ -8736,6 +8805,7 @@ of the front end.
   num_statements_allocated               = 0;
   num_constructor_inits_allocated        = 0;
   num_pragmas_allocated                  = 0;
+  num_object_lifetimes_allocated         = 0;
   num_scopes_allocated                   = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;

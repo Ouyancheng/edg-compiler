@@ -83,19 +83,24 @@ Process a list, each entry linked to the next by the "next" field.
 ptr is the pointer to the list, ptr_type is the type of ptr, and entry_kind
 is the kind of entries on the list.  If walking subtrees, each entry is
 processed; if not, ptr is remapped but the list is not traversed.
+walk_list_on_link_field can be used when the link field is called something
+other than "next".
 */
-#undef walk_list
+#undef walk_list_on_link_field
 #if DO_SUBTREE_WALK
-#define walk_list(ptr, ptr_type, entry_kind) \
+#define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
 { ptr_type *ptr_ptr = &(ptr); \
-  for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) { \
+  for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->link_field) { \
     walk_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
   }  /* for */ \
 }  /* walk_list */
 #else /* !DO_SUBTREE_WALK */
-#define walk_list(ptr, ptr_type, entry_kind) \
+#define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
   remap_ptr((ptr), ptr_type, (entry_kind))
 #endif /* DO_SUBTREE_WALK */
+#undef walk_list
+#define walk_list(ptr, ptr_type, entry_kind) \
+  walk_list_on_link_field(ptr, ptr_type, entry_kind, next)
 
 /*
 Process the source correspondence field pointed to by ptr.
@@ -553,6 +558,10 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
 #ifdef CFE
         remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
+        remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
+                  iek_object_lifetime);
+        walk_ptr(ptr->lifetime_following_label, an_object_lifetime_ptr,
+                 iek_object_lifetime);
 #endif /* ifdef CFE */
       }
       break;
@@ -604,6 +613,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
                      iek_throw_supplement);
             break;
+          case enk_object_lifetime:
+            walk_ptr(ptr->variant.object_lifetime.expr, an_expr_node_ptr,
+                     iek_expr_node);
+            walk_ptr(ptr->variant.object_lifetime.ptr, an_object_lifetime_ptr,
+                     iek_object_lifetime);
+            break;
 #endif /* ifdef CFE */
 #ifdef FFE
           case enk_stmt_label_value:
@@ -631,6 +646,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_switch_clause_ptr, iek_switch_clause);
         walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
         walk_list(ptr->statements, a_statement_ptr, iek_statement);
+        walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
       }
       break;
     case iek_handler:
@@ -732,6 +748,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_list(ptr->variant.try_block.handlers, a_handler_ptr,
                       iek_handler);
             break;
+          case stmk_object_lifetime:
+            walk_ptr(ptr->variant.object_lifetime.statement, a_statement_ptr,
+                     iek_statement);
+            walk_ptr(ptr->variant.object_lifetime.ptr, an_object_lifetime_ptr,
+                     iek_object_lifetime);
+            break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           case stmk_decl:
             /* No pointers */
@@ -824,6 +846,19 @@ the file scope, do not process it (but record an orphan in the latter case).
       }
       break;
 #endif /* RECORD_MACROS_IN_IL */
+    case iek_object_lifetime:
+      {
+        an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
+        /* The dynamic_inits list is linked on the field "prev_in_lifetime"
+           because the usual "next" is used for a different list. */
+        walk_list_on_link_field(ptr->dynamic_inits, a_dynamic_init_ptr,
+                                iek_dynamic_init, prev_in_lifetime);
+        remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
+                  iek_object_lifetime);
+      }
+      break;
     case iek_scope:
       {
         a_scope_ptr ptr = (a_scope_ptr)entry_ptr;
@@ -856,7 +891,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_list(ptr->variant.routine.constructor_inits,
                       a_constructor_init_ptr, iek_constructor_init);
             walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
-                    iek_variable);
+                     iek_variable);
             remap_ptr(ptr->variant.routine.return_value_variable,
                       a_variable_ptr, iek_variable);
 #endif  /* ifdef CFE */
@@ -874,6 +909,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif  /* CHECKING */
         }  /* switch */
         /* "assoc_block" is done after the declarations. */
+        walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #ifdef CFE
 #if DO_SUBTREE_WALK
@@ -1102,6 +1138,16 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_dynamic_init_ptr, iek_dynamic_init);
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
+        walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+        remap_next_ptr(ptr->prev_in_lifetime, a_dynamic_init_ptr,
+                       iek_dynamic_init);
+        /* This pointer is to a circular list, so use a normal walk on it. */
+        walk_ptr(ptr->dynamic_inits_unordered_with_respect_to_this_one,
+                 a_dynamic_init_ptr, iek_dynamic_init);
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
+        walk_ptr(ptr->init_expr_lifetime, an_object_lifetime_ptr,
+                 iek_object_lifetime);
         switch (ptr->kind) {
           case dik_none:
           case dik_zero:
@@ -1299,6 +1345,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->arg, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->delete_routine, a_routine_ptr, iek_routine);
+        walk_ptr(ptr->lifetime_of_uninitialized_storage,
+                 an_object_lifetime_ptr, iek_object_lifetime);
       }
       break;
     case iek_throw_supplement:

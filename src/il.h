@@ -487,6 +487,11 @@ extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
                                       a_type_ptr    class_type,
                                       a_pragma_ptr  prev_assoc_pragma);
 
+extern an_object_lifetime_ptr alloc_object_lifetime(
+                                       an_il_entry_kind       kind,
+                                       char                   *entry_ptr,
+                                       an_object_lifetime_ptr parent_lifetime);
+
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
                                a_routine_ptr  assoc_routine);

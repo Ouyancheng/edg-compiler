@@ -70,6 +70,7 @@ typedef struct a_routine     *a_routine_ptr;
 typedef struct a_label       *a_label_ptr;
 typedef struct an_expr_node  *an_expr_node_ptr;
 typedef struct a_statement   *a_statement_ptr;
+typedef struct an_object_lifetime *an_object_lifetime_ptr;
 typedef struct a_scope       *a_scope_ptr;
 
 
@@ -255,6 +256,7 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* ifdef CIL */
   iek_block,		/* a_block */
   iek_statement,	/* a_statement */
+  iek_object_lifetime,	/* an_object_lifetime */
   iek_scope,		/* a_scope */
   iek_id_name,          /* String giving the name of an identifier. */
   iek_string_text,	/* Text of a string literal. */
@@ -365,6 +367,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* ifdef CIL */
 /* iek_block */				"block",
 /* iek_statement */			"statement",
+/* iek_object_lifetime */		"object-lifetime",
 /* iek_scope */				"scope",
 /* iek_id_name */			"id-name",
 /* iek_string_text */			"string-text",
@@ -836,6 +839,70 @@ typedef struct a_dynamic_init {
 			   destructor call is required.  (Note that it is
 			   possible, if unusual, for a destructor to exist for
 			   an object even though there is no constructor.) */
+  an_object_lifetime_ptr
+		lifetime;
+			/* The object lifetime associated with the object
+			   being initialized here.  NULL if the initialization
+			   has no associated destruction (and therefore always
+			   NULL in C).  NULL for initializations under a "new"
+			   operator, because the lifetime is under user
+			   control for those. */
+  a_dynamic_init_ptr
+		prev_in_lifetime;
+			/* Pointer to the previous dynamic initialization in
+			   the same object lifetime.  "Previous" means the
+			   one created most recently before the current
+			   initialization.  NULL for the first initialization
+			   in a lifetime.  For destructor constructor_inits,
+			   the entry pointed to indicates the destruction
+			   to be done after this one.  NULL if the lifetime
+			   field is NULL. */
+  a_dynamic_init_ptr
+		dynamic_inits_unordered_with_respect_to_this_one;
+			/* If this dynamic initialization is in an expression
+			   and there are other dynamic initializations in the
+			   expression that are unordered with respect to this
+			   one (i.e., the language rules don't allow one to
+			   predict which of the initializations will be done
+			   first), this pointer points to a circular list of
+			   the dynamic initializations in the unordered set.
+			   All of those entries will have the same
+			   prev_in_lifetime pointer, which will not be a
+			   member of the set.  An initialization after the
+			   unordered set points back (via its prev_in_lifetime
+			   pointer) to any one of the initializations in the
+			   unordered set.  NULL if the dynamic initialization
+			   is not part of an unordered set.  NULL if the
+			   lifetime field is NULL. */
+  a_tagged_pointer
+		entity;
+			/* Pointer to the entity that points to this dynamic
+			   initialization.  Possible kinds are:
+			     iek_variable  for a variable with dynamic
+			                     initialization;
+			     iek_constant  for a ck_dynamic_init constant;
+			     iek_expr_node for an enk_temp_init expression;
+			     iek_throw_supplement
+			                   for a throw;
+			     iek_new_delete_supplement
+			                   for a new;
+			     iek_handler   for a handler (catch clause);
+			     iek_statement for a return statement or an
+			                     stmk_init statement;
+			     iek_constructor_init
+			                   for a constructor or destructor
+			                     constructor_init.
+			*/
+  an_object_lifetime_ptr
+		init_expr_lifetime;
+			/* If non-NULL, defines the object lifetime for the
+			   "full expression" that is the initializer (even
+			   if syntactically it's not an expression, e.g., it's
+			   a parenthesized list of constructor arguments).
+			   Temporaries within the expression are given this
+			   lifetime.  Note that this is not the lifetime for
+			   the entity being initialized (that's given by the
+			   field "lifetime", above). */
   a_dynamic_init_kind
 		kind;	/* Kind of dynamic initialization (constant,
 			   expression, constructor, aggregate). */
@@ -847,6 +914,10 @@ typedef struct a_dynamic_init {
 			   this belongs in the stmk_init, but putting it
 			   here makes it accessible from both the stmk_init
 			   and the variable being initialized. */
+  unsigned int	inside_conditional_expression:1;
+			/* This initialization (under an enk_temp_init) is
+			   inside a conditional part of an expression
+			   (e.g., under a "?" operator). */
   bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
@@ -3460,6 +3531,22 @@ typedef struct a_label {
 			   contains this label.  Note that blocks fabricated
 			   by the front end are not "real" and are therefore
 			   not pointed to as parents. */
+  an_object_lifetime_ptr
+		parent_lifetime;
+			/* The object lifetime which this label is part of. */
+  an_object_lifetime_ptr
+		lifetime_following_label;
+			/* If non-NULL, indicates an object lifetime that runs
+			   from after the label to the end of the scope.
+			   Non-NULL only if objects requiring destruction are
+			   created following this label and before the next
+			   label or the end of scope.  Used in processing
+			   gotos back to labels within a scope: entities
+			   constructed after the label must be destroyed,
+			   so they're put in a subscope object lifetime.
+			   A backwards goto leaves one or more object
+			   lifetimes associated with labels, and therefore
+			   any objects with those lifetimes are destroyed. */
 #endif /* ifdef CIL */
 } a_label;
 
@@ -3482,6 +3569,10 @@ enum an_expr_node_kind_tag {
 			   expression.  C++ only. */
   enk_new_delete,	/* C++ "new" or "delete". */
   enk_throw,		/* C++ throw expression. */
+  enk_object_lifetime,	/* Top node in a full expression, used to indicate that
+			   there is an object lifetime associated with the
+			   full expression, used as the lifetime of temporaries
+			   created within the expression.  C++ only. */
 #endif /* ifdef CIL */
 #ifdef FIL
   enk_stmt_label_value, /* A statement label value for an ASSIGN or
@@ -3868,6 +3959,14 @@ typedef struct a_new_delete_supplement {
 			   to the delete routine to be used to undo the
 			   allocation if an exception is thrown.  NULL if
 			   no deletion is needed, as on a placement new. */
+  an_object_lifetime_ptr
+		lifetime_of_uninitialized_storage;
+			/* Non-NULL only for "new" (but not placement "new"),
+			   and only when exceptions are enabled.
+			   Indicates the lifetime for the storage while it is
+			   allocated but not yet initialized/constructed
+			   (the space must be freed if an exception is
+			   thrown before the space has been initialized). */
 } a_new_delete_supplement;
 
 
@@ -3983,6 +4082,14 @@ typedef struct an_expr_node {
 			   throw expression; NULL when a no object is
 			   specified (i.e., a "rethrow" of the current
 			   throw object). */
+    /* When kind == enk_object_lifetime: */
+    struct {
+      an_expr_node_ptr
+		expr;	/* The full expression with which the object lifetime
+			   is associated. */
+      an_object_lifetime_ptr
+		ptr;	/* The object lifetime itself. */
+    } object_lifetime;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == enk_stmt_label_value: */
@@ -4025,6 +4132,10 @@ enum a_statement_kind_tag {
   stmk_init,            /* Do a dynamic initialization. */
   stmk_asm,             /* "asm" statement (or declaration). */
   stmk_try_block,       /* Try block (C++ only). */
+  stmk_object_lifetime,	/* Wrapper statement defining an object lifetime
+			   that surrounds the attached statement.  Used in
+			   cfront mode for dependent statements that create
+			   temporaries. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   stmk_decl,		/* One or more consecutive declarations within a
 			   given function or block scope. */
@@ -4078,6 +4189,14 @@ typedef struct a_switch_clause {
 			/* If the clause ends with a break statement, this
 			   gives the break statement's source position.
 			   Otherwise, zero. */
+  an_object_lifetime_ptr
+		lifetime;
+			/* Non-NULL to indicate an object lifetime that
+			   covers just this switch clause.  Used to limit
+			   the lifetime of expression temporaries (i.e., to
+			   keep them out of the other switch clauses of this
+			   switch) when the normal temporary lifetime is the
+			   old-style "to end of scope."  NULL in C mode. */
 } a_switch_clause;
 
 #endif /* ifdef CIL */
@@ -4602,6 +4721,15 @@ typedef struct a_statement {
 			/* A linked list of entries describing the handlers
 			   (or catch-clauses) defined in the try block. */
     } try_block;
+    /* When kind == stmk_object_lifetime (C++ only): */
+    struct {
+      a_statement_ptr
+		statement;
+			/* The statement with which the object lifetime is
+			   associated. */
+      an_object_lifetime_ptr
+		ptr;	/* The object lifetime itself. */
+    } object_lifetime;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */
@@ -4913,6 +5041,63 @@ typedef struct a_macro {
 
 #endif /* RECORD_MACROS_IN_IL */
 
+typedef struct an_object_lifetime {
+  /* Represents the lifetime of an object (temporary or variable), which
+     might be the same as a scope, or some subregion of a scope. */
+  /* Not used for objects allocated via "new," since their lifetimes
+     are under user control.  Also not used for objects that don't
+     require destruction. */
+  /* Possible kinds (indicated by entity.kind) are:
+	iek_scope	Entire scope; points to scope (file, function, or
+			  block).  This is the common case of an object
+			  lifetime that exactly matches a scope.  Includes
+			  as a special case scopes for exception handlers
+			  (catch clauses).
+	iek_expr_node	Full expression; points to enk_object_lifetime node
+			  which is the top node of expression.  Used for
+			  temporaries that last to end of full expression.
+	iek_statement	Statement; points to stmk_object_lifetime statement
+			  that points to dependent statement.  Used in cfront
+			  mode for dependent statements (they have no
+			  associated scope, but there is an associated object
+			  lifetime).
+	iek_label	Label; points to label.  The object lifetime
+			  region is from after the label to the end of the
+			  scope containing the label.  Used to deal with
+			  gotos backwards in a block to before initialization
+			  of some entities (such gotos exit the object lifetime
+			  associated with the label).
+	iek_switch_clause
+			Switch clause; points to switch clause.  Used to limit
+			  the lifetime of expression temporaries created in
+			  a switch clause when the normal temporary lifetime
+			  is the old-style "to end of scope."
+	iek_try_supplement
+			Try block; points to exception try block supplement.
+	iek_new_delete_supplement
+			New; points to new/delete supplement.  Used only when
+			  exceptions are enabled, to identify the lifetime
+			  for the allocated-but-not-yet-constructed space.
+  */
+  a_tagged_pointer
+		entity;	/* Entity with which this object lifetime is
+			   associated.  See list of possible kinds above. */
+  a_dynamic_init_ptr
+		dynamic_inits;
+			/* The dynamic initializations in this object lifetime,
+			   in reverse order of construction, i.e., the first on
+			   the list is the last created.  For destructors,
+			   the list is in the order the destructions should be
+			   done.  This list gives the complete set of objects
+			   in this object lifetime that require destruction. */
+  an_object_lifetime_ptr
+		parent_lifetime;
+			/* The object lifetime that is the nearest enclosing
+			   lifetime around this one, or NULL if this is the
+			   lifetime for the file scope. */
+} an_object_lifetime;
+
+
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
@@ -5056,6 +5241,12 @@ typedef struct a_scope {
 			/* Non-NULL if this scope has an associated block
 			   of statements.  NULL if none.  Used only when
 			   kind == sck_function or sck_block. */
+  an_object_lifetime_ptr
+		lifetime;
+			/* Object lifetime that is equivalent to the full
+			   scope lifetime.  NULL if the scope contains no
+			   objects that require destruction (and therefore
+			   always in C mode). */
   a_constant_ptr
                 constants;
                         /* List of named constants of this scope, NULL if

@@ -1503,6 +1503,13 @@ do_exec_stmt:
 #else /* !defined(FFE) */
   disp_ptr("exec_stmt", (char *)ptr->variant.exec_stmt, iek_statement);
 #endif /* ifdef FFE */
+#ifdef CFE
+  disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
+  disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
+           iek_object_lifetime);
+  disp_ptr("lifetime_following_label", (char *)ptr->lifetime_following_label,
+           iek_object_lifetime);
+#endif /* ifdef CFE */
 }  /* disp_label */
 
 
@@ -1686,6 +1693,9 @@ Display the indicated new/delete supplement to an expression node.
   disp_ptr("arg", (char *)ndsp->arg, iek_expr_node);
   disp_ptr("dynamic_init", (char *)ndsp->dynamic_init, iek_dynamic_init);
   disp_ptr("delete_routine", (char *)ndsp->delete_routine, iek_routine);
+  disp_ptr("lifetime_of_uninitialized_storage",
+           (char *)ndsp->lifetime_of_uninitialized_storage,
+           iek_object_lifetime);
 }  /* disp_new_delete_supplement */
 
 
@@ -1801,6 +1811,13 @@ do_variable:
       (void)printf("enk_throw\n");
       disp_throw_supplement(ptr->variant.throw_info);
       break;
+    case enk_object_lifetime:
+      (void)printf("enk_object_lifetime\n");
+      disp_ptr("expr", (char *)ptr->variant.object_lifetime.expr,
+               iek_expr_node);
+      disp_ptr("ptr", (char *)ptr->variant.object_lifetime.ptr,
+               iek_object_lifetime);
+      break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case enk_stmt_label_value:
@@ -1844,6 +1861,7 @@ Display the indicated switch clause.
                             "break_position.seq",
                             "break_position.column",
                             ptr->break_position);
+  disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_switch_clause */
 
 
@@ -1890,6 +1908,7 @@ Display the indicated handler.
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
   disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
 }  /* disp_handler */
+
 #endif /* ifdef CFE */
 
 static void disp_block(a_block_ptr ptr)
@@ -2020,6 +2039,14 @@ do_label:
                iek_statement);
       disp_ptr("handlers", (char *)ptr->variant.try_block.handlers,
                iek_handler);
+      break;
+    case stmk_object_lifetime:
+      /* Object lifetime statement. */
+      (void)printf("stmk_object_lifetime\n");
+      disp_ptr("statement", (char *)ptr->variant.object_lifetime.statement,
+               iek_statement);
+      disp_ptr("ptr", (char *)ptr->variant.object_lifetime.ptr,
+               iek_object_lifetime);
       break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
@@ -2181,6 +2208,19 @@ Display the indicated hidden-name entry.
 
 #endif /* RECORD_MACROS_IN_IL */
 
+static void disp_object_lifetime(an_object_lifetime_ptr ptr)
+/*
+Display the indicated object lifetime.
+*/
+{
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
+  disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
+  disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
+           iek_object_lifetime);
+}  /* disp_object_lifetime */
+
+
 static void disp_scope(a_scope_ptr ptr)
 /*
 Display the indicated scope.
@@ -2247,6 +2287,7 @@ do_assoc_type:
       (void)printf("**BAD SCOPE KIND**\n");
   }  /* switch */
   disp_ptr("assoc_block", (char *)ptr->assoc_block, iek_statement);
+  disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_ptr("constants", (char *)ptr->constants, iek_constant);
   disp_ptr("types", (char *)ptr->types, iek_type);
   disp_ptr("variables", (char *)ptr->variables, iek_variable);
@@ -2554,8 +2595,27 @@ Display the indicated dynamic_init structure.
   if (ptr->destructor != NULL) {
     disp_ptr("destructor", (char *)ptr->destructor, iek_routine);
   }  /* if */
+  if (ptr->lifetime != NULL) {
+    disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
+    disp_ptr("prev_in_lifetime", (char *)ptr->prev_in_lifetime,
+             iek_dynamic_init);
+    if (ptr->dynamic_inits_unordered_with_respect_to_this_one != NULL) {
+      disp_ptr("dynamic_inits_unordered_with_respect_to_this_one",
+               (char *)ptr->dynamic_inits_unordered_with_respect_to_this_one,
+               iek_dynamic_init);
+    }  /* if */
+    disp_ptr("entity", (char *)ptr->entity.ptr,
+             (an_il_entry_kind)ptr->entity.kind);
+  }  /* if */
+  if (ptr->init_expr_lifetime != NULL) {
+    disp_ptr("init_expr_lifetime", (char *)ptr->init_expr_lifetime,
+             iek_object_lifetime);
+  }  /* if */
   if (ptr->follows_an_exec_statement) {
     disp_boolean("follows_an_exec_statement", TRUE);
+  }  /* if */
+  if (ptr->inside_conditional_expression) {
+    disp_boolean("inside_conditional_expression", TRUE);
   }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
@@ -2981,6 +3041,9 @@ This routine is called during IL walking.
 #endif /* ifdef CFE */
         case iek_statement:
           disp_statement((a_statement_ptr)entry_ptr);
+          break;
+        case iek_object_lifetime:
+          disp_object_lifetime((an_object_lifetime)entry_ptr);
           break;
         case iek_scope:
           disp_scope((a_scope_ptr)entry_ptr);

@@ -181,6 +181,8 @@ of each kind.
 #endif /* ifdef CFE */
   walk_orphan_entry_list_for_entry_kind(a_block_ptr, iek_block);
   walk_orphan_entry_list_for_entry_kind(a_statement_ptr, iek_statement);
+  walk_orphan_entry_list_for_entry_kind(an_object_lifetime_ptr,
+                                        iek_object_lifetime);
   walk_orphan_entry_list_for_entry_kind(a_scope_ptr, iek_scope);
   /* The string types iek_id_name, iek_string_text, and iek_other_text
      are not maintained on an orphan list.  String types at the file
@@ -405,6 +407,7 @@ running them through walk_remap_func.
 #endif /* ifdef CFE */
   remap_orphan_entry_first(iek_block);
   remap_orphan_entry_first(iek_statement);
+  remap_orphan_entry_first(iek_object_lifetime);
   remap_orphan_entry_first(iek_scope);
   /* The string types iek_id_name, iek_string_text, and iek_other_text
      are not maintained on an orphan list.  String types at the file
@@ -482,6 +485,7 @@ running them through walk_remap_func.
 #endif /* ifdef CFE */
   remap_orphan_entry_last(iek_block);
   remap_orphan_entry_last(iek_statement);
+  remap_orphan_entry_last(iek_object_lifetime);
   remap_orphan_entry_last(iek_scope);
   /* The string types iek_id_name, iek_string_text, and iek_other_text
      are not maintained on an orphan list.  String types at the file
