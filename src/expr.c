@@ -6011,6 +6011,30 @@ expression.
    (operand)->variant.expression->kind == (an_expr_node_kind)enk_throw)
 
 
+static a_ref_entry_ptr merge_ref_lists(a_ref_entry_ptr list1,
+                                       a_ref_entry_ptr list2)
+/*
+Return a pointer to a list of reference entries that is the concatenation
+of list1 and list2.  The source lists and the destination list are linked
+on the next_operand_ref field.
+*/
+{
+  a_ref_entry_ptr merged_list;
+
+  if (list1 == NULL) {
+    merged_list = list2;
+  } else if (list2 == NULL) {
+    merged_list = list1;
+  } else {
+    /* Find the end of list1 and add list2 there. */
+    merged_list = list1;
+    while (list1->next_operand_ref != NULL) list1 = list1->next_operand_ref;
+    list1->next_operand_ref = list2;
+  }  /* if */
+  return merged_list;
+}  /* merge_ref_lists */
+
+
 static void scan_conditional_operator(an_operand *operand_1,
                                       an_operand *result)
 /*
@@ -6361,6 +6385,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       result->type = type_pointed_to(result_type);
       result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
+      result->ref_entries_list = merge_ref_lists(operand_2.ref_entries_list,
+                                                 operand_3.ref_entries_list);
     }  /* if */
   }  /* if */
 
@@ -6834,6 +6860,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
         result->came_from_reference = operand_2.came_from_reference;
         result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
+        result->ref_entries_list = operand_2.ref_entries_list;
       }  /* if */
     }  /* if */
   }  /* if */
