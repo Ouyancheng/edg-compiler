@@ -4727,6 +4727,46 @@ These look like qualified names but aren't.
 
 
 
+static void get_actual_arg_type_for_param_type
+			(a_template_param_ptr	tpp,
+			 a_template_arg_ptr	arg_ptr,
+			 a_type_ptr		*type)
+/*
+Used to handle cases where a template type parameter is used as the type
+of a template constant parameter.  For example:
+
+	template <class T, T t> class A {};
+
+This routine will be called before the second argument is scanned.  "type"
+contains a pointer to the template parameter type of "T".  This routine
+scan through the symbol pointers for the parameters and finds a symbol
+points to "T".  We then return the type associated with the corresponding
+actual argument.
+*/
+{
+  a_boolean    found = FALSE;
+  while (tpp != NULL && arg_ptr != NULL) {
+    register a_symbol_ptr param_sym = tpp->param_symbol;
+    /* Does the parameter type match the type passed by the caller? */
+    if (param_sym->kind == (a_symbol_kind)sk_type) {
+      if (tpp->param_type == *type) {
+        *type = arg_ptr->variant.type;
+        found = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+    tpp = tpp->next;
+    arg_ptr = arg_ptr->next;
+  }  /* while */
+#if CHECKING
+  if (!found) {
+    internal_error("get_actual_arg_type_for_param_type: matching parameter not found");
+  }  /* if */
+#endif  /* CHECKING */
+}  /* get_actual_arg_type_for_param_type */
+
+
+
 a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
 			 an_identifier_options_set options,
@@ -4745,6 +4785,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
 {
   a_source_position      start_pos;
   a_template_param_ptr   param_ptr;
+  a_template_param_ptr   first_param_ptr;
   a_template_arg_ptr     arg_list = NULL;
   a_template_arg_ptr     last_arg = NULL;
   a_symbol_ptr           new_sym = NULL;
@@ -4799,6 +4840,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
      because we can use the type of the formal parameter to make this
      selection. */
   param_ptr = template_symbol->variant.template.extra_info->parameters;
+  first_param_ptr = param_ptr;
   do {
     a_symbol_ptr        sym;
     a_boolean           is_type_param;
@@ -4809,20 +4851,26 @@ a routine to lookup the appropriate instance (or generate one if needed).
     add_stop_token(tok_comma);
     sym = param_ptr->param_symbol;
     /* Determine whether this argument should be a type or a constant. */
-    is_type_param = (sym->kind == sk_type);
+    is_type_param = (sym->kind == (a_symbol_kind)sk_type);
     arg_ptr = alloc_template_arg(is_type_param);
     if (is_type_param) {
       type_name(&argument_type);
       arg_ptr->variant.type = argument_type;
     } else {  /* else executed when !is_type_param */
+      a_type_ptr  constant_type = sym->variant.constant->type;
 #if CHECKING
       if (sym->kind != sk_constant) {
         internal_error("coalesce_template_class_reference: constant expected");
       }  /* if */
 #endif /* CHECKING */
+      /* If the type of a constant is a template parameter type, find the
+         actual argument type given for the parameter. */
+      if (is_template_param_type(constant_type)) {
+        get_actual_arg_type_for_param_type(first_param_ptr, arg_list,
+                                           &constant_type);
+      }  /* if */
       constant = fs_constant((a_constant_repr_kind)ck_error);
-      scan_template_argument_constant_expression(sym->variant.constant->type,
-                                                 constant);
+      scan_template_argument_constant_expression(constant_type, constant);
       add_to_constants_list(constant);
       arg_ptr->variant.constant = constant;
     }  /* if */
