@@ -7201,6 +7201,16 @@ return a pointer to it in *symbol_ptr.
       /* If the symbol found is from a using-declaration, ignore it.  This
          will result in an error when the new symbol is entered. */
       sym = NULL;
+    } else if (is_type_template_param_symbol(sym)) {
+      /* A case like:
+           template<typename T> struct S: T {
+             typedef typename T::X X;
+           };
+         In this example, sym would be the result of projecting T::X.
+         Such a projection does not conflict with any typedef in the
+         current class scope. */
+      suppress_redecl_error = TRUE;
+      sym = NULL;
     }  /* if */
   }  /* if */
   if (sym != NULL) {
@@ -7231,9 +7241,13 @@ return a pointer to it in *symbol_ptr.
            type, which is permitted in C++ (ARM 7.1.3) and warned about for
            ordinary C.  In Microsoft C mode we also accept a redeclaration
            to an integral type that is "similar" to the original. */
-        /* If this a member type check to be sure the access isn't being
-           changed. */
-        if (!C_mode() && class_type != NULL && !is_error_type(tp)) {
+        if (C_mode() || is_error_type(tp)) {
+          /* C mode is handled below (excludes tag types). */
+        } else if (is_tag_symbol_kind(sym->kind)) {
+          /* Something like
+               typedef struct X {} X;
+             which is acceptable in all scopes. */
+        } else if (class_type != NULL) {
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
           if (same_entities(class_type, tp)) {
             /* sym corresponds to the injected class name for the current
