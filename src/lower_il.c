@@ -5693,6 +5693,32 @@ not include the function scope memory region, if any.
        in the file scope. */
     lower_type(routine->type);
     lower_template_arg_list(routine->template_arg_list);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (!keep_object_lifetime_info_in_lowered_il) {
+      /* We're removing object lifetime information.  Go through the declared
+         type's parameters and look for default argument expressions with
+         associated object lifetimes, and eliminate the object lifetime and
+         the enk_object_lifetime node. */
+      a_type_ptr decl_type = routine->declared_type;
+      /* Routines that are declared and not defined have a NULL
+         declared_type. */
+      if (decl_type != NULL) {
+        a_param_type_ptr ptp;
+        decl_type = skip_typerefs(decl_type);
+        for (ptp = decl_type->variant.routine.extra_info->param_type_list;
+             ptp != NULL;
+             ptp = ptp->next) {
+          an_expr_node_ptr def_arg_expr = ptp->default_arg_expr;
+          if (def_arg_expr != NULL &&
+              def_arg_expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+            eliminate_object_lifetime_tree(
+                                    def_arg_expr->variant.object_lifetime.ptr);
+            ptp->default_arg_expr = def_arg_expr->variant.object_lifetime.expr;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if LOWER_EXTERN_INLINE
     if (routine->is_inline &&
         routine->storage_class == (a_storage_class)sc_unspecified) {
