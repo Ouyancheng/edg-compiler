@@ -4968,7 +4968,12 @@ As an anachronism, allow an expression inside the [ ].
     if (curr_token != tok_rbracket) {
       /* Anachronism -- there's an expression between the brackets, presumably
          indicating the number of elements in the array. */
-      diagnostic(anachronism_error_severity, ec_delete_count_anachronism);
+      an_error_severity sev = anachronism_error_severity;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* This anachronism is allowed in Microsoft mode. */
+      if (microsoft_mode) sev = (an_error_severity)es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      diagnostic(sev, ec_delete_count_anachronism);
       scan_new_array_dimension_expression(&is_constant, &expr, &constant);
       /* The expression is ignored. */
     }  /* if */

@@ -1,5 +1,15 @@
 Version 2.33
 
+8/15/96 Microsoft compatibility: delete size anachronism allowed
+
+The anachronism of specifying a size on a delete operation is now allowed
+in Microsoft mode.
+
+  int main () {
+    int *p;
+    delete [5] p;
+  }
+
 8/15/96 Implicit conversion on delete
 
 An implicit conversion from class to pointer is now allowed on a delete
