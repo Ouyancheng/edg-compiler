@@ -6547,7 +6547,16 @@ Scan the body of a class definition, including the base classes list.
                   local_type = error_type();
 #endif /* if 0 */
                 } else {
-                  error(ec_incomplete_type_not_allowed);
+                  if (!C_mode() && is_error_locator(locator) &&
+                      !unnamed_field) {
+                    /* Don't issue an error since we can't be sure this was
+                       intended to be field -- it could be an ill-formed
+                       function declaration with a void return type, such as
+                         void operator?:();
+                       in which the param list is not processed. */
+                  } else {
+                    error(ec_incomplete_type_not_allowed);
+                  }  /* if */
                   local_type = error_type();
                 }  /* if */
               }  /* if */
