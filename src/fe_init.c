@@ -366,6 +366,13 @@ Install the keywords in the symbol table.
       enter_unimplemented_keyword("namespace", ec_unimplemented_keyword);
       enter_unimplemented_keyword("using",     ec_unimplemented_keyword);
     }  /* if */
+    /* Enter typename keyword only if typename support is enabled.
+       Otherwise treat it as an "unimplemented keyword". */
+    if (typename_enabled) {
+      enter_keyword((a_token_kind)tok_typename, "typename");
+    } else {
+      enter_unimplemented_keyword("typename", ec_unimplemented_keyword);
+    }  /* if */
     /* Enter "explicit" as a keyword in strict mode. */
     if (strict_ansi_mode) {
       enter_unimplemented_keyword("explicit",  ec_unimplemented_keyword);

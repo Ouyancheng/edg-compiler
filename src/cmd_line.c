@@ -523,6 +523,22 @@ Initialize the option information table.
                          "no_remove_unneeded_entities", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_typename,
+                         "typename", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_typename,
+                         "no_typename", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_implicit_typename,
+                         "implicit_typename", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_implicit_typename,
+                         "no_implicit_typename", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1051,6 +1067,10 @@ common_cfront_mode_settings:
 #if !RUNTIME_USES_NAMESPACES
         namespaces_enabled = FALSE;
 #endif /* !RUNTIME_USES_NAMESPACES */
+#if !RUNTIME_USE_TYPENAME
+        typename_enabled = FALSE;
+        implicit_typename_enabled = TRUE;
+#endif /* !RUNTIME_USES_TYPENAME */
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1441,6 +1461,15 @@ common_cfront_mode_settings:
       case optk_remove_unneeded_entities:
         /* If FALSE, suppress elimination of unneeded IL entries. */
         okay_to_eliminate_unneeded_il_entries = opt_value;
+        break;
+      case optk_typename:
+        /* Enable/disable typename. */
+        typename_enabled = opt_value;
+        break;
+      case optk_implicit_typename:
+        /* Enable/disable implicit determination of whether a template
+           dependent name is a type or nontype. */
+        implicit_typename_enabled = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

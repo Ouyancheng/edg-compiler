@@ -221,6 +221,26 @@ or "--no_using_std" command-line options.
 #endif /* ifndef DEFAULT_IMPLICIT_USING_STD */
 
 /*
+Flag that is TRUE if, in C++, support for typename is enabled by default.
+This is the default value of the variable typename_enabled, which can be
+modified by the "--typename" or "--no_typename" command-line options.
+*/
+#ifndef DEFAULT_TYPENAME_ENABLED
+#define DEFAULT_TYPENAME_ENABLED TRUE
+#endif /* ifndef DEFAULT_TYPENAME_ENABLED */
+
+/*
+Flag that is TRUE if, in C++, the front end should, by default, determine
+from context whether a template parameter dependent name is a type or nontype.
+This is the default value of the variable implicit_typename_enabled, which
+can be modified by the "--implicit_typename" or "--no_implicit_typename"
+command-line options.
+*/
+#ifndef DEFAULT_IMPLICIT_TYPENAME_ENABLED
+#define DEFAULT_IMPLICIT_TYPENAME_ENABLED TRUE
+#endif /* ifndef DEFAULT_IMPLICIT_TYPENAME_ENABLED */
+
+/*
 Flag that is TRUE if template nontype parameters with floating point
 types are allowed.  X3J16 made floating point template parameters
 ill-formed in 3/94 but they are allowed by some compilers (e.g.,

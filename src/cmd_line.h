@@ -129,6 +129,8 @@ typedef enum /*an_option_kind*/ {
   optk_namespaces,
   optk_implicit_using_std,
   optk_remove_unneeded_entities,
+  optk_typename,
+  optk_implicit_typename,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -321,6 +323,26 @@ EXTERN a_boolean
 			/* TRUE if the runtime should implicitly do a
 			   "using namespace std".  Significant only in
 			    C++ mode. */
+
+EXTERN a_boolean
+		typename_enabled
+#if VAR_INITIALIZERS
+                                  = DEFAULT_TYPENAME_ENABLED
+#endif /* VAR_INITIALIZERS */
+                                                               ;
+			/* TRUE if support for typename is enabled.
+			   Significant only in C++ mode. */
+
+EXTERN a_boolean
+		implicit_typename_enabled
+#if VAR_INITIALIZERS
+                                          = DEFAULT_IMPLICIT_TYPENAME_ENABLED
+#endif /* VAR_INITIALIZERS */
+                                                               ;
+			/* TRUE if the front end should determine from context
+			   whether a template parameter dependent name is a
+			   type or nontype.  Significant only in C++ mode. */
+
 EXTERN an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on

@@ -1027,6 +1027,14 @@ is TRUE.
 #endif /* ifndef MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD */
 #endif /* RUNTIME_USES_NAMESPACES */
 
+/*
+Flag that is TRUE if the runtime library and/or system header files
+use typename.
+*/
+#ifndef RUNTIME_USES_TYPENAME
+#define RUNTIME_USES_TYPENAME FALSE
+#endif /* ifndef RUNTIME_USES_TYPENAME */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate code for
