@@ -8639,12 +8639,7 @@ following the member declaration.
         add_stop_token(tok_lbrace);
         /* Set the various flags for declarator processing (C++ only). */
         di_flags |= DI_OPERATOR_NAME_ALLOWED;
-        if (!type_explicitly_specified) {
-          di_flags |= DI_NO_TYPE_SPECIFIERS;
-          if (!friend_specified) {
-            di_flags |= DI_DESTRUCTOR_SPECIFIERS;
-          }  /* if */
-        }  /* if */
+        if (!type_explicitly_specified) di_flags |= DI_NO_TYPE_SPECIFIERS;
         if (decl_info.is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
         if (decl_info.storage_class == (a_storage_class)sc_typedef) {
           di_flags |= DI_IS_TYPEDEF_DECLARATION;
