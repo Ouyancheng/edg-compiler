@@ -1547,6 +1547,14 @@ See gnu_first_field_conflict for a description of this GNU C++ layout bug.
   for (; field != NULL; field = field->next) {
     a_type_ptr  field_type = skip_typerefs(field->type);
     if (is_array_type(field_type)) {
+      if (!(has_unknown_specified_bound(field_type) ||
+            is_incomplete_type(field_type)) &&
+          field_type->variant.array.variant.number_of_elements <= 1) {
+        /* GNU compilers treat arrays of less than two elements specially
+           in some circumstances.  E.g., they are not considered for first
+           field conflicts. */
+        continue;
+      }  /* if */
       field_type = underlying_array_element_type(field_type);
       field_type = skip_typerefs(field_type);
     }  /* if */
