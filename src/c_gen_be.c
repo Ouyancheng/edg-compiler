@@ -407,6 +407,8 @@ static void dump_struct_union_definition(a_type_ptr type,
 static void dump_statement_list(a_statement_ptr statement,
                                 a_boolean       is_statement_expr);
 static void dump_prescan_temps(a_statement_ptr statement);
+static void set_up_prescan_traversal_block(
+                                   an_expr_or_stmt_traversal_block_ptr tblock);
 static void dump_statement_full(a_statement_ptr statement,
                                 a_boolean       last_in_statement_expr);
 #define dump_statement(stmt) \
@@ -5939,48 +5941,6 @@ block with state information for the processing.
 }  /* dump_initializer_part */
 
 
-static a_boolean is_addr_of_wide_string_constant(a_constant_ptr constant)
-/*
-Return TRUE if the indicated constant is the address of a wide string
-constant (L"abc").
-*/
-{
-  a_boolean is_addr_of_wide_string = FALSE;
-
-  if (constant->kind == (a_constant_repr_kind)ck_address &&
-      constant->variant.address.kind == (an_address_base_kind)abk_constant &&
-      is_wide_string_constant(constant->variant.address.variant.constant)) {
-    is_addr_of_wide_string = TRUE;
-  }  /* if */
-  return is_addr_of_wide_string;
-}  /* is_addr_of_wide_string_constant */
-
-
-static void prescan_for_addrs_of_wide_string_constants(a_constant_ptr constant)
-/*
-If the indicated initializer constant contains any references to the address
-of a wide string constant, generate a static variable that contains the
-wide string constant so that its address can be used.
-*/
-{
-  a_constant_ptr con;
-
-  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
-    for (con = constant->variant.aggregate.first_constant;
-         con != NULL;
-         con = con->next) {
-      prescan_for_addrs_of_wide_string_constants(con);
-    }  /* for */
-  } else if (constant->kind == (a_constant_repr_kind)ck_init_repeat) {
-    con = constant->variant.init_repeat.constant;
-    prescan_for_addrs_of_wide_string_constants(con);
-  } else if (is_addr_of_wide_string_constant(constant)) {
-    con = constant->variant.address.variant.constant;
-    dump_var_for_wide_string_constant(con);
-  }  /* if */
-}  /* prescan_for_addrs_of_wide_string_constants */
-
-
 static void dump_initializer(a_variable_ptr variable,
                              a_constant_ptr constant,
                              a_boolean      is_dynamic_init)
@@ -6264,7 +6224,9 @@ parameters.
       /* If the variable has an initializer, see if any wide string constants
          therein need to be preprocessed. */
       if (dump_initializers && init_con != NULL) {
-        prescan_for_addrs_of_wide_string_constants(init_con);
+        an_expr_or_stmt_traversal_block tblock;
+        set_up_prescan_traversal_block(&tblock);
+        traverse_constant(init_con, &tblock);
       }  /* if */
       /* Dump any pragmas associated with the variable on the first
          declaration of the variable. */
@@ -7515,214 +7477,126 @@ top-level list in a GNU C statement expression if is_statement_expr is TRUE.
 }  /* dump_statement_list */
 
 
-static void dump_expr_prescan_temps(an_expr_node_ptr node)
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void dump_expr_prescan_temps(an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Dump declarations for any temporaries required for the expression and
-its subtree.
+Called from the expression/statement traversal routines to put out
+prescan temporaries in the indicated expression.
 */
 {
-  an_expr_node_ptr      operand, op1;
-  an_expr_operator_kind op;
-  a_type_ptr            op1_type;
-
-  if (node != NULL) {
-    if (node->kind == (an_expr_node_kind)enk_operation) {
-      op = node->variant.operation.kind;
-      op1 = node->variant.operation.operands;
-      op1_type = op1->type;
-      if (op == (an_expr_operator_kind)eok_value_field ||
-          op == (an_expr_operator_kind)eok_value_bit_field) {
-        /* Selection of a field from an rvalue; may need a temp for the
-           struct/union. */
-        a_boolean comma_case;
-        if (optimizable_rvalue_selection(node, &comma_case)) {
-          /* The transformation can be optimized and does not need the temp.
-             See dump_rvalue_selection. */
-        } else {
-          /* Declare the temporary. */
-          dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
-                                              (char *)node, NO_NAME, TQ_NONE,
-                                              /*suppress_const=*/FALSE);
-          write_tok_ch(';');
-        }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_lvalue_from_struct_rvalue) {
-        /* Part of allowing subscripting of rvalue arrays.  Make a temporary
-           into which a struct rvalue is copied, so we can take its address. */
+  if (node->kind == (an_expr_node_kind)enk_operation) {
+    an_expr_operator_kind op = node->variant.operation.kind;
+    an_expr_node_ptr      op1 = node->variant.operation.operands;
+    a_type_ptr            op1_type = op1->type;
+    if (op == (an_expr_operator_kind)eok_value_field ||
+        op == (an_expr_operator_kind)eok_value_bit_field) {
+      /* Selection of a field from an rvalue; may need a temp for the
+         struct/union. */
+      a_boolean comma_case;
+      if (optimizable_rvalue_selection(node, &comma_case)) {
+        /* The transformation can be optimized and does not need the temp.
+           See dump_rvalue_selection. */
+      } else {
+        /* Declare the temporary. */
         dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
                                             (char *)node, NO_NAME, TQ_NONE,
                                             /*suppress_const=*/FALSE);
         write_tok_ch(';');
       }  /* if */
-      for (operand = op1; operand != NULL; operand = operand->next) {
-        dump_expr_prescan_temps(operand);
-      }  /* for */
-    } else if (node->kind == (an_expr_node_kind)enk_constant) {
-      a_constant_ptr con = node->variant.constant;
-      if (is_addr_of_wide_string_constant(con)) {
-        /* Turn a wide string constant into an initialized static variable. */
-        dump_var_for_wide_string_constant(
-                                        con->variant.address.variant.constant);
-      }  /* if */
-#if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
-    } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
-      dump_expr_prescan_temps(node->variant.object_lifetime.expr);
-#endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
-#if !DO_FULL_PORTABLE_EH_LOWERING
-    } else if (node->kind == (an_expr_node_kind)enk_throw) {
-      /* This code is here as a debugging aid.  Normally, this node is
-         not seen by the C-generating back end. */
-      if (node->variant.throw_info != NULL) {
-        dump_expr_prescan_temps(node->variant.throw_info->expr);
-      }  /* if */
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+    } else if (op ==(an_expr_operator_kind)eok_lvalue_from_struct_rvalue) {
+      /* Part of allowing subscripting of rvalue arrays.  Make a temporary
+         into which a struct rvalue is copied, so we can take its address. */
+      dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
+                                          (char *)node, NO_NAME, TQ_NONE,
+                                          /*suppress_const=*/FALSE);
+      write_tok_ch(';');
     }  /* if */
   }  /* if */
 }  /* dump_expr_prescan_temps */
 
 
-static void dump_dynamic_init_prescan_temps(a_dynamic_init_ptr dip)
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void dump_constant_prescan_temps(
+                                    a_constant_ptr                      con,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Dump declarations for any temporaries required for the dynamic initializer
-expression and its subtree.
+Called from the expression/statement traversal routines to put out
+prescan temporaries for the indicated constant.
 */
 {
-  a_constant_ptr con;
+  if (is_wide_string_constant(con)) {
+    /* When the value is a wide string literal, replace it by a variable. */
+    dump_var_for_wide_string_constant(con);
+  }  /* if */
+}  /* dump_constant_prescan_temps */
 
-  switch (dip->kind) {
-    case dik_constant:
-      con = dip->variant.constant;
-      if (is_wide_string_constant(con)) {
-        /* When the initial value is a wide string literal, replace it by
-           a variable. */
-        dump_var_for_wide_string_constant(con);
-      } else {
-        /* Do special processing for constants that are addresses of
-           wide string constants. */
-        prescan_for_addrs_of_wide_string_constants(con);
+
+static void dump_statement_prescan_temps(
+                                 a_statement_ptr                     statement,
+                                 an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from the expression/statement traversal routines to put out
+prescan temporaries in the indicated statement.
+*/
+{
+  switch (statement->kind) {
+    case stmk_block:
+      /* If the block has its own scope, do not prescan now for temporaries;
+         that should be done once the block itself is started. */
+      if (statement->variant.block.extra_info->assoc_scope != NULL) {
+        tblock->suppress_subtree_walk = TRUE;
       }  /* if */
       break;
-    case dik_expression:
-      dump_expr_prescan_temps(dip->variant.expression);
+    case stmk_switch:
+      { a_statement_ptr body_statement =
+                                 statement->variant.switch_stmt.body_statement;
+        /* If the body statement has its own scope, do not prescan now for
+           temporaries; that should be done once the block itself is
+           started. */
+        if (body_statement != NULL &&
+            body_statement->kind == (a_statement_kind)stmk_block &&
+            body_statement->variant.block.extra_info->assoc_scope != NULL) {
+          /* The body statement is a block with a scope. */
+          /* We do need to scan the expression now, because it won't be
+             handled by the traversal routines given that we suppress
+             the subtree walk. */
+          traverse_expr(statement->expr, tblock);
+          tblock->suppress_subtree_walk = TRUE;
+        }  /* if */
+      }
       break;
     default:
-      unexpected_condition_str("dump_dynamic_init_prescan_temps: bad kind");
+      break;
   }  /* switch */
-}  /* dump_dynamic_init_prescan_temps */
+}  /* dump_statement_prescan_temps */
 
 
-static void dump_prescan_temps(a_statement_ptr statement)
+static void set_up_prescan_traversal_block(
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Dump declarations for any temporaries required for the statement and
+Set up the control block used for the prescan traversal.
+*/
+{
+  clear_expr_or_stmt_traversal_block(tblock);
+  tblock->process_expr = dump_expr_prescan_temps;
+  tblock->process_statement = dump_statement_prescan_temps;
+  tblock->process_constant = dump_constant_prescan_temps;
+  /* We need to look at all aggregates to rewrite wide strings. */
+  tblock->process_non_dynamic_constants = TRUE;
+}  /* set_up_prescan_traversal_block */
+
+
+static void dump_prescan_temps(a_statement_ptr statement_list)
+/*
+Dump declarations for any temporaries required for the statement list and
 its subtree.
 */
 {
-  for (; statement != NULL; statement = statement->next) {
-    dump_expr_prescan_temps(statement->expr);
-    switch (statement->kind) {
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
-      case stmk_empty:
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
-      case stmk_expr:
-      case stmk_goto:
-      case stmk_return:
-      case stmk_label:
-#if GNU_EXTENSIONS_ALLOWED
-      case stmk_assigned_goto:
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      case stmk_asm:
-#if ASM_FUNCTION_ALLOWED
-      case stmk_asm_func_body:
-#endif /* ASM_FUNCTION_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      case stmk_decl:
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      case stmk_set_vla_size:
-      case stmk_vla_decl:
-      case stmk_vla_dealloc:
-#if UPC_EXTENSIONS_ALLOWED
-      case stmk_upc_notify:
-      case stmk_upc_wait:
-      case stmk_upc_barrier:
-      case stmk_upc_fence:
-#endif /* UPC_EXTENSIONS_ALLOWED */
-        /* No subtree of statements. */
-        break;
-      case stmk_init:
-        dump_dynamic_init_prescan_temps(statement->variant.dynamic_init);
-        break;
-      case stmk_if:
-        dump_prescan_temps(statement->variant.if_stmt.then_statement);
-        dump_prescan_temps(statement->variant.if_stmt.else_statement);
-        break;
-      case stmk_while:
-      case stmk_end_test_while:
-        dump_prescan_temps(statement->variant.loop_statement);
-        break;
-#if UPC_EXTENSIONS_ALLOWED
-      case stmk_upc_forall:
-#endif /* UPC_EXTENSIONS_ALLOWED */
-      case stmk_for:
-        dump_prescan_temps(
-                       statement->variant.for_loop.extra_info->initialization);
-        dump_prescan_temps(statement->variant.for_loop.statement);
-        dump_expr_prescan_temps(
-                            statement->variant.for_loop.extra_info->increment);
-        break;
-      case stmk_block:
-        /* If the block has its own scope, do not prescan now for temporaries;
-           that should be done once the block itself is started. */
-        if (statement->variant.block.extra_info->assoc_scope == NULL) {
-          dump_prescan_temps(statement->variant.block.statements);
-        }  /* if */
-        break;
-      case stmk_switch:
-        { a_switch_clause_ptr clause;
-          a_statement_ptr     body_statement =
-                                 statement->variant.switch_stmt.body_statement;
-          /* If the body statement has its own scope, do not prescan now for
-             temporaries; that should be done once the block itself is
-             started. */
-          if (body_statement != NULL &&
-              body_statement->kind == (a_statement_kind)stmk_block &&
-              body_statement->variant.block.extra_info->assoc_scope != NULL) {
-            /* The body statement is a block with a scope. */
-          } else {
-            for (clause = statement->variant.switch_stmt.clause_list;
-                 clause != NULL;
-                 clause = clause->next) {
-              dump_prescan_temps(clause->statements);
-            }  /* for */
-            dump_prescan_temps(body_statement);
-          }  /* if */
-        }
-        break;
-#if !DO_FULL_PORTABLE_EH_LOWERING
-      /* This code is here as a debugging aid.  Normally, this statement is
-         not seen by the C-generating back end. */
-      case stmk_try_block:
-        dump_prescan_temps(statement->variant.try_block->statement);
-        { a_handler_ptr handler;
-          for (handler = statement->variant.try_block->handlers;
-               handler != NULL;
-               handler = handler->next) {
-            dump_prescan_temps(handler->statement);
-          }  /* for */
-        }
-        break;
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case stmk_microsoft_try:
-        dump_prescan_temps(
-                          statement->variant.microsoft_try->guarded_statement);
-        dump_expr_prescan_temps(statement->variant.microsoft_try->except_expr);
-        dump_prescan_temps(
-                          statement->variant.microsoft_try->cleanup_statement);
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      default:
-        unexpected_condition_str("dump_prescan_temps: bad statement kind");
-    }  /* switch */
-  }  /* for */
+  an_expr_or_stmt_traversal_block tblock;
+
+  set_up_prescan_traversal_block(&tblock);
+  traverse_statement_list(statement_list, &tblock);
 }  /* dump_prescan_temps */
 
 
