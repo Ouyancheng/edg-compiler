@@ -2133,6 +2133,17 @@ precedence confusion.  Do the output in the way described by octl.
          not available in standalone utility programs.  It's okay to err on
          the side of putting out the cast, but in the most common case we
          can know that no cast is needed. */
+    } else if (C_mode() && is_directly_variably_modified_type(desired_type)) {
+      /* Eliminate an implicit cast to a variably-modified type.  We know
+         the cast is implicit because explicit casts to directly
+         variably-modified types are not folded into the constant. */
+      final_cast_needed = FALSE;
+      /* Cast to "(void *)" in case there were intervening casts on the
+         original entity before the implicit cast to a variably-modified
+         type. */
+      output_optional_open_paren(&need_parens,
+                                 &need_final_cast_close_paren, octl);
+      octl->output_str("(void *)");
     } else {
       /* The proper type couldn't be achieved with address operators, so we
          need a final cast to adjust the type.  One important category of cases
