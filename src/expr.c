@@ -6028,6 +6028,7 @@ bound_function_selector to the associated "this" pointer.
   an_operand        this_pointer_operand;
   a_boolean         maybe;
   a_boolean         address_of_qualified_member_name = FALSE;
+  a_type_ptr        qual_class_type;
 
   db_enter(4, "scan_identifier");
 
@@ -6237,8 +6238,11 @@ normal_function:
                 make_error_operand(result);
               } else {
                 /* Do the field selection relative to the "this" pointer. */
+                /* Extract the possibly qualified version of the class type
+                   pointed to. */
+                qual_class_type = type_pointed_to(this_pointer_operand.type);
                 do_field_selection_operation(&this_pointer_operand,
-                                             sym_ptr->class_of_which_a_member,
+                                             qual_class_type,
                                              /*is_arrow_operator=*/TRUE,
                                              expression_kind,
                                              sym_ptr,
