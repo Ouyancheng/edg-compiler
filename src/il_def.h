@@ -2408,34 +2408,9 @@ Definitions of the bits comprising bit vectors of type a_type_qualifier.
 #define TQ_RESTRICT 0x4
 			/* This bit is set to represent restrict. */
 #define NUM_BITS_FOR_TYPE_QUALIFIER_SET 3
-#define NUM_TYPE_QUALIFIER_COMBINATIONS 8
 #else /* !RESTRICT_ALLOWED */
 #define NUM_BITS_FOR_TYPE_QUALIFIER_SET 2
-#define NUM_TYPE_QUALIFIER_COMBINATIONS 4
 #endif /* RESTRICT_ALLOWED */
-
-#if NEED_IL_DISPLAY || DEBUG
-/*
-Display names for type qualifiers.
-*/
-EXTERN char *type_qualifier_names[NUM_TYPE_QUALIFIER_COMBINATIONS]
-#if VAR_INITIALIZERS
-= {
-/* TQ_NONE */				NULL,
-/* TQ_CONST */				"const",
-/* TQ_VOLATILE */			"volatile",
-/* TQ_CONST | TQ_VOLATILE */		"const volatile"
-#if RESTRICT_ALLOWED
-/* TQ_RESTRICT */			,"restrict",
-/* TQ_CONST | TQ_RESTRICT */		"const restrict",
-/* TQ_VOLATILE | TQ_RESTRICT */		"volatile restrict",
-/* TQ_CONST | TQ_VOLATILE | TQ_RESTRICT */
-					"const volatile restrict"
-#endif /* RESTRICT_ALLOWED */
-} /* type_qualifier_names */
-#endif /* VAR_INITIALIZERS */
-;
-#endif /* NEED_IL_DISPLAY || DEBUG */
 
 
 typedef struct a_type {

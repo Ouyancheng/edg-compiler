@@ -945,9 +945,22 @@ do_struct_union:
       if (ptr->variant.typeref.is_placeholder_for_file_scope_type) {
         disp_boolean("is_placeholder_for_file_scope_type", TRUE);
       } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
+        a_boolean  space_needed = FALSE;
         disp_name("qualifiers");
-        (void)printf("%s\n",
-                     type_qualifier_names[ptr->variant.typeref.qualifiers]);
+        if (typeref_is_const_qualified(tp)) {
+          (void)printf("const");
+          space_needed = TRUE;
+        }  /* if */
+        if (typeref_is_volatile_qualified(tp)) {
+          (void)printf("%svolatile", space_needed ? " ":"");
+#if RESTRICT_ALLOWED
+          space_needed = TRUE;
+        }  /* if */
+        if (typeref_is_restrict_qualified(tp)) {
+          (void)printf("%srestrict", space_needed ? " ":"");
+#endif /* RESTRICT_ALLOWED */
+        }  /* if */
+        (void)putc('\n');
       }  /* if */
       break;
     case tk_ptr_to_member:

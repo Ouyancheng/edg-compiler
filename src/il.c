@@ -882,8 +882,11 @@ class_struct_union:
       break;
     case tk_typeref:
       if (typeref_is_qualified(tp)) {
-        fprintf(f_debug, "%s ",
-                type_qualifier_names[(int)tp->variant.typeref.qualifiers]);
+        if (typeref_is_const_qualified(tp)) fputs("const ", f_debug);
+        if (typeref_is_volatile_qualified(tp)) fputs("volatile ", f_debug);
+#if RESTRICT_ALLOWED
+        if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
+#endif /* RESTRICT_ALLOWED */
       } else {
         fputs("typeref ", f_debug);
       }  /* if */
