@@ -1,5 +1,12 @@
 Version 2.37
 
+6/23/97   Microsoft compatibility: allow omission of decl-specifiers
+
+A warning is now issued (instead of an error) in Microsoft compatibility
+mode for declarations with no decl-specifiers at all -- for example:
+
+  x;                       // Now accepted with a warning in Microsoft mode
+
 6/23/97   Invalid IL if conversion operator declaration is first in comma-list
 
 Invalid IL is no longer produced (and internal errors are no longer issued
@@ -35,8 +42,7 @@ array bound.  This has been fixed.
 
   template <class T, int I> void f(T(&)[I]);
   template <int I> void f(int(&)[I]);
-  int main()
-  {
+  int main() {
     int a[5];
     f(a);
   }

@@ -5492,7 +5492,7 @@ cv-qualifier).
     /* This is a non-function declaration for which the decl-specifiers are
        missing altogether.  Issue an error in all modes. */
     error_code = ec_missing_decl_specifiers;
-    if (C_dialect == C_dialect_pcc) {
+    if (C_dialect == C_dialect_pcc || microsoft_mode) {
       severity = es_warning;
     } else {
       severity = es_discretionary_error;
