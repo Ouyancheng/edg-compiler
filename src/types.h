@@ -32,6 +32,8 @@ types.h -- Declarations related to types.c (having to do with types).
    as well. */
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
+#define m_is_error_type(tp)                                           \
+  (skip_typerefs(tp)->kind == (a_type_kind)tk_error)
 
 extern a_type_ptr f_skip_typerefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typedefs(a_type_ptr type_ptr);
