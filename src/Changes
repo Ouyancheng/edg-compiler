@@ -1,5 +1,15 @@
 Version 3.2
 
+4/16/03  Global scope va_list alias not created when cstdarg is included first
+
+When using built-in stdarg processing, if <stdarg.h> was included after
+<cstdarg> had been included, the global scope alias for std::va_list
+was not created.  Now fixed.
+
+  #include <cstdarg>
+  #include <stdarg.h>
+  ::va_list x;  // resulted in spurious "va_list undefined" error
+
 4/16/03  Spurious correspondence errors on prototype instantiations
 
 When PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the front end sometimes issued

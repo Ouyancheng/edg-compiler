@@ -53,6 +53,12 @@ static a_symbol_ptr
 		symbols_with_no_scope_tail;
 			/* End of the symbols_with_no_scope list. */
 
+static a_boolean
+		va_list_global_alias_has_been_created;
+			/* TRUE if the va_list type is in namespace std and
+			   a global using-declaration has already been
+			   created as a result of an include of stdarg.h. */
+
 /*
 An empty symbol used to initialize newly allocated symbols.
 */
@@ -5283,13 +5289,13 @@ some modes, use of stdarg.h causes va_list to be put into both the std
 and global namespaces.
 */
 {
-  a_symbol_ptr     sym;
   a_type_ptr       va_list_type, va_list_typedef;
   a_symbol_locator locator;
   a_namespace_ptr  std_namespace = NULL;
   a_boolean	   new_symbol_created = FALSE;
 
   if (builtin_va_list_type == NULL) {
+    a_symbol_ptr     sym;
     if (va_list_in_std_namespace) {
       /* When the type is put in namespace std, the symbol for std
          should already exist. */
@@ -5408,15 +5414,19 @@ and global namespaces.
         set_namespace_membership(sym, &va_list_typedef->source_corresp,
                                  std_namespace);
       }  /* if */
-      if (!is_cstdarg) {
-        /* Create a file-scope using-declaration for the namespace scope
-           type. */
-        (void)make_using_decl(sym, &null_source_position, DEPTH_OF_FILE_SCOPE);
-        (void)enter_namespace_projection_symbol(sym, &locator,
-                                                DEPTH_OF_FILE_SCOPE,
-                                                /*suppress_error=*/TRUE);
-      }  /* if */
     }  /* if */
+  }  /* if */
+  if (!is_cstdarg && va_list_in_std_namespace &&
+      !va_list_global_alias_has_been_created) {
+    a_symbol_ptr     sym;
+    sym = (a_symbol_ptr)builtin_va_list_type->source_corresp.assoc_info;
+    /* Create a file-scope using-declaration for the namespace scope type. */
+    (void)make_using_decl(sym, &null_source_position, DEPTH_OF_FILE_SCOPE);
+    clear_locator(&locator, &null_source_position);
+    (void)enter_namespace_projection_symbol(sym, &locator,
+                                            DEPTH_OF_FILE_SCOPE,
+                                            /*suppress_error=*/TRUE);
+    va_list_global_alias_has_been_created = TRUE;
   }  /* if */
 }  /* declare_builtin_va_list_type */
 
@@ -10979,6 +10989,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(global_namespace_list_entry),
       pch_saved_var_array_elem(symbol_for_namespace_std),
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
+      pch_saved_var_array_elem(va_list_global_alias_has_been_created),
 #if IA64_ABI
       pch_saved_var_array_elem(symbol_for_namespace_abi),
 #endif /* IA64_ABI */
@@ -11031,6 +11042,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(global_namespace_list_entry);
   register_trans_unit_variable(symbol_for_namespace_std);
   register_trans_unit_variable(symbol_for_namespace_std_entered);
+  register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
 #endif /* IA64_ABI */
@@ -11062,6 +11074,7 @@ given translation unit.
   /* Initialize the predeclared symbol for namespace "std". */
   symbol_for_namespace_std = NULL;
   symbol_for_namespace_std_entered = FALSE;
+  va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;
 #endif /* IA64_ABI */
