@@ -59,7 +59,7 @@ typedef struct an_init_pos_modifier {
      call entry. */
   an_init_pos_modifier_ptr
 		next;
-			/* Pointers to the similar entry at the next
+			/* Pointer to the similar entry at the next
 			   level out. */
   a_type_ptr	type;
 			/* Type of entity being initialized at this level. */
