@@ -2068,8 +2068,9 @@ extern void reference_to_symbol(a_symbol_reference_kind  kind,
 
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 
-extern void set_decl_sequence_info(a_decl_seq_info_ptr  decl_seq_info,
-                                   an_il_entry_kind     kind);
+extern a_decl_sequence_number set_decl_sequence_info(
+                                           a_decl_seq_info_ptr  decl_seq_info,
+                                           an_il_entry_kind     kind);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);

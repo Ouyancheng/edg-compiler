@@ -7704,16 +7704,25 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 }  /* mark_variable_value_set */
 
 
-void set_decl_sequence_info(a_decl_seq_info_ptr  decl_seq_info,
-                            an_il_entry_kind     kind)
+a_decl_sequence_number set_decl_sequence_info(
+                                           a_decl_seq_info_ptr  decl_seq_info,
+                                           an_il_entry_kind     kind)
 /*
+Increment the decl-sequence counter and store its value for (possible) future
+use.  Also, if kind is other than iek_none, allocate an incomplete source
+sequence entry (incomplete because it has no entity pointer), add it to
+list appropriate for the current scope, and store its pointer so that it
+and its entity may be properly bound together at a later time.
 */
 {
   decl_seq_info->decl_seq = ++decl_seq_counter;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  decl_seq_info->source_sequence_entry =
-                              add_incomplete_source_sequence_entry(kind);
+  if (kind != (an_il_entry_kind)iek_none) {
+    decl_seq_info->source_sequence_entry =
+                                add_incomplete_source_sequence_entry(kind);
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  return decl_seq_info->decl_seq;
 }  /* set_decl_sequence_info */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -8237,20 +8246,24 @@ storage_class are the type and storage class for the parameter.
     if (unnamed_param) {
       /* Create no symbol for an unnamed parameter. */
       sym = NULL;
-    } else if (type_ptr != NULL) {
-      /* Prototyped parameter list.  The symbol is entered in the the
-         function prototype scope.  It will later be copied to the function
-         scope when it is changed to sk_variable. */
-      sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
-                         depth_scope_stack, /*suppress_redecl_error=*/FALSE);
     } else {
-      /* Must be an old-style parameter declaration.  The type and storage
-         class will be supplied later.  We won't actually enter this symbol
-         until the function scope is pushed. */
-      sym = make_parameter_symbol(locator);
+      if (type_ptr != NULL) {
+        /* Prototyped parameter list.  The symbol is entered in the the
+           function prototype scope.  It will later be copied to the function
+           scope when it is changed to sk_variable. */
+        sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
+                           depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+      } else {
+        /* Must be an old-style parameter declaration.  The type and storage
+           class will be supplied later.  We won't actually enter this symbol
+           until the function scope is pushed. */
+        sym = make_parameter_symbol(locator);
+      }  /* if */
+      new_param_id->symbol = sym;
+      sym->variant.param_id = new_param_id;
+      sym->decl_seq = set_decl_sequence_info(&new_param_id->decl_seq_info,
+                                             (an_il_entry_kind)iek_none);
     }  /* if */
-    new_param_id->symbol = sym;
-    if (sym != NULL) sym->variant.param_id = new_param_id;
     /* Put this entry on the end of the list of param ids. */
     if (func_info->param_id_list == NULL) {
       func_info->param_id_list = new_param_id;
