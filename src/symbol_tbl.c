@@ -2693,7 +2693,6 @@ synthesized is TRUE if this is a synthesized namespace projection symbol.
 }  /* set_namespace_projection_symbol */
 
 
-static
 a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
                                               a_symbol_locator *locator,
                                               a_boolean        synthesized,
@@ -2713,7 +2712,6 @@ projection symbol.
 }  /* make_namespace_projection_symbol */
 
 
-static
 a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr     fund_sym,
                                                a_symbol_locator *location,
                                                a_boolean        synthesized,
@@ -2723,7 +2721,10 @@ a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr     fund_sym,
 Create a synthesized namespace projection symbol, set it to point to fund_sym,
 and enter it in the symbol table.  synthesized is TRUE if this is a
 synthesized namespace projection symbol.  This routine is like enter_symbol,
-but it is only used to create namespace projection symbols.
+but it is only used to create namespace projection symbols.  enter_symbol
+should not be used to create namespace projection symbols because the
+fundamental symbol pointer must be set before link_symbol_into_symbol_table
+is called.
 */
 {
   a_symbol_ptr	sym_ptr;
@@ -6338,7 +6339,10 @@ a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
 Lookup, in the current scope, the identifier indicated by *locator and
 return a pointer to the symbol found, or NULL if the symbol is not found.
 options contains bits indicating special restrictions, i.e., the symbol
-must a tag.  Projection symbols are not considered in the lookup.
+must a tag.  Projection symbols are only considered in the lookup if
+IDL_PROJ_SYMBOL_ALLOWED is specified in options.  Note that unlike the
+other lookup routines, when a projection symbol is found the projection
+symbol and not the fundamental symbol is returned.
 */
 {
   a_symbol_ptr			sym;
@@ -6346,16 +6350,19 @@ must a tag.  Projection symbols are not considered in the lookup.
   a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG);
   a_boolean			must_be_synth_ns_proj =
                                   (options & IDL_MUST_BE_SYNTH_NAMESPACE_PROJ);
+  a_boolean			projection_allowed =
+                                           (options & IDL_PROJ_SYMBOL_ALLOWED);
   a_scope_stack_entry_ptr	ssep;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
-#define is_acceptable_symbol(sym)                                       \
-   ((!must_be_tag || is_tag_symbol(sym)) &&				\
-    sym->kind != (a_symbol_kind)sk_projection &&			\
+#define is_acceptable_symbol(sym, fund_sym)                             \
+   ((!must_be_tag || is_tag_symbol(fund_sym)) &&			\
+    (projection_allowed || sym->kind != (a_symbol_kind)sk_projection) && \
     (!must_be_synth_ns_proj || sym->synthesized_namespace_projection))
 
   check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
-                                    IDL_MUST_BE_SYNTH_NAMESPACE_PROJ)) == 0,
+                                    IDL_MUST_BE_SYNTH_NAMESPACE_PROJ |
+                                    IDL_PROJ_SYMBOL_ALLOWED)) == 0,
                        "curr_scope_id_lookup:", "invalid_option");
   sym = locator->specific_symbol;
   if (is_error_locator(*locator)) {
@@ -6363,7 +6370,8 @@ must a tag.  Projection symbols are not considered in the lookup.
        found). */
     sym = NULL;
   } else if (sym != NULL) {
-    check_assertion(is_acceptable_symbol(sym));
+    a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+    check_assertion(is_acceptable_symbol(sym, fund_sym));
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
     ssep = &scope_stack[decl_scope_level];
@@ -6372,9 +6380,11 @@ must a tag.  Projection symbols are not considered in the lookup.
     scope_number = ssep->number;
     sym = symbol_list_from_locator(*locator);
     for (; sym != NULL; sym = sym->next) {
-     if (sym->decl_scope == scope_number && is_acceptable_symbol(sym)) {
-        /* Found it. */
-        break;
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      if (sym->decl_scope == scope_number &&
+          is_acceptable_symbol(sym, fund_sym)) {
+         /* Found it. */
+         break;
       }  /* if */
     }  /* for */
     if (sym == NULL && ssep->kind == (a_scope_kind)sck_namespace_extension) {
@@ -6386,7 +6396,8 @@ must a tag.  Projection symbols are not considered in the lookup.
       for (sym = inactive_symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
-        if (is_acceptable_symbol(sym)) {
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+        if (is_acceptable_symbol(sym, fund_sym)) {
           /* Found an acceptable symbol. */
           /* If the symbol is a tag symbol, there's the possibility that
              there is a non-type symbol in the same scope later in the list
@@ -6817,8 +6828,8 @@ such pointer is found, NULL is returned.
 }  /* find_out_of_scope_declaration */
 
 
-static a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
-                                       a_symbol_ptr new_sym)
+a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
+                                a_symbol_ptr new_sym)
 /*
 See if new_sym is already in the lookup set represented by curr_sym.
 curr_sym could point to a single namespace projection symbol or
@@ -6830,20 +6841,27 @@ symbol(s) in curr_sym.
 {
   a_boolean	result = FALSE;
 
+  new_sym = fundamental_symbol_of(new_sym);
   if (curr_sym == NULL) {
     /* No current list -- return FALSE. */
   } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection) {
+    /* See if the current symbol is a projection symbol that points to
+       new_sym. */
     result = new_sym == fundamental_symbol_of(curr_sym);
-  } else {
+  } else if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     /* Look through the overload set for a fundamental symbol that matches
        new_sym. */
     a_symbol_ptr	sym;
-    check_assertion(curr_sym->kind == (a_symbol_kind)sk_overloaded_function);
     for (sym = curr_sym->variant.overloaded_function.symbols;
          sym != NULL; sym = sym->next) {
       if (new_sym == fundamental_symbol_of(sym)) break;
     }  /* for */
     if (sym != NULL) result = TRUE;
+  } else {
+    /* See if the current symbol is a routine symbol that is the same as
+       new symbol. */
+    check_assertion(is_function_symbol(curr_sym));
+    result = curr_sym == new_sym;
   }  /* if */
   return result;
 }  /* already_in_lookup_set */

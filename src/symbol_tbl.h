@@ -95,7 +95,12 @@ typedef int an_id_lookup_options_set;
 #define IDL_MUST_BE_SYNTH_NAMESPACE_PROJ 0x80
 				/* Must be a synthesized namespace projection
 				   symbol.  These are usually ignored by
-				   lookups. */
+				   lookups.  Used only by curr_scope_id_lookup
+                                 */
+#define IDL_PROJ_SYMBOL_ALLOWED 0x100
+				/* Causes curr_scope_id_lookup to consider
+				   projection symbols (but not synthesized
+				   namespace projections). */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -2371,6 +2376,19 @@ extern void relink_unnamed_tag_symbol(a_symbol_ptr      sym,
 
 extern a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator);
 
+extern
+a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
+                                              a_symbol_locator *locator,
+                                              a_boolean        synthesized,
+                                              a_scope_depth    scope_depth);
+
+extern
+a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr    fund_sym,
+                                               a_symbol_locator *location,
+                                               a_boolean       synthesized,
+                                               a_scope_depth   scope_depth,
+                                               a_boolean       suppress_error);
+
 extern a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr  new_sym,
                                                 a_symbol_ptr  other_sym);
 
@@ -2708,6 +2726,9 @@ extern a_boolean is_accessible_base_class(a_base_class_ptr bcp);
 extern a_boolean is_accessible_virtual_base_class(
                                              a_base_class_ptr bcp,
                                              a_type_ptr       viewpoint_class);
+
+extern a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
+                                       a_symbol_ptr new_sym);
 
 extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
