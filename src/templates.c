@@ -3309,6 +3309,9 @@ entry is pushed on the scope stack.
     } else if (is_function_type(type)) {
       a_boolean  err = FALSE;
 
+      /* Set a flag in each param type entry whose associated type is or
+         contains a template parameter. */
+      set_type_involves_template_param_flags(type);
       /* Process a function template declaration. */
       decl_function_template(&locator, type, &func_info, &sym, storage_class);
       if (is_error_locator(locator)) {
