@@ -641,7 +641,7 @@ enum a_dynamic_init_kind_tag {
 			   (array or class) is represented by a list of
 			   constant entries (some of which will refer to
 			   nonconstants).  C++ only. */
-  dik_bitwise_copy,	/* Initial value is established by a bitwise copy --
+  dik_bitwise_copy	/* Initial value is established by a bitwise copy --
 			   used, for example, for member-wise copy inside a
 			   copy constructor, when the field or base class
 			   to be copied lacks a copy constructor.  C++ only. */
