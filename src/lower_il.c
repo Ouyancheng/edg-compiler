@@ -11407,6 +11407,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_imultiply_assign:
           case eok_idivide_assign:
           case eok_remainder_assign:
+          case eok_padd_assign:
           case eok_shiftl_assign:
           case eok_shiftr_assign:
           case eok_and_assign:

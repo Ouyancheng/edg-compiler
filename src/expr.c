@@ -13377,6 +13377,18 @@ See section 3.3.16 of the standard.
           (void)check_arithmetic_or_enum_operand(&operand_2);
           break;
         case tok_plus_assign:
+          if (!C_mode() &&
+              is_bool_type(operand_1->type) &&
+              is_pointer_type(operand_2.type)) {
+             /* C++ allows bool += pointer.  In C99 this is disallowed
+                by a type constraint in 6.5.16.2p1. */
+            check_object_pointer_operand(&operand_2,
+                                    ec_expr_not_arithmetic_or_enum_or_pointer);
+            pointer_add_sub = TRUE;
+            break;
+          }  /* if */
+          /* Fall through to next case: += works like -= */
+          /* FALLTHROUGH */
         case tok_minus_assign:
           if (is_arithmetic_or_enum_type(operand_1->type)) {
             /* If the first operand is arithmetic or enum, the second must
@@ -13450,6 +13462,8 @@ See section 3.3.16 of the standard.
              like the processing for pointer + integer and
              pointer - integer. */
           operation_type = operand_1->type;
+          /* Adjust for the bool += pointer case. */
+          if (is_bool_type(operation_type)) operation_type = operand_2.type;
         } else if (save_token == tok_shift_left_assign ||
                    save_token == tok_shift_right_assign) {
           /* <<= and >>=. */

@@ -1,6 +1,12 @@
 Version 3.6
 
-3/14/06  Microsoft and GNU C++ compatibility: calling main
+3/14/05  bool += pointer
+
+C++ allows the compound assignment b += p where "b" has bool type
+and "p" has pointer type.  The front end now accepts that and lowers
+it properly.
+
+3/14/05  Microsoft and GNU C++ compatibility: calling main
 
 Microsoft and GNU C++ modes now allow main to be called and have
 its address taken.

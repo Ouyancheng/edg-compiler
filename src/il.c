@@ -9887,6 +9887,8 @@ fixed-point operations.
       /* Pointer += and -=.  The operation type is given by the first
          operand. */
       operation_type = op1_type;
+      /* Except for the C++ bool += pointer case. */
+      if (is_bool_type(operation_type)) operation_type = op2_type;
 #if FIXED_POINT_ALLOWED
     } else if (op == (an_expr_operator_kind)eok_fxadd_assign ||
                op == (an_expr_operator_kind)eok_fxsubtract_assign ||

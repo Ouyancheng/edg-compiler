@@ -8207,7 +8207,8 @@ enum an_expr_operator_kind_tag {
   eok_fsubtract_assign, /* Floating subtract assign operator. */
   eok_fmultiply_assign, /* Floating multiply assign operator. */
   eok_fdivide_assign,   /* Floating divide assign operator. */
-  eok_padd_assign,      /* Pointer add assign operator. */
+  eok_padd_assign,      /* Pointer add assign operator.  In unlowered IL,
+                           one strange case is bool += pointer. */
   eok_psubtract_assign, /* Pointer subtract assign operator. */
 #if FIXED_POINT_ALLOWED
   /* The left operand of a shift expression may have an integral or fixed-point
