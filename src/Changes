@@ -1,5 +1,13 @@
 Version 2.16
 
+4/22/93  cfront compatibility mode extension for pointers-to-members
+
+Type qualifiers on the "this" parameter may now be dropped in
+initializations and assignments of pointers to member functions:
+
+             struct A { void f() const; };
+             void (A::*fp)() = &A::f;  // allowed as an extension
+
 4/22/93  Elaborated-type-specifier using template param name
 
 Reversing a modification made 2/23/93 the use of a template parameter
