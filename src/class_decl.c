@@ -926,7 +926,8 @@ routine recursively for each nested class.
           }  /* if */
           scan_function_body(rp, &rfp->func_info,
                              (SFB_NO_CLASS_REACTIVATION |
-                              SFB_NEW_STRUCT_STMT_STACK_REQUIRED));
+                              SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                              SFB_PRAGMA_PACK_IS_LOCAL));
           /* scan_function_body does not scan past the right brace. */
           if (curr_token == tok_rbrace) (void)get_token();
           /* In the normal case the current token should be end_of_source,
@@ -8813,6 +8814,14 @@ following the member declaration.
       }  /* if */
       func_info.is_definition = function_def_present;
       func_info.is_inline = inline_specified || function_def_present;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      if (function_def_present) {
+        /* Recored the current setting of the maximum alignment for local
+           class members (an adjustment may be required for packing). */
+        func_info.max_member_alignment =
+                             current_max_alignment_for_class_members();
+      }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       if (!type_explicitly_specified) {
         /* No type specifier. */
         if (decl_info.is_constructor || decl_info.is_destructor ||
@@ -9340,6 +9349,9 @@ nested classes when their definition appears outside of the class template.
   a_class_def_state                class_state;
   a_boolean                        skip_semicolon_check;
   a_type_ptr                       dummy_type;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_pack_alignment_state           saved_pack_alignment_state;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(class_type, &class_state);
@@ -9360,7 +9372,8 @@ nested classes when their definition appears outside of the class template.
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Determine the alignment adjustment required for packing. */
-  set_max_member_alignment_for_class(class_type);
+  class_type->variant.class_struct_union.max_member_alignment =
+                                  current_max_alignment_for_class_members();
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (C_dialect == C_dialect_cplusplus) {
     if (cssp->is_prototype_instantiation) {
@@ -9392,6 +9405,16 @@ nested classes when their definition appears outside of the class template.
                                          variant.class_struct_union.type;
       class_type->variant.class_struct_union.max_member_alignment =
                          tp->variant.class_struct_union.max_member_alignment;
+    }  /* if */
+    if (is_template_instantiation && !cssp->is_prototype_instantiation) {
+      /* Since a template instantiation may appear out of sequence relative
+         to the textual sequence of the source program, reset the alignment
+         state (saving the current state to restore it later).  Note that
+         prototype instantiations are not handled this way -- #pragma pack
+         directives that appear in them are processed in the normal way. */
+      reset_pack_alignment_state(class_type->variant.class_struct_union.
+                                                      max_member_alignment,
+                                 &saved_pack_alignment_state);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (delayed_nested_class_def && !is_template_instantiation) {
@@ -9767,6 +9790,13 @@ next_declaration:
         /* All entries on the list have been freed, so clear the pointer. */
         class_state.override_registry = NULL;
       }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      if (is_template_instantiation && !cssp->is_prototype_instantiation) {
+        /* Now that the class instantiation has been scanned, restore the
+           original pack alignment state. */
+        restore_pack_alignment_state(&saved_pack_alignment_state);
+      }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     }  /* if */
     /* Process pragmas associated with the closing brace before the current
        scope is popped and before add_end_of_construct_source_sequence_entry
