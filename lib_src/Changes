@@ -1,5 +1,16 @@
 Version 2.46
 
+7/24/01  Array new operations with value initialization
+
+A forthcoming technical corrigendum (TC1) of the C++ standard introduces the
+concept of "value initialization".  Unlike "default initialization", this
+ensures that all fields of non-POD classes without user-written constructors
+are properly initialized, by zeroing the storage for the object before calling
+the constructor.  The library now supports this by providing three new 
+routines: __array_new_zero, __placement_array_new_zero, and __vec_new_eh_zero.
+They are identical to their counterparts without "_zero" suffix, except that
+they zero the array storage before calling the constructor.
+
 6/2/01   Missing nothrow operator delete routines
 
 The nothrow versions of operator delete and operator delete[] were missing
