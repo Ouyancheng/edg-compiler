@@ -1,5 +1,14 @@
 Version 2.30
 
+6/16/95  Ambiguous base classes in runtime info with ABI <= 2.28
+
+In ABI versions <= 2.28, the base class information given to the runtime did
+not include ambiguous indirect base classes.  Those base classes were
+added in 2.29.  Unfortunately, they had been included even when the ABI is
+set to <= 2.28.  That doesn't work because it destroys the correspondence
+between the base class list and the access string passed in at a throw (the
+latter doesn't include the ambiguous indirect base classes).
+
 6/16/95  Access to complicated virtual base classes in runtime base class info
 
 The runtime base class information generated for exception handling and

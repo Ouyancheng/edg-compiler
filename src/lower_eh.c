@@ -459,8 +459,6 @@ allocated in the file scope memory region.
   a_constant_ptr   typeinfo_con, offset_con, flags_con;
   unsigned long    flags_value;
   a_targ_size_t    offset;
-  a_base_class_derivation_ptr
-                   preferred_derivation;
 
   /* The current region is already the file scope memory region when
      this routine is called. */
@@ -488,7 +486,11 @@ allocated in the file scope memory region.
        bcp = bcp->next) {
     /* Include information only on direct, virtual, and ambiguous base
        classes. */
-    if (bcp->direct || bcp->is_virtual || bcp->ambiguous) {
+    if (bcp->direct || bcp->is_virtual
+#if ABI_CHANGES_FOR_RTTI
+                                      || bcp->ambiguous
+#endif /* ABI_CHANGES_FOR_RTTI */
+                                                        ) {
       /* The base class specification consists of three fields:
            1)  A pointer to the typeinfo variable for the base class.
            2)  The offset of the base class in the derived class.
@@ -520,16 +522,18 @@ allocated in the file scope memory region.
       if (bcp->ambiguous) {
         flags_value |= BCS_AMBIGUOUS;
       }  /* if */
-      preferred_derivation = preferred_derivation_of(bcp);
-      if (access_to_end_of_path((an_access_specifier)as_public,
-                                preferred_derivation->path,
-                                preferred_derivation) ==
+      { a_base_class_derivation_ptr preferred_derivation =
+                                                  preferred_derivation_of(bcp);
+        if (access_to_end_of_path((an_access_specifier)as_public,
+                                  preferred_derivation->path,
+                                  preferred_derivation) ==
                                              (an_access_specifier)as_public) {
-        /* BCS_PUBLIC flag is TRUE if there is public access to the base class.
-           For non-direct base classes, the access indicated is the best
-           available access across the derivation steps. */
-        flags_value |= BCS_PUBLIC;
-      }  /* if */
+          /* BCS_PUBLIC flag is TRUE if there is public access to the base
+             class.  For non-direct base classes, the access indicated is the
+             best available access across the derivation steps. */
+          flags_value |= BCS_PUBLIC;
+        }  /* if */
+      }
 #endif /* ABI_CHANGES_FOR_RTTI */
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_integer_constant_with_overflow_check(offset_con,
