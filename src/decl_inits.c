@@ -28,21 +28,21 @@ decl_inits.c -- Scanning of initializers in declarations.
 
 
 static a_boolean has_constructor(a_type_ptr  tp)
+/*
+TEMPORARY ROUTINE -- identical to has_constructor in decl_inits.c.
+Probably should be moved to types.c or handled otherwise.
+*/
 {
   a_boolean      found = FALSE;
-  a_routine_ptr  rp;
 
   if (C_dialect == C_dialect_cplusplus) {
     skip_typerefs(tp);
     if (tp->kind == (a_type_kind)tk_struct ||
         tp->kind == (a_type_kind)tk_class) {
-      rp = tp->variant.class_struct_union.extra_info->assoc_scope->routines;
-      for (;rp != NULL; rp = rp->next) {
-        if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
-          found = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
+      if (((a_symbol_ptr)tp->source_corresp.assoc_info)->
+                  variant.class_struct_union.extra_info->constructor != NULL) {
+        found = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return found;
@@ -676,7 +676,7 @@ The syntax is:
   initialization_is_dynamic = FALSE;
   if (has_constructor(vp_type)) {
     if (curr_token == tok_lbrace) {
-      error(ec_exp_primary_expr);
+      error(ec_brace_initialization_not_allowed);
       flush_tokens();
     } else {
 #if CHECKING
@@ -694,34 +694,41 @@ The syntax is:
 #endif /* if 0 */
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type)) {
-#if CHECKING
     if (paren_flag) {
-      internal_error("initializer: parenthesized initializer for aggregate");
-    }  /* if */
-#endif /* CHECKING */
-    di_list = end_of_di_list = NULL;
-    cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
-                         /*top_level=*/TRUE);
-    if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
-      local_di.variant.aggregate.aggr_const = cp;
-      local_di.variant.aggregate.dynamic_init = di_list;
-      initialization_is_dynamic = (di_list != NULL);
-      if (put_init_in_variable) {
-        /* Copy the type back into the variable.  It might have been changed
-           if vp is an incomplete array. */
-        if (vp != NULL && vp_type != vp->type) {
-          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                      vp_type);
-        }  /* if */
-      }  /* if */
-    } else {
+      /* Error has already been reported.  Scan the arguments, but don't
+         do anything else. */
 #if CHECKING
-      if (cp->kind == (a_constant_repr_kind)ck_error) {
-        internal_error("initializer: unexpected constant kind");
-      }  /* if */
+    internal_error("initializer: constructors not yet implemented");
 #endif /* CHECKING */
-      err = TRUE;
+#if 0
+      scan_constructor_args(vp_type, paren_flag, &arg_list);
+      put_init_into_variable = FALSE;
+#endif /* if 0 */
+    } else {
+      di_list = end_of_di_list = NULL;
+      cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
+                           /*top_level=*/TRUE);
+      if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
+        local_di.variant.aggregate.aggr_const = cp;
+        local_di.variant.aggregate.dynamic_init = di_list;
+        initialization_is_dynamic = (di_list != NULL);
+        if (put_init_in_variable) {
+          /* Copy the type back into the variable.  It might have been changed
+             if vp is an incomplete array. */
+          if (vp != NULL && vp_type != vp->type) {
+            put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                        vp_type);
+          }  /* if */
+        }  /* if */
+      } else {
+#if CHECKING
+        if (cp->kind == (a_constant_repr_kind)ck_error) {
+          internal_error("initializer: unexpected constant kind");
+        }  /* if */
+#endif /* CHECKING */
+        err = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     if (!paren_flag) check_for_opening_brace(&brace_flag);
