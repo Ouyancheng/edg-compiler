@@ -650,7 +650,8 @@ an orphan, so member types are not recorded as orphans.
 
 
 extern void lower_expr_list(an_expr_node_ptr expr_list,
-                            unsigned int     is_lvalue_mask);
+                            unsigned int     is_lvalue_mask,
+                            unsigned int     is_bool_controlling_expr_mask);
 
 extern void lower_expr(an_expr_node_ptr expr,
                        a_boolean        is_lvalue);

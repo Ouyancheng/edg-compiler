@@ -3232,7 +3232,7 @@ arrays with class elements.
        array size is nonconstant.  Note that it is not necessary to lower
        this as an argument list because it will not be used directly as
        such (pieces might be put into an argument list). */
-    lower_expr_list(ndsp->arg, 0);
+    lower_expr_list(ndsp->arg, 0, 0);
     preserve_size_node = FALSE;
   } else {
     /* The allocation is not standard and must be done before calling
@@ -3410,7 +3410,7 @@ i.e., arrays with class elements.
 
   /* Lower "arg"; do it as a list in case the delete routine is the
      two-argument version.  Drop the second argument if present. */
-  lower_expr_list(ndsp->arg, 0);
+  lower_expr_list(ndsp->arg, 0, 0);
   ndsp->arg->next = NULL;
   if (dip != NULL) {
     /* A destructor must be called. */
@@ -3671,7 +3671,7 @@ The subtree of the node has not yet been lowered.
          deallocation. */
       /* Lower "arg"; do it as a list in case the delete routine is the
          two-argument version.  Drop the second argument if present. */
-      lower_expr_list(ptr_node, 0);
+      lower_expr_list(ptr_node, 0, 0);
       ptr_node->next = NULL;
       if (dip->destructor->is_virtual) {
         /* The destructor is virtual, so a "!= NULL" test is required over

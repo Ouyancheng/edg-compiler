@@ -241,6 +241,7 @@ static a_boolean check_for_troublesome_ptr_to_member_constant(
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
                                   a_type_ptr  *insert_pointer);
+static void lower_boolean_controlling_expr(an_expr_node_ptr expr);
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -4385,20 +4386,29 @@ Do IL lowering of the indicated asm entry and everything under it.
 
 
 void lower_expr_list(an_expr_node_ptr expr_list,
-                     unsigned int     is_lvalue_mask)
+                     unsigned int     is_lvalue_mask,
+                     unsigned int     is_bool_controlling_expr_mask)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 is_lvalue_mask is a bit mask indicating which elements of the list are
 lvalues (0x1 for first operand, 0x2 for second operand, etc.)
+is_bool_controlling_expr_mask is a similar bit mask indicating operands
+that are boolean controlling expressions.
 */
 {
   an_expr_node_ptr expr;
 
   for (expr = expr_list; expr != NULL; expr = expr->next) {
     /* Lower the expression on the list. */
-    lower_expr(expr, (a_boolean)(is_lvalue_mask & 1));
+    if (is_bool_controlling_expr_mask & 1) {
+      lower_boolean_controlling_expr(expr);
+    } else {
+      lower_expr(expr, (a_boolean)(is_lvalue_mask & 1));
+    }  /* if */
     /* Move to the next bit in the lvalue mask. */
     is_lvalue_mask >>= 1;
+    /* Move to the next bit in the boolean-controlling-expression mask. */
+    is_bool_controlling_expr_mask >>= 1;
   }  /* for */
 }  /* lower_expr_list */
 
@@ -5904,7 +5914,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   an_expr_operator_kind op;
   an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
   a_variable_ptr        var, temp_var;
-  unsigned int          is_lvalue_mask;
+  unsigned int          is_lvalue_mask, is_bool_controlling_expr_mask;
 
   lower_os_type(expr->type);
   switch (expr->kind) {
@@ -5982,12 +5992,15 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
-           the operand has conditional operands. */
+           the operand has boolean-controlling-expression operands. */
         is_lvalue_mask = 0;
+        is_bool_controlling_expr_mask = 0;
         if (op == (an_expr_operator_kind)eok_question) {
           /* Question mark's second and third operands are lvalues if the
              question mark itself is. */
           if (is_lvalue) is_lvalue_mask = 0x6;
+          /* The first operand is a boolean controlling expression. */
+          is_bool_controlling_expr_mask = 1;
           /* Look for a "?" operator where one of the operands is a throw
              expression and the other has a non-void type.  The throw
              operation will be adjusted by putting a comma operation over
@@ -6008,6 +6021,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               throw_operand = operand3;
             }  /* if */
           }  /* if */
+        } else if (op == (an_expr_operator_kind)eok_land ||
+                   op == (an_expr_operator_kind)eok_lor) {
+          /* "&&" and "||". */
+          is_bool_controlling_expr_mask = 3;
+        } else if (op == (an_expr_operator_kind)eok_not) {
+          is_bool_controlling_expr_mask = 1;
         } else if (op == (an_expr_operator_kind)eok_comma) {
           /* Comma's second operand is an lvalue if the comma itself is. */
           if (is_lvalue) is_lvalue_mask = 0x2;
@@ -6016,7 +6035,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
         }  /* if */
         /* Lower the operands of the expression. */
-        lower_expr_list(operand_node, is_lvalue_mask);
+        lower_expr_list(operand_node, is_lvalue_mask,
+                        is_bool_controlling_expr_mask);
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
