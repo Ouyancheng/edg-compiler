@@ -204,7 +204,9 @@ statement was created (in an expression insert context).
 
   lvalue_expr->next = rvalue_expr;
   /* Make the assignment operation. */
-  assign_node = make_operator_node(op, type_pointed_to(lvalue_expr->type),
+  assign_node = make_operator_node(op,
+                                   f_skip_typerefs(
+                                           type_pointed_to(lvalue_expr->type)),
                                    lvalue_expr);
   /* Make the expression statement. */
   assign_stmt = insert_expr_statement(assign_node, insert_location);
@@ -812,13 +814,43 @@ position modifier.
 }  /* develop_ctor_init_pos_descr */
 
 
-static an_expr_node_ptr modify_init_entity_node(
-                                          an_expr_node_ptr         entity_node,
-                                          an_init_pos_modifier_ptr modifiers)
+static an_expr_node_ptr drop_const_on_init_entity_node(
+                                             an_expr_node_ptr      entity_node,
+                                             an_init_pos_descr_ptr ipdp)
 /*
-Add the address modifiers from the list given by "modifiers" to the
-entity address "entity_node" and return a pointer to the modified expression
-tree.
+The entity whose address is given by the expression entity_node is to
+be initialized by executable code.  If it is "const", drop the const by
+casting so the entity can be written to.  ipdp is the init position
+description for the complete entity being initialized.  entity_node
+cannot be a bitfield selection.
+*/
+{
+  a_type_ptr entity_type = type_pointed_to(entity_node->type);
+
+  if (is_const_qualified_type(entity_type)) {
+    entity_type = make_unqualified_type(entity_type);
+    entity_node = add_cast(entity_node, make_pointer_type(entity_type));
+    /* Because of the cast, we're using the object's address as a real
+       address, not just as an lvalue address, so set the address taken
+       flag if appropriate. */
+    if (!ipdp->indirect_through_variable) {
+      set_variable_address_taken(ipdp->variable);
+    }  /* if */
+  }  /* if */
+  return entity_node;
+}  /* drop_const_on_init_entity_node */
+
+
+static an_expr_node_ptr modify_init_entity_node(
+                                        an_expr_node_ptr         entity_node,
+                                        an_init_pos_descr_ptr    ipdp,
+                                        an_init_pos_modifier_ptr modifiers,
+                                        a_boolean                using_as_dest)
+/*
+Add the address modifiers from the list given by "modifiers" (from the
+init position description ipdp) to the entity address expression "entity_node"
+and return a pointer to the modified expression tree.  If using_as_dest is
+TRUE, the entity is the destination of an initialization operation.
 */
 {
   an_expr_node_ptr elem_num_node;
@@ -828,12 +860,27 @@ tree.
     /* Process the modifiers preceding the final modifier, then add the final
        qualifier (recall that the modifiers are in order from the innermost
        to the outermost). */
-    entity_node = modify_init_entity_node(entity_node, modifiers->next);
+    entity_node = modify_init_entity_node(entity_node, ipdp, modifiers->next,
+                                          using_as_dest);
     /* Add the final modifier. */
     if (modifiers->curr_field != NULL) {
       /* Add a field selection.  ("au_" for possibly from anonymous union.) */
-      entity_node = au_field_lvalue_selection_expr(entity_node,
-                                                   modifiers->curr_field);
+      a_field_ptr field = modifiers->curr_field;
+      entity_node = au_field_lvalue_selection_expr(entity_node, field);
+      if (using_as_dest) {
+        /* The entity will be used as the destination of an initialization, so
+           drop "const" (if present) from the type to make it modifiable. */
+        if (field->is_bit_field) {
+          /* Bit field.  We can't fix this by casting the address to const.
+             We trust that a back end will be able to do this assignment
+             anyway.  We can do nothing else; in particular, we cannot
+             change the type of the bit field to drop the "const" because
+             the field is still active in the compilation. */
+        } else {
+          /* Non-bitfield.  Drop const if present. */
+          entity_node = drop_const_on_init_entity_node(entity_node, ipdp);
+        }  /* if */
+      }  /* if */
     } else if (modifiers->curr_base != NULL) {
       /* Add a base class selection. */
       entity_node = make_base_class_lvalue(entity_node, modifiers->curr_base,
@@ -841,18 +888,23 @@ tree.
     } else {
       /* Add an array element selection. */
       /* Do the pointer decay from array to pointer to element. */
-      a_type_ptr ptr_elem_type = make_pointer_type(
-                                   array_element_type(
-                                     type_pointed_to(entity_node->type)));
-      entity_node = add_cast(entity_node, ptr_elem_type);
+      a_type_ptr elem_type = array_element_type(type_pointed_to(
+                                                           entity_node->type));
+      if (using_as_dest) {
+        /* The entity will be used as the destination of an initialization, so
+           drop "const" (if present) from the type to make it modifiable. */
+        elem_type = make_unqualified_type(elem_type);
+        /* The address_taken flag on the underlying variable is already
+           set appropriately. */
+      }  /* if */
+      entity_node = add_cast(entity_node, make_pointer_type(elem_type));
       if (modifiers->curr_elem != 0) {
         /* Add the subscript if it's non-zero. */
         elem_num_node = node_for_integer_constant((long)modifiers->curr_elem,
                                                   targ_size_t_int_kind);
         entity_node->next = elem_num_node;
         entity_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
-                                         make_pointer_type(modifiers->type),
-                                         entity_node);
+                                         entity_node->type, entity_node);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -861,16 +913,17 @@ tree.
 
 
 an_expr_node_ptr make_init_entity_node(an_init_pos_descr_ptr ipdp,
-                                       a_boolean             using_as_address)
+                                       a_boolean             using_as_address,
+                                       a_boolean             using_as_dest)
 /*
 Make an expression for the entity described by ipdp, as an lvalue, and
 return a pointer to it.  If using_as_address is TRUE, the expression will
 be used as an address (and that means really as an address that escapes,
-not simply as an address because it's an lvalue).
+not simply as an address because it's an lvalue).  If using_as_dest is
+TRUE, the entity is the destination of an initialization operation.
 */
 {
   an_expr_node_ptr entity_node;
-  a_type_ptr       entity_type;
 
   /* Make a node for the base address. */
   if (ipdp->indirect_through_variable) {
@@ -883,23 +936,14 @@ not simply as an address because it's an lvalue).
        flag in the variable. */
     if (using_as_address) set_variable_address_taken(ipdp->variable);
   }  /* if */
-  /* Add the modifiers to the base address. */
-  entity_node = modify_init_entity_node(entity_node, ipdp->modifiers);
-  /* If the entity type is qualified (e.g., with const), cast the pointer
-     to the unqualified version of the type.  This is necessary because
-     executable code cannot assign to a const entity even though such an
-     entity can be initialized. */
-  entity_type = type_pointed_to(entity_node->type);
-  if (is_qualified_type(entity_type)) {
-    entity_type = make_unqualified_type(entity_type);
-    entity_node = add_cast(entity_node, make_pointer_type(entity_type));
-    /* Because of the cast, we're using the object's address as a real address,
-       not just as an lvalue address, so set the address taken flag if
-       appropriate. */
-    if (!ipdp->indirect_through_variable && !using_as_address) {
-      set_variable_address_taken(ipdp->variable);
-    }  /* if */
+  if (using_as_dest) {
+    /* The entity will be used as the destination of an initialization, so
+       drop "const" (if present) from the type to make it modifiable. */
+    entity_node = drop_const_on_init_entity_node(entity_node, ipdp);
   }  /* if */
+  /* Add the modifiers to the base address. */
+  entity_node = modify_init_entity_node(entity_node, ipdp, ipdp->modifiers,
+                                        using_as_dest);
   return entity_node;
 }  /* make_init_entity_node */
 
@@ -1024,7 +1068,8 @@ address that escapes, not simply as an address because it's an lvalue).
                                     &cctor_source_ipd);
     modify_ctor_init_pos_descr(ctor_init, &cctor_source_ipd,
                                &cctor_source_ipm);
-    source_node = make_init_entity_node(&cctor_source_ipd, using_as_address);
+    source_node = make_init_entity_node(&cctor_source_ipd, using_as_address,
+                                        /*using_as_dest=*/FALSE);
   } else {
     /* The implied source is the address in __caught_object_address. */
     caught_object_addr = make_caught_object_address_var();
@@ -1071,7 +1116,8 @@ and update *insert_location.
   /* Make an expression for the address of the destination entity. */
   /* Note that using_as_address is FALSE even for the block copy case,
      because the address doesn't escape. */
-  dest_node = make_init_entity_node(dest, /*using_as_address=*/FALSE);
+  dest_node = make_init_entity_node(dest, /*using_as_address=*/FALSE,
+                                    /*using_as_dest=*/TRUE);
   /* Make an expression for the address of the source entity. */
   source_node = implied_source_of_copy(ctor_init, dest,
                                        /*using_as_address=*/FALSE);
@@ -2665,7 +2711,8 @@ do_assignment:;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       /* Make a node for the entity to be initialized. */
-      entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE);
+      entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
+                                          /*using_as_dest=*/TRUE);
       add_init_assignment(dip, entity_node, insert_location);
       break;
     case dik_call_returning_class_via_cctor:
@@ -2721,7 +2768,8 @@ do_assignment:;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       /* Make a node for the entity to be initialized. */
-      entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE);
+      entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
+                                          /*using_as_dest=*/TRUE);
       source_node = NULL;
       if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
         /* The constructor is a copy constructor, and the source of the
@@ -2992,7 +3040,8 @@ are inserted at *insert_location and *insert_location is updated.
     }  /* if */
   }  /* if */
   /* Make an expression for the object to be destroyed. */
-  entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE);
+  entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
+                                      /*using_as_dest=*/FALSE);
   /* Generate code for the destructor call. */
   if (ipdp->whole_array) {
     /* Destruction of whole array. */
