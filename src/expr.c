@@ -1132,9 +1132,10 @@ error err_code.
 }  /* scan_parenthesized_initializer_expression */
 
 
-void scan_ctor_arguments(a_symbol_ptr     constructor_sym,
-                         an_expr_node_ptr *arg_expr_list,
-                         a_routine_ptr    *conversion_routine)
+void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
+                         an_expr_node_ptr   *arg_expr_list,
+                         a_routine_ptr      *conversion_routine,
+                         a_source_position  *err_pos)
 /*
 Scan the argument list for a C++ constructor call.  The current token is
 the one right after the opening parenthesis of the argument list.  The
@@ -1202,7 +1203,7 @@ remove it later, as this routine takes care of that.
   }  /* if */
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(constructor_sym, &error_position);
+    reference_to_implicitly_invoked_function(constructor_sym, err_pos);
     *conversion_routine = constructor_sym->variant.routine;
   }  /* if */
   db_exit();
@@ -3465,15 +3466,18 @@ specification allow a variable-sized array as the top type.
     /* Class with a constructor.  Initialization is required. */
     if (curr_token == tok_lparen) {
       /* There is a new-initializer.  It's treated as a constructor call. */
+      a_source_position  lparen_pos;
+      copy_source_position(pos_curr_token, lparen_pos);
       (void)get_token();
       if (array_new) {
         /* No initializer may be specified for an array type. */
-        error(ec_initializer_not_allowed_on_array_new);
+        pos_error(ec_initializer_not_allowed_on_array_new, &lparen_pos);
       }  /* if */
       /* No need to add tok_rparen to the stop tokens set: it's done by
          scan_ctor_arguments. */
       /* Scan the constructor arguments. */
-      scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine);
+      scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine,
+                          &lparen_pos);
       if (array_new) arg_expr_list = NULL;
     } else {
       /* There is no new-initializer, so a default constructor must exist. */
@@ -4270,7 +4274,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
 expression_kind indicates the kind of the current expression.
 */
 {
-  a_source_position             start_position;
+  a_source_position             start_position, lparen_pos;
   a_boolean                     err = FALSE;
   a_boolean                     int_to_ptr_case;
   a_boolean                     cast_to_reference;
@@ -4317,11 +4321,12 @@ expression_kind indicates the kind of the current expression.
   /* Advance past the type keyword or identifier. */
   (void)get_token();
   /* Check for a left parenthesis. */
+  copy_source_position(pos_curr_token, lparen_pos);
   (void)required_token(tok_lparen, ec_exp_lparen);
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
-    scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine);
+    scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos);
     if (ctor_routine == NULL) {
       /* Error of some sort. */
       make_error_operand(result);

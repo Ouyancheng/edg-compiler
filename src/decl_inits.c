@@ -979,7 +979,8 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     if (cssp->constructor != NULL) {
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
-      scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine);
+      scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
+                          source_pos);
       if (conversion_routine == NULL) {
         err = TRUE;
       } else {
@@ -1386,6 +1387,7 @@ initialized.  These are addressed in the course of the processing.
   a_routine_ptr                 conversion_routine, rp;
   a_dynamic_init_ptr            dip, ctor_dip;
   int                           direct_base_class_count = 0;
+  a_source_position             lparen_pos;
 
   db_enter(3, "ctor_initializer");
   class_type = ((a_symbol_ptr)ctor_rout->source_corresp.assoc_info)->
@@ -1715,6 +1717,7 @@ initialized.  These are addressed in the course of the processing.
 scan_paren:
         /* Advance past the identifier. */
         (void)get_token();
+        copy_source_position(pos_curr_token, lparen_pos);
         if (required_token(tok_lparen, ec_exp_lparen)) {
           if (is_class_struct_union_type(init_type)) {
             /* This is either a base class or a field of class type.  In
@@ -1733,7 +1736,7 @@ scan_paren:
                  returned.  The scan function returns FALSE if it finds no
                  constructor for which the arguments match. */
               scan_ctor_arguments(cssp->constructor, &arg_list,
-                                  &conversion_routine);
+                                  &conversion_routine, &lparen_pos);
               if (conversion_routine == NULL) err = TRUE;
             }   /* if */
             if (!err) {
