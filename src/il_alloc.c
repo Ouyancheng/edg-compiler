@@ -79,6 +79,7 @@ static unsigned long
 		num_pragmas_allocated,
 		num_object_lifetimes_allocated,
 		num_namespaces_allocated,
+		num_using_directives_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
@@ -1985,6 +1986,30 @@ it.  The entry is allocated in the file scope memory region.
 }  /* alloc_namespace */
 
 
+a_using_directive_ptr alloc_using_directive(void)
+/*
+Allocate a using-directive entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_using_directive_ptr  udp;
+
+  db_enter(5, "alloc_using_directive");
+  udp = (a_using_directive_ptr)alloc_cil(sizeof(a_using_directive));
+#if DEBUG
+  num_using_directives_allocated++;
+#endif /* DEBUG */
+  udp->next = NULL;
+  udp->assoc_namespace = NULL;
+  udp->position = null_source_position;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  udp->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  db_exit();
+  return udp;
+}  /* alloc_using_directive */
+
+
 void set_scope_kind(a_scope_ptr    sp,
                     a_scope_kind   kind,
                     a_routine_ptr  assoc_routine)
@@ -2384,6 +2409,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("object lifetime", num_object_lifetimes_allocated,
                 an_object_lifetime);
   db_space_used("namespace", num_namespaces_allocated, a_namespace);
+  db_space_used("using-directive", num_using_directives_allocated,
+                a_using_directive);
   db_space_used("scope", num_scopes_allocated, a_scope);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   db_space_used("source sequence entry", num_source_sequence_entries_allocated,
@@ -2548,6 +2575,7 @@ in il_init.)
       pch_saved_var_array_elem(num_routines_allocated),
       pch_saved_var_array_elem(num_object_lifetimes_allocated),
       pch_saved_var_array_elem(num_namespaces_allocated),
+      pch_saved_var_array_elem(num_using_directives_allocated),
       pch_saved_var_array_elem(num_scopes_allocated),
       pch_saved_var_array_elem(num_source_files_allocated),
       pch_saved_var_array_elem(num_statements_allocated),
@@ -2655,6 +2683,7 @@ of the front end.
   num_pragmas_allocated                  = 0;
   num_object_lifetimes_allocated         = 0;
   num_namespaces_allocated               = 0;
+  num_using_directives_allocated         = 0;
   num_scopes_allocated                   = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
