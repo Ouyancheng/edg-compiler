@@ -2088,6 +2088,40 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   if (f_raw_listing != NULL) {
     gen_raw_listing_output_for_curr_line();
   }  /* if */
+  /* Get the first character of the line, checking for end of file in
+     doing so.  If eof_read_on_curr_input_stream is already TRUE,
+     the end of file has already been read (this handles the case
+     where the previous call of this routine read an incomplete last
+     line; this call needs to return the end of file indication). */
+  while (eof_read_on_curr_input_stream ||
+         (ch = getc(curr_input_stream)) == EOF) {
+    /* End of file encountered in the expected way, i.e., before a line
+       has started. */
+    eof_read_on_curr_input_stream = TRUE;
+    at_end_of_source_file = TRUE;
+    if (!do_pop_on_end_of_file) {
+      /* We're asked not to do the pop, so just return things as they
+         are (at_end_of_source_file is TRUE). */
+      goto simple_return;
+    }  /* if */
+    /* We are supposed to pop the input stack and attempt again to
+       read the next line. */
+    pop_input_stack();
+    at_end_of_source_file = FALSE;
+    if (depth_input_stack < 0) {
+      /* We have popped out of the primary source file; this is the real
+         end of file. */
+      after_end_of_all_source = TRUE;
+      break;
+    }  /* if */
+    /* Loop to try reading from the file reopened by pop_input_stack. */
+  }  /* while */
+  /* Either the end of all source, or a real line to read.  For the
+     end of source case, a line with just a null is placed in curr_source_line
+     and the sequence number is incremented to an "after all source"
+     position. */
+  loc_in_line = curr_source_line;
+  curr_seq_number = ++seq_number_last_read;
   /* If there are entries on either of the lists indicating modifications
      to the current source line, clear those lists now, since they are for the
      old source line.  We also want the lists empty to start building
@@ -2107,40 +2141,11 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
     } while (source_line_modif_list != NULL);
   }  /* if */
   no_modifs_to_curr_source_line = TRUE;
-start_read_of_line:
-  /* Get the first character of the line, checking for end of file in
-     doing so.  If eof_read_on_curr_input_stream is already TRUE,
-     the end of file has already been read (this handles the case
-     where the previous call of this routine read an incomplete last
-     line; this call needs to return the end of file indication). */
-  if (eof_read_on_curr_input_stream || (ch = getc(curr_input_stream)) == EOF) {
-    /* End of file encountered in expected way, i.e., before a line
-       has started. */
-    eof_read_on_curr_input_stream = TRUE;
-    at_end_of_source_file = TRUE;
-    if (do_pop_on_end_of_file) {
-      /* We are supposed to pop the input stack and attempt again to
-         read the next line. */
-      pop_input_stack();
-      at_end_of_source_file = FALSE;
-      if (depth_input_stack >= 0) goto start_read_of_line;
-      /* We have popped out of the primary source file; this is the real
-         end of file. */
-      after_end_of_all_source = TRUE;
-      /* This position is treated as a pseudo-line, so increment the
-         sequence number to the "after all source" position, and put
-         an empty line (just a null) in curr_source_line. */
-      curr_seq_number = ++seq_number_last_read;
-      loc_in_line = curr_source_line;
-      goto return_with_line;
-    } else {
-      /* We're asked not to do the pop, so just return things as they
-         are (at_end_of_source_file is TRUE). */
-      goto simple_return;
-    }  /* if */
+  if (after_end_of_all_source) {
+    /* End of all source.  Go end the line with a null and return. */
+    goto return_with_line;
   } else {
     /* Not end of file, read the line. */
-    curr_seq_number = ++seq_number_last_read;
     curr_ise->line_number++;
     /* Check if this line being read is that next needed for the file index
        table.  Remember that the first character has already been read into
@@ -2151,7 +2156,6 @@ start_read_of_line:
                                         curr_ise->actual_line,
                                         ftell(curr_ise->file) - 1);
     }  /* if */
-    loc_in_line = curr_source_line;
     /* Read characters until the newline indicating end of line. */
     /* Every attempt is made to make this FAST, since every character of
        the source program passes through this loop.  The assumption is
@@ -2339,8 +2343,8 @@ line_loop:
         if (curr_column != 1 && *(loc_in_line-1) == '?') {
 entry_for_possible_trigraph:
           /* Trigraphs are disabled if the C dialect being compiled is
-             not ANSI. */
-          if (C_dialect == C_dialect_ANSI) {
+             pcc, but they are recognized in C++ and ANSI C modes. */
+          if (C_dialect != C_dialect_pcc) {
             /* Get the next character, the one following the two "?"s. */
             next_ch = getc(curr_input_stream);
             /* Check for the possible third characters of trigraphs.  If one

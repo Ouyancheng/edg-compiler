@@ -1,5 +1,27 @@
 Version 2.10
 
+9/22/92  read_logical_source_line processing at end of file
+
+read_logical_source_line's processing at end of file was changed
+so that the current source line modifications are not cleared until
+the next line is actually read.  Formerly, if the last line in
+the file was displayed for an error detected after the end of file
+has been read, trigraphs in the line were shown in non-trigraph
+form.
+
+9/22/92  Trigraphs now recognized in C++ mode
+
+Trigraphs were formerly recognized only in C mode.
+
+9/22/92  Buffering of error output
+
+The routine line_buffer_error_output_file, added recently, has been
+removed again (it turns out some of our clients' systems do not
+have setvbuf).  Instead, we changed the error output routines to
+write out the source line in chunks instead of one character at a
+time, thus eliminating the inefficiency that pushed us towards
+this change in the first place.
+
 9/21/92  IL walk problem with shared types
 
 A problem with shared types that are used, thrown away, and then used
