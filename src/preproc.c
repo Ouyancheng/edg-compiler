@@ -710,15 +710,12 @@ Scan and process an #undef directive.
 }  /* proc_undef */
 
 
-static void process_system_header_name(void)
+static a_boolean get_header_name(void)
 /*
-A header name has just been scanned for a directive like a #include.
-If the header name is of the form <xxx.h>, only the initial "<" has
-been scanned.  Fetch the rest of the header name by scanning pp-tokens
-and assembling them into a header name in the temp_text_buffer.
-(This is necessary so that macro expansion can be done.)  Return with
+Scan a header name for a directive like a #include.  Return with
 the current token variables set to indicate the complete header name
-as a pseudo-token.
+as a pseudo-token.  If the next token is not a header name, return
+FALSE.
 */
 {
   char              *p;
@@ -727,8 +724,17 @@ as a pseudo-token.
   a_source_position saved_end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+  /* Try to expand macros to get one of the normal forms. */
+  expand_macros = TRUE;
+  exp_header_name = TRUE;
+  /* Fetch a token, expecting a header name. */
+  (void)get_token();
+  exp_header_name = FALSE;
   if (*start_of_curr_token == '<' && len_of_curr_token == 1) {
-    check_assertion(expand_macros);
+    /* For <xxx.h> form header names, the get_token call returns only the
+       "<".  Fetch the rest of the pp-tokens in the header name and
+       make up a pseudo-token for the overall name.  This is necessary
+       to handle macro expansion within the <...>. */
     saved_pos_curr_token = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_end_pos_curr_token = end_pos_curr_token;
@@ -748,6 +754,12 @@ as a pseudo-token.
       }  /* for */
     }  /* while */
     put_str_to_temp_text_buffer(">");
+    if (pos_in_temp_text_buffer == 2) {
+      /* Error: empty <> is not valid. */
+      curr_token = tok_error;
+      pos_in_temp_text_buffer = 0;
+      goto end_of_header_name;
+    }  /* if */
     curr_token = tok_header_name;
 end_of_header_name:
     start_of_curr_token = temp_text_buffer;
@@ -759,7 +771,8 @@ end_of_header_name:
     end_pos_curr_token = saved_end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-}  /* process_system_header_name */
+  return (curr_token == tok_header_name);
+}  /* get_header_name */
 
 
 static char *copy_header_name(a_boolean process_escapes)
@@ -864,14 +877,8 @@ Scan and process a #include directive.
        of a subsequent include. */
     set_ifg_state(IFG_STATE_FAIL);
   }  /* if */
-  /* Try to expand macros to get one of the normal forms. */
-  expand_macros = TRUE;
-  exp_header_name = TRUE;
-  (void)get_token();
-  exp_header_name = FALSE;
-  /* Special processing for <xxx.h> form header names. */
-  process_system_header_name();
-  if (curr_token != tok_header_name) {
+  /* Scan a header name token. */
+  if (!get_header_name()) {
     /* Missing include file name. */
     catastrophe(ec_exp_file_name);
   } else {
@@ -936,14 +943,8 @@ simply include that.
        of a subsequent include. */
     set_ifg_state(IFG_STATE_FAIL);
   }  /* if */
-  /* Try to expand macros to get one of the normal forms. */
-  expand_macros = TRUE;
-  exp_header_name = TRUE;
-  (void)get_token();
-  exp_header_name = FALSE;
-  /* Special processing for <xxx.h> form header names. */
-  process_system_header_name();
-  if (curr_token != tok_header_name) {
+  /* Scan a header name token. */
+  if (!get_header_name()) {
     /* Missing include file name. */
     catastrophe(ec_exp_file_name);
   } else {
