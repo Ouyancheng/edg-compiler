@@ -3762,7 +3762,7 @@ and it is legal for virtual member functions only.
     /* Advance past the "0". */
     (void)get_token();
   } else {
-    copy_source_position(pos_curr_token, error_position);
+    set_err_pos_to_curr_token();
     /* Invalid pure specifier:  something other than "0" follows the "=". */
     syntax_error(ec_bad_pure_specifier);
   }  /* if */
@@ -6340,7 +6340,7 @@ Scan the body of a class definition, including the base classes list.
               /* Issue an error if there appears to be an attempt to
                  initialize a data member within the class definition. */
               if (curr_token == tok_assign) {
-                copy_source_position(pos_curr_token, error_position);
+                set_err_pos_to_curr_token();
                 /* Issue a syntax error to flush to the comma or semicolon. */
                 syntax_error(ec_bad_data_member_initialization);
               }  /* if */
@@ -6524,7 +6524,7 @@ next_declaration:
       /* Report errors in virtual function declarations that result from
          the failure to redeclare a virtual function originally declared in
          a virtual base class. */
-      copy_source_position(pos_curr_token, error_position);
+      set_err_pos_to_curr_token();
       report_virtual_function_ambiguities(class_type);
       /* If the current class is not already marked as "abstract", run
          through its base classes to determine whether it is abstract by

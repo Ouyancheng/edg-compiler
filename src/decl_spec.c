@@ -421,7 +421,7 @@ union type.  The syntax is
                 = 0
 
 The type is returned in *type_ptr. *declares_something is set to indicate
-whether or not this specifier declares something, and *declares_something
+whether or not this specifier declares something, and *defines_something
 to indicate whether the class/struct/union is actually defined.
 */
 {
@@ -2391,8 +2391,7 @@ exit_loop:
 
   /* Return the position of the first specifier as the position of the
      overall list of specifiers for error purposes. */
-  copy_source_position(start_pos, error_position);
-
+  set_err_pos_to_curr_token();
   if (type_specifier_allowed) {
     if ((basic_type != bt_none && basic_type != bt_no_type) ||
         sign != sign_none || size != size_none) {
