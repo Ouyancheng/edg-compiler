@@ -181,7 +181,7 @@ is done according to the output control block octl.
       if (sym->is_class_member) {
         form_class_qualifier(sym->parent.class_type, octl);
       } else if (sym->parent.namespace_ptr != NULL) {
-        form_namespace_qualifier(sym->parent.class_type, octl);
+        form_namespace_qualifier(sym->parent.namespace_ptr, octl);
       }  /* if */
     }  /* if */
     octl->output_str(sym->header->identifier);
@@ -7012,6 +7012,90 @@ end_lookup:
   return sym;
 #undef is_acceptable_symbol
 }  /* class_qualified_id_lookup */
+
+
+a_symbol_ptr namespace_qualified_id_lookup(a_symbol_locator         *locator,
+                                           a_namespace_ptr          ns_ptr,
+                                           an_id_lookup_options_set options)
+/*
+Look up the identifier indicated by *locator in the namespace indicated by
+ns_ptr, and return a pointer to the symbol found, or NULL if
+the symbol is not found.  ns_ptr must refer to an actual namespace and not
+a namespace alias.  options indicates a set of special options,
+as a bit set.  For example, if IDL_MUST_BE_CLASS_OR_NAMESPACE is TRUE,
+the symbol found must be a class name (or typedef to a class name) or a
+namespace.  This routine is used only in C++ mode.
+*/
+{
+  a_symbol_ptr	sym;
+  a_symbol_ptr	tag_symbol;
+  a_boolean   	 must_be_class_or_namespace
+                                 = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
+  a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
+
+/* Local macro that tests whether or not a symbol is acceptable. */
+#define is_acceptable_symbol(sym)                                     \
+  ((!(sym)->is_class_member) &&                                       \
+   (sym)->parent.namespace_ptr == ns_ptr &&                           \
+   (!must_be_class_or_namespace ||				      \
+    symbol_may_precede_qualifier(sym)) &&	     		      \
+   (!must_be_tag || is_tag_or_tag_proxy_symbol(sym)))
+
+  db_enter(4, "namespace_qualified_id_lookup");
+  if ((sym = locator->specific_symbol) != NULL) {
+    /* There is an existing specific symbol. */
+  } else {
+    /* Search for a symbol in the right scope. */
+    /* First, search the list of inactive symbols.  These are class
+       members for classes that are no longer active.  Or, in C,
+       fields of structs/unions. */
+    tag_symbol = NULL;
+    for (sym = inactive_symbol_list_from_locator(*locator);
+         sym != NULL;
+         sym = sym->next) {
+      if (is_acceptable_symbol(sym)) {
+        /* Found an acceptable symbol. */
+        /* If the symbol is a tag symbol, there's the possibility that
+           there is a non-type symbol in the same scope later in the list
+           (because the inactive list is not ordered in any way).  Save the
+           tag symbol and keep looking.  If nothing else turns up,
+           use the tag symbol. */
+        if (!is_tag_symbol(sym)) goto end_lookup;
+        tag_symbol = sym;
+      }  /* if */
+    }  /* for */
+    /* We reached the end of the list.  If there is a tag symbol saved
+       within the loop, use it. */
+    if (tag_symbol != NULL) {
+      sym = tag_symbol;
+      goto end_lookup;
+    }  /* if */
+    /* The name was not found on the inactive symbols list.  Try the
+       active symbols list.  This would come up when a qualified name
+       is used when the qualification is not really necessary, i.e.,
+       when we're inside the class mentioned in the qualifier. */
+    for (sym = symbol_list_from_locator(*locator);
+         sym != NULL;
+         sym = sym->next) {
+      if (is_acceptable_symbol(sym)) {
+        /* Found an acceptable symbol. */
+        goto end_lookup;
+      }  /* if */
+    }  /* for */
+end_lookup:
+    locator->specific_symbol = sym;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "namespace_qualified_id_lookup: id = %s, %s\n",
+                     locator->symbol_header->identifier,
+                     (sym != NULL) ? "found" : "not found");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return sym;
+#undef is_acceptable_symbol
+}  /* namespace_qualified_id_lookup */
 
 
 a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,

@@ -2572,6 +2572,11 @@ extern a_symbol_ptr class_qualified_id_lookup(
                                          a_type_ptr               class_type,
                                          an_id_lookup_options_set options);
 
+extern
+a_symbol_ptr namespace_qualified_id_lookup(a_symbol_locator         *locator,
+                                           a_namespace_ptr          ns_ptr,
+                                           an_id_lookup_options_set options);
+
 extern a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
 
@@ -2664,6 +2669,10 @@ extern void check_dependent_type_fixup_list(a_type_ptr  class_type);
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
                    is_class_struct_union_type((sym)->variant.type)))
+
+/* Return TRUE if a symbols is a namespace symbol. */
+#define is_namespace_symbol(sym)                                          \
+  ((sym)->kind == (a_symbol_kind)sk_namespace)
 
 /* Return TRUE if a symbol is one that may be used as part of the
    qualifier in a qualified name.  This includes class symbols,
@@ -2804,6 +2813,12 @@ which is_class_struct_union_type is TRUE.
 #define is_prototype_instantiation_symbol(sym)				\
   (is_template_class_symbol((sym)) &&					\
    (sym)->variant.class_struct_union.extra_info->is_prototype_instantiation)
+
+/* Return a pointer to the namespace associated with a namespace symbol.
+   Remove any namespace aliases that may be present.  The symbol provided
+   must be a namespace symbol. */
+#define namespace_symbol_namespace(sym)					\
+  (skip_namespace_aliases((sym)->variant.namespace_info.ptr))
 
 extern void form_symbol_name(a_symbol_ptr                          sym,
                              an_il_to_str_output_control_block_ptr octl);
