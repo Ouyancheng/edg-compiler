@@ -705,7 +705,7 @@ do
   if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
     gen_c_file_name=$basefile$gen_c_suffix
     gen_c_obj_name=$basefile$gen_o_suffix
-    if [ $gen_c_suffix != ".c" ] ; then
+    if [ $gen_c_suffix != ".int.c" ] ; then
       feoptions=$feoptions" "--gen_c_file_name=$gen_c_file_name
     fi
   else
