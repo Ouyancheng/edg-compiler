@@ -5267,7 +5267,7 @@ Allocate a new template parameter list entry and return a pointer to it.
   
   db_exit();
   return ptr;
-}  /* alloc_conversion_header */
+}  /* alloc_template_param */
 
 
 #if DEBUG
