@@ -1,5 +1,20 @@
 Version 2.32
 
+4/29/96 Error recovery bug in C mode: internal error fixed
+
+In C mode an internal error is no longer triggered while recovering after
+the invalid declaration of i in the following:
+
+  char *p;
+  void f(void)
+  {
+  p = calloc(10, sizeof(char));
+  int i = 0;
+  }
+
+(Note: that the declaration of i begins at column-position zero is
+significant because it keys an error-recovery optimization.)
+
 4/27/96 IL lowering: pointer to dynamic init entry on return not cleared
 
 In the presence of return value optimization, the return_dynamic_init
