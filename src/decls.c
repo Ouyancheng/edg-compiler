@@ -1628,11 +1628,12 @@ scope is that of a class definition.
       last_param_type = NULL;
       if (C_dialect == C_dialect_cplusplus) {
         /* In C++ mode a default argument may be declared with the parameter
-           unless the function is a user-defined overloaded operator or
-           conversion.  Note that locator may be NULL (e.g., with abstract
-           declarators). */
-        if (locator != NULL &&
-            !locator->is_operator_name && !locator->is_conversion_name) {
+           unless the function is a user-defined overloaded operator (except
+           operator()(), as an extension) or a user-defined conversion.  Note
+           that locator may be NULL (e.g., with abstract declarators). */
+        if (locator != NULL && !locator->is_conversion_name &&
+            (!locator->is_operator_name ||
+             locator->variant.opname == (an_opname_kind)onk_function_call)) {
           default_arg_expr_allowed = TRUE;
         }  /* if */
       }  /* if */
@@ -1756,6 +1757,11 @@ scope is that of a class definition.
                expression. */
             if (!default_arg_expr_allowed) {
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
+            } else if (strict_ansi_mode && locator->is_operator_name) {
+              /* This must be an operator()() declaration.  According to the
+                 ARM a default argument is not allowed for any overloaded
+                 operators, but operator()() is an exception in common use. */
+              pos_warning(ec_nonstd_default_arg, &pos_curr_token);
             }  /* if */
             /* Advance past the equal sign. */
             (void)get_token();
