@@ -9743,9 +9743,9 @@ next_declaration:;
                    &decl_start_pos);
   }  /* if */
   if (microsoft_mode) {
-    /* Restore the default name linkage in case a linkage specification
-       appeared among the decl-specifiers. */
-    clear_curr_decl_name_linkage_kind();
+    /* Restore the default name linkage if a linkage specification appeared
+       among the decl-specifiers. */
+    if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
   }  /* if */
   db_exit();
   return decl_info.member_sym;

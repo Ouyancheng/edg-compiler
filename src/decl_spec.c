@@ -3197,6 +3197,7 @@ Returns TRUE if there is an error in the specifiers.
              and ignored in this context -- except for the error that's put
              out. */
           if (microsoft_mode && (decl_specifiers_seen == DS_DECLSPEC) &&
+              !(input_flags & DSI_IS_LINKAGE_SPEC_DECL) &&
               (is_member_decl ||
                depth_scope_stack == depth_innermost_namespace_scope)) {
             /* In Microsoft C++ compatibility mode, accept __declspec(...)
@@ -3214,8 +3215,9 @@ Returns TRUE if there is an error in the specifiers.
             warning(ec_decl_modifiers_ignored);
             /* Advance to the string token. */
             (void)get_token();
-            if (scan_name_linkage_string(&kind)) {
-              set_curr_decl_name_linkage_kind(kind);
+            if (scan_name_linkage_string(&kind)) { 
+              push_name_linkage(kind);
+              *output_flags |= DSO_LINKAGE_SPEC_DECL;
             }  /* if */
           } else {
             error(ec_linkage_specifier_not_allowed);
@@ -3295,7 +3297,7 @@ Returns TRUE if there is an error in the specifiers.
                    curr_token != tok_static && curr_token != tok_typedef) {
           error(ec_bad_member_storage_class);
           err = TRUE;
-        } else if (input_flags & DSI_HAS_DIRECT_LINKAGE_SPECIFICATION &&
+        } else if (input_flags & DSI_IS_LINKAGE_SPEC_DECL &&
                    (curr_token != tok_typedef && !microsoft_mode)) {
           /* Except in Microsoft mode, we disallow
                extern "C" static void f();

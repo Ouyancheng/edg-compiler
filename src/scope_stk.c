@@ -478,47 +478,87 @@ Free the specified list of active using directives to the available list.
 }  /* free_active_using_directive_list */
 
 
-void set_curr_decl_name_linkage_kind(a_name_linkage_kind kind)
 /*
-Temporarily set the name-linkage field in the scope stack to "kind", saving
-the current value.  The value will be restored when the current declaration
-has been completed.  This routine is only called in Microsoft C++ mode for
-cases like this:
+The name-linkage stack is used to save and restore the name-linkage state
+for the currently active scopes.  a_name_linkage_stack_entry is the type of
+each entry on the name-linkage stack.
+*/
+typedef struct a_name_linkage_stack_entry *a_name_linkage_stack_entry_ptr;
+typedef struct a_name_linkage_stack_entry {
+  a_name_linkage_stack_entry_ptr
+		next;
+			/* Next in name-linkage stack or available list;
+			   NULL for last entry. */
+  a_name_linkage_kind
+		saved_name_linkage;
+			/* Saved value of default_name_linkage for the
+			   current scope. */
+  a_byte_boolean
+		saved_name_linkage_is_explicit;
+			/* Saved value of name_linkage_is_explicit for the
+			   current scope. */
+} a_name_linkage_stack_entry;
 
-  __declspec(dllimport) extern "C" void f();
 
-in which a __declspec declaration precedes a linkage specification.
+static a_name_linkage_stack_entry_ptr
+		name_linkage_stack;
+			/* Linked list of entries recording saved name-linkage
+			   states from the currently active scopes. */
+
+static a_name_linkage_stack_entry_ptr
+		avail_name_linkage_stack_entries;
+			/* Freed name-linkage-stack entries that are available
+			   for reuse. */
+
+void push_name_linkage(a_name_linkage_kind  kind)
+/*
+Set the name-linkage fiend in the scope stack to "kind" and save its current
+value.  The value will be restored when pop_name_linkage is called.
 */
 {
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_name_linkage_stack_entry_ptr  nlsep;
+  a_scope_stack_entry_ptr         ssep = &scope_stack[depth_scope_stack];
 
-  check_assertion(ssep->curr_decl_saved_name_linkage ==
-                                           (a_name_linkage_kind)nlk_none);
-  ssep->curr_decl_saved_name_linkage = ssep->default_name_linkage;
-  ssep->curr_decl_saved_name_linkage_is_explicit =
-                                       ssep->name_linkage_is_explicit;
+  /* Allocate a new name-linkage-stack entry if necessary. */
+  if (avail_name_linkage_stack_entries == NULL) {
+    nlsep = (a_name_linkage_stack_entry_ptr)alloc_fe(
+                                   sizeof(a_name_linkage_stack_entry));
+  } else {
+    nlsep = avail_name_linkage_stack_entries;
+    avail_name_linkage_stack_entries = nlsep->next;
+  }  /* if */
+  /* Save the values for the current scope. */
+  nlsep->saved_name_linkage = ssep->default_name_linkage;
+  nlsep->saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
+  /* Add the new entry to the name linkage stack. */
+  nlsep->next = name_linkage_stack;
+  name_linkage_stack = nlsep;
+  /* Reset the values in the current scope. */
   ssep->default_name_linkage = kind;
   ssep->name_linkage_is_explicit = TRUE;
-}  /* set_curr_decl_name_linkage_kind */
+}  /* push_name_linkage */
 
 
-void clear_curr_decl_name_linkage_kind(void)
+void pop_name_linkage(void)
 /*
-Restore the name-linkage field in the scope stack to the value it had
-before the current declaration.  This routine is only called in
-Microsoft C++ mode.
+Restore to the scope stack the name linkage state at the point of the
+corresponding call to push_name_linkage.
 */
 {
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_name_linkage_stack_entry_ptr  nlsep = name_linkage_stack;
+  a_scope_stack_entry_ptr         ssep = &scope_stack[depth_scope_stack];
 
-  if (ssep->curr_decl_saved_name_linkage != (a_name_linkage_kind)nlk_none) {
-    ssep->default_name_linkage = ssep->curr_decl_saved_name_linkage;
-    ssep->name_linkage_is_explicit =
-                            ssep->curr_decl_saved_name_linkage_is_explicit;
-    ssep->curr_decl_saved_name_linkage = (a_name_linkage_kind)nlk_none;
-    ssep->curr_decl_saved_name_linkage_is_explicit = FALSE;
-  }  /* if */
-}  /* clear_curr_decl_name_linkage_kind */
+  check_assertion(nlsep != NULL);
+  /* Restore to the current scope the values saved in the name-linkage
+     stack. */
+  ssep->default_name_linkage = nlsep->saved_name_linkage;
+  ssep->name_linkage_is_explicit = nlsep->saved_name_linkage_is_explicit;
+  /* Pop the entry from the name linkage stack and return it to the
+     available list. */
+  name_linkage_stack = nlsep->next;
+  nlsep->next = avail_name_linkage_stack_entries;
+  avail_name_linkage_stack_entries = nlsep;
+}  /* pop_name_linkage */
 
 
 a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym)
@@ -1234,8 +1274,6 @@ to the declaration information for the template declaration scope being pushed.
     ssep->default_name_linkage = (a_name_linkage_kind)nlk_external;
     ssep->name_linkage_is_explicit = FALSE;
   }  /* if */
-  ssep->curr_decl_saved_name_linkage = (a_name_linkage_kind)nlk_none;
-  ssep->curr_decl_saved_name_linkage_is_explicit = FALSE;
   if (C_dialect == C_dialect_cplusplus) {
     /* Maintain the depth of the innermost stack entry that affects access
        control.  Special handing for template instantiation scopes is done
@@ -4443,6 +4481,8 @@ are handled in scope_stk_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(num_classes_on_scope_stack),
       pch_saved_var_array_elem(avail_names_hidden_by_old_for_init),
+      pch_saved_var_array_elem(name_linkage_stack),
+      pch_saved_var_array_elem(avail_name_linkage_stack_entries),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -4465,6 +4505,8 @@ of the front end.
   pushing_template_instantiation_scope = FALSE;
 #endif /* CHECKING */
   avail_names_hidden_by_old_for_init = NULL;
+  name_linkage_stack = NULL;
+  avail_name_linkage_stack_entries = NULL;
 }  /* scope_stk_init */
 
 /******************************************************************************

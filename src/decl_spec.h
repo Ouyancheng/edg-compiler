@@ -105,7 +105,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 			/* If this bit is set "asm" is recognized as a decl-
 			   specifier.  Used only when ASM_FUNCTION_ALLOWED is
 			   TRUE. */
-#define DSI_HAS_DIRECT_LINKAGE_SPECIFICATION ((a_decl_flag_set)0x8000)
+#define DSI_IS_LINKAGE_SPEC_DECL ((a_decl_flag_set)0x8000)
 			/* If this bit is set the declaration belongs to
 			   a non-brace-enclosed linkage specification. */
 #define DSI_IS_CONDITION_DECL ((a_decl_flag_set)0x10000)
@@ -184,7 +184,12 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 #define DSO_EXPLICIT		((a_decl_flag_set)0x4000)
 			/* If this bit is set the specifier "explicit" was
 			   found. */
-#define DSO_LAST DSO_EXPLICIT
+#define DSO_LINKAGE_SPEC_DECL   ((a_decl_flag_set)0x8000)
+                        /* If this bit is set the decl-specifiers included a
+                           linkage specifier; this is only accepted in
+                           Microsoft mode (and only under restricted
+                           circumstances). */
+#define DSO_LAST DSO_LINKAGE_SPEC_DECL
 			/* Last bit in the bit vector that is in use. */
 #endif /* DECL_SPEC_H */
 

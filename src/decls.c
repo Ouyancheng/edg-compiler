@@ -6208,10 +6208,8 @@ variable, the declaration(s) are processed, and then the original linkage
 specifier is restored.
 */
 {
-  a_name_linkage_kind      kind, saved_name_linkage;
-  a_boolean                saved_name_linkage_is_explicit;
+  a_name_linkage_kind      kind;
   a_boolean                err = FALSE;
-  a_scope_stack_entry_ptr  ssep;
 
   db_enter(3, "linkage_specification");
   if (decl_scope_level != depth_innermost_namespace_scope) {
@@ -6225,16 +6223,15 @@ specifier is restored.
      but that implementations are permitted to add others, such as "Ada"
      or "FORTRAN".  If changes are made here to support other strings, be
      sure to update the name linkage kind enumeration. */
-  /* Save the current default linkage. */
-  ssep = &scope_stack[depth_scope_stack];
-  saved_name_linkage = ssep->default_name_linkage;
-  saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
   /* Record the new default linkage in the scope stack. */
-  if (scan_name_linkage_string(&kind) && !err) {
-    ssep = &scope_stack[depth_scope_stack];
-    ssep->default_name_linkage = kind;
-    ssep->name_linkage_is_explicit = TRUE;
-  }  /* if */    
+  if (!scan_name_linkage_string(&kind) || err) {
+    /* If there's an error on this linkage-specification declaration, leave
+       the default name linkage kind unchanged.  But to simplify processing,
+       the push and pop will still be done. */
+    kind = scope_stack[depth_scope_stack].default_name_linkage;
+  }  /* if */
+  /* Save the current default linkage and set the new one. */
+  push_name_linkage(kind);
   /* Advance past the string token. */
   (void)get_token();
   /* If a brace enclosed declaration list follows, call declaration
@@ -6249,7 +6246,7 @@ specifier is restored.
     add_stop_token(tok_rbrace);
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-      declaration(function_definition_allowed, /*extern_implied=*/FALSE,
+      declaration(function_definition_allowed, /*is_linkage_spec_decl=*/FALSE,
                   is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
                   param_id_list);
     }  /* while */
@@ -6258,9 +6255,7 @@ specifier is restored.
        before advancing past the closing brace -- there is a dependency in
        precompiled header processing on the state maintained in the scope
        stack entry. */
-    ssep = &scope_stack[depth_scope_stack];
-    ssep->default_name_linkage = saved_name_linkage;
-    ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
+    pop_name_linkage();
     /* Check for the final right brace of the linkage specification block,
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
@@ -6278,6 +6273,7 @@ specifier is restored.
     if (curr_token == tok_end_of_source) {
       /* Missing declaration. */
       error(ec_exp_declaration);
+      pop_name_linkage();
     } else {
       /* Just one declaration is governed by this linkage specifier.  If no
          storage class is specified it is as though "extern" were specified --
@@ -6285,15 +6281,14 @@ specifier is restored.
          object defined withing an `extern "C" {...}' construct is still
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
-      declaration(function_definition_allowed, /*extern_implied=*/TRUE,
-                  is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
+      declaration(function_definition_allowed, /*is_linkage_spec_decl=*/TRUE,
+                  is_old_style_param_decl, is_top_level_declaration,
                   param_id_list);
+      /* pop_name_linkage will aleady have been called in declaration (before
+         before advancing past the end of the declaration, because there is
+         a dependency in precompiled header processing on the state
+         maintained in the scope stack entry). */
     }  /* if */
-    /* Restore the default linkage to the value it had before the
-       declaration was processed. */
-    ssep = &scope_stack[depth_scope_stack];
-    ssep->default_name_linkage = saved_name_linkage;
-    ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
   }  /* if */
 
   db_exit();
@@ -6843,8 +6838,7 @@ will be found during name lookup.
 }  /* make_using_directive */
 
 
-static void namespace_declaration(a_boolean     extern_implied,
-                                  a_token_kind  *final_token)
+static void namespace_declaration(a_token_kind  *final_token)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
 an extension namespace definition, an unnamed namespace definition, or a
@@ -6862,10 +6856,8 @@ namespace alias definition.  The syntax is:
   namespace-alias-definition:
     namespace identifier = qualified-namespace-specifier;
 
-extern_implied is TRUE when this declaration is inside a linkage specification
-block.  *final_token is set to tok_semicolon if this is a namespace alias
-definition and to tok_brace otherwise; the final token is swallowed by the
-caller.
+*final_token is set to tok_semicolon if this is a namespace alias definition
+and to tok_brace otherwise; the final token is swallowed by the caller.
 */
 {
   a_source_position           namespace_pos;
@@ -7157,7 +7149,8 @@ caller.
         scope_stack[DEPTH_OF_FILE_SCOPE].
                        ss_list_instantiation_insert_point = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        declaration(/*function_definition_allowed=*/TRUE, extern_implied,
+        declaration(/*function_definition_allowed=*/TRUE,
+                    /*is_linkage_spec_decl=*/FALSE,
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
       }  /* while */
@@ -7495,7 +7488,7 @@ static a_boolean check_for_missing_declarator(
                                     a_type_ptr        type_ptr,
                                     a_storage_class   storage_class,
                                     a_boolean         is_old_style_param_decl,
-                                    a_boolean         extern_implied,
+                                    a_boolean         is_linkage_spec_decl,
                                     a_source_position *decl_start_pos,
                                     a_boolean         decl_spec_err)
 /*
@@ -7508,7 +7501,7 @@ Three of the parameters relay information returned from decl_specifiers:
 dso_flags is a vector of flags, type_ptr is the type that was specified, and
 storage_class is the storage class specified.  is_old_style_param_decl is
 TRUE if a parameter declaration from a non-prototyped parameter list is
-being scanned.  extern_implied is TRUE if the declaration is part of a
+being scanned.  is_linkage_spec_decl is TRUE if the declaration is part of a
 linkage-specification declaration.  decl_start_pos indicates the source
 position of the first token of the current declaration.  decl_spec_err is
 TRUE if an error was reported while the decl-specifiers were scanned.
@@ -7558,7 +7551,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       type_ptr->source_corresp.referenced = TRUE;
-    } else if (extern_implied && is_enum_type(type_ptr)) {
+    } else if (is_linkage_spec_decl && is_enum_type(type_ptr)) {
       /* This is a declaration like
                       extern "C" enum E { e1, e2, e3 };
          which is not allowed (inference from ARM 7.4). */
@@ -7695,7 +7688,7 @@ error cases.
 
 
 void declaration(a_boolean      function_definition_allowed,
-                 a_boolean      extern_implied,
+                 a_boolean      is_linkage_spec_decl,
                  a_boolean      is_old_style_param_decl,
                  a_boolean      is_top_level_declaration,
                  a_param_id_ptr param_id_list)
@@ -7770,12 +7763,13 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean		       access_checks_deferred = FALSE;
   a_boolean                    restrict_qualified = FALSE;
   a_token_kind                 final_token = tok_semicolon;
+  a_boolean                    restore_name_linkage = is_linkage_spec_decl;
 
   db_enter(3, "declaration");
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
-  if (extern_implied) {
+  if (is_linkage_spec_decl) {
     /* Called in the midst of an ``extern "C"'' declaration, so
        select_curr_construct_pragmas has already been called. */
   } else if (!function_definition_allowed) {
@@ -7827,7 +7821,7 @@ of local variables (and types, etc.) of functions and in blocks.
       goto advance_past_final_token;
     } else if (curr_token == tok_namespace) {
       /* Process a namespace definition or a namespace alias declaration. */
-      namespace_declaration(extern_implied, &final_token);
+      namespace_declaration(&final_token);
       /* Swallow the current token if it is the same as final_token, then
          return. */
       goto advance_past_final_token;
@@ -7873,7 +7867,9 @@ of local variables (and types, etc.) of functions and in blocks.
     dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
     /* Within a non-block linkage specification no storage class (except
        typedef?) is allowed (inferred from ARM 7.4). */
-    if (extern_implied) dsi_flags |= DSI_HAS_DIRECT_LINKAGE_SPECIFICATION;
+    if (is_linkage_spec_decl) {
+      dsi_flags |= DSI_IS_LINKAGE_SPEC_DECL;
+    }  /* if */
   }  /* if */
   if (is_old_style_param_decl) {
     dsi_flags |= DSI_IS_PARAMETER;
@@ -7885,7 +7881,7 @@ of local variables (and types, etc.) of functions and in blocks.
     if (function_definition_allowed) {
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
       /* "inline" is allowed only on function declarations at file scope. */
-      if (extern_implied && !microsoft_mode) {
+      if (is_linkage_spec_decl && !microsoft_mode) {
         /* Except in Microsoft mode, "inline" is not allowed if a
            linkage specification is directly present. */
       } else {
@@ -7916,7 +7912,7 @@ of local variables (and types, etc.) of functions and in blocks.
       /* Look for some cases that are obviously not the start of a declaration,
          and give a more specific "Expected a declaration" message. */
       if (curr_token == tok_semicolon) {
-        if (extern_implied) {
+        if (is_linkage_spec_decl) {
           /* Something like: ``extern "C";'' -- Issue an error. */
           diagnostic(es_discretionary_error, ec_exp_declaration);
         } else if (strict_ansi_mode) {
@@ -7950,8 +7946,24 @@ continue_with_declaration:
                         &type_ptr, &qualifiers, &decl_modifiers);
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
+  if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
+    /* A linkage-specifier will be found among the decl_specifiers only in
+       Microsoft mode -- e.g., for a case like this:
+         extern "C" __declspec(dllexport) void f();
+       Moreover, it is allowed only if this is not already a linkage-specifier
+       declaration -- i.e., an error should have been issued on
+         extern "C" __declspec(dllexport) extern "C" void f();
+    */
+    check_assertion(microsoft_mode && !is_linkage_spec_decl);
+    /* Set a flag to treat this as a normal linkage-specification
+       declaration. */
+    is_linkage_spec_decl = TRUE;
+    /* push_name_linkage was called in decl_specifiers, and the corresponding
+       pop must be done before exiting this routine. */
+    restore_name_linkage = TRUE;
+  }  /* if */
   if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
-    if (extern_implied) {
+    if (is_linkage_spec_decl) {
       /* This is something like ``extern "C" f();'' -- treat the linkage
          specifier like a decl-specifier, for the purposes of diagnostics. */
     } else {
@@ -7961,7 +7973,8 @@ continue_with_declaration:
   /* The declaration can end at this point (";" is next). */
   if (!decl_specifiers_omitted &&
       check_for_missing_declarator(dso_flags, type_ptr, declared_storage_class,
-                                   is_old_style_param_decl, extern_implied,
+                                   is_old_style_param_decl,
+                                   is_linkage_spec_decl,
                                    &decl_start_pos, err)) {
     if (curr_token != tok_semicolon) {
       /* This must be a "dangling type specifier", and an error has already
@@ -8459,7 +8472,7 @@ continue_with_declaration:
                    parameter declaration, so an unspecified storage class
                    means auto. */
                 local_storage_class = (a_storage_class)sc_auto;
-              } else if (extern_implied) {
+              } else if (is_linkage_spec_decl) {
                 /* This must be part of an linkage specification declaration.
                    An "extern" storage class is implied (ARM 7.4, comment on
                    p. 118). */
@@ -8817,6 +8830,10 @@ advance_past_final_token:
       end_deferral_of_access_checks();
       access_checks_deferred = FALSE;
     }  /* if */
+    if (is_linkage_spec_decl) {
+      pop_name_linkage();
+      restore_name_linkage = FALSE;
+    }  /* if */
     if (curr_token == final_token) {
       /* Advance past the final token of the declaration (which should be a
          ';' or '}').  However, if the current declaration is a top-level
@@ -8835,10 +8852,10 @@ return_point:
        remain, do them now. */
     end_deferral_of_access_checks();
   }  /* if */
-  if (microsoft_mode) {
-    /* Restore the default name linkage in case a linkage specification
-       appeared among the decl-specifiers. */
-    clear_curr_decl_name_linkage_kind();
+  if (is_linkage_spec_decl) {
+    /* Unless restore_name_linkage is TRUE, pop_name_linkage will already
+       have been called. */
+    if (restore_name_linkage) pop_name_linkage();
   }  /* if */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
@@ -8854,7 +8871,8 @@ Scan a block-level declaration.
 */
 {
   declaration(/*function_definition_allowed=*/FALSE,
-              /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
+              /*is_linkage_spec_decl=*/FALSE,
+              /*is_old_style_param_decl=*/FALSE,
               /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
 }  /* local_declaration */
 
@@ -8910,7 +8928,8 @@ In C++, however, the declaration list is optional (3.4):
                        ss_list_instantiation_insert_point = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declaration(/*function_definition_allowed=*/TRUE,
-                  /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
+                  /*is_linkage_spec_decl=*/FALSE,
+                  /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE, (a_param_id_ptr)NULL);
     } /* for */
   }  /* if */
@@ -8936,7 +8955,8 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
   (void)get_token();
   while (curr_token != tok_end_of_source) {
     declaration(/*function_definition_allowed=*/TRUE,
-                /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
+                /*is_linkage_spec_decl=*/FALSE,
+                /*is_old_style_param_decl=*/FALSE,
                 /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
   }  /* if */
 }  /* scan_implicitly_included_template_definition_file */
