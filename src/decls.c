@@ -4438,12 +4438,13 @@ return a pointer to it in *symbol_ptr.
         /* A class/struct/union type with no name. */
         tp = type_ptr;
       }  /* if */
-#if ABI_COMPATIBILITY_VERSION >= 230
-    } else if (any_cfront_mode()) {
+#if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
+    } else {
       /* Normally, inferring a linkage name from a typedef name is allowed
          only for unqualified class/struct/union types.  However, in
-         cfront mode it is done for enum types, too -- and it is even done
-         when there is a type qualifier on top of the tagless class or enum:
+         cfront's name mangling scheme it is done for enum types, too --
+         and it is even done when there is a type qualifier on top of
+         the tagless class or enum:
            typedef struct { ... } A;         // linkage name "A" (all modes)
            typedef const struct { ... } B;   // linkage name "B" (cfront mode)
            typedef enum { ... } C;           // linkage name "C" (cfront mode)
@@ -4457,7 +4458,7 @@ return a pointer to it in *symbol_ptr.
           tp = skip_typerefs(type_ptr);
         }  /* if */
       }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 230 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
     }  /* if */
     if (tp != NULL) {
       if (any_cfront_mode()) {
