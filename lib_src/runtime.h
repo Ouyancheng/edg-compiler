@@ -134,7 +134,7 @@ extern void __default_new_handler(void);
 
 EXTERN_C STD_NAMESPACE::new_handler
 		_new_handler
-		  initial_value((a_void_function_ptr)__default_new_handler);
+		  initial_value((a_void_function_ptr)NULL);
 			/* Pointer to the new handler routine to be called. */
 
 #endif /* RUNTIME_H */

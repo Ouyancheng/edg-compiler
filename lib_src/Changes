@@ -1,3 +1,11 @@
+Version 2.46
+
+1/11/01  Value returned by the first call of set_new_handler
+
+The initial call of set_new_handler now returns zero, as required by the
+standard.  Previously, it returned a pointer to the default new handler
+routine provided by the runtime library.
+-------------------------------------------------------------------------------
 Version 2.45, December 26, 2000
 
 11/9/00 C99 complex support
