@@ -4232,7 +4232,7 @@ pointed to by cssp.
     slep = alloc_symbol_list_entry();
     slep->symbol = orig_sym;
     /* Add it to the list associated with the parent class. */
-    if (orig_sym->kind == (a_symbol_kind)sk_function_template) {
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* Add it to the list for templates. */
       slep->next = cssp->conversion_template_list;
       cssp->conversion_template_list = slep;
@@ -7206,40 +7206,58 @@ one of its direct base classes.
 }  /* check_base_class_destructors */
 
 
-static void project_base_class_conversion_functions(a_type_ptr class_type)
+static void check_base_class_conversion_list(a_type_ptr       class_type,
+                                             a_base_class_ptr base_class,
+                                             a_boolean        is_template_list,
+                                             a_boolean        *updated)
 /*
-Go through all the direct base classes of the current class class_type and
-create projection symbols to represent inherited conversion functions.  Also
-create a symbol_list_entry for each new projection symbol and link it to
-the list for the current class.  Only create a new projection symbol if the
-destination type is not yet on the current class's conversion list.
+For each entry on the conversion list of the indicated base class (or, if
+is_template_list is TRUE, on the conversion template list), look for an
+overriding conversion function on the corresponding list of class_type.  If
+none is found, create a projection symbol for it and add it to the list of
+class_type.  Set *updated if a projection symbol is created.
 */
 {
-  a_base_class_ptr              bcp;
-  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
+  a_class_symbol_supplement_ptr cssp, bcssp;
   a_symbol_list_entry_ptr       slep, bcslep;
   a_symbol_locator              loc;
-  a_boolean                     update = FALSE;
   a_symbol_ptr                  sym;
 
-  db_enter(4, "project_base_class_conversion_functions");
-  /* Examine each direct base class. */
-  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct) {
-      /* Examine each conversion list entry in the base class. */
-      bcslep = (symbol_supplement_for_class(bcp->type))->conversion_list;
-      for (; bcslep != NULL; bcslep = bcslep->next) {
-        /* Compare the conversion list entry from the base class with each
-           conversion list entry for the current class.  They convert to the
-           same type if they have the same header. */
-        for (slep = cssp->conversion_list; slep != NULL; slep = slep->next) {
-          if (slep->symbol->header == bcslep->symbol->header) {
-            /* A conversion list entry from the current class already
-               already represents a conversion to the type specified by the
-               conversion defined in the base class.  Ignore it. */
-            goto next_base_class_conversion_list_entry;
-          }  /* if */
-        }  /* for */
+  bcssp = symbol_supplement_for_class(base_class->type);
+  bcslep = is_template_list ? bcssp->conversion_template_list :
+                              bcssp->conversion_list;
+  if (bcslep != NULL) {
+    cssp = symbol_supplement_for_class(class_type);
+    for (; bcslep != NULL; bcslep = bcslep->next) {
+      /* Compare the conversion list entry from the base class with each
+         conversion list entry for the current class.  They convert to the
+         same type if they have the same header. */
+      slep = is_template_list ? cssp->conversion_template_list :
+                                cssp->conversion_list;
+      for (; slep != NULL; slep = slep->next) {
+        if (slep->symbol->header == bcslep->symbol->header) {
+          /* A conversion list entry from the current class already represents
+             a conversion to the type specified by the conversion defined in
+             the base class.  Ignore it. */
+          break;
+#if CHECKING
+        } else if (is_template_list) {
+          a_type_ptr  tp1, tp2;
+          sym = fundamental_symbol_of(slep->symbol);
+          check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+          tp1 = sym->variant.template_info->variant.function.
+                               routine->type->variant.routine.return_type;
+          sym = fundamental_symbol_of(bcslep->symbol);
+          check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+          tp2 = sym->variant.template_info->variant.function.
+                               routine->type->variant.routine.return_type;
+          check_assertion_str2(!identical_types(tp1, tp2),
+                               "check_base_class_conversion_list: types are",
+                               "identical but symbol headers do not match");
+#endif /* if CHECKING */
+        }  /* if */
+      }  /* for */
+      if (slep == NULL) {
         /* A new destination type for conversion.  Create a symbol to
            represent its projection into the current class and record it in
            a new conversion list entry. */
@@ -7249,30 +7267,63 @@ destination type is not yet on the current class's conversion list.
                                     /*must_be_type_name=*/FALSE,
                                     /*add_to_active_list=*/TRUE,
                                     (a_symbol_ptr)NULL, &sym,
-                                    /*can_create_nonreal=*/FALSE);
+                                    /*can_create_nonreal=*/is_template_list);
         check_assertion(sym != NULL);
         /* Allocate the new conversion list entry and link it in the
            list for the current class. */
         add_to_conversion_list(sym, cssp);
-        update = TRUE;
-next_base_class_conversion_list_entry:;
-        /* Get the next conversion list entry from the base class. */
-      }  /* for */
+        *updated = TRUE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_base_class_conversion_list */
+
+
+static void project_base_class_conversion_functions(a_type_ptr class_type)
+/*
+Go through all the direct base classes of the current class class_type and
+create projection symbols to represent inherited conversion functions.  Also
+create a symbol_list_entry for each new projection symbol and link it to
+the list for the current class.  Only create a new projection symbol if the
+destination type is not yet on the current class's conversion list.
+*/
+{
+  a_base_class_ptr  bcp;
+  a_boolean         updated = FALSE;
+
+  db_enter(4, "project_base_class_conversion_functions");
+  /* Examine each direct base class. */
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      /* Examine each conversion list entry in the base class. */
+      check_base_class_conversion_list(class_type, bcp,
+                                       /*is_template_list=*/FALSE, &updated);
+      check_base_class_conversion_list(class_type, bcp,
+                                       /*is_template_list=*/TRUE, &updated);
     }  /* if */
-    /* Get the next direct base class. */
   }  /* for */
-  if (update) {
+  if (updated) {
     /* Since the scope symbol list may have been empty before and since
        at least one new symbol has been added, update the symbols list
        attached to the class. */
-    cssp->symbols =
+    symbol_supplement_for_class(class_type)->symbols =
           assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
   }  /* if */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 3) {
+    a_class_symbol_supplement_ptr cssp = 
+                                   symbol_supplement_for_class(class_type);
+    a_symbol_list_entry_ptr       slep = cssp->conversion_list;
+
     fputs("conversion list for ", f_debug);
     db_type_name(class_type);
-    slep = cssp->conversion_list;
+    fprintf(f_debug, ": %s\n", slep == NULL ? "NULL" : "");
+    for (; slep != NULL; slep = slep->next) {
+      db_symbol(slep->symbol, "  ", 4);
+    }  /* for */
+    slep = cssp->conversion_template_list;
+    fputs("conversion template list for ", f_debug);
+    db_type_name(class_type);
     fprintf(f_debug, ": %s\n", slep == NULL ? "NULL" : "");
     for (; slep != NULL; slep = slep->next) {
       db_symbol(slep->symbol, "  ", 4);
