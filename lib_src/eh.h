@@ -216,21 +216,35 @@ typedef struct an_eh_region_descr {
 
 /* Definitions of the values in the flags field of the exception type
    specification entry. */
-typedef a_byte an_exception_type_specification_flag_set;
+typedef a_byte an_ETS_flag_set;
 #define ETS_NO_FLAGS		0x0
 			/* Value used when no flags are set. */
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
 			   by typeinfo is being caught. */
-#define ETS_IS_REFERENCE	0x02
+#define ETS_POINTER_TO_CONST	0x02
+#define ETS_POINTER_TO_VOLATILE	0x04
+			/* Indication of the type qualifiers on the type
+			   pointed to, in the pointer case. */
+#define ETS_IS_REFERENCE	0x08
 			/* A reference to an object of the type specified
 			   by typeinfo is being caught. */
-#define ETS_IS_ELLIPSIS		0x04
+#define ETS_IS_ELLIPSIS		0x10
 			/* The catch clause contains an ellipsis. */
-#define ETS_LAST		0x08
+#define ETS_LAST		0x20
 			/* TRUE if this is the last catch clause associated
 			   with a given try block (i.e., there are no more
 			   entries in the array.) */
+#define ETS_QUALIFIERS	(ETS_POINTER_TO_CONST | ETS_POINTER_TO_VOLATILE)
+			/* The flags bits that comprise the type qualifiers
+			   that must be checked to determine a match. */
+
+/* Macros used for checking ETS flags. */
+#define is_pointer(flag)             ((flag & ETS_IS_POINTER) != 0)
+#define is_pointer_to_const(flag)    ((flag & ETS_IS_POINTER_TO_CONST) != 0)
+#define is_pointer_to_volatile(flag) ((flag & ETS_IS_POINTER_TO_VOLATILE) != 0)
+#define is_reference(flag)           ((flag & ETS_IS_REFERENCE) != 0)
+#define is_ellipsis(flag)            ((flag & ETS_IS_ELLIPSIS != 0)
 
 
 /* Exception type specifications are used to describe throw specifications
@@ -245,11 +259,11 @@ typedef struct an_exception_type_specification {
 			   NULL if the entry has no associated type (for
 			   ellipsis entries or for empty throw specification
 			   lists). */
-  an_exception_type_specification_flag_set
+  an_ETS_flag_set
 		flags;
 			/* A collection of bits that specify how the
 			   catch entry is to be used.  See the
-			   descriptions of the CE flags above. */
+			   descriptions of the ETS flags above. */
 } an_exception_type_specification;
 
 
@@ -368,7 +382,7 @@ EXTERN_C int	 __throw(void);
 
 EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
 			     a_sizeof_t		size,
-			     a_boolean		is_pointer);
+			     an_ETS_flag_set	flags);
 
 EXTERN void terminate(void);
 

@@ -34,9 +34,10 @@ typedef struct a_throw_stack_entry {
   a_typeinfo_ptr
 		typeinfo;
 			/* Typeinfo of the object thrown. */
-  a_boolean	is_pointer;
-			/* TRUE if the object thrown is a pointer to the
-			   indicated type. */
+  an_ETS_flag_set
+		flags;
+			/* A collection of bits that specify how the
+			   additional information about the thrown object. */
   void*		object_address;
 			/* Pointer to the memory allocated to store
 			   the copy of the object. */
@@ -413,9 +414,17 @@ empty then remove it from the stack.
 
 /* Determine whether two typeinfo entries refer to the same type and
    whether the two types match in terms of whether or not they are pointers. */
-#define matching_types(etsp, type2, type2_is_pointer)			\
-  ((((etsp->flags & ETS_IS_POINTER) != 0) == type2_is_pointer) &&	\
+#define matching_types(etsp, type2, type2_flags)			\
+  ((is_pointer(etsp->flags) == is_pointer(type2_flags)) &&		\
    matching_typeinfo(etsp->typeinfo, type2))
+
+/* Determine whether the type qualifiers are acceptable.  The thrown type
+   may not have more qualifiers than the caught type.  The qualifiers are
+   only checked if the thrown type is a pointer. */
+#define qualifiers_acceptable(caught_flags, thrown_flags)		\
+  ((!is_pointer(thrown_flags)) || 					\
+   (caught_flags & thrown_flags & ETS_QUALIFIERS) ==			\
+                                            (thrown_flags & ETS_QUALIFIERS))
 
 #if DEBUG
 static void db_eh_region_descr(an_eh_region_descr_ptr  ehrdp)
@@ -443,7 +452,7 @@ Print the contents of a region description entry.
 static void db_throw_stack_entry(a_throw_stack_entry_ptr tsep)
 {
   fprintf(__f_debug, "typinfo=%p ", (void*)tsep->typeinfo);
-  fprintf(__f_debug, "is_pointer=%0d ", tsep->is_pointer);
+  fprintf(__f_debug, "flags=%0x ", tsep->flags);
   fprintf(__f_debug, "object_address=%p ", (void*)tsep->object_address);
   fprintf(__f_debug, "is_rethrow=%0d ", tsep->is_rethrow);
   fprintf(__f_debug, "discard_entry=%0d ", tsep->discard_entry);
@@ -703,7 +712,7 @@ requires cleanup.
 static int check_exception_type_specifications
                         (an_exception_type_specification_ptr	etsp,
                          a_typeinfo_ptr				typeinfo,
-			 a_boolean				is_pointer,
+			 an_ETS_flag_set			flags,
 			 void**					object_ptr,
 			 an_exception_type_specification_ptr*	etsp_found)
 /*
@@ -728,13 +737,16 @@ entry is returned in etsp_found.
 #endif /* 0 */
     if (etsp->flags & ETS_IS_ELLIPSIS) {
       match = TRUE;
-    } else if (matching_types(etsp, typeinfo, is_pointer)) {
+    } else if (!qualifiers_acceptable(etsp->flags, flags)) {
+      /* A pointer is being thrown to a catch without appropriate qualifiers.
+         This is not a match. */
+    } else if (matching_types(etsp, typeinfo, flags)) {
       match = TRUE;
-    } else if (((etsp->flags & ETS_IS_REFERENCE) != 0) && is_pointer) {
+    } else if (is_reference(etsp->flags) && is_pointer(flags)) {
       /* No match.  A pointer can only be thrown to a reference of
          exactly the same type. */
     } else if (etsp->typeinfo == &MANGLED_NAME_OF_PTR_TO_VOID &&
-               ((etsp->flags & ETS_IS_POINTER) != 0) == is_pointer) {
+               (is_pointer(etsp->flags) == is_pointer(flags))) {
       /* The exception type specification is a void * and the object
          being thrown is some kind of pointer.  This is a match. */
       match = TRUE;
@@ -742,7 +754,7 @@ entry is returned in etsp_found.
       /* No unique ID -- don't check any further.  No match. */
     } else if (*(etsp->typeinfo->unique_id) == BCS_AMBIGUOUS) {
       /* An ambiguous base class -- no match. */
-    } else if (((etsp->flags & ETS_IS_POINTER) != 0) == is_pointer &&
+    } else if ((is_pointer(etsp->flags) == is_pointer(flags)) &&
                *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
       /* A base class of the class that was thrown. */
       match = TRUE;
@@ -788,7 +800,7 @@ a try block with a catch that matches the type of the object thrown.
   void*				object_ptr;
   void*				object_buffer_ptr;
   a_typeinfo_ptr		thrown_typeinfo;
-  a_boolean			is_pointer;
+  an_ETS_flag_set		throw_flags;
   an_eh_stack_entry		throw_processing_marker;
   an_exception_type_specification_ptr
 				etsp_found;
@@ -799,8 +811,8 @@ a try block with a catch that matches the type of the object thrown.
   /* Get the information about the current thrown object from the
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
-  is_pointer = curr_throw_stack_entry->is_pointer;
-  if (is_pointer) {
+  throw_flags = curr_throw_stack_entry->flags;
+  if (is_pointer(throw_flags)) {
     object_buffer_ptr = curr_throw_stack_entry->object_address;
     object_ptr = *(void**)object_buffer_ptr;
   } else {
@@ -826,7 +838,7 @@ a try block with a catch that matches the type of the object thrown.
         /* Skip over try blocks for which a catch is active. */
         int result = check_exception_type_specifications
 				(ehsep->variant.try_block.catch_entries,
-				 thrown_typeinfo, is_pointer, &object_ptr,
+				 thrown_typeinfo, throw_flags, &object_ptr,
 				 &etsp_found);
         if (result != 0) {
           destination_ehsep = ehsep;
@@ -845,7 +857,7 @@ a try block with a catch that matches the type of the object thrown.
         an_exception_type_specification_ptr	dummy_etsp;
         result = check_exception_type_specifications
 				  (ehsep->variant.throw_specification,
-				   thrown_typeinfo, is_pointer, (void**)NULL,
+				   thrown_typeinfo, throw_flags, (void**)NULL,
 				   &dummy_etsp);
       }  /* if */
       if (result == 0) {
@@ -944,7 +956,7 @@ a try block with a catch that matches the type of the object thrown.
   curr_throw_stack_entry->in_handler = TRUE;
   if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     __catch_clause_number = destination_catch_value;
-    if (is_pointer && (etsp_found->flags & ETS_IS_REFERENCE)) {
+    if (is_pointer(throw_flags) && is_reference(etsp_found->flags)) {
       /* The thrown object is a pointer and the caught object is a
          reference to a pointer.  Provide the handler with a pointer to
          the pointer. */
@@ -957,8 +969,8 @@ a try block with a catch that matches the type of the object thrown.
          it is, the caught object is the same thing.  object_ptr points
          either to the object (if is_pointer is TRUE) or to the buffer
          (if is_pointer is FALSE).  This is what the handler expects. */
-      check_assertion(is_pointer ==
-                      ((etsp_found->flags & ETS_IS_POINTER) != 0));
+      check_assertion(is_pointer(throw_flags) ==
+                                          is_pointer(etsp_found->flags));
       __caught_object_address = object_ptr;
     }  /* if */
     /* Update the pointer in the try block to point to the throw stack entry
@@ -979,7 +991,7 @@ a try block with a catch that matches the type of the object thrown.
 
 
 static void push_throw_stack(a_typeinfo_ptr	typeinfo,
-			     a_boolean		is_pointer,
+			     an_ETS_flag_set	flags,
 			     void*		object_address,
 			     a_boolean		is_rethrow)
 /*
@@ -994,7 +1006,7 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->next = curr_throw_stack_entry;
   curr_throw_stack_entry = tsep;
   tsep->typeinfo = typeinfo;
-  tsep->is_pointer = is_pointer;
+  tsep->flags = flags;
   tsep->object_address = object_address;
   tsep->is_rethrow = is_rethrow;
   tsep->discard_entry = FALSE;
@@ -1033,7 +1045,7 @@ Rethrow the current thrown obejct.
     __call_terminate();
   }  /* if */
   push_throw_stack(curr_throw_stack_entry->typeinfo,
-		   curr_throw_stack_entry->is_pointer,
+		   curr_throw_stack_entry->flags,
 		   curr_throw_stack_entry->object_address,
 		   /*is_rethrow=*/TRUE);
   __throw();
@@ -1042,7 +1054,7 @@ Rethrow the current thrown obejct.
 
 EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
 			     a_sizeof_t		size,
-			     a_boolean		is_pointer)
+			     a_boolean		flags)
 /*
 Allocate space for the object to be thrown and save information about
 the type being thrown.
@@ -1056,7 +1068,7 @@ the type being thrown.
     set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/FALSE);
   }  /* if */
   object_address = (void *)eh_alloc_on_stack(size);
-  push_throw_stack(typeinfo, is_pointer, object_address, /*is_rethrow=*/FALSE);
+  push_throw_stack(typeinfo, flags, object_address, /*is_rethrow=*/FALSE);
   /* Set the base class flags for the thrown type. */
   set_base_class_flags(typeinfo, /*set_flag=*/TRUE);
   return object_address;
