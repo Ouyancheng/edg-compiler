@@ -542,12 +542,15 @@ not specifically allow this syntax, but it is supported by cfront.
   a_symbol_ptr             class_sym;
   a_token_cache            cache;
   a_boolean                is_member_id = FALSE;
+  a_source_position        error_position;
 
   db_enter(3, "simplify_curr_class_qualified_name");
   if (curr_token == tok_identifier && next_token() == tok_colon_colon &&
       ssep->kind == (a_scope_kind)sck_class_struct_union) {
     class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
     if (locator_for_curr_id.symbol_header == class_sym->header) {
+      /* Save the current source position for possible error reporting. */
+      copy_source_position(pos_curr_token, error_position);
       /* We are inside a class declaration and the name is a qualified
          name starting with the name of the class being declared.  Advance
          to the member name, but cache the tokens so they are not lost. */
@@ -570,13 +573,14 @@ not specifically allow this syntax, but it is supported by cfront.
         /* Advance past the class name and the "::". */
         (void)get_token();
         (void)get_token();
-      }  /* if */
+       /* Accepting qualified member names is an extension so issue a
+         diagnostic in strict ANSI mode. */
+       if (strict_ansi_mode) {
+         pos_diagnostic(strict_ansi_error_severity,
+                        ec_qualifier_in_member_declaration, &error_position);
+       }  /* if */ 
+     }  /* if */
     }  /* if */
-  }  /* if */
-  /* Accepting qualified member names is an extension so issue a
-     diagnostic in strict ANSI mode. */
-  if (is_member_id && strict_ansi_mode) {
-    diagnostic(strict_ansi_error_severity, ec_qualifier_in_member_declaration);
   }  /* if */
   db_exit();
   return is_member_id;
