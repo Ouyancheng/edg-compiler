@@ -56,6 +56,11 @@ an argument that is the empty string literal.  For example:
   float f = __builtin_nan("");  // Accepted in GNU C mode because the
                                 // call is treated as a constant.
 
+These functions appear in constant-expressions in the C++ header <limits> of
+GNU C++ version 3.3.  (The built-in pseudo-functions __builtin_constant_p and
+__builtin_classify_type were already evaluated at compile time in previous
+versions of the front end.) 
+
 11/19/03 Memory allocation problem with multiple translation units
 
 A problem in the way in which memory was allocated when using multiple
