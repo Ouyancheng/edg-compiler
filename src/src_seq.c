@@ -1253,7 +1253,7 @@ for a template instantiation).
     }  /* if */
   }  /* while */
   return scope_depth;
-}  /*  */
+}  /* active_scope_depth_of_namespace */
 
 
 a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type)
@@ -1324,7 +1324,8 @@ is that in which the instantiation is triggered, not the one in which the
 template is defined.
 */
 {
-  a_scope_depth  depth;
+  a_scope_depth    depth;
+  a_namespace_ptr  nsp;
 
   for (;;) {
     if (sse_ptr->kind == (a_scope_kind)sck_template_instantiation) {
@@ -1352,7 +1353,13 @@ template is defined.
     }  /* if */
   }  /* for */
   depth = sse_ptr->depth_innermost_namespace_scope;
-  depth = active_scope_depth_of_namespace(scope_stack[depth].assoc_namespace);
+  nsp = scope_stack[depth].assoc_namespace;
+  if (nsp != NULL) {
+    /* If depth refers to a scope stack entry that was pushed to create a
+       context for instantiation, find instead an entry that corresponds to
+       a namespace construct in the source code. */
+    depth = active_scope_depth_of_namespace(nsp);
+  }  /* if */
 #if CHECKING
   switch (scope_stack[depth].kind) {
     case sck_file:
