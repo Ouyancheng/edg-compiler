@@ -1,5 +1,16 @@
 Version 2.30
 
+6/21/95  C++-generating back end: lvalue casts
+
+Lvalue casts (as in pcc mode) are now output correctly.
+
+6/21/95  C++-generating back end: Implicit casts on lvalue addresses
+
+Implicit casts on lvalue addresses (e.g., to a base class or to adjust
+qualification) are now suppressed.  This avoids an internal error
+when such a cast appears on top of an enk_temp_init indicating the
+address of a temporary.
+
 6/20/95  C++-generating back end: member selections, pointer-to-member
          selections
 
@@ -8,7 +19,7 @@ operations in a way that avoids extra "&" and "*" operators when references
 are involved.  Extra "*" and "&" operations can be a problem if the class
 in question overloads those operators.
 
-6/19/95  C++-generating back end -- multiple variables declared in for-init
+6/19/95  C++-generating back end: multiple variables declared in for-init
 
 The C++-generating back end now correctly handles multiple declarations
 of variables in a for-init, e.g.,
@@ -308,7 +319,7 @@ When a reference is bound to an rvalue of class type, the WP [dcl.init.ref]
 requires that the copy constructor that might have been used be callable.
 That is now checked.  A warning is issued except in strict mode.
 
-5/19/95  C++-generating back end -- parentheses around initializer expression
+5/19/95  C++-generating back end: parentheses around initializer expression
 
 The output of the C++-generating back end needed an extra set of parentheses
 around a comma expression at the top of a parenthesized initializer:
@@ -316,7 +327,7 @@ around a comma expression at the top of a parenthesized initializer:
   int i;
   int *p = new int((2, i));  // Output had only 1 set of parentheses
 
-5/19/95  C++-generating back end -- uninstantiated member functions
+5/19/95  C++-generating back end: uninstantiated member functions
 
 When the C++-generating back end is used, and it is configured to put
 out instantiations of class templates, an internal error occurred

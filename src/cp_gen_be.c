@@ -2737,6 +2737,18 @@ precedence confusion.
       gen_pm_simple_field_selection(operand_1, operand_2);
       write_tok_ch(')');
       processed = TRUE;
+    } else if (op == (an_expr_operator_kind)eok_lvalue_cast) {
+      /* Lvalue cast. */
+      gen_cast(type_pointed_to(node->type));
+      gen_lvalue(operand_1);
+      processed = TRUE;
+    } else if (op == (an_expr_operator_kind)eok_cast) {
+      /* Normal cast.  Must be due to an implicit conversion, e.g., a
+         cast to a base class or a qualification adjustment. */
+      check_assertion_str(node->variant.operation.compiler_generated,
+                          "gen_lvalue: non-lvalue cast is not implicit");
+      gen_lvalue(operand_1);
+      processed = TRUE;
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
       /* An operation that returns an lvalue, e.g., an lvalue-returning
          assignment.  Just put the expression out. */
