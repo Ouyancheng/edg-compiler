@@ -6308,7 +6308,14 @@ return_from_token_scan:
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Determine the source position of the end of the token. */
-    macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
+    if (ctoken == tok_end_of_source) {
+      /* The end-of-source position must be done specially, because the
+         character position lies outside the usual range, and the
+         pos_curr_token position was also determined specially. */
+      end_pos_curr_token = pos_curr_token;
+    } else {
+      macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
