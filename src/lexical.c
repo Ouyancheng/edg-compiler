@@ -3824,12 +3824,13 @@ qualified name of the form
 
 If a qualified name is next, scan it and look up the qualified name.
 Set qualified_name_symbol in locator_for_curr_id to point to the symbol
-for the qualified identifier and return TRUE.  This is allowed only
-in C++ mode.  If a qualified name is not next, leave qualified_name_symbol
-set to NULL and return FALSE.
+for the qualified identifier.  This is allowed only in C++ mode.
+If a qualified name is not next, leave qualified_name_symbol
+set to NULL.  Return FALSE if there is a qualifier but no final identifier,
+e.g., "int A:: = 1;"; the error is already issued in that case.
 */
 {
-  a_boolean      is_qualified_name = FALSE;
+  a_boolean      is_qualified_name = FALSE, okay = TRUE;
   a_symbol_ptr   class_symbol, name_symbol;
   a_scope_number class_scope;
   a_symbol_ptr   first_symbol_in_class;
@@ -3883,32 +3884,34 @@ set to NULL and return FALSE.
         /* The current token must now be the final identifier of the qualified
            name, e.g., "x" in "A::B::x". */
         if (curr_token != tok_identifier) {
-          syntax_error(ec_exp_identifier);
-        } else if (class_scope != NO_SCOPE_NUMBER) {
-          /* There was a valid class qualifier.  Look up the identifier in
-             the scope. */
-          name_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
-                                                  class_scope,
-                                                  /*must_be_class=*/FALSE);
-          if (name_symbol != NULL) {
-            /* The name was found. */
-            is_qualified_name = TRUE;
-            locator_for_curr_id.qualified_name_symbol = name_symbol;
-            /* Clear the symbol list to be neat. */
-            symbol_list_for_curr_id = NULL;
+          /* syntax_error is deliberately not called. */
+          error(ec_exp_identifier);
+          okay = FALSE;
+        } else {
+          if (class_scope != NO_SCOPE_NUMBER) {
+            /* There was a valid class qualifier.  Look up the identifier in
+               the scope. */
+            name_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
+                                                    class_scope,
+                                                    /*must_be_class=*/FALSE);
+            if (name_symbol != NULL) {
+              /* The name was found. */
+              is_qualified_name = TRUE;
+              locator_for_curr_id.qualified_name_symbol = name_symbol;
+              /* Clear the symbol list to be neat. */
+              symbol_list_for_curr_id = NULL;
+            }  /* if */
           }  /* if */
-        }  /* if */
-        if (!is_qualified_name) {
-          /* There was an error of some kind. */
-          internal_error("get_qualified_name: name not found");
-#if 0
-          make_error_symbol here.
-#endif
+          if (!is_qualified_name) {
+            /* The identifier could not be found in the class. */
+            error(ec_name_not_found_in_class);
+            set_to_error_locator(locator_for_curr_id);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  return is_qualified_name;
+  return okay;
 }  /* get_qualified_name */
 
 
