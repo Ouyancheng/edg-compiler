@@ -1707,14 +1707,14 @@ common_cfront_mode_settings:
 enable_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
-        il_header.near_and_far_enabled = FALSE;
+        il_header.near_and_far_are_enabled = FALSE;
         break;
       case optk_microsoft_16_mode:
         /* Enable or disable Microsoft extensions, in 16-bit mode. */
         check_assertion(opt_value == TRUE);
         microsoft_mode = TRUE;
 #if NEAR_AND_FAR_ALLOWED
-        il_header.near_and_far_enabled = TRUE;
+        il_header.near_and_far_are_enabled = TRUE;
 #endif /* NEAR_AND_FAR_ALLOWED */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -4154,8 +4154,8 @@ Display the IL for the file scope in human-readable form.
   disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
-  disp_boolean("near_and_far_enabled",
-               (a_boolean)il_header.near_and_far_enabled);
+  disp_boolean("near_and_far_are_enabled",
+               (a_boolean)il_header.near_and_far_are_enabled);
   disp_boolean("far_data_pointers",
                (a_boolean)il_header.far_data_pointers);
   disp_boolean("far_code_pointers",

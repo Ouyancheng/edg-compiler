@@ -1451,7 +1451,7 @@ on a prior declaration.
     if (rout_type == type_ptr) {
       /* Okay. */
 #if NEAR_AND_FAR_ALLOWED
-    } else if (il_header.near_and_far_enabled) {
+    } else if (near_and_far_enabled()) {
       a_type_qualifier_set  qual = get_top_level_type_qualifiers(type_ptr);
       check_assertion(qual == TQ_NEAR || qual == TQ_FAR);
 #endif /* NEAR_AND_FAR_ALLOWED */

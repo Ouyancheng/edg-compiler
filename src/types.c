@@ -838,7 +838,7 @@ type is a "far" type (explicitly or implicitly).
   a_boolean            is_far;
   a_type_qualifier_set qualifiers = get_type_qualifiers(tp);
 
-  check_assertion(il_header.near_and_far_enabled);
+  check_assertion(near_and_far_enabled());
   if (qualifiers & TQ_NEAR) {
     /* near specified explicitly. */
     is_far = FALSE;

@@ -5315,7 +5315,7 @@ are not already present.
      check, if needed, should have been done by the caller. */
 #if NEAR_AND_FAR_ALLOWED
   check_assertion(!is_function_type(base_type) || qualifiers == TQ_NONE ||
-                  (il_header.near_and_far_enabled &&
+                  (near_and_far_enabled() &&
                    (qualifiers & ~(TQ_NEAR | TQ_FAR)) == TQ_NONE) ||
                   C_mode());
 #else /* !NEAR_AND_FAR_ALLOWED */
@@ -5326,8 +5326,7 @@ are not already present.
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
   if (qualifiers_to_add != TQ_NONE) {
 #if NEAR_AND_FAR_ALLOWED
-    if (il_header.near_and_far_enabled &&
-        (qualifiers_to_add & (TQ_NEAR | TQ_FAR))) {
+    if (qualifiers_to_add & (TQ_NEAR | TQ_FAR)) {
        /* Don't add explicit qualifiers for memory attributes that are
          implied anyway.  Note that even if only one qualifier is being
          added and it's implied, we add a typeref (containing no qualifiers)

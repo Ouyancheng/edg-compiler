@@ -5390,7 +5390,7 @@ return a pointer to it in *symbol_ptr.
 #if NEAR_AND_FAR_ALLOWED
            /* When near/far qualifiers appear, they have to match in what
               was explicitly specified. */
-           && (!il_header.near_and_far_enabled ||
+           && (!near_and_far_enabled() ||
                (get_original_type_qualifiers(tp) ==
                    get_original_type_qualifiers(type_ptr)))
 #endif /* NEAR_AND_FAR_ALLOWED */

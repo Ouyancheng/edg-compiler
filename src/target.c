@@ -39,7 +39,7 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
   a_targ_size_t size;
 
 #if NEAR_AND_FAR_ALLOWED
-  if (il_header.near_and_far_enabled) {
+  if (near_and_far_enabled()) {
     /* Pointers come in "near" and "far" sizes (e.g., Microsoft 16-bit
        mode). */
     if (is_far_type(tp)) {

@@ -2328,7 +2328,7 @@ encountered, they are scanned and thrown away with a warning.
       new_qualifiers = collect_type_qualifiers(decl_pos_block);
       duplicates = (new_qualifiers & *qualifiers);
 #if NEAR_AND_FAR_ALLOWED
-      if (il_header.near_and_far_enabled) {
+      if (near_and_far_enabled()) {
         if ((new_qualifiers & TQ_NEAR) && (*qualifiers & TQ_FAR )) {
           /* Incompatible near and far specifications. */
           error(ec_mem_attrib_incompatible);
@@ -2759,11 +2759,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          int * const x;
     */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  if (microsoft_mode
-#if NEAR_AND_FAR_ALLOWED
-      || il_header.near_and_far_enabled
-#endif /* NEAR_AND_FAR_ALLOWED */
-                                       ) {
+  if (microsoft_mode or_near_and_far_enabled()) {
       /* Microsoft mode allows several kinds of qualifiers. */
       collect_microsoft_pointer_declarator_qualifiers(&qualifiers,
                                                       &pending_qualifiers_pos,

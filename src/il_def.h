@@ -7694,7 +7694,7 @@ EXTERN struct il_header_tag {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_byte_boolean
-		near_and_far_enabled;
+		near_and_far_are_enabled;
 			/* TRUE if near and far memory attributes are
 			   enabled (e.g., when Microsoft 16-bit extensions
 			   are to be accepted). */
@@ -7727,8 +7727,8 @@ EXTERN struct il_header_tag {
 
 
 #if NEAR_AND_FAR_ALLOWED
-#define near_and_far_enabled() il_header.near_and_far_enabled
-#define or_near_and_far_enabled() || il_header.near_and_far_enabled
+#define near_and_far_enabled() (il_header.near_and_far_are_enabled)
+#define or_near_and_far_enabled() || near_and_far_enabled()
 #else /* !NEAR_AND_FAR_ALLOWED */
 #define near_and_far_enabled() FALSE
 #define or_near_and_far_enabled() /* Nothing */

@@ -276,7 +276,7 @@ Install the keywords in the symbol table.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
-  if (il_header.near_and_far_enabled) {
+  if (near_and_far_enabled()) {
     /* Enter "near" and "far" keywords. */
     enter_keyword((a_token_kind)tok_near, "near");
     enter_keyword((a_token_kind)tok_far, "far");
@@ -601,7 +601,7 @@ line processing is done.
      routine. */
   host_envir_early_init();
 #if NEAR_AND_FAR_ALLOWED
-  il_header.near_and_far_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
+  il_header.near_and_far_are_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
   il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;
   il_header.far_code_pointers = DEFAULT_FAR_CODE_POINTERS;
 #endif /* NEAR_AND_FAR_ALLOWED */
