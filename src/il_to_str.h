@@ -30,8 +30,9 @@ typedef void an_output_str_function(char *str);
 typedef an_output_str_function *an_output_str_function_ptr;
 typedef void an_output_name_function(char *entry, an_il_entry_kind kind);
 typedef an_output_name_function *an_output_name_function_ptr;
-typedef void an_output_default_arg_function(a_param_type_ptr param);
-typedef an_output_default_arg_function *an_output_default_arg_function_ptr;
+typedef void an_output_func_declarator_function(a_type_ptr type);
+typedef an_output_func_declarator_function
+                                       *an_output_func_declarator_function_ptr;
 typedef struct an_il_to_str_output_control_block
                                         *an_il_to_str_output_control_block_ptr;
 /* If you add a field here, add it also to
@@ -52,11 +53,11 @@ typedef struct an_il_to_str_output_control_block {
 	output_name;
 			/* Function to output the name of an entity.  NULL
 			   if a default routine should be used. */
-  an_output_default_arg_function_ptr
-	output_default_arg;
-			/* Function to output a default argument of a
-			   function given a_param_type.  NULL if default
-			   arguments should not be put out. */
+  an_output_func_declarator_function_ptr
+	output_func_declarator;
+			/* Function to output a function declarator from
+			   a function type.  NULL if a default routine
+			   should be used. */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be
@@ -93,6 +94,11 @@ extern char *int_kind_name(an_integer_kind kind);
 
 extern char *float_kind_name(a_float_kind kind);
 
+#ifdef CFE
+extern void form_type_qualifier(a_type_ptr                            type,
+                                an_il_to_str_output_control_block_ptr octl);
+#endif /* ifdef CFE */
+
 extern void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
@@ -111,6 +117,24 @@ extern void form_type_second_part(
 
 extern void form_type(a_type_ptr                            type,
                       an_il_to_str_output_control_block_ptr octl);
+
+extern void form_integer_constant(
+                           a_constant_ptr                        constant,
+                           a_boolean                             suppress_cast,
+                           a_boolean                             need_parens,
+                           an_il_to_str_output_control_block_ptr octl);
+
+extern void form_pm_constant(
+                      a_constant_ptr                        constant,
+                      a_boolean                             minimal_casts,
+                      a_boolean                             need_parens,
+                      an_il_to_str_output_control_block_ptr octl);
+
+extern void form_address_constant(
+                          a_constant_ptr                        constant,
+                          a_boolean                             do_indirection,
+                          a_boolean                             need_parens,
+                          an_il_to_str_output_control_block_ptr octl);
 
 extern void form_constant(a_constant_ptr                        constant,
                           a_boolean                             need_parens,

@@ -33,7 +33,7 @@ Clear an output control block to default values.
   octl->output_str                = NULL;
   octl->output_partial_token_str  = NULL;
   octl->output_name               = NULL;
-  octl->output_default_arg        = NULL;
+  octl->output_func_declarator    = NULL;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
 #if DEBUG
@@ -356,8 +356,8 @@ way described by octl.
 
 #ifdef CFE
 
-static void form_type_qualifier(a_type_ptr                            type,
-                                an_il_to_str_output_control_block_ptr octl)
+void form_type_qualifier(a_type_ptr                            type,
+                         an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string for the type qualifier for the top type of the given type
 (i.e., just the first level).  The type must be a tk_typeref containing a
@@ -684,61 +684,61 @@ in the way described by octl.
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
 
-  octl->output_str("(");
-  if ((!rtsp->prototyped || rtsp->old_style_params_scanned) &&
-      (il_header.source_language != sl_Cplusplus ||
-       octl->gen_compilable_code)) {
-    /* Unprototyped function.  Put out nothing between the parentheses. */
-    /* Note that in C++ the parameter types for old-style functions are
-       listed when generating human-readable output. */
+  /* See if there's a special routine to output function declarators.
+     If so, use it. */
+  if (octl->output_func_declarator != NULL) {
+    octl->output_func_declarator(type);
   } else {
-    /* Prototyped list. */
-    param = rtsp->param_type_list;
-    if (param == NULL) {
-      /* The first argument is NULL, so this is a "void" parameter list.
-         Write it as void in C, as empty in C++. */
-      if (il_header.source_language == sl_C) {
-        octl->output_str("void");
-      }  /* if */
+    /* Default processing. */
+    octl->output_str("(");
+    if ((!rtsp->prototyped || rtsp->old_style_params_scanned) &&
+        (il_header.source_language != sl_Cplusplus ||
+         octl->gen_compilable_code)) {
+      /* Unprototyped function.  Put out nothing between the parentheses. */
+      /* Note that in C++ the parameter types for old-style functions are
+         listed when generating human-readable output. */
     } else {
-      /* List the parameter types. */
-      for (;;) {
-        form_type(param->type, octl);
-        /* Put out a default argument expression if there is one. */
-        if (param->default_arg_expr != NULL) {
-          /* Use the callback routine supplied.  If there is no callback
-             routine, do not put out the default argument. */
-          if (octl->output_default_arg != NULL) {
-            octl->output_default_arg(param);
-          }  /* if */
+      /* Prototyped list. */
+      param = rtsp->param_type_list;
+      if (param == NULL) {
+        /* The first argument is NULL, so this is a "void" parameter list.
+           Write it as void in C, as empty in C++. */
+        if (il_header.source_language == sl_C) {
+          octl->output_str("void");
         }  /* if */
-        param = param->next;
-        if (param == NULL) break;
-        /* There are more parameters, so output a separator and keep
-           looping. */
-        octl->output_str(", ");
+      } else {
+        /* List the parameter types. */
+        for (;;) {
+          form_type(param->type, octl);
+          /* Default argument expressions are not put out. */
+          param = param->next;
+          if (param == NULL) break;
+          /* There are more parameters, so output a separator and keep
+             looping. */
+          octl->output_str(", ");
+        }  /* for */
+      }  /* if */
+      if (rtsp->has_ellipsis) {
+        /* There is an ellipsis. */
+        /* Separate it from the parameters if there are any. */
+        if (rtsp->param_type_list != NULL) octl->output_str(", ");
+        octl->output_str("...");
+      }  /* if */
+    }  /* if */
+    octl->output_str(")");
+#ifdef CFE
+    /* Output a cv-qualifier for a member function, if there is one. */
+    if (rtsp->implicit_this_param_type != NULL) {
+      a_type_ptr underlying_type =
+                               type_pointed_to(rtsp->implicit_this_param_type);
+      for (; is_immediate_type_qualifier(underlying_type);
+           underlying_type = underlying_type->variant.typeref.type) {
+        octl->output_str(" ");
+        form_type_qualifier(underlying_type, octl);
       }  /* for */
     }  /* if */
-    if (rtsp->has_ellipsis) {
-      /* There is an ellipsis. */
-      /* Separate it from the parameters if there are any. */
-      if (rtsp->param_type_list != NULL) octl->output_str(", ");
-      octl->output_str("...");
-    }  /* if */
-  }  /* if */
-  octl->output_str(")");
-#ifdef CFE
-  /* Output a cv-qualifier for a member function, if there is one. */
-  if (rtsp->implicit_this_param_type != NULL) {
-    a_type_ptr underlying_type =
-                               type_pointed_to(rtsp->implicit_this_param_type);
-    for (; is_immediate_type_qualifier(underlying_type);
-         underlying_type = underlying_type->variant.typeref.type) {
-      octl->output_str(" ");
-      form_type_qualifier(underlying_type, octl);
-    }  /* for */
-  }  /* if */
 #endif /* ifdef CFE */
+  }  /* if */
 }  /* form_function_declarator */
 
 
@@ -887,8 +887,7 @@ output only if need_close_paren is TRUE.
 }  /* output_optional_close_paren */
 
 
-static void form_integer_constant(
-                           a_constant_ptr                        constant,
+void form_integer_constant(a_constant_ptr                        constant,
                            a_boolean                             suppress_cast,
                            a_boolean                             need_parens,
                            an_il_to_str_output_control_block_ptr octl)
@@ -1109,11 +1108,10 @@ the way described by octl.
 }  /* form_pm_derived_casts */
 
 
-static void form_pm_constant(
-                           a_constant_ptr                        constant,
-                           a_boolean                             minimal_casts,
-                           a_boolean                             need_parens,
-                           an_il_to_str_output_control_block_ptr octl)
+void form_pm_constant(a_constant_ptr                        constant,
+                      a_boolean                             minimal_casts,
+                      a_boolean                             need_parens,
+                      an_il_to_str_output_control_block_ptr octl)
 /*
 Output a pointer-to-member constant.  If minimal_casts is TRUE, suppress
 any unnecessary casts in the generated form of the constant (casts that
@@ -1185,7 +1183,7 @@ Do the output in the way described by octl.
 }  /* form_pm_constant */
 
 
-static void form_address_constant(
+void form_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             do_indirection,
                           a_boolean                             need_parens,
