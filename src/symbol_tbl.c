@@ -706,7 +706,7 @@ state.
         cssp->destructor = NULL;
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
-        cssp->delayed_scan_fixup_list = NULL;
+        cssp->routine_fixup_list = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
@@ -1313,6 +1313,26 @@ defined in that scope and name space unless suppress_error is TRUE.
                                 suppress_error);
   db_exit();
 }  /* reenter_symbol */
+
+
+void reactivate_prototype_scope_symbols(a_symbol_ptr  prototype_scope_symbols)
+/*
+Some symbols for types were created in a function prototype scope.
+Reactivate those symbols (which were removed at the end of the function
+prototype scope) now that we are in the body of the function.
+*/
+{
+  a_symbol_ptr curr_symbol, next_symbol;
+
+  /* Re-enter each symbol in the symbol table. */
+  for (curr_symbol = prototype_scope_symbols;
+       curr_symbol != NULL;
+       curr_symbol = next_symbol) {
+    next_symbol = curr_symbol->next_in_scope;
+    reenter_symbol(curr_symbol, depth_scope_stack, /*suppress_error=*/TRUE);
+    curr_symbol->reentered_from_prototype_scope = TRUE;
+  }  /* for */
+}  /* reactivate_prototype_scope_symbols */
 
 
 void relink_unnamed_class_symbol(a_symbol_ptr      sym,
@@ -4174,7 +4194,7 @@ for the function scope case; it must be NULL in other cases.
   ssep->array_type_fixup_list    = NULL;
   ssep->extern_type_fixup_list   = NULL;
   ssep->shareable_constants_list = NULL;
-  ssep->last_delayed_scan_fixup  = NULL;
+  ssep->last_routine_fixup       = NULL;
   ssep->last_parameter           = NULL;
   ssep->last_constant            = NULL;
   ssep->last_type                = NULL;

@@ -396,8 +396,8 @@ typedef struct a_class_symbol_supplement {
 			   entry for each target type for which a conversion
 			   is defined.  Inherited conversion functions are
 			   represented by projection symbols. */
-  a_delayed_scan_fixup_ptr
-		delayed_scan_fixup_list;
+  a_routine_fixup_ptr
+		routine_fixup_list;
 			/* Pointer to a list of entities used in the token
 			   caching and delayed scanning scheme required for
 			   C++ member functions (routine bodies and default
@@ -863,8 +863,8 @@ typedef struct a_scope_stack_entry {
 			   the file scope.  The only meaningful case is
 			   a constant indicating the address of a local
 			   variable. */
-  a_delayed_scan_fixup_ptr
-		last_delayed_scan_fixup;
+  a_routine_fixup_ptr
+		last_routine_fixup;
 			/* Defined for sck_class_struct_union scopes only:
 			   the tail of a list of entities used in the token
 			   caching and delayed scanning scheme required for
@@ -1000,6 +1000,9 @@ extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
                            a_scope_depth    scope_depth,
                            a_boolean        suppress_error);
+
+extern void reactivate_prototype_scope_symbols(
+                                        a_symbol_ptr  prototype_scope_symbols);
 
 extern void relink_unnamed_class_symbol(a_symbol_ptr      sym,
                                         a_symbol_locator  *locator);

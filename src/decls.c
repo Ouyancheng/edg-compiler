@@ -6444,27 +6444,6 @@ e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 }  /* type_keyword */
 
 
-static void reactivate_prototype_scope_symbols(
-                                          a_symbol_ptr prototype_scope_symbols)
-/*
-Some symbols for types were created in a function prototype scope.
-Reactivate those symbols (which were removed at the end of the function
-prototype scope) now that we are in the body of the function.
-*/
-{
-  a_symbol_ptr curr_symbol, next_symbol;
-
-  /* Re-enter each symbol in the symbol table. */
-  for (curr_symbol = prototype_scope_symbols;
-       curr_symbol != NULL;
-       curr_symbol = next_symbol) {
-    next_symbol = curr_symbol->next_in_scope;
-    reenter_symbol(curr_symbol, depth_scope_stack, /*suppress_error=*/TRUE);
-    curr_symbol->reentered_from_prototype_scope = TRUE;
-  }  /* for */
-}  /* reactivate_prototype_scope_symbols */
-
-
 static void function_definition(
                           a_symbol_locator   *locator,
                           a_type_ptr         rout_type,
@@ -6906,7 +6885,7 @@ processing of function definition.
   rout_ptr->is_inline = TRUE;
   /* Parameter symbols that were created in the prototype scope (and then
      removed in pop_scope) have to be reentered in the function scope; they
-     will be transformed in to variable symbols. */
+     will be transformed into variable symbols. */
   if (func_info->prototype_scope_symbols != NULL) {
     reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
   }  /* if */
