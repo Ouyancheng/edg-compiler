@@ -8959,15 +8959,29 @@ function.  See Core Issue 115.
       check_assertion(sym != NULL &&
                       (sym->kind == (a_symbol_kind)sk_routine ||
                        sym->kind == (a_symbol_kind)sk_member_function));
-      make_function_designator_operand(sym,
-                                       (a_boolean)
+      if (sym->kind == (a_symbol_kind)sk_member_function &&
+          routine_type_is_nonstatic_member_function(
+                                             sym->variant.routine.ptr->type)) {
+        /* A nonstatic member function. */
+        make_sym_for_member_operand(sym,
+                                    (a_boolean)orig_operand.is_qualified_name,
+                                    orig_operand.ref_entries_list,
+                                    operand);
+        if (is_an_rvalue(&orig_operand)) {
+          conv_sym_for_member_operand_to_ptr_to_member(operand);
+        }  /* if */
+      } else {
+        /* A nonmember function or static member function. */
+        make_function_designator_operand(sym,
+                                         (a_boolean)
                                                 orig_operand.is_qualified_name,
-                                       &orig_operand.position,
-                                       orig_operand.ref_entries_list,
-                                       operand);
-      if (is_an_rvalue(&orig_operand)) {
-        conv_function_designator_to_ptr_to_function(operand,
-                                                    /*allow_ctor=*/FALSE);
+                                         &orig_operand.position,
+                                         orig_operand.ref_entries_list,
+                                         operand);
+        if (is_an_rvalue(&orig_operand)) {
+          conv_function_designator_to_ptr_to_function(operand,
+                                                      /*allow_ctor=*/FALSE);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

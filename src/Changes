@@ -13,6 +13,9 @@ the cast has a different type than the implied function.  Now fixed.
     FP p = (FP)doIt<int>;  // Formerly got error (note int vs. int *)
   }
 
+Some related issues with using nonstatic member function templates
+in this way were also resolved.
+
 10/10/02 Missing precompiled header memory mismatch message
 
 When using --pch_verbose mode, messages for memory mismatches were not
