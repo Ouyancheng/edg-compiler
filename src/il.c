@@ -3267,6 +3267,7 @@ its kind to the indicated kind.
 {
   node->type = NULL;
   node->next = NULL;
+  node->allow_reordering = FALSE;
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 
