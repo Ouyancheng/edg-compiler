@@ -92,7 +92,7 @@ Perform consistency check on target configuration variables.
   if (size > sizeof(long)) {
     internal_error("check_target_config: target wchar_t is too large");
   }  /* if */
-  /* targ_wchar_t_int_kind and targ_sizeof_wchar_t must be in consistent:
+  /* targ_wchar_t_int_kind and targ_sizeof_wchar_t must be consistent:
      if one is changed, the other should be changed, too. */
   if (size != targ_sizeof_wchar_t) {
     internal_error("check_target_config: target wchar_t size is inconsistent");
