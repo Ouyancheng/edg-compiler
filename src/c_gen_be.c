@@ -1983,16 +1983,11 @@ final semicolon if output_final_semi is TRUE.
         write_space();
       }  /* if */
     }  /* for */
-    /* Put out a dummy field if necessary to avoid an empty struct. */
-    if (type->variant.class_struct_union.field_list == NULL
-#if !ALLOW_STRUCT_WITH_NO_NAMED_FIELDS_IN_GENERATED_C
-        /* Deal with a case like
-             struct { int:0; };
-           which is undefined behavior in C. */
-        || next_initializable_field(
-                        type->variant.class_struct_union.field_list) == NULL
-#endif /* !ALLOW_STRUCT_WITH_NO_NAMED_FIELDS_IN_GENERATED_C */
-                                                                            ) {
+    if (next_initializable_field(type->variant.class_struct_union.field_list)==
+                                                                        NULL) {
+      /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
+         (which is undefined behavior) and for fieldless classes from C++
+         passed through IL lowering. */
       write_tok_str("char __dummy;");
     }  /* if */
     indent -= 2;
