@@ -659,6 +659,7 @@ check_abbreviation()
 --no_stdarg_builtin
 --no_std_libs
 --no_sun
+--no_sun_linker_scope
 --no_svr4
 --no_typename
 --no_upc
@@ -716,6 +717,7 @@ check_abbreviation()
 --strip
 --strip_line_dirs
 --sun
+--sun_linker_scope
 --suppress_c_to_obj_diagnostics
 --suppress_instantiation_flags
 --suppress_vtbl
@@ -1185,6 +1187,8 @@ process_option()
          --no_base_assign_op_is_default | \
          --sun | \
          --no_sun | \
+         --sun_linker_scope | \
+         --no_sun_linker_scope | \
          --gcc | \
          --no_gcc | \
          --g++ | \
