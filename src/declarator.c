@@ -3097,7 +3097,8 @@ to FALSE if the entity being declared is not initializable.
           if (reactivate_scope) {
             /* Reactivate the scope of the parent class.  It will be
                deactivated once the entire declarator has been scanned. */
-            push_class_reactivation_scope(*p_member_parent_type);
+            push_class_reactivation_scope(*p_member_parent_type,
+                                          /*extend_namespace=*/FALSE);
             *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
             if (any_deferred_access_checks()) {
               /* Discard any access errors that occurred while scanning

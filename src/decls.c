@@ -6294,7 +6294,8 @@ is no parent.
       if (sym != NULL && 
           (is_real_class_symbol(sym) ||
            is_prototype_instantiation_symbol(sym))) {
-        push_class_reactivation_scope(parent->class_type);
+        push_class_reactivation_scope(parent->class_type,
+                                      /*extend_namespace=*/FALSE);
         class_reactivated = TRUE;
       }  /* if */
     }  /* if */

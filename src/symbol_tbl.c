@@ -6866,7 +6866,8 @@ routine entry of the function that was declared.
   if (ssep->deferred_access_checks != NULL) {
     if (ssep->deferred_access_checks != NULL) {
       if (rp->source_corresp.is_class_member) {
-        push_class_reactivation_scope(rp->source_corresp.parent.class_type);
+        push_class_reactivation_scope(rp->source_corresp.parent.class_type,
+                                      /*extend_namespace=*/FALSE);
       }  /* if */
       (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rp);

@@ -918,7 +918,7 @@ and for the instantiation of template functions.
       } else {
         /* Push a class symbol reactivation scope, to make class member names
            visible for processing the function definition. */
-        push_class_reactivation_scope(class_type);
+        push_class_reactivation_scope(class_type, /*extend_namespace=*/TRUE);
       }  /* if */
     } else {
       nsp = rout_ptr->source_corresp.parent.namespace_ptr;
@@ -2345,7 +2345,7 @@ empty statement block.
   } else {
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
-    push_class_reactivation_scope(class_type);
+    push_class_reactivation_scope(class_type, /*extend_namespace=*/TRUE);
     /* Push the scope for the new function itself. */
     scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rout_ptr);

@@ -872,8 +872,8 @@ Process the default argument expressions for the indicated class.
                            class_type->source_corresp.source_sequence_entry;
         if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
           /* Reactivate the class (and the file-scope memory region). */
-          push_class_and_template_reactivation_scope(class_type,
-                                                     is_template_based);
+          push_class_and_template_reactivation_scope(
+                     class_type, is_template_based, /*extend_namespace=*/TRUE);
           curr_scope_class_type = class_type;
         }  /* if */
       }  /* if */
@@ -952,8 +952,8 @@ Process the default argument expressions for the indicated class.
             pop_class_reactivation_scope();
           }  /* if  */
           /* Reactivate the class. */
-          push_class_and_template_reactivation_scope(rfp->class_type,
-                                                     is_template_based);
+          push_class_and_template_reactivation_scope(
+                rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1110,7 +1110,8 @@ when the enclosing class is instantiated.
   rp->routine_fixup = NULL;
   /* Reactivate the scope containing the function definition. */
   push_class_and_template_reactivation_scope(rfp->class_type,
-                                             /*is_template_based=*/TRUE);
+					     /*is_template_based=*/TRUE,
+					     /*extend_namespace=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
@@ -1290,8 +1291,8 @@ nested class.
             pop_class_reactivation_scope();
           }  /* if  */
           /* Reactivate the class. */
-          push_class_and_template_reactivation_scope(rfp->class_type,
-                                                     is_template_based);
+          push_class_and_template_reactivation_scope(
+                rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
         if (!source_sequence_entries_disallowed) {
@@ -1328,8 +1329,8 @@ nested class.
             pop_class_reactivation_scope();
           }  /* if  */
           /* Reactivate the class. */
-          push_class_and_template_reactivation_scope(rfp->class_type,
-                                                     is_template_based);
+          push_class_and_template_reactivation_scope(
+                rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
         if ((is_real_template_instantiation &&
@@ -1447,8 +1448,8 @@ nested class.
               pop_class_reactivation_scope();
             }  /* if  */
             /* Reactivate the class. */
-            push_class_and_template_reactivation_scope(rfp->class_type,
-                                                       is_template_based);
+            push_class_and_template_reactivation_scope(
+                rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
             curr_scope_class_type = rfp->class_type;
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -10820,7 +10821,8 @@ nested classes when their definition appears outside of the class template.
          a template instantiation scope is pushed for a specialization
          in Microsoft mode (above) because that process reactivates the
          enclosing class. */
-      push_class_reactivation_scope(tag_sym->parent.class_type);
+      push_class_reactivation_scope(tag_sym->parent.class_type,
+                                    /*extend_namespace=*/TRUE);
     }  /* if */
     if (curr_token == tok_colon) {
       /* Scan the list of base specifiers. */

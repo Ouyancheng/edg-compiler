@@ -4530,11 +4530,14 @@ This routine is called only in C++.
 }  /* pop_namespace_reactivation_scope */
 
 
-static a_scope_depth reactivate_class_scope(a_type_ptr class_type)
+static a_scope_depth reactivate_class_scope(a_type_ptr class_type,
+					    a_boolean  extend_namespace)
 /*
 Push one or more scopes that will reactivate the indicated class type.
 Return the scope depth prior to the reactivation of the first class
-reactivation scope that is pushed.
+reactivation scope that is pushed.  If the class is a member of a namespace,
+a namespace reactivation or extension scope is pushed (depending on the
+value of extend_namespace).
 */
 {
   a_symbol_ptr	class_sym;
@@ -4545,7 +4548,8 @@ reactivation scope that is pushed.
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   if (class_sym->is_class_member) {
     /* Nested class.  Push the containing class(es) first. */
-    orig_depth = reactivate_class_scope(class_sym->parent.class_type);
+    orig_depth = reactivate_class_scope(class_sym->parent.class_type,
+                                        extend_namespace);
     /* Propagate the namespace pushed flag up to the innermost class
        reactivation scope. */
     namespace_pushed = scope_stack[depth_scope_stack].namespace_pushed;
@@ -4563,7 +4567,13 @@ reactivation scope that is pushed.
                            "reactivate_class_scope:",
                            "pushing class not from curr. namespace");
     } else {
-      push_namespace_reactivation_scope(parent_nsp);
+      /* The namespace is either extended or reactivated depending on the
+         value of extend_namespace. */
+      if (extend_namespace) {
+        push_namespace_extension_scope(parent_nsp);
+      } else {
+        push_namespace_reactivation_scope(parent_nsp);
+      }  /* if */
       namespace_pushed = TRUE;
     }  /* if */
   }  /* if */
@@ -4609,14 +4619,17 @@ points to the partial specialization).
 
 void push_class_and_template_reactivation_scope(
                                  a_type_ptr	class_type,
-                                 a_boolean      reactivate_template_params)
+                                 a_boolean      reactivate_template_params,
+				 a_boolean	extend_namespace)
 /*
 Push the scopes needed to reactivate the context of the specified class.
 If the class is a template class, or a class defined within a template class,
 this involves pushing the necessary template instantiation scopes as well.
 If reactivate_template_params is FALSE, the template instantiation scopes
 are not reactivated.  This is FALSE when called for normal class
-reactivations.
+reactivations.  If the class is a member of a namespace, a namespace
+reactivation or extension scope is pushed (depending on the value of
+extend_namespace).
 */
 {
   a_boolean	is_template;
@@ -4652,7 +4665,7 @@ reactivations.
        original depth returned is used instead of the one saved above
        because the original depth should not include any namespace
        reactivation scopes that may have been pushed. */
-    orig_depth = reactivate_class_scope(class_type);
+    orig_depth = reactivate_class_scope(class_type, extend_namespace);
   }  /* if */
     /* Record the scope depth prior to the reactivation so that the scopes
        reactivated can be popped later. */
@@ -4660,16 +4673,20 @@ reactivations.
 }  /* push_class_and_template_reactivation_scope */
 
 
-void push_class_reactivation_scope(a_type_ptr class_type)
+void push_class_reactivation_scope(a_type_ptr class_type,
+				   a_boolean  extend_namespace)
 /*
 Push the scopes needed to reactivate the context of the specified class.
 This is an interface to push_class_and_template_reactivation_scope that
 causes only the class reactivation (and not any template instantiation
-scopes) to be pushed.
+scopes) to be pushed.  If the class is a member of a namespace, a
+namespace reactivation or extension scope is pushed (depending on
+the value of extend_namespace).
 */
 {
   push_class_and_template_reactivation_scope
-                           (class_type, /*reactivate_template_params=*/FALSE);
+                           (class_type, /*reactivate_template_params=*/FALSE,
+                            extend_namespace);
 }  /* push_class_reactivation_scope */
 
 
@@ -4701,8 +4718,15 @@ is called only in C++.
        pushed. */
     while (orig_depth < depth_scope_stack) pop_scope();
     if (namespace_pushed) {
-      /* The class is nested in a namespace -- pop enclosing namespace(s). */
-      pop_namespace_reactivation_scope();
+      /* The class is nested in a namespace -- pop enclosing namespace(s).
+         The enclosing scopes could have been pushed as either extension
+         or reactivation scopes.  Pop the appropriate kind of scope. */
+      if (scope_stack[depth_scope_stack].kind ==
+                                      (a_scope_kind)sck_namespace_extension) {
+        pop_namespace_extension_scope();
+      } else {
+        pop_namespace_reactivation_scope();
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* pop_class_reactivation_scope */

@@ -1864,7 +1864,8 @@ returned set to TRUE.
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
-    push_class_reactivation_scope(symbol_ptr->parent.class_type);
+    push_class_reactivation_scope(symbol_ptr->parent.class_type,
+                                  /*extend_namespace=*/TRUE);
   } else {
     if (symbol_ptr->parent.namespace_ptr != NULL) {
       push_namespace_reactivation_scope(symbol_ptr->parent.namespace_ptr);
@@ -2258,7 +2259,8 @@ the default constructor (if one exists) is called.
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
-        push_class_reactivation_scope(sym->parent.class_type);
+        push_class_reactivation_scope(sym->parent.class_type,
+                                      /*extend_namespace=*/TRUE);
       } else {
         if (exceptions_enabled && static_lifetime &&
             depth_innermost_function_scope != NO_SCOPE_DEPTH) {

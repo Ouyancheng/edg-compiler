@@ -840,12 +840,14 @@ extern void push_namespace_extension_scope(a_namespace_ptr nsp);
 extern void pop_namespace_extension_scope(void);
 extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);
 extern void pop_namespace_reactivation_scope(void);
-extern void push_class_reactivation_scope(a_type_ptr   class_type);
+extern void push_class_reactivation_scope(a_type_ptr   class_type,
+                                          a_boolean    extend_namespace);
 extern void pop_class_reactivation_scope(void);
 extern void push_instantiation_scope_for_class(a_type_ptr	class_type);
 extern void push_class_and_template_reactivation_scope(
                                  a_type_ptr	class_type,
-                                 a_boolean      reactivate_template_params);
+                                 a_boolean      reactivate_template_params,
+                                 a_boolean	extend_namespace);
 
 extern
 a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
