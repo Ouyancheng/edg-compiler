@@ -1,11 +1,16 @@
 Version 2.22
 
+1/3/93   Integral promotion of bit fields
+
+Integral promotion of bit fields now uses the bit_field_is_signed flag
+from the field entry instead of the signedness of the bit field's base type.
+
 1/3/93   Instantiation pragma error messages
 
 When an instantiation pragma references an entity for which a specialization
 has already been provided a more descriptive error message is now issued.
 
-12/23/93 Reference flag on virtual destructors used only in delete/new
+12/23/93 Referenced flag on virtual destructors used only in delete/new
 
 Virtual destructors used only in an array delete, or in an array new
 with exceptions enabled, now cause the referenced flag in the destructor

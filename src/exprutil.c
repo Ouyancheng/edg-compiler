@@ -1670,7 +1670,7 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 {
   a_type_ptr      promoted_type;
   a_field_ptr     field;
-  an_integer_kind ikind;
+  an_integer_kind ikind, orig_ikind;
   a_boolean       is_signed;
 
   db_enter(4, "node_type_after_integral_promotion");
@@ -1691,7 +1691,8 @@ of bit-fields, where the size in bits is needed in addition to the base type.
       internal_error("node_type_after_integral_promotion: bit-field too big");
     }  /* if */
 #endif /* CHECKING */
-    ikind = promoted_type->variant.integer.int_kind;
+    orig_ikind = ikind = promoted_type->variant.integer.int_kind;
+    is_signed = field->bit_field_is_signed;
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, we use unsigned-preserving rules, so the promoted type
          is int or unsigned int depending on the signedness of the original
@@ -1700,7 +1701,6 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
       /* ... or long long or unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
-      is_signed = int_kind_is_signed[(int)ikind];
       if (field->bit_size <= TARG_SIZEOF_INT*TARG_CHAR_BIT) {
         ikind = is_signed ? (an_integer_kind)ik_int :
                             (an_integer_kind)ik_unsigned_int;
@@ -1719,7 +1719,7 @@ of bit-fields, where the size in bits is needed in addition to the base type.
       }  /* if */
     } else {
       /* ANSI mode, so value-preserving rules apply. */
-      if (ikind == (an_integer_kind)ik_int) {
+      if (is_signed) {
         /* Bit-field is signed, so it is promoted to the first of int or
            long into which all its values will fit. */
 #if LONG_LONG_ALLOWED
@@ -1766,7 +1766,7 @@ of bit-fields, where the size in bits is needed in addition to the base type.
         }  /* if */
       }  /* if */
     }  /* if */
-    promoted_type = integer_type(ikind);
+    if (ikind != orig_ikind) promoted_type = integer_type(ikind);
   } else {
     /* Not the bit-field case, so determine the promoted type from the
        node type. */
