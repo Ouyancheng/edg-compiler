@@ -9154,9 +9154,7 @@ nested classes when their definition appears outside of the class template.
                are not permitted in a class context.  The error for an
                explicit instantiation in a class will be issued by
                template_directive_or_declaration. */
-            a_boolean  defines_something;
-
-            template_directive_or_declaration(&defines_something,
+            template_directive_or_declaration(
                                       /*no_advance_past_final_token=*/FALSE);
             goto next_declaration;
           }  /* if */
