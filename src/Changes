@@ -1,5 +1,16 @@
 Version 2.46
 
+2/12/01  Spurious error on partial specialization within class template
+
+Spurious errors could be issued on certain partial specialization
+declarations that appear in the definition of a class template.  This
+has been fixed.
+
+  template < class T > class A {
+    template <int I, class U> class B {};
+    template <class V > class B<T::X, V> {};
+  };
+
 2/11/01  C-generating back end and RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 The (unusual) combination of RECORD_CONSTANT_EXPRESSIONS_IN_IL set to
