@@ -1417,30 +1417,28 @@ name in the routine entry.
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
-                                                char           *store_at)
+static sizeof_t mangled_member_name(a_source_correspondence *scp,
+                                    char                    *store_at)
 /*
-Determine the mangled form of the name of the static data member "variable".
-Place the mangled name at *store_at if store_at != NULL, and (always) return
-the length of the name.  See ARM 7.2.1c for name encoding.  This routine
-must only be called for static data member variables.
+Determine the mangled form of the name of the class member whose source
+correspondence is given by scp.  Place the mangled name at *store_at if
+store_at != NULL, and (always) return the length of the name.  See ARM
+7.2.1c for name encoding.  This routine must be called only for static
+data member variables and member constants.
 */
 {
-  a_type_ptr class_type = variable->source_corresp.class_of_which_a_member;
-  sizeof_t   mangled_name_length, section_length;
-  char       *name;
+  sizeof_t mangled_name_length, section_length;
+  char     *name;
 
-  /* The mangled name of a static data member is the original name followed
-     by two underscores followed by the mangled class name.  For example:
+  /* The mangled name of a static data member or member constant is the
+     original name followed by two underscores followed by the mangled
+     class name.  For example:
        AB::xy --> xy__2AB
   */
   mangled_name_length = 0;
-  name = variable->source_corresp.name;
+  name = scp->name;
 #if CHECKING
-  if (name == NULL) {
-    internal_error(
-                "mangled_static_data_member_name: unnamed static data member");
-  }  /* if */
+  if (name == NULL) internal_error("mangled_member_name: unnamed member");
 #endif /* CHECKING */
   /* Copy the name. */
   section_length = strlen(name);
@@ -1456,9 +1454,22 @@ must only be called for static data member variables.
     *store_at++ = '_';
   }  /* if */
   /* Output the mangled class name. */
-  section_length = mangled_type_name(class_type, store_at);
+  section_length = mangled_type_name(scp->class_of_which_a_member, store_at);
   mangled_name_length += section_length;
   return mangled_name_length;
+}  /* mangled_member_name */
+
+
+static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
+                                                char           *store_at)
+/*
+Determine the mangled form of the name of the static data member "variable".
+Place the mangled name at *store_at if store_at != NULL, and (always) return
+the length of the name.  See ARM 7.2.1c for name encoding.  This routine
+must be called only for static data member variables.
+*/
+{
+  return mangled_member_name(&variable->source_corresp, store_at);
 }  /* mangled_static_data_member_name */
 
 
@@ -1523,6 +1534,34 @@ name in the variable entry.
 }  /* get_mangled_static_data_member_name */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+static void mangle_member_constant_name(a_constant_ptr con)
+/*
+Mangle the name of the indicated member constant, if necessary.  con
+is either an enumerator constant or (as an extension) a declared member
+constant.
+*/
+{
+  sizeof_t mangled_name_length, alloc_length;
+  char     *mangled_name;
+
+  if (!con->source_corresp.name_has_been_mangled) {
+    error_position = con->source_corresp.decl_position;
+    /* Determine how long the mangled name is. */
+    mangled_name_length = mangled_member_name(&con->source_corresp,
+                                              (char *)NULL);
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    alloc_length = mangled_name_length + 1;
+    mangled_name = alloc_lowered_name_string(alloc_length);
+    (void)mangled_member_name(&con->source_corresp, mangled_name);
+    /* Store the final null. */
+    mangled_name[mangled_name_length] = '\0';
+    con->source_corresp.name = mangled_name;
+    con->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* mangle_member_constant_name */
+
 
 static void mangle_class_name(a_type_ptr class_type)
 /*
@@ -1633,13 +1672,14 @@ that this does not include special processing for nested class names.
 
 static void do_scope_other_name_mangling(a_scope_ptr scope)
 /*
-Do name mangling for functions and static data members in scope and all its
-sub-scopes.
+Do name mangling for things other than classes (e.g., functions, static
+data members) in scope and all its sub-scopes.
 */
 {
   a_routine_ptr  routine;
   a_variable_ptr variable;
   a_type_ptr     type;
+  a_constant_ptr con;
   a_scope_ptr    class_scope, block_scope;
 
   /* Visit all types to find all class types. */
@@ -1663,12 +1703,29 @@ sub-scopes.
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     mangle_function_name(routine);
   }  /* for */
-  /* If this is a class scope, visit the static data member variables. */
+  /* If this is a class scope, visit the static data member variables,
+     enum constants, and class constants. */
   if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    /* Look for static data members and mangle their names. */
     for (variable = scope->variables;
          variable != NULL;
          variable = variable->next) {
       mangle_static_data_member_name(variable);
+    }  /* for */
+    /* Look for enum types and mangle the names of their constants. */
+    for (type = scope->types; type != NULL; type = type->next) {
+      if (is_immediate_enum_type(type)) {
+        a_constant_ptr enum_con;
+        for (enum_con = type->variant.integer.enum_info.constant_list;
+             enum_con != NULL;
+             enum_con = enum_con->next) {
+          mangle_member_constant_name(enum_con);
+        }  /* for */
+      }  /* if */
+    }  /* for */
+    /* Look for member constants (an extension) and mangle their names. */
+    for (con = scope->constants; con != NULL; con = con->next) {
+      mangle_member_constant_name(con);
     }  /* for */
   }  /* if */
 }  /* do_scope_other_name_mangling */

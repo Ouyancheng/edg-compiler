@@ -1,5 +1,12 @@
 Version 2.22
 
+1/4/94   Name mangling for member constants
+
+Member constants (e.g., enumerators) now have their names mangled when
+appropriate.  This was not necessary when generating old-style C, because
+the C-generating back end eliminated the enum constants, but it is
+necessary when generating ANSI C, and it's more correct.
+
 1/4/94   Definition of compiler-generated virtual destructor
 
 A bug has been fixed in handling the definitions of compiler-generated
