@@ -1096,6 +1096,7 @@ assumed if the return type is omitted.
     a_type_ptr         bottom_derived_type = NULL;
     an_expr_node_ptr   dim_expr_ptr;
     a_symbol_ptr       orig_sym;
+    a_symbol_ptr       new_sym;
 
     add_stop_token(tok_newline);
     (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
@@ -1132,7 +1133,8 @@ assumed if the return type is omitted.
 		     locator.symbol_header->identifier);
       }  /* if */
       err = TRUE;
-    } else if (!is_function_symbol(sym)) {
+    } else if (!is_function_symbol(sym) &&
+	       sym->kind != (a_symbol_kind)sk_function_template) {
       /* Not a function symbol -- issue an error. */
       pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
       err = TRUE;
@@ -1155,6 +1157,7 @@ assumed if the return type is omitted.
          more than one exists (or can be generated) an error is issued. */
       a_boolean		is_list;
       a_boolean		any_found = FALSE;
+      a_symbol_ptr	sym_found = NULL;
       if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
         sym = sym->variant.overloaded_function.symbols;
         is_list = TRUE;
@@ -1175,15 +1178,16 @@ assumed if the return type is omitted.
         }  /* if */
         /* Look for a match on the list of instantiations. */
         if (lookup_sym != NULL) {
-          sym = matching_template_function(lookup_sym, type,
-                                           &locator.source_position);
-          if (sym != NULL) {
+          sym_found = matching_template_function(lookup_sym, type,
+                                                 &locator.source_position);
+          if (sym_found != NULL) {
 	    if (any_found) {
 	      sym_error(ec_ambiguous_overloaded_function, orig_sym);
 	      err = TRUE;
 	      break;
             }  /* if */
 	    any_found = TRUE;
+	    new_sym = sym_found;
           }  /* if */
         }  /* if */
       }  /* for */
@@ -1192,7 +1196,7 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(sym, instantiate, &start_pos);
+        update_instantiation_flags(new_sym, instantiate, &start_pos);
       }  /* if */
     }  /* if */
   } else {
