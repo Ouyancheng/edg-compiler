@@ -43,6 +43,7 @@ Flags to be set for any version that uses the C++ generating back end.
 /* Options Common to Sun hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
+#define __BSD__ 1
 
 
 #ifdef OPTIMIZED_VERSION
@@ -54,7 +55,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #else /* !defined(OPTIMIZED_VERSION) */
 
 /* Options for Sun test version. */
-#define __BSD__ 1
 #ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 1
 #endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
