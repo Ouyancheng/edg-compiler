@@ -1698,7 +1698,7 @@ abstract declarator (ISO C 6.5.5).  Allocate and return in *new_type_ptr an
 appropriate array type.  The initial opening bracket is the current token.
 In C++ the dimension may sometimes be a nonconstant expression (e.g., with a
 new type name); that case is indicated by nonconstant_dimension_allowed.  In
-C (when VLA_ENABLED is TRUE), the dimension may be a nonconstant expression
+C (when vla_enabled is TRUE), the dimension may be a nonconstant expression
 when vla_allowed is TRUE; and when vla_asterisk_allowed is TRUE, a VLA of
 unknown size can be indicated with the "[*]" syntax in a function prototype.
 When RESTRICT_ALLOWED is TRUE, restrict_allowed may be TRUE to indicate that
