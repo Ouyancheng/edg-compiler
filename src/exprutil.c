@@ -1447,7 +1447,6 @@ Display an expression operand for debugging purposes.
 }  /* db_operand */
 
 #endif /* DEBUG */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void clone_operand(an_operand *operand,
                    an_operand *operand_clone)
@@ -1503,8 +1502,6 @@ operand clone.
       unexpected_condition_str("clone_operand: unexpected operand kind");
   }  /* switch */
 }  /* clone_operand */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
