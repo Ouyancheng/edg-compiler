@@ -20,7 +20,7 @@ in .h files.
 #define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
 
-#include "basics.h"
+#include "fe_common.h"
 #if __BSD__
 #include <sys/time.h>
 #else  /* __BSD__ */
@@ -31,30 +31,25 @@ extern time_t time(time_t *timer);
 #endif /* __SYSV__ || __BSD__ */
 
 /*
-Note: EVERY .h file that includes an external variable must be included
-here.  By defining the macro EXTERN as an empty string, the declarations
-in the include files will become external definitions for the symbols.
+Note: EVERY .h file that includes an external variable must be included in
+fe_init.c.  (Those which are already specified in fe_common.h are omitted in
+the following list.)  By defining the macro EXTERN as an empty string, the
+declarations in the include files will become external definitions for the
+symbols.
 */
 
-#include "cmd_line.h"
-#include "const_ints.h"
-#include "debug.h"
 #include "decl_inits.h"
 #include "decls.h"
 #include "def_arg.h"
-#include "error.h"
 #include "expr.h"
 #include "exprutil.h"
 #include "fe_init.h"
 #include "fe_wrapup.h"
 #include "folding.h"
-#include "host_envir.h"
-#include "il.h"
 #include "layout.h"
 #include "lexical.h"
 #include "literals.h"
 #include "macro.h"
-#include "mem_manage.h"
 #include "overload.h"
 #include "pch.h"
 #include "pragma.h"
@@ -63,10 +58,8 @@ in the include files will become external definitions for the symbols.
 #include "symbol_ref.h"
 #include "symbol_tbl.h"
 #include "sys_predef.h"
-#include "target.h"
 #include "templates.h"
 #include "types.h"
-#include "version.h"
 
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
