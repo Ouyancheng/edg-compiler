@@ -6749,12 +6749,8 @@ scope and all subscopes.
     for (; type != NULL; type = type->next) {
       /* If the type is a class, promote its members out of the class. */
       if (is_immediate_class_type(type)) {
-        a_class_symbol_supplement_ptr
-                     cssp;
-        a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-        if (assoc_sym != NULL &&
-            (cssp = symbol_supplement_for_class(type)) != NULL &&
-            cssp->referenced_by_placeholder_typeref) {
+        if (type->variant.class_struct_union.
+                                           referenced_by_placeholder_typeref) {
           /* This type is on the file scope types list but it was created while
              scanning a class definition.  There is a placeholder typeref
              within the class to indicate the point at which the class should
