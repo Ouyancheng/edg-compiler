@@ -1,5 +1,23 @@
 Version 2.31
 
+1/15/96   extern "C" declaration of namespace member
+
+An error is now issued when namespaces (including the global namespace) in
+the same translation unit have members that (1) have the same (unqualified)
+name and (2) are declared with extern "C" linkage.  (See entry for 11/1/95:
+no name mangling on extern "C" variables in namespaces.)  For example:
+
+  extern "C" void f();
+  namespace A {
+    extern "C" void f();   // New error -- linkage name for A::f conflicts
+    extern "C" int x;      //   with that of ::f
+  }
+  namespace B {
+    extern "C" void g() {
+      extern int x;        // New error -- linkage name for B::x conflicts
+    }                      //   with that of A::x
+  }
+
 1/15/96   Cast between pointer-to-object and pointer-to-function in C
 
 A conversion between a pointer-to-object and pointer-to-function no
