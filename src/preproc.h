@@ -26,10 +26,6 @@ preproc.h -- Declarations related to preproc.c (having to do with
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
 
-#ifndef ALIAS_DIRECTIVE
-#define ALIAS_DIRECTIVE 0
-#endif /* ifndef ALIAS_DIRECTIVE */
-
 /*
 If this list is updated, be sure to change pp_directive_kind_names below.
 */
@@ -37,7 +33,10 @@ typedef enum /*a_pp_directive_kind*/ {
   /* Enumeration of preprocessing directives. */
   ppd_if, ppd_ifdef, ppd_ifndef, ppd_elif, ppd_else,
   ppd_endif, ppd_include, ppd_define, ppd_undef, ppd_line,
-  ppd_error, ppd_pragma, ppd_null, ppd_linedef, ppd_ident,
+  ppd_error, ppd_pragma, ppd_null, ppd_linedef,
+#if IDENT_DIRECTIVE_AND_PRAGMA
+  ppd_ident,
+#endif IDENT_DIRECTIVE_AND_PRAGMA
 #if ALIAS_DIRECTIVE
   ppd_alias,
 #endif /* ALIAS_DIRECTIVE */
@@ -67,7 +66,9 @@ EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
     "pragma",
     "null",
     "linedef",
+#if IDENT_DIRECTIVE_AND_PRAGMA
     "ident",
+#endif IDENT_DIRECTIVE_AND_PRAGMA
 #if ALIAS_DIRECTIVE
     "alias",
 #endif /* ALIAS_DIRECTIVE */
@@ -208,7 +209,9 @@ extern void verify_that_all_pp_ifs_were_closed(void);
 /* Driver for mode where compiler just does preprocessing, like cpp. */
 extern void cpp_driver(void);
 
+#if IDENT_DIRECTIVE_AND_PRAGMA
 extern void ident_pragma(a_pending_pragma_ptr ppp);
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
 extern void preproc_init(void);
 
