@@ -6929,7 +6929,7 @@ Make or find a type entry for a void type, and return a pointer to it.
 */
 {
   if (il_void_type == NULL) {
-    /* The void type is considered "incomplete." */
+    /* alloc_type sets the incomplete flag to TRUE for tk_void. */
     il_void_type = alloc_type((a_type_kind)tk_void);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
