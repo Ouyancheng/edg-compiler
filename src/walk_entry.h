@@ -1702,8 +1702,13 @@ end_sizeof:;
            a different list. */
         walk_list_on_link_field(ptr->destructions, a_dynamic_init_ptr,
                                 iek_dynamic_init, next_in_destruction_list);
-        remap_ptr_not_needed(ptr->parent_lifetime, an_object_lifetime_ptr,
-                             iek_object_lifetime);
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        /* Don't walk the parent pointer for keep_in_il processing because
+           that can cause visits to siblings that aren't going to stay in the
+           tree. */
+        remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
+                  iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         remap_ptr_not_needed(ptr->parent_destruction_sublist,
                              a_dynamic_init_ptr, iek_dynamic_init);
         walk_list(ptr->child_lifetime, an_object_lifetime_ptr,
