@@ -981,7 +981,8 @@ Process the default argument expressions for the indicated class.
 #endif /* DEBUG */
         is_friend = (is_function_symbol(sym) &&
                      (!sym->is_class_member ||
-                      sym->parent.class_type != rfp->class_type));
+                      !same_entities(sym->parent.class_type,
+                                     rfp->class_type)));
         if (is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
@@ -1040,7 +1041,7 @@ Process the default argument expressions for the indicated class.
           }  /* if */
           goto fixup_declared_type;
         }  /* if */
-        if (curr_scope_class_type != rfp->class_type) {
+        if (!same_entities(curr_scope_class_type, rfp->class_type)) {
           if (curr_scope_class_type != NULL) {
             /* Pop the reactivated class scope from the scope stack. */
             pop_class_reactivation_scope();
@@ -1400,8 +1401,8 @@ nested class.
         }  /* if */
 #endif /* DEBUG */
         is_friend = (!sym->is_class_member ||
-                     sym->parent.class_type != rfp->class_type);
-        if (curr_scope_class_type != rfp->class_type) {
+                     !same_entities(sym->parent.class_type, rfp->class_type));
+        if (!same_entities(curr_scope_class_type, rfp->class_type)) {
           if (curr_scope_class_type != NULL) {
             /* Pop the reactivated class scope from the scope stack. */
             pop_class_reactivation_scope();
@@ -1547,7 +1548,7 @@ nested class.
              which was inserted to mark the end of the cached token stream.
              If necessary, keep flushing until end-of-source is found. */
           flush_past_token_cache_terminator();
-          if (curr_scope_class_type != rfp->class_type) {
+          if (!same_entities(curr_scope_class_type, rfp->class_type)) {
             if (curr_scope_class_type != NULL) {
               /* Pop the reactivated class scope from the scope stack. */
               pop_class_reactivation_scope();
@@ -2597,7 +2598,7 @@ overriding of which orep is a part.
 
       if (((a_symbol_ptr)routine->source_corresp.assoc_info)->header ==
                                                                      header &&
-          orep->base_class->type == udecl->qualifier.class_type) {
+          same_entities(orep->base_class->type, udecl->qualifier.class_type)) {
         result = TRUE;
         break;
       }  /* if */
@@ -3372,7 +3373,9 @@ dsp2 are identical.
   if (dsp1->base_class->is_virtual == dsp2->base_class->is_virtual) {
     for (;;) {
       /* Check the types of the corresponding steps. */
-      if (dsp1->base_class->type != dsp2->base_class->type) break;
+      if (!same_entities(dsp1->base_class->type, dsp2->base_class->type)) {
+        break;
+      }  /* if */
       /* Advance to the next step. */
       dsp1_next = dsp1->next;
       dsp2_next = dsp2->next;
@@ -3899,7 +3902,8 @@ duplicate paths.  The copy will be a base class of new_class.
   access = base_class_to_copy->derivation->access;
   if (base_class_to_copy->is_virtual) {
     for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-      if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
+      if (bcp->is_virtual && same_entities(bcp->type,
+                                           base_class_to_copy->type)) {
         /* The base class to be copied is a virtual base class and a virtual
            base class referring to the same class type is already on the base
            classes list for the new class.  No new base class entry needs to
@@ -3946,7 +3950,7 @@ duplicate paths.  The copy will be a base class of new_class.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   /* Check for ambiguity. */
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == new_bcp->type) {
+    if (same_entities(bcp->type, new_bcp->type)) {
       check_assertion(!(bcp->is_virtual && new_bcp->is_virtual));
       /* Ambiguous base class. */
       bcp->ambiguous = TRUE;
@@ -4382,7 +4386,8 @@ or struct definition.  The syntax is
         /* In Microsoft mode the last field of a class may be a zero-length
            array; such a class may not be a base class. */
         if (is_qualified_type(base_class_type) ||
-            (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
+            f_same_entities((base_class_type = skip_typerefs(base_class_type)),
+                            type_ptr) ||
             base_class_type->kind == (a_type_kind)tk_union ||
             base_class_type->
                  variant.class_struct_union.contains_flexible_array_member) {
@@ -4415,7 +4420,7 @@ or struct definition.  The syntax is
          base classes, go through the list looking for conflicts. */
       ambiguous = FALSE;
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        if (bcp->type == base_class_type) {
+        if (same_entities(bcp->type, base_class_type)) {
           /* There is already a base class entry in the list that represents
              the same class. */
           if (bcp->direct) {
@@ -4825,14 +4830,14 @@ the current class (class_type).
       friend_class_type = proxy_class_for_template_param(friend_class_type);
     }  /* if */
     check_assertion(is_immediate_class_type(friend_class_type));
-    if (class_type == friend_class_type) {
+    if (same_entities(class_type, friend_class_type)) {
       /* Diagnostic on excessive narcissism. */
       warning(ec_self_friendship);
     } else {
       ctsp = friend_class_type->variant.class_struct_union.extra_info;
       /* Issue a remark if this is a duplicate friend declaration. */
       for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
-        if (clep->class_type == class_type) {
+        if (same_entities(clep->class_type, class_type)) {
           remark(ec_duplicate_friend_decl);
           break;
         }  /* if */
@@ -6491,7 +6496,7 @@ declared member functions.
              };
              void A::f(int) { }
         */
-        if (rtn->declared_type != rtn->type) {
+        if (!same_entities(rtn->declared_type, rtn->type)) {
           /* There must be default arguments.  Make a new type entry. */
           tp = copy_routine_type_with_param_types(rtn->declared_type,
                                                   /*copy_default_args=*/FALSE);
@@ -6529,7 +6534,7 @@ declared member functions.
         tp = func_info->declared_type;
         rtsp1 = skip_typerefs(member_type)->variant.routine.extra_info;
         rtsp2 = skip_typerefs(tp)->variant.routine.extra_info;
-        if (rtsp1->this_class != rtsp2->this_class ||
+        if (!same_entities(rtsp1->this_class, rtsp2->this_class) ||
             rtsp1->qualifiers != rtsp2->qualifiers ||
             rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
           /* The implicit-this-param-type and/or name-linkage may need to be
@@ -6652,7 +6657,7 @@ declared member functions.
       /* Check the target type of the conversion -- which is the return type
          of rout_type. */
       tp = f_skip_typerefs(return_type_of(rtn->type));
-      if (tp == class_type) {
+      if (same_entities(tp, class_type)) {
         /* Converting to same type (possibly qualified) is not done. */
         is_usable = FALSE;
       } else if (is_immediate_class_type(tp)) {
@@ -7383,7 +7388,7 @@ cfront compatibility case.
   *is_base_class_match = FALSE;
   if (is_class_struct_union_type(tp)) {
     /* The type of the first parameter is a class type. */
-    if (skip_typerefs(tp) == sym->parent.class_type) {
+    if (f_same_entities(skip_typerefs(tp), sym->parent.class_type)) {
       /* The parameter's type matches the class of which the assignment
          operator is a member. */
       found = TRUE;
@@ -8071,7 +8076,8 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
                 /* Okay. */
               } else if (sym == cssp->trivial_default_constructor) {
                 /* Okay. */
-              } else if (is_type_symbol(sym) && tp == member_type) {
+              } else if (is_type_symbol(sym) &&
+                         same_entities(tp, member_type)) {
                 /* Okay if the nonstandard anonymous union is not of the
                    variety introduced with a typedef. */
               } else if (is_compiler_generated_member_function(sym)) {
@@ -9633,7 +9639,7 @@ TRUE.
   udp = sp->using_decls;
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
-    if (udp->qualifier.class_type == sym->parent.class_type) {
+    if (same_entities(udp->qualifier.class_type, sym->parent.class_type)) {
       scp = source_corresp_for_il_entry(udp->entity.ptr,
                                         (an_il_entry_kind)udp->entity.kind);
       if (((a_symbol_ptr)scp->assoc_info)->header == sym->header) {
@@ -9701,7 +9707,8 @@ the new declaration.
     a_routine_ptr     rp = NULL;
 
     if (fund_sym == declared_sym ||
-        fund_sym->parent.class_type == declared_sym->parent.class_type) {
+        same_entities(fund_sym->parent.class_type,
+                      declared_sym->parent.class_type)) {
       /* Common case: the fundamental symbol is the same as the declared
          symbol, or a member of the overload set it represents. */
       fund_base_class = bcp;
@@ -9710,7 +9717,8 @@ the new declaration.
          fundamental symbol. */
       fund_base_class = base_classes_of(class_type);
       for (;;) {
-        if (fund_base_class->type == fund_sym->parent.class_type &&
+        if (same_entities(fund_base_class->type,
+                          fund_sym->parent.class_type) &&
             is_on_any_derivation_of(fund_base_class, bcp)) break;
         fund_base_class = fund_base_class->next;
         check_assertion(fund_base_class != NULL);
@@ -9889,7 +9897,7 @@ or implicit) controlling the declaration.
       bcp->derived_class = class_type;
     } else {
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        if (bcp->type == locator_for_curr_id.parent.class_type) {
+        if (same_entities(bcp->type, locator_for_curr_id.parent.class_type)) {
           /* The qualifier is a base class of the current class. */
           break;
         }  /* if */
@@ -10926,7 +10934,8 @@ the IL, the template header is passed via template_decl.
             curr_routine_fixup = alloc_routine_fixup(class_type);
           } else {
             /* The other one can be reused. */
-            check_assertion(curr_routine_fixup->class_type == class_type);
+            check_assertion(same_entities(curr_routine_fixup->class_type,
+                                          class_type));
           }  /* if */
         } else if (!is_member_template_rescan) {
           /* Normal case.  Allocate a new routine fixup entry. */
@@ -11077,7 +11086,7 @@ the IL, the template header is passed via template_decl.
          was scanned because definitions and declarations are treated
          differently.) */
       report_exception_spec_errors(&func_info);
-      if (local_type == member_type) {
+      if (same_entities(local_type, member_type)) {
         /* When scanning the declarator does not change the type, we know
            this member is a function based on the specifier type alone.
            This is only possible with a typedef name that represents a
@@ -12250,7 +12259,8 @@ classes.
           }  /* if */
           /* Check for an access adjustment declaration. */
           if (is_decl_qualified_name_start() &&
-              qualifier_class_type(locator_for_curr_id) != class_type &&
+              !f_same_entities(qualifier_class_type(locator_for_curr_id),
+                               class_type) &&
               locator_for_curr_id.is_qualified_name &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
