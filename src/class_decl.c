@@ -6515,6 +6515,7 @@ ones are allocated in the scope specified by decl_scope_level.
   a_boolean                      is_overloaded;
   a_type_ptr                     assoc_object_type, tp;
   a_boolean                      reuse_symbol = TRUE;
+  a_boolean                      suppress_reenter_symbol_call;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   a_symbol_ptr                   new_apo_sym_list = NULL;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -6645,9 +6646,8 @@ ones are allocated in the scope specified by decl_scope_level.
     switch (sym->kind) {
       case sk_field:
         apo_sym = sym->variant.field.anonymous_parent_object;
+        suppress_reenter_symbol_call = FALSE;
         if (reuse_symbol) {
-          a_boolean  suppress_reenter_symbol_call = FALSE;
-
           /* Unlink the symbol from the inactive list and link it back into
              the symbol table in the current scope. */
           remove_anonymous_union_member_from_inactive_symbols_list(sym);
@@ -6707,7 +6707,9 @@ ones are allocated in the scope specified by decl_scope_level.
 #if RECORD_HIDDEN_NAMES_IN_IL
         /* Determine whether a hidden name entry needs to be entered for the
            name being promoted. */
-        if (!C_mode()) check_for_defeatable_name_hiding(sym);
+        if (!C_mode() && !suppress_reenter_symbol_call) {
+          check_for_defeatable_name_hiding(sym);
+        }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
         if (apo_sym == NULL) {
           sym->variant.field.anonymous_parent_object = assoc_object_sym;
