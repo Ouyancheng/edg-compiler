@@ -7686,7 +7686,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     rewrite_discarded_lvalue_as_rvalue(expr, /*can_change_type=*/TRUE);
   }  /* if */
   lower_os_type(expr->type);
-  if (is_qualified_type(expr->type)) {
+  if (expr->kind != (an_expr_node_kind)enk_field &&
+      is_qualified_type(expr->type)) {
     /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
        rvalues retain their type qualifiers, but in C they do not. */
     expr->type = make_unqualified_type(expr->type);

@@ -1,5 +1,12 @@
 Version 2.39
 
+6/22/98   IL lowering: keep cv-qualifiers on enk_field node types
+
+IL lowering no longer removes cv-qualifiers from the types of enk_field
+nodes (used in field selections).  This is especially desirable in
+bit-field selections, like eok_extract_bit_field, where the field
+type is the only indication of the "volatile" attribute on the bit field.
+
 6/22/98   Microsoft compatibility: nontype template parameters of pointer
           type
 
