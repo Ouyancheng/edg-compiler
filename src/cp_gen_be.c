@@ -197,6 +197,24 @@ that ordinarily this routine should not be called directly; use the macro
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+
+static a_boolean is_enum_constant(a_constant_ptr con)
+/*
+Return TRUE if the indicated constant is an enum constant.
+*/
+{
+  a_boolean is_enum = FALSE;
+
+  if (con->kind == (a_constant_repr_kind)ck_integer &&
+      con->type->kind == (a_type_kind)tk_integer &&
+      con->type->variant.integer.enum_type &&
+      has_name(con)) {
+    is_enum = TRUE;
+  }  /* if */
+  return is_enum;
+}  /* is _enum_constant */
+
+
 static void adv_to_signif_file_scope_source_sequence_entry(void)
 /*
 If the current entry on the file-scope source sequence list is not
@@ -236,12 +254,67 @@ done:
 }  /* adv_to_signif_file_scope_source_sequence_entry */
 
 
+static a_boolean src_seq_entry_is_class_definition(
+                                           a_source_sequence_entry_ptr ssep,
+                                           a_type_ptr                  *p_type)
+/*
+Return TRUE If the indicated source sequence entry is for a class definition.
+Also set *p_type to the class type.  Called only in C mode.
+*/
+{
+  a_boolean is_class_def = FALSE;
+
+  *p_type = NULL;
+  if ((an_il_entry_kind)ssep->entity.kind == iek_type) {
+    a_type_ptr type = (a_type_ptr)ssep->entity.ptr;
+    if (type->kind == (a_type_kind)tk_struct) {
+      /* Since this is used in C mode, there is no class type supplement,
+         so test for the presence of fields as an indication of the fact that
+         the struct is defined.  Structs with no fields will be seen as
+         undefined, but that works okay for the needs of this routine. */
+      if (type->variant.class_struct_union.field_list != NULL) {
+        is_class_def = TRUE;
+        *p_type = type;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_class_def;
+}  /* src_seq_entry_is_class_definition */
+
+
+static a_source_sequence_entry_ptr last_src_seq_of_class_definition(
+                                                               a_type_ptr type)
+/*
+Return a pointer to the last source sequence entry for the members of the
+class "type".  This is used only in C mode, to simulate a scope for the class.
+The class is known to be defined and to have at least one field.
+*/
+{
+  a_field_ptr field = type->variant.class_struct_union.field_list;
+
+  /* Find the last field. */
+  while (field->next != NULL) field = field->next;
+  return field->source_corresp.source_sequence_entry;
+}  /* last_src_seq_of_class_definition */
+
+
 static a_source_sequence_entry_ptr next_file_scope_source_sequence_entry(void)
 /*
 Advance the file-scope source sequence list to the next (significant) entry,
 and return a pointer to it.  Return NULL if there are no more entries.
 */
 {
+  if (il_header.source_language == sl_C) {
+    /* If advancing from a class definition in C mode, skip to after the
+       end of the class.  This simulates having the source sequence entries
+       for declarations within the class on a separate list, as is done
+       in C++ mode. */
+    a_type_ptr type;
+    if (src_seq_entry_is_class_definition(file_scope_source_sequence_entry,
+                                          &type)) {
+      file_scope_source_sequence_entry= last_src_seq_of_class_definition(type);
+    }  /* if */
+  }  /* if */
   /* Advance to the next entry. */
   file_scope_source_sequence_entry = file_scope_source_sequence_entry->next;
   adv_to_signif_file_scope_source_sequence_entry();
@@ -306,6 +379,38 @@ Advance the function-scope source sequence list to the next (significant)
 entry, and return a pointer to it.  Return NULL if there are no more entries.
 */
 {
+  if (il_header.source_language == sl_C) {
+    /* If advancing from a class definition in C mode, skip to after the
+       end of the class.  This simulates having the source sequence entries
+       for declarations within the class on a separate list, as is done
+       in C++ mode.  Actually, all of the source sequence entries in
+       this scope will be proxies for the real entries in the file scope.
+       We find the end of the class list in the file scope and step through
+       the entries at this level to find the proxy for that last entry,
+       then advance from there. */
+    if ((an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
+                                                   iek_source_sequence_entry) {
+      a_type_ptr                  type;
+      a_source_sequence_entry_ptr ssep = (a_source_sequence_entry_ptr)
+                                  func_scope_source_sequence_entry->entity.ptr;
+      if (src_seq_entry_is_class_definition(ssep, &type)) {
+        ssep = last_src_seq_of_class_definition(type);
+        /* ssep is now the last source sequence entry for the class definition.
+           Go through the function scope list looking for the proxy that
+           points to it. */
+        for (;;) {
+          check_assertion_str(
+                           (an_il_entry_kind)func_scope_source_sequence_entry->
+                                      entity.kind == iek_source_sequence_entry,
+                   "next_func_scope_source_sequence_entry: bad skipped entry");
+          if ((a_source_sequence_entry_ptr)func_scope_source_sequence_entry->
+                                                     entity.ptr == ssep) break;
+          func_scope_source_sequence_entry =
+                                        func_scope_source_sequence_entry->next;
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* Advance to the next entry. */
   func_scope_source_sequence_entry = func_scope_source_sequence_entry->next;
   adv_to_signif_func_scope_source_sequence_entry();
@@ -370,23 +475,6 @@ a declaration.
 }  /* curr_func_scope_source_seq_entry_is_decl */
 
 
-static a_boolean is_enum_constant(a_constant_ptr con)
-/*
-Return TRUE if the indicated constant is an enum constant.
-*/
-{
-  a_boolean is_enum = FALSE;
-
-  if (con->kind == (a_constant_repr_kind)ck_integer &&
-      con->type->kind == (a_type_kind)tk_integer &&
-      con->type->variant.integer.enum_type &&
-      has_name(con)) {
-    is_enum = TRUE;
-  }  /* if */
-  return is_enum;
-}  /* is _enum_constant */
-
-
 static void adv_to_signif_class_scope_source_sequence_entry(void)
 /*
 If the current entry on the class-scope source sequence list is not
@@ -397,9 +485,6 @@ entry is found.
   a_source_sequence_entry_ptr ssep = class_scope_source_sequence_entry;
   a_constant_ptr              con;
 
-  /* This routine is not used in C mode. */
-  check_assertion(il_header.source_language != sl_C);
-  /* C++ mode; the class list is a separate list. */
   for (; ssep != NULL; ssep = ssep->next) {
     /* Ignore unimportant entries. */
     switch (ssep->entity.kind) {
@@ -414,6 +499,7 @@ entry is found.
       case iek_routine:   /* Member function. */
       case iek_source_sequence_entry:  /* A proxy for a file-scope entity,
                                           e.g., a friend declaration. */
+      case iek_src_seq_secondary_decl:
         /* Significant. */
         goto done;
       case iek_constant:
@@ -439,29 +525,32 @@ entry, and return a pointer to it.  Return NULL if there are no more entries.
 */
 {
   if (il_header.source_language == sl_C) {
-    /* In C mode, advance by following the "next" pointer in the field
-       entries.  This is necessary because the field entries are not
-       segregated in their own scope. */
-    a_field_ptr field;
-    check_assertion_str((an_il_entry_kind)class_scope_source_sequence_entry->
-                                                      entity.kind == iek_field,
-                      "next_class_scope_source_sequence_entry: not iek_field");
-    field = (a_field_ptr)class_scope_source_sequence_entry->entity.ptr;
-    field = field->next;
-    if (field == NULL) {
-      /* This is the end of the list, so the pointer becomes NULL. */
-      class_scope_source_sequence_entry = NULL;
-    } else {
-      /* Not the end of the list, so get the source sequence entry. */
+    /* If advancing from a class definition in C mode, skip to after the
+       end of the class.  This simulates having the source sequence entries
+       for declarations within the class on a separate list, as is done
+       in C++ mode. */
+    a_type_ptr type;
+    if (src_seq_entry_is_class_definition(class_scope_source_sequence_entry,
+                                          &type)) {
       class_scope_source_sequence_entry =
-                                   field->source_corresp.source_sequence_entry;
+                                        last_src_seq_of_class_definition(type);
+    } else if ((an_il_entry_kind)class_scope_source_sequence_entry->
+                                                    entity.kind == iek_field) {
+      /* Consider the last field of a class in C mode to be the end of the
+         list of the simulated "scope" for the class. */
+      a_field_ptr field =
+                    (a_field_ptr)class_scope_source_sequence_entry->entity.ptr;
+      if (field->next == NULL) {
+        /* This is the end of the list, so the pointer becomes NULL. */
+        class_scope_source_sequence_entry = NULL;
+        goto done;
+      }  /* if */
     }  /* if */
-  } else {
-    /* C++ mode. */
-    /* Advance to the next entry. */
-    class_scope_source_sequence_entry= class_scope_source_sequence_entry->next;
-    adv_to_signif_class_scope_source_sequence_entry();
   }  /* if */
+  /* Advance to the next entry. */
+  class_scope_source_sequence_entry = class_scope_source_sequence_entry->next;
+  adv_to_signif_class_scope_source_sequence_entry();
+done:
   return class_scope_source_sequence_entry;
 }  /* next_class_scope_source_sequence_entry */
 
@@ -1085,7 +1174,7 @@ Output the definition of the indicated enum type.
   check_assertion_str(type->kind == (a_type_kind)tk_integer &&
                       type->variant.integer.enum_type,
                       "gen_enum_definition: not an enum type");
-  type->source_corresp.definition_put_out = TRUE;
+  type->definition_put_out = TRUE;
   /* set_output_position has already been called for the enum type itself
      if that's appropriate. */
   /* Generate "enum <name>". */
@@ -1195,7 +1284,7 @@ Output the definition of the indicated class type.
   a_scope_ptr                 scope;
   a_source_sequence_entry_ptr ssep;
 
-  type->source_corresp.definition_put_out = TRUE;
+  type->definition_put_out = TRUE;
   /* set_output_position has already been called for the class type itself
      it that's appropriate. */
   write_str(tag_kind(type->kind));
@@ -1222,10 +1311,11 @@ Output the definition of the indicated class type.
       adv_to_signif_class_scope_source_sequence_entry();
     } else {
       /* C -- the class has no scope, so start with the source sequence entry
-         for the first field (which is part of the file scope list). */
+         following the one for the class definition, thus simulating a list
+         for the class "scope." */
       if (field_list != NULL) {
         class_scope_source_sequence_entry =
-                              field_list->source_corresp.source_sequence_entry;
+                              type->source_corresp.source_sequence_entry->next;
         check_assertion_str(class_scope_source_sequence_entry != NULL,
                           "gen_class_definition: missing field src seq entry");
       } else {
@@ -1296,18 +1386,17 @@ Generate a reference to the indicated type, which is a class, struct, union,
 or enum.
 */
 {
-  if (!has_name(type) ||
-      (inside_struct_in_C_mode &&
-       !type->source_corresp.definition_put_out)) {
+  if (!has_name(type) || type->definition_delayed) {
     /* For an unnamed type, put out a full definition (we cannot refer
        to the type by name).  This is presumably the only reference to
-       the type, so that's fine.  Also put out the definition if the
-       definition appears inside a struct in C mode. */
+       the type, so that's fine.  Also put out the definition if it
+       is needed and was delayed because we're inside a struct in C mode. */
     if (type->kind == (a_type_kind)tk_integer) {
       gen_enum_definition(type);
     } else {
       gen_class_definition(type);
     }  /* if */
+    type->definition_delayed = FALSE;
   } else {
     /* The type has a name, so it can be referred to by that name. */
     write_str(tag_kind(type->kind));
@@ -2652,18 +2741,21 @@ information about the secondary declaration.
 {
   a_type_kind kind = type->kind;
 
-  /* Treat this type declaration as embedded in another declaration, and
-     do not put the declaration out at this point, if (a) the type is
-     unnamed or (b) we are inside a struct in C mode.  Ordinarily, it's
-     okay to render
-       struct A { int i; } x;     as
-       struct A { int i; }; struct A x;
-     but that's not legal in the cases listed above. */
-  if (!has_name(type) || inside_struct_in_C_mode) {
-    /* Do not process the declaration (yet). */
-  } else if (type->source_corresp.definition_put_out) {
+  if (type->definition_put_out) {
     /* The definition has already been put out, so don't do it again.
        This can happen in C mode when one struct is defined inside another. */
+  } else if (!has_name(type) || inside_struct_in_C_mode) {
+    /* Treat this type declaration as embedded in another declaration, and
+       do not put the declaration out at this point, if (a) the type is
+       unnamed or (b) we are inside a struct in C mode.  Ordinarily, it's
+       okay to render
+         struct A { int i; } x;     as
+         struct A { int i; }; struct A x;
+       but that's not legal in the cases listed above. */
+    /* Do not process the declaration (yet).  Set a flag to cause it to be
+       emitted at the earliest opportunity if this source sequence entry is
+       a definition. */
+    if (sec_decl == NULL) type->definition_delayed = TRUE;
   } else {
     /* Position the output file to the declaration position. */
     set_decl_position(&type->source_corresp, sec_decl);
@@ -2743,19 +2835,28 @@ a secondary declaration is wanted, and sec_decl points to an entry giving
 information about the secondary declaration.
 */
 {
+  a_boolean is_definition = (sec_decl == NULL);
+  a_storage_class storage_class;
+                             
   /* Position the output file to the declaration position. */
   set_decl_position(&var->source_corresp, sec_decl);
   /* Output the storage class. */
+  storage_class = var->storage_class;
   if (var->source_corresp.class_of_which_a_member != NULL) {
     /* Static data member. */
-    write_str("static ");
-  } else {
-    gen_storage_class(var->storage_class);
-   }  /* if */
+    storage_class = (a_storage_class)sc_static;
+  } else if (!is_definition) {
+    /* The variable is not defined (here), so use "extern" instead of no
+       storage class. */
+    if (storage_class == (a_storage_class)sc_unspecified) {
+      storage_class = (a_storage_class)sc_extern;
+    }  /* if */
+  }  /* if */
+  gen_storage_class(storage_class);
   /* Output the variable name and its type. */
   gen_type(var->type, &var->source_corresp);
-  /* Output the initializer, if any. */
-  gen_initializer(var);
+  /* Output the initializer, if any, but only if this is a definition. */
+  if (is_definition) gen_initializer(var);
   /* Finish the declaration. */
   write_str(";");
 }  /* gen_variable_decl */
@@ -2851,7 +2952,7 @@ information about the secondary declaration.
     }  /* if */
   } else if (!is_definition) {
     /* The function is not defined (here), so use "extern". */
-    if (storage_class != (a_storage_class)sc_static) {
+    if (storage_class == (a_storage_class)sc_unspecified) {
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
