@@ -9111,7 +9111,8 @@ Also scans GNU C statement expressions:
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      if (is_constant_operand(result)) {
+      if (is_constant_operand(result) &&
+          result->variant.constant.expr == NULL) {
         /* Record an expression for a constant so that we have the position
            of the constant and also the position of the constant surrounded
            by parentheses. */
