@@ -1,5 +1,17 @@
 Version 2.43
 
+10/28/99 Using-declaration of a type name when a synonym tag already exists
+
+The front end now accepts a using-declaration importing a type name when that
+name is already declared as a tag name for the underlying type in the scope
+where the using-declaration appears.
+
+  struct T {};
+  namespace N {
+    typedef ::T T;
+  }
+  using N::T;  // Accepted now (used to be a redeclaration error)
+
 10/28/99 Extra source positions for "else" token
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source position associated

@@ -8445,11 +8445,21 @@ current scope.
             clear_specific_symbol(locator);
             fund_sym = fundamental_symbol_of(sym);
             if (overload_sym == NULL) {
+              a_boolean  suppress_redecl_error = FALSE;
+              /* If we bring in a type, and a previous declaration was a tag,
+                 suppress a redeclaration error.  This is similar to the case
+                 "typedef struct S {} S;". */
+              if (other_decl != NULL &&
+                  is_tag_symbol(other_decl) && is_type_symbol(fund_sym)) {
+                a_type_ptr  type1 = type_symbol_type(other_decl),
+                            type2 = type_symbol_type(fund_sym);
+                suppress_redecl_error = identical_types(type1, type2);
+              }  /* if */
               /* No overloading. */
               new_sym = enter_namespace_projection_symbol(
                                                      fund_sym, &locator,
                                                      depth_scope_stack,
-                                                     /*suppress_error=*/FALSE);
+                                                     suppress_redecl_error);
               /* If is_list is TRUE, there will be overloading on the next
                  iteration of this loop. */
               if (is_list) overload_sym = new_sym;
