@@ -60,6 +60,14 @@ static a_boolean
 			/* TRUE if displaying the file-scope memory region,
 			   FALSE if displaying a function scope memory
 			   region. */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING
+EXTERN a_boolean
+		suppress_il_lowering /* = FALSE */;
+			/* TRUE if IL-lowering should not be done.  The -l
+			   option sets this to TRUE, and is only valid for
+			   a front end in which IL_SHOULD_BE_WRITTEN_TO_FILE
+			   is TRUE and DO_IL_LOWERING is TRUE. */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING */
 
 /* Declaration required because of mutual recursion. */
 static void disp_ptr(char             *ptr_name,
@@ -1312,8 +1320,14 @@ do_struct_union:
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
                iek_type);
 #if DO_IL_LOWERING
-      disp_ptr("orig_member_type",
-               (char *)ptr->variant.typeref.orig_member_type, iek_type);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+      if (!suppress_il_lowering) {
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+        disp_ptr("orig_member_type",
+                 (char *)ptr->variant.typeref.orig_member_type, iek_type);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+      }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
       disp_boolean("is_const", ptr->variant.typeref.is_const);
       disp_boolean("is_volatile", ptr->variant.typeref.is_volatile);
@@ -2588,8 +2602,14 @@ Display the indicated base class entry.
            (char *)ptr->overriding_virtual_functions,
            iek_overriding_virtual_function );
 #if DO_IL_LOWERING
-  disp_ptr("virtual_function_table_var",
-           (char *)ptr->virtual_function_table_var, iek_variable);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  if (!suppress_il_lowering) {
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    disp_ptr("virtual_function_table_var",
+             (char *)ptr->virtual_function_table_var, iek_variable);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
 }  /* disp_base_class */
 
@@ -2615,9 +2635,15 @@ Display the indicated class type supplement entry.
   disp_class_list("befriending_classes", ptr->befriending_classes);
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
 #if DO_IL_LOWERING
-  disp_ptr("virtual_function_table_var",
-           (char * )ptr->virtual_function_table_var, iek_variable);
-  disp_ptr("type_as_subobject", (char *)ptr->type_as_subobject, iek_type);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  if (!suppress_il_lowering) {
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    disp_ptr("virtual_function_table_var",
+             (char * )ptr->virtual_function_table_var, iek_variable);
+    disp_ptr("type_as_subobject", (char *)ptr->type_as_subobject, iek_type);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
 }  /* disp_class_type_supplement */
 
@@ -2890,6 +2916,12 @@ where file.cil specifies the IL file.  Output is to stdout.
         }  /* if */
         break;
 #endif /* DEBUG */
+      case 'l':
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING
+	/* Suppress IL-lowering */
+	suppress_il_lowering = TRUE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING */
+	break;
       default:
         str_command_line_error("invalid option: ", argv[optind]);
     }  /* switch */
