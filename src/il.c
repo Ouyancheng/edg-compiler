@@ -7246,7 +7246,7 @@ existing type entry.
   }  /* if */
   if (member_type == NULL || tp == NULL) {
     /* No member type (as of yet) or no previously allocated entry, need to
-       allocate one.  (is_incomplete will be set to FALSE in set_type_size. */
+       allocate one. */
     tp = alloc_type((a_type_kind)tk_ptr_to_member);
     tp->variant.ptr_to_member.type = member_type;
     tp->variant.ptr_to_member.class_of_which_a_member = class_type;
