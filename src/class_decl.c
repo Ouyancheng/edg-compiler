@@ -990,8 +990,8 @@ required.
   a_boolean              compatible = FALSE;
 
   db_enter(4, "return_types_are_override_compatible");
-  tp1 = type_of_overriding_routine->variant.routine.return_type;
-  tp2 = type_of_overridden_routine->variant.routine.return_type;
+  tp1 = skip_typerefs(type_of_overriding_routine)->variant.routine.return_type;
+  tp2 = skip_typerefs(type_of_overridden_routine)->variant.routine.return_type;
   if (types_are_compatible(tp1, tp2)) {
     /* The types are "simply" compatible.  No further checking is required. */
     compatible = TRUE;
@@ -1401,11 +1401,12 @@ routine entry and return TRUE; otherwise return FALSE.
                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
               /* If rp is virtual, it must be non-static and therefore must
                  have a this parameter. */
-              check_assertion(rp->type->variant.routine.extra_info->
+              check_assertion(skip_typerefs(rp->type)->
+                                             variant.routine.extra_info->
                                              implicit_this_param_type != NULL);
               /* Be sure the new routine also has a this parameter.  If not,
                  it must be static. */
-              if (rout->type->variant.routine.extra_info->
+              if (skip_typerefs(rout->type)->variant.routine.extra_info->
                                             implicit_this_param_type == NULL) {
                 /* A static member function "redeclares" a virtual nonstatic
                    member function from a base class. */
@@ -3412,8 +3413,10 @@ is just a matter of changing where and how diagnostics are issued.)
        obsolete param type entry.  Find such references and change them to
        refer to the corresponding param type entry in the old param types
        list (the one that's being preserved). */
-    ptp1 = rp->type->variant.routine.extra_info->param_type_list;
-    ptp2 = member_type->variant.routine.extra_info->param_type_list;
+    ptp1 = skip_typerefs(rp->type)->
+                                  variant.routine.extra_info->param_type_list;
+    ptp2 = skip_typerefs(member_type)->
+                                  variant.routine.extra_info->param_type_list;
     for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
       if (ptp2->has_default_arg) {
         /* A default arg appears in the current declaration.  Find the
@@ -3674,7 +3677,8 @@ special function kind (e.g., constructor, destructor), if any.
       rtn->special_kind = (a_special_function_kind)sfk_conversion;
       /* Check the target type of the conversion -- which is the return type
          of rout_type. */
-      tp = skip_typerefs(rtn->type->variant.routine.return_type);
+      tp = skip_typerefs(rtn->type);
+      tp = skip_typerefs(tp->variant.routine.return_type);
       if (is_reference_type(tp)) {
         tp = skip_typerefs(type_pointed_to(tp));
       }  /* if */

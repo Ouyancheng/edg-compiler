@@ -614,6 +614,8 @@ type is legal.
           }  /* if */
         }  /* if */
         if (err) new_type_ptr = error_type();
+        check_assertion((*bottom_derived_type)->kind ==
+                                                    (a_type_kind)tk_routine);
         (*bottom_derived_type)->variant.routine.return_type = new_type_ptr;
         /* Check whether the routine needs special support for returning a
            class object by value. */
