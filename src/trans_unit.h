@@ -41,6 +41,12 @@ typedef struct a_translation_unit {
 
 extern void trans_unit_early_init(void);
 
+EXTERN a_boolean
+		is_primary_translation_unit;
+			/* TRUE when processing the primary translation
+			   unit.  FALSE when processing secondary translation
+			   units. */
+
 #endif /* ifndef TRANS_UNIT_H */
 
 /******************************************************************************

@@ -202,6 +202,8 @@ of the front end are called.
   trans_unit_variables = NULL;
   trans_unit_variables_tail = NULL;
   trans_unit_var_block_size = 0;
+  /* This will be moved to the translation unit driver. */
+  is_primary_translation_unit = TRUE;
 #if CHECKING
   any_translation_units_allocated = FALSE;
 #endif /* CHECKING */

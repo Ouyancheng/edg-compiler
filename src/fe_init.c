@@ -1038,6 +1038,11 @@ calls symbol_tbl_trans_unit_init.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (!is_primary_translation_unit) {
+    /* Preprocessing output cannot be generated for secondary translation
+       units. */
+    f_pp_output = NULL;
+  }  /* if */
 }  /* fe_translation_unit_init */
 
 
