@@ -1608,8 +1608,17 @@ environment, especially if additional linkage specifications (beyond "C" and
 "C++") are added.  Implementations for which the comparison is meaningful
 should replace this macro with an appropriate test.
 */
-#define routine_name_linkages_are_compatible(rtsp1, rtsp2) TRUE
+#define routine_linkages_are_compatible(rtsp1, rtsp2) TRUE
 
+/*
+Macro provided to determine the identity of name linkages of the routine
+types associated with the specified routine type supplements.  As with
+linkage compatibility, this means comparing the calling conventions they
+imply, so by default we always return TRUE.  However, implementations for
+which the comparison is meaningful should replace this macro with an
+appropriate test.
+*/
+#define routine_linkages_are_identical(rtsp1, rtsp2) TRUE
 
 static a_boolean identical_array_type_level(a_type_ptr  type_1,
                                             a_type_ptr  type_2)
@@ -1825,7 +1834,7 @@ which do the initial test for exact pointer equality.
                                 il_identical) &&
               rtsp1->prototyped == rtsp2->prototyped &&
               rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
-              routine_name_linkages_are_compatible(rtsp1, rtsp2) &&
+              routine_linkages_are_identical(rtsp1, rtsp2) &&
               ((rtsp1->implicit_this_param_type == NULL) ?
                   (rtsp2->implicit_this_param_type == NULL) :
                   (rtsp2->implicit_this_param_type != NULL &&
@@ -2230,7 +2239,7 @@ for exact pointer equality.
               (ignore_calling_conventions ||
                calling_conventions_are_compatible(type_1, type_2)) &&
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
-              routine_name_linkages_are_compatible(rtsp1, rtsp2)) {
+              routine_linkages_are_compatible(rtsp1, rtsp2)) {
             compat = TRUE;
           }  /* if */
           break;
