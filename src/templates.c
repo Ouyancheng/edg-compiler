@@ -3849,10 +3849,12 @@ indicated by template_sym.  The symbol of the new instance is returned.
   a_template_arg_ptr	prev_new_tap;
   a_symbol_ptr		new_sym;
   a_template_arg_ptr	tap;
+  a_template_param_ptr	tpp;
   
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
+  tpp = template_sym->variant.template_info->cache.decl_info->parameters;
   prev_new_tap = new_list = NULL;
-  for (; tap != NULL; tap = tap->next) {
+  for (; tap != NULL; tap = tap->next, tpp = tpp->next) {
     new_tap = alloc_template_arg((a_boolean)tap->is_type);
     if (tap->is_type) {
       new_tap->variant.type =
@@ -3860,10 +3862,18 @@ indicated by template_sym.  The symbol of the new instance is returned.
                                            templ_arg_list, depth, source_pos,
                                            copy_error);
     } else {
+      /* Perform the substitution on the type of the constant. */
+      a_type_ptr	const_type;
+      a_type_ptr	new_const_type;
+      const_type = tpp->param_symbol->variant.constant->type;
+      new_const_type = copy_type_with_substitution(const_type,
+                                                   templ_arg_list, depth,
+                                                   source_pos, copy_error);
       new_tap->variant.constant =
          copy_template_param_con_with_substitution(tap->variant.constant,
                                                    templ_arg_list,
                                                    depth,
+						   new_const_type,
                                                    source_pos,
                                                    copy_error);
     }  /* if */
@@ -3998,9 +4008,9 @@ an array of references.
          substituted "A<T>" does not contain a B, or the B found is not
          a type. */
       *copy_error = TRUE;
-      new_type = NULL;
+      type = error_type();
     } else {
-      new_type = type_symbol_type(sym);
+      type = type_symbol_type(sym);
     }  /* if */
   }  /* if */
   {
@@ -4200,45 +4210,25 @@ make_new_type:
         if (!cssp->is_nonreal_class) {
           /* Reuse the current type. */
           new_type = type;
-#if CHECKING
-        } else if (cssp->class_template == NULL) {
-          internal_error(
-                "copy_type_with_substitution: nonreal class with no template");
-#endif /* CHECKING */
         } else {
-          /* The class is a template. The copy will be an instantiation of it.
-             Build a new template arg list and call find_template_class. */
-          a_template_arg_ptr  new_list, new_tap, prev_new_tap;
-          a_symbol_ptr        sym;
-  
+          a_symbol_ptr		new_sym;
+ 
+          check_assertion_str2(cssp->class_template != NULL,
+                               "copy_type_with_substitution:",
+                               "nonreal class with no template");
           tap = type->variant.class_struct_union.extra_info->template_arg_list;
-          prev_new_tap = new_list = NULL;
-          for (; tap != NULL; tap = tap->next) {
-            new_tap = alloc_template_arg((a_boolean)tap->is_type);
-            if (tap->is_type) {
-              new_tap->variant.type =
-                       copy_type_with_substitution(tap->variant.type,
-                                                   templ_arg_list, depth,
-						   source_pos, copy_error);
-            } else {
-              new_tap->variant.constant =
-                copy_template_param_con_with_substitution(
-                                                   tap->variant.constant,
-                                                   templ_arg_list,
-                                                   depth,
-                                                   source_pos,
-                                                   copy_error);
-            }  /* if */
-            if (new_list == NULL) {
-              new_list = new_tap;
-            } else {
-              prev_new_tap->next = new_tap;
-            }  /* if */
-            prev_new_tap = new_tap;
-          }  /* for */
-          sym = find_template_class(cssp->class_template, &new_list,
-                                    /*prototype_allowed=*/FALSE);
-          new_type = sym->variant.class_struct_union.type;
+          new_sym = copy_template_class_reference_with_substitution(
+                            cssp->class_template, type, templ_arg_list, depth,
+                            source_pos, copy_error);
+          if (new_sym == NULL || !is_type_symbol(new_sym)) {
+            /* The type was specified as something like A<T>::B, but the
+               substituted "A<T>" does not contain a B, or the B found is not
+               a type. */
+            *copy_error = TRUE;
+            new_type = error_type();
+          } else {
+            new_type = type_symbol_type(new_sym);
+          }  /* if */
         }  /* if */
         break;
       default:;
