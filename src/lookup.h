@@ -244,6 +244,11 @@ a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);
 
 extern a_symbol_ptr find_unknown_function_symbol(a_symbol_ptr	orig_sym);
 
+extern
+a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,
+					 a_type_ptr		conv_type,
+					 a_source_position	*source_pos);
+
 extern void lookup_one_time_init(void);
 
 extern void lookup_init(void);

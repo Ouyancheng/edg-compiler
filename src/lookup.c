@@ -653,15 +653,13 @@ template or a type, then it is created as a constant.
 
 static a_symbol_ptr create_proxy_or_nonreal_class_member_of_kind(
 				a_type_ptr		class_type,
-				a_source_position	*decl_pos,
 				a_symbol_kind		kind,
-				a_symbol_header		*symbol_header)
+				a_symbol_locator	*locator)
 /*
 Create a proxy or nonreal member with the specified symbol kind.
-
 class_type is the nonreal class in which the member is to be created.
-decl_pos is the source position to be used for the declaration
-position.  symbol_header is the symbol header to be used.
+"locator" is used to get the name, source position, and conversion
+result type.
 
 The member that is created is not added to the inactive list by this
 routine.
@@ -675,7 +673,7 @@ routine.
   db_enter(4, "create_proxy_or_nonreal_class_member_of_kind");
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
-  sym = alloc_symbol(kind, symbol_header, decl_pos);
+  sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
   /* Get the scope number from the symbol supplement.  The scope depth
      will be the scope depth of the class plus one. */
   cssp = symbol_supplement_for_class(class_type);
@@ -701,10 +699,21 @@ routine.
       /* Create a ck_template_param constant.  We don't know the type of the
          constant so we use a special template parameter type that represents
          the type of an unknown constant. */
-      a_constant_ptr  constant;
+      a_constant_ptr	constant;
       constant = fs_constant((a_constant_repr_kind)ck_template_param);
-      set_template_param_constant_kind(constant,
-                                  (a_template_param_constant_kind)tpck_member);
+      if (locator->is_conversion_name) {
+        /* For a conversion operator, create an "unknown function" entry that
+           represents the conversion result type. */
+        set_template_param_constant_kind(
+              constant, (a_template_param_constant_kind)tpck_unknown_function);
+        constant->variant.template_param.variant.unknown_function.
+                     conversion_type = locator->variant.conversion_result_type;
+      } else {
+        /* For everything except a conversion function create a generic
+           nontype member. */
+        set_template_param_constant_kind(
+                        constant, (a_template_param_constant_kind)tpck_member);
+      }  /* if */
       sym->variant.constant = constant;
       constant->type = type_of_unknown_templ_param_nontype;
       scp = &constant->source_corresp;
@@ -784,9 +793,8 @@ routine.
      type, constant, or class template, depending on the kind of
      lookup being done. */
   kind = nonreal_member_symbol_kind(locator, options);
-  sym = create_proxy_or_nonreal_class_member_of_kind(
-                                       class_type, &locator->source_position,
-                                       kind, locator->symbol_header);
+  sym = create_proxy_or_nonreal_class_member_of_kind(class_type, kind,
+                                                     locator);
   db_exit();
   return sym;
 }  /* create_proxy_or_nonreal_class_member */
@@ -2131,38 +2139,65 @@ symbol header information from the locator.  Return the symbol created.
 }  /* create_unknown_conversion_symbol */
 
 
-static a_symbol_ptr lookup_conversion_template_instance(
+static a_symbol_ptr look_up_conversion_template_instance(
 			a_symbol_locator		*locator,
-                        a_type_ptr			class_type,
-			a_symbol_list_entry_ptr		conversion_templates)
+                        a_type_ptr			class_type)
 /*
 Find the conversion template instance that matches the type specified
-by the conversion type in the locator.  conversion_templates can
-be NULL, in which case this routine is still called to (possibly) do the
-template dependent context processing.
+by the conversion type in the locator.  The conversion_template_list
+of class_type can be NULL, in which case this routine is still called to
+(possibly) do the template dependent context processing.
 
-If we are in a prototype instantiation context, return an unknown function
-symbol that has the result type recorded in the ck_template_param constant.
+If either the class_type or the conversion type is template dependent,
+return an unknown function symbol that has the result type recorded in
+the ck_template_param constant.
 */
 {
-  a_symbol_ptr	result_sym = NULL;
-  a_type_ptr	conv_result = locator->variant.conversion_result_type;
+  a_symbol_ptr			result_sym = NULL;
+  a_type_ptr			conv_result =
+				      locator->variant.conversion_result_type;
+  a_class_symbol_supplement_ptr	cssp;
 
-  if (is_template_dependent_context() &&
-      (class_type->variant.class_struct_union.is_nonreal_class ||
-       is_or_contains_template_param(conv_result))) {
+  cssp = symbol_supplement_for_class(class_type);
+  if (class_type->variant.class_struct_union.is_nonreal_class ||
+      is_or_contains_template_param(conv_result)) {
     /* A template context where either the source object type or the
        result type is dependent.  Create an unknown function symbol to
        represent the conversion function. */
     result_sym = create_unknown_conversion_symbol(locator, class_type);
-  } else if (conversion_templates != NULL) {
+  } else if (cssp->conversion_template_list != NULL) {
     /* A normal (nondependent) context.  Try to find a matching
        template conversion instance. */
-    result_sym = find_conversion_template_instance(locator, class_type,
-                                                   conversion_templates);
+    result_sym = find_conversion_template_instance(
+                          locator, class_type, cssp->conversion_template_list);
   }  /* if */
   return result_sym;
-}  /* lookup_conversion_template_instance */
+}  /* look_up_conversion_template_instance */
+
+
+a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,
+					 a_type_ptr		conv_type,
+					 a_source_position	*source_pos)
+/*
+Look in parent_class for a conversion function that converts to conv_type.
+source_pos is the position to be used in the locator used for the lookup.
+*/
+{
+  a_symbol_locator	locator;
+  a_symbol_ptr		new_sym;
+
+  /* Create a symbol locator for the conversion type. */
+  make_type_conversion_locator(conv_type, &locator, source_pos);
+  /* First look for a nontemplate conversion operator. */
+  new_sym = class_qualified_id_lookup(&locator, parent_class,
+                                      IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+  if (new_sym == NULL) {
+    /* Look for a conversion function template, and possibly create an
+       unknown conversion function. */
+    new_sym = look_up_conversion_template_instance(&locator, parent_class);
+  }  /* if */
+  return new_sym;
+}  /* look_up_conversion_function */
 
 
 /* Forward declaration. */
@@ -2294,11 +2329,8 @@ that do normal id lookup processing.
          the specified type. */
       if (sym == NULL && locator->is_conversion_name) {
         a_type_ptr			class_type = ssep->assoc_type;
-        a_class_symbol_supplement_ptr	cssp;
         check_assertion(class_type != NULL);
-        cssp = symbol_supplement_for_class(class_type);
-        sym = lookup_conversion_template_instance(
-                          locator, class_type, cssp->conversion_template_list);
+        sym = look_up_conversion_template_instance(locator, class_type);
       }  /*if */
     }  /* if */
     if (sym != NULL) break;
@@ -2962,6 +2994,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    any_nonreal_base_classes = FALSE;
   a_boolean    direct_class_members_only =
                                 (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0;
+  a_boolean    dependent_conversion_operator = FALSE;
 
 /* Local macro that tests whether or not a symbol is acceptable.  An
    injected class name symbol is only acceptable when the injected symbol
@@ -3010,6 +3043,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     }  /* if */
     any_nonreal_base_classes = cssp->any_nonreal_base_classes;
   }  /* if */
+  /* Determine whether the thing being looked up is a template dependent
+     conversion operator name in an expression context.  When looking for
+     such names, the ordinary lookup is suppressed causing an unknown
+     function symbol to be created later. */
+  if (locator->is_conversion_name && (options & IDL_IS_EXPR_CONTEXT) != 0) {
+    dependent_conversion_operator =
+        is_or_contains_template_param(locator->variant.conversion_result_type);
+  }  /* if */
   sym = locator->specific_symbol;
   if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
@@ -3027,53 +3068,57 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                     locator->do_not_clear_specific_symbol);
 #endif /* CHECKING */
   } else {
-    /* Search for a symbol in the right scope. */
-    /* First, search the list of inactive symbols.  These are class
-       members for classes that are no longer active.  Or, in C,
-       fields of structs/unions. */
-    tag_symbol = NULL;
-    for (sym = inactive_symbol_list_from_locator(*locator);
-         sym != NULL;
-         sym = sym->next) {
-      a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
-      if (is_acceptable_symbol(sym, fund_sym)) {
-        /* Found an acceptable symbol. */
-        if (is_proxy_or_nonreal_class_lookup &&
-            sym->kind != nonreal_member_symbol_kind(locator, options)) {
-          /* The nonreal class member found is a type when a nontype is
-             expected or vice-versa.  Ignore this symbol. */
-        } else if (any_nonreal_base_classes &&
-                   !implicit_typename_enabled &&
-                   sym->kind == (a_symbol_kind)sk_projection &&
-                   sym->variant.projection.fund_sym_is_nonreal_member &&
-                   fund_sym->kind != nonreal_member_symbol_kind(locator,
-                                                                options)) {
-          /* The symbol is a projection symbol in derived class that points
-             to a nonreal member of a base class.  Ignore this symbol
-             when not using implicit-typename, if it is a type when a nontype
-             is expected or vice-versa. */
-        } else if (direct_class_members_only &&
-                   sym->kind == (a_symbol_kind)sk_projection &&
-                   !sym->variant.projection.is_using_decl) {
-          /* This is a projection symbol not created by a using-declaration.
-             This should be ignored for "direct class members only"
-             lookups. */
-        } else {
-          /* If the symbol is a tag symbol, there's the possibility that
-             there is a non-type symbol in the same scope later in the list
-             (because the inactive list is not ordered in any way).  Save the
-             tag symbol and keep looking.  If nothing else turns up,
-             use the tag symbol. */
-          if (!is_tag_symbol(fund_sym)) goto end_lookup;
-          tag_symbol = sym;
+    /* Search for a symbol in the right scope.  Suppress the normal lookup
+       part of the search when looking for a dependent conversion operator in
+       an expression context. */
+    if (!dependent_conversion_operator) {
+      /* First, search the list of inactive symbols.  These are class
+         members for classes that are no longer active.  Or, in C,
+         fields of structs/unions. */
+      tag_symbol = NULL;
+      for (sym = inactive_symbol_list_from_locator(*locator);
+           sym != NULL;
+           sym = sym->next) {
+        a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+        if (is_acceptable_symbol(sym, fund_sym)) {
+          /* Found an acceptable symbol. */
+          if (is_proxy_or_nonreal_class_lookup &&
+              sym->kind != nonreal_member_symbol_kind(locator, options)) {
+            /* The nonreal class member found is a type when a nontype is
+               expected or vice-versa.  Ignore this symbol. */
+          } else if (any_nonreal_base_classes &&
+                     !implicit_typename_enabled &&
+                     sym->kind == (a_symbol_kind)sk_projection &&
+                     sym->variant.projection.fund_sym_is_nonreal_member &&
+                     fund_sym->kind != nonreal_member_symbol_kind(locator,
+                                                                  options)) {
+            /* The symbol is a projection symbol in derived class that points
+               to a nonreal member of a base class.  Ignore this symbol
+               when not using implicit-typename, if it is a type when a nontype
+               is expected or vice-versa. */
+          } else if (direct_class_members_only &&
+                     sym->kind == (a_symbol_kind)sk_projection &&
+                     !sym->variant.projection.is_using_decl) {
+            /* This is a projection symbol not created by a using-declaration.
+               This should be ignored for "direct class members only"
+               lookups. */
+          } else {
+            /* If the symbol is a tag symbol, there's the possibility that
+               there is a non-type symbol in the same scope later in the list
+               (because the inactive list is not ordered in any way).  Save the
+               tag symbol and keep looking.  If nothing else turns up,
+               use the tag symbol. */
+            if (!is_tag_symbol(fund_sym)) goto end_lookup;
+            tag_symbol = sym;
+          }  /* if */
         }  /* if */
+      }  /* for */
+      /* We reached the end of the list.  If there is a tag symbol saved
+         within the loop, use it. */
+      if (tag_symbol != NULL) {
+        sym = tag_symbol;
+        goto end_lookup;
       }  /* if */
-    }  /* for */
-    /* We reached the end of the list.  If there is a tag symbol saved
-       within the loop, use it. */
-    if (tag_symbol != NULL) {
-      sym = tag_symbol;
-      goto end_lookup;
     }  /* if */
     if (is_proxy_or_nonreal_class_lookup &&
         !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) {
@@ -3163,8 +3208,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
              lookup is suppressed for member using-declarations because
              it should not be possible for a derived class to name a template
 	     instance in a using-declaration. */
-          sym = lookup_conversion_template_instance(
-                         locator, class_type, cssp->conversion_template_list);
+          sym = look_up_conversion_template_instance(locator, class_type);
         }  /* if */
       }  /* if */
     }  /* if */

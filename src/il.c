@@ -7750,6 +7750,21 @@ set *copy_error to TRUE.  options is a set of name lookup options.
                                              /*is_type=*/FALSE,
                                              options,
                                              copy_error);
+    if (sym == orig_sym) {
+      /* A reference like "X::operator T" will not be substituted by the call
+         above because the parent type is not altered.  Check for an unknown
+         conversion function that must be processed. */
+      a_type_ptr	conv_type;
+      conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
+      if (conv_type != NULL) {
+        /* Substitute the any template parameters in the conversion type. */
+        conv_type = copy_type_with_substitution(conv_type, template_arg_list,
+                                                depth, source_pos,
+                                                options, copy_error);
+        /* Look for a conversion function that converts to the new type. */
+        sym = look_up_conversion_function(parent_type, conv_type, source_pos);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (sym == NULL) {
     /* The substituted parent class has no member of the specified name. */

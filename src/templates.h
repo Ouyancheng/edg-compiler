@@ -340,6 +340,9 @@ extern void inline_function_wrapup(void);
 
 extern void add_to_inline_function_list(a_routine_ptr	rout_ptr);
 
+extern
+a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym);
+
 extern void templates_one_time_init(void);
 
 extern void templates_init(void);

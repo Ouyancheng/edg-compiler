@@ -5380,6 +5380,78 @@ on the ck_template_param constant pointed to by the expression.
 }  /* copy_array_type_with_substitution */
 
 
+a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym)
+/*
+If "sym" is a ck_template_parameter constant of kind tpck_unknown_function
+that represents an unknown conversion function, return the conversion type,
+otherwise return NULL;
+*/
+{
+  a_type_ptr	result = NULL;
+
+  if (sym->kind == (a_symbol_kind)sk_constant) {
+    a_constant_ptr	cp;
+    cp = sym->variant.constant;
+    if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+      if (cp->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+        result =
+           cp->variant.template_param.variant.unknown_function.conversion_type;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_if_unknown_conversion_function_symbol */
+
+
+static a_symbol_ptr look_up_member_in_substituted_parent(
+				a_symbol_ptr			orig_sym,
+				a_type_ptr			parent_type,
+				a_template_arg_ptr		templ_arg_list,
+				a_template_nesting_depth	depth,
+				a_source_position		*source_pos,
+				a_boolean			is_type,
+				a_ctws_options_set		options,
+				a_boolean			*copy_error)
+/*
+parent_type is a class type that has been substituted.  orig_sym is the
+symbol from the original parent type.  is_type is TRUE if the entity
+being looked up is known to be a type.
+*/
+{
+  a_type_ptr			conv_type;
+  a_symbol_ptr			new_sym = NULL;
+
+  complete_class_type_is_needed(parent_type);
+  /* Determine whether orig_sym is an unknown conversion function symbol.
+     If so, get its type. */
+  conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
+  if (conv_type != NULL) {
+    /* Substitute the any template parameters in the conversion type. */
+    conv_type = copy_type_with_substitution(conv_type, templ_arg_list, depth,
+                                            source_pos, options, copy_error);
+    /* Look for a conversion function that converts to the new type. */
+    new_sym = look_up_conversion_function(parent_type, conv_type, source_pos);
+  } else {
+    a_symbol_locator		locator;
+    an_id_lookup_options_set	lookup_options;
+    clear_locator(&locator, source_pos);
+    locator.symbol_header = orig_sym->header;
+    /* If the entity being looked up is known the be the parent of another
+       entity, then it must be a class or a namespace.  Otherwise, use the
+       is_type parameter to determine whether a typename lookup is needed. */
+    if (options & CTWS_IS_PARENT) {
+      lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
+    } else {
+      lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
+    }  /* if */
+    new_sym = class_qualified_id_lookup(&locator, parent_type, lookup_options);
+  }  /* if */
+  return new_sym;
+}  /* look_up_member_in_substituted_parent */
+
+
+
 a_symbol_ptr copy_parent_type_with_substitution(
 				a_symbol_ptr			sym,
 				a_type_ptr			parent_type,
@@ -5404,7 +5476,6 @@ entity is known to be a type.
   a_type_ptr			orig_parent_type;
   a_symbol_ptr			new_sym = NULL;
   a_class_symbol_supplement_ptr	parent_cssp;
-  an_id_lookup_options_set	lookup_options;
 
   check_assertion(parent_type != NULL);
   /* Nested type case -- e.g., A<T>::B, where B names a nested class or
@@ -5435,24 +5506,13 @@ entity is known to be a type.
     *copy_error = TRUE;
     goto done;
   } else {
-    /* If the original parent type of "type" was A<T>, tp now represents a
-       class with the substitution performed on the template parameter,
-       e.g., A<int>.  If "type" was A<T>::B, we want to return as new_sym
-       the corresponding member of the new type, e.g., A<int>::B. */
-    a_symbol_locator  locator;
-
-    clear_locator(&locator, source_pos);
-    locator.symbol_header = sym->header;
-    complete_class_type_is_needed(parent_type);
-    /* If the entity being looked up is known the be the parent of another
-       entity, then it must be a class or a namespace.  Otherwise, use the
-       is_type parameter to determine whether a typename lookup is needed. */
-    if (options & CTWS_IS_PARENT) {
-      lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
-    } else {
-      lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
-    }  /* if */
-    new_sym = class_qualified_id_lookup(&locator, parent_type, lookup_options);
+    /* If the original parent type of "type" was A<T>, parent_type now
+       represents a class with the substitution performed on the template
+       parameter, e.g., A<int>.  If "type" was A<T>::B, we want to return as
+       new_sym the corresponding member of the new type, e.g., A<int>::B. */
+    new_sym = look_up_member_in_substituted_parent(
+                             sym, parent_type, templ_arg_list, depth,
+                             source_pos, is_type, options, copy_error);
     if (new_sym != NULL && is_class_template_symbol(new_sym) &&
         !is_class_template_symbol(sym)) {
       /* The symbol found is a class template symbol but the original symbol
