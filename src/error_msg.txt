@@ -718,6 +718,7 @@ ec_nonstd_asm_function;;"\"asm\" function is nonstandard"
 ec_nonstd_ellipsis_only_param;;"ellipsis with no explicit parameters is nonstandard"
 ec_nonstd_address_of_ellipsis;;"\"&...\" is nonstandard"
 ec_bad_address_of_ellipsis;;"invalid use of \"&...\""
+ec_cl_operator_keyword_option_only_in_cplusplus;;"operator keyword option can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
