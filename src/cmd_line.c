@@ -335,9 +335,8 @@ Process the arguments on the command line that invoked the compiler.
         error_threshold = es_remark;
         break;
       case 'm':
-        /* Compile relaxed ANSI C. */
+        /* Compile ANSI C. */
         C_dialect = C_dialect_ANSI;
-        strict_ansi_mode = FALSE;
         break;
       case 'p':
         /* Compile C++. */
