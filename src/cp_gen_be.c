@@ -954,7 +954,7 @@ source sequence entry list.  Check that it is, and advance the list.
 {
 #if CHECKING
   if (curr_source_sequence_entry != ssep || ssep == NULL) {
-#if DEBUG
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
     (void)fprintf(f_debug, "Expected:    ");
     if (ssep != NULL) {
       db_source_sequence_entry(ssep);
@@ -967,7 +967,7 @@ source sequence entry list.  Check that it is, and advance the list.
     } else {
       (void)fprintf(f_debug, "nothing\n");
     }  /* if */
-#endif /* DEBUG */
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
     internal_error("check_for_and_take_source_seq_entry: wrong entry");
   }  /* if */
 #endif /* CHECKING */
