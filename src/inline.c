@@ -239,9 +239,14 @@ whether the constant is non-NULL, the safe value is FALSE.
                     (a_storage_class)sc_extern);
   } else if (is_variable_node(expr)) {
     a_variable_ptr var = expr->variant.variable;
-    if (var->is_parameter && !var->param_value_has_been_changed) {
+    if ((var->is_parameter && !var->param_value_has_been_changed) ||
+        var->is_this_parameter) {
       /* Unassigned parameters are constant-valued within a function.
-         This includes the "this" parameter in most cases. */
+         The "this" parameter can be considered constant even when
+         it is assigned in the allocation section of a constructor.
+         It can't be considered constant if there is an assignment to
+         "this", but routines with such an assignment are considered
+         to be not inlinable. */
       is_constant_valued = TRUE;
       if (var->is_this_parameter) *is_non_null = TRUE;
     }  /* if */
@@ -1479,6 +1484,12 @@ the routine so it can be inlined on calls from here on.
   } else if (routine->storage_class == (a_storage_class)sc_asm) {
     /* The function is an asm function. */
 #endif /* ASM_FUNCTION_ALLOWED */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  } else if (routine->assignment_to_this_done) {
+    /* An assignment to "this" was done.  This is ruled out because
+       we want to be able to count on "this" being constant across the
+       whole invocation. */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   } else {
     /* The routine looks like it can be inlined. */
     routine->inlinable = TRUE;
