@@ -3502,8 +3502,9 @@ to by "path".
 {
   if (path != NULL) {
     if (path->base_class->is_virtual && path->next != NULL) {
-      sym_access = access_to_end_of_path(sym_access, path->next);
-      path = path->base_class->derivation;
+      check_assertion(path->base_class->
+                                  paths_to_virtual_base_class->preferred);
+      path = path->base_class->paths_to_virtual_base_class->derivation;
     }  /* if */
     /* Not at the end of the path -- make a recursive call to find the
        projected accessibility. */
