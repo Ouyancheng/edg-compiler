@@ -2432,16 +2432,14 @@ diagnostics.
 void update_variable_decl_modifiers(a_variable_ptr	variable,
 		  		    a_decl_modifier	new_modifiers,
 				    a_source_position	*position,
-                                    a_boolean		is_redecl,
-                                    a_boolean           is_def)
+                                    a_boolean		is_redecl)
 /*
 Update the decl_modifiers field of the variable entry to reflect the
 modifiers specified in new_modifiers.  If this is a redeclaration or a
 definition of a previously declared variable, make sure that the new
 modifiers are consistent with the previous declaration specified
 by variable.  position is used as the error position for any
-diagnostics.  is_redecl is TRUE if this is a redeclaration; is_def is TRUE
-if this is a definition.
+diagnostics.  is_redecl is TRUE if this is a redeclaration.
 */
 {
   a_boolean		any_invalid_redecl = FALSE;
@@ -2470,16 +2468,6 @@ if this is a definition.
           }  /* if */
           break;
         case dmt_thread:
-          break;
-        case dmt_selectany:
-          /* "selectany" is allowed only on variables that are defined and
-             have external linkage. */
-          if (variable->source_corresp.is_local_to_function ||
-              (variable->storage_class != (a_storage_class)sc_unspecified &&
-               (variable->storage_class != (a_storage_class)sc_extern ||
-                !is_def))) {
-            invalid_modifier = TRUE;
-          }  /* if */
           break;
         default:
           invalid_modifier = TRUE;
@@ -3459,8 +3447,7 @@ cross-reference output describing this declaration.
     }  /* if */
   }  /* if */
   update_variable_decl_modifiers(variable_ptr, decl_modifiers,
-                                 &locator->source_position,
-                                 redeclaration, is_variable_def);
+                                 &locator->source_position, redeclaration);
   /* Link the symbol to the IL variable entry. */
   sym->variant.variable.ptr = variable_ptr;
   if (*ext_sym != NULL &&
@@ -6513,9 +6500,8 @@ Return a pointer to the variable that is declared.
                      /*suppress_redecl_error=*/FALSE);
   /* Allocate the variable and bind the symbol to it. */
   vp = make_variable(type_ptr, storage_class, decl_scope_level);
-  update_variable_decl_modifiers(vp, decl_modifiers,
-                                 &locator.source_position,
-                                 /*is_redecl=*/FALSE, /*is_def=*/TRUE);
+  update_variable_decl_modifiers(vp, decl_modifiers, &locator.source_position,
+                                 /*is_redecl=*/FALSE);
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -7482,7 +7468,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean	               defines_something;
   a_decl_flag_set              dso_flags, do_flags;
   a_type_qualifier_set         qualifiers;
-  a_decl_modifier	       decl_modifiers;
+  a_decl_modifier	       decl_modifiers, local_decl_modifiers;
   a_decl_flag_set              dsi_flags, di_flags;
   a_symbol_ptr                 symbol_ptr, ext_sym;
   a_boolean	               decl_specifiers_omitted = FALSE;
@@ -8222,6 +8208,7 @@ continue_with_declaration:
       } else {
         has_initializer = FALSE;
       }  /* if */
+      local_decl_modifiers = decl_modifiers;
       is_variable_def = FALSE;
       is_tentative_definition = FALSE;
       if (local_is_old_style_param_decl) {
@@ -8249,14 +8236,25 @@ continue_with_declaration:
         /* All static data member declarations that that pass though this
            code are definitions. */
         is_variable_def = TRUE;
-        update_variable_decl_modifiers(var_ptr, decl_modifiers,
-                                       &locator.source_position,
-                                       /*is_redecl=*/TRUE, /*is_def=*/TRUE);
+#if DECL_MODIFIERS_IN_USE
+        if (microsoft_mode) {
+          /* "selectany" is allowed only on variables that have static
+              initialization and external linkage. */
+          if (has_initializer && (local_decl_modifiers & DM_SELECTANY)) {
+            /* Postpone the checking until the initializer is scanned. */
+            local_decl_modifiers &= ~DM_SELECTANY;
+          }  /* if */
+          /* Copy the decl-modifiers into the routine entry. */
+          update_variable_decl_modifiers(var_ptr, local_decl_modifiers,
+                                         &locator.source_position,
+                                         /*is_redecl=*/TRUE);
+        }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
       } else if (is_function) {
         /* A function declaration with no body. */
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
-                     decl_modifiers, &symbol_ptr, &linkage, &old_type,
+                     local_decl_modifiers, &symbol_ptr, &linkage, &old_type,
                      &ext_sym);
       } else {
         /* A variable declaration. */
@@ -8316,8 +8314,21 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
+#if DECL_MODIFIERS_IN_USE
+        if (microsoft_mode) {
+          /* "selectany" is allowed only on variables that have static
+              initialization and external linkage. */
+          if (has_initializer && (local_decl_modifiers & DM_SELECTANY) &&
+              depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+              (local_storage_class == (a_storage_class)sc_unspecified ||
+               local_storage_class == (a_storage_class)sc_extern)) {
+            /* Postpone the checking until the initializer is scanned. */
+            local_decl_modifiers &= ~DM_SELECTANY;
+          }  /* if */
+        }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
         decl_variable(&locator, local_storage_class, local_type_ptr,
-                      declarator_ssep, srk_flags, decl_modifiers,
+                      declarator_ssep, srk_flags, local_decl_modifiers,
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
@@ -8382,6 +8393,24 @@ continue_with_declaration:
         /* Fetch the type of the symbol again, since it might have been
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
+#if DECL_MODIFIERS_IN_USE
+        if ((decl_modifiers & ~local_decl_modifiers) == DM_SELECTANY) {
+          /* Checking for the "selectany" decl-modifier was deferred. */
+          if (var_ptr->init_kind == (an_init_kind)initk_static) {
+            /* Flag the variable. */
+            var_ptr->decl_modifiers |= DM_SELECTANY;
+          } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic) {
+            /* The "selectany" decl-modifier cannot appear with a dynamic
+               initialization. */
+            pos_st_diagnostic(es_discretionary_error,
+                              ec_decl_modifiers_invalid_for_this_decl,
+                              &locator.source_position,
+                              decl_modifier_names[dmt_selectany]);
+          } else {
+            /* Error in initializer. */
+          }  /* if */        
+        }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
       } else if (is_old_style_param_decl) {
         /* Don't worry about missing initializer. */
       } else if (is_variable_def && !is_error_locator(locator) &&
