@@ -1,5 +1,13 @@
 Version 3.4
 
+3/5/04   Microsoft compatibility: Comma separator for __declspec attributes
+
+In Microsoft modes, the front end now accepts an optional comma after a
+__declspec attribute (even after the last attribute).  For example:
+
+  struct __declspec(intrin_type, align(8)) struct S {};  // Okay.
+  struct __declspec(align(8),) struct T {};              // Okay.
+
 3/5/04   GNU mode: Attributes ignored on nondefining class declarations
 
 In GNU C and C++ modes, the front end now ignores attributes appearing

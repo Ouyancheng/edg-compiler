@@ -612,6 +612,11 @@ declaration of a class member.
         }  /* if */
       }  /* if */
       (void)get_token();
+      if (curr_token == tok_comma) {
+        /* Microsoft compilers accept an optional comma after __declspec
+           attributes (even after the last attribute). */
+        (void)get_token();
+      }  /* if */
     }  /* while */
     remove_stop_token(tok_rparen);
     /* Check for the closing right paren. */
