@@ -1121,7 +1121,12 @@ must free that list.
   a_boolean  okay;
   a_type_ptr base_dest_type = type_pointed_to(dest_type);
 
-  okay = conversion_from_class_possible(source_operand,
+  /* See WP [dcl.init.ref].  The source expression is required to be
+     an lvalue. */
+  *ambiguous = FALSE;
+  okay = (is_an_lvalue(source_operand) ||
+          any_cfront_mode() || microsoft_mode) &&
+         conversion_from_class_possible(source_operand,
                                         base_dest_type,
                                         (a_builtin_type_kind_set)BTK_NONE,
                                         /*need_lvalue_result=*/TRUE,
@@ -8049,7 +8054,6 @@ to be acceptable, and *conversion describes it.
                                                     &dropping_qualifiers,
                                                     &function_symbol);
     if (!direct_binding_possible && !curr_expr_kind_is_const() &&
-        is_an_lvalue(source_operand) &&
         is_class_struct_union_type(source_operand->type)) {
       /* It might be possible to convert the source operand to an lvalue
          via a conversion function, and then bind the reference directly to
