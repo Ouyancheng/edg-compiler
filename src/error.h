@@ -447,7 +447,9 @@ typedef enum /*an_error_code*/ {
   ec_bad_access_adjustment_with_overloading,
   ec_missing_user_defined_assignment_for_copy,
   ec_nonstd_array_cast,
-  ec_virtual_new_or_delete_not_allowed
+  ec_virtual_new_or_delete_not_allowed,
+  ec_class_with_op_new_but_no_op_delete,
+  ec_class_with_op_delete_but_no_op_new
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

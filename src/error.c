@@ -1287,6 +1287,12 @@ error code.
     case ec_virtual_new_or_delete_not_allowed:
       m = "operator %s() may not be declared virtual";
       break;
+    case ec_class_with_op_new_but_no_op_delete:
+      m = "class \"%s\" has an operator new() but no operator delete()";
+      break;
+    case ec_class_with_op_delete_but_no_op_new:
+      m = "class \"%s\" has an operator delete() but no operator new()";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
