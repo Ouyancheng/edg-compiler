@@ -375,9 +375,6 @@ or NULL otherwise.
     a_scope_depth depth = scope->depth_in_scope_stack;
 
     if (depth != NO_SCOPE_DEPTH) {
-      /* If the scope is on the scope stack in another translation unit, we
-         could get it, but that functionality is not needed at present.
-         Returning NULL would not be right in that case. */
       check_assertion_str(trans_unit_for_scope[scope->number] ==
                                                          curr_translation_unit,
                           "get_pointers_block_for_scope: wrong trans unit");
