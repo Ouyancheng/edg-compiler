@@ -1342,7 +1342,17 @@ returned set to TRUE.
       scan_class_parenthesized_initializer(vp_type, vp_type, &init_dip);
       /* If no dynamic init entry was created, there must have been an
          error. */
-      if (init_dip == NULL) init_err = TRUE;
+      if (init_dip == NULL) {
+        init_err = TRUE;
+      } else if (init_dip->destructor == NULL && cssp->destructor != NULL) {
+        /* The expression scan failed to add the constructor, so do it now. */
+
+        init_dip->destructor =
+                           select_destructor(vp_type, vp_type, source_pos,
+                                             /*honor_virtual=*/FALSE,
+                                             /*evaluated=*/TRUE,
+                                             /*suppress_access_check=*/FALSE);
+      }  /* if */
     } else {
       /* An entity with no constructor.  (If it's a C-style struct with no
          constructor, initialization with bitwise copy is allowed -- e.g.,
@@ -1434,33 +1444,32 @@ returned set to TRUE.
       init_con = alloc_unshared_constant(&constant);
       init_dip = NULL;
     }  /* if */
-    if (init_dip != NULL && init_dip->destructor != NULL) {
-      /* A destructor has already been supplied. */
-    } else if (cssp != NULL) {
-      /* Check for the existence of a destructor independently of checks for a
-         constructor.  This is to catch the unusual case in which a user has
-         defined a destructor but the object can be initialized without a
-         constructor. */
-      dtor = select_destructor(vp_type, vp_type, source_pos,
-                               /*honor_virtual=*/FALSE,
-                               /*evaluated=*/TRUE,
-                               /*suppress_access_check=*/FALSE);
-    }  /* if */
     if (init_dip == NULL) {
       check_assertion(init_con != NULL);
       /* There's no dynamic init entry because the need for one cannot be
          inferred from the initializer.  Nevertheless, create one if (1)
          there's a destructor associated with the type of the variable, or
          (2) it's an automatic variable. */
+
+      if (!init_err && cssp != NULL) {
+        /* Check for the existence of a destructor independently of checks
+           for a constructor.  This is to catch the unusual case in which a
+           user has defined a destructor but the object can be initialized
+           without a constructor. */
+        dtor = select_destructor(vp_type, vp_type, source_pos,
+                                 /*honor_virtual=*/FALSE,
+                                 /*evaluated=*/TRUE,
+                                 /*suppress_access_check=*/FALSE);
+      }  /* if */
       if (dtor != NULL || !has_static_storage_duration(vp->storage_class)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         init_dip->variant.constant = init_con;
         init_con = NULL;
+        /* If a destructor was found, add a pointer to it to the dynamic init
+           entry. */
+        init_dip->destructor = dtor;
       }  /* if */
     }  /* if */
-    /* If a destructor was found, add a pointer to it to the dynamic init
-       entry. */
-    if (dtor != NULL) init_dip->destructor = dtor;
     check_assertion((init_dip == NULL) != (init_con == NULL));
     if (init_dip != NULL) {
       /* Generate a dynamic initialization entry, attach it to the variable,
