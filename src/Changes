@@ -1,4 +1,4 @@
-Version 2.44
+Version 2.44, August 1, 2000
 
 7/31/00  Missing diagnostic on friend declaration with too many template
          parameter clauses
