@@ -1,5 +1,11 @@
 Version 3.6
 
+11/11/04 Sun compatibility: Arrays of abstract classes as parameter types
+
+In Sun mode, the front end now accepts function parameter types that are
+declared as arrays of abstract class types.  (See also Changes entry of
+10/7/04.)
+
 11/11/04 Microsoft compatibility: __declspec(align(...)) ignored on fields
 
 In Microsoft mode the object layout algorithm incorrectly ignored the

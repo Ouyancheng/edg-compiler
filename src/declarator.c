@@ -381,9 +381,10 @@ entries pointed to by *derived_type (and whose end is pointed to by
 *bottom_derived_type).  Aside from the purely mechanical issues of
 linking the entries, this routine also checks to see if the resulting
 type is legal.  If the type is for a parameter declaration, parameter_type
-is TRUE (in GNU C++ mode this relaxes the array of abstract class check).
-When microsoft_property is TRUE, some of these checks are omitted (because
-Microsoft compilers do little checking on the types of property fields).
+is TRUE (in Sun and GNU C++ modes this relaxes the array of abstract class
+check).  When microsoft_property is TRUE, some of these checks are omitted
+(because Microsoft compilers do little checking on the types of property
+fields).
 */
 {
   a_type_ptr              temp_type, prev_temp_type, tp;
@@ -459,7 +460,7 @@ Microsoft compilers do little checking on the types of property fields).
               err = TRUE;
             }  /* if */
           }  /* if */
-          if (!(gpp_mode && parameter_type) &&
+          if (!(parameter_type && (sun_mode || gpp_mode)) &&
               is_abstract_class_type(temp_type)) {
             /* An array type cannot have its element type be an abstract class
                type.  An exception in some modes are parameter types (since
