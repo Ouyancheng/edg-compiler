@@ -3962,7 +3962,7 @@ with a leading space.  *need_leading_space is set to TRUE in all cases.
   }  /* if */
   octl->output_str("__attribute__((");
   octl->output_str(attribute_name);
-  octl->output_str(")");
+  octl->output_str("))");
   *need_leading_space = TRUE;
 }  /* form_simple_attribute */
                                   
