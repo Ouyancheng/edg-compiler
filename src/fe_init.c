@@ -541,10 +541,26 @@ Open the intermediate language file.
   if (il_file_name == NULL) {
     /* No explicit IL file name was specified. */
 #if BACK_END_SHOULD_BE_CALLED
-    /* The back end will be run as part of the current program.
-       Use a temporary file. */
-    f_il_output = open_temp_file(/*binary_file=*/TRUE);
-    goto have_il_file;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING
+    if (suppress_il_lowering) {
+      /* By suppressing IL lowering, the back end cannot be run as part
+         of the current program.  The IL should be written to a default
+         IL file.  If the input file is stdin, the name cannot be
+         generated. */
+      if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
+        str_command_line_error("IL file name must be specified if input is ",
+                               primary_source_file_name);
+      }  /* if */
+      il_file_name = derived_name(primary_source_file_name, IL_FILE_SUFFIX);
+    } else {
+#endif /*IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING */
+      /* The back end will be run as part of the current program.
+         Use a temporary file. */
+      f_il_output = open_temp_file(/*binary_file=*/TRUE);
+      goto have_il_file;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING
+    }  /* if */
+#endif /*IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING */
 #else /* !BACK_END_SHOULD_BE_CALLED */
     /* The back end is in another program.  Generate a default
        IL file name.  If the input file is stdin, the name cannot be
@@ -618,7 +634,13 @@ Initialize everything that has to do with the front end.
   preproc_init();
   target_init();
 #if DO_IL_LOWERING
-  il_lower_init();
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  if (!suppress_il_lowering) {
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    il_lower_init();
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
 
   /* Push the file scope for the symbol table.  This is done after
