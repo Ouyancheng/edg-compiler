@@ -16,7 +16,7 @@ note that types now come out more in source order.  For example:
     };
   };
 
-Formerly, the types came out in the order D, B, D, A.  Now they come out
+Formerly, the types came out in the order D, B, C, A.  Now they come out
 in the order B, D, C, A.  That is, they are in source order if one
 considers the position of class definitions to be the closing brace.
 
