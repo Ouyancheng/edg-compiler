@@ -361,7 +361,10 @@ information, such as its address and translation unit.
   a_boolean			has_defn = FALSE, show_defn_state = FALSE;
 
   fprintf(f_debug, "%s", il_entry_kind_names[(int)kind]);
-  if (source_corresp_for_il_entry(entry, kind) != NULL) {
+  if (kind == iek_type) {
+    fprintf(f_debug, " ");
+    db_abbreviated_type((a_type_ptr)entry);
+  } else if (source_corresp_for_il_entry(entry, kind) != NULL) {
     fprintf(f_debug, " %s",
                      db_name_str((a_source_correspondence *)entry, kind));
   }  /* if */
