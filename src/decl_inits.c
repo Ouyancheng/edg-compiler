@@ -126,7 +126,8 @@ and return *err TRUE if there is an error of some kind.
     }  /* if */
     if (*err) {
       /* There was an error of some kind. */
-      error(ec_bad_initializer_type);
+      pos_ty2_error(ec_bad_initializer_type, &error_position,
+                    constant->type, *type);
       set_error_constant(constant);  
     }  /* if */
   }  /* if */
@@ -340,7 +341,7 @@ static a_constant_ptr get_initializer(a_type_ptr          *type,
                                       a_dynamic_init_ptr  *di_list,
                                       a_dynamic_init_ptr  *end_of_di_list,
                                       a_boolean           top_level,
-                                       a_boolean           *incomplete_init,
+                                      a_boolean           *incomplete_init,
                                       a_boolean           *nothing_taken)
 /*
 Scan a constant initializer or initializer list, and return a pointer to

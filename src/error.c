@@ -780,7 +780,8 @@ error code.
       m = "program too large to compile";
       break;
     case ec_bad_initializer_type:
-      m = "incorrect initial value type";
+      m =
+      "a value of type %t1 cannot be used to initialize an entity of type %t2";
       break;
     case ec_cannot_initialize:
       m = "%n may not be initialized";
@@ -851,7 +852,7 @@ error code.
       m = "invalid floating constant";
       break;
     case ec_incompatible_param:
-      m = "argument is incompatible with its prototype";
+      m = "argument of type %t1 is incompatible with parameter of type %t2";
       break;
     case ec_function_type_not_allowed:
       m = "a function type is not allowed here";
@@ -1284,7 +1285,8 @@ error code.
         "more than one instance of constructor %no matches the argument list:";
       break;
     case ec_bad_default_arg_type:
-      m = "default argument expression is incompatible with parameter";
+      m =
+     "default argument of type %t1 is incompatible with parameter of type %t2";
       break;
     case ec_return_type_cannot_distinguish_functions:
       m = "cannot overload functions distinguished by return type alone";
@@ -1735,7 +1737,8 @@ error code.
       m = "\"%s\" is not a function or static data member";
       break;
     case ec_bad_nontype_template_arg:
-      m = "argument is incompatible with corresponding template parameter";
+      m =
+    "argument of type %t1 is incompatible with template parameter of type %t2";
       break;
     case ec_init_needing_temp_not_allowed:
       m = "initialization requiring a temporary is not allowed";
@@ -2984,98 +2987,95 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
   while (*msg_ptr != '\0') {
     curr_segment->first_quote = NULL;
     curr_segment->second_quote = NULL;
-    switch (*msg_ptr) {
-      case '%':
-        /* This is the beginning of a parameter substitution descriptor. */
-        msg_ptr++;
-        switch (*msg_ptr) {
-          case 's':
-            curr_segment->kind = (a_message_segment_kind)msk_user_string;
-            curr_segment->variant.string.quoted = FALSE;
+    if (*msg_ptr == '%') {
+      /* This is the beginning of a parameter substitution descriptor. */
+      msg_ptr++;
+      switch (*msg_ptr) {
+        case 's':
+          curr_segment->kind = (a_message_segment_kind)msk_user_string;
+          curr_segment->variant.string.quoted = FALSE;
+          msg_ptr++;
+          if (*msg_ptr == 'q') {
+            curr_segment->variant.string.quoted = TRUE;
             msg_ptr++;
-            if (*msg_ptr == 'q') {
-              curr_segment->variant.string.quoted = TRUE;
-              msg_ptr++;
-            }
-            goto check_for_seq_number;
-          case 't':
-            curr_segment->kind = (a_message_segment_kind)msk_type;
-            msg_ptr++;
-            goto check_for_seq_number;
-          case 'p':
-            curr_segment->kind = (a_message_segment_kind)msk_source_position;
-	    msg_ptr++;
-            goto check_for_seq_number;
-          case 'n':
+          }  /* if */
+          goto check_for_seq_number;
+        case 't':
+          curr_segment->kind = (a_message_segment_kind)msk_type;
+          msg_ptr++;
+          goto check_for_seq_number;
+        case 'p':
+          curr_segment->kind = (a_message_segment_kind)msk_source_position;
+          msg_ptr++;
+          goto check_for_seq_number;
+        case 'n':
 #if STANDALONE_UTILITY_PROGRAM
-            /* Treat this %n as a continuation of the message template.
-               No symbol name expansion is possible. */
-            msg_ptr--;
-            goto text_segment;
+          /* Treat this %n as a continuation of the message template.
+             No symbol name expansion is possible. */
+          msg_ptr--;
+          goto text_segment;
 #else /* !STANDALONE_UTILITY_PROGRAM */
-            /* This is a symbol name insertion point. */
-            curr_segment->kind = (a_message_segment_kind)msk_symbol;
-            curr_segment->variant.symbol.full_type = FALSE;
-            curr_segment->variant.symbol.name_only = FALSE;
-            curr_segment->variant.symbol.decl_pos = FALSE;
+          /* This is a symbol name insertion point. */
+          curr_segment->kind = (a_message_segment_kind)msk_symbol;
+          curr_segment->variant.symbol.full_type = FALSE;
+          curr_segment->variant.symbol.name_only = FALSE;
+          curr_segment->variant.symbol.decl_pos = FALSE;
+          msg_ptr++;
+          /* Check for formatting options. */
+          if (*msg_ptr == 'f') {
+            /* Display complete type and object name. */
+            curr_segment->variant.symbol.full_type = TRUE;
             msg_ptr++;
-            /* Check for formatting options. */
-            if (*msg_ptr == 'f') {
-              /* Display complete type and object name. */
-              curr_segment->variant.symbol.full_type = TRUE;
-              msg_ptr++;
-            } else if (*msg_ptr == 'o') {
-              /* Display only the entity name. */
-              curr_segment->variant.symbol.name_only = TRUE;
-              msg_ptr++;
-            }  /* if */
-            if (*msg_ptr == 'd') {
-              /* Display the declaration position following the entity name. */
-              curr_segment->variant.symbol.decl_pos = TRUE;
-              msg_ptr++;
-            }  /* if */
+          } else if (*msg_ptr == 'o') {
+            /* Display only the entity name. */
+            curr_segment->variant.symbol.name_only = TRUE;
+            msg_ptr++;
+          }  /* if */
+          if (*msg_ptr == 'd') {
+            /* Display the declaration position following the entity name. */
+            curr_segment->variant.symbol.decl_pos = TRUE;
+            msg_ptr++;
+          }  /* if */
 #endif /* STANDALONE_UTILITY_PROGRAM */
 check_for_seq_number:
-            curr_segment->sequence_no = 1;
-            if (isdigit((unsigned char)*msg_ptr)) {
-              i = (unsigned)*msg_ptr - (unsigned)'0';
-              if (i > 0 && i <= INCR_MSG_SEGMENT_SIZE) {
-                curr_segment->sequence_no = i;
-                msg_ptr++;
-              }  /* if */
+          curr_segment->sequence_no = 1;
+          if (isdigit((unsigned char)*msg_ptr)) {
+            i = (unsigned)*msg_ptr - (unsigned)'0';
+            if (i > 0 && i <= INCR_MSG_SEGMENT_SIZE) {
+              curr_segment->sequence_no = i;
+              msg_ptr++;
             }  /* if */
-            break;
-          case '%':
-            /* The string "%%" is used to insert a single "%" in the output. */
-            goto text_segment;
+          }  /* if */
+          break;
+        case '%':
+          /* The string "%%" is used to insert a single "%" in the output. */
+          goto text_segment;
 #if CHECKING
-          default:
-            internal_error(
+        default:
+          internal_error(
          "construct_message_segments: unknown message substitution parameter");
 #endif /* CHECKING */
-        }  /* switch */
-        break;
-
-      default:
+      }  /* switch */
+    } else {
 text_segment:
-        /* This is the first character of a text segment. */
-        curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
-        curr_segment->variant.msg_part = msg_ptr;
-        /* Skip the first character when looking for a percent sign.  The
-           first character may actually be a percent sign when the
-           original message contained a "%%" used to insert a single
-           "%" in the output. */
-        end_ptr = strchr(msg_ptr+1, '%');
-        if (end_ptr == NULL) {
-          /* This part is the end of the message template. */
-          curr_segment->length = strlen(msg_ptr);
-        } else {
-          /* A substitution parameter has been found.  The length is the
-	     difference of the two pointers. */
-          curr_segment->length = end_ptr - msg_ptr;
-        }  /* if */
-        msg_ptr += curr_segment->length;
-    }  /* switch */
+      /* This is the first character of a text segment. */
+      curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
+      curr_segment->variant.msg_part = msg_ptr;
+      /* Skip the first character when looking for a percent sign.  The
+         first character may actually be a percent sign when the
+         original message contained a "%%" used to insert a single
+         "%" in the output. */
+      end_ptr = strchr(msg_ptr+1, '%');
+      if (end_ptr == NULL) {
+        /* This part is the end of the message template. */
+        curr_segment->length = strlen(msg_ptr);
+      } else {
+        /* A substitution parameter has been found.  The length is the
+           difference of the two pointers. */
+        curr_segment->length = end_ptr - msg_ptr;
+      }  /* if */
+      msg_ptr += curr_segment->length;
+    }  /* if */
 
     /* Prepare for the next message segment. */
     if (curr_segment->next == NULL) {
@@ -4763,6 +4763,22 @@ indicated position.
 }  /* pos_ty_remark */
 
 
+void pos_ty2_remark(an_error_code     error_code,
+                    a_source_position *error_pos,
+                    a_type_ptr        type1,
+                    a_type_ptr        type2)
+/*
+Report the indicated remark (with the two indicated types) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type1;
+  error_msg_types[2] = type2;
+  diag_message(error_code, error_pos, es_remark, dck_standalone);
+}  /* pos_ty2_remark */
+
+
 void type_remark(an_error_code error_code,
                  a_type_ptr    type)
 /*
@@ -4857,6 +4873,43 @@ indicated position.
   error_msg_types[1] = type;
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty_warning */
+
+
+void pos_ty2_warning(an_error_code     error_code,
+                     a_source_position *error_pos,
+                     a_type_ptr        type1,
+                     a_type_ptr        type2)
+/*
+Report the indicated warning (with the two indicated types) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type1;
+  error_msg_types[2] = type2;
+  diag_message(error_code, error_pos, es_warning, dck_standalone);
+}  /* pos_ty2_warning */
+
+
+void pos_opt_ty2_warning(an_error_code     error_code,
+                         a_source_position *error_pos,
+                         a_type_ptr        type1,
+                         a_type_ptr        type2)
+/*
+Report the indicated warning (with the two indicated types) at the
+indicated position.  If the error message has no fill-ins, do not
+put the types in the message.
+*/
+{
+  init_error_params();
+  /* See if the error message contains a fill-in for a type.  If so,
+     put out the types. */
+  if (strstr(error_text(error_code) , "%t") != NULL) {
+    error_msg_types[1] = type1;
+    error_msg_types[2] = type2;
+  }  /* if */
+  diag_message(error_code, error_pos, es_warning, dck_standalone);
+}  /* pos_opt_ty2_warning */
 
 
 void type_warning(an_error_code error_code,
@@ -5005,6 +5058,27 @@ indicated position.
   error_msg_types[2] = type2;
   diag_message(error_code, error_pos, es_error, dck_standalone);
 }  /* pos_ty2_error */
+
+
+void pos_opt_ty2_error(an_error_code     error_code,
+                       a_source_position *error_pos,
+                       a_type_ptr        type1,
+                       a_type_ptr        type2)
+/*
+Report the indicated error (with the two indicated types) at the
+indicated position.  If the error message has no fill-ins, do not
+put the types in the message.
+*/
+{
+  init_error_params();
+  /* See if the error message contains a fill-in for a type.  If so,
+     put out the types. */
+  if (strstr(error_text(error_code) , "%t") != NULL) {
+    error_msg_types[1] = type1;
+    error_msg_types[2] = type2;
+  }  /* if */
+  diag_message(error_code, error_pos, es_error, dck_standalone);
+}  /* pos_opt_ty2_error */
 
 
 void type_error(an_error_code error_code,

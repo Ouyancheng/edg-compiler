@@ -7803,11 +7803,13 @@ Return the constant in *constant.
     if (strict_ansi_mode) {
       if (strict_ansi_error_severity != es_error) {
         okay = TRUE;
-        pos_warning(ec_bad_nontype_template_arg, &result.position);
+        pos_ty2_warning(ec_bad_nontype_template_arg, &result.position,
+                        result.type, param_type);
       }  /* if */
     } else {
       okay = TRUE;
-      pos_remark(ec_bad_nontype_template_arg, &result.position);
+      pos_ty2_remark(ec_bad_nontype_template_arg, &result.position,
+                     result.type, param_type);
     }  /* if */
   }  /* if */
   if (okay) {
@@ -7835,7 +7837,8 @@ Return the constant in *constant.
     if (arg_summary.match_level == aml_error || is_error_operand(&result)) {
       /* Error already issued. */
     } else {
-      pos_error(ec_bad_nontype_template_arg, &result.position);
+      pos_ty2_error(ec_bad_nontype_template_arg, &result.position,
+                    result.type, param_type);
     }  /* if */
     set_error_constant(constant);
   }  /* if */

@@ -4874,6 +4874,7 @@ equivalent pointer case).
 
 static a_boolean conversion_possible(an_operand         *source_operand,
                                      a_type_ptr         dest_type,
+                                     a_type_ptr         orig_dest_type,
                                      a_boolean          is_initialization,
                                      an_error_code      incompatible_err,
                                      a_source_position  *err_pos,
@@ -4891,6 +4892,8 @@ done, not when we're just wondering if it can be done, because it does
 operand transformations on source_operand and issues errors.  The
 destination type may not be a reference type (the caller should have
 rewritten that case in terms of the equivalent pointer case).
+orig_dest_type is the original destination type (not rewritten) to be
+used in error messages.
 */
 {
   a_boolean     okay = FALSE, failed = FALSE, ambiguous;
@@ -4977,14 +4980,17 @@ rewritten that case in terms of the equivalent pointer case).
       okay = TRUE;
       /* Warn on oddball conversions. */
       if (warning_suggested != ec_no_error) {
-        pos_warning(warning_suggested, err_pos);
+        /* The "opt_ty2" routine puts in the types if the specific error
+           message has fill-ins for them, and otherwise ignores the types. */
+        pos_opt_ty2_warning(warning_suggested, err_pos,
+                            source_type, orig_dest_type);
       }  /* if */
     } else {
       /* The conversion is not legal. */
-      /* Note:  If this is ever changed to display the types, remember that
-         prep_initializer_operand changes reference types to pointer types
-         before calling this routine. */
-      pos_error(incompatible_err, err_pos);
+      /* The "opt_ty2" routine puts in the types if the specific error
+         message has fill-ins for them, and otherwise ignores the types. */
+      pos_opt_ty2_error(incompatible_err, err_pos,
+                        source_type, orig_dest_type);
       conv_to_error_operand(source_operand);
     }  /* if */
   }  /* if */
@@ -5281,6 +5287,7 @@ just a cast.
 static a_boolean conversion_usable_or_possible(
                                     an_operand        *source_operand,
                                     a_type_ptr        dest_type,
+                                    a_type_ptr        orig_dest_type,
                                     a_boolean         is_initialization,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos,
@@ -5292,7 +5299,8 @@ for details on the parameters).  Return TRUE if it can.  If *p_user_conversion
 is non-NULL, the feasibility of the conversion has previously been determined.
 Otherwise, set *p_user_conversion to point to *local_user_conversion
 (probably a local variable in the caller), and call conversion_possible
-to fill in the conversion information.
+to fill in the conversion information.  orig_dest_type is the destination
+type before any rewriting, for use in error messages.
 */
 {
   a_boolean possible;
@@ -5304,7 +5312,7 @@ to fill in the conversion information.
     prep_for_known_possible_conversion(source_operand, *p_user_conversion);
   } else {
     *p_user_conversion = local_user_conversion;
-    possible = conversion_possible(source_operand, dest_type,
+    possible = conversion_possible(source_operand, dest_type, orig_dest_type,
                                    is_initialization,
                                    incompatible_err, err_pos,
                                    *p_user_conversion);
@@ -5333,7 +5341,7 @@ any required conversion.
   a_user_conv_descr local_user_conversion;
 
   /* See if the conversion is possible. */
-  if (conversion_usable_or_possible(source_operand, dest_type,
+  if (conversion_usable_or_possible(source_operand, dest_type, dest_type,
                                     is_initialization,
                                     incompatible_err, err_pos,
                                     &user_conversion,
@@ -5665,9 +5673,9 @@ do copy constructor elision in C++ mode.
   *dip = NULL;
   /* Look for a constructor to convert the expression to the required
      class type. */
-  if (conversion_possible(source_operand, dest_type,
+  if (conversion_possible(source_operand, dest_type, dest_type,
                           /*is_initialization=*/TRUE,
-                          ec_bad_initializer_type,
+                          ec_bad_initializer_type,  /* Arbitrary. */
                           &source_operand->position,
                           &user_conversion)) {
     /* The conversion is possible.  Determine the routine and argument
@@ -5759,6 +5767,7 @@ of the temporary.  Only used in C++ mode.
 
 static void convert_operand_into_temp(an_operand        *source_operand,
                                       a_type_ptr        dest_type,
+                                      a_type_ptr        orig_dest_type,
                                       a_user_conv_descr *user_conversion,
                                       an_error_code     incompatible_err,
                                       a_boolean         *err)
@@ -5767,11 +5776,12 @@ Convert source_operand to dest_type, put it into a newly-created temporary,
 and return an rvalue for the address of the temporary in source_operand.
 If the conversion is not possible, issue the error incompatible_err,
 convert source_operand to an error operand, and return *err TRUE.
-If user_conversion is non-NULL, the conversion is already known to be
-possible, and *user_conversion describes the user-defined conversion
-part of it, if any.  This is used to convert the initial value in a
-reference initialization to a temporary that the reference will point
-to.  Only used in C++.
+orig_dest_type is the destination type before any rewriting, for use
+in error messages.  If user_conversion is non-NULL, the conversion is
+already known to be possible, and *user_conversion describes the
+user-defined conversion part of it, if any.  This routine is used to
+convert the initial value in a reference initialization to a temporary
+that the reference will point to.  Only used in C++.
 */
 {
   a_user_conv_descr local_user_conversion;
@@ -5782,7 +5792,7 @@ to.  Only used in C++.
   *err = FALSE;
   orig_operand = *source_operand;
   /* See if the conversion is possible. */
-  if (conversion_usable_or_possible(source_operand, dest_type,
+  if (conversion_usable_or_possible(source_operand, dest_type, orig_dest_type,
                                     /*is_initialization=*/TRUE,
                                     incompatible_err,
                                     &source_operand->position,
@@ -6064,7 +6074,7 @@ user-defined conversion part (if any) of any required conversion.
            temporary. */
         /* The temp has the same type as the operand, but without
            type qualifiers. */
-        convert_operand_into_temp(source_operand, unqual_dest_type,
+        convert_operand_into_temp(source_operand, unqual_dest_type, dest_type,
                                   user_conversion, incompatible_err, &err);
         conversion_to_temp_done = TRUE;
       }  /* if */
@@ -6147,6 +6157,7 @@ conversion part (if any) of any required conversion.
     /* Argument is initialized by a copy constructor. */
     /* See if the conversion is possible. */
     if (conversion_usable_or_possible(source_operand, formal_param->type,
+                                      formal_param->type,
                                       /*is_initialization=*/TRUE,
                                       err_code, &source_operand->position,
                                       &user_conversion,
@@ -6189,7 +6200,7 @@ an error).  err_code is the error code to be used in case of error.
   orig_operand = *source_operand;
   *dip = NULL;
   /* See if the conversion is possible. */
-  if (conversion_possible(source_operand, required_type,
+  if (conversion_possible(source_operand, required_type, required_type,
                           /*is_initialization=*/TRUE,
                           err_code, &source_operand->position,
                           &user_conversion)) {
