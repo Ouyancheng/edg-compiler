@@ -2489,22 +2489,20 @@ user-defined conversions.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
-            if (orig_expr != NULL) {
-              local_constant.expr = orig_expr;
-              if (!is_implicit_cast || operand->type != new_type) {
-                /* Record a cast expression for the constant (inhibit normal
-                   diagnostics during that process, since they were already
-                   issued). */
-                an_error_severity  saved_error_threshold = error_threshold;
+            local_constant.expr = orig_expr;
+            if (!is_implicit_cast || operand->type != new_type) {
+              /* Record a cast expression for the constant (inhibit normal
+                 diagnostics during that process, since they were already
+                 issued). */
+              an_error_severity  saved_error_threshold = error_threshold;
 
-                error_threshold = es_catastrophe;
-                local_constant.expr = make_node_from_operand(operand);
-                add_cast_to_node(&local_constant.expr, new_type,
-                                 check_cast_access, is_implicit_cast,
-                                 is_reinterpret_cast, reinterpret_semantics,
-                                 &operand->position);
-                error_threshold = saved_error_threshold;
-              }  /* if */
+              error_threshold = es_catastrophe;
+              local_constant.expr = make_node_from_operand(operand);
+              add_cast_to_node(&local_constant.expr, new_type,
+                               check_cast_access, is_implicit_cast,
+                               is_reinterpret_cast, reinterpret_semantics,
+                               &operand->position);
+              error_threshold = saved_error_threshold;
             }  /* if */
           }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
