@@ -921,6 +921,28 @@ that were either explicitly specified or deduced elsewhere.
 
 #endif /* ifndef LANG_FEAT_H */
 
+/*
+Flag that is TRUE if the tiebreaker processing in overload resolution
+(e.g., to decide between "void f(int &)" and "void f(const int &)")
+should be done late by default.  It is the initial value of the
+global variable do_late_ovl_res_tiebreaker.  FALSE is the setting
+required for standard conformance.
+*/
+#ifndef DEFAULT_DO_LATE_OVL_RES_TIEBREAKER
+#define DEFAULT_DO_LATE_OVL_RES_TIEBREAKER FALSE
+#endif /* ifndef DEFAULT_DO_LATE_OVL_RES_TIEBREAKER */
+
+/*
+Flag that is TRUE if, in overload resolution tiebreaker processing, two
+matches can be compared for the "addition of cv-qualifier under reference"
+tiebreaker even if only one of them is a reference, by default.  This is
+the initial value of the global variable single_ref_qual_ovl_res_tiebreaker.
+FALSE is the setting required for standard conformance.
+*/
+#ifndef DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER
+#define DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER FALSE
+#endif /* ifndef DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -1052,6 +1052,8 @@ is enabled.
   ignore_exception_specifications = microsoft_bugs;
   /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
   operator_overloading_on_enums_enabled = microsoft_version >= 1000;
+  do_late_ovl_res_tiebreaker = microsoft_bugs;
+  single_ref_qual_ovl_res_tiebreaker = microsoft_bugs;
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1281,6 +1283,7 @@ common_cfront_mode_settings:
         extern_inline_allowed = FALSE;
         operator_overloading_on_enums_enabled = FALSE;
         ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
+        do_late_ovl_res_tiebreaker = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -2006,6 +2009,8 @@ enable_microsoft_mode:
       /* Set optional features to standard settings for strict C++ mode. */
       allow_copy_assignment_op_with_base_class_param = FALSE;
       ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
+      do_late_ovl_res_tiebreaker = FALSE;
+      single_ref_qual_ovl_res_tiebreaker = FALSE;
       if (!(option_kind_used[(int)optk_alternative_tokens])) {
         /* If alternative_tokens was not explicitly set by a command line
            option, set it now. */

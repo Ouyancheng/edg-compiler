@@ -914,6 +914,30 @@ EXTERN a_boolean
 			   that were either explicitly specified or deduced
 			   elsewhere. */
 
+EXTERN a_boolean
+		do_late_ovl_res_tiebreaker
+#if VAR_INITIALIZERS
+                                          = DEFAULT_DO_LATE_OVL_RES_TIEBREAKER
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if the tiebreaker processing in overload
+			   resolution (e.g., to decide between "void f(int &)"
+			   and "void f(const int &)") should be done late.
+			   FALSE is the setting required for standard
+			   conformance. */
+
+EXTERN a_boolean
+		single_ref_qual_ovl_res_tiebreaker
+#if VAR_INITIALIZERS
+                                  = DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if, in overload resolution tiebreaker
+			   processing, two matches can be compared for the
+			   "addition of cv-qualifier under reference"
+			   tiebreaker even if only one of them is a reference.
+			   FALSE is the setting required for standard
+			   conformance.  Ignored in cfront mode. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

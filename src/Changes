@@ -1,5 +1,49 @@
 Version 2.37
 
+9/11/97   Overload resolution tie-breaker processing updated
+
+The handling of "tie-breakers" in overload resolution has been updated
+to conform to the draft standard.  The tie-breakers are now checked
+"early" (at the same time as other comparisons of the level of match
+for a single argument) rather than "late" (at the function level, to
+decide between two functions for which all the argument matches look
+equally good).
+
+  void f(int *, int);
+  void f(const int *, short) {}
+  int main () {
+    int *p;
+    short s;
+    f(p, s);  // Should be ambiguous (with "early" tiebreaker)
+    return 0;
+  }
+
+This behavior is controlled by the variable do_late_ovl_res_tiebreaker
+and the configuration macro DEFAULT_DO_LATE_OVL_RES_TIEBREAKER.
+There is, at present, no associated command-line option, but the
+appropriate setting is established in strict mode (FALSE), cfront
+mode (TRUE), and Microsoft bugs mode (TRUE).
+
+On a related issue, the tie-breaker for adding cv-qualifiers under
+a reference type now applies only if both parameters being considered
+have reference types:
+
+  void f(int, short) {}
+  void f(const int&, char);
+  int main () {
+    int i;
+    f(i, 0);  // Now ambiguous; tie-breaker does not apply
+    return 0;
+  }
+
+This behavior is controlled by the variable single_ref_qual_ovl_res_tiebreaker
+and the configuration macro DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER.
+There is, at present, no associated command-line option, but the
+appropriate setting is established in strict mode (FALSE) and
+Microsoft bugs mode (TRUE).  Cfront mode uses a different
+algorithm for this tie-breaker (adjusted slightly for this change)
+and the setting of the variable is ignored in that mode.
+
 9/10/97   Microsoft compatibility: __declspec(dllimport) with inline function
           definition
 

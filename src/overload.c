@@ -2489,7 +2489,7 @@ in [over.ics.rank].
        struct C : public B {};
        void f(A*);
        void f(B*);
-       main () {
+       int main () {
          C c;
          f(&c);  // C* -> B* is better than C* -> B* -> A*
        }
@@ -2563,6 +2563,139 @@ have_cmp:;
 }  /* compare_standard_conversions */
 
 
+/*
+Return TRUE if the indicated parameter type is a reference type, or if
+it is a pointer type for the implicit "this" parameter, which is treated
+by the standard as a reference-equivalent in overload resolution.
+*/
+#define is_ref_or_ref_equivalent(param_type, arg_match) \
+  (is_reference_type(param_type) || \
+   ((arg_match)->is_match_for_this_param && is_pointer_type(param_type)))
+
+
+static int compare_argument_tiebreakers(an_arg_match_summary_ptr arg_match1,
+                                        an_arg_match_summary_ptr arg_match2)
+/*
+arg_match1 and arg_match2 are the argument match summaries for the
+corresponding parameters of two different functions.  See if any tiebreakers
+apply that would make one better than the other, and return 
+
+  +1 if arg_match1 is better than arg_match2,
+   0 if arg_match1 and arg_match2 are equally good, or
+  -1 if arg_match1 is worse than arg_match2.
+
+*/
+{
+  int cmp = 0;
+
+  /* We're looking for cases like
+       void f(const int *);
+       void f(      int *);
+       int *p;
+       int main () {
+         f(p);  // Picks f(int *); f(const int *) is worse because it adds
+                // type qualifiers under a pointer or reference.
+       }
+  */
+  check_assertion(arg_match1 != NULL && arg_match2 != NULL);
+  if (arg_match1->conversion.std.type_qualifiers_added ||
+      arg_match2->conversion.std.type_qualifiers_added) {
+    /* There is the possibility of a tie-breaker because of a difference
+       in adding cv-qualifiers. */
+    /* Get the corresponding parameter types. */
+    a_type_ptr param_type1 = arg_match1->param_type;
+    a_type_ptr param_type2 = arg_match2->param_type;
+
+    /* Some arguments have no parameter type (e.g., an ellipsis match). */
+    if (param_type1 != NULL && param_type2 != NULL) {
+      if (any_cfront_mode()) {
+        /* cfront has a very simple tiebreaker test for adding cv-qualifiers.
+           It applies only when both are pointers or references (except in
+           cfront 2.1 mode), and either the match is exact, or it's a
+           derived-to-base conversion on matching a "this" parameter. */
+        if ((cfront_2_1_mode ||
+             (is_ptr_or_ref_type(param_type1) &&
+              is_ptr_or_ref_type(param_type2))) &&
+            (arg_match1->match_level == (an_arg_match_level)aml_exact ||
+             (arg_match1->is_match_for_this_param &&
+              arg_match2->is_match_for_this_param))) {
+          if (arg_match1->conversion.std.type_qualifiers_added &&
+              !arg_match2->conversion.std.type_qualifiers_added) {
+            /* Qualifiers are added for param_type1 and not for param_type2,
+               so param_type2 is better. */
+            cmp = -1;
+          } else if (arg_match2->conversion.std.type_qualifiers_added &&
+                     !arg_match1->conversion.std.type_qualifiers_added) {
+            /* Qualifiers are added for param_type2 and not for param_type1,
+               so param_type1 is better. */
+            cmp = 1;
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Not cfront mode. */
+        a_boolean qualifiers_added;
+        /* Drop a reference type from the top of the parameter types,
+           if present.  This allows testing for a difference in cv-qualifiers
+           immediately below the reference, and also for a difference deeper
+           down in pointer and pointer-to-member types, which would
+           make one conversion sequence a subsequence of the other. */
+        a_boolean param1_is_ref =
+                             is_ref_or_ref_equivalent(param_type1, arg_match1);
+        a_boolean param2_is_ref =
+                             is_ref_or_ref_equivalent(param_type2, arg_match2);
+        if (single_ref_qual_ovl_res_tiebreaker) {
+          /* Nonstandard approach: drop the reference type on either
+             parameter regardless of whether both are references. */
+          if (param1_is_ref) param_type1 = type_pointed_to(param_type1);
+          if (param2_is_ref) param_type2 = type_pointed_to(param_type2);
+        } else {
+          /* Standard approach: drop the reference types only if both are
+             references. */
+          if (param1_is_ref && param2_is_ref) {
+            param_type1 = type_pointed_to(param_type1);
+            param_type2 = type_pointed_to(param_type2);
+          }  /* if */
+        }  /* if */
+        if (arg_match1->conversion.std.type_qualifiers_added &&
+            same_type_with_added_qualifiers(param_type2, param_type1,
+                                            /*ignore_qualifiers=*/FALSE,
+                                            &qualifiers_added) &&
+            qualifiers_added) {
+          /* param_type1 has more qualifiers than param_type2, and the
+             types are otherwise compatible.  Therefore fewer qualifiers
+             are added to get to param_type2, and argument 2 is better. */
+          cmp = -1;
+        } else if (arg_match2->conversion.std.type_qualifiers_added &&
+                   same_type_with_added_qualifiers(param_type1, param_type2,
+                                                   /*ignore_qualifiers=*/FALSE,
+                                                   &qualifiers_added) &&
+                   qualifiers_added) {
+          /* param_type2 has more qualifiers than param_type1, and the
+             types are otherwise compatible.  Therefore fewer qualifiers
+             are added to get to param_type1, and argument 1 is better. */
+          cmp = 1;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Use of an anachronism (e.g., calling a const function for a
+     non-const object) can break a tie. */
+  if (cmp == 0 &&
+      arg_match1->anachronism_used != arg_match2->anachronism_used) {
+    if (arg_match1->anachronism_used) {
+      /* Argument 1 uses an anachronism and argument 2 does not, so
+         argument 2 is better. */
+      cmp = -1;
+    } else {
+      /* Argument 2 uses an anachronism and argument 1 does not, so cfp1
+         is better. */
+      cmp = 1;
+    }  /* if */
+  }  /* if */
+  return cmp;
+}  /* compare_argument_tiebreakers */
+
+
 static int compare_arg_match_levels(an_arg_match_summary *arg_match1,
                                     an_arg_match_summary *arg_match2)
 /*
@@ -2583,6 +2716,10 @@ Compare two argument match summary entries and return
   } else if ((int)arg_match1->match_level > (int)arg_match2->match_level) {
     /* arg_match2 is better. */
     cmp = -1;
+  } else if (!do_late_ovl_res_tiebreaker &&
+             (cmp=compare_argument_tiebreakers(arg_match1, arg_match2)) != 0) {
+    /* The argument tiebreakers (applied early, which is the standard-
+       conforming way) prefer one match over the other. */
   } else {
     /* The matches are equal in terms of match level.  One can still be
        better than the other in some cases. */
@@ -2627,30 +2764,8 @@ entry to the next argument match.
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
 
 
-static a_type_ptr drop_tiebreaker_ref_ptr_types(
-                                           a_type_ptr               param_type,
-                                           an_arg_match_summary_ptr arg)
-/*
-Drop a reference type from the top of the indicated type, or a pointer
-type if this is a "this" parameter (since that is treated like a
-reference in the standard).  Then return the modified type.  This is
-used in preparing a parameter type for comparison in the const tie-breaker
-processing.  arg is the argument match entry for the parameter, which
-indicates whether or not the parameter is a "this" parameter.
-*/
-{
-  /* Drop a first-level reference (or the similar pointer in the "this"
-     parameter case). */
-  if (is_reference_type(param_type) ||
-      (arg->is_match_for_this_param && is_pointer_type(param_type))) {
-    param_type = type_pointed_to(param_type);
-  }  /* if */
-  return param_type;
-}  /* drop_tiebreaker_ref_ptr_types */
-
-
-static int compare_argument_tiebreakers(a_candidate_function_ptr cfp1,
-                                        a_candidate_function_ptr cfp2)
+static int compare_late_tiebreakers(a_candidate_function_ptr cfp1,
+                                    a_candidate_function_ptr cfp2)
 /*
 Compare the argument matches of the indicated candidate function calls,
 which are equally good overall so far, and look for tie-breakers.
@@ -2660,119 +2775,42 @@ Return
    0 if cfp1 and cfp2 are equally good, or
   -1 if cfp1 is worse than cfp2.
 
-This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
+This routine is used only when checking the tiebreakers "late", i.e.,
+after all the argument matches for two functions have been found to be
+otherwise equivalent.  This is nonstandard, but it's what some compilers
+(e.g., cfront) do.
 */
 {
   int                      result_cmp = 0;
   an_arg_match_summary_ptr arg1, arg2;
-  a_type_ptr               param_type1, param_type2;
 
-  /* We're looking for cases like
-       void f(const int *);
-       void f(      int *);
-       int *p;
-       main () {
-         f(p);  // Picks f(int *); f(const int *) is worse because it adds
-                // type qualifiers under a pointer or reference.
-       }
-  */
-  /* Compare each argument. */
-  for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
-       arg1 != NULL;
-       arg1 = arg1->next, arg2 = arg2->next) {
-    int cmp = 0;
-    check_assertion(arg2 != NULL);
-    if (arg1->conversion.std.type_qualifiers_added ||
-        arg2->conversion.std.type_qualifiers_added) {
-      /* There is the possibility of a tie-breaker because of a difference
-         in adding cv-qualifiers. */
-      /* Get the corresponding parameter types. */
-      param_type1 = arg1->param_type;
-      param_type2 = arg2->param_type;
-      /* Some arguments have no parameter type (e.g., an ellipsis match). */
-      if (param_type1 != NULL && param_type2 != NULL) {
-        if (any_cfront_mode()) {
-          /* cfront has a very simple tiebreaker test for adding cv-qualifiers.
-             It applies only when the match is exact, or it's a derived-to-base
-             conversion on matching a "this" parameter. */
-          if (arg1->match_level == (an_arg_match_level)aml_exact ||
-              (arg1->is_match_for_this_param &&
-               arg2->is_match_for_this_param)) {
-            if (arg1->conversion.std.type_qualifiers_added &&
-                !arg2->conversion.std.type_qualifiers_added) {
-              /* Qualifiers are added for param_type1 and not for param_type2,
-                 so param_type2 is better. */
-              cmp = -1;
-            } else if (arg2->conversion.std.type_qualifiers_added &&
-                       !arg1->conversion.std.type_qualifiers_added) {
-              /* Qualifiers are added for param_type2 and not for param_type1,
-                 so param_type1 is better. */
-              cmp = 1;
-            }  /* if */
-          }  /* if */
-        } else {
-          /* Not cfront mode. */
-          a_boolean qualifiers_added;
-          /* Drop a reference type from the top of the parameter types,
-             if present.  This allows testing for a difference in cv-qualifiers
-             immediately below the reference, and also for a difference deeper
-             down in pointer and pointer-to-member types, which would
-             make one conversion sequence a subsequence of the other. */
-          param_type1 = drop_tiebreaker_ref_ptr_types(param_type1, arg1);
-          param_type2 = drop_tiebreaker_ref_ptr_types(param_type2, arg2);
-          if (arg1->conversion.std.type_qualifiers_added &&
-              same_type_with_added_qualifiers(param_type2, param_type1,
-                                              /*ignore_qualifiers=*/FALSE,
-                                              &qualifiers_added) &&
-              qualifiers_added) {
-            /* param_type1 has more qualifiers than param_type2, and the
-               types are otherwise compatible.  Therefore fewer qualifiers
-               are added to get to param_type2, and argument 2 is better. */
-            cmp = -1;
-          } else if (arg2->conversion.std.type_qualifiers_added &&
-                     same_type_with_added_qualifiers(param_type1, param_type2,
-                                                     /*ignore_qualifiers=*/
-                                                                         FALSE,
-                                                     &qualifiers_added) &&
-                     qualifiers_added) {
-            /* param_type2 has more qualifiers than param_type1, and the
-               types are otherwise compatible.  Therefore fewer qualifiers
-               are added to get to param_type1, and argument 1 is better. */
-            cmp = 1;
-          }  /* if */
+  if (any_cfront_mode() &&
+      (cfp1->is_function_template || cfp2->is_function_template)) {
+    /* Cfront doesn't consider tiebreakers for templates. */
+  } else {
+    /* Compare each argument. */
+    for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
+         arg1 != NULL;
+         arg1 = arg1->next, arg2 = arg2->next) {
+      int cmp = compare_argument_tiebreakers(arg1, arg2);
+      if (cmp != 0) {
+        /* This tie-breaker applies only if no other arguments contradict
+           it. */
+        if (result_cmp == 0) {
+          /* No previous argument had a tiebreaker.  Remember this one and
+             keep going to see if any later argument contradicts it. */
+          result_cmp = cmp;
+        } else if (result_cmp != cmp) {
+          /* This contradicts a previous argument, so the tie-breaker does
+             not apply. */
+          result_cmp = 0;
+          break;
         }  /* if */
-      }  /* if */
-    }  /* if */
-    /* Use of an anachronism (e.g., calling a const function for a
-       non-const object) can break a tie. */
-    if (cmp == 0 && arg1->anachronism_used != arg2->anachronism_used) {
-      if (arg1->anachronism_used) {
-        /* Argument 1 uses an anachronism and argument 2 does not, so
-           argument 2 is better. */
-        cmp = -1;
-      } else {
-        /* Argument 2 uses an anachronism and argument 1 does not, so cfp1
-           is better. */
-        cmp = 1;
-      }  /* if */
-    }  /* if */
-    if (cmp != 0) {
-      /* This tie-breaker applies only if no other arguments contradict
-         it. */
-      if (result_cmp == 0) {
-        /* No previous argument had a tiebreaker.  Remember this one and
-           keep going to see if any later argument contradicts it. */
-        result_cmp = cmp;
-      } else if (result_cmp != cmp) {
-        /* This contradicts a previous argument, so the tie-breaker does
-           not apply. */
-        result_cmp = 0;
-        break;
       }  /* if */
     }  /* if */
   }  /* for */
   return result_cmp;
-}  /* compare_argument_tiebreakers */
+}  /* compare_late_tiebreakers */
 
 
 static a_boolean candidate_return_type_same_with_added_qualifiers(
@@ -2825,7 +2863,7 @@ other.  Return
 
 */
 {
-  int                  cmp;
+  int                  cmp = 0;
   a_type_qualifier_set cfp1_type_qualifiers_added = FALSE,
                        cfp2_type_qualifiers_added = FALSE;
 
@@ -2835,7 +2873,8 @@ other.  Return
   }  /* if */
   /* Note that the tests here must be ordered from most significant
      to least significant. */
-  if ((cmp = compare_argument_tiebreakers(cfp1, cfp2)) != 0) {
+  if (do_late_ovl_res_tiebreaker &&
+      (cmp = compare_late_tiebreakers(cfp1, cfp2)) != 0) {
     /* There is something about one argument list that makes it better
        than the other. */
   } else if (cfp1->is_user_conversion &&
