@@ -1033,7 +1033,7 @@ typedef struct a_name_reference {
   a_bit_field	is_template_id:1;
 			/* TRUE if the name is a template-id
 			   (i.e., template-name < template-arg-list >). */
-  a_bit_field	any_super_qualifier:1;
+  a_bit_field	is_super_qualified:1;
 			/* TRUE if the name is prefixed by the Microsoft
 			   __super keyword. */
 } a_name_reference;

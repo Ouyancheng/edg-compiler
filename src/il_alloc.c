@@ -3360,7 +3360,7 @@ Initialize the fields of a name reference entry.
   nrp->qualifier = NULL;
   nrp->is_global_qualified_name = FALSE;
   nrp->is_template_id = FALSE;
-  nrp->any_super_qualifier = FALSE;
+  nrp->is_super_qualified = FALSE;
 }  /* clear_name_reference */
 
 

@@ -196,12 +196,12 @@ typedef struct a_symbol_locator {
 			/* TRUE if this is a reference to a nonreal template
 			   that was uncoalesced by ensure_correct_nonreal-
 			   instance_kind. */
-  a_bit_field	is_super_qualified:1;
+  a_bit_field	qualifier_is_super:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   in which the qualifier is the Microsoft __super
 			   keyword.  This is TRUE only if __super is the
 			   only qualifier present. */
-  a_bit_field	any_super_qualifier:1;
+  a_bit_field	is_super_qualified:1;
 			/* TRUE if a qualified name began with the Microsoft
 			   __super keyword.  This is TRUE even if there
 			   are other qualifiers after __super. */

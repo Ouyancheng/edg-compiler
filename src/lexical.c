@@ -10179,7 +10179,7 @@ Display a name reference, for debugging purposes.
   if (nrp->is_global_qualified_name) {
     fprintf(f_debug, "::");
   }  /* if */
-  if (nrp->any_super_qualifier) {
+  if (nrp->is_super_qualified) {
     fprintf(f_debug, "__super::");
   }  /* if */
   if (nrp->qualifier != NULL) db_name_qualifier(nrp->qualifier);
@@ -10315,7 +10315,7 @@ is allocated.
   nrp->qualifier = locator->name_qualifier;
   nrp->is_global_qualified_name = locator->is_global_qualified_name;
   nrp->is_template_id = locator->is_template_id;
-  nrp->any_super_qualifier = locator->any_super_qualifier;
+  nrp->is_super_qualified = locator->is_super_qualified;
 }  /* make_name_reference_from_locator */
 
 
@@ -10344,7 +10344,7 @@ a previously created entry that can be reused.
         nrp->is_global_qualified_name ==
                                      entry_to_copy->is_global_qualified_name &&
         nrp->is_template_id == entry_to_copy->is_template_id &&
-        nrp->any_super_qualifier == entry_to_copy->any_super_qualifier) {
+        nrp->is_super_qualified == entry_to_copy->is_super_qualified) {
       /* A match was found. */
       break;
     }  /* if */
@@ -10355,7 +10355,7 @@ a previously created entry that can be reused.
     nrp->qualifier = entry_to_copy->qualifier;
     nrp->is_global_qualified_name = entry_to_copy->is_global_qualified_name;
     nrp->is_template_id = entry_to_copy->is_template_id;
-    nrp->any_super_qualifier = entry_to_copy->any_super_qualifier;
+    nrp->is_super_qualified = entry_to_copy->is_super_qualified;
     /* Put this on the list of name references pointed to by the source
        correspondence. */
     nrp->next = scp->name_references;
@@ -10390,7 +10390,7 @@ a previously created entry that can be reused.
     if (nrp->qualifier == locator->name_qualifier &&
         nrp->is_global_qualified_name == locator->is_global_qualified_name &&
         nrp->is_template_id == locator->is_template_id &&
-        nrp->any_super_qualifier == locator->any_super_qualifier) {
+        nrp->is_super_qualified == locator->is_super_qualified) {
       /* A match was found. */
       break;
     }  /* if */
@@ -10937,8 +10937,8 @@ selection operator, in which case it points to the type of the left operand.
   a_namespace_ptr		qualifier_namespace = NULL;
   a_token_sequence_number	start_seq_number;
   a_boolean			follows_template;
+  a_boolean			qualifier_is_super = FALSE;
   a_boolean			is_super_qualified = FALSE;
-  a_boolean			any_super_qualifier = FALSE;
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr          name_qualifier = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -11076,7 +11076,7 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_super) {
       /* The Microsoft __super qualifier. */
-      any_super_qualifier = is_super_qualified = TRUE;
+      is_super_qualified = qualifier_is_super = TRUE;
       /* From now on, treat this as an identifier. */
       curr_token = tok_identifier;
       if (is_global_qualified_name) {
@@ -11260,10 +11260,10 @@ selection operator, in which case it points to the type of the left operand.
         a_boolean	is_template = FALSE;
         a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
         a_boolean	invalid_qualifier_sym = FALSE;
-        if (err || (qualifier_sym == NULL && !is_super_qualified)) {
+        if (err || (qualifier_sym == NULL && !qualifier_is_super)) {
           invalid_qualifier_sym = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (is_super_qualified) {
+        } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
@@ -11332,7 +11332,7 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_type = NULL;
           qualifier_type_is_class = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (is_super_qualified) {
+        } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
@@ -11346,7 +11346,7 @@ selection operator, in which case it points to the type of the left operand.
         if (err) {
           /* Don't try to build a qualifier if an error occurred. */
           name_qualifier = NULL;
-        } else if (is_super_qualified) {
+        } else if (qualifier_is_super) {
           /* No name qualifier entry is created for the __super level. */
         } else {
           make_name_qualifier(&name_qualifier, qualifier_sym, qualifier_type,
@@ -11477,7 +11477,7 @@ selection operator, in which case it points to the type of the left operand.
                 qualifier_sym = enum_qualified_id_lookup(&locator_for_curr_id,
 							 qualifier_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              } else if (is_super_qualified) {
+              } else if (qualifier_is_super) {
                 qualifier_sym = super_qualified_id_lookup(
                                              &locator_for_curr_id,
                                              lookup_options);
@@ -11586,7 +11586,7 @@ selection operator, in which case it points to the type of the left operand.
           }  /* if */
         }  /* if */
         type_position = pos_curr_token;
-        is_super_qualified = FALSE;
+        qualifier_is_super = FALSE;
       }  /* for */
     }  /* if */
   }  /* if */
@@ -11907,8 +11907,8 @@ wrapup:
     locator_for_curr_id.has_been_coalesced = TRUE;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;
+    locator_for_curr_id.qualifier_is_super = qualifier_is_super;
     locator_for_curr_id.is_super_qualified = is_super_qualified;
-    locator_for_curr_id.any_super_qualifier = any_super_qualifier;
 #if RECORD_FORM_OF_NAME_REFERENCE
     locator_for_curr_id.name_qualifier = name_qualifier;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -11984,7 +11984,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
       /* The current identifier is a qualified name. */
       an_error_code	error_code;
       a_source_position	identifier_pos;
-      a_boolean         is_super_qualified = FALSE;
+      a_boolean         qualifier_is_super = FALSE;
       identifier_pos = locator_for_curr_id.source_position;
       /* If the qualifier is a type, qualifier_type will point to the
          type and qualifier_namespace will be NULL.  If the qualifier
@@ -11993,7 +11993,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
       qualifier_is_type = locator_for_curr_id.is_class_member;
       qualifier_type = qualifier_class_type(locator_for_curr_id);
       qualifier_namespace = qualifier_namespace_ptr(locator_for_curr_id);
-      is_super_qualified = locator_for_curr_id.is_super_qualified;
+      qualifier_is_super = locator_for_curr_id.qualifier_is_super;
       is_vacuous_dtor = locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;
       *err |= is_error_locator(locator_for_curr_id);
@@ -12044,11 +12044,11 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
             }  /* if */
           }  /* if */
         } else {
-          if (!is_super_qualified &&
+          if (!qualifier_is_super &&
               ((qualifier_is_type && qualifier_type == NULL) ||
                (!qualifier_is_type && qualifier_namespace == NULL))) {
 	    okay = FALSE;
-          } else if (!is_super_qualified &&
+          } else if (!qualifier_is_super &&
                      qualifier_is_type && !is_nonclass_dtor && 
                      is_incomplete_type(qualifier_type) &&
                      is_class_struct_union_type(qualifier_type) &&
@@ -12087,7 +12087,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
                 /* In Microsoft bugs mode, enumerations can be used as
                    qualifiers.  The name was found as an enumerator. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              } else if (is_super_qualified &&
+              } else if (qualifier_is_super &&
                          super_qualified_id_lookup(&locator_for_curr_id,
                                                    idl_options) != NULL) {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12111,7 +12111,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 		  okay = TRUE;
 		} else if (is_error_locator(locator_for_curr_id)) {
 		  /* An error was previously issued. */
-                } else if (is_super_qualified) {
+                } else if (qualifier_is_super) {
                   pos_st_error(ec_not_a_base_class_member, &identifier_pos,
 			       locator_for_curr_id.symbol_header->identifier);
                   okay = FALSE;
