@@ -177,6 +177,9 @@ Initialize an entry of type an_aggregrate_init_context.
   init_context->repeat = NULL;
   init_context->pending_init_levels = 0;
   if (prev_init_context != NULL && !is_error_type(type)) {
+    /* See if there is a pending constant (parsed while testing for the
+       "whole-object initialization" case) that needs to be moved to the
+       next context down (provided that is not an error context). */
     a_constant_ptr  init_con = prev_init_context->pending_init_con;
     unsigned long   levels_down = prev_init_context->pending_init_levels;
 
