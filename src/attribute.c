@@ -904,9 +904,9 @@ invalid attributes.
         break;
       default:
         /* This attribute is not applicable to variables. */
-        pos_sy_error(ec_attribute_does_not_apply,
-                     &ap->position,
-                     (a_symbol_ptr)vp->source_corresp.assoc_info);
+        pos_sy_warning(ec_attribute_does_not_apply,
+                       &ap->position,
+                       (a_symbol_ptr)vp->source_corresp.assoc_info);
         break;
     }  /* switch */
   }  /* for */
@@ -945,8 +945,8 @@ messages about any invalid attributes.
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       default:
-        sym_error(ec_attribute_does_not_apply,
-                  (a_symbol_ptr)fp->source_corresp.assoc_info);
+        sym_warning(ec_attribute_does_not_apply,
+                    (a_symbol_ptr)fp->source_corresp.assoc_info);
         break;
     }  /* switch */
   }  /* for */
@@ -1116,9 +1116,9 @@ messages about any invalid attributes.
         break;
       default:
         /* An invalid attribute. */
-        pos_sy_error(ec_attribute_does_not_apply,
-                     &ap->position,
-                     (a_symbol_ptr)rp->source_corresp.assoc_info);
+        pos_sy_warning(ec_attribute_does_not_apply,
+                       &ap->position,
+                       (a_symbol_ptr)rp->source_corresp.assoc_info);
         break;
     }  /* switch */
   }  /* for */
@@ -1352,9 +1352,9 @@ for a parameter.
       default:
         /* These attributes do not apply to parameters. */
         if (sym != NULL) {
-          pos_sy_error(ec_attribute_does_not_apply, &ap->position, sym);
+          pos_sy_warning(ec_attribute_does_not_apply, &ap->position, sym);
         } else {
-          pos_error(ec_attribute_does_not_apply_to_param, &ap->position);
+          pos_warning(ec_attribute_does_not_apply_to_param, &ap->position);
         }  /* if */
         break;
     }  /* switch */
