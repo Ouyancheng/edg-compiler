@@ -3509,12 +3509,13 @@ appropriately.
 }  /* gen_ms_attribute */
 
 
-static void gen_ms_attribute_block(void)
+static a_boolean gen_ms_attribute_block(void)
 /*
 Generate any Microsoft attributes at the current source sequence entry.
+Return TRUE if any were processed.
 */
 {
-  a_boolean           first = TRUE;
+  a_boolean           first = TRUE, any_found = FALSE;
   an_ms_attribute_ptr msap;
 
   for (;;) {
@@ -3522,10 +3523,12 @@ Generate any Microsoft attributes at the current source sequence entry.
     (void)process_preprocessing_directives();
     if (curr_source_sequence_entry == NULL ||
         ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
+    any_found = TRUE;
     msap = ss_entry_ptr(curr_source_sequence_entry, an_ms_attribute_ptr);
     adv_curr_source_sequence_entry();
     gen_ms_attribute(msap, &first);
   }  /* for */
+  return any_found;
 }  /* gen_ms_attribute_block */
 
 
@@ -10537,7 +10540,12 @@ that case) and old-style parameter declarations.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Output any Microsoft attributes. */
-  gen_ms_attribute_block();
+  if (gen_ms_attribute_block()) {
+    /* If we processed some attributes, watch out for having no declarations
+       following. */
+    (void)process_preprocessing_directives();
+    if (!curr_src_seq_entry_is_decl()) goto end_of_routine;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop for comma lists. */
   for (;;) {
@@ -10604,6 +10612,9 @@ that case) and old-style parameter declarations.
     /* Loop to do another declaration as part of a comma list. */
     suppress_specifiers = TRUE;
   }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+end_of_routine:;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* gen_declaration */
 
 #if RECORD_MACROS_IN_IL
