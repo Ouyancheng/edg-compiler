@@ -5340,6 +5340,63 @@ matches a class type from the parameter list of a template function.
 }  /* matches_template_type_for_class_type */
 
 
+a_boolean matches_template_type_with_qualification_conversion(
+				a_type_ptr           type,
+                                a_type_ptr           templ_type,
+                                a_template_arg_ptr   *templ_arg_list,
+				a_template_param_ptr templ_param_list,
+				an_mtt_flag_set      flags)
+/*
+"type" and "templ_type" are pointer or pointer to member types.  Determine
+whether, with a qualification conversion, the types match for template
+argument deduction purposes.
+*/
+{
+  a_boolean	match = FALSE;
+  a_type_ptr	src;
+  a_type_ptr	dest;
+
+  type = skip_typerefs(type);
+  templ_type = skip_typerefs(templ_type);
+  /* The type must be a pointer or pointer-to-member, and both types
+     must be of the same kind. */
+  if ((type->kind == (a_type_kind)tk_pointer ||
+       type->kind == (a_type_kind)tk_ptr_to_member) &&
+      type->kind == templ_type->kind) {
+    /* Strip off the top level of pointer. */
+    if (type->kind == (a_type_kind)tk_pointer) {
+      type = type_pointed_to(type);
+      templ_type = type_pointed_to(templ_type);
+    } else {
+      type = pm_member_type(type);
+      templ_type = pm_member_type(templ_type);
+    }  /* if */
+    /* The direction of the conversion is reversed when this routine is
+       called for a conversion function result. */
+    if ((flags & MTT_IS_CONVERSION_TEMPLATE) != 0) {
+      src = templ_type;
+      dest = type;
+    } else {
+      dest = templ_type;
+      src = type;
+    }  /* if */
+    if (qualification_conversion_possible(src, dest, (a_boolean*)NULL,
+                                          /*ignore_underlying_type=*/TRUE)) {
+      /* A qualification conversion is possible.  Find the underlying
+         types and check whether they match. */
+      type = find_bottom_of_type(type);
+      templ_type = find_bottom_of_type(templ_type);
+      if (matches_template_type(type, templ_type, templ_arg_list,
+                                templ_param_list, flags)) {
+        /* They match.  The qualification conversion is possible. */
+        match = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* matches_template_type_with_qualification_conversion */
+
+
 a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
@@ -5553,7 +5610,7 @@ points to the template parameter list.
           match = matches_template_type_for_class_type(type, templ_type,
                                                        templ_arg_list,
                                                        templ_param_list);
-          if (!match && (flags & MTT_ALLOW_CONVERSION) != 0) {
+          if (!match && (flags & MTT_ALLOW_BASE_CONVERSION) != 0) {
             a_base_class_ptr	bcp;
             a_type_ptr		matching_base_class = NULL;
             /* See if the type matches a base class type of actual argument

@@ -1,5 +1,17 @@
 Version 3.0
 
+4/15/02  Qualification conversion now permitted in template argument deduction
+
+Qualification conversions are now considered as part of the template argument
+deduction process, as specified in the standard.  As a result, examples
+like the following are now accepted.
+
+  template <class T> void f(const T * const * t) {}
+  int main () {
+    int **p;
+    f(p);
+  }
+
 4/13/02  Abort ("missing typeinfo variable") on typeid of pointer type
 
 IL lowering aborted on generating the typeinfo variable for a typeid for

@@ -2062,10 +2062,13 @@ if the deduction succeeds, FALSE if it fails.
 {
   a_template_symbol_supplement_ptr
             tssp = template_sym->variant.template_info;
-  a_boolean param_is_reference = is_reference_type(param_type);
-  a_boolean deduction_okay = FALSE;
+  a_boolean  param_is_reference = is_reference_type(param_type);
+  a_boolean  deduction_okay = FALSE;
+  a_type_ptr orig_arg_type;
+  a_type_ptr orig_param_type = param_type;
 
   if (arg_operand != NULL) arg_type = arg_operand->type;
+  orig_arg_type = arg_type;
   /* Certain top-level parts of the parameter type (e.g., references)
      are processed here before going to the type deduction routine.
      The code here must match determine_arg_match_level and
@@ -2147,14 +2150,24 @@ if the deduction succeeds, FALSE if it fails.
      the bindings for the template arguments.  This is needed during the
      matching process to ensure that each argument is used consistently
      and also later routine to build the instantiation.  The
-     MTT_ALLOW_CONVERSION option is used to allow an argument requiring
+     MTT_ALLOW_BASE_CONVERSION option is used to allow an argument requiring
      a conversion from Derived<T> to Base<T>.  This conversion was not
      allowed by the ARM but has been blessed by the standards committee. */
   if (matches_template_type(arg_type, param_type, template_arg_list,
                             tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                            MTT_ALLOW_CONVERSION)) {
+                            MTT_ALLOW_BASE_CONVERSION)) {
     deduction_okay = TRUE;
+  } else if (is_pointer_type(arg_type) || is_ptr_to_member_type(arg_type)) {
+    /* Normal deduction failed.  For pointer types, see if a qualification
+       conversion can be used. */
+    if (matches_template_type_with_qualification_conversion(
+                            orig_arg_type, orig_param_type, template_arg_list,
+                            tssp->variant.function.decl_cache.
+                                                       decl_info->parameters,
+                            MTT_NO_FLAGS)) {
+      deduction_okay = TRUE;
+    }  /* if */
   }  /* if */
 done:
   return deduction_okay;
@@ -6761,13 +6774,24 @@ This routine is only used in C++ mode.
       conversion_routine = tssp->variant.function.routine;
       conv_routine_type = conversion_routine->type;
       return_type = return_type_of(conv_routine_type);
+      /* Determine whether the desired type matches the type returned by the
+         conversion template.  If normal deduction fails, check whether a
+         qualification conversion can be used to obtain the desired type. */
       if (!matches_template_type(is_reference_binding ?
                                           dest_type : skip_typerefs(dest_type),
                                  return_type,
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                                 MTT_NO_FLAGS)) {
+                                 MTT_NO_FLAGS) &&
+          !matches_template_type_with_qualification_conversion(
+                                 dest_type,
+                                 return_type,
+                                 &template_arg_list,
+                                 tssp->variant.function.decl_cache.
+                                                         decl_info->parameters,
+                                 MTT_IS_CONVERSION_TEMPLATE)) {
+
         /* Type deduction failed, so the conversion function is not viable. */
         goto reject_function;
       }  /* if */
