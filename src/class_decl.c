@@ -890,22 +890,6 @@ done:
 }  /* corresponding_base_class */
 
 
-static a_boolean is_within_unreal_instantiation(a_type_ptr  class_type)
-/*
-Return TRUE if class_type is itself a "prototype instantiation" of a
-class template or is nested within such a class.
-*/
-{
-  a_class_symbol_supplement_ptr  cssp;
-
-  while (class_type->source_corresp.class_of_which_a_member != NULL) {
-    class_type = class_type->source_corresp.class_of_which_a_member;
-  }  /* while */
-  cssp = symbol_supplement_for_class(class_type);
-  return (cssp->class_template != NULL && !cssp->is_real_instantiation);
-}  /* is_within_unreal_instantiation */
-
-
 static a_boolean overriding_virtual_function_lists_correspond(
                                     an_overriding_virtual_function_ptr  list1,
                                     an_overriding_virtual_function_ptr  list2)
@@ -1195,7 +1179,7 @@ routine entry and return TRUE; otherwise return FALSE.
 */
 {
   a_boolean                    is_virtual, overloaded;
-  a_boolean                    is_unreal_instantiation;
+  a_boolean                    is_nonreal_instantiation;
   a_base_class_ptr             bcp;
   a_symbol_ptr                 symbol_list, sym, sym_next;
   a_routine_ptr                rout, rp;
@@ -1208,14 +1192,15 @@ routine entry and return TRUE; otherwise return FALSE.
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
     rout = rout_sym->variant.template.extra_info->variant.function.routine;
-    is_unreal_instantiation = TRUE;
+    is_nonreal_instantiation = TRUE;
     /* If a member function of a template class is marked "virtual" that's
        all we need to know, since no virtual function override information
        is maintained for template classes. */
     if (is_virtual) goto done;
   } else {
     rout = rout_sym->variant.routine.ptr;
-    is_unreal_instantiation = is_within_unreal_instantiation(class_type);
+    is_nonreal_instantiation =
+                    symbol_supplement_for_class(class_type)->is_nonreal_class;
   }  /* if */
   /* We scan symbols on the inactive list, since we are only interested in
      base classes symbols. */
@@ -1286,7 +1271,7 @@ routine entry and return TRUE; otherwise return FALSE.
               if (return_types_are_override_compatible(rout->type, rp->type)) {
                 /* Match */
                 is_virtual = TRUE;
-                if (is_unreal_instantiation) {
+                if (is_nonreal_instantiation) {
                   /* No more searching is needed, so break out of the loops. */
                   goto done;
                 } else {
@@ -1332,7 +1317,7 @@ done:
          back end for indexing into a virtual function table. */
       if (ctsp->highest_virtual_function_number >=
                                          MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
-        if (is_unreal_instantiation) {
+        if (is_nonreal_instantiation) {
           /* Don't issue an error, since the number is not accurately
              maintained for class templates. */
         } else {
@@ -2966,7 +2951,8 @@ of the function, and again overloading is a possibility.
 
   db_enter(3, "decl_friend_function");
   if (!is_error_locator(*locator)) {
-    if (is_within_unreal_instantiation(class_type)) {
+    if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
+      /* Scan past friend functions during prototype instantiation. */
       set_to_error_locator(*locator);
     }  /* if */
   }  /* if */
@@ -4811,7 +4797,7 @@ empty statement block.
                 "define_special_member_function: expected ctor, dtor, or =");
   }  /* if */
 #endif /* CHECKING */
-  if (is_within_unreal_instantiation(class_type)) {
+  if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
@@ -5388,8 +5374,7 @@ back down to find A<T>::B).
 
 
   db_enter(3, "find_corresp_prototype_tag_sym");
-  if (is_within_unreal_instantiation(
-                          curr_sym->variant.class_struct_union.type)) {
+  if (curr_sym->variant.class_struct_union.extra_info->is_nonreal_class) {
     /* Return NULL. */
   } else if (curr_sym->class_of_which_a_member != NULL) {
     /* curr_sym represents a nested class.  Find the corresponding prototype
@@ -5441,8 +5426,7 @@ back down to find A<T>::B).
               variant.template.extra_info->variant.class.instantiations;
       for (; sym != NULL; sym = sym->next) {
         if (sym->defined &&
-            !sym->variant.class_struct_union.extra_info->
-                                                  is_real_instantiation) {
+            sym->variant.class_struct_union.extra_info->is_nonreal_class) {
           /* Found it. */
           corresp_prototype_tag_sym = sym;
           break;
@@ -5497,7 +5481,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_boolean               any_const_or_ref_fields = FALSE;
   a_layout_block          layout_block;
   a_boolean               is_template_instantiation;
-  a_boolean               is_unreal_instantiation;
+  a_boolean               is_nonreal_instantiation = FALSE;
 
   /* Set a flag to indicate whether we scanning a class template declaration
      for the sake of producing a "prototype instantiation" of the template.
@@ -5507,15 +5491,17 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   is_template_instantiation = is_prototype_instantiation ||
                               (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
-  /* Set a flag to indicate whether we are either doing a "prototype
-     instantiation" of a class template or scanning the nested class of
-     a prototype instantiation. */
-  is_unreal_instantiation = is_prototype_instantiation ||
-                            is_within_unreal_instantiation(class_type);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
   if (cssp->class_template != NULL && !is_template_instantiation) {
     cssp->is_specific_template_def = TRUE;
+  }  /* if */
+  if (is_prototype_instantiation) {
+    /* This is a prototype instantiation, so the resulting class is "nonreal"
+       (i.e., based on template arguments that include the dummy types and
+       constants of template parameters rather than real types and constants).
+       Note that for nested classes the flag is set later. */
+    is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
   }  /* if */
   /* A copy constructor need not be generated if construction by bitwise
      copy is equivalent.  When a class is being defined, set the flag to
@@ -5563,6 +5549,11 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                               scope_stack[decl_scope_level].assoc_type;
       class_type->source_corresp.access =
                               scope_stack[decl_scope_level].current_access;
+      if (symbol_supplement_for_class(tag_sym->class_of_which_a_member)->
+                                                          is_nonreal_class) {
+        /* A class nested within a nonreal class is itself nonreal. */
+        is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
+      }  /* if */
     }  /* if */
     /* Advance past the left brace. */
     (void)get_token();
@@ -5587,7 +5578,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
       curr_routine_fixup = NULL;
       /* Record the scope number used for the corresponding prototype
          instantiation, if any. */
-      if (!is_unreal_instantiation) {
+      if (!is_nonreal_instantiation) {
         corresp_prototype_tag_sym = find_corresp_prototype_tag_sym(tag_sym);
       }  /* if */
     }  /* if */
@@ -5767,7 +5758,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               /* This is a friend class declaration, of the form:
                          friend class A;
                  (which is the only form the ARM (see 11.4) allows. */
-              if (is_unreal_instantiation) {
+              if (is_nonreal_instantiation) {
                 /* The friend declaration is not processed during prototype
                    instantiation -- it`s meaningless until a real instantiation
                    is done. */
@@ -5834,7 +5825,8 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             a_type_ptr         bottom_derived_type;
             an_expr_node_ptr   dim_expr_ptr;
 
-            if (C_dialect == C_dialect_cplusplus && !is_unreal_instantiation) {
+            if (C_dialect == C_dialect_cplusplus &&
+                !is_nonreal_instantiation) {
               curr_routine_fixup = alloc_routine_fixup();
             }  /* if */
             /* Set the various flags for declarator processing. */
@@ -5961,7 +5953,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 /* If this is a non-inline-defined member function within a
                    prototype instantiation, generate a function template
                    symbol instead of a member function symbol. */
-                is_func_template = (is_unreal_instantiation &&
+                is_func_template = (is_nonreal_instantiation &&
                                     !function_def_present);
                 /* Create a symbol for the member function. */
                 rout_sym = decl_member_function(
@@ -6153,7 +6145,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);
                   }  /* if */
-                } else if (is_unreal_instantiation) {
+                } else if (is_nonreal_instantiation) {
                   /* Issue no error on incomplete types if the class currently
                      being defined is a prototype instantiation or a class
                      nested within a prototype instantiation. */
@@ -6295,7 +6287,7 @@ next_declaration:
         }  /* for */
         end_error();
       }  /* if */
-      if (!is_unreal_instantiation) {
+      if (!is_nonreal_instantiation) {
         /* Create compiler-generated default constructor, copy constructor,
            destructor, and assignment operator, if any is needed. */
         check_special_member_functions(class_type);
@@ -6308,7 +6300,7 @@ next_declaration:
     /* Wrap up field allocation. */
     finish_laying_out_class(&layout_block);
     if (C_dialect == C_dialect_cplusplus) {
-      if (!is_unreal_instantiation) {
+      if (!is_nonreal_instantiation) {
         /* Check for inherited conversion functions.  This must be done before
            rescanning inline function definitions. */
         project_base_class_conversion_functions(class_type);
