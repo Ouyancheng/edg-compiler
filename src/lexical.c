@@ -8899,6 +8899,19 @@ selection operator, in which case it points to the type of the left operand.
           is_template = TRUE;
           (void)get_token();
         }  /* if */
+        /* If the current token begins an operator name, then coalesce
+           the operator. */
+        if (curr_token == tok_operator) {
+          /* get_opname requires a parent class or namespace pointer.
+             Construct one for the qualifier that has been scanned. */
+          a_parent_class_or_namespace parent;
+          if (qualifier_is_type) {
+            parent.class_type = qualifier_type;
+          } else {
+            parent.namespace_ptr = qualifier_namespace;
+          }  /* if */
+          get_opname(qualifier_is_type, &parent);
+        }  /* if */
         next_tok = next_two_tokens_if_qualifier_delimiter
                                             (qualifier_separator, &next_tok_2);
         if (curr_token != tok_identifier ||

@@ -1,5 +1,17 @@
 Version 2.38
 
+10/30/97  Spurious error on qualified operator names with explicit
+          template arguments
+
+A use of a qualified operator names with an explicit template argument
+list resulted in a spurious error.  This has been fixed.
+
+  namespace N {
+    template <class T> void operator!=(T,T){}
+  }
+  class A {};
+  template void N::operator!=<A>(A,A);
+
 10/25/97  Internal error from failure to mark routine as returning value
           by copy constructor
 
