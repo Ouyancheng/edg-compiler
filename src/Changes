@@ -1,5 +1,26 @@
 Version 2.29
 
+3/17/95  Builtin operators in overloading: subtleties of pointer types
+
+The signatures provided in [over.built] of the WP use pointers to
+complete object types and pointers to functions as well as generic
+pointers.  The pointer type restrictions are now implemented when
+looking for conversion functions to use with operands of builtin
+operators.
+
+3/17/95  Indirection through void* in C++
+
+In ISO C, you can write
+
+  void *p; *p;
+
+And it's valid (but *p is not an lvalue).  We've been wondering for some
+time whether C++ would follow C in this special case, and we've concluded
+that the WP is now clear enough and unlikely to change.  The WP doesn't
+have the special case that C has, so the above is an error in C++: you
+can indirect through the pointer, but when you convert it to an rvalue
+you get an error.
+
 3/16/95  No leading zero in day-of-month in __DATE__
 
 The front end gets the date via ctime for use in __DATE__ and __TIME__.

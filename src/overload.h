@@ -95,8 +95,13 @@ conversion_from_class_possible.
 			/* Any integral type. */
 #define BTK_FLOATING 0x2
 			/* Any floating type. */
-#define BTK_POINTER 0x4	/* Any pointer. */
-#define BTK_PTR_TO_MEMBER 0x8
+#define BTK_POINTER 0x4
+			/* Any pointer. */
+#define BTK_OBJECT_POINTER 0x8
+			/* Any pointer to (complete) object type. */
+#define BTK_FUNCTION_POINTER 0x10
+			/* Any pointer to function. */
+#define BTK_PTR_TO_MEMBER 0x20
 			/* Any pointer to member. */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;

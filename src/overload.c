@@ -596,14 +596,28 @@ operand list.
 Type codes used in type patterns that describe built-in operators
 for overload resolution.
 */
+#define LVALUE_FIRST_OPERAND_TYPE_CODE 'L'
+			/* First operand must be an lvalue. */
+#define CORRESP_TYPE_CODE '='
+			/* Used before two operand type codes to indicate that
+			   the two operands must correspond, e.g., two pointer
+			   operands must have the same pointer type. */
 #define PROMOTED_INTEGRAL_TYPE_CODE 'I'
+			/* Promoted integral type. */
 #define INTEGRAL_TYPE_CODE 'i'
+			/* Integral type. */
 #define PROMOTED_ARITH_TYPE_CODE 'A'
+			/* Promoted arithmetic type. */
 #define ARITH_TYPE_CODE 'a'
+			/* Arithmetic type. */
 #define POINTER_TYPE_CODE 'P'
-#define CORRESP_POINTER_TYPE_CODE 'p'
+			/* Any pointer type. */
+#define OBJECT_POINTER_TYPE_CODE 'O'
+			/* Pointer to complete object type. */
+#define FUNCTION_POINTER_TYPE_CODE 'F'
+			/* Pointer to function. */
 #define PTR_TO_MEMBER_TYPE_CODE 'M'
-#define CORRESP_PTR_TO_MEMBER_TYPE_CODE 'm'
+			/* Pointer to member. */
 
 
 static char *name_for_type_code(char type_code)
@@ -613,22 +627,31 @@ Return a printable string describing a type code.
 {
   char *str;
 
-  if (type_code == INTEGRAL_TYPE_CODE ||
-      type_code == PROMOTED_INTEGRAL_TYPE_CODE) {
-    str = "integer";
-  } else if (type_code == ARITH_TYPE_CODE ||
-             type_code == PROMOTED_ARITH_TYPE_CODE) {
-    str = "arithmetic";
-  } else if (type_code == POINTER_TYPE_CODE ||
-             type_code == CORRESP_POINTER_TYPE_CODE) {
-    str = "pointer";
-  } else if (type_code == PTR_TO_MEMBER_TYPE_CODE ||
-             type_code == CORRESP_PTR_TO_MEMBER_TYPE_CODE) {
-    str = "pointer-to-member";
-  } else {
-    str = "?";
-    unexpected_condition_str("name_for_type_code: bad type code");
-  }  /* if */
+  switch (type_code) {
+    case INTEGRAL_TYPE_CODE:
+    case PROMOTED_INTEGRAL_TYPE_CODE:
+      str = "integer";
+      break;
+    case ARITH_TYPE_CODE:
+    case PROMOTED_ARITH_TYPE_CODE:
+      str = "arithmetic";
+      break;
+    case POINTER_TYPE_CODE:
+      str = "pointer";
+      break;
+    case OBJECT_POINTER_TYPE_CODE:
+      str = "pointer-to-object";
+      break;
+    case FUNCTION_POINTER_TYPE_CODE:
+      str = "pointer-to-function";
+      break;
+    case PTR_TO_MEMBER_TYPE_CODE:
+      str = "pointer-to-member";
+      break;
+    default:
+      str = "?";
+      unexpected_condition_str("name_for_type_code: bad type code");
+  }  /* switch */
   return str;
 }  /* name_for_type_code */
 
@@ -3746,6 +3769,8 @@ is only used in C++ mode.
       }  /* if */
     } else {
       /* We're looking for a built-in type described in general terms. */
+      /* See if this conversion function returns an acceptable built-in
+         type. */
 #if 0
       /* Different test for enum? */
 #endif /* 0 */
@@ -3755,6 +3780,12 @@ is only used in C++ mode.
                                               is_floating_type(return_type)) ||
           ((builtin_types_allowed & BTK_POINTER) != 0 &&
                                               is_pointer_type(return_type)) ||
+          ((builtin_types_allowed & BTK_OBJECT_POINTER) != 0 &&
+                               is_pointer_type(return_type) &&
+                               is_object_type(type_pointed_to(return_type))) ||
+          ((builtin_types_allowed & BTK_FUNCTION_POINTER) != 0 &&
+                             is_pointer_type(return_type) &&
+                             is_function_type(type_pointed_to(return_type))) ||
           ((builtin_types_allowed & BTK_PTR_TO_MEMBER) != 0 &&
                                          is_ptr_to_member_type(return_type))) {
         /* This conversion function returns an acceptable built-in type. */
@@ -3859,20 +3890,12 @@ static char *operand_type_pattern_for_operator(an_opname_kind kind,
 Return a string describing the argument type patterns permitted for the
 indicated operator (the unary version if unary_operator is TRUE).
 The argument string contains one or more possible patterns separated
-by semicolons, e.g., "AA;PI;IP"; each pattern has one letter (for
+by semicolons, e.g., "AA;OI;IO"; each pattern has one letter (for
 unary operators) or two letters (for binary operators) giving the type
-code for the associated operand:
-  I  Promoted integral
-  i  Integral
-  A  Promoted arithmetic
-  a  Arithmetic
-  P  Pointer
-  p  Corresponding pointer, when two pointer operands must match in type
-  M  Pointer to member
-  m  Corresponding pointer to member, when two pointer to member operands
-     must match in type
-The first character of the overall string is "L" if the operator requires
-an lvalue as its first operand, e.g., "LAA;PI;IP".
+code for the associated operand.  See the list of type code #defines
+earlier in this file (e.g., INTEGRAL_TYPE_CODE).  The string begins
+with LVALUE_FIRST_OPERAND_TYPE_CODE if the operator requires an lvalue
+as its first operand.
 */
 {
   char *operand_type_pattern;
@@ -3896,14 +3919,14 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
         operand_type_pattern = "I";
         break;
       case onk_star:
-        /* "*" takes a pointer operand. */
-        operand_type_pattern = "P";
+        /* "*" takes an object pointer or function pointer operand. */
+        operand_type_pattern = "O;F";
         break;
       case onk_plus_plus:
       case onk_minus_minus:
-        /* "++" and "--" (prefix) take an arithmetic or pointer lvalue.
+        /* "++" and "--" (prefix) take an arithmetic or object pointer lvalue.
            See below for postfix (which shows up as a two-operand operator). */
-        operand_type_pattern = "La;P";
+        operand_type_pattern = "La;O";
         break;
 #if CHECKING
       default:
@@ -3929,24 +3952,24 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
         break;
       case onk_plus:
         /* "+" takes arith+arith, pointer+int, or int+pointer. */
-        operand_type_pattern = "AA;PI;IP";
+        operand_type_pattern = "AA;OI;IO";
         break;
       case onk_minus:
         /* "-" takes arith-arith, pointer-int, or pointer-pointer. */
-        operand_type_pattern = "AA;PI;pp";
+        operand_type_pattern = "AA;OI;=OO";
         break;
       case onk_lt:
       case onk_le:
       case onk_gt:
       case onk_ge:
         /* Relational operators take arithmetic or pointer operands. */
-        operand_type_pattern = "AA;pp";
+        operand_type_pattern = "AA;=PP";
         break;
       case onk_eq:
       case onk_ne:
         /* Equality operators take arithmetic, pointer, or pointer-to-member
            operands. */
-        operand_type_pattern = "AA;pp;mm";
+        operand_type_pattern = "AA;=PP;=MM";
         break;
       case onk_and_and:
       case onk_or_or:
@@ -3971,29 +3994,29 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
         break;
       case onk_plus_assign:
         /* "+=" takes arith+arith or pointer+int, the first an lvalue. */
-        operand_type_pattern = "LaA;PI";
+        operand_type_pattern = "LaA;OI";
         break;
       case onk_minus_assign:
         /* "-=" takes arith-arith or pointer-int, the first an lvalue. */
-        operand_type_pattern = "LaA;PI";
+        operand_type_pattern = "LaA;OI";
         break;
       case onk_subscript:
         /* "[]" takes pointer[int] or int[pointer]. */
-        operand_type_pattern = "PI;IP";
+        operand_type_pattern = "OI;IO";
         break;
       case onk_plus_plus:
       case onk_minus_minus:
         /* "++" and "--" (postfix, which show up as two-operand operators)
            take an arithmetic or pointer lvalue.  A second implied
            operand is integer. */
-        operand_type_pattern = "Lai;Pi";
+        operand_type_pattern = "Lai;Oi";
         break;
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes
            two operands (really the second and third) of arithmetic,
            pointer, or pointer-to-member type (the void and class cases
            are handled outside of this routine). */
-        operand_type_pattern = "AA;pp;mm";
+        operand_type_pattern = "AA;=PP;=MM";
         break;
 #if CHECKING
       default:
@@ -4005,6 +4028,48 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
 }  /* operand_type_pattern_for_operator */
 
 
+static a_boolean type_matches_type_code(a_type_ptr type,
+                                        char       type_code)
+/*
+Return TRUE if the indicated type matches the indicated type code, meaning
+it fits that type description or can be promoted to it.
+*/
+{
+  a_boolean matches = FALSE;
+
+  switch (type_code) {
+    case INTEGRAL_TYPE_CODE:
+    case PROMOTED_INTEGRAL_TYPE_CODE:
+#if 0
+      /* Enum? */
+#endif /* 0 */
+      matches = is_integral_type(type);
+      break;
+    case ARITH_TYPE_CODE:
+    case PROMOTED_ARITH_TYPE_CODE:
+      matches = is_arithmetic_type(type);
+      break;
+    case POINTER_TYPE_CODE:
+      matches = is_pointer_type(type);
+      break;
+    case OBJECT_POINTER_TYPE_CODE:
+      matches = is_pointer_type(type) &&
+                is_object_type(type_pointed_to(type));
+      break;
+    case FUNCTION_POINTER_TYPE_CODE:
+      matches = is_pointer_type(type) &&
+                is_function_type(type_pointed_to(type));
+      break;
+    case PTR_TO_MEMBER_TYPE_CODE:
+      matches = is_ptr_to_member_type(type);
+      break;
+    default:
+      unexpected_condition_str("type_matches_type_code: bad type code");
+  }  /* switch */
+  return matches;
+}  /* type_matches_type_code */
+
+
 static a_builtin_type_kind_set builtin_type_set_for_type_code(char type_code)
 /*
 Build and return the built-in type kind set that corresponds to the indicated
@@ -4013,25 +4078,31 @@ type_code.
 {
   a_builtin_type_kind_set builtin_types_allowed = BTK_NONE;
 
-  if (type_code == INTEGRAL_TYPE_CODE ||
-      type_code == PROMOTED_INTEGRAL_TYPE_CODE) {
-    builtin_types_allowed |= BTK_INTEGRAL;
-  }  /* if */
-  if (type_code == ARITH_TYPE_CODE ||
-      type_code == PROMOTED_ARITH_TYPE_CODE) {
-    builtin_types_allowed |= BTK_INTEGRAL | BTK_FLOATING;
-  }  /* if */
-  /* Note that this routine is never called with CORRESP_POINTER_TYPE_CODE. */
-  check_assertion(type_code != CORRESP_POINTER_TYPE_CODE);
-  if (type_code == POINTER_TYPE_CODE) {
-    builtin_types_allowed |= BTK_POINTER;
-  }  /* if */
-  /* Note that this routine is never called with
-     CORRESP_PTR_TO_MEMBER_TYPE_CODE. */
-  check_assertion(type_code != CORRESP_PTR_TO_MEMBER_TYPE_CODE);
-  if (type_code == PTR_TO_MEMBER_TYPE_CODE) {
-    builtin_types_allowed |= BTK_PTR_TO_MEMBER;
-  }  /* if */
+  switch (type_code) {
+    case INTEGRAL_TYPE_CODE:
+    case PROMOTED_INTEGRAL_TYPE_CODE:
+      builtin_types_allowed = BTK_INTEGRAL;
+      break;
+    case ARITH_TYPE_CODE:
+    case PROMOTED_ARITH_TYPE_CODE:
+      builtin_types_allowed = BTK_INTEGRAL | BTK_FLOATING;
+      break;
+    case POINTER_TYPE_CODE:
+      builtin_types_allowed = BTK_POINTER;
+      break;
+    case OBJECT_POINTER_TYPE_CODE:
+      builtin_types_allowed = BTK_OBJECT_POINTER;
+      break;
+    case FUNCTION_POINTER_TYPE_CODE:
+      builtin_types_allowed = BTK_FUNCTION_POINTER;
+      break;
+    case PTR_TO_MEMBER_TYPE_CODE:
+      builtin_types_allowed = BTK_PTR_TO_MEMBER;
+      break;
+    default:
+      unexpected_condition_str(
+                              "builtin_type_set_for_type_code: bad type code");
+  }  /* switch */
   return builtin_types_allowed;
 }  /* builtin_type_set_for_type_code */
 
@@ -4085,9 +4156,7 @@ static void try_builtin_operands_match(
                        a_boolean                first_operand_must_be_lvalue,
                        an_arg_operand_ptr       arg_operand_list,
                        a_candidate_function_ptr *candidate_functions,
-                       char                     *pointer_type_pattern_position,
-                       a_type_ptr               pointer_type,
-                       a_boolean                ptr_to_member_case)
+                       a_type_ptr               pointer_type)
 /*
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
@@ -4097,12 +4166,9 @@ operand must be an lvalue if first_operand_must_be_lvalue (but this
 routine need only check for the class cases).  The operator being
 considered is described by "kind".  This is used for the case where
 the pattern string contains no corresponding pointer or pointer to
-member types, with pointer_type_pattern_position == pointer_type ==
-NULL, and with those set non-NULL for pattern strings containing
-corresponding pointer or pointer to member types types (they indicate
-the target pointer type to be used and, to allow a speed optimization,
-the pattern position which suggested that pointer type).
-ptr_to_member_case is TRUE for the pointer to member case.
+member types, with pointer_type == NULL, and with pointer_type non-NULL
+for pattern strings containing corresponding types (it indicates
+the target type to be used).
 */
 {
   a_boolean                okay;
@@ -4162,9 +4228,8 @@ ptr_to_member_case is TRUE for the pointer to member case.
     end_arg_match_list = arg_match;
     /* See if the operand type matches the type code. */
     type_code = *type_pattern_position;
-    if (type_code != CORRESP_POINTER_TYPE_CODE &&
-        type_code != CORRESP_PTR_TO_MEMBER_TYPE_CODE) {
-      /* Arithmetic or non-specific pointer type required. */
+    if (pointer_type == NULL) {
+      /* Non-pointer or non-specific pointer type required. */
       if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
            an appropriate built-in type. */
@@ -4184,26 +4249,14 @@ ptr_to_member_case is TRUE for the pointer to member case.
       } else {
         /* A non-class operand.  See if it has (or can be converted to)
            the required type. */
+        /* Do array --> pointer and function --> pointer transformations. */
+        operand_type = do_implicit_type_transformations(operand_type,
+                                                        &arg_operand->operand);
         /* Note that we do not try 0 --> pointer, because in this case it
            would require just making up a pointer type out of nowhere --
            there's no other operand that provides guidance on which pointer
            type is required. */
-        /* Do array --> pointer and function --> pointer transformations. */
-        operand_type = do_implicit_type_transformations(operand_type,
-                                                        &arg_operand->operand);
-#if 0
-        /* Enum? */
-#endif /* 0 */
-        if (((type_code == INTEGRAL_TYPE_CODE ||
-              type_code == PROMOTED_INTEGRAL_TYPE_CODE) &&
-                                             is_integral_type(operand_type)) ||
-            ((type_code == ARITH_TYPE_CODE ||
-              type_code == PROMOTED_ARITH_TYPE_CODE) && 
-                                           is_arithmetic_type(operand_type)) ||
-            (type_code == POINTER_TYPE_CODE &&
-                                              is_pointer_type(operand_type)) ||
-            (type_code == PTR_TO_MEMBER_TYPE_CODE &&
-                                        is_ptr_to_member_type(operand_type))) {
+        if (type_matches_type_code(operand_type, type_code)) {
           /* The type is correct.  See what the cost is (there might be
              a promotion). */
           arg_match->match_level =
@@ -4242,12 +4295,8 @@ ptr_to_member_case is TRUE for the pointer to member case.
         operand_type = do_implicit_type_transformations(operand_type,
                                                         &arg_operand->operand);
         source_is_constant = is_constant_operand(&arg_operand->operand);
-        /* If this operand is the one that suggested this pointer type,
-           we already know it is compatible.  This is a speed optimization. */
-        if (pointer_type_pattern_position == type_pattern_position ||
-            /* Otherwise, see if we can convert the type we have to the
-               pointer or pointer to member type we want. */
-            (ptr_to_member_case ?
+        /* See if we can convert the type we have to the type we want. */
+        if (*type_pattern_position == PTR_TO_MEMBER_TYPE_CODE ?
               impl_ptr_to_member_conversion(
                                     operand_type,
                                     source_is_constant,
@@ -4263,7 +4312,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error, /* arbitrary */
-                                    &std_conv))) {
+                                    &std_conv)) {
           /* The conversion can be done. */
           arg_match->match_level = std_conv.nontrivial_conversion ?
                                                 aml_std_conversion : aml_exact;
@@ -4348,10 +4397,9 @@ pattern string given by operand_type_pattern.  If they match, add
 the built-in operator to the candidate_functions list.  The first
 operand must be an lvalue if first_operand_must_be_lvalue (but this
 routine need only check for the class cases).  The operator being
-considered is described by "kind".  This is used for the case where the
-pattern string contains "pp", meaning two pointer operands that must
-have the same type, or "mm", meaning two pointer-to-member operands that
-must have the same type.
+considered is described by "kind".  This routine is used for cases
+where the pattern string contains two operands that must correspond
+in some way, e.g., two pointers that must have the same type.
 */
 {
   an_arg_operand_ptr       arg_operand;
@@ -4363,7 +4411,6 @@ must have the same type.
   a_type_ptr               previous_class_type_considered;
   a_type_ptr               previous_pointer_type_considered;
   a_boolean                any_ptr_conversion_function_this_operand;
-  a_boolean                ptr_to_member_case;
 
   db_enter(4, "try_pointer_builtin_operands_match");
   /* The reason the pointer case is more complicated than other cases is
@@ -4371,8 +4418,6 @@ must have the same type.
      converted to any pointer type?" -- we must ask whether both of the
      pointer operands can be converted to a specific pointer type or
      something compatible with it. */
-  ptr_to_member_case = (operand_type_pattern[0] ==
-                                              CORRESP_PTR_TO_MEMBER_TYPE_CODE);
   /* Loop through the two operands. */
   previous_class_type_considered = NULL;
   previous_pointer_type_considered = NULL;
@@ -4401,9 +4446,8 @@ must have the same type.
           return_type = type_pointed_to(return_type);
         }  /* if */
         return_type = skip_typerefs(return_type);
-        if (ptr_to_member_case ? is_ptr_to_member_type(return_type) :
-                                 is_pointer_type(return_type)) {
-          /* We've found a conversion function to a pointer type.  Make
+        if (type_matches_type_code(return_type, *type_pattern_position)) {
+          /* We've found a conversion function to an appropriate type.  Make
              sure it's not a type we've already checked while examining a
              previous operand.  If it is, ignore it. */
           pointer_type = return_type;
@@ -4418,9 +4462,7 @@ must have the same type.
                                        first_operand_must_be_lvalue,
                                        arg_operand_list,
                                        candidate_functions,
-                                       type_pattern_position,
-                                       pointer_type,
-                                       ptr_to_member_case);
+                                       pointer_type);
           }  /* if */
         }  /* if */
       }  /* for */
@@ -4437,8 +4479,8 @@ must have the same type.
       operand_type = do_implicit_type_transformations(operand_type,
                                                       &arg_operand->operand);
       operand_type = skip_typerefs(operand_type);
-      if (ptr_to_member_case ? is_ptr_to_member_type(operand_type) :
-                               is_pointer_type(operand_type)) {
+      if (type_matches_type_code(operand_type, *type_pattern_position)) {
+        /* The operand has an appropriate type. */
         pointer_type = operand_type;
         /* If the type has been previously handled, ignore it. */
         if (!pointer_type_previously_handled(
@@ -4452,9 +4494,7 @@ must have the same type.
                                      first_operand_must_be_lvalue,
                                      arg_operand_list,
                                      candidate_functions,
-                                     type_pattern_position,
-                                     pointer_type,
-                                     ptr_to_member_case);
+                                     pointer_type);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4487,11 +4527,11 @@ can be used, it is added to the candidate_functions list.
      are one or more semicolon-separated argument patterns, each one consisting
      of one letter (for unary operators) or two letters (for binary operators)
      indicating the allowed argument types.  As a concrete example, the
-     pattern for "-=" is "LaA;PI", indicating that the operator requires
-     an lvalue and takes operands of types arith-arith or pointer-int. */
+     pattern for "-=" is "LaA;OI", indicating that the operator requires
+     an lvalue and takes operands of types arith-=arith or pointer-=int. */
   operand_type_pattern = operand_type_pattern_for_operator(kind,
                                                            unary_operator);
-  if (*operand_type_pattern == 'L') {
+  if (*operand_type_pattern == LVALUE_FIRST_OPERAND_TYPE_CODE) {
     /* The operator requires an lvalue as its first operand.  Check that.
        If the operand has a class type it might be convertible to an lvalue
        via a conversion function returning a reference.  Note that we need not
@@ -4509,31 +4549,29 @@ can be used, it is added to the candidate_functions list.
          be used.  Give up. */
       goto end_of_check;
     }  /* if */
-    /* Advance past the "L". */
+    /* Advance past the LVALUE_FIRST_OPERAND_TYPE_CODE. */
     operand_type_pattern++;
   }  /* if */
   /* Check the operands to see if they can be converted to the proper
      types. */
   /* Loop for each ";"-separated pattern in the string. */
   do {
-    if (operand_type_pattern[0] == CORRESP_POINTER_TYPE_CODE ||
-        operand_type_pattern[0] == CORRESP_PTR_TO_MEMBER_TYPE_CODE) {
-      /* Both operands must have the same pointer or pointer-to-member type.
-         This case is more complicated because it involves enumerating the
-         pointer types that can be generated by the applicable conversion
-         functions. */
-      try_pointer_builtin_operands_match(kind, operand_type_pattern,
+    if (operand_type_pattern[0] == CORRESP_TYPE_CODE) {
+      /* This operator takes operands of corresponding types (e.g., two
+         pointers that must match).  Use a special routine that
+         enumerates the types that can be generated by the applicable
+         conversion functions. */
+      try_pointer_builtin_operands_match(kind, operand_type_pattern+1,
                                          first_operand_must_be_lvalue,
                                          arg_operand_list,
                                          candidate_functions);
     } else {
-      /* There are no corresponding pointer types in the argument pattern. */
+      /* There are no corresponding types in the argument pattern. */
       try_builtin_operands_match(kind, operand_type_pattern,
                                  first_operand_must_be_lvalue,
                                  arg_operand_list,
                                  candidate_functions,
-                                 (char *)NULL, (a_type_ptr)NULL,
-                                 /*ptr_to_member_case=*/FALSE);
+                                 (a_type_ptr)NULL);
     }  /* if */
     /* Advance to the next pattern or stop the loop at the end of the
        string. */
@@ -4631,9 +4669,9 @@ argument.  Adjust the operand type to match the type requirement.
     /* Get the type code for this operand (see
        operand_type_pattern_for_operator). */
     type_code = candidate_function->operand_type_pattern[operand_num-1];
-    if (type_code != CORRESP_POINTER_TYPE_CODE) {
-      /* Non-pointer case.  The conversion function result type is the
-         right type. */
+    if (candidate_function->pointer_type == NULL) {
+      /* Non-pointer or non-specific pointer case.  The conversion function
+         result type is the right type. */
       if (conv_usable(&arg_match->conversion)) {
         /* The conversion is usable.  Do it. */
         prep_for_known_possible_conversion(operand, &arg_match->conversion);
