@@ -7175,7 +7175,7 @@ done_with_operation_after_parens:
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
-      /* GNU C statement expression, ({...}). */
+      /* GNU statement expression, ({...}). */
       write_tok_str("(");
       gen_statement_full(expr->variant.statement,
                          /*suppress_trailing_space=*/TRUE);

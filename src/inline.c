@@ -1200,7 +1200,7 @@ If not, *failed is set.
           } else {
             /* Statement insert location.  A return without an expression
                is just thrown away.  A return with an expression is just
-               the expression (for side effects).  In GNU C statement
+               the expression (for side effects).  In GNU statement
                expressions, the expression for the final statement is
                the value of the statement expression, and is used. */
             if (stmt_expr != NULL &&
@@ -1746,7 +1746,7 @@ the routine so it can be inlined on calls from here on.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (routine->contains_statement_expression) {
-    /* The routine contains a GNU C statement expression, ({...}).
+    /* The routine contains a GNU statement expression, ({...}).
        copy_expr_tree would have to be enhanced to be able to copy
        the statement subtree and associated scopes for those if we
        wanted to be able to inline such things. */

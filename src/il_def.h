@@ -6826,7 +6826,7 @@ typedef struct a_routine {
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	contains_statement_expression:1;
 			/* TRUE if this routine's body contains one or more
-			   statement expressions, i.e., ({...}), a GNU C
+			   statement expressions, i.e., ({...}), a GNU
 			   extension. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI

@@ -10437,7 +10437,7 @@ the expression have already been lowered.
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean has_statement_expression(an_expr_node_ptr  expr)
 /*
-Return whether expr contains a statement expression (a GNU C extension).
+Return whether expr contains a statement expression (a GNU extension).
 */
 {
   a_boolean         result = FALSE;

@@ -36,7 +36,7 @@ expr.c -- Expression scanning routines.
 #include "lower_name.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-/* Needed for GNU C statement expression, ({...}). */
+/* Needed for GNU statement expression, ({...}). */
 #include "statements.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -9545,7 +9545,7 @@ Also scans C99 compound literals:
 
         ( type-name ) { expression, expression, ... }
 
-Also scans GNU C statement expressions:
+Also scans GNU statement expressions:
 
         ({ statement; statement; })
 */
@@ -14894,11 +14894,11 @@ used for expression statements, the increment expression of a "for", etc.
 repeated_in_loop is TRUE for an expression repeated in a loop (e.g.,
 the increment of a "for").  This routine is not used for constant
 or not-evaluated expressions.  This routine should only be used to
-scan full expressions (except for the GNU C statement expression case).
+scan full expressions (except for the GNU statement expression case).
 If marked_as_gnu_extension is TRUE, the upcoming expression was
 preceded by the GNU __extension__ keyword.  is_statement_expr is
 TRUE if this expression is being scanned as a statement inside a
-GNU C statement expression.  Issue a warning for an expression that has
+GNU statement expression.  Issue a warning for an expression that has
 no side effects unless this expression is the last in a statement
 expression.
 */
@@ -14921,7 +14921,7 @@ expression.
   if (is_statement_expr &&
       curr_token == tok_semicolon &&
       next_token() == tok_rbrace) {
-    /* This is the last statement in a GNU C statement expression.
+    /* This is the last statement in a GNU statement expression.
        As such, it is the value of the expression. */
     result_used = TRUE;
   }  /* if * */
