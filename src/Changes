@@ -19,6 +19,9 @@ host long long to represent it as follows (for the typical case):
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
 
+HOST_ALIGNMENT_REQUIRED may also have to be changed (e.g., to 8) if the
+alignment for long long is longer than the default.
+
 7/1/96  Microsoft compatibility: incomplete arrays in unions
 
 In Microsoft mode, any member of a union can now be an incomplete array,
