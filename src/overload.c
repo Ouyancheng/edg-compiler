@@ -4137,15 +4137,6 @@ and return NULL.  This routine is called only in C++ mode.
     /* Prevent freeing of the arg_match_list when the candidate_functions
        list is freed. */
     candidate_functions->arg_matches = NULL;
-    if (do_dependent_name_processing && is_template_dependent_context() &&
-        do_arg_dep_lookup) {
-      /* Record the outcome of overload resolution for a nondependent call
-         in a prototype instantiation.  Dependent calls in such a context
-         don't get here.  Calls where argument-dependent lookup is turned
-         off are not recorded; they're considered non-dependent. */
-      check_assertion(!dependent_call && paren_tok_seq_number != 0);
-      record_nondependent_call(function_symbol, paren_tok_seq_number);
-    }  /* if */
     if (candidate_functions->surrogate_function_conv_sym != NULL) {
       /* The best function is a surrogate function. */
       *surrogate_function_conv_sym =
@@ -4168,6 +4159,15 @@ and return NULL.  This routine is called only in C++ mode.
   /* Free the candidate functions list. */
   free_candidate_function_list(candidate_functions);
 have_function:
+  if (do_dependent_name_processing && is_template_dependent_context() &&
+      do_arg_dep_lookup && function_symbol != NULL) {
+    /* Record the outcome of overload resolution for a nondependent call
+       in a prototype instantiation.  Dependent calls in such a context
+       don't get here.  Calls where argument-dependent lookup is turned
+       off are not recorded; they're considered non-dependent. */
+    check_assertion(!dependent_call && paren_tok_seq_number != 0);
+    record_nondependent_call(function_symbol, paren_tok_seq_number);
+  }  /* if */
   db_exit();
   return function_symbol;
 }  /* select_overloaded_function */
