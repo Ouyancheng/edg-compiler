@@ -9833,8 +9833,6 @@ happen only in C++ mode.
         elision_done = TRUE;
         elision_source_type = source_operand->type;
       } else {
-        /* Cast to a base class or adjust cv-qualifiers if necessary. */
-        do_class_object_adjustment(source_operand, dest_type, conversion);
         if (is_error_operand(source_operand)) {
           conversion_routine = NULL;
         } else {
