@@ -2068,7 +2068,13 @@ that do normal id lookup processing.
 #endif /* DEBUG */
   def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
   ref_sym = scope_stack_lookup(locator, lookup_state, ref_start, common_depth);
-  if (ref_sym == NULL || def_sym == NULL) {
+  /* If either of these lookups failed to find a symbol, continue the
+     lookup starting from the common scope.  When doing a friend lookup,
+     only do the common scope lookup if the innermost namespace scope
+     is part of the common lookup. */
+  if ((ref_sym == NULL || def_sym == NULL) &&
+      (!lookup_state->is_friend_lookup ||
+       depth_innermost_namespace_scope <= common_depth)) {
     /* One of the lookups did not find a symbol.  Do the lookup of
        the common scopes. */
     a_symbol_ptr	common_sym;

@@ -1,5 +1,25 @@
 Version 2.42
 
+6/28/99  Friend declaration in a class template could refer to wrong namespace
+
+The lookup of a friend declaration in a class template defined within
+a namespace could, under certain circumstances, find a class declared
+outside of the nearest enclosing namespace.  The lookup of friend
+declarations is supposed to be limited to the nearest enclosing
+namespace.  This has been fixed.
+
+  struct C { void f(); };
+  namespace A {
+    template <class T> class B {
+      friend class C;  // A::C, not ::C
+      int i;
+    };
+  }
+  A::B<int> x;
+  void C::f() {
+    x.i = 0;  // Failed to issue error
+  }
+
 6/28/99  Allow the declaration of a file-scope static with incomplete type
          in C mode
 
