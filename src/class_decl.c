@@ -699,6 +699,8 @@ typedef struct a_member_decl_info {
 static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
                                         a_source_position      *pos)
 /*
+Initialize a member-declaration-info block, used to track information about
+a class member declaration as it appears.
 */
 {
   mdip->decl_start_pos = *pos;
