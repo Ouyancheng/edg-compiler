@@ -115,6 +115,10 @@ but cannot be referenced by name in a pragma directive.
       pkdp->variant.other_processing_function
                           = (an_other_pragma_function_ptr)processing_function;
       break;
+    case pbk_preproc_immediate:
+      pkdp->variant.preproc_immediate_processing_function
+                = (a_preproc_immediate_pragma_function_ptr)processing_function;
+      break;
 #if CHECKING
     default:
       unexpected_condition_str2("add_pragma_kind_description:",
@@ -230,6 +234,28 @@ used for creating pbk_other pragmas.
             make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
             ignore_in_back_end, error_severity);
 }  /* add_other_pragma_kind_description */
+
+
+static
+a_pragma_kind_description_ptr add_preproc_immediate_pragma_kind_description
+                      (a_pragma_kind 	     kind,
+		       a_preproc_immediate_pragma_function_ptr
+					     processing_function)
+/*
+This is an interface to the general add_pragma_kind_description that is
+used for creating pbk_preproc_immediate pragmas.
+*/
+{
+  return add_pragma_kind_description
+           (kind, pbk_preproc_immediate,
+            (a_generic_pragma_function_ptr)processing_function,
+	    /*is_pseudo_pragma=*/FALSE, /*may_bind_to_decl=*/FALSE,
+            /*may_bind_to_expr=*/FALSE, /*global=*/FALSE,
+	    /*automatically_include_in_il=*/FALSE,
+            /*make_text_not_tokens=*/FALSE, /*expand_macros=*/FALSE,
+	    /*processing_C_code_in_pragma=*/FALSE,
+            /*ignore_in_back_end=*/FALSE, /*error_severity=*/es_none);
+}  /* add_preproc_immediate_pragma_kind_description */
 
 
 a_pending_pragma_ptr alloc_pending_pragma(a_pragma_kind_description_ptr pkdp)
@@ -1338,6 +1364,12 @@ Initialize the pragma description table.
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #endif /* PRAGMA_WEAK_ALLOWED */
+  (void)add_preproc_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_once, once_pragma);
+  (void)add_preproc_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma);
+  (void)add_preproc_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma);
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,

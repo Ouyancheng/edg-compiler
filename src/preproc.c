@@ -1162,18 +1162,46 @@ the pragma identifier.
 }  /* enter_pending_pragma */
 
 
+/*ARGSUSED*/ /* <-- kind is not used. */
+void once_pragma(a_pragma_kind kind)
+/*
+Process a "#pragma once" directive.  This directive indicate that
+this file should be included only once, and if it is #included
+again in the same compilation unit, the include should be skipped.
+Record this information in the input stack entry.
+*/
+{
+  set_ifg_state(IFG_STATE_ONCE);
+  curr_ise->include_history->pragma_once = TRUE;
+  /* Bypass the "once" token. */
+  (void)get_token();
+}  /* once_pragma */
+
+
+/*ARGSUSED*/ /* <-- kind is not used. */
+void hdrstop_or_no_pch_pragma(a_pragma_kind kind)
+/*
+A PCH control pragma.  The actual processing of these
+pragmas is handled in the special prefix processing code for
+preprocessing directives.  When they are encountered during a
+real compilation, they should just be ignored.
+*/
+{
+  while (curr_token != tok_newline) (void)get_token();
+}  /* hdrstop_or_no_pch_pragma */
+
+
 static void proc_pragma(a_source_position *start_of_dir_position)
 /*
 Scan and process a #pragma directive.
 */
 {
-  a_boolean processed = FALSE;
-
   if (generate_pp_output) {
     /* Generating preprocessing output for some other compiler.  Pass the
        #pragma unchanged to output. */
     /* Look for the special case of "#pragma once".  This is different
-       from other pragmas in that it must be handled in preprocessing. */
+       from other pragmas in that it must be handled in preprocessing
+       even when only generated a preprocessed output file. */
     if (get_token() == tok_identifier) {
       if (curr_id_is("once")) {
         /* This file should be included only once, and if it is #included
@@ -1181,7 +1209,6 @@ Scan and process a #pragma directive.
            Record this information in the input stack entry. */
         set_ifg_state(IFG_STATE_ONCE);
         curr_ise->include_history->pragma_once = TRUE;
-        processed = TRUE;
         /* Bypass the "once" token. */
         (void)get_token();
       }  /* if */
@@ -1189,59 +1216,49 @@ Scan and process a #pragma directive.
     pass_directive_to_output();
   } else {
     /* Compiling.  Identify the pragma. */
+    a_boolean processed = FALSE;
     if (get_token() == tok_identifier) {
       a_pragma_kind_description_ptr	pkdp;
       a_source_position			id_position;
       /* Save the position of the start of the token(s) that identify
          the kind of pragma being processed. */
       id_position = pos_curr_token;
-      /* Look for the special case of "#pragma once".  This is different
-         from other pragmas in that it must be handled in preprocessing. */
-      if (curr_id_is("once")) {
-        /* This file should be included only once, and if it is #included
-           again in the same compilation unit, the include should be skipped.
-           Record this information in the input stack entry. */
-        set_ifg_state(IFG_STATE_ONCE);
-        curr_ise->include_history->pragma_once = TRUE;
-        processed = TRUE;
-        /* Bypass the "once" token. */
-        (void)get_token();
-      } else if (curr_id_is("hdrstop") || curr_id_is("no_pch")) {
-        /* A PCH control pragma.  The actual processing of these
-           pragmas is handled in the special prefix processing code for
-           preprocessing directives.  When they are encountered during a
-           real compilation, they should just be ignored. */
-        while (curr_token != tok_newline) (void)get_token();
-        processed = TRUE;
-      } else {
-        /* Look for a matching pragma identifier in the pragma descriptions
-           list.  If any pragma need to be added in where the pragma is
-           not specified by an identifier following the #pragma keyword,
-           this code will need to be modified. */
-        pkdp = pragma_kind_descriptions;
-        while (pkdp != NULL) {
-          if (curr_id_matches_pragma_id(pkdp->kind)) break;
-          pkdp = pkdp->next;
-        }  /* while */
+      /* Look for a matching pragma identifier in the pragma descriptions
+	 list.  If any pragma need to be added in where the pragma is
+	 not specified by an identifier following the #pragma keyword,
+	 this code will need to be modified. */
+      pkdp = pragma_kind_descriptions;
+      while (pkdp != NULL) {
+	if (curr_id_matches_pragma_id(pkdp->kind)) break;
+	pkdp = pkdp->next;
+      }  /* while */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
-        /* If no matching pragma name was found, set the pragma kind to
-           pk_unrecognized and scan the pragma according to the associated
-           description. */
-        if (pkdp == NULL) {
-          pkdp = pragma_description_for_pragma_kind[(int)pk_unrecognized];
-        }  /* if */
+      /* If no matching pragma name was found, set the pragma kind to
+	 pk_unrecognized and scan the pragma according to the associated
+	 description. */
+      if (pkdp == NULL) {
+	pkdp = pragma_description_for_pragma_kind[(int)pk_unrecognized];
+      }  /* if */
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
-        if (pkdp != NULL) {
-          /* Scan the pragma directive, recording it as either a token cache
-             or as a character string. */
-          enter_pending_pragma(pkdp, start_of_dir_position, &id_position);
-          processed = TRUE;
-        }  /* if */
+      if (pkdp != NULL) {
+	if (pkdp->binding_kind == pbk_preproc_immediate) {
+	  /* Preprocessing immediate pragmas are processed when
+	     encountered.  Call the processing routine associated with
+	     this pragma. */
+	  a_preproc_immediate_pragma_function_ptr pipfp;
+	  pipfp = pkdp->variant.preproc_immediate_processing_function;
+	  if (pipfp != NULL) (*pipfp)(pkdp->kind);
+	} else {
+	  /* Scan the pragma directive, recording it as either a token cache
+	     or as a character string. */
+	  enter_pending_pragma(pkdp, start_of_dir_position, &id_position);
+	}  /* if */
+	processed = TRUE;
       }  /* if */
     }  /* if */
     if (!processed) {
       /* Unrecognized pragma, just ignore (this is required by the
-         standard). */
+	 standard). */
       warning(ec_unrecognized_pragma);
       flush_to_newline();
     }  /* if */

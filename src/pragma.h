@@ -107,6 +107,10 @@ typedef struct a_pragma_kind_description {
     an_other_pragma_function_ptr
 		other_processing_function;
                         /* Processing function for other pragmas. */
+    /* When binding_kind == pbk_preproc_immediate */
+    a_preproc_immediate_pragma_function_ptr
+		preproc_immediate_processing_function;
+                        /* Processing function for other pragmas. */
   } variant;
   unsigned int	may_bind_to_decl:1;
 			/* For pbk_next_construct pragmas, TRUE if this

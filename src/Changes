@@ -1,5 +1,11 @@
 Version 2.28
 
+3/1/95   Preprocessing immediate pragma binding kind added
+
+A new pragma binding kind called "preprocessing immediate" has been
+added.  This may be used for pragmas that need to be processed
+when encountered by the preprocessing routines.
+
 3/1/95   Lvalues required as first operands of builtin operators in overload
          resolution.
 

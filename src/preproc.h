@@ -213,6 +213,10 @@ extern void cpp_driver(void);
 extern void ident_pragma(a_pending_pragma_ptr ppp);
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
+extern void once_pragma(a_pragma_kind kind);
+
+extern void hdrstop_or_no_pch_pragma(a_pragma_kind kind);
+
 extern void preproc_init(void);
 
 #endif /* ifndef PREPROC_H */
