@@ -1,5 +1,20 @@
 Version 2.24
 
+6/30/94  const/volatile as tie-breaker in overload resolution
+
+The way that const/volatile serve as tie-breakers in overload resolution
+has been changed.  The new way matches cfront more closely and is also
+what Bjarne intended (I asked him).
+
+  struct A {};
+  void f(const A*, short);
+  void f(A*, int);
+  main ()
+  {
+    A a;
+    f(&a, (short)1);  // No longer ambiguous; f(const A*, int) chosen
+  }
+
 6/30/94  Last bit in bit vectors for decl_specifiers and declarator
 
 Names have been introduced to identify the last bit defined for the bit
