@@ -1444,6 +1444,7 @@ declaration.
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
         ptp = make_param_type(param_type_ptr, &param_type_pos);
+        ptp->declared_type = declared_type;
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         if (!is_error_locator(param_locator)) {
           ptp->name = param_locator.symbol_header->identifier;

@@ -629,6 +629,7 @@ at file scope.
 #endif /* DEBUG */
   ptp->next = NULL;
   ptp->type = type;
+  ptp->declared_type = NULL;
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   ptp->name = NULL;
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */

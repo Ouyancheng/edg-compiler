@@ -869,6 +869,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
       case tk_array:
         fputs("array [", f_debug);
+        if (tp->variant.array.is_static) {
+          fputs("static ", f_debug);
+        }  /* if */
         if (tp->variant.array.is_vla) {
           if (tp->variant.array.has_assoc_vla_dimension) {
             fputs("**EXPR**", f_debug);

@@ -2250,6 +2250,10 @@ typedef struct a_param_type {
 			   type qualifiers that were present in the source
 			   have been removed -- see the field "qualifiers"
 			   below. */
+  a_type_ptr    declared_type;
+			/* The type before any transformations (like
+			   array-to-pointer decay) were applied.  (NULL for
+			   compiler-generated parameters.) */
 #ifdef CIL
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   char          *name;

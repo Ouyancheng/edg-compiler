@@ -655,6 +655,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_param_type_ptr ptr = (a_param_type_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_param_type_ptr, iek_param_type);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         walk_string_ptr(ptr->name, iek_id_name, 0);

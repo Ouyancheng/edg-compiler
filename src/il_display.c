@@ -901,6 +901,7 @@ Display a_param_type entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_param_type);
   disp_ptr("type", (char *)ptr->type, iek_type);
+  disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #ifdef CFE
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   if (ptr->name != NULL) {
