@@ -86,7 +86,7 @@ pointed to by trace_corresp_ptr is modified.
 {
   fprintf(f_debug, "Modifying correspondence for node at %x.\n",
           (unsigned)trace_corresp_ptr);
-}  /* alloc_intercept */
+}  /* corresp_intercept */
 
 #define trace_corresp_check(ptr)                                       \
   if ((void*)(ptr) == trace_corresp_ptr) { corresp_intercept(); }
@@ -752,7 +752,7 @@ is in fact valid.
   
     match = verify_name_correspondence(field);
     if (match &&
-        (!identical_types(field->type, corresp_field->type) ||
+        (!types_are_redecl_compatible(field->type, corresp_field->type) ||
          !same_exception_spec(field->type, corresp_field->type) ||
          field->offset != corresp_field->offset ||
          field->offset_bit_remainder != corresp_field->offset_bit_remainder ||
@@ -1644,6 +1644,17 @@ are not checked.
            field = skip_generated_field(field->next),
              corresp_field = skip_generated_field(corresp_field->next)) {
         record_trans_unit_corresp(field, corresp_field);
+        if (C_mode()) {
+          /* Special handling is needed for unnamed types defined as part of
+             field declarations.  In C mode, such types go into the file scope
+             but since they have no name find_type_correspondence will not
+             find a correspondence. */
+          a_type_ptr  field_type = field->type;
+          if (is_immediate_class_type(field_type) && !has_name(field_type) &&
+              !has_correspondence(field_type)) {
+            record_trans_unit_corresp(field_type, corresp_field->type);
+          }  /* if */
+        }  /* if */
       }  /* for */
     }
 
