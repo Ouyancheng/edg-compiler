@@ -843,6 +843,17 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
 
+  if (type == NULL) {
+    /* NULL type pointer. */
+    if (octl->debug_output) {
+      octl->output_str("**NULL-TYPE-POINTER**");
+    } else {
+      check_assertion_str(!octl->gen_compilable_code,
+                          "form_type_first_part: NULL type");
+      octl->output_str("<something>");
+    }  /* if */
+    goto end_of_routine;
+  }  /* if */
 #ifdef CFE
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
@@ -989,6 +1000,7 @@ handle_specifiers_type:
                         octl);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+end_of_routine:;
 }  /* form_type_first_part */
 
 
@@ -1148,6 +1160,10 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
               qualifiers = TQ_NONE;
 #endif /* ifdef CFE */
 
+  if (type == NULL) {
+    /* NULL type pointer.  Handled in form_type_first_part. */
+    goto end_of_routine;
+  }  /* if */
 #ifdef CFE
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
@@ -1213,6 +1229,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     }  /* if */
 #endif /* ifdef CFE */
   }  /* if */
+end_of_routine:;
 }  /* form_type_second_part */
 
 
