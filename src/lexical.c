@@ -10907,7 +10907,6 @@ scanned is, in fact, an identifier).
           (ilm == ilm_tentative_type && implicit_typename_enabled)) {
         a_template_arg_ptr	arg_list;
         arg_list = locator_for_curr_id.template_arg_list;
-        check_assertion(arg_list != NULL);
         symbol = find_template_class(symbol, &arg_list,
                                      /*prototype_allowed=*/FALSE,
                                      (a_symbol_ptr)NULL);

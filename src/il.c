@@ -3595,7 +3595,7 @@ nonidentical.
                                                          template_ref.arg_list,
                                       cp2->variant.template_param.variant.
                                                          template_ref.arg_list,
-                                      ETA_NO_OPTIONS);
+                                      ETA_IS_NONREAL_MEMBER);
               break;
 #if CHECKING
             default:
