@@ -1,5 +1,10 @@
 Version 2.28
 
+1/19/95  Error instead of warning in strict mode on incomplete final line
+
+In strict mode, when the final line of a file ends without a newline,
+an error is now issued instead of a warning.
+
 1/19/95  Internal error when flushing tokens after an error in a macro
          invocation
 

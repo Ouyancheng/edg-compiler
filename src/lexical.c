@@ -3289,11 +3289,16 @@ expand_buffer:
   goto entry_for_expand_buffer;
 
 partial_final_line:
-  /* The final line of a file does not end with a newline.  Issue a warning,
-     add a newline and null to the line, and return. */
+  /* The final line of a file does not end with a newline.  Issue a warning
+     (or an error in strict mode), add a newline and null to the line, and
+     return. */
   eof_read_on_curr_input_stream = TRUE;
   finish_off_source_line_so_it_can_be_displayed_in_error();
-  warning_at_line_pos(ec_last_line_incomplete, loc_in_line);
+  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+    error_at_line_pos(ec_last_line_incomplete, loc_in_line);
+  } else {
+    warning_at_line_pos(ec_last_line_incomplete, loc_in_line);
+  }  /* if */
   goto add_newline_and_null_and_return;
 
 possible_trigraph:
