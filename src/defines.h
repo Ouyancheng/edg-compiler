@@ -20,8 +20,6 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
-#define ADDRESS_OF_ELLIPSIS_ALLOWED 1
-#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
@@ -170,6 +168,9 @@ Flags to be set when using the KAI inliner.
 #ifndef SVR4_TRAP_NULL_POINTER_REFERENCES
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
+#define ADDRESS_OF_ELLIPSIS_ALLOWED 1
+#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE 1
+#define PRAGMA_WEAK_ALLOWED 1
 
 #endif /* ifdef __LINUX__ */
 #endif /* defined(_WIN32) */

@@ -332,6 +332,17 @@ type.
 #endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
+Flag that is TRUE to recognize #pragma weak directives.
+	#pragma weak <name1> [= <name2>]
+This directive is only effective in C_mode().  The first name is to be given
+weak binding.  If a second name is present, the first is also defined to be
+a synonym for it.
+*/
+#ifndef PRAGMA_WEAK_ALLOWED
+#define PRAGMA_WEAK_ALLOWED FALSE
+#endif /* ifndef PRAGMA_WEAK_ALLOWED */
+
+/*
 Flag that is TRUE if "#pragma ident" and "#ident" are recognized.
 Both are implemented by recording the string in a pragma entry and passing
 it to the back end.
