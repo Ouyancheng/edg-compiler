@@ -266,26 +266,40 @@ type entry for a class, struct, or union when layout processing commences.
 } /* pack_pragma */
 
 
-static void adjust_alignment_for_packing(a_targ_alignment *alignment)
+void set_max_member_alignment_for_class(a_type_ptr  class_type)
 /*
-The currently operative "pack alignment" (if any) serves as a maximum
-alignment for any nonstatic data member of the class being laid out.  Be
-sure that *alignment is no greater than the current pack alignment.
+Record the current "pack alignment" in indicated class type entry.  It will
+be the value set by the most recent #pragma pack directive or else the
+default value (if any) set on the command line.
 */
 {
+  a_targ_alignment  pack_alignment;
+
   if (curr_max_member_alignment > 0) {
-    /* A #pragma pack directive has set the current packing alignment. */
-    if (curr_max_member_alignment < *alignment) {
-      /* Reduce the alignment the the current maximum. */
-      *alignment = curr_max_member_alignment;
-    }  /* if */
-  } else if (default_max_member_alignment > 0) {
-    /* A command line option has set the current packing alignment. */
-    if (default_max_member_alignment < *alignment) {
-      /* Reduce the alignment the the current maximum. */
-      *alignment = default_max_member_alignment;
-    } /* if */
-  } /* if */
+    /* Use the value set by a #pragma pack. */
+    pack_alignment = curr_max_member_alignment;
+  } else {
+    /* Use the default value set on the command line. */
+    pack_alignment = default_max_member_alignment;
+  }  /* if */
+  class_type->variant.class_struct_union.max_member_alignment = pack_alignment;
+}  /* set_max_member_alignment_for_class */
+
+
+static void adjust_alignment_for_packing(a_targ_alignment *alignment,
+                                         a_type_ptr       class_type)
+/*
+The "pack alignment" (if any) that is specified for class_type is the
+maximum alignment for any of its nonstatic data members. Adjust *alignment
+if necessary.
+*/
+{
+  a_targ_alignment  pack_alignment;
+
+  pack_alignment = class_type->variant.class_struct_union.max_member_alignment;
+  if (pack_alignment > 0 && pack_alignment < *alignment) {
+    *alignment = pack_alignment;
+  }  /* if */
 } /* adjust_alignment_for_packing */
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -620,12 +634,16 @@ there was an overflow error.
 }  /* do_alignment */
 
 
+#if !USER_CONTROL_OF_STRUCT_PACKING
+/*ARGSUSED*/ /* class_type is only needed to adjust alignment for packing. */
+#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
 static a_boolean align_offsets_for_bit_field(
                                     int                         bit_size,
                                     a_targ_size_t               *byte_offset,
                                     an_unnormalized_bit_offset  *bit_offset,
                                     a_targ_alignment            *p_alignment,
-                                    a_type_ptr                  base_type)
+                                    a_type_ptr                  base_type,
+                                    a_type_ptr                  class_type)
 /*
 As part of maintaining field offsets while processing fields of a struct
 definition, update *byte_offset and *bit_offset to indicate the position
@@ -635,7 +653,8 @@ base_type is the integral base type for the bit field (e.g., int, unsigned
 int).  Return the effective alignment for the field, i.e., the alignment
 for the container used, in *p_alignment.  If any overflow was detected in
 computing the alignment, FALSE is returned; if there's no overflow TRUE is
-returned.
+returned.  class_type is a pointer to the class in which the bit-field is
+declared.
 */
 {
   a_targ_size_t    container_size;
@@ -774,7 +793,7 @@ aligned according to container_alignment.
 
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Adjust the container alignment for packing, if required. */
-  adjust_alignment_for_packing(&container_alignment);
+  adjust_alignment_for_packing(&container_alignment, class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
@@ -816,10 +835,12 @@ if there's no overflow TRUE is returned.
   a_boolean	              overflow;
   a_targ_size_t               save_byte_offset;
   an_unnormalized_bit_offset  save_bit_offset;
+  a_type_ptr                  class_type;
 
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
   field_type = skip_typerefs(field->type);
+  class_type = field->source_corresp.class_of_which_a_member;
   set_type_size(field_type);
   if (is_error_type(field_type)) {
     overflow = FALSE;
@@ -829,13 +850,14 @@ if there's no overflow TRUE is returned.
       /* Do any necessary alignment for a bit-field. */
       overflow = !align_offsets_for_bit_field((int)field->bit_size,
                                               p_byte_offset, p_bit_offset,
-                                              &field_alignment, field_type);
+                                              &field_alignment, field_type,
+                                              class_type);
     } else {
       /* Do any necessary alignment for a normal field. */
       field_alignment = field_type->alignment;
 #if USER_CONTROL_OF_STRUCT_PACKING
       /* Adjust the field's alignment for packing, if required. */
-      adjust_alignment_for_packing(&field_alignment);
+      adjust_alignment_for_packing(&field_alignment, class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
     }  /* if */
@@ -1094,7 +1116,7 @@ points to the layout block used to track the layout of the current class.
       alignment = (a_targ_alignment)targ_alignof_virtual_function_info;
 #if USER_CONTROL_OF_STRUCT_PACKING
       /* Adjust the vtbl pointer's alignment for packing, if required. */
-      adjust_alignment_for_packing(&alignment);
+      adjust_alignment_for_packing(&alignment, lob->class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       ctsp->virtual_function_info_offset =
                                set_offset_and_alignment (lob, size, alignment);
@@ -1140,7 +1162,7 @@ bcp.
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Adjust the virtual base class pointer's alignment for packing, if
      required. */
-  adjust_alignment_for_packing(&alignment);
+  adjust_alignment_for_packing(&alignment, lob->class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   size = (a_targ_size_t)targ_sizeof_pointer;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */

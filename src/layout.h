@@ -32,6 +32,8 @@ extern a_boolean check_pack_alignment_value(long              value,
                                             a_targ_alignment  *alignment);
 
 extern void pack_pragma(a_pending_pragma_ptr ppp);
+
+extern void set_max_member_alignment_for_class(a_type_ptr  class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 extern void scan_bit_field_size(a_boolean         *unnamed_bit_field,
