@@ -1674,31 +1674,6 @@ bcp base if it has a subobject of the same type as the first base.
   return result;
 }  /* gnu_first_base_conflict */
 
-
-a_boolean gnu_virtual_base_conflict(a_type_ptr        class_type,
-                                    a_base_class_ptr  evbcp)
-/*
-evbcp is an empty virtual base class of class_type that we want to allocate at
-offset zero.  If a direct base allocated at offset zero already contains a
-subobject of type evbcp->type in its first few bytes, a GNU compiler will
-mistakenly assume that the virtual base cannot be allocated at that offset.
-This function returns TRUE in that case.
-*/
-{
-  a_boolean         result = FALSE;
-  a_base_class_ptr  bcp = base_classes_of(class_type);
-
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->offset_is_set && bcp->direct && bcp->offset == 0 &&
-        gnu_conflict_found(skip_typerefs(bcp->type),
-                           skip_typerefs(evbcp->type))) {
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* gnu_virtual_base_conflict */
-
 #endif /* !IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
@@ -1970,9 +1945,7 @@ Allocate bcp (an empty base class).
   an_unnormalized_bit_offset dummy = 0;
 
   /* Attempt to allocate the base at offset zero. */
-  if (!(base_subobject_conflict(bcp, (a_targ_size_t)0) ||
-        (emulate_gnu_abi_bugs && bcp->is_virtual &&
-         gnu_virtual_base_conflict(lob->class_type, bcp)))) {
+  if (!base_subobject_conflict(bcp, (a_targ_size_t)0)) {
     bcp->offset = 0;
   } else {
     /* It didn't work at offset zero; try putting it at the end of the object 
