@@ -1,5 +1,14 @@
 Version 2.44
 
+7/20/00  Elision of implicit cast, no type change
+
+When an implicit cast in the IL is elided (because the underlying
+expression already has the right type), the type of the expression
+node is no longer changed to the destination type of the implicit
+cast.  The two types are "the same", but might differ in typedefs.
+Now, the original type is preserved, which may preserve useful
+typedefs.
+
 7/20/00  C++-generating back end: implicit conversions not put out
 
 The C++-generating back end has been improved so that it does not

@@ -2325,23 +2325,25 @@ conversions.
   } else if (!is_implicit_cast) {
     /* Do-nothing explicit casts are preserved in some configurations. */
     need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
-    if (!need_cast &&
-        is_operation_node(node) &&
-        node->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-        node->variant.operation.compiler_generated) {
-      /* An explicit cast over an equivalent implicit cast, and we wouldn't
-         otherwise keep the new cast.  Turn the old cast into an explicit
-         cast. */
-      node->variant.operation.compiler_generated = FALSE;
-    }  /* if */
   } else {
     /* Do-nothing implicit casts are not needed. */
     need_cast = FALSE;
   }  /* if */
   if (!need_cast) {
-    /* If the new type is identical to the old type, just put the new type
-       in the node (since it may be "identical" but not exactly the same). */
-    node->type = new_type;
+    /* We don't need to add a cast. */
+    if (!is_implicit_cast) {
+      /* For an explicit cast, put the new type in the node (since it may
+         be "identical" but not exactly the same). */
+      node->type = new_type;
+      if (is_operation_node(node) &&
+          node->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+          node->variant.operation.compiler_generated) {
+        /* An explicit cast over an equivalent implicit cast, and we wouldn't
+           otherwise keep the new cast.  Turn the old cast into an explicit
+           cast. */
+        node->variant.operation.compiler_generated = FALSE;
+      }  /* if */
+    }  /* if */
   } else if (m_is_error_type(new_type)) {
     /* Casting to an error type changes the node to an error node. */
     *p_node = error_node();
