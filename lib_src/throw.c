@@ -651,6 +651,10 @@ requires cleanup.
       /* This cleanup action is conditional.  The next region entry
          contains a handle that points to the flag.  Check the flag and
          only process this entry if it is TRUE. */
+#if 0
+      /* The following line needs to be modified when stack offsets are
+	 being used instead of an object address array. */
+#endif /* 0 */
       /* The object information is pointed to directly by the region entry. */
       flag_addr = (a_conditional_flag*)*(obj_addr_array + (ehrdp + 1)->handle);
 #if DEBUG
@@ -661,6 +665,12 @@ requires cleanup.
       /* Skip processing of this entry if the flag is not set. */
       if (!*flag_addr) continue;
     }  /* if */
+#if 0
+    /* In an implementation that uses stack offsets instead of an object
+       address table, the handle field in the region description entry 
+       be a stack offset to be added to either the stack base or the
+       current "this" parameter (if RDF_THIS_PARAM_OFFSET is set). */
+#endif /* 0 */
     if (flags & RDF_ARRAY) {
       /* The object information is contained in the array supplement. */
       ehasp = &ehsep->variant.function.array_table[ehrdp->handle];
@@ -671,10 +681,6 @@ requires cleanup.
     }  /* if */
     if (flags & RDF_INDIRECT) {
       temp_addr = (char *)*(void**)obj_addr;
-#if 0
-      /* Need to add this parameter offset code. */
-      temp_addr += ehrdp->indirect_offset;
-#endif /* 0 */
       obj_addr = (void *)temp_addr;
     }  /* if */
 #if DEBUG
