@@ -4688,7 +4688,7 @@ scope.   If no errors occur while scanning the argument list, we call
 a routine to lookup the appropriate instance (or generate one if needed).
 */
 {
-  a_source_position      start_pos;
+  a_source_position      start_position;
   a_template_param_ptr   param_ptr;
   a_template_param_ptr   first_param_ptr;
   a_template_arg_ptr     arg_list = NULL;
@@ -4702,7 +4702,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
 
   *err = FALSE;
   /* Save source position for error reporting. */
-  copy_source_position(pos_curr_token, start_pos);
+  start_position = pos_curr_token;
   /* Save the current locator. */
   orig_locator = locator_for_curr_id;
   if (next_token() != tok_lt) {
@@ -4722,7 +4722,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
          goto skip_processing;
       } else {
         /* Issue an error and return an error locator. */
-        pos_sy_error(ec_missing_template_arg_list, &start_pos,
+        pos_sy_error(ec_missing_template_arg_list, &start_position,
                      template_symbol);
         make_specific_symbol_error_locator(&locator_for_curr_id);
         new_sym = locator_for_curr_id.specific_symbol;
@@ -4812,7 +4812,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (!any_errors) {
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed. */
-    new_sym = find_template_class(template_symbol, &arg_list, &start_pos);
+    new_sym = find_template_class(template_symbol, &arg_list, &start_position);
   } else {
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);
@@ -4834,7 +4834,7 @@ normal_exit:
   locator_for_curr_id = orig_locator;
   locator_for_curr_id.specific_symbol = new_sym;
   /* Set source position for error reporting. */
-  copy_source_position(start_pos, error_position);
+  error_position = start_position;
 
 #if DEBUG
   if (debug_level >= 5) {
@@ -4936,7 +4936,7 @@ following the final "::".
 	A<int>::i
 	A::operator =
 	A::operator int
-	A::~A()		When options & GID_DTOR_RECOGNIZED = TRUE
+	A::~A()	
 	A:: ... anything except * ...
 
 Returns TRUE and leaves curr_token unchanged for:
@@ -4946,7 +4946,6 @@ Returns TRUE and leaves curr_token unchanged for:
 	operator int
 	~A		When options & GID_DTOR_RECOGNIZED = TRUE
 	A<int>		Template reference will be coalesced
-	~A()		When options & GID_DTOR_RECOGNIZED = TRUE
 
 Returns FALSE and sets curr_token to tok_ptr_to_member for:
 
@@ -4995,8 +4994,10 @@ in C++ mode.
   a_boolean		is_identifier = FALSE;
   a_symbol_ptr		class_symbol;
   a_source_position	start_position;
+  a_source_position	orig_error_position;
   a_token_kind		next_tok;
   a_boolean             local_err;
+  a_boolean		result = FALSE;
 
   db_enter(4, "is_generalized_identifier_start");
   /* If no error parameter was supplied by the caller, set err to point
@@ -5008,11 +5009,12 @@ in C++ mode.
      shouldn't try to do so again. */
   if (curr_token == tok_class_qualifier || curr_token == tok_ptr_to_member) {
     *err = curr_class_qualifier.err;
-    error_position = curr_class_qualifier.source_position;
-    pos_curr_token = error_position;
+    result = curr_class_qualifier.has_qualifier ||
+             curr_class_qualifier.is_identifier;
     goto exit;
   }  /* if */
   start_position = pos_curr_token;
+  orig_error_position = error_position;
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
      "::delete". */
   has_global_qualifier = FALSE;
@@ -5155,17 +5157,21 @@ in C++ mode.
       curr_token = tok_class_qualifier;
     }  /* if */
   }  /* if */
-  error_position = start_position;
-  /* Save the results of this qualifier scan.  These values will be returned
-     if another scan is attempted of the same qualifier. */
-  curr_class_qualifier.class_type = class_type;
-  curr_class_qualifier.has_qualifier = is_qualifier;
-  curr_class_qualifier.has_global_qualifier = has_global_qualifier;
-  curr_class_qualifier.is_file_scope_qualifier = is_file_scope_qualifier;
-  curr_class_qualifier.is_identifier = is_identifier;
-  curr_class_qualifier.err = *err;
-  curr_class_qualifier.source_position = error_position;
-  pos_curr_token = error_position;
+  if (is_qualifier || is_identifier || is_ptr_to_member) {
+    /* Save the results of this qualifier scan.  These values will be returned
+       if another scan is attempted of the same qualifier. */
+    curr_class_qualifier.class_type = class_type;
+    curr_class_qualifier.has_qualifier = is_qualifier;
+    curr_class_qualifier.has_global_qualifier = has_global_qualifier;
+    curr_class_qualifier.is_file_scope_qualifier = is_file_scope_qualifier;
+    curr_class_qualifier.is_identifier = is_identifier;
+    curr_class_qualifier.err = *err;
+    curr_class_qualifier.source_position = start_position;
+    result = is_qualifier || is_identifier;
+  }  /* if */
+  /* Restore original source position and error position. */
+  pos_curr_token = start_position;
+  error_position = orig_error_position;
 exit:
 #if DEBUG
   if (debug_level >= 4) {
@@ -5181,8 +5187,7 @@ exit:
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return curr_class_qualifier.is_identifier ||
-         curr_class_qualifier.has_qualifier;
+  return result;
 }  /* is_generalized_identifier_start */
 
 
@@ -5247,8 +5252,9 @@ otherwise it will be set FALSE.
   /* The current token will be a class qualifier if one was present. */
   if (curr_token == tok_class_qualifier) {
     a_type_ptr   class_type = cqp->class_type;
-    /* Save the start position of the qualified name
-       (is_generalized_identifier_start puts it in error_position). */
+    /* Get the position of the start of the qualified name as
+       recorded by is_generalized_identifier_start. */
+    error_position = curr_class_qualifier.source_position;
     start_position = error_position;
     /* Make sure that the class has been instantiated and is not
        an incomplete type. */
@@ -5474,7 +5480,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
     }  /* if */
 #endif /* CHECKING */
     /* Normal identifier -- look it up. */
-    /* Translated the general identifier options into ID lookup options. */
+    /* Translate the general identifier options into ID lookup options. */
     switch (mode) {
       case ilm_class:
         idl_options = IDL_MUST_BE_CLASS;
