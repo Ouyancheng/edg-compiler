@@ -1342,7 +1342,11 @@ output in the way described by octl.
 #endif /* ifdef sun */
                  ) {
     /* Escape some characters, e.g., quotes. */
-    if (ch == '"' || ch == '\'' || ch == '\\') *bptr++ = '\\';
+    if (ch == '"' || ch == '\'' || ch == '\\' ||
+        /* Avoid accidentally putting out trigraphs by escaping "?". */
+        (ch == '?' && octl->gen_compilable_code && !octl->gen_pcc_code)) {
+      *bptr++ = '\\';
+    }  /* if */
     *bptr++ = ch;
     *bptr = '\0';
   } else {
