@@ -761,8 +761,8 @@ then
 #
       if [ $automatic_instantiation -ne 0 ] ; then
         command="$EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS \
-                     $EDG_DEFAULT_LIB_PATHS \
 		     $Loptions -L$LIBDIR \
+                     $EDG_DEFAULT_LIB_PATHS \
 		     $loptions $ofiles $lfiles \
                      $instantiation_libraries"
         if [ $driver_debug -ne 0 ] ; then
