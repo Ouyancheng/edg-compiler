@@ -8326,6 +8326,7 @@ and for the instantiation of template functions.
 
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
+  check_assertion(rout_ptr->type->kind == (a_type_kind)tk_routine);
   rout_type = skip_typerefs(rout_ptr->type);
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,
