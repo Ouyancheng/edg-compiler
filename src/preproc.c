@@ -919,7 +919,7 @@ string is copied there.
 		       "convert_pragma_to_string:",
 		       "invalid token scanning mode");
   fetch_pp_tokens = TRUE;
-  /* The current token is the identifier that indicate the pragma kind.
+  /* The current token is the identifier that indicates the pragma kind.
      This should be included in the generated string. */
   do {
     ensure_pragma_string_buffer_space(pos_in_buffer + len_of_curr_token +
