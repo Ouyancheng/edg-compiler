@@ -7484,9 +7484,11 @@ scope points to the scope immediately surrounding the original statement.
                                              (a_type_ptr)NULL,
                                              prev_assoc_pragma)) != NULL) {
       /* Relink the pragma to the copy of the original statement. */
-      assoc_pragma->entity.ptr = (char *)orig_statement;
+      assoc_pragma->entity.ptr = (char *)*orig_statement;
       prev_assoc_pragma = assoc_pragma;
     }  /* while */
+    statement->has_associated_pragma = FALSE;
+    (*orig_statement)->has_associated_pragma = TRUE;
   }  /* if */
 }  /* turn_statement_into_block_transferring_pragma */
 
