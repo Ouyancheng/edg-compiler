@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
@@ -531,7 +531,7 @@ ec_vacuous_destructor_name_mismatch;;"destructor name does not match left operan
 ec_bad_storage_class_on_template_decl;;"invalid storage class for a template declaration"
 ec_no_access_to_type_cfront_mode;;"%n is an inaccessible type (allowed for cfront compatibility)"
 ec_return_type_not_allowed;;"a return type is not allowed"
-ec_invalid_instantiation_pragma_argument;;"invalid instantiation pragma argument"
+ec_invalid_instantiation_argument;;"invalid explicit instantiation declaration"
 ec_not_instantiatable_entity;;"%nf is not an entity that can be instantiated"
 ec_compiler_generated_function_cannot_be_instantiated;;"compiler generated function %n cannot be instantiated"
 ec_inline_function_cannot_be_instantiated;;"inline function %n cannot be instantiated"
@@ -805,6 +805,8 @@ ec_class_qualified_name_not_allowed;;"a class-qualified name is not allowed"
 ec_bad_scope_for_redeclaration;;"%n may not be redeclared in the current scope"
 ec_qualifier_in_namespace_member_decl;;"qualified name is not allowed in namespace member declaration"
 ec_sym_not_a_type_name;;"%n is not a type name"
+ec_explicit_instantiation_not_in_namespace_scope;;"explicit instantiation is not allowed in the current scope"
+ec_bad_scope_for_explicit_instantiation;;"%n cannot be explicitly instantiated in the current scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

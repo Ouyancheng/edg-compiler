@@ -623,6 +623,7 @@ case return TRUE).
 static a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,
                                  a_boolean  is_ref_within_new_expr,
+				 a_boolean  is_explicit_instantiation,
                                  a_type_ptr *type_ptr,
                                  a_boolean  *declares_something,
                                  a_boolean  *defines_something)
@@ -675,6 +676,10 @@ union type.  The syntax is
 The type is returned in *type_ptr. *declares_something is set to indicate
 whether or not this specifier declares something, and *defines_something
 to indicate whether the class/struct/union is actually defined.
+is_explicit_instantiation is TRUE if the declaration being scanned
+is part of an explicit instantiation.  This causes a class specifier
+of the form "class A<int>" to not be considered a specific declaration of
+the template.
 */
 {
   a_symbol_kind           tag_kind;
@@ -918,7 +923,8 @@ to indicate whether the class/struct/union is actually defined.
       if (cssp->is_instance) {
         /* A template class or a nested class within a template class. */
         if (is_class_definition ||
-            (curr_token == tok_semicolon && !is_friend_decl)) {
+            (curr_token == tok_semicolon &&
+             !is_friend_decl && !is_explicit_instantiation)) {
           /* We have a specific declaration of a template class. */
           if (tag_sym->decl_scope != ssep->number &&
               (tag_sym->parent.namespace_ptr == NULL ||
@@ -3041,10 +3047,12 @@ process_class_specifier:
         } else {
           if (basic_type == bt_none) {
             if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
-            if (!class_specifier(vacuous_decl_allowed, is_friend_decl,
-                                 (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                                 type_ptr, &declares_something,
-                                 &defines_something)) {
+            if (!class_specifier(
+                            vacuous_decl_allowed, is_friend_decl,
+                            (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                            (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
+                            type_ptr, &declares_something,
+                            &defines_something)) {
               err = TRUE;
             }  /* if */
             basic_type = bt_struct_union;
@@ -3056,10 +3064,12 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            (void)class_specifier(/*vacuous_decl_allowed=*/FALSE,
-                                  /*is_friend_decl=*/FALSE,
-                                  (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                                  &dummy_type, &dummy_flag, &dummy_flag);
+            (void)class_specifier(
+                            /*vacuous_decl_allowed=*/FALSE,
+                            /*is_friend_decl=*/FALSE,
+                            (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
+                            (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                            &dummy_type, &dummy_flag, &dummy_flag);
           }  /* if */
           goto no_get_token;
         }  /* if */

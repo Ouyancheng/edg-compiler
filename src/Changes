@@ -1,5 +1,15 @@
 Version 2.31
 
+12/21/95  Explicit instantiation of templates
+
+Explicit instantiation of templates as specified in the Working Paper
+is now supported.  The existing instantiation pragmas have been
+modified to also accept arguments of the form permitted by the
+standard explicit instantiation directives.  Note that because
+explicit specification of function template arguments is not
+yet implemented, a template argument list may not be specified
+in an explicit instantiation at this point.
+
 12/21/95  C++/C-generating back end: "unsigned" instead of "unsigned int"
 
 The C++- and C-generating back ends now put out "unsigned" instead of

@@ -6861,8 +6861,8 @@ completed (C++ only).
           if (curr_token == tok_template) {
             /* A friend template declaration may appear in a class
 	       declaration. */
-            (void)template_declaration(&local_defines_something,
-                                       /*no_advance_past_final_token=*/FALSE);
+            template_declaration(&local_defines_something,
+                                 /*no_advance_past_final_token=*/FALSE);
             goto next_declaration;
           }  /* if */
         }  /* if */

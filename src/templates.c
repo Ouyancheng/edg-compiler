@@ -2413,8 +2413,13 @@ template symbol supplement has been set.
 
   if (templ_param_list == NULL) {
     a_template_symbol_supplement_ptr	tssp;
+    a_template_decl_info_ptr		tdip;
     tssp = template_supplement_for_symbol(rout_templ_sym);
-    templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+    /* The decl_info pointer can be NULL if the template parameter list is
+       missing (in an error case), and the template declaration information
+       has not yet been filled in. */
+    tdip = tssp->variant.function.decl_cache.decl_info;
+    templ_param_list = tdip != NULL ? tdip->parameters : NULL;
   }  /* if */
   /* Make an initial pass through the argument list to see if all of the
      arguments have deduced values. */
@@ -4077,9 +4082,14 @@ instantiation.
       set_to_named_error_locator(locator);
     }  /* if */
   }  /* if */
-  if (sym != NULL) {
+  {
     a_boolean			err = FALSE;
-    if ((sym->kind == (a_symbol_kind)sk_class_template ||
+    if (templ_params == NULL) {
+      /* Don't create a real symbol no template parameter list was provided. */
+      err = TRUE;
+    } else if (sym == NULL) {
+      /* Suppress the following error tests if the no symbol was found. */
+    } else if ((sym->kind == (a_symbol_kind)sk_class_template ||
         is_nested_class_definition)) {
       /* This is a class template or a nested class within a class
          template. */
@@ -4134,7 +4144,7 @@ instantiation.
       suppress_redecl_error = TRUE;
       set_to_named_error_locator(locator);
     }  /* if */
-  }  /* if */
+  }
   if (!in_prototype_instantiation) {
     /* Make sure that the default arguments for the template parameters
        are valid (i.e., that they are at the end of the parameter list).
@@ -5536,8 +5546,8 @@ instantiation, then you don't know what X is.
 }  /* prescan_template_declaration */
 
 
-a_symbol_ptr template_declaration(a_boolean  *defines_something,
-                                  a_boolean  no_advance_past_final_token)
+void template_declaration(a_boolean  *defines_something,
+                          a_boolean  no_advance_past_final_token)
 /*
 Scan a C++ template declaration.  Syntax:
 
@@ -5876,7 +5886,6 @@ as the current token; otherwise, it is consumed.
 #endif /* DEBUG */
   curr_default_args = saved_curr_default_args;
   db_exit();
-  return sym;
 }  /* template_declaration */
 
 
@@ -6878,7 +6887,8 @@ specific definition that made it unnecessary.
 
 
 static a_boolean sym_can_be_instantiated(a_symbol_ptr	sym,
-				         a_boolean	issue_errors)
+				         a_boolean	issue_errors,
+                                         a_boolean	is_pragma)
 /*
 Determine whether the template function specified by sym can be instantiated.
 Inline functions and compiler generated routines (which also happen to be
@@ -6895,7 +6905,9 @@ instantiated.
   if (routine->compiler_generated) {
     result = FALSE;
     if (issue_errors) {
-      sym_error(ec_compiler_generated_function_cannot_be_instantiated, sym);
+      sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
+                     ec_compiler_generated_function_cannot_be_instantiated,
+                     sym);
     }  /* if */
   } else if (sym->variant.routine.instance_ptr == NULL) {
     /* Not a template function. */
@@ -6912,23 +6924,47 @@ instantiated.
   } else if (routine->is_inline) {
     result = FALSE;
     if (issue_errors) {
-      sym_error(ec_inline_function_cannot_be_instantiated, sym);
+      sym_diagnostic(is_pragma ? es_error : es_remark,
+                     ec_inline_function_cannot_be_instantiated,
+                     sym);
     }  /* if */
   } else if (routine->pure_virtual) {
     result = FALSE;
     if (issue_errors) {
-      sym_error(ec_pure_virtual_function_cannot_be_instantiated, sym);
+      sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
+                     ec_pure_virtual_function_cannot_be_instantiated,
+                     sym);
     }  /* if */
   }  /* if */
   return result;
 }  /* sym_can_be_instantiated */
 
 
+static a_boolean check_instantiation_scope(a_symbol_ptr sym)
+/*
+The WP (as of 12/95) is unclear about where an explicit instantiation
+is allowed. We assume that it is permitted where an explicit  specialization
+of the template would be permitted, which is to say in a namespace that
+is or contains the namespace in which the template was declared.
+*/
+{
+  a_boolean			result = FALSE;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  if (!namespace_is_enclosed_by_scope(sym, ssep)) {
+    sym_diagnostic(es_discretionary_error,
+                   ec_bad_scope_for_explicit_instantiation, sym);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* check_instantiation_scope */
+
+
 static
 void update_instantiation_flags(a_symbol_ptr	      sym,
  		                a_pragma_kind	      pragma_kind,
 				a_source_position     *pos,
-                                a_boolean	      is_class_instantiation)
+                                a_boolean	      is_class_instantiation,
+                                a_boolean	      is_pragma)
 /*
 Given a pointer to either a routine, member function, or static data member
 symbol, set either the instantiation required flag (if instantiate is TRUE)
@@ -6938,7 +6974,7 @@ or the specific definition flag (if instantiate is FALSE).
   a_template_instance_ptr	tip = NULL;
   db_enter(3, "update_instantiation_flags");
   if (is_function_symbol(sym)) {
-    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE)) {
+    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE, is_pragma)) {
       tip = sym->variant.routine.instance_ptr;
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -6966,6 +7002,11 @@ or the specific definition flag (if instantiate is FALSE).
       instantiation_required_flag = tip->instantiation_required;
       tip->explicit_can_instantiate = TRUE;
     }  /* if */
+    /* See if this is a valid scope for the explicit instantiation of this
+       entity.  This test is only done for explicit instantiation directives,
+       not for pragmas.  When the entire class is being instantiated, the
+       check is done only once for the class. */
+    if (!is_pragma && !is_class_instantiation) check_instantiation_scope(sym);
     update_instantiation_required_flag(tip, instantiation_required_flag,
                                        /*defer_inline=*/FALSE);
   }  /* if */
@@ -6987,15 +7028,23 @@ or the specific definition flag (if instantiate is FALSE).
 static void update_instantiation_flags_for_class
 					(a_symbol_ptr	        sym,
 					 a_pragma_kind          pragma_kind,
-					 a_source_position      *pos)
+					 a_source_position      *pos,
+                                         a_boolean		is_pragma,
+                                         a_boolean		top_level)
 /*
 Updates the instantiation flags for all of the member functions and static
-data members within a given template class.
+data members within a given template class.  top_level is TRUE if
+this is the call for the template class itself.  It is FALSE if this
+is a recursive call for a class nested within the template class.
 */
 {
   a_symbol_ptr	mem_sym;
   a_type_ptr	class_type;
 
+  /* See if this is a valid scope for the explicit instantiation of this
+     entity.  This test is only done for explicit instantiation directives,
+     not for pragmas. */
+  if (!is_pragma && top_level) check_instantiation_scope(sym);
   class_type = sym->variant.class_struct_union.type;
   if (pragma_kind == (a_pragma_kind)pk_can_instantiate) {
     /* The can_instantiate pragma is a special case.  Instead of
@@ -7007,7 +7056,7 @@ data members within a given template class.
     /* Instantiate the class, if not already done. */
     complete_class_type_is_needed(class_type);
     if (is_incomplete_type(class_type)) {
-      pos_error(ec_incomplete_type_not_allowed, pos);
+      if (top_level) pos_error(ec_incomplete_type_not_allowed, pos);
     } else {
       mem_sym = sym->variant.class_struct_union.extra_info->symbols;
       /* Loop through all the member symbols looking for member functions. */
@@ -7028,18 +7077,22 @@ data members within a given template class.
                list_sym != NULL;
                list_sym = is_list ? list_sym->next : NULL) {
             /* Only set the flags for things that can be instantiated. */
-            if (sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
+            if (sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE,
+                                        is_pragma)) {
               update_instantiation_flags(list_sym, pragma_kind, pos,
-                                         /*is_class_instantiation=*/TRUE);
+                                         /*is_class_instantiation=*/TRUE,
+                                         is_pragma);
            	}  /* if */
           }  /* for */
         } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
           update_instantiation_flags(mem_sym, pragma_kind, pos,
-                                     /*is_class_instantiation=*/TRUE);
+                                     /*is_class_instantiation=*/TRUE,
+                                     is_pragma);
         } else if (mem_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
                    mem_sym->kind == (a_symbol_kind)sk_union_tag) {
           /* Instantiate the members of any nested classes. */
-          update_instantiation_flags_for_class(mem_sym, pragma_kind, pos);
+          update_instantiation_flags_for_class(mem_sym, pragma_kind, pos,
+                                               is_pragma, /*top_level=*/FALSE);
         }  /* if */
       }  /* for */
     }  /* if */
@@ -7099,6 +7152,198 @@ symbol, otherwise we return NULL.
   }  /* if */
   return result_sym;
 } /* sym_if_template_class_member_function */
+
+
+static
+void instantiation_directive(a_pragma_kind	kind,
+ 			     a_boolean		is_pragma,
+			     a_source_position	*start_pos)
+/*
+Processes explicit instantiation requests and those instantiation pragmas
+that use the same syntax as the explicit instantiation request.
+
+The syntax of an explicit instantiation is
+	template declaration
+Where the declaration is either a class-specifier such as
+	template class A<int>
+or a function declaration.
+
+Note that like all other function declarations a return type of int is
+assumed if the return type is omitted.
+
+Pragmas of the form
+	#pragma instantiate declaration
+	#pragma do_not_instantiate declaration
+	#pragma can_instantiate declaration
+are also processed by this routine.
+
+If a template class name is used (i.e., A<int>) all of the member functions
+and static data members will be instantiated.
+
+kind is the pragma kind being processed.  For an explicit instantiation,
+the pragma kind of pk_instantiate is passed by the caller.  is_pragma is
+TRUE if this is a pragma and FALSE if it is an explicit instantiation.
+*/
+{
+  a_storage_class               storage_class;
+  a_type_ptr                    type;
+  a_symbol_locator              locator;
+  a_decl_flag_set               do_flags, dso_flags;
+  a_type_qualifier_set          qualifiers;
+  a_decl_modifier	        decl_modifiers;
+  a_symbol_ptr                  orig_sym;
+  a_symbol_ptr                  new_sym;
+  a_source_sequence_entry_ptr   declarator_ssep;
+  a_symbol_ptr		        sym;
+  a_boolean			err = FALSE;
+  a_token_kind			end_of_statement_token;
+
+  /* If this is a pragma it will end with a tok_newline, if not
+     it will end with a semicolon. */
+  end_of_statement_token = is_pragma ? tok_newline : tok_semicolon;
+  (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+                         DSI_TYPE_SPECIFIER_ALLOWED |
+                         DSI_IS_EXPLICIT_INSTANTIATION),
+                        &dso_flags, &storage_class, &type, &qualifiers,
+                        &decl_modifiers);
+  if (is_error_type(type) && !is_declarator_start()) {
+    /* Error of some sort. */
+    set_to_error_locator(locator);
+  } else if (curr_token == end_of_statement_token &&
+             (dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
+    /* The argument is something like class A<int> -- instantiate all the
+       members of the class. */
+    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    check_assertion(sym != NULL);
+    if (is_template_class_and_not_specific_def_symbol(sym)) {
+      /* Process all member functions and static data members. */
+      update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
+                                           /*top_level=*/TRUE);
+    } else {
+      /* Something else -- issue an error. */
+      sym_error(ec_not_instantiatable_entity, sym);
+      err = TRUE;
+    }  /* if */
+    goto done;
+  } else {
+    a_func_info_block  	func_info;
+    clear_func_info(&func_info);
+    declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
+                DI_OPERATOR_NAME_ALLOWED),
+               &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+               &declarator_ssep, &func_info);
+    done_with_func_info(func_info);
+#if 0
+    /* Presumably, declarator_ssep will often be returned pointing at an
+       empty source sequence entry.  How should this be handled? */
+#endif /* if 0 */
+  }  /* if */
+  /* Look up the identifier scanned in the declarator.  If the
+     declarator contains a qualified name it will already have
+     been looked up. */
+  sym = locator.specific_symbol;
+  if (sym == NULL) {
+    sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+  }  /* if */
+  orig_sym = sym;
+  if (sym == NULL) {
+    /* No symbol was found.  If the declarator has a function type
+       then say that the name is undefined.  If it was not a function
+       type then say it is an invalid pragma argument. */
+    if (is_error_locator(locator) ||
+        (type != NULL && !is_function_type(type))) {
+      pos_error(ec_invalid_instantiation_argument, start_pos);
+    } else {
+      pos_st_error(ec_undefined_identifier, &locator.source_position,
+                   locator.symbol_header->identifier);
+    }  /* if */
+    err = TRUE;
+  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    if (sym->variant.static_data_member.instance_ptr != NULL) {
+      /* A static data member -- set the instantiation flags. */
+      update_instantiation_flags(sym, kind, start_pos,
+                                 /*is_class_instantiation=*/FALSE, is_pragma);
+    } else {
+      /* A static data member, but of a template class. */
+      sym_error(ec_not_instantiatable_entity, sym);
+      err = TRUE;
+    }  /* if */
+  } else if (!is_function_symbol(sym) &&
+             sym->kind != (a_symbol_kind)sk_function_template) {
+    /* Not a function symbol -- issue an error. */
+    pos_error(ec_invalid_instantiation_argument, start_pos);
+    err = TRUE;
+  } else if (!is_function_type(type)) {
+    /* The symbol represents a function but the type is not a routine
+       type.  This can occur if a declaration contains the name of a
+       function but the declaration is not a function declarator. */
+    pos_sy_error(ec_not_compatible_with_previous_decl,
+                 &locator.source_position, sym);
+  } else if (is_member_function_symbol(sym)) {
+    /* A member function symbol, find the member function that matches
+       the specified type. */
+    sym = member_function_redecl_sym(sym, type);
+    if (sym == NULL) {
+      sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
+      err = TRUE;
+    } else {
+      /* Update the flags for the symbol found. */
+      update_instantiation_flags(sym, kind, start_pos,
+                                 /*is_class_instantiation=*/FALSE, is_pragma);
+    }  /* if */
+  } else {
+    /* A regular function name that is expected to represent one or
+       more function templates.  Loop through the function templates
+       and find an instance that matches the specified function type.
+       If none exists, a new one can is generated, if possible.  If
+       more than one exists (or can be generated) an error is issued. */
+    a_boolean		is_list;
+    a_boolean		any_found = FALSE;
+    a_symbol_ptr	sym_found = NULL;
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      sym = sym->variant.overloaded_function.symbols;
+      is_list = TRUE;
+    } else {
+      is_list = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      a_symbol_ptr	lookup_sym = NULL;
+      /* If this is a function template symbol, use it to find a function
+	 that matches the type we are looking for.  If it is a member
+	 function symbol, get the corresponding function template symbol
+	 from the function instantiation entry. */
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        lookup_sym = sym;
+      } else if (sym->kind == (a_symbol_kind)sk_member_function &&
+	         sym->variant.routine.instance_ptr != NULL) {
+        lookup_sym = sym->variant.routine.instance_ptr->template_sym;
+      }  /* if */
+      /* Look for a match on the list of instantiations. */
+      if (lookup_sym != NULL) {
+        sym_found = matching_template_function(lookup_sym, type,
+                                               &locator.source_position);
+        if (sym_found != NULL) {
+	  if (any_found) {
+	    sym_error(ec_ambiguous_overloaded_function, orig_sym);
+	    err = TRUE;
+	    break;
+          }  /* if */
+	  any_found = TRUE;
+	  new_sym = sym_found;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (!any_found) {
+      sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
+      err = TRUE;
+    } else if (!err) {
+      /* Update the flags for the symbol found. */
+      update_instantiation_flags(new_sym, kind, start_pos,
+                                 /*is_class_instantiation=*/FALSE, is_pragma);
+    }  /* if */
+  }  /* if */
+done:;
+}  /* instantiation_directive */
 
 
 void instantiation_pragma(a_pending_pragma_ptr	ppp)
@@ -7175,21 +7420,25 @@ assumed if the return type is omitted.
     if (!err) {
       if (sym == NULL) {
         /* Not a currently defined symbol. */
-        pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
+        pos_error(ec_invalid_instantiation_argument, &start_pos);
         err = TRUE;
       } else if (is_template_class_and_not_specific_def_symbol(sym)) {
          /* Process all member functions and static data members. */
-	update_instantiation_flags_for_class(sym, pragma_kind, &start_pos);
+	update_instantiation_flags_for_class(sym, pragma_kind, &start_pos,
+                                             /*is_pragma=*/TRUE,
+                                             /*top_level=*/TRUE);
       } else if ((new_sym = sym_if_template_class_member_function(sym))
 								 != NULL) {
 	sym = new_sym;
 	update_instantiation_flags(sym, pragma_kind, &start_pos,
-                                   /*is_class_instantiation=*/FALSE);
+                                   /*is_class_instantiation=*/FALSE,
+                                   /*is_pragma=*/TRUE);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.static_data_member.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation flags. */
 	update_instantiation_flags(sym, pragma_kind, &start_pos,
-                                   /*is_class_instantiation=*/FALSE);
+                                   /*is_class_instantiation=*/FALSE,
+                                   /*is_pragma=*/TRUE);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.
@@ -7207,144 +7456,93 @@ assumed if the return type is omitted.
   } else if (is_decl_start(/*expr_context=*/FALSE,
                     /*real_declarator_allowed=*/TRUE) ||
              is_declarator_start()) {
-    /* Process the function declaration case. */
-    a_storage_class              storage_class;
-    a_type_ptr                   type;
-    a_symbol_locator             locator;
-    a_decl_flag_set              do_flags, dso_flags;
-    a_type_qualifier_set         qualifiers;
-    a_decl_modifier		 decl_modifiers;
-    a_symbol_ptr                 orig_sym;
-    a_symbol_ptr                 new_sym;
-    a_source_sequence_entry_ptr  declarator_ssep;
-
+    /* This is a declaration-style instantiation pragma, the syntax of
+       which is the same as the explicit instantiation directive.  Call
+       the explicit instantiation routine to do the processing. */
     add_stop_token(tok_newline);
-    (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-			   DSI_TYPE_SPECIFIER_ALLOWED),
-                          &dso_flags, &storage_class, &type, &qualifiers,
-                          &decl_modifiers);
-    if (is_error_type(type) && !is_declarator_start()) {
-      /* Error of some sort. */
-      set_to_error_locator(locator);
-    } else {
-      a_func_info_block  	func_info;
-      clear_func_info(&func_info);
-      declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
-                  DI_OPERATOR_NAME_ALLOWED),
-                 &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-                 &declarator_ssep, &func_info);
-      done_with_func_info(func_info);
-#if 0
-      /* Presumably, declarator_ssep will often be returned pointing at an
-         empty source sequence entry.  How should this be handled? */
-#endif /* if 0 */
-    }  /* if */
+    instantiation_directive(pragma_kind, /*is_pragma=*/TRUE, &start_pos);
     remove_stop_token(tok_newline);
-    /* Look up the identifier scanned in the declarator.  If the
-       declarator contains a qualified name it will already have
-       been looked up. */
-    sym = locator.specific_symbol;
-    if (sym == NULL) {
-      sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
-    }  /* if */
-    orig_sym = sym;
-    if (sym == NULL) {
-      /* No symbol was found.  If the declarator has a function type
-	 then say that the name is undefined.  If it was not a function
-	 type then say it is an invalid pragma argument. */
-      if (is_error_locator(locator) ||
-	  (type != NULL && !is_function_type(type))) {
-        pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
-      } else {
-        pos_st_error(ec_undefined_identifier,
-		     &locator.source_position,
-		     locator.symbol_header->identifier);
-      }  /* if */
-      err = TRUE;
-    } else if (!is_function_symbol(sym) &&
-	       sym->kind != (a_symbol_kind)sk_function_template) {
-      /* Not a function symbol -- issue an error. */
-      pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
-      err = TRUE;
-    } else if (!is_function_type(type)) {
-      /* The symbol represents a function but the type is not a routine
-         type.  This can occur if a declaration contains the name of a
-         function but the declaration is not a function declarator. */
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator.source_position, sym);
-    } else if (is_member_function_symbol(sym)) {
-      /* A member function symbol, find the member function that matches
-	 the specified type. */
-      sym = member_function_redecl_sym(sym, type);
-      if (sym == NULL) {
-	sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
-	err = TRUE;
-      } else {
-        /* Update the flags for the symbol found. */
-        update_instantiation_flags(sym, pragma_kind, &start_pos,
-                                   /*is_class_instantiation=*/FALSE);
-      }  /* if */
-    } else {
-      /* A regular function name that is expected to represent one or
-	 more function templates.  Loop through the function templates
-	 and find an instance that matches the specified function type.
-	 If none exists, a new one can is generated, if possible.  If
-         more than one exists (or can be generated) an error is issued. */
-      a_boolean		is_list;
-      a_boolean		any_found = FALSE;
-      a_symbol_ptr	sym_found = NULL;
-      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        sym = sym->variant.overloaded_function.symbols;
-        is_list = TRUE;
-      } else {
-        is_list = FALSE;
-      }  /* if */
-      for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-	a_symbol_ptr	lookup_sym = NULL;
-	/* If this is a function template symbol, use it to find a function
-	   that matches the type we are looking for.  If it is a member
-	   function symbol, get the corresponding function template symbol
-	   from the function instantiation entry. */
-        if (sym->kind == (a_symbol_kind)sk_function_template) {
-          lookup_sym = sym;
-	} else if (sym->kind == (a_symbol_kind)sk_member_function &&
-		   sym->variant.routine.instance_ptr != NULL) {
-	  lookup_sym = sym->variant.routine.instance_ptr->template_sym;
-        }  /* if */
-        /* Look for a match on the list of instantiations. */
-        if (lookup_sym != NULL) {
-          sym_found = matching_template_function(lookup_sym, type,
-                                                 &locator.source_position);
-          if (sym_found != NULL) {
-	    if (any_found) {
-	      sym_error(ec_ambiguous_overloaded_function, orig_sym);
-	      err = TRUE;
-	      break;
-            }  /* if */
-	    any_found = TRUE;
-	    new_sym = sym_found;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      if (!any_found) {
-	sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
-	err = TRUE;
-      } else if (!err) {
-        /* Update the flags for the symbol found. */
-        update_instantiation_flags(new_sym, pragma_kind, &start_pos,
-                                   /*is_class_instantiation=*/FALSE);
-      }  /* if */
-    }  /* if */
   } else {
     /* Not an identifier or a declaration. */
-    error(ec_invalid_instantiation_pragma_argument);
+    error(ec_invalid_instantiation_argument);
     err = TRUE;
   }  /* if */
+  discard_deferred_access_checks();
   end_deferral_of_access_checks();
   /* Stop rescanning tokens from the pragma token cache. */
   wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
   instantiation_mode = saved_instantiation_mode;
 }  /* instantiation_pragma */
+
+
+static void explicit_instantiation()
+/*
+Process an explicit instantiation directive.  Most of the processing is
+done by instantiation_directive.  This routine makes sure that the current
+scope is a valid one for an instantiation directive and disables any
+access errors that were detected.
+*/
+{
+  a_source_position		start_pos;
+  a_template_instantiation_mode
+	 			saved_instantiation_mode = instantiation_mode;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  add_stop_token(tok_semicolon);
+  if (ssep->kind != (a_scope_kind)sck_file &&
+      ssep->kind != (a_scope_kind)sck_namespace &&
+      ssep->kind != (a_scope_kind)sck_namespace_extension) {
+    error(ec_explicit_instantiation_not_in_namespace_scope);
+    flush_tokens();
+  } else {
+    /* The instantiation mode is set to "none" while the pragma processing is
+       performed to ensure that no other instantiations are implicitly
+      requested as a consequence of scanning the pragma. */
+    instantiation_mode = tim_none;
+    (void)get_token();  /* Bypass "template". */
+    start_pos = pos_curr_token;
+    begin_deferral_of_access_checks();
+    instantiation_directive(pk_instantiate, /*is_pragma=*/FALSE,
+                            &start_pos);
+    discard_deferred_access_checks();
+    end_deferral_of_access_checks();
+  }  /* if */
+  remove_stop_token(tok_semicolon);
+  instantiation_mode = saved_instantiation_mode;
+}  /* explicit_instantiation */
+
+
+void template_directive_or_declaration(a_boolean   *defines_something,
+                                       a_boolean   no_advance_past_final_token)
+/*
+Scan a template declaration of an explicit instantiation.  This routine
+is called to decide whether the current statement is a template
+declaration or an explicit instantiation.  It then calls the appropriate
+routine.  If no_advance_past_final_token is TRUE, the right brace or
+semicolon terminating the template declaration is left as the current token;
+otherwise, it is consumed.
+*/
+{
+  if (next_token() == tok_lt) {
+    /* The template keyword is followed by a template parameter list.
+       This is a template declaration. */
+#if 0
+    /* This could also be a specialization using the new specialization
+       syntax. */
+#endif /* 0 */
+    template_declaration(defines_something, no_advance_past_final_token);
+  } else {
+    /* There is no template parameter list, this must be an explicit
+       instantiation. */
+    explicit_instantiation();
+    /* The declaration should terminate with a semicolon. */
+    if (no_advance_past_final_token) {
+      (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+    } else {
+      (void)required_token(tok_semicolon, ec_exp_semicolon);
+    }  /* if */
+  }  /* if */
+}  /* template_directive_or_declaration */
 
 
 void templates_one_time_init(void)

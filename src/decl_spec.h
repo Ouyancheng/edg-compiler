@@ -99,7 +99,10 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			/* If this bit is set the declaration is that of a
 			   C++ condition in an if, switch, for, or while
 			   statement. */
-#define DSI_LAST DSI_IS_CONDITION_DECL
+#define DSI_IS_EXPLICIT_INSTANTIATION (a_decl_flag_set)(0x20000)
+			/* If this bit is set the declaration is that of a
+			   C++ explicit template instantiation directive. */
+#define DSI_LAST DSI_IS_EXPLICIT_INSTANTIATION
 			/* Last bit in the bit vector that is in use. */
 
 /* Constants defining bits in the output bit vector returned from
