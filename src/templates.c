@@ -8140,11 +8140,11 @@ returned TRUE if a new template instance is created with this call.
 				   in_class_specialization);
       *is_new_template_instance = TRUE;
     }  /* if */
+    /* Update the flags that indicate whether any explicitly specified
+       template  arguments were used. */
+    update_template_arg_usage_info(sym, templ_arg_list,
+                                   explicit_arg_list_present);
   }  /* if */
-  /* Update the flags that indicate whether any explicitly specified template
-     arguments were used. */
-  update_template_arg_usage_info(sym, templ_arg_list,
-                                 explicit_arg_list_present);
   db_exit();
   return sym;
 }  /* matching_template_function */
