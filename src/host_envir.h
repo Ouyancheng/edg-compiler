@@ -2393,7 +2393,7 @@ EXTERN char	*predef_macro_mode_names[(int)pmm_last + 1]
 /* pmm_gnu */		"gnu",
 /* pmm_gcc */		"gcc",
 /* pmm_gpp */		"gpp",
-/* pmm_microsoft */	"gpp",
+/* pmm_microsoft */	"microsoft",
 /* pmm_strict */	"strict",
 /* pmm_cpp */		"cpp",
 /* pmm_last */		"last"
