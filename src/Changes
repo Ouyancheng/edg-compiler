@@ -20,7 +20,7 @@ in Microsoft mode.  A warning is issued.
 4/2/01   Extraneous deallocation points for variable length arrays (VLAs)
 
 The front end used to generate VLA object deallocation points
-(stmk_vla_dealloc statements entries) at the end of many statement blocks
+(stmk_vla_dealloc statement entries) at the end of many statement blocks
 that followed (but didn't contain) the definition of a VLA object.
 
   void f(int n) {
