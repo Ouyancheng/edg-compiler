@@ -6100,6 +6100,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           pos_error(ec_incompatible_operands, &operator_position);
           err = TRUE;
         }  /* if */
+      } else if (is_error_type(operand_2.type) ||
+                 is_error_type(operand_3.type)) {
+        /* One or both of the operands have an error type. */
+        err = TRUE;
       } else {
         /* Incompatible operands. */
         pos_error(ec_incompatible_operands, &operator_position);
