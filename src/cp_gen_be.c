@@ -2008,7 +2008,7 @@ current access mode in the class.  Otherwise, do nothing.
       scp->class_of_which_a_member == curr_name_context_class()) {
     /* We're inside a class, and the entity being output is a member of that
        class. */
-    gen_member_access_specifier(scp->access);
+    gen_member_access_specifier((an_access_specifier)scp->access);
   }  /* if */
 }  /* gen_member_access_specifier_for_decl_of */
 
