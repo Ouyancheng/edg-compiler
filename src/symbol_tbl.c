@@ -252,7 +252,7 @@ and indentation is the indentation desired.
 {
   char				*str, buffer[1000];
   int				col = 0;
-  a_type_ptr			type = NULL;
+  a_type_ptr			type = NULL, temp_type;
   a_variable_ptr		var;
   a_routine_ptr                 rp;
 
@@ -317,7 +317,10 @@ and indentation is the indentation desired.
     case sk_class_or_struct_tag:
     case sk_union_tag:
       type = sym->variant.class_struct_union.type;
-      (void)str_name_linkage(buffer, &(skip_typerefs(type))->source_corresp);
+      /* The result of skip_typerefs() is copied to a temporary variable to
+         work around a problem with Borland C++. */
+      temp_type = skip_typerefs(type);
+      (void)str_name_linkage(buffer, &(temp_type->source_corresp));
       put_string(buffer);
       {
         a_class_symbol_supplement_ptr  cssp;
