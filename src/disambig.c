@@ -183,6 +183,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_float:
       case tok_double:
       case tok_void:
+      case tok_wchar_t:
         type_specifier_seen = TRUE;
         break;
       /* Type qualifier. */
