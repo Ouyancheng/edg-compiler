@@ -4260,6 +4260,10 @@ lvalue.  If there is an error, change the operand to an error operand.
   if (!okay) {
     if (is_error_operand(operand)) {
       /* An error message has already been issued for this operand. */
+    } else if (gcc_mode) {
+      /* This is a discretionary error in gcc mode. */
+      pos_diagnostic(es_discretionary_error, ec_expr_not_a_modifiable_lvalue,
+                     &operand->position);
     } else {
       error_in_operand(ec_expr_not_a_modifiable_lvalue, operand);
     }  /* if */
