@@ -617,7 +617,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            We assume this is an elaborated type specifier */
         /* typename is ignored in Sun mode.  Simply discard the token
            unless the user has disabled implicit typename mode. */
-        if (sun_mode && implicit_typename_enabled) break;
+        if (curr_token == tok_typename &&
+            sun_mode && implicit_typename_enabled) break;
         /* The Microsoft compiler allows the typename specifier to be
            repeated. */
         do {
