@@ -980,8 +980,9 @@ a pointer to its routine entry.  Otherwise, return NULL.
         /* A field selection of a static member.  The second operand
            gives the function. */
         an_expr_node_ptr op2 = expr->variant.operation.operands->next;
-        check_assertion(is_routine_address_node(op2));
-        routine = op2->variant.routine;
+        if (is_routine_address_node(op2)) {
+          routine = op2->variant.routine;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
