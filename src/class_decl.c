@@ -10547,6 +10547,7 @@ nested classes when their definition appears outside of the class template.
   a_class_def_state                class_state;
   a_boolean                        skip_semicolon_check;
   a_type_ptr                       dummy_type;
+  a_boolean			   instantiation_scope_pushed = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -10622,6 +10623,13 @@ nested classes when their definition appears outside of the class template.
                                  &saved_pack_alignment_state);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    if (microsoft_mode && is_template_instance_specific_def_symbol(tag_sym)) {
+      /* The Microsoft compiler permits a class specialization to reference
+         template parameters of the template.  Push an instantiation scope
+         if this is a specialization definition. */
+      push_instantiation_scope_for_class(class_type);
+      instantiation_scope_pushed = TRUE;
+    }  /* if */
     if (delayed_nested_class_def && !is_template_instantiation) {
       /* This is a definition of a C++ nested class that appears outside the
          scope of the parent class definition itself.  Reactivate the
@@ -11119,6 +11127,12 @@ next_declaration:
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
   pending_class_definitions--;
+  if (instantiation_scope_pushed) {
+    /* If an instantiation scope was pushed earlier to support the Microsoft
+       bug that permits a specialization to reference a template parameter,
+       pop that scope now. */
+    pop_template_instantiation_scope();
+  }  /* if */
   /* If there are no longer any classes in the process of being defined
      do any class fixups and template instantiations that have been
      deferred. */

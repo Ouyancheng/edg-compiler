@@ -837,6 +837,7 @@ extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);
 extern void pop_namespace_reactivation_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr   class_type);
 extern void pop_class_reactivation_scope(void);
+extern void push_instantiation_scope_for_class(a_type_ptr	class_type);
 extern void push_class_and_template_reactivation_scope(
                                  a_type_ptr	class_type,
                                  a_boolean      reactivate_template_params);

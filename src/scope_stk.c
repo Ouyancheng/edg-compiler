@@ -4535,6 +4535,38 @@ reactivation scope that is pushed.
 }  /* reactivate_class_scope */
 
 
+void push_instantiation_scope_for_class(a_type_ptr	class_type)
+/*
+Push a template instantiation scope for "class_type".  This is used
+to reactivate a template instantiation scope after the class has been
+instantiated, and in Microsoft mode to push an instantiate scope used
+when a class specialization is defined.  As a result, partial
+specializations need not be taken into account (if the class has
+been instantiated, the class_template of the class symbol supplement
+points to the partial specialization).
+*/
+{
+  a_symbol_ptr				template_sym;
+  a_template_arg_ptr			template_arg_list;
+  a_template_decl_info_ptr		decl_info;
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				class_sym;
+
+  /* Get the symbol associated with the class. */
+  class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
+  /* Get a pointer to the symbol associated with the template from
+     which this class was generated. */
+  template_sym = template_symbol_for_class_symbol(class_sym);
+  template_arg_list = templ_arg_list_for_class(class_type);
+  /* Get the template declaration information associated with the class. */
+  tssp = template_supplement_for_symbol(template_sym);
+  decl_info = cache_for_template(tssp)->decl_info;
+  push_template_instantiation_scope(decl_info, class_type,
+                                    (a_routine_ptr)NULL, class_sym,
+                                    template_sym, template_arg_list);
+}  /* push_instantiation_scope_for_class */
+
+
 void push_class_and_template_reactivation_scope(
                                  a_type_ptr	class_type,
                                  a_boolean      reactivate_template_params)
@@ -4543,7 +4575,8 @@ Push the scopes needed to reactivate the context of the specified class.
 If the class is a template class, or a class defined within a template class,
 this involves pushing the necessary template instantiation scopes as well.
 If reactivate_template_params is FALSE, the template instantiation scopes
-are not reactivated.
+are not reactivated.  This is FALSE when called for normal class
+reactivations.
 */
 {
   a_boolean	is_template;
@@ -4556,28 +4589,19 @@ are not reactivated.
                        "push_class_and_template_reactivation_scope:",
                        "class type has NULL assoc_info");
   /* Template instantiation scopes must be pushed for template
-     instances. */
+     instances.  Normally, instantiation scopes are not pushed for
+     specialized classes.  But in Microsoft mode, an instantiation scope
+     is pushed because the template parameters are visible, even in
+     specializations. */
   is_template = is_template_instance_class_symbol(class_sym) &&
-                !is_template_instance_specific_def_symbol(class_sym) &&
-                reactivate_template_params;
+                ((!is_template_instance_specific_def_symbol(class_sym) &&
+                  reactivate_template_params) ||
+                 microsoft_mode);
   if (is_template) {
-    a_symbol_ptr			template_sym;
-    a_template_arg_ptr			template_arg_list;
-    a_template_decl_info_ptr		decl_info;
-    a_template_symbol_supplement_ptr	tssp;
-    /* Get a pointer to the symbol associated with the template from
-       which this class was generated. */
-    template_sym = template_symbol_for_class_symbol(class_sym);
-    template_arg_list = templ_arg_list_for_class(class_type);
-    /* Get the template declaration information associated with the class. */
-    tssp = template_supplement_for_symbol(template_sym);
-    decl_info = cache_for_template(tssp)->decl_info;
-    push_template_instantiation_scope(decl_info, class_type,
-                                      (a_routine_ptr)NULL, class_sym,
-                                      template_sym, template_arg_list);
     /* The push of the template instantiation scope will not reactivate the
        class type (that it thinks is being instantiated).  Reactivate it
        now. */
+    push_instantiation_scope_for_class(class_type);
     push_single_class_reactivation_scope(class_type);
     /* Indicate that a template instantiation scope was pushed so that,
        when popping the class and template reactivation, we know how the

@@ -1,5 +1,18 @@
 Version 2.40
 
+10/21/98  Microsoft compatibility: template parameters visible in
+          class specializations
+
+The Microsoft compiler makes template parameters visible within the
+definition of a specialization of a class template.  This is now
+supported in Microsoft mode.
+
+  template <class T> struct A {};
+  template <> struct A<int> {
+    T t;
+  };
+  A<int> ai;
+
 10/21/98  Template static data member not instantiated if first referenced
           in a sizeof
 
