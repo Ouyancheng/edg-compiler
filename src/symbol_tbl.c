@@ -8858,7 +8858,7 @@ unit.
       /* If the scope is for a routine, get a pointer to the routine. */
       curr_routine = scope_ptr->variant.routine.ptr;
     }  /* if */
-    if (kind == (a_scope_kind)sck_class_struct_union &&
+    if (kind == (a_scope_kind)sck_class_struct_union && !C_mode() &&
         (symbol_supplement_for_class(scope_ptr->variant.assoc_type))->
                                                             is_nonreal_class) {
       is_prototype_instantiation = TRUE;
