@@ -54,8 +54,11 @@ specified a predeclared operator new or delete:
 
 9/25/96 Diagnostic on unreferenced function parameters
 
-A new error code, ec_unreferenced_function_param, is now used to report
-unreferenced function parameters.
+A new error code, ec_unreferenced_function_param, has been added to report
+unreferenced function parameters.  These cases used to be covered by
+ec_declared_but_not_referenced, which is also used for other variables;
+the new code was introduced to allow the warnings on unreferenced
+parameters to be controlled separately.
 
 9/24/96 Undefined inline virtual function
 
