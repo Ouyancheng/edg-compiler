@@ -2942,7 +2942,7 @@ lookup table.
   bsearch_result = (a_seq_number_lookup_entry_ptr*)
                    bsearch((a_bsearch_arg_type)&snle_to_find,
                            (a_bsearch_arg_type)seq_number_lookup_table,
-                           size_t_arg(il_header.num_seq_number_lookup_entries),
+                           (size_t)il_header.num_seq_number_lookup_entries,
                            sizeof(a_seq_number_lookup_entry_ptr),
                            compare_seq_info);
   check_assertion_str2(bsearch_result != NULL, "find_seq_in_lookup_table:",
