@@ -1940,9 +1940,12 @@ enable_microsoft_mode:
       alternative_tokens_allowed = TRUE;
     } else {
       /* Set optional features to standard settings for strict C++ mode. */
-      /* Enable recognition of operator keywords and digraphs. */
-      alternative_tokens_allowed = TRUE;
       allow_copy_assignment_op_with_base_class_param = FALSE;
+      if (!(option_kind_used[(int)optk_alternative_tokens])) {
+        /* If alternative_tokens was not explicitly set by a command line
+           option, set it now. */
+        alternative_tokens_allowed = TRUE;
+      }  /* if */
       if (!(option_kind_used[(int)optk_wchar_t_is_keyword])) {
         /* If wchar_t_is_keyword was not explicitly set by a command line
            option, set it now. */

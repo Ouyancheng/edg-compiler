@@ -1,5 +1,12 @@
 Version 2.36
 
+5/5/97    Disabling alternative tokens in strict mode
+
+It is now possible to disable the recognition of the alternative tokens
+(e.g., "not", "and", "<:", etc.) in strict mode by specifying the
+--no_alternative_tokens option.  Previously, this option could be specified,
+but was ignored in strict mode.
+
 5/2/97    Microsoft compatibility: new __declspec attributes
 
 Support for __declspec(selectany) and __declspec(nothrow) has been added.
