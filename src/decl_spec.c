@@ -768,6 +768,31 @@ C mode.
 }  /* tag_currently_being_defined */
 
 
+static void check_qualified_tag_access(a_boolean	is_tag_definition)
+/*
+Do access and ambiguity checking on a qualified name being processed
+by scan_tag_name.  is_tag_definition is TRUE if the tag is being defined.
+*/
+{
+  /* The Microsoft compiler does check the access of qualified tag
+     references. */
+  if (microsoft_bugs) {
+    check_for_ambiguity(&locator_for_curr_id);
+  } else {
+    check_ambiguity_and_verify_access(&locator_for_curr_id);
+  }  /* if */
+  if (is_tag_definition && any_deferred_access_checks()) {
+    /* When defining a class member outside of its class definition
+       using a qualified name, any access errors that may have been
+       detected when scanning the qualified name should be suppressed.
+       This context is not really a declarator, but the concept is the
+       same as suppressing access errors when scanning the declarator
+       of a member function or static data member. */
+    discard_declarator_access_errors();
+  }  /* if */
+}  /* check_qualified_tag_access */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -893,16 +918,8 @@ caution when modifying this routine.
            name. */
         tag_err = TRUE;
       } else {
-        check_ambiguity_and_verify_access(&locator_for_curr_id);
-        if (is_tag_definition && any_deferred_access_checks()) {
-          /* When defining a class member outside of its class definition
-             using a qualified name, any access errors that may have been
-             detected when scanning the qualified name should be suppressed.
-             This context is not really a declarator, but the concept is the
-             same as suppressing access errors when scanning the declarator
-             of a member function or static data member. */
-          discard_declarator_access_errors();
-        }  /* if */
+        /* Do access and ambiguity checking on the name. */
+        check_qualified_tag_access(is_tag_definition);
         tag_sym = locator_for_curr_id.specific_symbol;
         if (tag_sym != NULL) {
           reduce_projection_symbol_to_fundamental_symbol(tag_sym);

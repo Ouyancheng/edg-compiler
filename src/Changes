@@ -1,5 +1,15 @@
 Version 2.42
 
+7/30/99  Microsoft compatibility: access checking in elaborated type specifiers
+
+In Microsoft bug mode, access checking of qualified names in elaborated
+type specifiers is suppressed.
+
+  class A { class B {}; };
+  struct C {
+    friend class A::B;  // Accepted in Microsoft bugs mode
+  };
+
 7/30/99  C++-generating back end: Leading "::" on enum definition
 
 The C++-generating back end incorrectly put a leading "::" on a
