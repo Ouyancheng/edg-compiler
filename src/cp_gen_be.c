@@ -5735,6 +5735,13 @@ routine_or_var:
         break;
       case iek_type:
         { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (idp->do_not_instantiate) {
+            /* Force output of class modifiers on an extern template
+               declaration, in case it is the first or only declaration. */
+            class_type->first_declaration_pending = TRUE;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           gen_tag_reference(class_type);
           write_tok_ch(';');
         }
