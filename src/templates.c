@@ -390,6 +390,7 @@ might not be able to if the template itself has not yet been defined.
         tp = alloc_type((a_type_kind)tk_typeref);
         tp->variant.typeref.type = class_type;
         tp->variant.typeref.is_placeholder_for_file_scope_type = TRUE;
+        cssp->referenced_by_placeholder_typeref = TRUE;
         add_to_types_list(tp, decl_scope_level);
       }  /* if */
     }  /* if */
