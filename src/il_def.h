@@ -2298,6 +2298,34 @@ typedef struct a_param_type {
 } a_param_type;
 
 
+/*
+For a "#pragma STDC ...", indicates the specific kind of C99 predefined
+pragma that is being used.
+*/
+enum a_stdc_pragma_kind_tag {
+  stdc_pk_none,
+  stdc_pk_fp_contract,
+  stdc_pk_fenv_access,
+  stdc_pk_cx_limited_range
+};
+
+/* Storage size to be used to hold a STDC pragma kind. */
+typedef a_byte a_stdc_pragma_kind;
+
+/*
+For a "#pragma STDC ...", indicates the value specified by the pragma.
+*/
+enum a_stdc_pragma_value_tag {
+  stdc_pv_none,
+  stdc_pv_off,
+  stdc_pv_on,
+  stdc_pv_default
+};
+
+/* Storage size to be used to hold a STDC pragma value. */
+typedef a_byte a_stdc_pragma_value;
+
+
 /* The pragma kinds representing the specific pragmas that are recognized
    by the implementation.  Some may refer to pragmas for which entries of
    type a_pragma are added to the IL for processing by the back end, but
@@ -2347,6 +2375,8 @@ enum a_pragma_kind_tag {
   pk_define_type_info,  /* The following class definition provides the
 			   definition of the type_info type returned
 			   by typeid. */
+  pk_stdc,		/* Used for the C99 predefined pragmas (i.e.,
+			   FP_CONTRACT, FENV_ACCESS, and CX_LIMITED_RANGE). */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -2409,6 +2439,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_hdrstop */                "hdrstop",
 /* pk_no_pch */                 "no_pch",
 /* pk_define_type_info */       "define_type_info",
+/* pk_stdc */			"STDC",
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
@@ -2480,10 +2511,15 @@ typedef struct a_pragma {
   union {
     /* When kind == pk_none or refers to a "front-end-only" pragma, no variant
        fields. */
-    a_byte	dummy;
-			/* Remove this field (present only to avoid compiler
-			   diagnostics) if additional variant fields are
-			   added. */
+    /* When kind == pk_stdc: */
+    struct {
+      a_stdc_pragma_kind
+		kind;	/* For the C99 STDC predefined pragmas, indicates
+			   the specific pragma being used. */
+      a_stdc_pragma_value
+		value;	/* Specifies whether the attribute is being turned
+			   on, off, or reset to the default value. */
+    } stdc;
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* When kind == pk_ident: */
     a_constant_ptr

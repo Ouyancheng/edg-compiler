@@ -2336,7 +2336,6 @@ pointer to it.
     case pk_test_immediate:
     case pk_test_other:
     case pk_test_bind_next_pass:
-      pp->variant.dummy = 0;
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
       break;
 #if EXPENSIVE_CHECKING
@@ -2363,6 +2362,9 @@ pointer to it.
     case pk_do_not_instantiate:
     case pk_can_instantiate:
     case pk_define_type_info:
+      break;
+    case pk_stdc:
+      pp->variant.stdc.kind = stdc_pk_none;
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING

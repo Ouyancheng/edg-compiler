@@ -182,6 +182,15 @@ typedef struct a_pragma_kind_description {
 			   source code as a pragma, but that is treated as
 			   a pragma).  Lint comment pragmas are examples of
 			   pseudo pragmas. */
+  a_bit_field	il_info_is_complete:1;
+			/* TRUE if a back end (including the C and C++
+			   generating back ends) can get the information
+			   needed to process or re-emit the pragma solely
+			   from the pragma IL entry without the need to
+			   refer to the saved copy of the pragma.  This is
+			   needed for pragmas saved as token caches, which
+			   otherwise are not permitted to be passed in the
+			   IL. */
   an_error_severity
 		error_severity;
 			/* For pbk_other pragmas, the severity of the

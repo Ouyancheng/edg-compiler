@@ -1668,6 +1668,90 @@ where <string> is a quoted character string (not wide chars).
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
 
+void process_stdc_pragma(a_pending_pragma_ptr	ppp)
+/*
+Process a predefined C99 STDC pragma.  These pragmas have the following form:
+
+  #pragma STDC FP_CONTRACT [ ON | OFF | DEFAULT ]
+  #pragma STDC FENV_ACCESS [ ON | OFF | DEFAULT ]
+  #pragma STDC CX_LIMITED_RANGE [ ON | OFF | DEFAULT ]
+
+This routine is called to process the pragmas when they are known to appear
+in a valid location.  It is called compound_statement for block scope
+pragmas, and by stdc_pragma for pragmas that appear in the file scope.
+*/
+{
+  a_stdc_pragma_kind	kind = stdc_pk_none;
+  a_stdc_pragma_value	value = stdc_pv_none;
+  a_boolean		err = FALSE;
+  char			*str;
+
+  begin_rescan_of_pragma_tokens(ppp);
+  if (curr_token == tok_identifier) {
+    str = locator_for_curr_id.symbol_header->identifier;
+    if (strcmp(str, "FP_CONTRACT") == 0) {
+      kind = stdc_pk_fp_contract;
+    } else if (strcmp(str, "FENV_ACCESS") == 0) {
+      kind = stdc_pk_fenv_access;
+    } else if (strcmp(str, "CX_LIMITED_RANGE") == 0) {
+      kind = stdc_pk_cx_limited_range;
+    }  /* if */
+  }  /* if */
+  if (kind == (a_stdc_pragma_kind)stdc_pk_none) {
+    warning(ec_unrecognized_stdc_pragma);
+    err = TRUE;
+  }  /* if */
+  if (!err) {
+    /* Get the setting that appears after the kind. */
+    (void)get_token();
+    if (curr_token == tok_identifier) {
+      str = locator_for_curr_id.symbol_header->identifier;
+      if (strcmp(str, "ON") == 0) {
+        value = stdc_pv_on;
+      } else if (strcmp(str, "OFF") == 0) {
+        value = stdc_pv_off;
+      } else if (strcmp(str, "DEFAULT") == 0) {
+        value = stdc_pv_default;
+      }  /* if */
+    }  /* if */
+    if (value == (a_stdc_pragma_value)stdc_pv_none) {
+      warning(ec_bad_stdc_pragma_arg);
+      err = TRUE;
+    }  /* if */
+    /* Bypass the value. */
+    if (!err) (void)get_token();
+  }  /* if */
+  wrapup_rescan_of_pragma_tokens(err);
+  if (!err) {
+    /* Create the IL entry for this pragma, and fill in the information.
+       This is only done if an IL entry is actually created.  An IL entry
+       is not created if the pragma appears in an invalid location. */
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.stdc.kind = kind;
+      ppp->il_pragma_entry->variant.stdc.value = value;
+    }  /* if */
+  }  /* if */
+}  /* process_stdc_pragma */
+
+
+void stdc_pragma(a_pending_pragma_ptr	ppp)
+/*
+Process a predefined C99 STDC pragma.  This is the routine that is
+registered with the pragma processing routines.  It calls process_stdc_pragma
+for file scope pragmas.  Pragmas that appear elsewhere result in diagnostics.
+For block scope pragmas that appear in a valid location, process_std_pragma
+is called directly by compound_statement.
+*/
+{
+  if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_file) {
+    process_stdc_pragma(ppp);
+  } else {
+    pos_warning(ec_stdc_pragma_not_allowed_here, &ppp->pragma_position);
+  }  /* if */
+}  /* stdc_pragma */
+
+
 #if ALIAS_DIRECTIVE
 static void proc_alias(void)
 /*

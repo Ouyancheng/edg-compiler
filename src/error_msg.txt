@@ -1086,6 +1086,9 @@ ec_cannot_be_declared_in_scope;;"%n cannot be declared in this scope"
 ec_id_can_only_appear_in_function;;"the reserved identifier %sq may only be used inside a function"
 ec_invalid_identifier_start_UCN;;"this universal character cannot begin an identifier"
 ec_exp_string_literal;;"expected a string literal"
+ec_unrecognized_stdc_pragma;;"unrecognized STDC pragma"
+ec_bad_stdc_pragma_arg;;"expected \"ON\", \"OFF\", or \"DEFAULT\""
+ec_stdc_pragma_not_allowed_here;;"a STDC pragma may only appear in the global scope or as the before any statements or declarations in a block scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

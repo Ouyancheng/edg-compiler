@@ -5791,6 +5791,34 @@ expr_statement:
 }  /* statement */
 
 
+static void check_for_stdc_pragmas(void)
+/*
+If there are any current token pragmas that are C99 predefined
+pragmas, process them now.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+  a_pending_pragma_ptr	prev_ppp = NULL;
+  a_pending_pragma_ptr	next_ppp;
+
+  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
+    next_ppp = ppp->next;
+    if (ppp->descr_ptr->kind == (a_pragma_kind)pk_stdc) {
+      process_stdc_pragma(ppp);
+      /* Unlink this entry from the list of current token pragmas. */
+      if (prev_ppp == NULL) {
+        curr_token_pragmas = ppp->next;
+      } else {
+        prev_ppp->next = ppp->next;
+      }  /* if */
+      free_pending_pragma(ppp);
+    } else {
+      prev_ppp = ppp;
+    }  /* if */
+  }  /* for */
+}  /* check_for_stdc_pragmas */
+
+
 a_statement_ptr compound_statement(a_boolean  at_function_level,
                                    a_boolean  explicit_return_type,
                                    a_boolean  is_catch_clause)
@@ -5894,6 +5922,9 @@ branching into it is disallowed).
      required. */
   add_stop_token(tok_rbrace);
   (void)required_token(tok_lbrace, ec_exp_lbrace);
+  /* This is the only place within a compound statement where C99 predefined
+     pragmas are permitted. */
+  if (c99_mode) check_for_stdc_pragmas();
 
   /* Scan the sequence of statements. */
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {

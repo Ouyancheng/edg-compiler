@@ -6392,6 +6392,27 @@ exception-handling "try" block.
 }  /* gen_try_block_statement */
 
 
+static void gen_stdc_pragma(a_pragma_ptr pp)
+/*
+Generate one of the predefined C99 pragmas.
+*/
+{
+  write_str("#pragma ");
+  switch (pp->variant.stdc.kind) {
+    case stdc_pk_fp_contract: write_str("FP_CONTRACT "); break;
+    case stdc_pk_fenv_access: write_str("FENV_ACCESS "); break;
+    case stdc_pk_cx_limited_range: write_str("CX_LIMITED_RANGE "); break;
+    default: unexpected_condition_str("gen_stdc_pragma: bad kind"); break;
+  }  /* switch */
+  switch (pp->variant.stdc.value) {
+    case stdc_pv_on: write_str("ON"); break;
+    case stdc_pv_off: write_str("OFF"); break;
+    case stdc_pv_default: write_str("DEFAULT"); break;
+    default: unexpected_condition_str("gen_stdc_pragma: bad value"); break;
+  }  /* switch */
+}  /* gen_stdc_pragma */
+
+
 static void gen_pragma(void)
 /*
 Generate a declaration for a pragma.  The current source sequence entry
@@ -6406,24 +6427,24 @@ is the one associated with the pragma.
   if (!pp->ignore_in_back_end) {
     begin_pp_directive("");
     set_output_position(&pp->position);
+    if (pp->kind == (a_pragma_kind)pk_stdc) {
+      gen_stdc_pragma(pp);
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */
-    if (pp->kind == (a_pragma_kind)pk_ident) {
+    } else if (pp->kind == (a_pragma_kind)pk_ident) {
 #if USE_PRAGMA_IDENT_IN_GENERATED_CODE
       write_str("#pragma ident ");
 #else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       write_str("#ident ");
 #endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
-    } else {
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+    } else {
       check_assertion_str(pp->pragma_text != NULL,
                           "gen_pragma: NULL pragma_text");
       write_str("#pragma ");
       write_str(pp->pragma_text);
-#if IDENT_DIRECTIVE_AND_PRAGMA
     }  /* if */
-#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     end_pp_directive();
   }  /* if */
 }  /* gen_pragma */
