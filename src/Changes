@@ -3124,7 +3124,7 @@ lowering is done are upward-compatible with previous versions.
 5/31/96 Windows NT portability issues
 
 The code in host_envir.c that reads directory entries has been changed
-to use names that available on a wider variety of NT compilers.
+to use names that are available on a wider variety of NT compilers.
 For example, to use _tfindfirst instead of _findfirst.  The _t versions
 of the names are typically macros that expand to some other name that
 is appropriate for a given environment.
