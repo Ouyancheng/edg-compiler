@@ -203,7 +203,8 @@ If there is an error, issue an error and return an error constant.
       if (is_incomplete_type(array_type)) {
         /* The array type is incomplete, and therefore the array size
            is set from the string length. */
-        set_initialized_array_size(&local_type, num_elems);
+        set_initialized_array_size(&array_type, num_elems);
+        local_type = make_identically_qualified_type(array_type, local_type);
       } else {
         /* The object being initialized is an array that has a definite
            size.  See if the string will fit in the array. */
