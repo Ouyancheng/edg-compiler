@@ -58,6 +58,9 @@ Clear an output control block to default values.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  octl->suppress_typedefs         = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   octl->suppress_local_typedefs   = FALSE;
   octl->suppress_not_yet_defined_typedefs = FALSE;
   octl->render_c99_bool           = FALSE;
@@ -1255,11 +1258,18 @@ C++-generating back end.
 #define or_not_yet_defined_typedef(type) /* Nothing */
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+#if GNU_EXTENSIONS_ALLOWED
+#define or_suppress_typedefs(octl) || ((octl)->suppress_typedefs)
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define or_suppress_typedefs(octl) /* Nothing */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #define typedef_is_invisible(type, suppress_const, octl)              \
  (((type)->source_corresp.is_local_to_function &&                     \
    (octl)->suppress_local_typedefs) ||                                \
   ((suppress_const) && is_const_qualified_type(type))                 \
-  or_not_yet_defined_typedef(type))                                   \
+  or_suppress_typedefs(octl)                                          \
+  or_not_yet_defined_typedef(type)) 
 
 
 static a_boolean can_use_qualified_array_typedef(

@@ -380,6 +380,8 @@ string literals are accepted.  __FUNCTION__ expands to the undecorated name
 of the function in which it appears (but, unlike in GNU C mode, does not act
 like a string literal).  A few non-standard constant-expressions are accepted
 (e.g., (int)"str" & 0).  Support for extended variadic macros.
+[8/30/02] __PRETTY_FUNCTION__ expands to the decorated name of the function in
+which it appears.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables

@@ -13309,6 +13309,137 @@ These cases are handled here by coalescing two tokens.
   }  /* if */        
 }  /* check_for_pcc_compound_assignment_operator */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void add_template_arg_to_decorated_name(
+                                    a_template_arg_ptr                 tap,
+                                    a_template_param_ptr               tpp,
+                                    a_boolean                          *first,
+                                    an_il_to_str_output_control_block  *octl)
+/*
+Render a template argument specification for a GNU C++ decorated name.
+The template argument is described by tap and corresponds to the template
+parameter tpp.  *first is TRUE if the first argument is still to be
+rendered.  When the first argument is rendered, *first is set to FALSE.
+octl describes the output method.
+*/
+{
+  for (; tap != NULL; tap = tap->next, tpp = tpp->next) {
+    if (*first) {
+      put_str_to_temp_text_buffer(" [with ");
+      *first = FALSE;
+    } else {
+      put_str_to_temp_text_buffer(", ");
+    }  /* if */
+    /* Put out "<param-name> = <template-arg>". */
+    put_str_to_temp_text_buffer(tpp->param_symbol->header->identifier);
+    put_str_to_temp_text_buffer(" = ");
+    form_a_template_arg(tap, octl);
+  }  /* for */
+}  /* add_template_arg_to_decorated_name */
+
+
+static char* get_decorated_function_name(a_routine_ptr  rp)
+/*
+Return a null-terminated character string representing the name of the
+given routine decorated with its argument and parameter types.
+*/
+{
+  an_il_to_str_output_control_block  octl;
+  a_template_symbol_supplement_ptr   templ_info = NULL;
+  a_boolean                          render_return_type = TRUE;
+  a_type_ptr                         type_to_render = rp->type;
+  a_source_correspondence_ptr        scp = &rp->source_corresp;
+
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_temp_text_buffer;
+  octl.suppress_typedefs = TRUE;
+  pos_in_temp_text_buffer = 0;
+  if (rp->source_corresp.is_class_member &&
+      rp->type->variant.routine.extra_info->this_class == NULL) {
+    /* A static member function: Display the "static" prefix. */
+    put_str_to_temp_text_buffer("static ");
+  }  /* if */
+  if (rp->is_template_function && rp->assoc_template != NULL) {
+    /* For template specializations (explicit or implicit), render the
+       generic form, followed by the parameter substitutions. */
+    a_template_ptr  rtp = rp->assoc_template;
+    a_symbol_ptr    rt_sym;
+    if (rtp->prototype_template != NULL) {
+      rtp = rtp->prototype_template;
+    }  /* if */
+    rt_sym = (a_symbol_ptr)rtp->source_corresp.assoc_info;
+    if (rt_sym != NULL) {
+      a_routine_ptr                     generic_rp;
+      templ_info = template_supplement_for_symbol(rt_sym);
+      generic_rp = templ_info->variant.function.routine;
+      type_to_render = generic_rp->type;
+      scp = &generic_rp->source_corresp;
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+  if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+      rp->special_kind == (a_special_function_kind)sfk_destructor ||
+      rp->special_kind == (a_special_function_kind)sfk_conversion) {
+    /* Constructors, destructors, and conversion functions have no declared 
+       return types. */
+    render_return_type = FALSE;
+  }  /* if */
+  if (render_return_type) {
+    form_type_first_part_simple(type_to_render,
+                                /*under_lhs_declarator=*/FALSE,
+                                /*need_trailing_space=*/TRUE,
+                                &octl);
+  }  /* if */
+  form_name(scp, (an_il_entry_kind)iek_routine, &octl);
+  if (render_return_type) {
+    form_type_second_part_simple(type_to_render,
+                                 /*under_lhs_declarator=*/FALSE,
+                                 &octl);
+  } else {
+    form_function_declarator(type_to_render, &octl);
+  }  /* if */
+  if (templ_info != NULL) {
+    /* Render the template arguments.  For example:
+         void f5(T) [with T = const char*, TT = float]
+    */
+    a_template_arg_ptr    tap;
+    a_template_param_ptr  tpp;
+    a_boolean             first = TRUE;
+    a_symbol_ptr          sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+    /* First render any template arguments of the routine proper. */
+    if (rp->template_arg_list != NULL) {
+      add_template_arg_to_decorated_name(
+             rp->template_arg_list,
+             templ_info->variant.function.decl_cache.decl_info->parameters,
+             &first,
+             &octl);
+    }  /* if */
+    /* Now render template arguments for any enclosing template classes,
+       starting with the innermost. */
+    while (sym->is_class_member) {
+      a_type_ptr    class_type = sym->parent.class_type;
+
+      sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+      tap = templ_arg_list_for_class(class_type);
+      if (tap != NULL) {
+        /* This is a template class with its own template arguments. */
+        a_symbol_ptr  templ_sym = class_template_for_type(class_type);
+        templ_sym = prototype_template_of(templ_sym);
+        tpp = template_supplement_for_symbol(templ_sym)->cache.decl_info
+                                                       ->parameters;
+        add_template_arg_to_decorated_name(tap, tpp, &first, &octl);
+      }  /* if */
+    }  /* while */
+    /* All arguments have been rendered.  Append the closing bracket. */
+    put_ch_to_temp_text_buffer(']');
+  }  /* if */
+  put_ch_to_temp_text_buffer('\0');
+  return temp_text_buffer;
+}  /* get_decorated_function_name */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void make_function_name_operand(an_operand *result,
                                        a_boolean  decorated_name)
@@ -13350,19 +13481,31 @@ returned instead of the unqualified function name.
       /* The required constant string variable has not yet been created for
          this function.  Create it now. */
       a_routine_ptr          rp = ssep->assoc_routine;
-      char                   *name_ptr =
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                              decorated_name ? get_mangled_function_name(rp) :
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                               rp->source_corresp.name;
+      char                   *name_ptr;
       a_constant_ptr         name_string;
-      a_targ_size_t          length = ((a_targ_size_t)strlen(name_ptr))+1;
+      a_targ_size_t          length;
       a_memory_region_number region_to_switch_back_to;
       a_type_ptr             var_type;
+
+      /* Determine which name to represent. */
+      if (!decorated_name) {
+        name_ptr = rp->source_corresp.name;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode) {
+        name_ptr = get_mangled_function_name(rp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (gpp_mode) {
+        name_ptr = get_decorated_function_name(rp);
+#endif /*GNU_EXTENSIONS_ALLOWED */
+      } else {
+        unexpected_condition();
+      }  /* if */
       /* Create the string literal. */
       /* Make sure the string literal constant is allocated in file scope,
          so that we can directly point to it as an initializer from the
          variable. */
+      length = ((a_targ_size_t)strlen(name_ptr))+1;
       switch_to_file_scope_region(&region_to_switch_back_to);
       name_string = alloc_constant((a_constant_repr_kind)ck_string);
       switch_back_to_original_region(region_to_switch_back_to);
