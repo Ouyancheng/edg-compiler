@@ -14756,8 +14756,10 @@ data member specified by tip.
       num_total_pending_instantiations--;
     }  /* if */
   }  /* if */
-  /* Restore the previously active translation unit. */
-  pop_translation_unit_stack();
+  if (tip->exported_template_file != NULL) {
+    /* Restore the previously active translation unit. */
+    pop_translation_unit_stack();
+  }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
