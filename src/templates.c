@@ -265,7 +265,7 @@ Initialize a template declaration state block.
   tdsp->in_prototype_instantiation = FALSE;
   tdsp->decl_scope_err = FALSE;
   tdsp->no_advance_past_final_token = FALSE;
-  tdsp->access = as_public;
+  tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
   tdsp->decl_info = NULL;
   tdsp->number_of_template_decl_scopes = 0;
