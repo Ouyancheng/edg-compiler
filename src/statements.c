@@ -1755,143 +1755,142 @@ rescan_statement:
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
-  if (C_dialect == C_dialect_cplusplus &&
-      is_declaration_not_expression(/*abstract_declarator_allowed=*/FALSE)) {
-    /* Scan a declaration (C++ only). */
-    local_declaration();
-  } else {
-    switch(curr_token) {
-      case tok_semicolon:
-        /* Empty statement (part of expression-statement, 3.6.3). */
-        (void)get_token();
-        break;
-      case tok_lbrace:
-        /* Compound statement (3.6.2). */
-        (void)compound_statement(/*at_function_level=*/FALSE,
-                                 /*explicit_return_type=*/FALSE);
-        break;
-      case tok_if:
-        /* If statement (3.6.4). */
-        if_statement();
-        break;
-      case tok_switch:
-        /* Switch statement (3.6.4). */
-        switch_statement();
-        break;
-      case tok_while:
-        /* While statement (3.6.5). */
-        while_statement();
-        break;
-      case tok_do:
-        /* do .. while statement (3.6.5). */
-        do_statement();
-        break;
-      case tok_for:
-        /* For statement (3.6.5). */
-        for_statement();
-        break;
-      case tok_goto:
-        /* Goto statement (3.6.6). */
-        goto_statement();
-        break;
-      case tok_continue:
-        /* Continue statement (3.6.6). */
-        continue_statement();
-        break;
-      case tok_break:
-        /* Break statement (3.6.6). */
-        break_statement();
-        break;
-      case tok_return:
-        /* Return statement (3.6.6). */
-        return_statement();
-        break;
-      case tok_case:
-        /* Case label (3.6.1). */
-        case_label();
-        prev_was_label = TRUE;
-        goto rescan_statement;
-      case tok_default:
-        /* Default label (3.6.1). */
-        default_label();
-        prev_was_label = TRUE;
-        goto rescan_statement;
-      case tok_identifier:
-        /* Identifier.  Probably the start of an expression-statement,
-           but first we must check to see if it is a label definition
-           by looking to see if the next token is a colon. */
-        if (next_token() == tok_colon) {
-          /* This is a label definition. */
-          /* Scan the label identifier, and enter it into the symbol table
-             if needed. */
-          label = scan_label(/*is_definition=*/TRUE);
-          /* See if the label has already been declared. */
-          if (label->variant.exec_stmt != NULL) {
-            str_error(ec_label_already_defined, label->source_corresp.name);
-            code_reachable = rc_reachable;
-          } else {
-            /* The label has not previously been declared, so put out the
-               definition. */
-            define_label(label);
-          }  /* if */
+  switch(curr_token) {
+    case tok_semicolon:
+      /* Empty statement (part of expression-statement, 3.6.3). */
+      (void)get_token();
+      break;
+    case tok_lbrace:
+      /* Compound statement (3.6.2). */
+      (void)compound_statement(/*at_function_level=*/FALSE,
+                               /*explicit_return_type=*/FALSE);
+      break;
+    case tok_if:
+      /* If statement (3.6.4). */
+      if_statement();
+      break;
+    case tok_switch:
+      /* Switch statement (3.6.4). */
+      switch_statement();
+      break;
+    case tok_while:
+      /* While statement (3.6.5). */
+      while_statement();
+      break;
+    case tok_do:
+      /* do .. while statement (3.6.5). */
+      do_statement();
+      break;
+    case tok_for:
+      /* For statement (3.6.5). */
+      for_statement();
+      break;
+    case tok_goto:
+      /* Goto statement (3.6.6). */
+      goto_statement();
+      break;
+    case tok_continue:
+      /* Continue statement (3.6.6). */
+      continue_statement();
+      break;
+    case tok_break:
+      /* Break statement (3.6.6). */
+      break_statement();
+      break;
+    case tok_return:
+      /* Return statement (3.6.6). */
+      return_statement();
+      break;
+    case tok_case:
+      /* Case label (3.6.1). */
+      case_label();
+      prev_was_label = TRUE;
+      goto rescan_statement;
+    case tok_default:
+      /* Default label (3.6.1). */
+      default_label();
+      prev_was_label = TRUE;
+      goto rescan_statement;
+    case tok_identifier:
+      /* Identifier.  Probably the start of an expression-statement,
+         but first we must check to see if it is a label definition
+         by looking to see if the next token is a colon. */
+      if (next_token() == tok_colon) {
+        /* This is a label definition. */
+        /* Scan the label identifier, and enter it into the symbol table
+           if needed. */
+        label = scan_label(/*is_definition=*/TRUE);
+        /* See if the label has already been declared. */
+        if (label->variant.exec_stmt != NULL) {
+          str_error(ec_label_already_defined, label->source_corresp.name);
+          code_reachable = rc_reachable;
+        } else {
+          /* The label has not previously been declared, so put out the
+             definition. */
+          define_label(label);
+        }  /* if */
 #if CHECKING
-          if (curr_token != tok_colon) {
-            internal_error("statement: expected colon");
-          }  /* if */
+        if (curr_token != tok_colon) {
+          internal_error("statement: expected colon");
+        }  /* if */
 #endif /* CHECKING */
-          8void)get_token();
-          prev_was_label = TRUE;
-          goto rescan_statement;
-        }  /* if */
+        (void)get_token();
+        prev_was_label = TRUE;
+        goto rescan_statement;
+      }  /* if */
 #if ASM_STATEMENT_ALLOWED
-        if (!strict_ansi_mode) {
-          char         *id_name;
-          a_symbol_ptr sym_ptr;
+      if (!strict_ansi_mode) {
+        char         *id_name;
+        a_symbol_ptr sym_ptr;
 
-          /* Check for "asm" statement.  "asm" is not a keyword, so we check
-             for an identifier "asm" that is not defined in any way that's
-             meaningful here. */
-          id_name = locator_for_curr_id.symbol_header->identifier;
-          if (*id_name == 'a' && strcmp(id_name, "asm") == 0) {
-            /* Identifier is "asm" -- check for definition. */
-            sym_ptr = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-            if (sym_ptr == NULL) {
-              /* The identifier is not defined as a variable, function,
-                 constant, or type.  Therefore, this is considered to be an
-                 asm statement. */
-              asm_statement();
-              break;  /* out of switch */
-            }  /* if */
+        /* Check for "asm" statement.  "asm" is not a keyword, so we check
+           for an identifier "asm" that is not defined in any way that's
+           meaningful here. */
+        id_name = locator_for_curr_id.symbol_header->identifier;
+        if (*id_name == 'a' && strcmp(id_name, "asm") == 0) {
+          /* Identifier is "asm" -- check for definition. */
+          sym_ptr = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+          if (sym_ptr == NULL) {
+            /* The identifier is not defined as a variable, function,
+               constant, or type.  Therefore, this is considered to be an
+               asm statement. */
+            asm_statement();
+            break;  /* out of switch */
           }  /* if */
         }  /* if */
+      }  /* if */
 #endif /* ASM_STATEMENT_ALLOWED */
-        /* Other cases are expression statements. */
-        goto expr_statement;
-      default:
+      /* Other cases are expression statements. */
+      goto expr_statement;
+    default:
 expr_statement:
-        /* Look for things that can't be expression statements, and produce
-           a specific "Expected a statement" message for those cases. */
-        if (curr_token == tok_rbrace || curr_token == tok_else) {
-          /* When a label definition precedes a "}", let it by as an extension,
-             with a warning in all modes. */
-          if (prev_was_label && curr_token == tok_rbrace) {
-            warning(ec_exp_statement);
-          } else {
-            add_stop_token(tok_semicolon);
-            syntax_error(ec_exp_statement);
-            remove_stop_token(tok_semicolon);
-          }  /* if */
-          break;
+      /* First look for things that can't be expression statements, and
+         produce a specific "Expected a statement" message for those cases. */
+      if (curr_token == tok_rbrace || curr_token == tok_else) {
+        if (prev_was_label && curr_token == tok_rbrace) {
+          /* When a label definition precedes a "}", let it by as an
+             extension, with a warning in all modes. */
+          warning(ec_exp_statement);
+        } else {
+          add_stop_token(tok_semicolon);
+          syntax_error(ec_exp_statement);
+          remove_stop_token(tok_semicolon);
         }  /* if */
+      } else if (C_dialect == C_dialect_cplusplus &&
+                 is_declaration_not_expression(
+                               /*abstract_declarator_allowed=*/FALSE)) {
+        /* Scan a declaration (C++ only). */
+        local_declaration();
+      } else {
         /* expression-statement (3.6.3). */
         add_stop_token(tok_semicolon);
         check_for_unreachable_code();
         expression_statement();
         (void)required_token(tok_semicolon, ec_exp_semicolon);
         remove_stop_token(tok_semicolon);
-        break;
-    }  /* switch */
-  }  /* if */
+      }  /* if */
+      break;
+  }  /* switch */
 
   db_exit();
 }  /* statement */
