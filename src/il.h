@@ -829,6 +829,16 @@ its source correspondence entry.
 #endif /* NEED_NAME_MANGLING */
 
 /*
+Macro that returns TRUE if an IL entry has a name before any name mangling
+that was done.  This is useful when testing entities like classes and
+namespaces that may have been given a generated name during name
+mangling.  (Applies only to those entries containing source correspondence
+information.)
+*/
+#define has_name_before_mangling(entry) \
+  (unmangled_name_of(&(entry)->source_corresp) != NULL)
+
+/*
 Clear the parent information in the indicated entity to remove the entity
 from any class or namespace of which it might be a member.
 */

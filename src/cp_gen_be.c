@@ -1561,7 +1561,7 @@ is unnamed, generate a name.  Never generate a qualified name.  If the
 entity is a template class, add the template arguments.
 */
 {
-  char *name = scp->name;
+  char *name = unmangled_name_of(scp);
 
   if (name == NULL) {
     /* For entities without names, create a name. */
@@ -1649,7 +1649,7 @@ the meaning of need_closing_paren.
 {
   /* If the namespace at this level is unnamed, skip it and move up one
      level. */
-  while (nsp != NULL && !has_name(nsp)) {
+  while (nsp != NULL && !has_name_before_mangling(nsp)) {
     nsp = nsp->source_corresp.parent.namespace_ptr;
   }  /* while */
   if (nsp != NULL) {
@@ -2918,7 +2918,7 @@ it is a typedef.
      (b) always in a for-init. */
   if (for_init ||
       ((is_class_type_kind(kind) || is_enum_type(unqual_type)) &&
-       (!has_name(unqual_type) ||
+       (!has_name_before_mangling(unqual_type) ||
         /* Include cases where the tag has a name only for linkage purposes. */
         (is_class_type_kind(kind) &&
          unqual_type->variant.class_struct_union.originally_unnamed)))) {
@@ -3239,11 +3239,12 @@ is the one associated with the definition of the class.
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     /* The type is an anonymous union, so suppress the name. */
-  } else if (!has_name(type) && type->autonomous_primary_tag_decl) {
+  } else if (!has_name_before_mangling(type) &&
+             type->autonomous_primary_tag_decl) {
     /* The type is an unnamed autonomous tag.  This covers the nonstandard
        anonymous union cases in C. */
   } else if (type->variant.class_struct_union.originally_unnamed &&
-             has_name(type)) {
+             has_name_before_mangling(type)) {
     /* The type was unnamed but got a name from a typedef, so suppress the
        name here.  For example:
          typedef struct { int A; } A;
@@ -3447,7 +3448,7 @@ the current state have in common.
     }  /* for */
     nsp = temp_scope->variant.assoc_namespace;
     write_tok_str("namespace");
-    if (has_name(nsp)) {
+    if (has_name_before_mangling(nsp)) {
       write_space();
       /* Put out the name of the namespace. */
       gen_unqualified_name(&nsp->source_corresp, iek_namespace);
@@ -4027,7 +4028,7 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
       (dip->kind == (a_dynamic_init_kind)dik_constructor ||
        dip->kind == (a_dynamic_init_kind)dik_zero ||
        dip->kind == (a_dynamic_init_kind)dik_none)) {
-    if (has_name(temp_type)) {
+    if (has_name_before_mangling(temp_type)) {
       /* For a class temporary requiring a constructor, use the form
          A(arg1, arg2, ...).  dik_zero or dik_none will produce "A()". */
       /* Note that parentheses are not put around this, because that would
@@ -5954,7 +5955,7 @@ Generate code for a namespace definition or namespace alias declaration.
   /* Position the output file to the declaration position. */
   set_decl_position(&nsp->source_corresp, sec_decl);
   write_tok_str("namespace");
-  if (has_name(nsp)) {
+  if (has_name_before_mangling(nsp)) {
     write_space();
     /* Put out the name of the namespace. */
     gen_unqualified_name(&nsp->source_corresp, iek_namespace);
