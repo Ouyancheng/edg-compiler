@@ -5176,6 +5176,17 @@ exception specifications are not checked.
       /* Qualifiers are being dropped. */
       okay = FALSE;
     }  /* if */
+    if (is_ptr_to_member_type(dest_type) &&
+        !is_accessible_base_class(bcp) && !bcp->ambiguous) {
+      /* Core issue 54 says that the inverse conversion is not valid if
+         the standard conversion would fail because of lack of access.
+         That's suspect for the pointer case, but makes some sense
+         for pointers to members.  Because there's a Suite++
+         test that checks pointers to members, we disallow that
+         conversion in strict mode.  MSVC++ 7.1 and g++ 3.2 do
+         the same. */
+      okay = FALSE;
+    }  /* if */
   } else if ((!is_bool_type(source_type) &&
               impl_conversion_possible(dest_type,
                                        /*source_is_constant=*/FALSE,

@@ -1,5 +1,11 @@
 Version 3.3
 
+7/28/03  static_cast of pointer to member of derived class to private base
+
+According to core issue 54, a static_cast from a pointer to member of
+a derived class to a pointer to member of a private base should not be
+allowed.  The front end now enforces that.
+
 7/25/03  C++-generating back end: Workaround for GNU C++ extern "C" bug
 
 GNU C++ compilers are unable to parse variable declarations of the form
