@@ -7701,16 +7701,11 @@ continue_with_declaration:
           mark_symbol_to_suppress_warnings(symbol_ptr);
         }  /* if */
       }  /* if */
-      if (is_variable_def && C_dialect == C_dialect_cplusplus) {
-        /* At the point at which an object of incomplete template class is
-           defined, its class needs to be instantiated.  When its type is
-           ref-template-class, the instantiation is also required.  Note that
-           in this respect a reference does not behave like a pointer -- in
-           the latter case, the instantiation is not required until the pointer
-           is dereferenced. */
-        a_type_ptr  tp = local_type_ptr;
-        if (is_reference_type(tp)) tp = type_pointed_to(tp);
-        complete_type_is_needed(tp);
+      if (is_variable_def || is_tentative_definition) {
+        /* In C++ mode, check whether a template class type needs to be
+           instantiated.  If appropriate, record that a complete type is
+           required in this context (both C and C++). */
+        complete_type_is_needed(local_type_ptr);
       }  /* if */
       incomplete_type_error_reported = FALSE;
       /* Set the error position to the start of the initializer (that is, to
