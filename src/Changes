@@ -1,5 +1,12 @@
 Version 3.6
 
+12/7/04  Abort in inline_function_fixup_for_class in some configurations
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE
+the front end sometimes aborted in inline_function_fixup_for_class (which is
+defined in class_decl.c).  The problem only occurred in relatively elaborate
+scenarios involving default arguments an nested namespaces.  It is now fixed.
+
 12/6/04  Spurious error on default argument pointer-to-member in template
 
 A spurious error was issued if a class template contained a pointer-to-member
