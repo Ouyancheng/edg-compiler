@@ -1428,7 +1428,8 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_routine_address:
       fprintf(f_debug, "address of routine: %s\n",
-	      node->variant.routine->source_corresp.name);
+	      node->variant.routine->source_corresp.name != NULL ?
+                node->variant.routine->source_corresp.name : "<unnamed>");
       break;
     case enk_field:
       fprintf(f_debug, "field ");
