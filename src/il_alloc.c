@@ -1324,10 +1324,8 @@ to it.
   vp->is_temp_for_unmodified_inlined_param = FALSE;
   vp->is_temp_for_constructor_this_inlined_param = FALSE;
 #endif /* MINIMAL INLINING */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   vp->promoted_local_static_init  = FALSE;
   vp->promoted_local_static       = FALSE;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 #endif /* DO_IL_LOWERING */
   vp->is_compound_literal         = FALSE;
 #endif /* ifdef CIL */
