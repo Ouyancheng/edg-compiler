@@ -6752,7 +6752,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
           diagnostic((C_mode() || any_cfront_mode()) ? es_warning : es_error,
                      ec_storage_class_not_allowed);
         }  /* if */
-        /* ARM 7.1.6 implies that the absence of a object in this declaration
+        /* ARM 7.1.6 implies that the absence of an object in this declaration
            makes it ill-formed.  Is the implication strong enough to justify
            an error here? */
         if (is_qualified_type(type_ptr)) {
