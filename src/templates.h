@@ -42,8 +42,9 @@ extern a_symbol_ptr matching_template_function
 extern void record_predeclared_template_function(a_symbol_ptr  templ_sym,
                                                  a_symbol_ptr  rout_sym);
 
-extern void find_member_function_template(a_symbol_ptr    rout_sym,
-                                          a_scope_number  decl_scope);
+extern void find_member_function_template(
+                                    a_symbol_ptr  rout_sym,
+                                    a_symbol_ptr  corresp_prototype_tag_sym);
 
 extern void instantiate_template_class(a_type_ptr  type);
 

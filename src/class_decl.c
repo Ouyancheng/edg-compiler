@@ -5410,7 +5410,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
 {
   a_boolean               err = FALSE;
   an_access_specifier     access;
-  a_symbol_ptr            tag_sym;
+  a_symbol_ptr            tag_sym, corresp_prototype_tag_sym = NULL;
   a_boolean               first_declarator;
   a_decl_flag_set         dsi_flags;
   a_boolean               is_first_field;
@@ -5516,12 +5516,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
       /* Record the scope number used for the corresponding prototype
          instantiation, if any. */
       if (!is_unreal_instantiation) {
-        a_symbol_ptr  sym = find_corresp_prototype_tag_sym(tag_sym);
-        if (sym != NULL) {
-          prototype_decl_scope =
-               type_symbol_type(sym)->variant.class_struct_union.extra_info->
-                                                           assoc_scope->number;
-        }  /* if */
+        corresp_prototype_tag_sym = find_corresp_prototype_tag_sym(tag_sym);
       }  /* if */
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && curr_token == tok_rbrace) {
@@ -5975,7 +5970,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                      template symbol established during prototype
                      instantiation. */
                   find_member_function_template(rout_sym,
-                                                prototype_decl_scope);
+                                                corresp_prototype_tag_sym);
                 }  /* if */
                 if (curr_token == tok_comma &&
                          (is_destructor || is_constructor)) {
