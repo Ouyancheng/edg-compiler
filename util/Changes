@@ -1,3 +1,13 @@
+Version 2.34
+
+10/22/96 decode.h and decode.c copyrighted but not proprietary
+
+We've changed the copyright notices in decode.h and decode.c to make
+those files freely redistributable.  They're copyrighted, but they're
+not proprietary.  This was done to allow incorporation of those files
+into the GNU debugger gdb, and debuggers in general.
+
+-------------------------------------------------------------------------------
 Version 2.33, October 2, 1996
 
 9/26/96  Name demangler and initialization guard variables for local statics

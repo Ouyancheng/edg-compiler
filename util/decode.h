@@ -3,10 +3,23 @@
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994 Edison Design Group Inc.                        [_]          *
+*                                                             /  | |  \       *
+* Copyright 1996 Edison Design Group Inc.                        [_]          *
 *                                                                             *
 ******************************************************************************/
+/*
+Copyright (c) 1996, Edison Design Group, Inc.
+
+Redistribution and use in source and binary forms are permitted
+provided that the above copyright notice and this paragraph are
+duplicated in all source code forms.  The name of Edison Design
+Group, Inc. may not be used to endorse or promote products derived
+from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+Any use of this software is at the user's own risk.
+*/
 /*
 decode.h -- Declarations for decode.c (name demangler for C++).
 */
@@ -24,12 +37,13 @@ void decode_identifier(char      *id,
 
 #endif /* ifndef DECODE_H */
 
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994 Edison Design Group Inc.                        [_]          *
+*                                                             /  | |  \       *
+* Copyright 1996 Edison Design Group Inc.                        [_]          *
 *                                                                             *
 ******************************************************************************/
