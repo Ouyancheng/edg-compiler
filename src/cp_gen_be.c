@@ -2229,7 +2229,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            to avoid performance problems with huge hidden name lists when
            there are many instances, with the injected class name of each
            instance hiding all the other instances. */
-        scp->qualification_needed = TRUE;
+        if (!(options & GN_NO_TEMPLATE_ARGS)) {
+          /* If we are suppressing template arguments (which happens in a
+             prototype instantiation), we must not qualify the name --
+             the qualified name without the template arguments will refer
+             to the template itself, not the current specialization, and
+             thus won't be a type, as this name is. */
+          scp->qualification_needed = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (scp->is_class_member) {
