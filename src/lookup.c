@@ -2099,7 +2099,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
     tssp = template_supplement_for_symbol(fund_sym);
     rout_ptr = fund_sym->variant.template_info->variant.function.routine;
     rout_type = skip_typerefs(rout_ptr->type);
-    return_type = return_type_of(rout_type);
+    return_type = rout_type->variant.routine.return_type;
     param_list = tssp->variant.function.decl_cache.decl_info->parameters;
 #if DEBUG
     if (db_flag_is_set("conversion_lookup")) {

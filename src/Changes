@@ -1,5 +1,16 @@
 Version 2.46
 
+6/28/01  Spurious error on declaration of conversion template specialization
+
+Declarations of conversion functions that are instances of conversion
+templates that return references where not handled properly, resulting
+in spurious errors in cases such as this.  This has been fixed.
+
+  struct A { 
+    template < class T > operator T & ( );
+  }; 
+  template<> inline A::operator const int &();
+
 6/28/01  C++-generating back end: qualifiers in array declarators
 
 The C++-generating back end used to not reproduce cv-qualifiers appearing
