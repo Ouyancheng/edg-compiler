@@ -3097,102 +3097,60 @@ scope.  For block scopes, create the scope now if necessary.
 
 
 void add_to_types_list(a_type_ptr     type_ptr,
-                       a_scope_depth  scope_level,
-                       a_boolean      in_old_style_param_decl_list)
+                       a_scope_depth  scope_level)
 /*
-Add the given type to the types list for the current scope, or at file scope
-if at_file_scope is TRUE, or in a prototype scope if
-in_old_style_param_decl_list is TRUE.
+Add the given type to the types list for the scope corresponding to
+scope_level.
 */
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp;
-  a_type_ptr              routine_type;
-  a_type_ptr              last_type_ptr;
-  a_type_ptr              *last_type_ptr_ptr;
   a_memory_region_number  region_to_switch_back_to;
 
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[scope_level];
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
-  last_type_ptr_ptr = &ssep->last_type;
   /* If we are currently inside the declaration list for the old-style
-     parameters of a function (e.g., in the "struct" line in
+     parameters of a function -- e.g., in the "struct" declaration in
 
-     int f(a)
-     struct s {int b;} a;
-     {
-     }
+       int f(a) struct s {int b;} a; { }
 
-     ), the type should be entered in the prototype scope; that makes
-     the type available in the memory region of the function's parent,
-     which is necessary for type-compatibility checking of parameters.
-     A similar situation applies for type declarations that are part
-     of function prototypes, as in
+     -- the type should be entered in the prototype scope; that makes the
+     type available in the memory region of the function's parent, which is
+     necessary for type-compatibility checking of parameters. A similar
+     situation applies for type declarations that are part of function
+     prototypes, as in
 
-     int f(struct s {int b;} a);
+       int f(struct s {int b;} a);
 
      The prototype scope is hardly ever needed, and therefore it is not
      allocated by default.  It is allocated here in this routine the first
-     time it is needed.  For old-style parameters, the prototype scope
-     is saved under the type of the routine being defined.  For prototypes,
-     the prototype scope is saved in il_scope of the current scope stack
+     time it is needed.  It is saved in il_scope of the current scope stack
      entry and also under the associated routine type. */
-  if (in_old_style_param_decl_list) {
-    /* We are in the declaration list for the old-style parameters of
-       a function. */
-#if CHECKING
-    if (sp == NULL) internal_error("add_to_types_list: missing il_scope");
-    if (sp->variant.routine.ptr == NULL) {
-      internal_error("add_to_types_list: missing assoc_routine");
-    }  /* if */
-#endif /* CHECKING */
-    routine_type = sp->variant.routine.ptr->type;
-#if CHECKING
-    if (routine_type == NULL) {
-      internal_error("add_to_types_list: NULL routine type");
-    } else if (routine_type->kind != (a_type_kind)tk_routine) {
-      internal_error("add_to_types_list: bad routine type");
-    }  /* if */
-#endif /* CHECKING */
-    /* Get the prototype scope pointer from the routine type supplement.
-       It may already have been created. */
-    sp = routine_type->variant.routine.extra_info->prototype_scope;
-    /* Find the last type on the list, since we have no last pointer we can
-       use directly.  These lists are not likely to be long, so this is not
-       a big deal. */
-    last_type_ptr_ptr = &last_type_ptr;
-    if (sp == NULL) {
-      last_type_ptr = NULL;
-    } else {
-      last_type_ptr = sp->types;
-      if (last_type_ptr != NULL) {
-        while (last_type_ptr->next != NULL) {
-          last_type_ptr = last_type_ptr->next;
-        }  /* while */
-      }  /* if */
-    }  /* if */
-  }  /* if */
   if (sp == NULL) {
+    a_type_ptr              routine_type;
+
     /* A prototype scope must be allocated.  add_to_scopes_list is not
        called because this is not a scope for a statement block.  It is
        allocated in the file scope memory region because it is pointed to
        from the routine type supplement, which is always at file scope. */
+#if CHECKING
+    if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+      internal_error("add_type_types_list: NULL IL scope");
+    }  /* if */
+#endif /* CHECKING */
     switch_to_file_scope_region(&region_to_switch_back_to);
     sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                      (a_routine_ptr)NULL);
     switch_back_to_original_region(region_to_switch_back_to);
-    if (!in_old_style_param_decl_list) {
-      /* Function prototype scope. */
-      ssep->il_scope = sp;
-      routine_type = ssep->assoc_type;
+    ssep->il_scope = sp;
+    routine_type = ssep->assoc_type;
 #if CHECKING
-      if (routine_type == NULL) {
-        internal_error("add_to_types_list: assoc_routine_type is NULL");
-      }  /* if */
-#endif /* CHECKING */
+    if (routine_type == NULL) {
+      internal_error("add_to_types_list: routine_type is NULL");
     }  /* if */
+#endif /* CHECKING */
     /* Link the routine type to the prototype scope entry. */
     routine_type->variant.routine.extra_info->prototype_scope = sp;
     /* Link the prototype scope entry to the routine type. */
@@ -3202,9 +3160,9 @@ in_old_style_param_decl_list is TRUE.
   if (sp->types == NULL) {
     sp->types = type_ptr;
   } else {
-    (*last_type_ptr_ptr)->next = type_ptr;
+    ssep->last_type->next = type_ptr;
   }  /* if */
-  *last_type_ptr_ptr = type_ptr;
+  ssep->last_type = type_ptr;
   type_ptr->next = NULL;
 }  /* add_to_types_list */
 
