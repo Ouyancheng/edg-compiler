@@ -1333,8 +1333,8 @@ Initialize the pragma description table.
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*make_text_not_tokens=*/FALSE,
-                 /*expand_macros=*/FALSE,
-                 /*processing_C_code_in_pragma=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code_in_pragma=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
