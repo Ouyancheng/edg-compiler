@@ -9307,16 +9307,6 @@ next_declaration:
     add_end_of_construct_source_sequence_entry((char *)class_type,
                                                (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (delayed_nested_class_def && !class_state.is_nonreal_instantiation &&
-        !is_template_class_type(class_type) && cssp->is_instance) {
-      /* The class being defined is a non-template class nested within a
-         template class.  This is its instantiation, so create a class
-         instantiation placeholder, if appropriate.  Note that this has to be
-         done before the scope is popped. */
-      check_assertion(!class_type->variant.class_struct_union.
-                        referenced_by_class_instantiation_placeholder_typeref);
-      add_placeholder_for_class_instantiation(class_type);
-    }  /* if */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
     if (delayed_nested_class_def) {
@@ -9325,9 +9315,7 @@ next_declaration:
         /* The class reactivation scope is popped along with the template
            instantiation scope. */
       } else {
-        /* Restore the scope stack to its original state.  For template
-           instantiations this is done when the instantiation scope is
-           popped. */
+        /* Restore the scope stack to its original state. */
         pop_class_reactivation_scope();
       }  /* if */
       if (is_template_class_type(class_type) ||
@@ -9335,7 +9323,8 @@ next_declaration:
                     referenced_by_class_instantiation_placeholder_typeref) {
         /* No nested class placeholders are put out for instances of member
            templates -- instantiation placeholders are used where needed (see
-           add_to_types_list). */
+           add_to_types_list).  The same may apply to nontemplate classes
+           that are nested within template class instantiations. */
       } else {
         a_type_ptr  placeholder;
 
