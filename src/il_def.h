@@ -3277,6 +3277,16 @@ typedef struct a_variable {
 			/* TRUE if IL lowering has rewritten some part of
 			   the initialization for this variable as assignment
 			   statements or the like. */
+#if MINIMAL_INLINING
+  unsigned int	is_temp_for_unmodified_inlined_param:1;
+			/* TRUE if this variable is a temporary introduced by
+			   inlining as the remapping for a parameter that
+			   was not modified in the body of the function. */
+  unsigned int	is_temp_for_constructor_this_inlined_param:1;
+			/* TRUE if this variable is a temporary introduced by
+			   inlining as the remapping for the "this" parameter
+			   of a constructor. */
+#endif /* MINIMAL_INLINING */
 #endif /* DO_IL_LOWERING */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

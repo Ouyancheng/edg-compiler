@@ -5545,6 +5545,10 @@ to it.
   vp->is_anonymous_parent_object  = FALSE;
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
+#if MINIMAL_INLINING
+  vp->is_temp_for_unmodified_inlined_param = FALSE;
+  vp->is_temp_for_constructor_this_inlined_param = FALSE;
+#endif /* MINIMAL INLINING */
 #endif /* DO_IL_LOWERING */
 #if DECL_MODIFIERS_IN_USE
   vp->decl_modifiers              = DM_NONE;
