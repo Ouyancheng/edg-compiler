@@ -1,5 +1,11 @@
 Version 2.30, October 10, 1995
 
+10/10/95 mk_errinfo updated to handle %np error message fill-ins
+
+The mk_errinfo program now supports the %np fill-in used to
+force the parameter types to appear when function name appears
+in a symbol fill-in.
+
 9/20/95  eccp support for naming object files
 
 The -o option may now be used in conjunction with the -c option
