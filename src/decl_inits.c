@@ -2053,37 +2053,39 @@ scan_paren:
             new_cip->initializer = dip;
           } else {
 scan_arg_for_scan_initialization:
-            add_stop_token(tok_rparen);
-            /* Allocate a new dynamic init entry, setting the kind to
-               dik_none for now.  It will be adjusted after the scan. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             if (curr_token == tok_rparen) {
-              /* No expression.  Leave the dynamic init entry as is. */
+              /* No expression. */
               pos_warning(ec_exp_primary_expr, &pos_curr_token);
+              /* Bypass the right paren. */
+              (void)get_token();
             } else {
+              add_stop_token(tok_rparen);
+              /* Allocate a new dynamic init entry, setting the kind to
+                 dik_none for now.  It will be adjusted after the scan. */
+              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
               scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
                                                 init_type, dip);
-            }  /* if */
-            if (new_cip != NULL) new_cip->initializer = dip;
-            remove_stop_token(tok_rparen);
-            if (!required_token(tok_rparen, ec_exp_rparen)) {
-              /* Special code to avoid poor error recovery in cases where
-                 a comma-list appears between the parens in what is taken
-                 to be the initializer of a simple object -- e.g.,
-                     A::A(int i, int j) : x(i,j) { }
-                 If there is no constructor for x then it is interpreted as
-                 a simple object, only "i" is scanned, and an error is issued
-                 on the expected ")".  After that we want to bypass the rest
-                 of the comma-list before resuming scanning. */
-              if (curr_token == tok_comma) {
-                a_stop_token_array  save_stop_token_array;
-                /* Save the current stop token state, and reinitialize it. */
-                copy_stop_tokens(stop_token_array, save_stop_token_array);
-                stop_token_array[(int)tok_comma] = 0;
-                /* Flush the tokens till a stop-token is reached. */
-                flush_tokens();
-                /* Restore the original stop token state. */
-                copy_stop_tokens(save_stop_token_array, stop_token_array);
+              if (new_cip != NULL) new_cip->initializer = dip;
+              remove_stop_token(tok_rparen);
+              if (!required_token(tok_rparen, ec_exp_rparen)) {
+                /* Special code to avoid poor error recovery in cases where
+                   a comma-list appears between the parens in what is taken
+                   to be the initializer of a simple object -- e.g.,
+                       A::A(int i, int j) : x(i,j) { }
+                   If there is no constructor for x then it is interpreted as
+                   a simple object, only "i" is scanned, and an error is issued
+                   on the expected ")".  After that we want to bypass the rest
+                   of the comma-list before resuming scanning. */
+                if (curr_token == tok_comma) {
+                  a_stop_token_array  save_stop_token_array;
+                  /* Save the current stop token state, and reinitialize it. */
+                  copy_stop_tokens(stop_token_array, save_stop_token_array);
+                  stop_token_array[(int)tok_comma] = 0;
+                  /* Flush the tokens till a stop-token is reached. */
+                  flush_tokens();
+                  /* Restore the original stop token state. */
+                  copy_stop_tokens(save_stop_token_array, stop_token_array);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -2214,13 +2216,9 @@ scan_arg_for_scan_initialization:
           end_of_uninit_list = cip;
           continue;
         }  /* if */
-#if CHECKING
-        if (!is_class_struct_union_type(tp)) {
-          internal_error("ctor_initializer: unexpected type on noncopy ctor");
-        }  /* if */
-#endif /* CHECKING */
         if (cssp == NULL || cssp->constructor == NULL) {
-          /* This constructor initializer entry is not really needed.  It is
+          /* This constructor initializer entry is not really needed.  It may
+             be the result of an empty initializer on a field or it may be
              associated with a base class without a constructor.  Unlink it
              from the list. */
           if (prev_cip == NULL) {
