@@ -42,6 +42,7 @@ decls.c -- Scanning of declarations.
 /* Declarations required because of mutual recursion. */
 static void declaration(a_boolean      function_definition_allowed,
                         a_boolean      extern_implied,
+                        a_boolean      is_old_style_param_decl,
                         a_param_id_ptr param_id_list);
 
 
@@ -7174,70 +7175,69 @@ explicitly specified (rather than defaulted to "int").
          parameter declarations.  It is important for the routine type to
          include all the parameter information in order to do overloading
          involving both prototyped and old-style functions. */
+      a_param_type_ptr   old_style_param_types = NULL;
+      a_param_type_ptr   end_old_style_param_types = NULL;
+
       /* Push the name scope for the parameter declarations. */
       scope_ptr = push_scope((a_scope_kind)sck_func_prototype,
                              func_info->scope_number, rout_type,
                              (a_routine_ptr)NULL,
                              (a_function_instantiation_entry_ptr)NULL);
-      if (func_info->param_id_list == NULL) {
-        /* No parameters to declare. */
-      } else {
-        a_param_type_ptr   old_style_param_types = NULL;
-        a_param_type_ptr   end_old_style_param_types = NULL;
-
 #if CHECKING
-        if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-          internal_error("function_definition: bad region number");
-        }  /* if */
-#endif /* CHECKING */
-        while (curr_token == tok_identifier ||
-               is_decl_start(/*expr_context=*/FALSE,
-                             /*real_declarator_allowed=*/TRUE)) {
-          /* This declaration is checked to make sure the identifier is on the
-             param_id_list. */
-          declaration(/*function_definition_allowed=*/FALSE, 
-                      /*extern_implied=*/FALSE, func_info->param_id_list);
-        }  /* while */
-        /* Parameter symbols are not actually entered in the function
-           prototype scope, but other symbols (usually in consequence of an
-           error) may be.  Record them so that they can be transferred to
-           the function scope later. */
-        func_info->prototype_scope_symbols =
-                                      scope_stack[depth_scope_stack].symbols;
-        /* Scan the list of identifiers, assigning types to any that remain
-           undeclared, and create the param type entries. */
-        for (param_id = func_info->param_id_list;
-             param_id != NULL;
-             param_id = param_id->next) {
-          if (param_id->type == NULL) {
-            /* Enter any undeclared parameters with a type of int. */
-            param_id->type = integer_type((an_integer_kind)ik_int);
-            param_id->storage_class = (a_storage_class)sc_auto;
-            copy_source_position(param_id->symbol->decl_position,
-                                 param_id->type_pos);
-          }  /* if */
-          /* The param_type entry must be allocated in the file-scope
-             region. */
-          ptp = alloc_param_type(param_id->type);
-          /* Now build the list of parameter types that is attached to the 
-             routine type (needed for checking type compatibility -- see
-             types_are_compatible). */
-          if (old_style_param_types == NULL) {
-            old_style_param_types = ptp;
-          } else {
-            end_old_style_param_types->next = ptp;
-          }  /* if */
-          end_old_style_param_types = ptp;
-        }  /* for */
-        /* Set the type to the new type information from the old-style
-           parameters just scanned. */
-        extra_info->param_type_list = old_style_param_types;
-        extra_info->prototyped = FALSE;
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        internal_error("function_definition: bad region number");
       }  /* if */
+#endif /* CHECKING */
+      while (curr_token == tok_identifier ||
+             is_decl_start(/*expr_context=*/FALSE,
+                           /*real_declarator_allowed=*/TRUE)) {
+        /* This declaration is checked to make sure the identifier is on the
+           param_id_list. */
+        declaration(/*function_definition_allowed=*/FALSE, 
+                    /*extern_implied=*/FALSE,
+                    /*is_old_style_param_decl=*/TRUE,
+                    func_info->param_id_list);
+      }  /* while */
+      /* Parameter symbols are not actually entered in the function
+         prototype scope, but other symbols (in consequence of an error or
+         a type declaration) may be.  Record them so that they can be
+         transferred to the function scope later. */
+      func_info->prototype_scope_symbols =
+                                      scope_stack[depth_scope_stack].symbols;
+      /* Scan the list of identifiers, assigning types to any that remain
+         undeclared, and create the param type entries. */
+      for (param_id = func_info->param_id_list;
+           param_id != NULL;
+           param_id = param_id->next) {
+        if (param_id->type == NULL) {
+          /* Enter any undeclared parameters with a type of int. */
+          param_id->type = integer_type((an_integer_kind)ik_int);
+          param_id->storage_class = (a_storage_class)sc_auto;
+          copy_source_position(param_id->symbol->decl_position,
+                               param_id->type_pos);
+        }  /* if */
+        /* The param_type entry must be allocated in the file-scope
+           region. */
+        ptp = alloc_param_type(param_id->type);
+        /* Now build the list of parameter types that is attached to the 
+           routine type (needed for checking type compatibility -- see
+           types_are_compatible). */
+        if (old_style_param_types == NULL) {
+          old_style_param_types = ptp;
+        } else {
+          end_old_style_param_types->next = ptp;
+        }  /* if */
+        end_old_style_param_types = ptp;
+      }  /* for */
+      /* Set the type to the new type information from the old-style
+         parameters just scanned. */
+      extra_info->param_type_list = old_style_param_types;
+      extra_info->prototyped = FALSE;
       extra_info->old_style_params_scanned = TRUE;
       /* Pop the function prototype scope. */
       pop_scope();
     }  /* if */
+    /* Create the symbol entry and routine entry for the routine. */
     decl_var_or_routine(locator, storage_class, rout_type,
                         /*is_implicit_function=*/FALSE,
                         /*is_function_def_with_body=*/TRUE, inline_specified,
@@ -7620,6 +7620,7 @@ is present when a "=" is not there.
 #endif /* C_ANACHRONISMS_ALLOWED */
 
 static void linkage_specification(a_boolean      function_definition_allowed,
+                                  a_boolean      is_old_style_param_decl,
                                   a_param_id_ptr param_id_list)
 /*
 The caller has determined that we are at the start of a C++ linkage
@@ -7681,7 +7682,7 @@ specifier is restored.
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
       declaration(function_definition_allowed, /*extern_implied=*/FALSE,
-                  param_id_list);
+                  is_old_style_param_decl, param_id_list);
     }  /* while */
     remove_stop_token(tok_rbrace);
     (void)required_token(tok_rbrace, ec_exp_rbrace);
@@ -7693,7 +7694,7 @@ specifier is restored.
        and not just declared," and of the example following it, where without
        the braces the variable is not defined. */
     declaration(function_definition_allowed, /*extern_implied=*/TRUE,
-                param_id_list);
+                is_old_style_param_decl, param_id_list);
   }  /* if */
   /* Restore the default linkage to the value it had before the declaration
      (or declaration list) was processed. */
@@ -7793,6 +7794,7 @@ error cases.
 
 static void declaration(a_boolean      function_definition_allowed,
                         a_boolean      extern_implied,
+                        a_boolean      is_old_style_param_decl,
                         a_param_id_ptr param_id_list)
 /*
 Scan a declaration (standard, 3.5).  If function_definition_allowed is TRUE,
@@ -7825,7 +7827,7 @@ variables, and functions), old-style parameter declarations, and declarations
 of local variables (and types, etc.) of functions and in blocks.
 */
 {
-  a_boolean         is_parameter, local_is_parameter;
+  a_boolean         local_is_old_style_param_decl;
   a_storage_class   storage_class, local_storage_class;
   a_type_ptr        type_ptr, old_type;
   a_type_ptr	    local_type_ptr;
@@ -7872,7 +7874,8 @@ of local variables (and types, etc.) of functions and in blocks.
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
          followed by a string literal (e.g., "C++" or "C"). */
-      linkage_specification(function_definition_allowed, param_id_list);
+      linkage_specification(function_definition_allowed,
+                            is_old_style_param_decl, param_id_list);
       goto return_point;
     } else if (curr_token == tok_template) {
       template_declaration();
@@ -7881,7 +7884,6 @@ of local variables (and types, etc.) of functions and in blocks.
   }  /* if */
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
-  is_parameter = (param_id_list != NULL);
   if (curr_token == tok_asm) {
 #if ASM_FUNCTION_ALLOWED
     if (function_definition_allowed && next_token() != tok_lparen) {
@@ -7891,7 +7893,7 @@ of local variables (and types, etc.) of functions and in blocks.
     } else {
 #endif /* ASM_FUNCTION_ALLOWED */
       /* Scan the asm declaration. */
-      (void)asm_declaration(/*asm_decl_allowed=*/!is_parameter);
+      (void)asm_declaration(/*asm_decl_allowed=*/!is_old_style_param_decl);
       goto return_point;
 #if ASM_FUNCTION_ALLOWED
     }  /* if */
@@ -7909,7 +7911,7 @@ of local variables (and types, etc.) of functions and in blocks.
   /* Within a non-block linkage specification no storage class is allowed
      (inferred from ARM 7.4). */
   if (!extern_implied) dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
-  if (is_parameter) {
+  if (is_old_style_param_decl) {
     dsi_flags |= DSI_IS_PARAMETER;
   } else if (function_definition_allowed) {
     dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
@@ -7971,7 +7973,7 @@ continue_with_declaration:
   if (curr_token == tok_semicolon && !decl_specifiers_omitted) {
     if (err) {
       /* There was a previous error, so do not check further. */
-    } else if (is_parameter && C_dialect != C_dialect_pcc) {
+    } else if (is_old_style_param_decl && C_dialect != C_dialect_pcc) {
       /* ANSI C does not allow freestanding declarations (as of structs)
          within an old-style parameter list.  pcc, on the other hand,
          will allow something like
@@ -8173,18 +8175,18 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       local_storage_class = storage_class;
-      local_is_parameter = is_parameter;
+      local_is_old_style_param_decl = is_old_style_param_decl;
       /* If this is a parameter (old-style), make sure it appears on
          the param_id_list.  Also adjust the type if necessary
          (for example, "array of x" becomes "pointer to x"). */
-      if (local_is_parameter) {
+      if (local_is_old_style_param_decl) {
         param_id = param_id_on_list(&locator, param_id_list);
         if (param_id == NULL) {
           /* The identifier was not found on the list. */
           error(ec_decl_should_be_of_param);
           /* Enter the declared object as a variable rather than as a
              parameter.  */
-          local_is_parameter = FALSE;
+          local_is_old_style_param_decl = FALSE;
         } else if (param_id->type != NULL) {
           /* Parameter has already been declared. */
           str_error(ec_id_already_declared, locator.symbol_header->identifier);
@@ -8421,7 +8423,7 @@ continue_with_declaration:
       }  /* if */
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
-      if (local_is_parameter) {
+      if (local_is_old_style_param_decl) {
         symbol_ptr = param_id->symbol;
         copy_source_position(locator.source_position,
                              symbol_ptr->decl_position);
@@ -8447,7 +8449,7 @@ continue_with_declaration:
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
           local_storage_class = symbol_ptr->variant.variable->storage_class;
         }  /* if */
-        if (is_parameter) {
+        if (is_old_style_param_decl) {
           /* A variable has been entered for a name that appears in an
              old-style param declaration but for which no corresponding
              param-id was created.  Mark the symbol referenced, to suppress
@@ -8474,7 +8476,8 @@ continue_with_declaration:
 #endif /* C_ANACHRONISMS_ALLOWED */
       }  /* if */
       is_definition = FALSE;
-      if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {
+      if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+          !is_old_style_param_decl) {
         /* Set a flag marking this as a defining declaration, if that's
            appropriate. */
         if (has_initializer) {
@@ -8512,9 +8515,10 @@ continue_with_declaration:
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
         initializer(symbol_ptr, &locator.source_position, linkage,
-                    has_parenthesized_initializer, is_parameter,
+                    has_parenthesized_initializer, is_old_style_param_decl,
                     &incomplete_type_error_reported);
-        if (symbol_ptr->kind == (a_symbol_kind)sk_variable && !is_parameter) {
+        if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+            !is_old_style_param_decl) {
           /* Fetch the type of the symbol again, since it might have been
              changed if it was an incomplete array and was initialized. */
           local_type_ptr = symbol_ptr->variant.variable->type;
@@ -8646,7 +8650,8 @@ Scan a block-level declaration.
 */
 {
   declaration(/*function_definition_allowed=*/FALSE,
-              /*extern_implied=*/FALSE, (a_param_id_ptr)NULL);
+              /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
+              (a_param_id_ptr)NULL);
 }  /* local_declaration */
 
 
@@ -8672,7 +8677,8 @@ a compilation.  The syntax is
   } else {
     do {
       declaration(/*function_definition_allowed=*/TRUE,
-                  /*extern_implied=*/FALSE, (a_param_id_ptr)NULL);
+                  /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
+                  (a_param_id_ptr)NULL);
     } while (curr_token != tok_end_of_source);
   }  /* if */
 }  /* translation_unit */
