@@ -4570,7 +4570,7 @@ Display the indicated asm entry.
 {
 #if GNU_EXTENSIONS_ALLOWED
   int i;
-#endif
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_asm_entry);
