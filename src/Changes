@@ -1,5 +1,16 @@
 Version 2.44
 
+12/14/99 is_specialized flag not set on routines specialized with old syntax
+
+An internal logic error caused the front end not to set the is_specialized
+flag when processing old-style explicit specializations with explicit template
+arguments.
+
+  template<class T> void f(T) {}
+  void f<int>() {}  // Used to not be marked is_specialized
+
+This is now fixed.
+
 12/14/99 Microsoft compatibility: intrinsic __intN types
 
 When emulating Microsoft Visual C++ 6.0 and higher the front end now treats

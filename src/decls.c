@@ -4476,10 +4476,12 @@ on for use in generating cross-reference output describing this declaration.
        to which this declaration is linked. */
     if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
         linked_symbol->variant.routine.instance_ptr != NULL) {
-      if (locator->is_template_id ||
-          (locator->is_qualified_name && is_friend_decl)) {
-        /* This is a reference to an instance of a function template that was
-           made using the explicit template argument syntax. */
+      if (is_friend_decl && (locator->is_template_id ||
+                             locator->is_qualified_name)) {
+        /* If the declarator-id of a friend declaration is a template-id
+           (i.e., mentions explicit template arguments) or a qualified name,
+           then it references a previous declaration rather than being a
+           declaration itself. */
         explicit_template_reference = TRUE;
       } else if (!locator->is_qualified_name) {
         /* This is not actually a redeclaration -- linked_symbol refers to a
