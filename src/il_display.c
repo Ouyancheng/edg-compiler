@@ -146,7 +146,7 @@ Display the NULL-terminated string at string_ptr.
   if (string_ptr == NULL) {
     (void)printf("NULL");
   } else {
-    disp_string(string_ptr, strlen(string_ptr));
+    disp_string(string_ptr, (sizeof_t)strlen(string_ptr));
   }  /* if */
 }  /* disp_null_term_string */
 
@@ -244,8 +244,6 @@ static void disp_type_specifier(a_type_ptr type)
 Print out the type specifier.
 */
 {
-  int i;
-
   switch (type->kind) {
     case tk_error:
       (void)printf("<error type>");
@@ -549,7 +547,7 @@ Print a short version of the constant at *cp.
       break;
 #endif /* ifdef FFE */
     case ck_string:
-      disp_string(cp->variant.string.value, cp->variant.string.length);
+      disp_string(cp->variant.string.value, (sizeof_t)cp->variant.string.length);
       break;
 #ifdef CFE
     case ck_address:
@@ -868,7 +866,7 @@ Display the indicated source correspondence entry.
     disp_access("  access", (an_access_specifier)scp->access);
   }  /* if */
 #endif /* ifdef CFE */
-  disp_boolean("  referenced", scp->referenced);
+  disp_boolean("  referenced", (a_boolean)scp->referenced);
   disp_unsigned_long("  il_walk_flag", (unsigned long)scp->il_walk_flag);
   if (scp->name != NULL) {
   disp_name("  name_linkage");
@@ -921,8 +919,8 @@ Display the indicated constant entry.
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_boolean("implicit_cast", ptr->implicit_cast);
-  disp_boolean("non_arithmetic", ptr->non_arithmetic);
+  disp_boolean("implicit_cast", (a_boolean)ptr->implicit_cast);
+  disp_boolean("non_arithmetic", (a_boolean)ptr->non_arithmetic);
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
@@ -943,7 +941,7 @@ Display the indicated constant entry.
       (void)printf("ck_string\n");
       disp_unsigned_long("length", ptr->variant.string.length);
       disp_string_ptr("value", ptr->variant.string.value, iek_string_text,
-                      ptr->variant.string.length);
+                      (sizeof_t)ptr->variant.string.length);
       break;
     case ck_float:
       (void)printf("ck_float\n");
@@ -989,7 +987,7 @@ Display the indicated constant entry.
                (char *)ptr->variant.ptr_to_member.class_of_which_a_member,
                iek_type);
       disp_boolean("is_function_ptr",
-                   ptr->variant.ptr_to_member.is_function_ptr);
+                   (a_boolean)ptr->variant.ptr_to_member.is_function_ptr);
       if (ptr->variant.ptr_to_member.is_function_ptr) {
         disp_ptr("routine", (char *)ptr->variant.ptr_to_member.variant.routine,
                  iek_routine);
@@ -1075,13 +1073,13 @@ Display a_routine_type_supplement.
              iek_type);
   }  /* if */
   disp_boolean("caller_provides_place_to_put_return_value",
-               ptr->caller_provides_place_to_put_return_value);
+               (a_boolean)ptr->caller_provides_place_to_put_return_value);
 #endif /*ifdef CFE */
-  disp_boolean("has_ellipsis", ptr->has_ellipsis);
+  disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
 #ifdef CFE
   disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
-  disp_boolean("prototyped", ptr->prototyped);
-  disp_boolean("lint_argsused_flag", ptr->lint_argsused_flag);
+  disp_boolean("prototyped", (a_boolean)ptr->prototyped);
+  disp_boolean("lint_argsused_flag", (a_boolean)ptr->lint_argsused_flag);
   disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
   disp_name("arg_pragma");
   disp_arg_pragma_kind_name(ptr->arg_pragma);
@@ -1184,8 +1182,8 @@ Display the indicated type entry.
 #endif /* ifdef FFE */
 #ifdef CFE
       disp_boolean("explicitly_signed",
-                   ptr->variant.integer.explicitly_signed);
-      disp_boolean("enum_type", ptr->variant.integer.enum_type);
+                   (a_boolean)ptr->variant.integer.explicitly_signed);
+      disp_boolean("enum_type", (a_boolean)ptr->variant.integer.enum_type);
       if (ptr->variant.integer.enum_constant_list != NULL) {
         disp_ptr("enum_constant_list",
                  (char *)ptr->variant.integer.enum_constant_list,
@@ -1209,7 +1207,8 @@ do_float_complex:
       (void)printf("tk_pointer\n");
       disp_ptr("type_pointed_to", (char *)ptr->variant.pointer.type, iek_type);
 #ifdef CFE
-      disp_boolean("is_reference", ptr->variant.pointer.is_reference);
+      disp_boolean("is_reference",
+                   (a_boolean)ptr->variant.pointer.is_reference);
 #endif /* ifdef CFE */
       break;
     case tk_routine:
@@ -1243,10 +1242,11 @@ do_struct_union:
                  iek_class_type_supplement);
       }  /* if */
       disp_boolean("any_const_member",
-                   ptr->variant.class_struct_union.any_const_member);
+                 (a_boolean)ptr->variant.class_struct_union.any_const_member);
       disp_boolean("any_virtual_base_classes",
-                   ptr->variant.class_struct_union.any_virtual_base_classes);
-      disp_boolean("abstract", ptr->variant.class_struct_union.abstract);
+          (a_boolean)ptr->variant.class_struct_union.any_virtual_base_classes);
+      disp_boolean("abstract",
+                   (a_boolean)ptr->variant.class_struct_union.abstract);
       break;
     case tk_typeref:
       (void)printf("tk_typeref\n");
@@ -1256,10 +1256,10 @@ do_struct_union:
       /* Do not print out the IL entry members that are used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
-      disp_boolean("is_const", ptr->variant.typeref.is_const);
-      disp_boolean("is_volatile", ptr->variant.typeref.is_volatile);
+      disp_boolean("is_const", (a_boolean)ptr->variant.typeref.is_const);
+      disp_boolean("is_volatile", (a_boolean)ptr->variant.typeref.is_volatile);
       disp_boolean("is_function_scope",
-                   ptr->variant.typeref.is_function_scope_tag);
+                   (a_boolean)ptr->variant.typeref.is_function_scope_tag);
       break;
     case tk_ptr_to_member:
       (void)printf("tk_ptr_to_member\n");
@@ -1361,8 +1361,8 @@ Display the indicated variable.
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
   (void)printf("\n");
-  disp_boolean("address_taken", ptr->address_taken);
-  disp_boolean("is_parameter", ptr->is_parameter);
+  disp_boolean("address_taken", (a_boolean)ptr->address_taken);
+  disp_boolean("is_parameter", (a_boolean)ptr->is_parameter);
 #ifdef FFE
   disp_boolean("by_address", ptr->by_address);
 #endif /*ifdef FFE */
@@ -1408,7 +1408,7 @@ Display the indicated field.
   disp_ptr("next", (char *)ptr->next, iek_field);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_unsigned_long("bit_offset", ptr->bit_offset);
-  disp_unsigned_long("bit_size", ptr->bit_size);
+  disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
 }  /* disp_field */
 
 #endif /* ifdef CFE */
@@ -1588,7 +1588,7 @@ Display the indicated routine.
   disp_storage_class_name(ptr->storage_class);
   (void)printf("\n");
 #ifdef CFE
-  if (ptr->special_kind != sfk_none) {
+  if (ptr->special_kind != (a_special_function_kind)sfk_none) {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
     (void)printf("\n");
@@ -1596,10 +1596,10 @@ Display the indicated routine.
     disp_opname_kind_name(ptr->opname_kind);
     (void)printf("\n");
   }  /* if */
-  disp_boolean("is_virtual", ptr->is_virtual);
-  disp_boolean("pure_virtual", ptr->pure_virtual);
-  disp_boolean("is_inline", ptr->is_inline);
-  disp_boolean("compiler_generated", ptr->compiler_generated);
+  disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
+  disp_boolean("pure_virtual", (a_boolean)ptr->pure_virtual);
+  disp_boolean("is_inline", (a_boolean)ptr->is_inline);
+  disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
   disp_class_list("befriending_classes", ptr->befriending_classes);
   if (ptr->is_virtual) {
     disp_unsigned_long("virtual_function_number",
@@ -1845,7 +1845,7 @@ Display the indicated expression node.
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
       disp_boolean("assignment_returns_lvalue",
-                   ptr->variant.operation.assignment_returns_lvalue);
+                 (a_boolean)ptr->variant.operation.assignment_returns_lvalue);
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;
@@ -1917,7 +1917,8 @@ Display the indicated block.
 #ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
   disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
-  disp_boolean("end_of_block_reachable", ptr->end_of_block_reachable);
+  disp_boolean("end_of_block_reachable",
+               (a_boolean)ptr->end_of_block_reachable);
 #endif /* ifdef CFE */
 }  /* disp_block */
 
@@ -2427,7 +2428,7 @@ Display the indicated dynamic_init structure.
                iek_routine);
       disp_ptr("args", (char *)ptr->variant.constructor.args, iek_expr_node);
       disp_boolean("is_copy_constructor_for_subobject",
-                   ptr->variant.constructor.is_copy_constructor_for_subobject);
+        (a_boolean)ptr->variant.constructor.is_copy_constructor_for_subobject);
       break;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");
@@ -2522,11 +2523,11 @@ Display the indicated base class entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_base_class);
   disp_ptr("type", (char *)ptr->type, iek_type);
-  disp_boolean("direct", ptr->direct);
-  disp_boolean("is_virtual", ptr->is_virtual);
-  disp_boolean("ambiguous", ptr->ambiguous);
+  disp_boolean("direct", (a_boolean)ptr->direct);
+  disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
+  disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
   disp_boolean("any_virtual_steps_in_derivation",
-               ptr->any_virtual_steps_in_derivation);
+               (a_boolean)ptr->any_virtual_steps_in_derivation);
   disp_access("access", ptr->access);
   disp_unsigned_long("offset", (unsigned long)ptr->offset);
   disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
@@ -2768,7 +2769,8 @@ Display the IL for the file scope in human-readable form.
   disp_string_ptr("time_of_compilation", il_header.time_of_compilation,
                   iek_other_text, (sizeof_t)0);
 #ifdef CFE
-  disp_boolean("plain_chars_are_signed", il_header.plain_chars_are_signed);
+  disp_boolean("plain_chars_are_signed",
+               (a_boolean)il_header.plain_chars_are_signed);
 #endif /* ifdef CFE */
 #ifdef FFE
   disp_boolean("one_trip_do_loops", il_header.one_trip_do_loops);
@@ -2799,7 +2801,7 @@ form.
   /* Extract the associated function name. */
   sp = il_header.region_scope_entry[region_number];
   if (sp != NULL) {
-    if (sp->kind == sck_function) {
+    if (sp->kind == (a_scope_kind)sck_function) {
       rp = sp->variant.routine.ptr;
       if (rp != NULL) {
         fname = rp->source_corresp.name;
