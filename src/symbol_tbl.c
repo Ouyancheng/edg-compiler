@@ -6966,7 +6966,7 @@ Return a linked list of progenitor entries to the available list.
     next = pp->next;
     free_progenitor(pp);
   }  /* while */
-}  /* free_progenitor */
+}  /* free_progenitor_list */
 
 
 /* Forward declaration. */
@@ -6983,7 +6983,7 @@ Given a pointer to a base class and a locator, determine whether the name
 specified in the locator is declared either in the base class itself or in
 a class from which the base class is derived.  Such a declaration is
 referred to as the "progenitor" of a projection symbol, which may or may
-not be created later. If such a progenitor is found, return a pointer to
+not be created later.  If such a progenitor is found, return a pointer to
 a progenitor entry (which, in the case of ambiguity, may be the head of a
 linked list of progenitor entries); otherwise, return NULL.
 */
@@ -7676,7 +7676,7 @@ found must meet the criteria indicated by "options".  If
 tentative_type_lookup is TRUE, a projection symbol is only created if
 the symbol returned by find_progenitor_symbol is a type.  Likewise, if
 tentative_template_lookup is TRUE, a projection symbol is only created
-if the symbol returned by find_progentor_symbol is a template. If
+if the symbol returned by find_progentor_symbol is a template.  If
 hidden_name_lookup is TRUE the creation of a projection symbol is
 unconditionally suppressed.  Note that "options" and
 tentative_type_lookup are handled differently: a symbol that fails the
