@@ -95,6 +95,9 @@ extern void mark_as_needed(char             *entry_ptr,
 extern void mark_to_keep_in_il(char             *entry_ptr,
                                an_il_entry_kind entry_kind);
 
+extern void set_class_definition_needed(a_type_ptr type);
+
+
 EXTERN a_boolean
 		end_of_file_scope_needed_flags_phase;
 			/* TRUE during the phase at the end of the file scope

@@ -287,8 +287,6 @@ can be NULL to indicate that the corresponding function is unnecessary.
 
 /* "needed" flag section: */
 
-static void set_class_definition_needed(a_type_ptr type);
-
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK TRUE
@@ -306,7 +304,7 @@ static void set_class_definition_needed(a_type_ptr type);
 #include "walk_entry.h"
 
 
-static void set_class_definition_needed(a_type_ptr type)
+void set_class_definition_needed(a_type_ptr type)
 /*
 Set the definition_needed flag on the indicated class type.  This means the
 definition of the class is needed, and not just the declaration.
