@@ -2964,6 +2964,16 @@ scan_paren:
                 repeat_nonconstant_init(ctor_dip, array_type, init_type, dip,
                                         array_element_count(
                                                      array_type, init_type));
+                if (exceptions_enabled && ctor_dip->destructor != NULL) {
+                  /* Set up the representation to deal with the possibility of
+                     an exception being thrown before the entire construction
+                     of the array is complete. */
+                  ctor_dip->destruction_is_for_partially_constructed_aggregate
+                                                                        = TRUE;
+                  record_end_of_lifetime_destruction(ctor_dip,
+                                                     /*static_lifetime=*/FALSE,
+                                                     /*block_lifetime=*/FALSE);
+                }  /* if */
               }  /* if */
             }  /* if */
           } else if (curr_token == tok_rparen && cssp != NULL &&
@@ -3303,15 +3313,26 @@ scan_paren:
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        /* We have an array of objects with constructors.  Create a dynamic
-           init entry to handle the aggregate. */
+        /* We have an array of objects with constructors, for which there was
+           no explicit ctor-initializer (that case would have been handled
+           above).  Create a dynamic init entry to handle the aggregate. */
         dip->is_constructor_init = TRUE;
+        if (dip->destructor != NULL) {
+          dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+        }  /* if */
         ctor_dip = dip;
         dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
         /* Build the looping constant entry. */
         repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
                                 array_element_count(array_type, tp));
+        if (ctor_dip->destructor != NULL) {
+          /* There is a destructor for the array element, so the dynamic
+             init for the array should also indicate destruction. */
+          dip->destructor = ctor_dip->destructor;
+          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                             /*block_lifetime=*/TRUE);
+        }  /* if */
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       dip->is_constructor_init = TRUE;
