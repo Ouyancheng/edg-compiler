@@ -198,15 +198,16 @@ namespace.  This has been fixed.
     x.i = 0;  // Failed to issue error
   }
 
-6/28/99  Allow the declaration of a file-scope static with incomplete type
-         in C mode
+6/28/99  Allow nonfatal diagnostic when declaring a file-scope static with
+         incomplete type in C mode
 
-The front end used to issue an error on the following example:
+The front end used to issue an unconditionally fatal error on the following
+example:
 
   static int fi[]; /* Could not have "static" and "incomplete type" */
   static int fi[] = { 42, 43 };
 
-This is now accepted in C mode.
+In C mode, this is now reported as a discretionary error.
 
 6/28/99  Specifying an invalid output file name as a PCH file
 

@@ -9867,11 +9867,12 @@ continue_with_declaration:
           is_incomplete_type(local_type_ptr)) {
         /* Issue an error on a variable for which this is the defining
            declaration but whose type is incomplete.  Also, in C mode, issue
-           an error on an externally linked variable with a tentative
-           definition but an uncompletable type (a case like "void i;" at file
-           scope).  And in C++ mode, since no object may be of void type,
-           issue the error for cases like "extern void i;" even though it is
-           not a defining declaration. */
+           an error on a static variable with incomplete type (6.7.2 para 3)
+           or an externally linked variable with a tentative definition but an
+           uncompletable type (a case like "void i;" at file scope).  And in
+           C++ mode, since no object may be of void type, issue the error for
+           cases like "extern void i;" even though it is not a defining
+           declaration. */
         if (is_variable_def ||
             (!C_mode() && is_void_type(local_type_ptr)) ||
             (is_tentative_definition && is_void_type(local_type_ptr))) {
@@ -9880,6 +9881,17 @@ continue_with_declaration:
                       &locator.source_position);
           }  /* if */
           var_ptr->type = error_type();
+        } else if (is_tentative_definition && 
+                   local_storage_class == (a_storage_class)sc_static) {
+          /* The C standard prohibits tentative declarations with incomplete
+             type and internal linkage in 6.7.2 para 3, but a reading of
+             6.1.2.5 may lead to the conclusion that the prohibition does not
+             exist: issue a discretionary error instead of a "hard" error. */
+          if (!incomplete_type_error_reported) {
+            pos_diagnostic(es_discretionary_error,
+                           ec_incomplete_type_not_allowed,
+                           &locator.source_position);
+          }  /* if */
         }  /* if */
       }  /* if */
       done_with_func_info(func_info);
