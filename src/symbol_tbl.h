@@ -711,7 +711,7 @@ typedef struct a_template_definition {
 			/* TRUE when this entry points to a function
 			   instantiation entry; FALSE when it points to a
 			   static data member definition entry. */
-  struct {
+  union {
     /* When is_function_instantiation is TRUE: */
     a_function_instantiation_entry_ptr
                 function_instance;
