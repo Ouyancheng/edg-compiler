@@ -20194,11 +20194,8 @@ is a recursive call for a class nested within the template class.
 
   /* See if this is a valid scope for the explicit instantiation of this
      entity.  This test is only done for explicit instantiation directives,
-     not for pragmas.  It is not done for Microsoft/GNU "extern template"
-     directives either. */
-  if (!is_pragma && top_level && 
-      !((microsoft_mode || gpp_mode) &&
-        pragma_kind == (a_pragma_kind)pk_do_not_instantiate)) {
+     not for pragmas.  It is not done in Microsoft or GNU modes. */
+  if (!is_pragma && top_level && !microsoft_mode && !gpp_mode) {
     check_instantiation_scope(sym);
   }  /* if */
   class_type = sym->variant.class_struct_union.type;

@@ -1,5 +1,19 @@
 Version 3.4
 
+4/10/04  GNU/Microsoft compatibility: Explicit instantiation directive
+         in incorrect namespace
+
+The Microsoft and GNU compilers accept the explicit instantiation of a class
+in an invalid namespace.  We now emulate this behavior in Microsoft and
+g++ modes.
+
+  namespace N {
+    template <class T> struct A {};
+  }
+  namespace M {
+    template class N::A<int>;
+  }
+
 4/7/04   GNU C++ compatibility: floating-point template parameters disallowed
 
 Floating-point template parameters (which are not permitted by the standard)
