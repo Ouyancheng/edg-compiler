@@ -7458,13 +7458,17 @@ routine's mangled name.
          rlep != NULL;
          rlep = rlep->next) {
       a_routine_ptr trout, arout = rlep->routine;
-      arout->use_comdat = TRUE;
+      if (arout->storage_class == (a_storage_class)sc_unspecified) {
+        arout->use_comdat = TRUE;
+      }  /* if */
       /* Also mark any thunks that follow the alternate entry point. */
       for (trout = arout->next;
            trout != NULL &&
              trout->overriding_function_for_covariant_return_type == arout;
            trout = trout->next) {
-        trout->use_comdat = TRUE;
+        if (trout->storage_class == (a_storage_class)sc_unspecified) {
+          trout->use_comdat = TRUE;
+        }  /* if */
       }  /* for */
     }  /* for */
   }  /* if */
