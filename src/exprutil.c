@@ -3374,13 +3374,15 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
           operand_2_is_pointer &&
           ((is_constant_operand(operand_1) &&
             is_null_pointer_constant(&operand_1->variant.constant)) ||
-           is_void_type(type_pointed_to(operand_2_type)))) {
+           (is_void_type(type_pointed_to(operand_2_type)) &&
+            !(is_constant_operand(operand_2) &&
+              is_null_pointer_constant(&operand_2->variant.constant))))) {
         /* The first operand is a C null pointer constant of (void *)0.  Don't
            try to convert the second operand to void *, because the conversion
            in the other direction should be preferred.  Or, the second operand
-           has type void *.  Don't try to convert it to the type of the first
-           operand, because the conversion in the other direction should be
-           preferred. */
+           has type void *, but it's not a null pointer constant of (void *)0.
+           Don't try to convert it to the type of the first operand, because
+           the conversion in the other direction should be preferred. */
       } else if (impl_pointer_conversion(operand_2_type,
                                          operand_2_is_constant,
                                          (a_boolean)operand_2->
