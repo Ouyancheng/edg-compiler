@@ -317,8 +317,9 @@ typedef int a_gen_name_options_set;
 			   "A::B::x"). */
 #define GN_BOUND_MEMBER 0x10
 			/* gen_name is invoked to emit the name of a member
-			   function or field.  In Microsoft mode, such a
-			   name cannot be qualified with a namespace name. */
+			   function or field.  When generating code for
+			   Microsoft versions before 7.0, such a name cannot
+			   be qualified with a namespace name. */
 #define GN_DEPENDENT 0x20
 			/* The name to generate depends on a template
 			   parameter. */
@@ -2304,7 +2305,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            for the namespace and either the name is not hidden or we are
            generating the declaration of that name. */
       } else if (msvc_is_generated_code_target &&
-                 microsoft_version <= 1200 &&
+                 msvc_target_version_number <= 1200 &&
                  (options & GN_BOUND_MEMBER) && (options & GN_QUALIFIER)) {
         /* Microsoft compilers do not accept namespace qualifiers after a
            field or member function selection operation.  MSVC++ 7.0
@@ -2324,7 +2325,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (options & GN_DECLARATION) {
         /* Don't do this on the declaration of a name. */
       } else if (msvc_is_generated_code_target &&
-                 microsoft_version <= 1200 &&
+                 msvc_target_version_number <= 1200 &&
                  (options & GN_BOUND_MEMBER) && (options & GN_QUALIFIER)) {
         /* Microsoft compilers do not accept namespace qualifiers after a
            field or member function selection operation.  MSVC++ 7.0
@@ -8836,7 +8837,7 @@ Generate code for a class member or nonmember using-declaration.
 #endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
     /* Write the access declaration, which is just a qualified name. */
     gen_class_qualifier(udp->qualifier.class_type,
-                        GN_NO_OPTIONS, (a_boolean *)NULL);
+                        GN_BOUND_MEMBER, (a_boolean *)NULL);
   } else {
     /* A nonmember using-declaration. */
     write_tok_str("using ");

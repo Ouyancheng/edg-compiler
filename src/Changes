@@ -1,5 +1,22 @@
 Version 3.6
 
+11/29/04 C++-generating back end: Microsoft compatibility
+
+Microsoft compilers prior to version 7.0 issued an error when the qualifier
+in a using-declaration began with a namespace name.  Now fixed: with
+msvc_is_generated_code_target and msvc_target_version_number < 1300, the
+qualified name in a using-declaration omits namespace qualifiers.
+
+  namespace N {
+    struct B {
+      void f();
+    };
+  }
+  struct D: N::B {
+    using B::f;    // Formerly generated as N::B::f, now as B::f when
+                   // targeting MSVC++ 6.0 and earlier
+  };
+
 11/24/04 GNU C++ compatibility: spurious error on attribute in nested
          declarator
 
