@@ -4899,7 +4899,10 @@ are created by a new expression (in which case sym is NULL).  In both cases
               !is_incomplete_array) {
             /* Except in strict mode, don't bother issuing a diagnostic on
                something like "const struct S { } s;". */
-          } else {
+          } else if (!could_be_dependent_class_type(type)) {
+            /* If the type is dependent and could end up being a class type
+               after substitution no diagnostic should be issued since the
+               substituting class type may have a default constructor. */
             /* By default, the diagnostic is an error. */
             severity = es_error;
             if (is_empty_POD_class && !is_incomplete_array) {

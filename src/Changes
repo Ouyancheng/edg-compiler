@@ -1,5 +1,19 @@
 Version 2.46
 
+1/24/01  Spurious error on dependent const variable definitions
+
+If the definition of a variable with a const type has no initializer
+a diagnostic used to be issued when the underlying type was dependent.
+This was unwarranted when the type could become a class type with a
+default constructor after template argument subsitution.
+
+  template<typename T> void f(T) {
+    T const x;  // Used to trigger an error; fine now.
+    T *const p; // Still an error (missing initializer).
+  }
+
+This is now fixed.
+
 1/24/01  Friend declarations in prototype instantiations
 
 When not doing dependent name lookup, the front end does some special
