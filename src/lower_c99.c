@@ -1118,7 +1118,9 @@ Transform the given complex cast expression into a function call
                                          dst_type, src->type, (a_type_ptr)NULL,
                                          src);
     } else {
-      /* Convert float to complex. */
+      /* Convert float or integral to complex. */
+      check_assertion(is_floating_type(src_type) ||
+                      is_integral_type(src_type));
       /* Create a new complex value x + 0.0*__I__. */
       switch (dst_type->variant.float_kind) {
         case fk_float:
@@ -1172,9 +1174,11 @@ Transform the given complex cast expression into a function call
                            src->type, (a_type_ptr)NULL, src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
-    } else if (is_real_floating_type(src_type)) {
-      /* A real value converted to an imaginary type is always zero.  Use a
-         comma operator to preserve side-effects of the source expression. */
+    } else if (is_real_floating_type(src_type) ||
+               is_integral_type(src_type)) {
+      /* A real or integral value converted to an imaginary type is
+         always zero.  Use a comma operator to preserve side-effects of
+         the source expression. */
       a_constant        zero_constant;
       an_expr_node_ptr  new_expr;
       make_zero_of_proper_type(float_type(dst_type->variant.float_kind),
@@ -1183,8 +1187,11 @@ Transform the given complex cast expression into a function call
       overwrite_node(expr, new_expr);
     } else {
       /* Nothing to be done (imaginary->imaginary). */
+      check_assertion(is_imaginary_type(src_type));
     }  /* if */
   } else {
+    check_assertion(is_floating_type(dst_type) ||
+                    is_integral_type(dst_type));
     if (is_complex_type(src_type)) {
       /* Converting a complex value to a real type.  This amounts to keeping
          the real part of the given value. */
@@ -1211,15 +1218,16 @@ Transform the given complex cast expression into a function call
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_imaginary_type(src_type)) {
-      /* An imaginary value converted to a real type is always zero.  Use a
-         comma operator to preserve side-effects of the source expression. */
+      /* An imaginary value converted to a real or integral type is always
+         zero.  Use a comma operator to preserve side-effects of the source
+         expression. */
       a_constant        zero_constant;
       an_expr_node_ptr  new_expr;
       make_zero_of_proper_type(dst_type, &zero_constant);
       new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
       overwrite_node(expr, new_expr);
     } else {
-      /* Nothing to be done (real->real). */
+      unexpected_condition();
     }  /* if */
   }  /* if */
 }  /* lower_c99_complex_cast */
