@@ -2919,26 +2919,37 @@ not be TRUE.
           }  /* if */
           for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
                                         comp_type_ptp = comp_type_ptp->next) {
+            a_type_qualifier_set  saved_qualifiers = rout_type_ptp->qualifiers;
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+            char *saved_name = rout_type_ptp->name;
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            a_decl_position_supplement_ptr saved_decl_pos_info =
+                                                rout_type_ptp->decl_pos_info;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             check_assertion_str2(rout_type_ptp != comp_type_ptp,
                                  "reconcile_routine_types:",
                                  "param type appears on two lists");
             /* Save the original next pointer and restore it after the copy. */
             next_rout_type_ptp = rout_type_ptp->next;
+            /* First copy the param type entry, and then update the fields
+               that need to be restored. */
+            *rout_type_ptp = *comp_type_ptp;
+            /* Restore the next pointer. */
+            rout_type_ptp->next = next_rout_type_ptp;
             if (preserve_qualifiers_from_rout_type) {
-              /* Be sure the qualifiers on rout_type_ptp are retained. */
-              comp_type_ptp->qualifiers = rout_type_ptp->qualifiers;
+              /* Restore the qualifiers as originally declared. */
+              rout_type_ptp->qualifiers = saved_qualifiers;
             }  /* if */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-            /* Preserve the name that is associated with the routine type. */
-            comp_type_ptp->name = rout_type_ptp->name;
+            /* Restore the name that is associated with the routine type. */
+            rout_type_ptp->name = saved_name;
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-            /* Preserve the source-range information that was recorded for
+            /* Restore the source-range information that was recorded for
                the routine type. */
-            comp_type_ptp->decl_pos_info = rout_type_ptp->decl_pos_info;
+            rout_type_ptp->decl_pos_info = saved_decl_pos_info;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-            *rout_type_ptp = *comp_type_ptp;
-            rout_type_ptp->next = next_rout_type_ptp;
           }  /* for */
         }  /* if */
         if (exceptions_enabled) {

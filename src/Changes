@@ -1,5 +1,16 @@
 Version 2.39
 
+2/27/98   Param-type information clobbered on declarations preceding
+          routine definition
+
+In certain circumstances, the processing of a function definition would
+overwrite information saved to describe a forward declaration; the bug
+affected certain fields in param-type entries, and was manifested only when
+GENERATE_SOURCE_SEQUENCE_LISTS was configured to TRUE.  Here's an example:
+
+  void f(int i = 10);
+  void f(int j) { ... };
+
 2/27/98   Nit in IL lowering in one instantiation per object mode
 
 When the change for local statics described by the 1/12/98 entry
