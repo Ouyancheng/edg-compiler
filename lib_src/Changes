@@ -1,5 +1,15 @@
 Version 2.28
 
+3/2/95    Added __suppress_optim_on_vars_in_try
+
+A routine called __suppress_optim_on_vars_in_try has been added to the
+runtime.  Calls of this routine are generated when the C generating back
+end is used.  It is used to make optimizers think that the addresses have
+been taken of any local variables used inside a try block, thus ensuring
+that their values will be saved when calling a routine inside the try block
+that may throw an exception.  The routine is not actually called (i.e.,
+flow of control never reaches the call).
+
 2/27/95   EH runtime updated to simplify use in a threaded environment
 
 The way in which base class accessibility is checked has been changed
