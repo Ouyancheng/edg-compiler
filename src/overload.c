@@ -11481,7 +11481,12 @@ for a return, because the caller will do the destruction).
     /* Avoid problems with dynamic inits with kind dik_none, created for
        functional-notation casts with no arguments (e.g., X()) for classes
        with no constructors. */
-    if (dip->kind != (a_dynamic_init_kind)dik_none) {
+    /* Also with optimized class rvalue "?" cases where the result is not
+       going to be a temporary or a variable (e.g., you can't do this
+       optimization on a return). */
+    if (dip->kind != (a_dynamic_init_kind)dik_none &&
+        (!dip->is_optimized_class_rvalue_question_mark ||
+         !suppress_dtor)) {
       is_usable_temp_init = TRUE;
       /* Take the dynamic init off whatever destruction list it is on, if any,
          because it will be given to the caller, who will put it on a
