@@ -13,12 +13,18 @@ disambig.c -- Disambiguation of C++ declarations and expressions.
 
 */
 
-#include "basics.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "disambig.h"
-#include "decls.h"
-#include "cmd_line.h"
-#include "lexical.h"
-#include "symbol_tbl.h"
 
 /*
 Macro that is TRUE if the current token (which must be an identifier or
