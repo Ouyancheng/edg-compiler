@@ -640,6 +640,8 @@ virtual base classes is done in a more efficient and sensible way,
 and that difference provokes this problem more often).
 
 (6/11/98: tweak on generated code; an array-to-pointer decay was missing.)
+(7/8/98: in front end, mark more virtual functions as referenced when
+virtual base classes are present.)
 
 4/23/98   Fixed apparent inconsistency in variable-used-before-set warning
 

@@ -496,6 +496,14 @@ compilation.
       require_definitions_of_virtual_functions_on_routine_list(
                                             bcp->type,
                                             bcp->overriding_virtual_functions);
+      if (bcp->type->variant.class_struct_union.any_virtual_base_classes) {
+        /* With virtual base classes, the virtual functions of the
+           base classes may be put out in special versions of function
+           tables for use during construction and destruction of subobjects,
+           and therefore the virtual functions of the base class may be
+           referenced in this compilation. */
+        require_definitions_of_virtual_functions_in_class(bcp->type);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */
