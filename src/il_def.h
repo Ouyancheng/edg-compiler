@@ -2037,16 +2037,20 @@ typedef struct a_variable {
 			   (i.e., from a member function of a local class
 			   or from destructor code).  TRUE only in C++. */
   unsigned int	is_instantiation:1;
-			/* TRUE if this is a static data member whose
-			   definition was generated from a template
-			   definition.  FALSE for all other cases including
-			   a static data member of a template class that
-			   was initialized with a specific definition. */
+			/* TRUE if this is a static data member that is a
+			   member of a class generated from a template,
+			   including both the case where the static data member
+			   is generated from the template and the case where a
+			   specialization of the static data member is
+			   provided by the user.  FALSE for all other cases,
+			   including a static data member of a class that
+			   is a specialization of a template class. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   unsigned int  can_be_instantiated:1;
 			/* TRUE if this is a template static data member
-                           that could be instantiated by this compilation.
-                           This flag is provided in the IL so that a
+			   that could be instantiated by this compilation.
+			   FALSE if is_instantiation is FALSE.
+			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
 			   The flag is only set very late in the compilation
@@ -2055,7 +2059,8 @@ typedef struct a_variable {
   unsigned int	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template static data member.
-                           This flag is provided in the IL so that a
+			   FALSE if is_instantiation is FALSE.
+			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
 			   The flag is only set very late in the compilation
@@ -2067,8 +2072,10 @@ typedef struct a_variable {
 			   template generated or a specific definition)
 			   must be supplied in this compilation unit or in
 			   another compilation unit with which this unit
-			   will be linked.
-                           This flag is provided in the IL so that a
+			   will be linked.  Implies that the static data
+			   member is referenced in this compilation.
+			   FALSE if is_instantiation is FALSE.
+			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
 			   The flag is only set very late in the compilation
@@ -2367,26 +2374,33 @@ typedef struct a_routine {
 			   only. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   unsigned int  is_instantiation:1;
-			/* TRUE if this routine is an instantiation of a
-			   function template or a member function of a
-			   class template.  FALSE for all other functions
-			   including specific definitions of template
-			   functions and member functions of template
-			   classes. */
+			/* TRUE if this routine is a member of a class
+			   generated from a template, including both the case
+			   where the function is generated from the template
+			   and the case where a specialization of the function
+			   is provided by the user.  Also TRUE for a nonmember
+			   function that is related to a function template,
+			   i.e., a function generated from the template or
+			   a specialization provided by the user.  FALSE for
+			   all other functions, including a function that is
+			   a member of a class that is a specialization of
+			   a template class. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   unsigned int  can_be_instantiated:1;
 			/* TRUE if this is a template function
-                           that could be instantiated by this compilation.
-                           This flag is provided in the IL so that a
+			   that could be instantiated by this compilation.
+			   FALSE if is_instantiation is FALSE.
+			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
-			   other purpose. */
+			   other purpose.  Never  */
   unsigned int	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template function.
-                           This flag is provided in the IL so that a
+			   FALSE if is_instantiation is FALSE.
+			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
 			   The flag is only set very late in the compilation
@@ -2398,8 +2412,10 @@ typedef struct a_routine {
 			   template generated or a specific definition)
 			   must be supplied in this compilation unit or in
 			   another compilation unit with which this unit
-			   will be linked.
-                           This flag is provided in the IL so that a
+			   will be linked.  Implies that the function is
+			   referenced in this compilation.  FALSE if
+			   is_instantiation is FALSE.
+			   This flag is provided in the IL so that a
 			   back end can pass the information along to
 			   a link-time automatic instantiation mechanism.
 			   The flag is only set very late in the compilation
@@ -2950,11 +2966,11 @@ typedef struct an_expr_node {
       unsigned int
 		returns_lvalue_instead_of_usual_rvalue:1;
 			/* TRUE if the operation is an assignment (simple or
-			   compound) or prefix ++/-- that returns an lvalue
-			   (the address of the thing assigned to) instead of
-			   an rvalue (the value of the thing assigned to).
-			   FALSE otherwise, including for other operations.
-			   Only TRUE in C++. */
+			   compound), prefix ++/--, or "?" or "," operator
+			   that returns an lvalue in C++ where the C operation
+			   would return an rvalue.  FALSE otherwise, including
+			   for other operations and for these operations when
+			   they do return rvalues.  Only TRUE in C++. */
       unsigned int
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather
