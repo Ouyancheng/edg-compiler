@@ -593,6 +593,22 @@ which is also controlled by command line option --[no_]old_specializations.
 #endif /* ifndef DEFAULT_OLD_SPECIALIZATIONS_ALLOWED */
 
 /*
+Flag that is TRUE to support the extension to allow implicit conversions
+between pointers to extern "C" and extern "C++" function types.  It should be
+be FALSE in a target environment in which C and C++ functions use distinct
+calling conventions, and setting this flag to TRUE is pointless unless
+function types differing only in extern "C" vs. extern "C++" routine linkage
+are treated as distinct -- see DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT.
+When this flag is TRUE,  --[no_]implicit_extern_c_type_conversion can be used
+to adjust global variable impl_conv_between_c_and_cpp_function_ptrs_allowed
+from the command line.  This flag is also consulted in setting the value of
+DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED.
+*/
+#ifndef IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+#define IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE TRUE
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+
+/*
 Flag that is TRUE if, by default, implicit conversion between pointers to
 extern "C" and extern "C++" function types is permitted.  It is the initial
 value of global variable impl_conv_between_c_and_cpp_function_ptrs_allowed
@@ -601,32 +617,23 @@ calling conventions in the target environment.  For example:
   extern "C" void f();         // f's type has extern "C" linkage
   void (*pf)()                 // pf points to an extern "C++" function
                = &f;           // error if conversion is not allowed
-The variable is turned off in strict-ANSI mode but can be turned on from
-the command line only if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
-is TRUE.  (Note: setting this flag to TRUE takes effect only if two function
-types differing only in extern "C" vs. extern "C++" routine linkage are
-distinct -- see global variable c_and_cpp_function_types_are_distinct.)
-
+The variable is automatically turned off in strict-ANSI mode unless that is
+overridden by --implicit_extern_c_type_conversion (which is available if
+IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE is TRUE).
 */
 #ifndef DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+/* Normally the values of DEFAULT...ALLOWED and ...POSSIBLE will be the same,
+   but it isn't required.  When ...POSSIBLE is TRUE, the value of global
+   variable impl_conv_between_c_and_cpp_function_ptrs_allowed can be changed
+   from the command-line, even if DEFAULT...ALLOWED, which specifies its
+   initial value, is FALSE. */
 #define DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED TRUE
+#else /* !IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+#define DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED FALSE
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
 #endif /* DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED */
 
-/*
-Flag that is TRUE if impl_conv_between_c_and_cpp_function_ptrs_allowed can be
-reset from the command line using --[no_]implicit_extern_c_type_conversion.
-This should always be FALSE if C and C++ functions use distinct calling
-conventions.  When it is FALSE, the command line option is unavailable.
-(Note: if DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED is FALSE
-and this flag is TRUE, it means the feature can be turned on from the
-command line.  If DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED
-is TRUE and this flag is FALSE, it means the feature cannot be turned off
-from the command line except by invoking strict ANSI mode.  Typically both
-will have the same value.)
-*/
-#ifndef IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
-#define IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE TRUE
-#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
 
 #endif /* ifndef LANG_FEAT_H */
 
