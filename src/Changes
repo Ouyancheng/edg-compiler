@@ -1,5 +1,18 @@
 Version 3.1
 
+12/11/02 GNU C mode: Abort on function with transparent union parameter
+
+In GNU C mode, the front end sometimes aborted with an internal error if
+a function taking a parameter of transparent union type was redeclared
+with an unknown type.  For example:
+
+  typedef union {} U __attribute__((transparent_union));
+  void f(int, U);
+  void f(int, X);  // Abort on invalid (unknown) type X.
+
+This is now fixed (an error is still issued, but the front end no longer
+aborts).
+
 12/10/02 C++-generating back end, Microsoft compatibility:
          Qualified member names
 

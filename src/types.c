@@ -5657,10 +5657,10 @@ could be returned as the composite type, preference is given to the first.
      union. */
   tp = NULL;
   if (gcc_mode && skip_typerefs(type1)->kind != skip_typerefs(type2)->kind) {
-    if (is_transparent_union_type(type1)) {
+    if (is_transparent_union_type(type1) && !is_error_type(type2)) {
       check_assertion(transparent_union_match(type1, type2));
       tp = type1;
-    } else if (is_transparent_union_type(type2)) {
+    } else if (is_transparent_union_type(type2) && !is_error_type(type1)) {
       check_assertion(transparent_union_match(type1, type2));
       tp = type2;
     }  /* if */
