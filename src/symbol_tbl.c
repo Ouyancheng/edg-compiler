@@ -8748,6 +8748,15 @@ type, that type is ignored by this routine.
                rout_sym = is_list ? rout_sym->next : NULL) {
             /* Go through the symbol list for each routine associated with
                the new symbol. */
+	    a_symbol_ptr	sym_to_find;
+            /* Use the fundamental symbol.  The normal lookup could return
+               a synthesized namespace projection symbol, or an overloaded set
+               that points to a synthesized namespace projection. */
+            sym_to_find = fundamental_symbol_of(rout_sym);
+            check_assertion_str2(sym_to_find->kind ==
+                                                     (a_symbol_kind)sk_routine,
+                                 "nonmember_operator_function_lookup:",
+                                 "bad symbol kind");
             for (slep = symbol_list; slep != NULL; slep = slep->next) {
               a_symbol_ptr	list_sym = slep->symbol;
 	      a_boolean		list_is_list = FALSE;
@@ -8760,7 +8769,7 @@ type, that type is ignored by this routine.
               for (; list_sym != NULL;
                    list_sym = list_is_list ? list_sym->next : NULL) {
                 if (list_sym->variant.routine.ptr ==
-                                              rout_sym->variant.routine.ptr) {
+                                            sym_to_find->variant.routine.ptr) {
                   /* We've found a match -- exit the loop. */
                   break;
                 }  /* if */
@@ -8773,7 +8782,7 @@ type, that type is ignored by this routine.
                list, create a new entry for it now. */
             if (slep == NULL) {
               slep = alloc_symbol_list_entry();
-              slep->symbol = rout_sym;
+              slep->symbol = sym_to_find;
               /* Add the new entry to the front of the list. */
               slep->next = symbol_list;
               symbol_list = slep;
