@@ -1517,6 +1517,11 @@ typedef struct a_type {
                            function (C++ only).  Inherited pure virtual
 			   functions do not affect this flag, and so not every
 			   abstract class has this flag set TRUE. */
+      unsigned int
+		any_virtual_functions_including_in_base_classes:1;
+			/* TRUE if one or more member functions declared in
+			   the class, struct, or union or its base classes
+			   is a virtual function (C++ only). */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
