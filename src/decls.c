@@ -5228,8 +5228,8 @@ the symbol and its linkage (which is always "none").
             /* The static data member was originally declared as an array
                of unknown size.  Make a copy of the original type, using
                the size from the current type.  (We have to do it this way
-               instead of calling composite_type because the two type are not
-               actually compatible.) */
+               instead of calling composite_type because the two types are
+               not actually compatible.) */
             new_type = alloc_type((a_type_kind)tk_array);
             copy_type(array_type, new_type);
             new_type->variant.array.variant.number_of_elements =
