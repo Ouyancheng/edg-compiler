@@ -3019,6 +3019,9 @@ may not have their severity altered.
     an_error_severity	new_severity;
     new_severity = severity_for_error_code[(int)error_code];
     if (new_severity != es_default) *severity = new_severity;
+    /* Convert a discretionary error into a regular error for all
+       subsequent processing. */
+    if (*severity == es_discretionary_error) *severity = es_error;
   }  /* if */
 }  /* check_for_overridden_severity */
 
