@@ -3619,6 +3619,13 @@ special function kind (e.g., constructor, destructor), if any.
         cssp->has_operator_new = TRUE;
       } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
         cssp->has_operator_delete = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_arrow) {
+        /* For operator->() do a special check on the return type.  It must
+           be something that can be used as a pointer -- either a pointer
+           to a class or an object of or reference to a class for which
+           operator->() is defined (ARM 13.4.6). */
+        check_operator_arrow_return_type(rtn, /*is_expr_use=*/FALSE,
+                                         &locator->source_position);
       }  /* if */
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
