@@ -31,6 +31,7 @@ decls.c -- Scanning of declarations.
 #include "target.h"
 #include "decl_inits.h"
 #include "preproc.h"
+#include "templates.h"
 #include "types.h"
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
@@ -304,6 +305,43 @@ specifier if the name has been declared.  Called only in C++.
   }  /* if */
   return (is_overload);
 }  /* is_overload_specifier */
+
+
+static a_boolean is_class_template_decl(void)
+/*
+Return TRUE if the current token sequence matches the pattern for a class
+template declaration.
+*/
+{
+  a_token_cache  token_cache;
+  a_boolean      match = FALSE;
+
+#if CHECKING
+  if (curr_token != tok_class && curr_token != tok_struct &&
+      curr_token != tok_union) {
+    internal_error("is_class_template_decl: no class/struct/union token");
+  } else if (scope_stack[depth_scope_stack].kind !=
+                                   (a_scope_kind)sck_template_declaration) {
+    internal_error("is_class_template_decl: bad scope kind");
+  }  /* if */
+#endif /* CHECKING */
+  clear_token_cache(&token_cache);
+  cache_curr_token(&token_cache);
+  if (get_token() == tok_identifier) {
+    cache_curr_token(&token_cache);
+    (void)get_token();
+    /* We could test for "{", ":", or ";", which is what the next token
+       must be if this is a valid template declaration.  But in the error
+       case, it seems a better default to treat the construct as an invalid
+       class template than as an invalid function template.  So unless it
+       looks like a declarator following, we consider "class X ... " to be
+       a class template. */
+    if (!is_declarator_start()) match = TRUE;
+  }  /* if */
+  /* Restore the tokens. */
+  rescan_cached_tokens(&token_cache);
+  return match;
+}  /* is_class_template_decl */
 
 
 a_boolean is_decl_start(a_boolean  expr_context,
@@ -5696,6 +5734,20 @@ process_class_specifier:
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
+        } else if ((input_flags & DSI_IS_TEMPLATE_DECLARATION) &&
+                   is_class_template_decl()) {
+          if (basic_type != bt_none || sign != sign_none ||
+              size != size_none) {
+            /* Basic type has already been specified in some way. */
+            bad_combination_of_type_specifiers = TRUE;
+            error(ec_bad_combination_of_type_specifiers);
+          }  /* if */
+          *output_flags |= DSO_CLASS_TEMPLATE;
+          /* We don't worry about the type at this time. */
+          basic_type = bt_no_type;
+          *type_ptr = void_type();
+          /* There will be no declarator. */
+          goto exit_loop;
         } else {
           if (basic_type == bt_none) {
             if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
@@ -6351,13 +6403,19 @@ exit_loop:
                size == size_none) {
       /* typedef. */
     } else if (basic_type == bt_no_type) {
-      /* Constructor return type.  *type_ptr is already set. */
+      /* Constructor return type (*type_ptr is already set) or class
+         template (*type_ptr is not used). */
 #if CHECKING
-      if (!(*output_flags & DSO_CONSTRUCTOR)) {
+      if (*output_flags & DSO_CLASS_TEMPLATE) {
+        /* Okay.  Type will be ignored by the caller. */
+      } else if (*output_flags & DSO_CONSTRUCTOR) {
+        /* Okay, but check the type. */
+        if (*type_ptr == NULL || !is_reference_type(*type_ptr) ||
+            !is_class_struct_union_type(type_pointed_to(*type_ptr))) {
+          internal_error("decl_specifiers: bad type pointer for constructor");
+        }  /* if */
+      } else {
         internal_error("decl_specifiers: expected a constructor");
-      } else if (*type_ptr == NULL || !is_reference_type(*type_ptr) ||
-                 !is_class_struct_union_type(type_pointed_to(*type_ptr))) {
-        internal_error("decl_specifiers: bad type pointer for constructor");
       }  /* if */
 #endif /* CHECKING */
     } else {
@@ -7516,12 +7574,16 @@ of local variables (and types, etc.) of functions and in blocks.
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
-  if (C_dialect == C_dialect_cplusplus &&
-      curr_token == tok_extern && next_token() == tok_string_literal) {
-    /* This looks like a C++ linkage specification, which is "extern"
-       followed by a string literal (e.g., "C++" or "C"). */
-    linkage_specification(function_definition_allowed, param_id_list);
-    goto return_point;
+  if (C_dialect == C_dialect_cplusplus) {
+    if (curr_token == tok_extern && next_token() == tok_string_literal) {
+      /* This looks like a C++ linkage specification, which is "extern"
+         followed by a string literal (e.g., "C++" or "C"). */
+      linkage_specification(function_definition_allowed, param_id_list);
+      goto return_point;
+    } else if (curr_token == tok_template) {
+      template_declaration();
+      goto return_point;
+    }  /* if */
   }  /* if */
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
