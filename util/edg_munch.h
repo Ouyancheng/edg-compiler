@@ -33,7 +33,7 @@ Typedef name to be used for the pointer arrays, and return type of the
 function.
 */
 #define FUNCTION_PTR_TYPEDEF_NAME "func_ptr"
-#define FUNCTION_RETURN_TYPE "void"
+#define FUNCTION_RETURN_TYPE "char"
 
 /*
 Type code output by "nm" for externally visable function definitions.
