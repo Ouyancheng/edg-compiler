@@ -345,7 +345,8 @@ found return a pointer to it.  Return NULL if it's not found.
 
   if (name != NULL) {
     for (; pasep != NULL; pasep = pasep->next) {
-      if (pasep != NULL && strcmp(name, pasep->name) == 0) break;
+      if (pasep != NULL && pasep->name != NULL &&
+          strcmp(name, pasep->name) == 0) break;
     }  /* for */
   }  /* if */
   return pasep;
