@@ -7774,8 +7774,8 @@ discarding typedefs.
   type2_qualifiers = get_type_qualifiers(tp2);
   if (type1_qualifiers != TQ_NONE && type2_qualifiers != TQ_NONE) {
     /* Strip off the qualifiers. */
-    tp1 = skip_typerefs(tp1);
-    tp2 = skip_typerefs(tp2);
+    tp1 = make_unqualified_type(tp1);
+    tp2 = make_unqualified_type(tp2);
     if (type1_qualifiers ^ type2_qualifiers) {
       /* They are differently qualified.  The qualifiers have been stripped
          off; add them back on as appropriate. */

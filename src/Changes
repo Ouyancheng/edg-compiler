@@ -1,5 +1,16 @@
 Version 3.4
 
+1/23/04  Incorrect type deduced from cv-qualified array type
+
+When a type "const T" was deduced from a cv-qualified array type such
+as "const int[5]" the resulting type was the cv-qualified type (resulting
+in an error on the example below) but should have been the cv-unqualified
+version of the type.  Now fixed.
+
+  template <class T> struct A { };
+  template <class T> struct  A<const T> : A<T> {};
+  A<const int[5]> a;
+
 1/21/04  Internal error on out-of-class partial specialization
 
 An internal error could occur if an out-of-class partial specialization
