@@ -4444,7 +4444,7 @@ eok_fadd or eok_padd.
         op = (an_expr_operator_kind)eok_pm_arrow_field;
         break;
       case onk_subscript:
-        op = (an_expr_operator_kind)eok_padd_subsc;
+        op = (an_expr_operator_kind)eok_subscript;
         break;
       default:
         unexpected_condition_str("bad opname kind");
