@@ -1,5 +1,21 @@
 Version 2.39
 
+4/6/98     Array rvalue use in C mode
+
+Use of array rvalues in C mode was introduced recently (see Changes
+entry of 5/22/97, and bug fix of 10/15/97).  Some remaining problems
+with comma expressions and assignment have been resolved.
+
+  typedef struct {
+    int w[2];
+  } S;
+  int main() {
+    S u;
+    (1, u).w[1];  /* Caused abort */
+    (u = u).w[1]; /* Caused abort */
+    return 0;
+  }
+
 4/5/98     Microsoft __declspec(property(...)) processing
 
 In some cases, a field selection for a field declared with the
