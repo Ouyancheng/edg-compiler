@@ -11200,7 +11200,7 @@ cleared.
 
   db_enter(4, "eliminate_references_from_befriended_entities");
   ctsp = class_type->variant.class_struct_union.extra_info;
-  /* Go through the befriended class. */
+  /* Go through the befriended classes. */
   while (ctsp->friend_classes != NULL) {
     friend_class = ctsp->friend_classes->class_type;
     friend_ctsp = friend_class->variant.class_struct_union.extra_info;
@@ -11422,6 +11422,102 @@ functions have been removed from the IL.
 }  /* eliminate_member_function_default_arg_object_lifetimes */
 
 
+static void clear_variable_instantiation_required(a_variable_ptr vp)
+/*
+The indicated variable is being removed from the IL.  If it is a template,
+clear its instantiation required information.
+*/
+{
+  if (vp->is_template_static_data_member && !vp->is_specialized) {
+    a_symbol_ptr sym;
+    sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+    if (sym != NULL) {
+      set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
+    }  /* if */
+  }  /* if */
+}  /* clear_variable_instantiation_required */
+
+
+static void clear_routine_instantiation_required(a_routine_ptr rp)
+/*
+The indicated routine is being removed from the IL.  If it is a template,
+clear its instantiation required information.
+*/
+{
+  if ((rp->is_template_function && !rp->is_specialized) ||
+      (instantiate_extern_inline && rp->is_inline)) {
+    a_symbol_ptr sym;
+    sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+    if (sym != NULL) {
+      set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
+    }  /* if */
+  }  /* if */
+}  /* clear_routine_instantiation_required */
+
+
+static void clear_instantiation_information_for_eliminated_members(
+                                                         a_type_ptr class_type)
+/*
+The indicated class type or its definition is being eliminated from the
+IL, which means the class members are also being eliminated.  Do any
+necessary processing on those members to clear instantiation information.
+*/
+{
+  a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+
+  check_assertion(!C_mode() && ctsp != NULL);
+  if (ctsp->assoc_scope != NULL) {
+    a_scope_ptr scope = ctsp->assoc_scope;
+    /* Only check the members if there might be some templates. */
+    if (class_type->variant.class_struct_union.is_template_class ||
+        scope->templates != NULL) {
+      a_variable_ptr vp;
+      a_routine_ptr  rp;
+      for (vp = scope->variables; vp != NULL; vp = vp->next) {
+        clear_variable_instantiation_required(vp);
+      }  /* for */
+      for (rp = scope->routines; rp != NULL; rp = rp->next) {
+        clear_routine_instantiation_required(rp);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* clear_instantiation_information_for_eliminated_members */
+
+
+static void process_members_of_eliminated_class_definition(
+                                                         a_type_ptr class_type)
+/*
+The indicated class type or its definition is being eliminated from the
+IL, which means the class members are also being eliminated.  Do any
+necessary processing on those members.
+*/
+{
+  a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+
+  check_assertion(!C_mode() && ctsp != NULL);
+  /* If the definition of class_type included friend declarations, the
+     befriended classes and routines have pointers back to class_type.
+     Those pointers have to be removed. */
+  eliminate_references_from_befriended_entities(class_type);
+  /* Remove any object lifetimes that may be associated with default
+     arguments of its member functions. */
+  eliminate_member_function_default_arg_object_lifetimes(class_type);
+  /* Clear instantiation information for any template members. */
+  clear_instantiation_information_for_eliminated_members(class_type);
+  /* Do the same processing for nested classes. */
+  if (ctsp->assoc_scope != NULL) {
+    a_type_ptr  tp = ctsp->assoc_scope->types;
+    for (; tp != NULL; tp = tp->next) {
+      if (is_immediate_class_type(tp)) {
+        process_members_of_eliminated_class_definition(tp);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* process_members_of_eliminated_class_definition */
+
+
 static void turn_class_definition_into_declaration(a_type_ptr  class_type)
 /*
 class_type identifies a class whose definition is not needed.  Turn the IL
@@ -11452,13 +11548,9 @@ entry into one representing a nondefining declaration.
     a_class_type_supplement_ptr  ctsp;
     a_class_type_supplement      old_supp;
 
-    /* If the definition of class_type included friend declarations, the
-       befriended classes and routines have pointers back to class_type.
-       Those pointers have to be removed. */
-    eliminate_references_from_befriended_entities(class_type);
-    /* Remove any object lifetimes that may be associated with default
-       arguments of its member functions. */
-    eliminate_member_function_default_arg_object_lifetimes(class_type);
+    /* Do any necessary processing on the members of the class, which
+       are being eliminated because the class is being eliminated. */
+    process_members_of_eliminated_class_definition(class_type);
     /* Clear the pointers in the class_type_supplement, including the
        assoc_scope pointer; however, the template arg list and the list of
        befriending classes should be preserved.
@@ -11513,29 +11605,27 @@ of the class.
 */
 {
   db_enter(4, "eliminate_unneeded_class_definitions");
-  if (!C_mode()) {
-    a_class_type_supplement_ptr  ctsp;
-
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    if (ctsp->assoc_scope != NULL) {
-      /* This is a C++ class for which a definition has been provided.  Apply
-         this check on each of its nested classes.  Note that it may turn out
-         that the nested class definition is eliminated even though the
-         containing class definition is retained. */
-      a_type_ptr  tp = ctsp->assoc_scope->types;
-      for (; tp != NULL; tp = tp->next) {
-        if (is_immediate_class_type(tp)) {
-          eliminate_unneeded_class_definitions(tp);
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
-  /* Now do the transformation of the class itself, if appropriate.  Note
-     that we check the class size rather than the assoc_scope, since in C
-     mode there is no assoc_scope even when the class has a definition. */
+  /* Eliminate the class definition if appropriate.  Note that we check
+     the class size rather than the assoc_scope, since in C mode there
+     is no assoc_scope even when the class has a definition. */
   if (!class_type->variant.class_struct_union.keep_definition_in_il &&
       class_type->size > 0) {
     turn_class_definition_into_declaration(class_type);
+  } else {
+    /* The class definition is to be kept.  Process nested classes. */
+    if (!C_mode()) {
+      a_class_type_supplement_ptr  ctsp;
+
+      ctsp = class_type->variant.class_struct_union.extra_info;
+      if (ctsp->assoc_scope != NULL) {
+        a_type_ptr  tp = ctsp->assoc_scope->types;
+        for (; tp != NULL; tp = tp->next) {
+          if (is_immediate_class_type(tp)) {
+            eliminate_unneeded_class_definitions(tp);
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* eliminate_unneeded_class_definitions */
@@ -11758,16 +11848,10 @@ eliminated, if appropriate.
         prev_vp->next = vp->next;
       }  /* if */
       vp->next = NULL;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-      /* If the instantiation_required flag was set, clear it now. */
-      if (vp->is_template_static_data_member && !vp->is_specialized) {
-        a_symbol_ptr             sym;
-        sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
-        if (sym != NULL) {
-          set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
-        }  /* if */
-      }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+      /* If the instantiation_required flag was set, clear it now.
+         The code here is needed when processing lowered IL (the static
+         data members have been promoted out of the class). */
+      clear_variable_instantiation_required(vp);
     } else {
       prev_vp = vp;
     }  /* if */
@@ -11798,13 +11882,9 @@ eliminated, if appropriate.
       tp->next = NULL;
       if (is_immediate_class_type(tp)) {
         if (!C_mode()) {
-          /* If the definition of tp included friend declarations, the
-             befriended classes and routines have pointers back to tp. Those
-             pointers have to be removed. */
-          eliminate_references_from_befriended_entities(tp);
-          /* Remove any object lifetimes that may be associated with default
-             arguments of its member functions. */
-          eliminate_member_function_default_arg_object_lifetimes(tp);
+          /* Process the members, which are being removed because the
+             class is being removed. */
+          process_members_of_eliminated_class_definition(tp);
         }  /* if */
         /* This is a class type that has been removed from the IL (because
            it's not really needed anywhere), but just in case there's a
@@ -11814,6 +11894,7 @@ eliminated, if appropriate.
         tp->variant.class_struct_union.extra_info = NULL;
       }  /* if */
     } else {
+      /* The type is being kept.  Check for nested classes. */
       if (is_immediate_class_type(tp)) {
         eliminate_unneeded_class_definitions(tp);
       }  /* if */
