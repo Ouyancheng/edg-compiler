@@ -2116,13 +2116,11 @@ there's no overflow TRUE is returned.
         /* For a bit-field. */
         an_unnormalized_bit_offset bit_size =
                                    (an_unnormalized_bit_offset)field->bit_size;
-        if (targ_pad_bit_fields_larger_than_base_type) {
-          bit_size = field->declared_bit_size;
-        }  /* if */
         overflow = !increment_field_offsets(
                         &lob->byte_offset, &lob->bit_offset,
                         (a_targ_size_t)0,
-                        bit_size);
+                        targ_pad_bit_fields_larger_than_base_type ?
+                                         field->declared_bit_size : bit_size);
         if (targ_microsoft_bit_field_allocation &&
             lob->curr_container_type != NULL) {
           /* Update the number of bits that are available in the container

@@ -1,5 +1,18 @@
 Version 3.2
 
+5/9/03   Internal error on overlong bit field on some configurations
+
+When both configuration macros TARG_MICROSOFT_BIT_FIELD_ALLOCATION and
+TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE were set to TRUE, the front
+would abort when processing bit fields whose specified length exceeds
+the number of bits in the field's type.  For example:
+
+  struct S {
+    int m: 100;  // Used to abort in some configurations.
+  };
+
+This is now fixed.
+
 5/9/03   Microsoft compatibility: nonstandard template friend declaration
 
 The Microsoft compiler accepts a normal friend declaration in which the
