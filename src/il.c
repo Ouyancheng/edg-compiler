@@ -5905,9 +5905,6 @@ to it.  The entry is allocated in the file scope memory region.
 #if DECL_MODIFIERS_IN_USE
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
-#if CHECKING
-  rp->avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS

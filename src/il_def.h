@@ -3680,7 +3680,6 @@ typedef struct a_routine {
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
-  bitfield_to_avoid_codecenter_warnings();
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that
