@@ -2752,8 +2752,7 @@ Only callable in C++ mode.  See ARM 13.
     /* See if old_sym_ptr and new_type are distinguishable. */
     distinguishable = FALSE;
     params_all_compatible = TRUE;
-    old_type = old_sym_ptr->variant.routine->type;
-    old_type = skip_typerefs(old_type);
+    old_type = routine_symbol_type(old_sym_ptr);
     old_extra_info = old_type->variant.routine.extra_info;
     /* See if the types are sufficiently different that they are
        distinguishable by overload resolution. */
