@@ -339,8 +339,7 @@ routine recursively for each nested class.
             sym = sym->variant.routine.instance_ptr->template_sym;
             tssp = sym->variant.routine.instance_ptr->template_info;
             delayed_scan_for_function_template_default_args
-                        (tssp->variant.function.routine, rfp->routine, tssp,
-                         sym->kind == (a_symbol_kind)sk_member_function);
+                        (tssp->variant.function.routine, rfp->routine, tssp);
           }  /* if */
         } else if (is_nonreal_template_instantiation) {
           a_def_arg_expr_fixup_ptr    daefp_end;

@@ -73,8 +73,7 @@ extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 extern void delayed_scan_for_function_template_default_args
 			 (a_routine_ptr			   templ_rout,
 			  a_routine_ptr			   rout_ptr,
-			  a_template_symbol_supplement_ptr tssp,
-			  a_boolean			   is_member_function);
+			  a_template_symbol_supplement_ptr tssp);
 
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
 
