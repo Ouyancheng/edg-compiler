@@ -5649,7 +5649,7 @@ check_enclosing_classes:
           if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
                nonstandard_qualifier_deduction) &&
               !status && type_ptr->source_corresp.is_class_member) {
-            /* Check the the parent class.  This is only done when considering
+            /* Check the parent class.  This is only done when considering
                nondeduced contexts, or when this is a deduced context when
                nonstandard deduction is enabled. */
             tp = type_ptr->source_corresp.parent.class_type;
