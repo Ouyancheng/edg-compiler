@@ -7715,7 +7715,6 @@ End a name scope by popping an entry off the scope stack.
     if (new_memory_region_number != old_memory_region_number) {
       switch_il_region(new_memory_region_number);
     }  /* if */
-    /*
     /* The IL scope, if any, is no longer on the stack. */
     if (il_scope != NULL) {
       il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
