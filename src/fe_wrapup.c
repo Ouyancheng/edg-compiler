@@ -621,6 +621,9 @@ Complete the file scope of each of the translation units.
      In trans_unit_test mode, we don't check for duplicate definitions,
      so we can't do the copy. */
   if (total_errors == 0 && !trans_unit_test_mode &&
+#if DO_IL_LOWERING
+      !suppress_il_lowering &&
+#endif /* DO_IL_LOWERING */
       translation_units->next != NULL) {
     copy_secondary_trans_unit_IL_to_primary();
     /* Some function bodies may have been copied to the primary IL, so
