@@ -7045,6 +7045,8 @@ functions befriending_list_test and class_scope_test.
       /* Terminate the skip of enclosing classes of nested functions now that
          a function scope has been found. */
       skipping_to_function = FALSE;
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      /* Nothing required for template instantiation scopes. */
     } else {
       check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
                           kind == (a_scope_kind)sck_class_reactivation,

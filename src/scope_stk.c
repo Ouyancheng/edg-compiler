@@ -1215,6 +1215,7 @@ function).  Access control only exists in C++.
 #define is_scope_kind_that_affects_access_control(kind)               \
    ((kind) == (a_scope_kind)sck_class_struct_union ||                 \
     (kind) == (a_scope_kind)sck_class_reactivation ||                 \
+    (kind) == (a_scope_kind)sck_template_instantiation ||	      \
     (kind) == (a_scope_kind)sck_function ||			      \
     (kind) == (a_scope_kind)sck_function_access)
 

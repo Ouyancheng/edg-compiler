@@ -1,5 +1,22 @@
 Version 3.1
 
+9/26/02  Microsoft compatibility: missing access error in instantiation
+
+In Microsoft mode, certain access errors were not diagnosed during
+template instantiations.  This has been fixed.
+
+  template<class T> void h(T* p) {p->g();} // should get access error
+  template<class T> class A {
+  public:
+     void f() {h(this);}
+  private:
+     void g()    {;}
+  };
+  int main() {
+     A<int> a;
+     a.f();
+  }
+
 9/25/02  Incomplete lowering of pointers to members
 
 In cases where an aggregate containing a pointer to member is
