@@ -663,12 +663,14 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.condition, a_condition_supplement_ptr,
                      iek_condition_supplement);
             break;
+#if !NEEDED_FLAG_WALK
           case enk_object_lifetime:
             walk_ptr(ptr->variant.object_lifetime.expr, an_expr_node_ptr,
                      iek_expr_node);
             remap_ptr(ptr->variant.object_lifetime.ptr, an_object_lifetime_ptr,
                       iek_object_lifetime);
             break;
+#endif /* !NEEDED_FLAG_WALK */
           case enk_typeid:
             walk_ptr(ptr->variant.typeid_info.type, a_type_ptr, iek_type);
             walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
@@ -764,7 +766,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_try_supplement_ptr ptr = (a_try_supplement_ptr)entry_ptr;
         walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
         walk_list(ptr->handlers, a_handler_ptr, iek_handler);
+#if !NEEDED_FLAG_WALK
         remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -782,12 +786,14 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_block:
 #ifdef CFE
       {
+#if !NEEDED_FLAG_WALK
         a_block_ptr ptr = (a_block_ptr)entry_ptr;
         /* The associated scope, if any, will appear on the list of local
            scopes for the current scope.  Therefore, here we just remap
            the pointer but do not walk the subtree. */
         remap_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
         remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
       }
 #endif /* ifdef CFE */
       break;
@@ -826,8 +832,10 @@ the file scope, do not process it (but record an orphan in the latter case).
           case stmk_goto:
           case stmk_label:
             remap_ptr(ptr->variant.label.ptr, a_label_ptr, iek_label);
+#if !NEEDED_FLAG_WALK
             remap_ptr(ptr->variant.label.lifetime,
                       an_object_lifetime_ptr, iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
             break;
           case stmk_return:
             walk_ptr(ptr->variant.return_dynamic_init, a_dynamic_init_ptr,
@@ -973,15 +981,14 @@ the file scope, do not process it (but record an orphan in the latter case).
       }
       break;
 #endif /* RECORD_MACROS_IN_IL */
+#if !NEEDED_FLAG_WALK
     case iek_object_lifetime:
       {
         an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
-#if !NEEDED_FLAG_WALK
         /* Avoid recursion loop by not following the pointer back to the
            associated entity. */
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
-#endif /* !NEEDED_FLAG_WALK */
         /* The destructors list is linked on the field
            "next_in_destruction_list" because the usual "next" is used for
            a different list. */
@@ -996,6 +1003,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, an_object_lifetime_ptr, iek_object_lifetime);
       }
       break;
+#endif /* !NEEDED_FLAG_WALK */
     case iek_scope:
       {
         a_scope_ptr ptr = (a_scope_ptr)entry_ptr;
@@ -1035,8 +1043,10 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
             walk_list(ptr->variant.routine.constructor_inits,
                       a_constructor_init_ptr, iek_constructor_init);
+#if !NEEDED_FLAG_WALK
             walk_ptr(ptr->variant.routine.lifetime_of_local_static_vars,
                      an_object_lifetime_ptr, iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
             walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
                      iek_variable);
             remap_ptr(ptr->variant.routine.return_value_variable,
@@ -1054,9 +1064,11 @@ the file scope, do not process it (but record an orphan in the latter case).
             unexpected_condition_str("walk_entry_and_subtree: bad scope kind");
         }  /* switch */
         /* "assoc_block" is done after the declarations. */
+#if !NEEDED_FLAG_WALK
         /* The lifetime pointer needs to be walked and not remapped in
            the file scope and function scopes. */
         walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #ifdef CFE
 #if DO_SUBTREE_WALK
@@ -1316,13 +1328,12 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
 #if !NEEDED_FLAG_WALK
-        /* Avoid recursion loops by not walking the lifetime pointer. */
         remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
-#endif /* !NEEDED_FLAG_WALK */
         remap_next_ptr(ptr->next_in_destruction_list, a_dynamic_init_ptr,
                        iek_dynamic_init);
         remap_ptr(ptr->init_expr_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
         switch (ptr->kind) {
           case dik_none:
           case dik_zero:
