@@ -1700,10 +1700,12 @@ the primary translation unit, respectively) that are being merged.
 
 
 static void merge_befriending_classes_lists(a_class_list_entry_ptr *plist1,
-                                            a_class_list_entry_ptr list2)
+                                            a_class_list_entry_ptr list2,
+                                            a_boolean              trace)
 /*
 Merge the befriending lists pointed to by *plist1 and list2, and
-update *plist1 to point to the merged list.
+update *plist1 to point to the merged list.  trace is TRUE if we
+should generate debug output.
 */
 {
   a_class_list_entry_ptr clep1, clep2, clep2_next, list1 = *plist1;
@@ -1715,6 +1717,12 @@ update *plist1 to point to the merged list.
     }  /* for */
     if (clep1 == NULL) {
       /* Add the entry from clep2 to the *plist1 list. */
+#if DEBUG
+      if (trace) {
+        clep2->next = NULL;
+        db_class_list(clep2);
+      }  /* if */
+#endif /* DEBUG */
       clep2->next = *plist1;
       *plist1 = clep2;
     }  /* if */
@@ -1734,23 +1742,32 @@ translation unit.  Do merging of minor information.
                                    type->variant.class_struct_union.extra_info;
   a_class_type_supplement_ptr primary_ctsp =
                            primary_type->variant.class_struct_union.extra_info;
+  a_boolean                   trace = FALSE;
 
   check_assertion(ctsp != NULL && primary_ctsp != NULL);
 #if DEBUG
-  if (db_trace("friendship", type, iek_type)) {
+  if (db_trace("friendship", type, iek_type) &&
+      primary_ctsp->befriending_classes != NULL &&
+      ctsp->befriending_classes != NULL) {
+    trace = TRUE;
     fprintf(f_debug, "Merging befriending lists:\n");
     db_entity_info((char *)type, iek_type);
-    fprintf(f_debug, "befriending_classes list:\n");
-    db_class_list(type->variant.class_struct_union.
+    if (db_flag_is_set("friendship")) {
+      fprintf(f_debug, "befriending_classes list:\n");
+      db_class_list(type->variant.class_struct_union.
                                               extra_info->befriending_classes);
+    }  /* if */
     db_entity_info((char *)primary_type, iek_type);
-    fprintf(f_debug, "befriending_classes list:\n");
-    db_class_list(primary_type->variant.class_struct_union.
+    if (db_flag_is_set("friendship")) {
+      fprintf(f_debug, "befriending_classes list:\n");
+      db_class_list(primary_type->variant.class_struct_union.
                                               extra_info->befriending_classes);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   merge_befriending_classes_lists(&primary_ctsp->befriending_classes,
-                                  ctsp->befriending_classes);
+                                  ctsp->befriending_classes,
+                                  trace);
 }  /* merge_class_details */
 
 
@@ -1762,19 +1779,29 @@ or is otherwise being merged with, the routine rout from a secondary
 translation unit.  Do merging of minor information.
 */
 {
+  a_boolean trace = FALSE;
+
 #if DEBUG
-  if (db_trace("friendship", rout, iek_routine)) {
+  if (db_trace("friendship", rout, iek_routine) &&
+      primary_rout->befriending_classes != NULL &&
+      rout->befriending_classes != NULL) {
+    trace = TRUE;
     fprintf(f_debug, "Merging befriending lists:\n");
     db_entity_info((char *)rout, iek_routine);
-    fprintf(f_debug, "befriending_classes list:\n");
-    db_class_list(rout->befriending_classes);
+    if (db_flag_is_set("friendship")) {
+      fprintf(f_debug, "befriending_classes list:\n");
+      db_class_list(rout->befriending_classes);
+    }  /* if */
     db_entity_info((char *)primary_rout, iek_routine);
-    fprintf(f_debug, "befriending_classes list:\n");
-    db_class_list(primary_rout->befriending_classes);
+    if (db_flag_is_set("friendship")) {
+      fprintf(f_debug, "befriending_classes list:\n");
+      db_class_list(primary_rout->befriending_classes);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   merge_befriending_classes_lists(&primary_rout->befriending_classes,
-                                  rout->befriending_classes);
+                                  rout->befriending_classes,
+                                  trace);
 }  /* merge_routine_details */
 
 
