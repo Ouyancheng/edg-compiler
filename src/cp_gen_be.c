@@ -1108,6 +1108,18 @@ current name context).
 }  /* gen_name */
 
 
+static void gen_qualified_name(a_source_correspondence *scp)
+/*
+Output the name of the entity whose source correspondence information
+is given by scp.  If the entity is unnamed, generate a name.  The entity
+must be a class member, and a qualified name is always generated.
+*/
+{
+  gen_class_qualifier(scp->class_of_which_a_member);
+  gen_unqualified_name(scp);
+}  /* gen_qualified_name */
+
+
 /* Interface routines to gen_name. */
 #define gen_routine_name(routine) gen_name(&(routine)->source_corresp)
 #define gen_constant_name(constant) gen_name(&(constant)->source_corresp)
@@ -1153,6 +1165,69 @@ constant.  Handle unprintable characters and necessary escapes.
     write_str(buffer);
   }  /* if */
 }  /* gen_char */
+
+
+static void gen_pm_base_casts(a_derivation_step_ptr path,
+                              a_type_ptr            pm_type)
+/*
+Generate casts to cast a pointer-to-member constant to a pointer-to-member
+of a base class (this requires an explicit cast).  path is the derivation
+path to the base class.  pm_type is the pointer-to-member type we want
+to end up with.
+*/
+{
+  a_type temp_type;
+
+  check_assertion(pm_type->kind == (a_type_kind)tk_ptr_to_member);
+  /* Generate a cast for each derivation step in case there are ambiguities
+     etc.  They have to be put out in reverse order, since the last cast
+     comes first in the source. */
+  if (path->next == NULL) {
+    /* Don't do the last step, since it is done at the top of gen_constant
+       because the implicit_cast flag is set. */
+  } else {
+    /* Use a recursive call to process all the steps after the first one. */
+    gen_pm_base_casts(path->next, pm_type);
+    /* Make a temporary pointer-to-member type with the right class type by
+       modifying a copy of the pm_type. */
+    temp_type = *pm_type;
+    temp_type.variant.ptr_to_member.class_of_which_a_member =
+                                                        path->base_class->type;
+    /* Generate the cast for the first step. */
+    gen_cast(&temp_type);
+  }  /* for */
+}  /* gen_pm_base_casts */
+
+
+static void gen_pm_derived_casts(a_derivation_step_ptr path,
+                                 a_type_ptr            pm_type)
+/*
+Generate casts to cast a pointer-to-member constant to a pointer-to-member
+of a derived class.  path is the derivation to the base class.  pm_type
+is the pointer-to-member type we want to end up with.
+*/
+{
+  a_type temp_type;
+
+  check_assertion(pm_type->kind == (a_type_kind)tk_ptr_to_member);
+  /* Generate a cast for each derivation step in case there are ambiguities
+     etc.  The derivation is in reverse order, but we want to put it
+     out in reverse order because the last cast comes first in the source,
+     so a simple loop works right. */
+  /* Don't do the last step, since it is done at the top of gen_constant
+     because the implicit_cast flag is set. */
+  for (; path->next != NULL; path = path->next) {
+    /* Make a temporary pointer-to-member type with the right class type by
+       modifying the pm_type. */
+    /* Make a temporary pointer-to-member type with the right class type by
+       modifying a copy of the pm_type. */
+    temp_type = *pm_type;
+    temp_type.variant.ptr_to_member.class_of_which_a_member =
+                                                        path->base_class->type;
+    /* Generate the cast for the first step. */
+    gen_cast(&temp_type);
+  }  /* for */
+}  /* gen_pm_derived_casts */
 
 
 static void gen_constant(a_constant_ptr constant)
@@ -1405,7 +1480,46 @@ Output the indicated constant.
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
-      unimplemented();
+      { a_source_correspondence *scp = NULL;
+        if (constant->variant.ptr_to_member.is_function_ptr) {
+          a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
+          if (rout != NULL) scp = &rout->source_corresp;
+        } else {
+          a_field_ptr field = constant->variant.ptr_to_member.variant.field;
+          if (field != NULL) scp = &field->source_corresp;
+        }  /* if */
+        if (scp == NULL) {
+          /* A null pointer-to-member.  implicit_cast will be TRUE, so a cast
+             to the right type has been put out above. */
+          write_tok_ch('0');
+        } else {
+          /* A non-null pointer-to-member. */
+          a_base_class_ptr bcp =
+                            constant->variant.ptr_to_member.casting_base_class;
+          write_tok_ch('(');
+          if (bcp != NULL) {
+            /* The pointer-to-member has been cast to another class.  Put in
+               proper casts.  Note that implicit_cast will be set and therefore
+               the final cast has already been issued above. */
+            if (bcp->is_virtual) {
+              /* For virtual base classes, the single cast generated above is
+                 enough.  In fact, we don't want to choose among the possible
+                 paths to the virtual base class if there are several. */
+            } else {
+              a_derivation_step_ptr path = bcp->derivation->path;
+              /* Cast to the proper result type. */
+              if (constant->variant.ptr_to_member.cast_to_base) {
+                gen_pm_base_casts(path, con_type);
+              } else {
+                gen_pm_derived_casts(path, con_type);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          write_tok_ch('&');
+          gen_qualified_name(scp);
+          write_tok_ch(')');
+        }  /* if */
+      }
       break;
     case ck_aggregate:
       /* Aggregate constant (used in initializers). */
@@ -2315,6 +2429,7 @@ is the one associated with the definition of the class.
   if (il_header.source_language == sl_Cplusplus) {
     /* Put out the base class list. */
     a_base_class_ptr bcp = ctsp->base_classes;
+    a_boolean        first_base_class = TRUE;
     if (bcp != NULL) {
       write_tok_str(" : ");
       for (; bcp != NULL; bcp = bcp->next) {
@@ -2324,7 +2439,8 @@ is the one associated with the definition of the class.
           a_base_class_derivation_ptr bcdp = bcp->derivation;
           /* If this is not the first base class, put a comma between the
              base classes. */
-          if (bcp != ctsp->base_classes) write_tok_str(", ");
+          if (!first_base_class) write_tok_str(", ");
+          first_base_class = FALSE;
           if (bcp->is_virtual) {
             write_tok_str("virtual ");
             /* Find the direct derivation for a virtual base class. */
@@ -2854,8 +2970,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
-    gen_class_qualifier(rout->source_corresp.class_of_which_a_member);
-    gen_unqualified_name(&rout->source_corresp);
+    gen_qualified_name(&rout->source_corresp);
   } else {
     /* Otherwise, use an unqualified name (the selector pointer indicates
        the class). */
@@ -3088,8 +3203,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_pm_field:
           /* C++ "->*" operator. */
-          opstr = "->*";
-          break;
+          write_tok_str("&(");
+          gen_expr_with_parens(operand_1);
+          write_tok_str("->*");
+          gen_expr_with_parens(operand_2);
+          write_tok_ch(')');
+          goto done_with_operation;
         case eok_shiftl:
           opstr = "<<";
           break;
@@ -3846,7 +3965,7 @@ Generate code for the indicated statement.
         if (curr_routine->special_kind !=
                                     (a_special_function_kind)sfk_constructor) {
           write_space();
-          gen_expression(statement->expr);
+          gen_full_expression(statement->expr);
         }  /* if */
       } else if (statement->variant.return_dynamic_init != NULL) {
         /* The return value is passed via a copy constructor call. */
