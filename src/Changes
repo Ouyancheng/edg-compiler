@@ -1,5 +1,12 @@
 Version 3.4
 
+8/16/03  IL display of GNU min/max operators
+
+When we added the GNU min/max operators "<?" and ">?", we failed
+to fully update the IL display program.  It didn't correctly display the
+opname_kind field of overloaded operator<? and operator>? functions.
+Now fixed.
+
 8/16/03  Microsoft compatibility: early versus late tie-breakers
 
 MSVC++ 7.1 has apparently changed to the standard "early" tie-breakers
