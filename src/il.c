@@ -351,18 +351,10 @@ Dump an indirect base class entry, for debug purposes.
   if (dsp == NULL) {
     fputs("<null>", f_debug);
   } else {
-    for (;;) {
-      if (dsp->base_class == NULL || dsp->base_class->type == NULL) {
-        fputs("<???>", f_debug);
-      } else {
-        fputs(dsp->base_class->type->source_corresp.name, f_debug);
-      }  /* if */
-      dsp = dsp->next;
-      if (dsp != NULL) {
-        fputs("==>", f_debug);
-      } else {
-        break;
-      }  /* if */
+    for (; dsp != NULL; dsp = dsp->next) {
+      fprintf(f_debug, "==>%s",
+              (dsp->base_class == NULL || dsp->base_class->type == NULL) ?
+                  "<???>" : dsp->base_class->type->source_corresp.name);
     }  /* for */
   }  /* if */
   fputc('\n', f_debug);
@@ -1699,7 +1691,7 @@ Allocate and initialize a derivation step entry and return a pointer to it.
 
   db_enter(5, "alloc_derivation_step");
 
-  dsp = (a_derivation_step_ptr)alloc_fe(sizeof(a_derivation_step));
+  dsp = (a_derivation_step_ptr)alloc_cil(sizeof(a_derivation_step));
 #if DEBUG
   num_derivation_steps_allocated++;
 #endif /* DEBUG */
