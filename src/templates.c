@@ -9511,6 +9511,10 @@ is being created.
 
 #endif /* RECORD_TEMPLATE_STRINGS */
 
+#if !RECORD_TEMPLATE_STRINGS
+/*ARGSUSED*/ /* <-- p_template_body_cache is not used when not recording
+                template strings. */
+#endif /* RECORD_TEMPLATE_STRINGS */
 static
 void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
                                 a_symbol_ptr           sym,
