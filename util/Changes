@@ -1,5 +1,9 @@
 Version 2.29
 
+3/22/95  Header files used by mk_errinfo
+
+Uses of nonstandard header files have been removed from mk_errinfo.c.
+
 3/18/95  Demangling of local variable names
 
 Variable names of the form "__nn_mm_name", where "nn" and "mm" are decimal
