@@ -902,8 +902,8 @@ See ARM 7.2.1c for name encoding.
   for (; type->kind == (a_type_kind)tk_typeref;
        type = type->variant.typeref.type) {
     /* Remember type qualifiers encountered. */
-    if (type->variant.typeref.is_const)    is_const = TRUE;
-    if (type->variant.typeref.is_volatile) is_volatile = TRUE;
+    if (typeref_is_const_qualified(type))    is_const = TRUE;
+    if (typeref_is_volatile_qualified(type)) is_volatile = TRUE;
     /* Remember the bottommost named typedef encountered. */
     if (type->source_corresp.name != NULL) named_typedef = type;
   }  /* for */
