@@ -7,9 +7,9 @@ exception.h -- Include file for exception handling (see 18.6)
 
 #include <stdexcept.h>
 
-#if __EDG_RUNTIME_USES_NAMESPACES
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
-#endif /* __EDG_RUNTIME_USES_NAMESPACES */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
   class bad_exception : public exception {
   public:
@@ -29,9 +29,9 @@ namespace std {
   void terminate();
   void unexpected();
 
-#if __EDG_RUNTIME_USES_NAMESPACES
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace */
-#endif /* __EDG_RUNTIME_USES_NAMESPACES */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* _EXCEPTION_H */
 

@@ -7,9 +7,9 @@ typeinfo.h -- Include file for type information (18.5.1)
 
 #include <stdexcept.h>
 
-#if __EDG_RUNTIME_USES_NAMESPACES
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
-#endif /* __EDG_RUNTIME_USES_NAMESPACES */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
   /*
   If bool is not supported, use a typedef for bool.
@@ -59,8 +59,8 @@ namespace std {
     virtual const char* what() const throw();
   };
 
-#if __EDG_RUNTIME_USES_NAMESPACES
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
-#endif /* __EDG_RUNTIME_USES_NAMESPACES */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* _TYPEINFO_H */
