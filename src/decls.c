@@ -4715,8 +4715,12 @@ declaration.
        If there was an explicit storage class specifier, diagnostics will be
        issued for those; otherwise, the diagnostic will point to the
        declarator-id. */
-    a_source_position_ptr  diag_pos = &decl_pos_block->storage_class_pos;
-    if (diag_pos->seq == 0) diag_pos = &locator->source_position;
+    a_source_position_ptr  diag_pos;
+    if (decl_pos_block != NULL && decl_pos_block->storage_class_pos.seq != 0) {
+      diag_pos = &decl_pos_block->storage_class_pos;
+    } else {
+      diag_pos = &locator->source_position;
+    }  /* if */
     record_named_register_storage_class(variable_ptr, register_id,
                                         redeclaration, diag_pos);
   }  /* if */
