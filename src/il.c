@@ -6649,6 +6649,16 @@ Display and return the amount of space used for various IL tables.
   db_space_used("constructor init", num_constructor_inits_allocated,
                 a_constructor_init);
   db_space_used("scope", num_scopes_allocated, a_scope);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  db_space_used("source sequence entry", num_source_sequence_entries_allocated,
+                a_source_sequence_entry);
+  db_space_used("src-seq secondary decl",
+                num_src_seq_secondary_decls_allocated,
+                a_src_seq_secondary_decl);
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+  db_space_used("comment", num_comments_allocated, a_comment);
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
   db_space_used("orphaned il list", num_orphaned_il_lists_allocated,
                 an_orphaned_il_list);
