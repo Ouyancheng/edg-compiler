@@ -935,6 +935,9 @@ error code.
     case ec_derived_class_from_virtual_base:
       m = "derived class has this class as a virtual base class";
       break;
+    case ec_no_matching_constructor:
+      m = "none of the available constructors matches this argument list";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

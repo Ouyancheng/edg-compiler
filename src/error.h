@@ -333,7 +333,8 @@ typedef enum /*an_error_code*/ {
   ec_brace_initialization_not_allowed,
   ec_ambiguous_base_class,
   ec_ambiguous_derived_class,
-  ec_derived_class_from_virtual_base
+  ec_derived_class_from_virtual_base,
+  ec_no_matching_constructor
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
