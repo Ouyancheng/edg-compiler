@@ -3036,8 +3036,11 @@ NULL.
           rout_ptr->is_inline) {
         /* In C99, an inline function with external linkage must be
            defined in the current translation unit.  We require this only
-           in strict mode. */
-        pos_sy_diagnostic(strict_ansi_discretionary_severity,
+           in strict mode.  Make sure we issue an error, not a warning,
+           if the function is actually referenced. */
+        pos_sy_diagnostic(rout_ptr->source_corresp.referenced ?
+                                            es_discretionary_error :
+                                            strict_ansi_discretionary_severity,
                           ec_inline_never_defined,
                           &sym->decl_position, sym);
       } else if (storage_class == (a_storage_class)sc_unspecified &&
