@@ -814,6 +814,15 @@ Make and return a "void *" type.
 }  /* void_star_type */
 
 
+a_type_ptr char_star_type(void)
+/*
+Make and return a "char *" type.
+*/
+{
+  return make_pointer_type(integer_type(plain_char_int_kind));
+}  /* char_star_type */
+
+
 /*
 Pointer to the generic function pointer type used in virtual function tables
 and pointers to member functions, once it is created.  NULL until created.
@@ -1476,15 +1485,6 @@ Change an existing node into a cast of operand_node to new_type.
                     new_type, operand_node);
   node->variant.operation.compiler_generated = TRUE;
 }  /* change_to_cast */
-
-
-static a_type_ptr char_star_type(void)
-/*
-Make and return a "char *" type.
-*/
-{
-  return make_pointer_type(integer_type(plain_char_int_kind));
-}  /* char_star_type */
 
 
 static an_expr_node_ptr add_cast_to_char_star(an_expr_node_ptr node)
