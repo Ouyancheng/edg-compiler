@@ -3487,7 +3487,7 @@ is inline.
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
     result =  rout->is_inline;
     if (!result) {
-      if (rout->assoc_scope == NULL) {
+      if (rout->assoc_scope == NULL_region_number) {
         a_template_symbol_supplement_ptr	tssp;
         tssp = template_supplement_for_symbol(tip->template_sym);
         result = tssp->variant.function.routine->is_inline ||
@@ -3658,7 +3658,7 @@ updated but not removed from the list.
         instantiate_template_function(tip);
       }  /* if */
       tip->instantiation_required = TRUE;
-    } else if (value == tip->instantiation_required) {
+    } else if (value == (a_boolean)tip->instantiation_required) {
       /* The instantiation required flag is already set to the desired
          value.  This test is used to ensure that an entry that is already
          on the instantiation required list won't be instantiated until
@@ -3815,7 +3815,7 @@ a line of input is being returned.  Returns FALSE at end-of-file.
 */
 {
   register char*    buffer_pos;
-  register int      size = 0;
+  register sizeof_t size = 0;
   register char     ch;
   char              *result;
   static char	    *input_line;

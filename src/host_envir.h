@@ -632,7 +632,7 @@ extern void reopen_error_output_file(char          *file_name,
                                      a_boolean     *cannot_open,
                                      a_boolean     *bad_name);
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void delete_file(char *file_name);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 

@@ -737,7 +737,7 @@ place in file_name where the suffix begins.
      suffix plus 1 for the delimiter, if required. */
   new_file_name_size = new_file_name_base_size + strlen(new_suffix) +
                        (sizeof_t)(suffix_delim_required ? 1 : 0);
-  if ((file_name == buffer && new_file_name_size > buffer_size) ||
+  if ((file_name == buffer && new_file_name_size > (sizeof_t)buffer_size) ||
       (file_name != buffer && new_file_name_size > curr_file_name_size)) {
 #if DEBUG
     if (debug_level >= 5) {
@@ -1045,7 +1045,7 @@ file should be a binary file if binary_file is TRUE.
 #if __MSDOS__
   /* Under MS-DOS we don't need to add a slash if the path already ends with
      a backslash. */
-  need_slash &&= (temp_dir[dir_len-1] != '\\');
+  if (need_slash && temp_dir[dir_len-1] != '\\') need_slash = TRUE;
 #endif /* __MSDOS__ */
   do {
     /* Put together the name dir + "/edg" + seed + "_" + process id.  See if
