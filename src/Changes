@@ -1,5 +1,19 @@
 Version 3.5
 
+6/21/04  Hidden name table performance improvement
+
+The hidden name table routines have been optimized to better handle
+class hierarchies that have a large number of identical injected class
+names.  This resulted in a 3-4X performance improvement for cases like the
+one below.
+
+  template< int i > struct A {int a;};
+  template< int i > struct B : B<i-1> , A< i> { int b; };
+  template<> struct B<0> { };
+  int main() {
+    B<60> b;
+  }
+
 6/21/04  Configuration option for accessibility on friend function declaration
 
 A new variable no_access_check_on_friend_declarator_ids now determines whether

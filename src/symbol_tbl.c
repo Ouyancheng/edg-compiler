@@ -9052,17 +9052,17 @@ fundamental symbol.  Return the preferred derivation of that base class.
 }  /* path_to_fundamental_symbol_base_class */
 
 
-static a_boolean equivalent_injected_class_symbols(a_symbol_ptr	sym1,
-						   a_symbol_ptr	sym2)
+static a_boolean injected_and_equiv_noninjected_symbol(a_symbol_ptr	sym1,
+						       a_symbol_ptr	sym2)
 /*
-Return TRUE if sym1 and sym2 refer to the same class ignoring whether
-one or both of the symbols is the injected class symbol.
+Return TRUE if either sym1 or sym2 is an injected class symbol, and the
+other is the non-injected version of the same class.
 */
 {
   a_boolean	result = FALSE;
 
-  if ((is_injected_class_symbol(sym1) && is_type_symbol(sym2)) ||
-      (is_injected_class_symbol(sym2) && is_type_symbol(sym1))) {
+  if (is_injected_class_symbol(sym1) != is_injected_class_symbol(sym2) &&
+      is_type_symbol(sym1) && is_type_symbol(sym2)) {
     /* Both symbols are types, and one is an injected class name.  See
        if they refer to the same type. */
     a_type_ptr	type1;
@@ -9072,7 +9072,7 @@ one or both of the symbols is the injected class symbol.
     result = identical_types(type1, type2);
   }  /* if */
   return result;
-}  /* equivalent_injected_class_symbols */
+}  /* injected_and_equiv_noninjected_symbol */
 
 
 static a_boolean progenitors_are_equivalent(a_progenitor_ptr  progenitor1,
@@ -9191,8 +9191,8 @@ check_rout_type:
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (equivalent_injected_class_symbols(fundamental_sym1,
-                                               fundamental_sym2)) {
+  } else if (injected_and_equiv_noninjected_symbol(fundamental_sym1,
+                                                    fundamental_sym2)) {
     /* One symbol is an injected class name and the other is the
        primary symbol for the same class. */
     equiv = TRUE;
