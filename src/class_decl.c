@@ -7433,6 +7433,18 @@ because they were used in declaring an external function or variable.
      the file scope. */
   scope = il_header.primary_scope;
   for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (tp->source_corresp.is_local_to_function) {
+      /* Local type, possibly promoted to file scope during IL lowering of a
+         routine.  Ignore it. */
+      continue;
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 3) {
+      fputs("file scope type: ", f_debug);
+      db_abbreviated_type(tp);
+      fputc('\n', f_debug);
+    }  /* if */
+#endif /* DEBUG */
     if (is_immediate_class_type(tp)) {
       /* Found a class. */
       if (is_candidate_for_linkage_change(tp)) {
@@ -7489,7 +7501,8 @@ because they were used in declaring an external function or variable.
        at routines and variables as soon as possible. */
     num_internally_linked_types = 0;
     for (tp = scope->types; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp) || is_immediate_enum_type(tp)) {
+      if (!tp->source_corresp.is_local_to_function &&
+          (is_immediate_class_type(tp) || is_immediate_enum_type(tp))) {
         if (is_candidate_for_linkage_change(tp)) {
           num_internally_linked_types++;
         }  /* if */
@@ -7502,8 +7515,10 @@ because they were used in declaring an external function or variable.
          reference to a class or enum type that is still marked as internally
          linked. */
       for (vp = scope->variables; vp != NULL; vp = vp->next) {
-        if (vp->storage_class != (a_storage_class)sc_static) {
+        if (vp->source_corresp.name_linkage ==
+                               (a_name_linkage_kind)nlk_cplusplus_external) {
           /* This is an externally linked variable.  Check its type. */
+          check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
           count = 0;
           check_type_for_linkage_change(vp->type, &count);
           /* "count" is returned as the number of internally linked classes
@@ -7520,8 +7535,10 @@ because they were used in declaring an external function or variable.
          Make a pass over the file scope routine entries similar to the one
          made for variables. */
       for (rp = scope->routines; rp != NULL; rp = rp->next) {
-        if (rp->storage_class != (a_storage_class)sc_static) {
+        if (rp->source_corresp.name_linkage ==
+                               (a_name_linkage_kind)nlk_cplusplus_external) {
           /* This is an externally linked routine.  Check its type. */
+          check_assertion(rp->source_corresp.class_of_which_a_member == NULL);
           count = 0;
           check_type_for_linkage_change(rp->type, &count);
           /* Again, we can bail out when the number of internally linked
