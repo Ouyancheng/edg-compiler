@@ -754,7 +754,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #ifdef CFE
           case sck_block:
-            walk_ptr(ptr->variant.parameter, a_variable_ptr, iek_variable);
+            walk_ptr(ptr->variant.assoc_handler, a_handler_ptr, iek_handler);
             /* Also see assoc_block below. */
             break;
           case sck_func_prototype:

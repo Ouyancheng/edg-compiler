@@ -2393,8 +2393,9 @@ Display the indicated scope.
 #ifdef CIL
     case sck_block:
       (void)printf("sck_block\n");
-      if (ptr->variant.parameter != NULL) {
-        disp_ptr("parameter", (char *)ptr->variant.parameter, iek_variable);
+      if (ptr->variant.assoc_handler != NULL) {
+        disp_ptr("assoc_handler", (char *)ptr->variant.assoc_handler,
+                 iek_handler);
       }  /* if */
       break;
     case sck_func_prototype:

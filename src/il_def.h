@@ -4265,13 +4265,11 @@ typedef struct a_scope {
 #endif /* ifdef FIL */
 #ifdef CIL
     /* When kind == sck_block (also see assoc_block below): */
-    a_variable_ptr
-		parameter;
-			/* When the scope is associated with a handler, a
-			   pointer to the handler's "parameter"; NULL when
-			   the handler is declared with an ellipsis as its
-			   exception declaration or when the block scope is
-			   not associated with a handler. */
+    a_handler_ptr
+		assoc_handler;
+			/* When the scope is associated with an exception
+			   handler, a pointer to the handler entry; otherwise
+			   NULL. */
     /* When kind == sck_func_prototype or sck_class_struct_union: */
     a_type_ptr	assoc_type;
 			/* The function type whose prototype scope this is,
