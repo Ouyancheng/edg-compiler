@@ -32,16 +32,6 @@ static void prep_conversion_operand(an_operand        *source_operand,
                                     a_boolean         is_copy_initialization,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
-static a_boolean conversion_to_class_possible(
-                            an_operand               *source_operand,
-                            a_type_ptr               dest_type,
-                            a_boolean                try_bitwise_copy,
-                            a_boolean                is_copy_initialization,
-                            a_boolean                is_reference_binding,
-                            a_conv_descr             *conversion,
-                            a_conv_descr             *ctor_arg_conversion,
-                            a_boolean                *ambiguous,
-                            a_candidate_function_ptr *ambiguity_list);
 static a_boolean operand_is_temp_init(an_operand *operand);
 
 
@@ -7292,7 +7282,7 @@ functions could still apply).
 }  /* check_for_operator_overloading */
 
 
-static a_boolean conversion_to_class_possible(
+a_boolean conversion_to_class_possible(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
                             a_boolean                try_bitwise_copy,

@@ -107,6 +107,14 @@ extern a_boolean scan_class_initializer_expression(
                                               a_boolean          fill_in_dtor,
                                               a_dynamic_init_ptr *dip);
 
+extern a_boolean scan_aggregate_class_initializer_expression(
+                                            a_type_ptr         required_type,
+                                            a_boolean          static_lifetime,
+                                            unsigned long      *levels_down,
+                                            a_boolean          *is_constant,
+                                            a_dynamic_init_ptr *dip,
+                                            a_constant         *constant);
+
 extern void scan_class_parenthesized_initializer(
                                       a_type_ptr         class_type,
                                       a_type_ptr         object_class_type,

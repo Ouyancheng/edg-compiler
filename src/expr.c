@@ -11997,7 +11997,8 @@ it is direct_initialization ("()"-form).  The expression can be constant
 or nonconstant; on return, *is_constant is set accordingly, and the result
 is returned either in *expression or in *constant.  Note that the
 required_type may not be an array type.  This routine is not used when
-copy constructor elision is possible; see scan_class_initializer_expression.
+copy constructor elision is possible; see scan_class_initializer_expression
+and scan_aggregate_class_initializer_expression.
 */
 {
   an_operand          result;
@@ -12152,6 +12153,128 @@ will be indicated in the dynamic initialization.
   db_exit();
   return okay;
 }  /* scan_class_initializer_expression */
+
+
+a_boolean scan_aggregate_class_initializer_expression(
+                                            a_type_ptr         required_type,
+                                            a_boolean          static_lifetime,
+                                            unsigned long      *levels_down,
+                                            a_boolean          *is_constant,
+                                            a_dynamic_init_ptr *dip,
+                                            a_constant         *constant)
+/*
+Scan an expression that is the initial value of an entity of aggregate
+class type.  required_type indicates the class type (it may have some
+qualifiers on top of it).  This is copy-initialization.  static_lifetime
+is TRUE if the variable being initialized has static lifetime.  Either
+create a dynamic initialization entry and return a pointer to it in
+*dip (along with *is_constant FALSE), or set *constant to a constant
+value (along with *is_constant TRUE).
+
+The initializer for an aggregate class can initialize either the whole
+class or the first member of the class (or its first member, etc.).
+This routine compares the type of the initializer expression to the
+type of the class, then its first member, etc. to determine which
+entity should be initialized.  *levels_down is set to indicate the
+number of levels down at which the expression was matched up (zero
+indicates the aggregate class itself).  The initializer expression
+undergoes appropriate conversions to make it match up with the
+entity being initialized.  If the conversion cannot be done, an
+error is issued and FALSE is returned.
+
+This routine is called to initialize a sub-aggregate, so the destructor
+pointer in the dynamic initialization is not set.  The caller must set
+it to indicate destruction for a partially-constructed aggregate (on
+a thrown exception) if that is appropriate.
+*/
+{
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
+  a_boolean           okay = TRUE, ambiguous;
+  a_conv_descr        conversion;
+
+  db_enter(3, "scan_aggregate_class_initializer_expression");
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Scan the expression. */
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  *is_constant = FALSE;
+  *levels_down = 0;
+  /* See whether the expression can initialize the aggregate class.  If not,
+     go down to the first member of the class and try again.  Loop until the
+     right level is found or until we can go no further. */
+  while (is_class_struct_union_type(required_type) &&
+         symbol_supplement_for_class(required_type)->is_class_aggregate) {
+    a_field_ptr first_field = next_initializable_field(
+                                   skip_typerefs(required_type)->
+                                        variant.class_struct_union.field_list);
+    /* Stop looping if the aggregate class has no members. */
+    if (first_field == NULL) break;
+    /* See whether the expression can be converted to the aggregate class
+       type. */
+    if (conversion_to_class_possible(&result,
+                                     required_type,
+                                     /*try_bitwise_copy=*/TRUE,
+                                     /*is_copy_initialization=*/TRUE,
+                                     /*is_reference_binding=*/FALSE,
+                                     &conversion,
+                                     (a_conv_descr *)NULL,
+                                     &ambiguous,
+                                     (a_candidate_function_ptr *)NULL) ||
+        ambiguous) break;
+    /* Go down to the first member. */
+    required_type = first_field->type;
+    (*levels_down)++;
+  }  /* while */
+  if (is_class_struct_union(required_type)) {
+    /* The entity being initialized has a class type. */
+    /* Build a dynamic initialization entry to describe the initialization. */
+    prep_elision_initializer_operand(&result, required_type,
+                                     /*fill_in_dtor=*/FALSE,
+                                     ec_bad_initializer_type, dip);
+    wrap_up_dynamic_init_full_expression(*dip);
+    /* *dip == NULL means there was an error. */
+    if (*dip == NULL) okay = FALSE;
+  } else {
+    /* The entity being initialized has a non-class type. */
+    /* Convert to the required type. */
+    prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+                             /*initializing_return_value=*/FALSE,
+                             /*initializing_variable=*/TRUE,
+                             static_lifetime,
+                             /*is_copy_initialization=*/TRUE,
+                             ec_bad_initializer_type);
+    switch (result.kind) {
+      case ok_error:
+        /* Some sort of error; message was already issued. */
+        okay = FALSE;
+        discard_curr_expr_object_lifetime();
+        break;
+      case ok_expression:
+        { an_expr_node_ptr expr = result.variant.expression;
+          expr = wrap_up_full_expression(expr);
+          *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+          (*dip)->variant.expression = expr;
+        }
+        break;
+      case ok_constant:
+        copy_constant(&result.variant.constant, constant);
+        *is_constant = TRUE;
+        break;
+      default:
+        unexpected_condition_str(
+              "scan_aggregate_class_initializer_expression: bad operand kind");
+    }  /* switch */
+  }  /* if */
+  pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  db_exit();
+  return okay;
+}  /* scan_aggregate_class_initializer_expression */
 
 
 void scan_class_parenthesized_initializer(
