@@ -84,16 +84,6 @@ function body was eliminated because it was unneeded, it sometimes
 happened that the out-of-class definition was turned into a declaration
 instead of being cleared completely.  Now fixed.
 
-7/29/98   Warning on negation of unsigned quantity
-
-A warning is now issued when a unary "-" is applied to an expression
-of an unsigned integral type.  This helps with troublesome code like
-the following:
-
-  #define MIN_INT (-2147483648)  // This shouldn't be done this way --
-                                 // the type ends up unsigned
-  double x = MIN_INT;
-
 7/28/98   C++-generating back end: missing namespace qualifier on function
           reference
 
