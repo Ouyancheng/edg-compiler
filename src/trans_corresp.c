@@ -4153,6 +4153,9 @@ entities.
     handled_later = TRUE;
   } else if (!has_name(type)) {
     /* Cannot establish a correspondence without a name. */
+  } else if (C_mode()) {
+    /* In C, types have no correspondence unless they're involved in
+       the declaration of entities with linkage. */
   } else if (type_sym != NULL && may_have_correspondence(type_sym)) {
     a_boolean  corresp_found = FALSE;
     a_translation_unit_ptr
