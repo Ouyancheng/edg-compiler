@@ -3226,17 +3226,13 @@ caller is responsible for sorting that out.)
       }  /* if */
       /* Link the routine type and the prototype scope entry to each other. */
       routine_type = ssep->assoc_type;
-#if CHECKING
-      if (routine_type == NULL) {
-        internal_error("add_to_types_list: routine_type is NULL");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(routine_type != NULL,
+                          "ensure_il_scope_exists: routine_type is NULL");
       routine_type->variant.routine.extra_info->prototype_scope = sp;
       sp->variant.assoc_type = routine_type;
-#if CHECKING
-    } else if (ssep->kind != (a_scope_kind)sck_pragma) {
-      internal_error("ensure_il_scope_exists: NULL IL scope");
-#endif /* CHECKING */
+    } else {
+      check_assertion_str(ssep->kind == (a_scope_kind)sck_pragma,
+                          "ensure_il_scope_exists: NULL IL scope");
     }  /* if */
     /* Set the scope-stack-entry depth. */
     sp->depth_in_scope_stack = (scope_stack - ssep);
