@@ -9781,8 +9781,15 @@ cases where bitwise copying applies.
          assignment operator whose parameter is a reference to const.
          Process the source operand as if it will be bound to such a
          reference. */
+      a_type_qualifier_set ref_qualifiers = TQ_CONST;
+#if NEAR_AND_FAR_ALLOWED
+      if (near_and_far_enabled()) {
+        /* Allow a "far" object to be copied. */
+        if (is_far_type(source_operand->type)) ref_qualifiers |= TQ_FAR ;
+      }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
       param_type = make_reference_type(make_qualified_type(class_type,
-                                                           TQ_CONST));
+                                                           ref_qualifiers));
       prep_reference_initializer_operand(source_operand, param_type,
                                          (a_conv_descr_ptr)NULL,
                                          /*initializing_return_value=*/FALSE,

@@ -1,5 +1,12 @@
 Version 2.41
 
+2/23/99  near/far support: assignment of class object declared "far"
+
+When near/far support is enabled (e.g., in Microsoft 16-bit mode),
+an object of a class type declared "far" can now be assigned.
+Formerly, the simulation of the default operator= rejected such
+an assignment.
+
 2/23/99  On exception in constructor, destroy virtual base class only if
          constructed
 
