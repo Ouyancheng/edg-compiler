@@ -2509,6 +2509,8 @@ symbol must be added to the inactive list.
           /* If this is a symbol from another scope (which can only occur
              when adding to a namespace extension scope) skip this symbol. */
           if (old_sym_ptr->decl_scope != scope_number) continue;
+          /* Ignore synthesized namespace projection symbols. */
+          if (old_sym_ptr->synthesized_namespace_projection) continue;
           if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
                                                          sym_name_space_kind) {
             /* Two declarations in the same name space in the same scope:
