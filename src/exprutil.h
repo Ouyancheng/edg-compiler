@@ -92,6 +92,10 @@ enum an_operand_kind_tag {
 			/* A function name that's not fully discriminated yet,
 			   i.e., a C++ overloaded function.  Has very limited
 			   lifetime. */
+  ok_sym_for_ptr_to_member,
+			/* A qualified name symbol preserved so that its
+			   address can be taken as a pointer-to-member.
+			   Has very limited lifetime. */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
 			   declaration or a genuine undefined symbol.
@@ -114,8 +118,9 @@ typedef a_byte an_operand_state;
    routines: */
 typedef struct an_operand {
   a_type_ptr    type;
-			/* Type of this operand.  NULL for ok_undefined_symbol
-			   and ok_indefinite_function. */
+			/* Type of this operand.  NULL for ok_undefined_symbol,
+			   ok_indefinite_function, and
+			   ok_sym_for_ptr_to_member. */
   an_operand_kind
 		kind;
 			/* The kind of operand. */
@@ -152,7 +157,8 @@ typedef struct an_operand {
 		expression;
     /* When kind == ok_constant: */
     a_constant	constant;
-    /* When kind == ok_indefinite_function or ok_undefined_symbol: */
+    /* When kind == ok_indefinite_function, ok_sym_for_ptr_to_member, or
+       ok_undefined_symbol: */
     a_symbol_ptr
 		symbol;
 			/* Pointer to the symbol. */
@@ -248,6 +254,12 @@ Macro that is TRUE if the operand is an indefinite function operand.
 */
 #define is_indefinite_function_operand(operand)				\
 	((operand)->kind == (an_operand_kind)ok_indefinite_function)
+
+/*
+Macro that is TRUE if the operand is a qualified member name operand.
+*/
+#define is_sym_for_ptr_to_member_operand(operand)			\
+	((operand)->kind == (an_operand_kind)ok_sym_for_ptr_to_member)
 
 /*
 Macro that is TRUE if the operand is an lvalue.  Note that this isn't
@@ -363,6 +375,9 @@ extern void make_lvalue_variable_operand(a_variable_ptr    variable,
 extern void make_rvalue_variable_operand(a_variable_ptr variable,
                                          an_operand     *result);
 
+extern void make_ptr_to_member_constant_operand(a_symbol_ptr member_proj_sym,
+                                                an_operand   *result);
+
 extern a_boolean check_object_pointer_operand(an_operand    *operand,
                                               an_error_code err_code);
 
@@ -407,6 +422,10 @@ extern void make_expression_operand(an_expr_node_ptr node,
 
 extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
                                              an_operand   *operand);
+
+extern void make_sym_for_ptr_to_member_operand(a_symbol_ptr      member_sym,
+                                               an_xref_entry_ptr xep,
+                                               an_operand        *operand);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
