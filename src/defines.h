@@ -88,9 +88,11 @@ Flags to be set when using the KAI inliner.
 
 /* Assume we are generate code for gcc when being compiled by gcc or
    codecenter. */
-#if defined(__GNUC__) || defined(__CENTERLINE__)
+#ifndef CP_GEN_BE_VERSION
+#if (defined(__GNUC__) || defined(__CENTERLINE__))
 #define GCC_IS_GENERATED_CODE_TARGET 1
 #endif /* defined(__GNUC__) || defined(__CENTERLINE__) */
+#endif /* ifndef CP_GEN_BE_VERSION */
 
 #ifndef SUN_TEST_VERSION
 #define SUN_TEST_VERSION 1
