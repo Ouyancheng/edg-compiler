@@ -7244,7 +7244,7 @@ specific information about the member declaration, respectively.
     if (decl_info->decl_modifiers.allocate_segname != NULL) {
       /* Only allowed for variables with static storage duration. */
       pos_error(ec_declspec_allocate_not_allowed, &locator->source_position);
-  }  /* if */
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Remember if any member of the class, struct, or union is const-
