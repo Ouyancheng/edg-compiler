@@ -569,9 +569,6 @@ extern void make_lvalue_variable_operand(a_variable_ptr    variable,
 extern void make_rvalue_variable_operand(a_variable_ptr variable,
                                          an_operand     *result);
 
-extern void mark_routine_referenced(a_routine_ptr     routine,
-                                    a_source_position *position);
-
 extern void make_ptr_to_member_constant_operand(
                                          a_symbol_ptr      member_proj_sym,
                                          a_source_position *position,
