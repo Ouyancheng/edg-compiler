@@ -32,7 +32,7 @@ typedef int	a_scope_depth;
 #define DEPTH_OF_FILE_SCOPE 0
 
 /*
-Options for normal_id_lookup, scope_qualified_id_lookup, etc.,
+Options for normal_id_lookup, class_qualified_id_lookup, etc.,
 represented as a bit set:
 */
 typedef int an_id_lookup_options_set;
