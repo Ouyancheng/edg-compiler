@@ -1250,6 +1250,7 @@ process_option()
           --diag_error=* | \
           --microsoft_version=* | \
           --pending_instantiations=* | \
+          --preinclude* | \
           --preinclude_macros=* | \
           --sys_include=* | \
           --time_limit=* | \
