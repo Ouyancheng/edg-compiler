@@ -2872,6 +2872,7 @@ confusion.  Do the output in the way described by octl.
             octl->output_str("&");
           }  /* if */
           /*FALLTHROUGH*/
+        case tpck_unknown_function:
         case tpck_param:
           form_name(&constant->source_corresp, iek_constant, octl);
           break;

@@ -3488,6 +3488,12 @@ nonidentical.
                     cp1->variant.template_param.variant.is_address ==
                     cp2->variant.template_param.variant.is_address);
               break;
+            case tpck_unknown_function:
+              check_assertion(cp1->source_corresp.assoc_info != NULL);
+              check_assertion(cp2->source_corresp.assoc_info != NULL);
+              eq = (cp1->source_corresp.assoc_info ==
+                    cp2->source_corresp.assoc_info);
+              break;
             case tpck_cast:
               eq = compare_constants(cp1->variant.template_param.variant.
                                                                       constant,
@@ -7676,6 +7682,7 @@ in doing substitution on a type), set *copy_error to TRUE.
            earlier, simply leave it unsubstituted for now.  The parent
            type substitution may be attempted again later. */
         break;
+      case tpck_unknown_function:
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */
