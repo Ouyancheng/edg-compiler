@@ -1234,6 +1234,8 @@ enabled.
 #if DEFAULT_MICROSOFT_MODE
 #ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
+#else /* defined(DEFAULT_DIALECT_SET) */
+ #error -- Cannot set multiple exclusive dialects as defaults
 #endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_MICROSOFT_MODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1241,18 +1243,18 @@ enabled.
 #if DEFAULT_SUN_COMPATIBILITY
 #ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
+#else /* defined(DEFAULT_DIALECT_SET) */
+ #error -- Cannot set multiple exclusive dialects as defaults
 #endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_SUN_COMPATIBILITY */
 
 #if DEFAULT_GCC_COMPATIBILITY
 #ifndef DEFAULT_DIALECT_SET
 #define DEFAULT_DIALECT_SET TRUE
+#else /* defined(DEFAULT_DIALECT_SET) */
+ #error -- Cannot set multiple exclusive dialects as defaults
 #endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_GCC_COMPATIBILITY */
-
-#ifdef DEFAULT_DIALECT_SET
- #error -- Cannot set multiple exclusive dialects as defaults
-#endif /* ifdef DEFAULT_DIALECT_SET */
 
 #endif /* ifndef LANG_FEAT_H */
 
