@@ -1094,7 +1094,7 @@ scope is that of a class definition.
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
                              func_info, param_ssep, &last_param_id);
-#if ABI_COMPATIBILITY_VERSION > 228
+#if REMOVE_QUALIFIERS_FROM_PARAM_TYPES
         /* Note: whether to remove top-level qualifiers is sensitive to the
            ABI version because qualifiers are reflected in mangled names. */
         if (!C_mode()) {
@@ -1104,7 +1104,7 @@ scope is that of a class definition.
              they were not removed before add_to_param_id_list was called. */
           param_type_ptr = make_unqualified_type(param_type_ptr);
         }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION > 228 */
+#endif /* REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
         ptp = make_param_type(param_type_ptr, &param_type_pos);

@@ -4078,7 +4078,7 @@ make_new_comp_type:
           check_assertion(ptp2 == NULL || ptp2->passed_via_copy_constructor);
           new_ptp->passed_via_copy_constructor = TRUE;
         }  /* if */
-#if ABI_COMPATIBILITY_VERSION > 228
+#if REMOVE_QUALIFIERS_FROM_PARAM_TYPES
         if (ptp1->qualifiers != TQ_NONE) {
           /* If the "qualifiers" carried around by the two param-type
              entries are not identical, then one or the other should be
@@ -4089,7 +4089,7 @@ make_new_comp_type:
         } else if (ptp2 != NULL) {
           new_ptp->qualifiers = ptp2->qualifiers;
         }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION > 228 */
+#endif /* REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
       }  /* if */
       /* Add the parameter type entry to the end of the list. */
       if (rtsp->param_type_list == NULL) {
