@@ -12354,6 +12354,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_typename:
     case tok_throw:
     case tok_generic:
+    case tok_null:
       is_expr_start = TRUE;
       break;
     default:

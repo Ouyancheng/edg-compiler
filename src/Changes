@@ -1,5 +1,12 @@
 Version 3.2
 
+2/3/03   GNU C++ mode: disambiguation problem with __null
+
+As a result of a disambiguation problem, a spurious error was issued
+on declarations such as this one.  This has been fixed.
+
+  extern int f(int, void (*fp)(int) = (void (*)(int)) __null);
+
 2/1/03   Abort in src_seq.c in C mode
 
 An abort in src_seq.c (in src_seq_check_for_non_autonomous_tag) has
