@@ -4926,11 +4926,6 @@ and function-to-pointer decay are not considered.
 #endif /* DO_IL_LOWERING */
       !is_class_struct_union_type(type)) {
     type = make_unqualified_type(type);
-#if 0
-#else /* 0 */
-  } else {
-    type = make_unqualified_type(type);
-#endif /* 0 */
   }  /* if */
   return type;
 }  /* rvalue_type */

@@ -491,9 +491,12 @@ type is legal.
           promote_float_to_double(new_type_ptr);
         }  /* if */
         if (is_qualified_type(new_type_ptr) &&
-            !is_reference_type(new_type_ptr)) {
+            !is_reference_type(new_type_ptr) &&
+            (C_mode() || !is_class_struct_union_type(new_type_ptr))) {
           /* Except for "restrict", type qualifiers on a function return
-             type are meaningless. */
+             type are meaningless.  In C++ mode, class rvalues can have
+             type qualifiers, so allow a function returning a qualified class
+             type. */
           if (is_void_type(skip_typerefs(new_type_ptr))) {
             /* Issue just a remark for "volatile void" -- gcc uses that to
                indicate a function (like exit()) that does not return.  Also

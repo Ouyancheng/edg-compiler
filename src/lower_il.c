@@ -6412,6 +6412,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   unsigned int          is_lvalue_mask, is_bool_controlling_expr_mask;
 
   lower_os_type(expr->type);
+  if (is_qualified_type(expr->type)) {
+    /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
+       rvalues retain their type qualifiers, but in C they do not. */
+    expr->type = make_unqualified_type(expr->type);
+  }  /* if */
   switch (expr->kind) {
     case enk_routine_address:
     case enk_field:

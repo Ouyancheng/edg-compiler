@@ -5108,8 +5108,13 @@ source position of the type.
   if (!err) {
     /* Casting to a qualified type, though valid, is pointless. */
     if (is_qualified_type(type_cast_to)) {
-      warning(ec_cast_to_qualified_type);
-      *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
+      if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
+        /* In C++ class rvalues can have qualifiers, so casting to a
+           cv-qualified class type is okay. */
+      } else {
+        warning(ec_cast_to_qualified_type);
+        *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
+      }  /* if */
     }  /* if */
     /* Determine whether or not the cast is to a pointer-to-function type
        (this is needed in C++ to allow the anachronism of casting a bound
