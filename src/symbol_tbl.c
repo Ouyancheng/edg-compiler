@@ -8204,6 +8204,9 @@ return NULL.
 }  /* param_id_on_list */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/* ARGSUSED */ /* <-- param_ssep is only used with source sequence lists. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void add_to_param_id_list(a_symbol_locator            *locator,
                           a_type_ptr                  type_ptr,
                           a_source_position           *type_pos,
@@ -8272,7 +8275,9 @@ storage_class are the type and storage class for the parameter.
       sym->variant.param_id = new_param_id;
       set_decl_sequence_number(sym);
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     new_param_id->source_sequence_entry = param_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Put this entry on the end of the list of param ids. */
     if (func_info->param_id_list == NULL) {
       func_info->param_id_list = new_param_id;
