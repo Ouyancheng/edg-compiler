@@ -11906,7 +11906,8 @@ returned instead of the unqualified function name.
     name_string->variant.string.length = length;
     name_string->variant.string.value =
                                alloc_text_of_string_literal((sizeof_t)length);
-    (void)memcpy(name_string->variant.string.value, name_ptr, length);
+    (void)memcpy(name_string->variant.string.value, name_ptr,
+                 size_t_arg(length));
     /* Create the local static const array and initialize it with the
        string constant. */
     name_var = make_variable(name_string->type, (a_storage_class)sc_static,
