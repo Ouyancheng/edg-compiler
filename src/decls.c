@@ -3161,7 +3161,9 @@ associated sk_external_variable or sk_external_routine symbol, if any.
     if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
       scp->name_linkage = idlbp->name_linkage;
       sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
-      ext_sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
+      if (ext_sym != NULL) {
+        ext_sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
+      }  /* if */
     } else {
       err = FALSE;
       if (scp->name_linkage == idlbp->name_linkage) {
