@@ -1,5 +1,20 @@
 Version 3.3
 
+5/28/03  Template template parameters with dependent default values
+
+In certain cases, a template template parameter with a default value
+that depended on another template parameter of the template did not
+work properly.  This has been fixed.
+
+  template <class T> struct A {};
+  template <class T, class U = A<T> > struct B {};
+  template<class T, template<class U, class = A<U> > class TT>
+  void f(TT<T>& tt) { }
+  int main() {
+    B<int> v;
+    f(v);  // formerly 'no instance of "f" matches the argument list'
+  }
+
 5/27/03  Problem with comparisons of nesting depths of template template
          parameters
 
@@ -9,9 +24,9 @@ of a nonreal class for a template parameter that has a different nesting
 depth.  In the example below, this would result in B<U> being treated as
 B<T>.  Now fixed.
 
-  template <class T> struct B {};
-  template <class T, class U = B<T> > struct A {};
-  template<class T, template<class U, class V = B<U> > class TT> void f(TT<T>);
+  template <class T> struct A {};
+  template <class T, class U = A<T> > struct B {};
+  template<class T, template<class U, class V = A<U> > class TT> void f(TT<T>);
 
 5/24/03  Warning for nonstandard conversion between pointer to function
          and pointer to data

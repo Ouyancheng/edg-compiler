@@ -1090,6 +1090,15 @@ extern void push_template_instantiation_scope(
 			    a_boolean			push_stop_tokens,
 			    a_push_scope_options_set	options);
 
+extern void push_instantiation_scope_for_templ_param_rescan(
+                            a_template_decl_info_ptr	decl_info,
+                            a_type_ptr			assoc_type,
+                            a_routine_ptr		assoc_routine,
+                            a_symbol_ptr		instance_sym,
+                            a_symbol_ptr		template_sym,
+                            a_template_arg_ptr		template_arg_list,
+			    a_push_scope_options_set	ps_options);
+
 extern void pop_template_instantiation_scope(void);
 
 extern void finish_function_body_processing(a_scope_ptr scope,

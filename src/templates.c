@@ -12504,12 +12504,12 @@ the resulting constant is stored in the pointer pointed to by "constant".
          passed to push_scope is NULL because we don't yet know which instance
          is being instantiated.  Also note that a class type is not being
          passed for the same reason. */
-      push_template_instantiation_scope(param_ptr->cache.decl_info,
+      push_instantiation_scope_for_templ_param_rescan(
+				        param_ptr->cache.decl_info,
   				        (a_type_ptr)NULL,
 				        (a_routine_ptr)NULL,
 				        (a_symbol_ptr)NULL,
 				        template_sym, arg_list,
-                                        /*push_stop_tokens=*/TRUE,
 				        ps_options);
       /* Rescan the tokens of the function declaration. */
       rescan_reusable_cache(&param_ptr->cache.tokens);
@@ -12545,12 +12545,12 @@ the resulting constant is stored in the pointer pointed to by "constant".
         /* Push the template instantiation scope.  See note above regarding
            the instance symbol and class type. */
         tcp = &param_ptr->default_arg_cache;
-        push_template_instantiation_scope(tcp->decl_info,
+        push_instantiation_scope_for_templ_param_rescan(
+                                          tcp->decl_info,
 					  (a_type_ptr)NULL,
 				  	  (a_routine_ptr)NULL,
 				 	  (a_symbol_ptr)NULL,
 					  template_sym, arg_list,
-                                          /*push_stop_tokens=*/TRUE,
 					  ps_options);
         rescan_reusable_cache(&tcp->tokens);
         arg_pos = pos_curr_token;
@@ -12645,12 +12645,12 @@ template parameters that depend on other template parameters.
        passed to push_scope is NULL because we don't yet know which instance
        is being instantiated.  Also note that a class type is not being
        passed for the same reason. */
-    push_template_instantiation_scope(param_ptr->cache.decl_info,
+    push_instantiation_scope_for_templ_param_rescan(
+					param_ptr->cache.decl_info,
 				        (a_type_ptr)NULL,
 				        (a_routine_ptr)NULL,
 				        (a_symbol_ptr)NULL,
 				        template_sym, arg_list,
-                                        /*push_stop_tokens=*/TRUE,
 				        ps_options);
     /* Rescan the tokens of the template template parameter declaration. */
     rescan_reusable_cache(&param_ptr->cache.tokens);
@@ -12728,12 +12728,12 @@ existing type is simply used.
          is being instantiated.  Also note that a class type is not being
          passed for the same reason. */
       tcp = &param_ptr->default_arg_cache;
-      push_template_instantiation_scope(tcp->decl_info,
+      push_instantiation_scope_for_templ_param_rescan(
+                                        tcp->decl_info,
                                         (a_type_ptr)NULL,
 				        (a_routine_ptr)NULL,
 				        (a_symbol_ptr)NULL,
 				        template_sym, arg_list,
-                                        /*push_stop_tokens=*/TRUE,
 					ps_options);
       saved_pos_curr_token = pos_curr_token;
       saved_error_position = error_position;
@@ -12794,12 +12794,12 @@ existing type is simply used.
     /* If the argument list is dependent, flag this as a nonreal
        instantiation. */
     if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
-    push_template_instantiation_scope(tcp->decl_info,
+    push_instantiation_scope_for_templ_param_rescan(
+				      tcp->decl_info,
                                       (a_type_ptr)NULL,
 				      (a_routine_ptr)NULL,
 				      (a_symbol_ptr)NULL,
 				      template_sym, arg_list,
-                                      /*push_stop_tokens=*/TRUE,
 				      ps_options);
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;

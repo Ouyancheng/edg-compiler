@@ -3032,6 +3032,52 @@ template_sym is the template that is being instantiated.
 }  /* is_nested_in_prototype_instantiation */
 
 
+void push_instantiation_scope_for_templ_param_rescan(
+                            a_template_decl_info_ptr	decl_info,
+                            a_type_ptr			assoc_type,
+                            a_routine_ptr		assoc_routine,
+                            a_symbol_ptr		instance_sym,
+                            a_symbol_ptr		template_sym,
+                            a_template_arg_ptr		template_arg_list,
+			    a_push_scope_options_set	ps_options)
+/*
+Push an instantiation scope for rescanning a portion of a template
+parameter list.  For most templates, a normal instantiation scope is
+pushed.  But for a template template parameter, the previous lookup
+scope of the instantiation scope is set to the scope in which the
+template template parameter was declared.  This will be either a
+template declaration scope or a template instantiation scope.
+*/
+{
+  a_template_symbol_supplement_ptr tssp;
+
+  tssp = template_sym->variant.template_info;
+  if (tssp->variant.class_template.template_template_param) {
+    a_boolean			is_local_to_function = FALSE;
+    a_scope_depth		depth;
+    depth = scope_depth_of_symbol(template_sym, &is_local_to_function);
+    check_assertion(depth != NO_SCOPE_DEPTH);
+    push_simple_instantiation_scope(decl_info,
+				    assoc_type,
+				    assoc_routine,
+				    instance_sym,
+				    template_sym,
+				    template_arg_list,
+				    ps_options);
+    scope_stack[depth_scope_stack].previous_scope = depth;
+  } else {
+    push_template_instantiation_scope(decl_info,
+				      assoc_type,
+				      assoc_routine,
+				      instance_sym,
+				      template_sym,
+				      template_arg_list,
+				      /*push_stop_tokens=*/TRUE,
+				      ps_options);
+  }  /* if */
+}  /* push_instantiation_scope_for_templ_param_rescan */
+
+
 void push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,

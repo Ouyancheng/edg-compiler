@@ -9434,38 +9434,6 @@ done using the disambiguation routines.
 }  /* scan_unknown_template_arg_list */
 
 
-static a_boolean is_template_template_param_of_current_decl(
-					a_symbol_ptr	template_sym)
-/*
-Determine whether the template template parameter specified by template_sym
-was declared by a template declaration scope currently on the scope stack.
-*/
-{
-  a_boolean	result = FALSE;
-  a_boolean	is_local_to_function = FALSE;
-  a_scope_depth	depth;
-
-  depth = scope_depth_of_symbol(template_sym, &is_local_to_function);
-  if (depth != NO_SCOPE_DEPTH) {
-    a_scope_stack_entry_ptr	ssep = &scope_stack[depth];
-    if (ssep->kind == (a_scope_kind)sck_template_declaration) {
-      result = TRUE;
-    } else if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
-               ssep->in_prototype_instantiation) {
-      /* We also return TRUE for template template parameters of prototype
-         instantiations. */
-      result = TRUE;
-    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-               ssep->in_prototype_instantiation) {
-      /* We also return TRUE for class templates declared in prototype
-         instantiations. */
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_template_template_param_of_current_decl */
-
-
 static
 a_template_arg_ptr scan_template_argument_list(a_symbol_ptr	template_sym,
 					       a_boolean        *any_errors)
@@ -9491,7 +9459,7 @@ this routine.  Its value is unchanged if no errors are detected.
   a_templ_arg_kind		   arg_kind;
   a_template_decl_info_ptr	   decl_info;
   a_template_symbol_supplement_ptr tssp;
-  a_boolean			   templ_templ_param_of_curr_decl = FALSE;
+  a_boolean			   template_in_prototype_instantiation = FALSE;
 
   tssp = template_sym->variant.template_info;
   decl_info = tssp->cache.decl_info;
@@ -9499,11 +9467,14 @@ this routine.  Its value is unchanged if no errors are detected.
   /* Indicate that this is an error case if the template has any empty
      parameter list. */
   if (param_ptr == NULL) *any_errors = TRUE;
-  /* Determine whether the declaration for the template is still on the scope
-     stack as either a template declaration or prototype instantiation.
-     Such cases must be handled specially for rescanning purposes. */
-  templ_templ_param_of_curr_decl =
-                     is_template_template_param_of_current_decl(template_sym);
+  /* Determine whether this is a template declared within a prototype
+     instantiation.  Such cases must be handled specially for rescanning
+     purposes. */
+  if (template_sym->is_class_member &&
+      template_sym->parent.class_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+    template_in_prototype_instantiation = TRUE;
+  }  /* if */
   if (tssp->variant.class_template.template_template_param) {
     a_template_ptr			subst_param_templ;
     a_template_symbol_supplement_ptr	subst_param_tssp;
@@ -9559,7 +9530,7 @@ this routine.  Its value is unchanged if no errors are detected.
          rescan the declaration of the parameter type to get the type
          to be used in this argument list. */
       if (param_ptr->variant.constant.type_involves_template_param &&
-          !templ_templ_param_of_curr_decl) {
+          !template_in_prototype_instantiation) {
 	constant_type = rescan_template_constant_parameter(
                               template_sym, sym, param_ptr, arg_list,
                               /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
@@ -9583,7 +9554,7 @@ this routine.  Its value is unchanged if no errors are detected.
       param_template = param_ptr->variant.templ->il_template_entry;
       if (param_ptr->variant.templ->
                               variant.class_template.involves_template_param &&
-          !templ_templ_param_of_curr_decl) {
+          !template_in_prototype_instantiation) {
         /* The template template parameter depends on another template
            parameter (e.g., "template <class T, template <T t> class X> ...").
            Rescan the template template parameter declaration to create a new
@@ -9620,7 +9591,7 @@ this routine.  Its value is unchanged if no errors are detected.
           if (param_ptr->has_default_arg) {
             /* A type parameter with a default value.  The default can be
 	       either a type or a token cache that needs to be scanned. */
-            if (!templ_templ_param_of_curr_decl) {
+            if (!template_in_prototype_instantiation) {
               arg_ptr->variant.type =
                      rescan_template_type_default_arg(template_sym,
                                                       param_ptr, arg_list);
@@ -9635,7 +9606,7 @@ this routine.  Its value is unchanged if no errors are detected.
         } else if (is_template_templ_arg(arg_ptr)) {
           /* A template template argument. */
           if (param_ptr->has_default_arg) {
-            if (!templ_templ_param_of_curr_decl) {
+            if (!template_in_prototype_instantiation) {
               /* A type parameter with a default value.  The default can be
                  either a type or a token cache that needs to be scanned. */
               arg_ptr->variant.templ.ptr =
@@ -9656,7 +9627,7 @@ this routine.  Its value is unchanged if no errors are detected.
           /* A nontype argument. */
           check_assertion(is_nontype_templ_arg(arg_ptr));
 	  if (param_ptr->has_default_arg) {
-            if (!templ_templ_param_of_curr_decl) {
+            if (!template_in_prototype_instantiation) {
               /* A constant parameter.  The default value can be either a
 	         constant value or a token cache that needs to be scanned.
                  Call a routine that will rescan the type declaration and/or
