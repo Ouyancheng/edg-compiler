@@ -2661,6 +2661,12 @@ skip_overloading:;
                    &locator->source_position, sym);
     }  /* if */
   }  /* if */
+  if (linkage != idl_none) {
+    /* In case this is a block extern declaration, clear the
+       is_local_to_function flag -- it will have been set based on scope
+       alone in set_source_corresp. */
+    source_corresp_ptr->is_local_to_function = FALSE;
+  }  /* if */
   if (linkage == idl_external) {
     /* Indicate in the IL entry that the name is externally visible by
        assigning the external linkage kind that is the default for the current
