@@ -3412,35 +3412,6 @@ code is needed, insert it at *insert_location.
 }  /* add_local_static_guard_var_cleanup */
 
 
-static void remove_local_static_guard_var_cleanup(
-                                  an_object_lifetime_ptr local_static_lifetime,
-                                  an_insert_location_ptr insert_location)
-/*
-Remove the region table entry for the clearing of the guard variable for
-a local static initialization from the cleanup list.  See
-add_local_static_guard_var_cleanup.  local_static_lifetime is the
-object lifetime that surrounds the initialization.  If any code is needed,
-it is inserted at *insert_location.  Called only when exceptions are
-enabled.
-*/
-{
-  a_dynamic_init_ptr dip = local_static_lifetime->destructions;
-
-  check_assertion(dip != NULL);
-  /* There may be other destructions in the scope, so go to the end of the
-     list to find the destruction for the guard variable. */
-  while (dip->next_in_destruction_list != NULL) {
-    dip = dip->next_in_destruction_list;
-  }  /* if */
-  check_assertion(dip->is_guard_var_for_local_static_var_init);
-  curr_context->curr_cleanup_state = dip->destructible_entity_descr->
-                                cleanup_state_to_set_when_starting_destruction;
-  insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
-                                        insert_location,
-                                        /*unreachable=*/FALSE);
-}  /* remove_local_static_guard_var_cleanup */
-
-
 static void adjust_cleanup_state_for_aggregate_init(
                                              a_dynamic_init_ptr dip,
                                              a_dynamic_init_ptr preceding_init,
@@ -4023,10 +3994,6 @@ do_assignment:;
   /* If this is the initialization of a local static variable and a lifetime
      surrounds that, pop the lifetime. */
   if (local_static_lifetime != NULL) {
-    if (exceptions_enabled) {
-      remove_local_static_guard_var_cleanup(local_static_lifetime,
-                                            eff_insert_location);
-    }  /* if */
     gen_cleanup_actions(local_static_lifetime, eff_insert_location);
     pop_context();
   }  /* if */
@@ -4709,11 +4676,7 @@ the point at which code should be inserted.
       a_destructible_entity_descr_ptr dedp =
                            dyn_init_to_free_storage->destructible_entity_descr;
       if (dedp->conditional_flag_var != NULL) {
-        curr_context->curr_cleanup_state =
-                          dedp->cleanup_state_to_set_when_starting_destruction;
-        insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
-                                              insert_location,
-                                              /*unreachable=*/FALSE);
+        /* Reset the flag that indicates that the freeing must be done. */
         reset_conditional_flag_var(dedp->conditional_flag_var,
                                    insert_location);
       }  /* if */
