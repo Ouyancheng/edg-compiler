@@ -8325,7 +8325,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     /* Copy the storage class from the template, but map sc_unspecified into
        sc_extern, as the new routine does not have a definition yet. */
     rp->storage_class = templ_rout->storage_class ==
-                                    sc_unspecified ? (a_storage_class)sc_extern
+                   (a_storage_class)sc_unspecified ? (a_storage_class)sc_extern
                                                    : templ_rout->storage_class;
     set_routine_special_kind(rp, templ_rout->special_kind);
     rp->variant = templ_rout->variant;
