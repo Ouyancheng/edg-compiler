@@ -5061,24 +5061,23 @@ function_lparen:
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
       if (C_dialect == C_dialect_cplusplus) {
-        if (func_info == NULL || derived_type != NULL) {
+        if (derived_type != NULL) {
           /* If the function is pointed to by a pointer-to-member type, we need
              to pass the class-of-which-a-member to function_declarator. */
-          a_type_ptr tp = derived_type;
-          member_parent_type = NULL;
-          if (tp != NULL) {
-            if (!is_array_type(tp) ||
-                (tp = underlying_array_element_type(tp)) != NULL) {
-              tp = skip_typerefs(tp);
-              if (is_ptr_to_member_type(tp)) {
-                /* Declaration of a pointer to member function. */
-                member_parent_type = pm_class_type(tp);
-                is_nonstatic_member_function = TRUE;
-              }  /* if */
-            }  /* if */
+          a_type_ptr tp = skip_typerefs(bottom_derived_type);
+          if (is_ptr_to_member_type(tp)) {
+            /* Declaration of a pointer to member function. */
+            member_parent_type = pm_class_type(tp);
+            is_nonstatic_member_function = TRUE;
+          } else {
+            member_parent_type = NULL;
           }  /* if */
           func_info = NULL;
           is_constructor = is_destructor = FALSE;
+        } else if (func_info == NULL) {
+          is_constructor = is_destructor = FALSE;
+          is_nonstatic_member_function = FALSE;
+          member_parent_type = NULL;
         } else if (is_constructor || is_destructor) {
           is_nonstatic_member_function = TRUE;
         } else {
