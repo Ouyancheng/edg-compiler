@@ -79,9 +79,6 @@ int EDG_MAIN(int argc, char *argv[])
   fe_early_init();
   /* Process the command line. */
   proc_command_line(argc, argv);
-#if BACK_END_IS_CP_GEN_BE
-  select_cp_gen_be_target_dialect();
-#endif /* BACK_END_IS_CP_GEN_BE */
   /* Initialize values that apply to the entire compilation if multiple
      files are allowed. */
   fe_one_time_init();
