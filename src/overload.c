@@ -44,6 +44,14 @@ static a_boolean conversion_to_class_possible(
                                  a_conv_descr             *ctor_arg_conversion,
                                  a_boolean                *ambiguous,
                                  a_candidate_function_ptr *ambiguity_list);
+static a_boolean direct_reference_binding_possible(
+                                         an_operand *source_operand,
+                                         a_type_ptr source_type,
+                                         a_type_ptr dest_type,
+                                         a_boolean  *ref_to_const,
+                                         a_boolean  *ref_to_const_volatile,
+                                         a_boolean  *binding_to_rvalue_allowed,
+                                         a_boolean  *dropping_qualifiers);
 
 
 static void clear_conv_descr(a_conv_descr_ptr conv)
@@ -852,20 +860,21 @@ type) from an argument of type arg_type (an array type), the array -->
 pointer transformation should be done.
 */
 {
-  a_boolean  transform_needed = FALSE;
-  a_type_ptr base_param_type = type_pointed_to(param_type);
+  a_boolean transform_needed = TRUE, dropping_qualifiers;
+  a_boolean ref_to_const, ref_to_const_volatile, binding_to_rvalue_allowed;
 
-  /* The logic here must match conv_array_operand_to_pointer_operand. */
-  /* The array --> pointer transformation is wanted only if initializing
-     a reference to the right pointer type, as in
-       char *const &r = "abc";
+  /* The array --> pointer transformation is wanted except when initializing
+     a reference to the right array type, e.g.,
+       char (&r)[4] = "abc";
   */
-  if (is_pointer_type(base_param_type)) {
-    base_param_type = type_pointed_to(base_param_type);
-    if (types_are_compatible_ignoring_qualifiers(base_param_type,
-                                               array_element_type(arg_type))) {
-      transform_needed = TRUE;
-    }  /* if */
+  if (direct_reference_binding_possible((an_operand *)NULL,
+                                        arg_type,
+                                        param_type,
+                                        &ref_to_const,
+                                        &ref_to_const_volatile,
+                                        &binding_to_rvalue_allowed,
+                                        &dropping_qualifiers)) {
+    transform_needed = FALSE;
   }  /* if */
   return transform_needed;
 }  /* array_transformation_needed_on_reference_init */
@@ -880,20 +889,22 @@ type) from an argument of type arg_type (a function type), the function -->
 pointer transformation should be done.
 */
 {
-  a_boolean  transform_needed = FALSE;
-  a_type_ptr base_param_type = type_pointed_to(param_type);
+  a_boolean transform_needed = TRUE, dropping_qualifiers;
+  a_boolean ref_to_const, ref_to_const_volatile, binding_to_rvalue_allowed;
 
-  /* The logic here must match conv_function_designator_to_ptr_to_function. */
-  /* The function --> pointer transformation is wanted only if
-     initializing a reference to the right pointer type, as in
+  /* The function --> pointer transformation is wanted except when
+     initializing a reference to the right function type, as in
        void f();
        void (&r)() = f;
   */
-  if (is_pointer_type(base_param_type)) {
-    base_param_type = type_pointed_to(base_param_type);
-    if (types_are_compatible_ignoring_qualifiers(base_param_type, arg_type)) {
-      transform_needed = TRUE;
-    }  /* if */
+  if (direct_reference_binding_possible((an_operand *)NULL,
+                                        arg_type,
+                                        param_type,
+                                        &ref_to_const,
+                                        &ref_to_const_volatile,
+                                        &binding_to_rvalue_allowed,
+                                        &dropping_qualifiers)) {
+    transform_needed = FALSE;
   }  /* if */
   return transform_needed;
 }  /* function_transformation_needed_on_reference_init */
@@ -6860,6 +6871,118 @@ is static; otherwise, it is automatic.  This is needed for cases like
 }  /* adjust_top_temporary_for_binding_to_reference */
 
 
+static a_boolean direct_reference_binding_possible(
+                                         an_operand *source_operand,
+                                         a_type_ptr source_type,
+                                         a_type_ptr dest_type,
+                                         a_boolean  *ref_to_const,
+                                         a_boolean  *ref_to_const_volatile,
+                                         a_boolean  *binding_to_rvalue_allowed,
+                                         a_boolean  *dropping_qualifiers)
+/*
+See if it is possible to directly bind a reference of type dest_type
+to source_operand.  If so, return TRUE.  source_operand can be NULL, in
+which case source_type gives the operand type.  *ref_to_const is returned
+TRUE if the reference is to const.  *ref_to_const_volatile is returned
+TRUE if the reference is to const volatile.
+*binding_to_rvalue_allowed is returned TRUE if the reference can be
+bound to an rvalue.  *dropping_qualifiers is returned TRUE if the
+reference binding would drop type qualifiers (i.e., the types are such
+that the binding could be done except for the qualifiers).
+*/
+{
+  a_boolean  direct_binding_possible, type_is_correct_or_derived;
+  a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
+                                                              
+  if (source_operand != NULL) source_type = source_operand->type;
+  base_dest_type = type_pointed_to(dest_type);
+  /* The "unqual" types are the unqualified versions of the base types,
+     except that array types can still be qualified down at the element
+     level. */
+  unqual_source_type = skip_typerefs(source_type);
+  unqual_dest_type = skip_typerefs(base_dest_type);
+  /* See if the types are correct without conversion. */
+  type_is_correct_or_derived = FALSE;
+  if (types_are_compatible_ignoring_qualifiers(unqual_dest_type,
+                                               unqual_source_type)) {
+    /* The type is correct, ignoring (first-level) qualifiers.
+       Note that this handles qualified array cases. */
+    type_is_correct_or_derived = TRUE;
+  } else if (is_class_struct_union_type(unqual_dest_type) &&
+             is_class_struct_union_type(unqual_source_type) &&
+             find_base_class_of(unqual_source_type,
+                                unqual_dest_type) != NULL) {
+    /* The initializer has a derived type. */
+    type_is_correct_or_derived = TRUE;
+  } else if (any_cfront_mode() &&
+             is_pointer_type(unqual_dest_type) &&
+             is_pointer_type(unqual_source_type) &&
+             same_type_with_added_qualifiers(unqual_source_type,
+                                             unqual_dest_type,
+                                             /*ignore_qualifiers=*/FALSE,
+                                             (a_boolean *)NULL)) {
+    /* The type is a pointer type and is correct, except that the
+       destination type has some qualifiers that are not present on
+       the source type (at any level).  Standard C++ processing can
+       only add type qualifiers in certain ways. */
+    type_is_correct_or_derived = TRUE;
+  }  /* if */
+  direct_binding_possible = type_is_correct_or_derived;
+  /* Determine whether or not the reference is to a const type. */
+  *ref_to_const = is_const_qualified_type(base_dest_type);
+  *binding_to_rvalue_allowed = *ref_to_const;
+  *ref_to_const_volatile = FALSE;
+  if (!any_cfront_mode() && *ref_to_const &&
+      is_volatile_qualified_type(base_dest_type)) {
+    /* A reference to const volatile cannot be bound to an rvalue.
+       This was added after the ARM. */
+    *binding_to_rvalue_allowed = FALSE;
+    *ref_to_const_volatile = TRUE;
+  }  /* if */
+  /* The destination type must have no fewer type qualifiers than the source
+     type to be usable without conversion (ARM 8.4.3). */
+  *dropping_qualifiers = type_is_correct_or_derived &&
+                         any_qualifier_missing(base_dest_type,
+                                               source_type);
+  if (*dropping_qualifiers) {
+    /* There are fewer qualifiers on the destination than on the source,
+       so the initialization would involve dropping qualifiers. */
+    if (cfront_2_1_mode &&
+        !*ref_to_const && is_const_qualified_type(source_type) &&
+        is_field_selection_lvalue_operand(source_operand)) {
+      /* cfront 2.1 makes a field selected from a const structure compatible
+         with a non-const reference to the underlying type:
+           struct A {};
+           struct B {
+             A a;
+             B() {}
+           };
+           const B bb;
+           A &r = bb.a;  // okay according to cfront, no warning
+           const B *pb;
+           A &rr = pb->a;  // okay according to cfront, warning
+         Note that a temporary will not be used in these cases. */
+      pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
+      *dropping_qualifiers = FALSE;
+    } else {
+      /* Qualifiers are being dropped, so disallow a direct binding. */
+      direct_binding_possible = FALSE;
+    }  /* if */
+  }  /* if */
+  if (type_is_correct_or_derived && *binding_to_rvalue_allowed &&
+      source_operand != NULL && is_bit_field_operand(source_operand)) {
+    /* For a bit-field case like
+         struct A { int i:2; } a;
+         const int &r = a.i;
+       disallow direct binding.  Note that in the ref to nonconst
+       case we leave the operand as it is to get a more specific error
+       message about taking the address of a bit field. */
+    direct_binding_possible = FALSE;
+  }  /* if */
+  return direct_binding_possible;
+}  /* direct_reference_binding_possible */
+
+
 void prep_initializer_operand(an_operand    *source_operand,
                               a_type_ptr    dest_type,
                               a_conv_descr  *conversion,
@@ -6886,111 +7009,28 @@ initializer has previously been found to be acceptable, and
 *conversion describes it.
 */
 {
-  a_type_ptr base_dest_type, base_source_type;
-  a_type_ptr unqual_dest_type, unqual_source_type;
-  a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
+  a_type_ptr base_dest_type;
+  a_boolean  err = FALSE, dropping_qualifiers;
   a_boolean  direct_binding_possible, binding_to_rvalue_allowed;
-  a_boolean  ref_to_const_volatile, operand_was_rvalue;
-  a_boolean  ref_to_const, temporary_used, warn = FALSE;
+  a_boolean  ref_to_const, ref_to_const_volatile, operand_was_rvalue;
+  a_boolean  temporary_used, warn = FALSE;
   an_operand orig_operand;
 
   orig_operand = *source_operand;
-  base_source_type = source_operand->type;
   if (is_error_operand(source_operand)) {
      /* Previous error.  Leave the operand alone. */
   } else if (is_reference_type(dest_type)) {
-    /* When initializing a reference T&, there are two cases (ARM 8.4.3):
-         (1)  If the initializer is an lvalue of type T or of
-              a type derived from T for which T is an accessible base,
-              the initialization is done directly;
-         (2)  Otherwise, the reference must be const.  A temporary of
-              type T is created and initialized with the initializer,
-              and the reference points to the temporary.
-    */
+    /* Reference case.  See if the reference and operand types are such that
+       the reference can be bound directly to the operand. */
+    direct_binding_possible =
+                  direct_reference_binding_possible(source_operand,
+                                                    (a_type_ptr)NULL,
+                                                    dest_type,
+                                                    &ref_to_const,
+                                                    &ref_to_const_volatile,
+                                                    &binding_to_rvalue_allowed,
+                                                    &dropping_qualifiers);
     base_dest_type = type_pointed_to(dest_type);
-    /* The "unqual" types are the unqualified versions of the base types,
-       except that array types can still be qualified down at the element
-       level. */
-    unqual_source_type = skip_typerefs(base_source_type);
-    unqual_dest_type = skip_typerefs(base_dest_type);
-    /* See if the types are correct without conversion. */
-    type_is_correct_or_derived = FALSE;
-    if (types_are_compatible_ignoring_qualifiers(unqual_dest_type,
-                                                 unqual_source_type)) {
-      /* The type is correct, ignoring (first-level) qualifiers.
-         Note that this handles qualified array cases. */
-      type_is_correct_or_derived = TRUE;
-    } else if (is_class_struct_union_type(unqual_dest_type) &&
-               is_class_struct_union_type(unqual_source_type) &&
-               find_base_class_of(unqual_source_type,
-                                  unqual_dest_type) != NULL) {
-      /* The initializer has a derived type. */
-      type_is_correct_or_derived = TRUE;
-    } else if (any_cfront_mode() &&
-               is_pointer_type(unqual_dest_type) &&
-               is_pointer_type(unqual_source_type) &&
-               same_type_with_added_qualifiers(unqual_source_type,
-					       unqual_dest_type,
-					       /*ignore_qualifiers=*/FALSE,
-                                               (a_boolean *)NULL)) {
-      /* The type is a pointer type and is correct, except that the
-         destination type has some qualifiers that are not present on
-         the source type (at any level).  Standard C++ processing can
-         only add type qualifiers in certain ways. */
-      type_is_correct_or_derived = TRUE;
-    }  /* if */
-    direct_binding_possible = type_is_correct_or_derived;
-    /* Determine whether or not the reference is to a const type. */
-    ref_to_const = is_const_qualified_type(base_dest_type);
-    binding_to_rvalue_allowed = ref_to_const;
-    ref_to_const_volatile = FALSE;
-    if (!any_cfront_mode() && ref_to_const &&
-        is_volatile_qualified_type(base_dest_type)) {
-      /* A reference to const volatile cannot be bound to an rvalue.
-         This was added after the ARM. */
-      binding_to_rvalue_allowed = FALSE;
-      ref_to_const_volatile = TRUE;
-    }  /* if */
-    /* The destination type must have no fewer type qualifiers than the source
-       type to be usable without conversion (ARM 8.4.3). */
-    dropping_qualifiers = type_is_correct_or_derived &&
-                          any_qualifier_missing(base_dest_type,
-                                                base_source_type);
-    if (dropping_qualifiers) {
-      /* There are fewer qualifiers on the destination than on the source,
-         so the initialization would involve dropping qualifiers. */
-      if (cfront_2_1_mode &&
-          !ref_to_const && is_const_qualified_type(base_source_type) &&
-          is_field_selection_lvalue_operand(source_operand)) {
-        /* cfront 2.1 makes a field selected from a const structure compatible
-           with a non-const reference to the underlying type:
-             struct A {};
-             struct B {
-               A a;
-               B() {}
-             };
-             const B bb;
-             A &r = bb.a;  // okay according to cfront, no warning
-             const B *pb;
-             A &rr = pb->a;  // okay according to cfront, warning
-           Note that a temporary will not be used in these cases. */
-        pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
-        dropping_qualifiers = FALSE;
-      } else {
-        /* Qualifiers are being dropped, so disallow a direct binding. */
-        direct_binding_possible = FALSE;
-      }  /* if */
-    }  /* if */
-    if (type_is_correct_or_derived && binding_to_rvalue_allowed &&
-        is_bit_field_operand(source_operand)) {
-      /* For a bit-field case like
-           struct A { int i:2; } a;
-           const int &r = a.i;
-         disallow direct binding.  Note that in the ref to nonconst
-         case we leave the operand as it is to get a more specific error
-         message about taking the address of a bit field. */
-      direct_binding_possible = FALSE;
-    }  /* if */
     operand_was_rvalue = is_an_rvalue(source_operand);
     if (direct_binding_possible && is_an_lvalue(source_operand)) {
       /* The initial value is an lvalue of the right type; the initialization
