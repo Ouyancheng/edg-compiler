@@ -332,25 +332,59 @@ definition of the class is needed, and not just the declaration.
   }  /* if */
 }  /* set_class_definition_needed */
 
+
+static a_boolean should_not_walk_subtree(char             *entry_ptr,
+                                         an_il_entry_kind entry_kind,
+                                         a_boolean        keep_in_il_case)
 /*
 Given an IL entry at entry_ptr with kind entry_kind, return TRUE if the
 entry's subtree should not be walked at this time.  This is used when
-setting the "needed" or "keep_in_il" flags.  Entities that can be
-defined or redeclared later (e.g., classes) shouldn't have their subtrees
-walked until after there is no longer the possibility of the subtree changing.
-end_of_file_scope_needed_flags_phase is set to TRUE in a phase where subtrees
-should finally be walked.  Entities local to functions are always fully
-walked immediately.
+setting the "needed" or "keep_in_il" flags (keep_in_il_case indicates
+the latter).  Entities that can be defined or redeclared later (e.g., classes)
+shouldn't have their subtrees walked until after there is no longer the
+possibility of the subtree changing.  end_of_file_scope_needed_flags_phase
+is set to TRUE in a phase where subtrees should finally be walked.
+Entities local to functions are always fully walked immediately.
 */
-#define should_not_walk_subtree(entry_ptr, entry_kind) \
- (!end_of_file_scope_needed_flags_phase && \
-  (((entry_kind) == iek_type && \
-    is_immediate_class_type((a_type_ptr)(entry_ptr)) && \
-    !((a_type_ptr)(entry_ptr))->source_corresp.is_local_to_function && \
-    !((a_type_ptr)(entry_ptr))->declared_in_function_prototype) || \
-   ((entry_kind) == iek_variable && \
-    !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function) || \
-   ((entry_kind) == iek_routine)))
+{
+  a_boolean prune = FALSE;
+
+  if (entry_kind == iek_type &&
+      is_immediate_class_type((a_type_ptr)entry_ptr)) {
+    /* A class type. */
+    a_type_ptr type = (a_type_ptr)entry_ptr;
+    if (type->source_corresp.is_local_to_function ||
+        type->declared_in_function_prototype) {
+      /* Function-local class -- not visited in the sweep at the end of
+         the file scope, so handle now.  Since the definitions of local
+         classes are never removed, visit the subtree even if the
+         class definition is not needed. */
+      prune = FALSE;
+    } else if (keep_in_il_case ?
+                      !type->variant.class_struct_union.keep_definition_in_il :
+                      !type->variant.class_struct_union.definition_needed) {
+      /* Don't walk the subtree of a class if its definition is not
+         needed.  Note that this assumes that the class definition will
+         be removed if not needed (so it's good that local classes don't
+         get this far). */
+      prune = TRUE;
+    } else {
+      /* For the remaining cases the class is walked only in the
+         end-of-file scope phase. */
+      prune = !end_of_file_scope_needed_flags_phase;
+    }  /* if */
+  } else if (entry_kind == iek_variable) {
+    /* A variable.  The subtree is walked if we're in the end-of-file-scope
+       sweep or if the variable is local to a function. */
+    prune = !end_of_file_scope_needed_flags_phase &&
+            !((a_variable_ptr)entry_ptr)->source_corresp.is_local_to_function;
+  } else if (entry_kind == iek_routine) {
+    /* A routine.  The subtree is walked if we're in the end-of-file-scope
+       sweep. */
+    prune = !end_of_file_scope_needed_flags_phase;
+  }  /* if */
+  return prune;
+}  /* should_not_walk_subtree */
 
 
 #if DO_IL_LOWERING
@@ -375,6 +409,7 @@ as needed.
   a_boolean               prune = FALSE;
   a_source_correspondence *scp;
 
+  /* Note that this routine is very similar to prune_keep_in_il_walk. */
   /* Only certain entry kinds have a "needed" flag.  See if this one does. */
   scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
   if (scp != NULL) {
@@ -415,19 +450,9 @@ as needed.
           walk_tree_and_set_needed((char *)scope, iek_scope);
         }  /* if */
       }  /* if */
-      /* If this is an entry that might be redeclared or redefined later,
-         do not walk its subtree now. */
-      if (should_not_walk_subtree(entry_ptr, entry_kind)) {
-        prune = TRUE;
-      } else if (entry_kind == iek_type) {
-        a_type_ptr type = (a_type_ptr)entry_ptr;
-        if (is_immediate_class_type(type) &&
-            !type->variant.class_struct_union.definition_needed) {
-          /* Don't walk the subtree of a class if its definition is not
-             needed. */
-          prune = TRUE;
-        }  /* if */
-      }  /* if */
+      /* Determine whether the subtree of this entry should be walked. */
+      prune = should_not_walk_subtree(entry_ptr, entry_kind,
+                                      /*keep_in_il_case=*/FALSE);
       if (prune && scp->is_class_member
 #if DO_IL_LOWERING
           /* Do not process parent information that will be removed by
@@ -691,6 +716,7 @@ to be kept.
 {
   a_boolean prune = FALSE;
 
+  /* Note that this routine is very similar to prune_needed_flag_il_walk. */
   if (il_entry_prefix_of(entry_ptr).keep_in_il) {
     /* The flag is set already, so prune the walk at this entry.  */
     prune = TRUE;
@@ -716,17 +742,8 @@ to be kept.
 #endif /* DEBUG */
     /* If this is an entry that might be redeclared or redefined later,
        do not walk its subtree now. */
-    if (should_not_walk_subtree(entry_ptr, entry_kind)) {
-      prune = TRUE;
-    } else if (entry_kind == iek_type) {
-      a_type_ptr type = (a_type_ptr)entry_ptr;
-      if (is_immediate_class_type(type) &&
-          !type->variant.class_struct_union.keep_definition_in_il) {
-        /* Don't walk the subtree of a class if its definition is not
-           marked to be kept in the IL. */
-        prune = TRUE;
-      }  /* if */
-    }  /* if */
+    prune = should_not_walk_subtree(entry_ptr, entry_kind,
+                                    /*keep_in_il_case=*/TRUE);
     if (prune
 #if DO_IL_LOWERING
         /* Do not process parent information that will be removed by
