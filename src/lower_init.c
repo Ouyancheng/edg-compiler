@@ -4406,6 +4406,11 @@ Do lowering on the file-scope dynamic initializations list.
     }  /* for */
     processing_file_scope_init_routine = FALSE;
     pop_context();
+#if ORPHAN_PROCESSING_NEEDED
+    /* Make orphan lists for any local types or static variables in the
+       routine or any of its blocks. */
+    add_scope_orphaned_il_lists(scope);
+#endif /* ORPHAN_PROCESSING_NEEDED */
     done_with_memory_region(file_scope_init_routine_il_region);
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
     file_scope->dynamic_inits = NULL;
@@ -4427,6 +4432,11 @@ Do lowering on the file-scope dynamic initializations list.
     switch_il_region(file_scope_term_routine_il_region);
     gen_required_destructor_calls(file_scope_context, &insert_location);
     pop_context();
+#if ORPHAN_PROCESSING_NEEDED
+    /* Make orphan lists for any local types or static variables in the
+       routine or any of its blocks. */
+    add_scope_orphaned_il_lists(scope);
+#endif /* ORPHAN_PROCESSING_NEEDED */
     done_with_memory_region(file_scope_term_routine_il_region);
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
   }  /* if */
