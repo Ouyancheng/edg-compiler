@@ -902,6 +902,7 @@ ec_cast_not_arithmetic_or_enum_or_pointer;;"type of cast must be arithmetic, enu
 ec_expr_not_object_pointer;;"expression must be a pointer to a complete object type"
 ec_member_partial_spec_not_in_class;;"a partial specialization of a member class template must be declared in the class of which it is a member"
 ec_partial_spec_nontype_expr;;"a partial specialization nontype argument must be the name of a nontype parameter or a constant"
+ec_different_return_type_on_virtual_function_override;;"return type is not identical to return type %t of overridden virtual function %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

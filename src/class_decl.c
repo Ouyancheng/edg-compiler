@@ -2006,10 +2006,15 @@ routine entry and return TRUE; otherwise return FALSE.
                   } else {
                     /* Error -- return type must be identical to or covariant
                        with that of the overridden function. */
-                    pos_syty_error(
-                         ec_bad_return_type_on_virtual_function_override,
-                         source_pos, sym,
-                         skip_typerefs(rp->type)->variant.routine.return_type);
+                    an_error_code  error_code =
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+                        ec_bad_return_type_on_virtual_function_override;
+#else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN*/
+                        ec_different_return_type_on_virtual_function_override;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+                    pos_syty_error(error_code, source_pos, sym,
+                                   skip_typerefs(rp->type)->
+                                             variant.routine.return_type);
                   }  /* if */
                   goto next_base_class;                                       
                 }  /* if */
