@@ -1043,6 +1043,8 @@ processed further.
     }  /* if */
     /* Look for blank after type. */
     if (*pos++ != ' ') pl_invalid_input();
+    /* Now look for a nonblank. */
+    while (*pos == ' ') pos++;
     if (nm_format == nmfk_CLIX) {
       /* Skip passed extra underscore at the start of every symbol if an
          underscore is present.   This is only done for CLIX. */
