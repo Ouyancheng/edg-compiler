@@ -1,5 +1,19 @@
 Version 3.1
 
+6/20/02  Anonymous types in anonymous unions
+
+The C++ standard does not permit the declaration of types in anonymous
+unions, but the front end failed to diagnose this when the type declared
+in the anonymous union is itself anonymous.  For example:
+
+  struct S {
+    union {
+      struct {} x;  // Used to be accepted in strict ANSI C++ mode
+    };
+  };
+
+This is now fixed (i.e., an error is issued).
+
 6/20/02  GNU C compatibility: Redeclaration of a transparent union parameter
 
 In GNU C mode, a parameter first declared as a transparent union can be

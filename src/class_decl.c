@@ -7960,11 +7960,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
       case sk_class_or_struct_tag:
       case sk_union_tag:
       case sk_enum_tag:
-        if (!(microsoft_mode || sun_mode || any_cfront_mode())) {
-          pos_diagnostic(strict_ansi_mode ?
-                           strict_ansi_discretionary_severity : es_warning,
-                         ec_type_decl_in_anon_union, &sym->decl_position);
-        }  /* if */
         /* Unlink the symbol from the inactive list and link it back into
            the symbol table in the current scope. */
         tp = type_symbol_type(sym);
@@ -8052,6 +8047,21 @@ nonstandard anonymous unions is_nonstd is TRUE.
     sym->next = NULL;
   }  /* for */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  if (!(microsoft_mode || sun_mode || any_cfront_mode())) {
+    /* Types should normally not be declared inside an anonymous union. */
+    a_scope_ptr  scope = skip_typerefs(assoc_object_type)
+                                        ->variant.class_struct_union.extra_info
+                                        ->assoc_scope;
+    if (scope != NULL) {
+      a_type_ptr  nested_type = scope->types;
+      for (; nested_type != NULL; nested_type = nested_type->next) {
+        pos_diagnostic(strict_ansi_mode ?
+                         strict_ansi_discretionary_severity : es_warning,
+                       ec_type_decl_in_anon_union,
+                       &nested_type->source_corresp.decl_position);
+      }  /* for */
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* check_anonymous_union_symbols */
 
