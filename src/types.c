@@ -2654,7 +2654,7 @@ a_boolean cast_removes_qualifiers(a_type_ptr	source_type,
 /*
 Return TRUE if a cast from source_type to dest_type is a cast to
 the same type but with fewer qualifiers.  When is_const_cast is
-TRUE, return TRUE if source_type and dest_type refer to the same
+TRUE, return TRUE also if source_type and dest_type refer to the same
 type (i.e., no conversion is necessary).  source_type and dest_type
 are expected to both be pointers, both be references, or both be
 pointers-to-member, otherwise we return FALSE.
@@ -2682,10 +2682,11 @@ pointers-to-member, otherwise we return FALSE.
        additional qualifiers.  We test this by seeing if a qualification
        conversion in the opposite direction is possible.  In other words,
        if a qualification conversion from T1 to T2 is possible, then T2
-       must be a more qualified version of T1. */
-    if (qualification_conversion_possible(dest_type, source_type,
+       must be a more qualified version of T1 (or the same as T1, in which
+       case qualifiers_added is FALSE). */
+    if (qualification_conversion_possible(source_type, dest_type,
         &qualifiers_added)) {
-      /* When qualfication_conversion_possible returns TRUE, qualifiers may
+      /* When qualification_conversion_possible returns TRUE, qualifiers may
          have been added, or the two types could have been the same.
          If the types are the same, qualifiers_added will be FALSE.  This
          case should only cause result to be TRUE when is_const_cast is
