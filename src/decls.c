@@ -30,6 +30,7 @@ decls.c -- Scanning of declarations.
 #include "lang_feat.h"
 #include "mem_tables.h"
 #include "mem_manage.h"
+#include "pch.h"
 #include "pragma.h"
 #include "preproc.h"
 #include "statements.h"
@@ -39,7 +40,11 @@ decls.c -- Scanning of declarations.
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
-
+#if 0
+#else
+/* Only needed as long as generate_precompiled_header remains in decls.c */
+#include "macro.h"
+#endif /* if 0 */
 
 /*
 Macro that is TRUE if the current token is the start of a storage class
@@ -5349,6 +5354,42 @@ Scan a block-level declaration.
 }  /* local_declaration */
 
 
+static void generate_precompiled_header(void)
+/*
+Processing has reached the "header stop" point.  Check for conditions that
+would prevent generation of a precompiled header file, and if none exists,
+write out the precompiled header file.
+*/
+{
+#define PCH_DECL_SEQ_THRESHOLD 0
+
+  if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+    /* Don't save the header files if we are not currently at file scope. */
+  } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
+    /* Nor if we are in the midst of a macro definition or a #if construct. */
+  } else if (total_errors > 0 && total_warnings > 0) {
+    /* Nor if there have been diagnostics. */
+  } else if (def_external_linkage.is_explicit) {
+    /* Nor if we are in the middle of a linkage specifier block. */
+  } else {
+    /* The state justifies creating a precompiled header. */
+    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+    check_assertion(depth_stmt_stack == -1);
+    /* Be sure there the overhead in generating a precompiled header is
+       justified "quantitatively". */
+    if (curr_ise->include_history == NULL) {
+      /* There haven't been any include files. */
+    } else if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
+      /* There haven't been enough declarations to justify writing out and
+         restoring the header information. */
+    } else {
+      /* Okay -- go ahead and do it. */
+      write_precompiled_header_file();
+    }  /* if */
+  }  /* if */
+}  /* generate_precompiled_header */
+
+
 void translation_unit(void)
 /*
 Scan a translation-unit (3.7).  This is the topmost syntactic entity in
@@ -5365,6 +5406,8 @@ In C++, however, the declaration list is optional (3.4):
                                opt
 */
 {
+  a_boolean  pch_check_pending = precompiled_header_processing_required;
+
   if (get_token() == tok_end_of_source) {
     /* Empty translation unit -- okay in C++ mode. */
     if (C_mode()) {
@@ -5378,6 +5421,18 @@ In C++, however, the declaration list is optional (3.4):
     }  /* if */
   } else {
     do {
+      if (pch_check_pending && !curr_ise->is_include_file) {
+        if (curr_ise->actual_line ==
+              (a_line_number)header_stop_source_position.seq &&
+            pos_curr_token.column == header_stop_source_position.column) {
+          /* This should be the first declaration in the primary source file
+             (i.e., excluding preprocessor directives).  If there were any
+             include files and if the current state otherwise qualifies, write
+             out the IL, symbol table, etc. to a precompiled header file. */
+          generate_precompiled_header();
+        }  /* if */
+        pch_check_pending = FALSE;
+      }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* For each declaration at file scope, reset the source-sequence insert
          point for instantiations to NULL -- it will be set to point to the
