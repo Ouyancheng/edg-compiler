@@ -699,8 +699,8 @@ Clear an initialization position description entry to default values.
 }  /* clear_init_pos_descr */
 
 
-static void set_var_init_pos_descr(a_variable_ptr        var,
-                                   an_init_pos_descr_ptr ipdp)
+void set_var_init_pos_descr(a_variable_ptr        var,
+                            an_init_pos_descr_ptr ipdp)
 /*
 Make an initialization position description entry for the variable var.
 */
@@ -910,6 +910,129 @@ pointed to by dip is lowered.
      from the variable. */
   transfer_pos_from_var_to_statement(dip->variable, assign_stmt);
 }  /* add_init_assignment */
+
+
+static a_variable_ptr var_for_copy_constructor_source(void)
+/*
+We are currently expanding the body of a copy constructor.  Return a pointer
+for the source parameter of the copy constructor.
+*/
+{
+  a_routine_ptr    curr_routine;
+  a_variable_ptr   source_param_var;
+  a_type_ptr       class_type;
+  a_base_class_ptr bcp;
+
+  curr_routine = nearest_function_scope->variant.routine.ptr;
+#if CHECKING
+  if (curr_routine->special_kind != (a_special_function_kind)sfk_constructor) {
+    internal_error(
+             "var_for_copy_constructor_source: curr routine not constructor");
+  }  /* if */
+#endif /* CHECKING */
+  source_param_var = nearest_function_scope->variant.routine.parameters->next;
+#if CHECKING
+  if (source_param_var == NULL) {
+    internal_error("var_for_copy_constructor_source: source param missing");
+  }  /* if */
+#endif /* CHECKING */
+  /* Skip over any parameters added for virtual base class pointers.
+     See add_constructor_params. */
+  class_type = curr_routine->source_corresp.class_of_which_a_member;
+  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+    for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->is_virtual) {
+        source_param_var = source_param_var->next;
+#if CHECKING
+        if (source_param_var == NULL) {
+          internal_error(
+                  "var_for_copy_constructor_source: source param missing (2)");
+        }  /* if */
+#endif /* CHECKING */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return source_param_var;
+}  /* var_for_copy_constructor_source */
+
+
+static an_expr_node_ptr implied_source_of_copy(
+                                              a_constructor_init_ptr ctor_init,
+                                              an_expr_node_ptr       dest_node)
+/*
+We're processing a dynamic initialization entry that represents a copy of
+something from an implied source location to the thing being initialized.
+If ctor_init is non-NULL, it points to a constructor-initializer entry
+that indicates a copy of a member of a class; if ctor_init is NULL, the
+copy is of the object thrown by an exception handling "throw" into the
+parameter of the catch clause.  In either case, create an expression to
+describe the address of the implied source and return a pointer to it.
+dest_node is the expression node for the destination of the initialization;
+its type is needed for the "throw" case.
+*/
+{
+  an_expr_node_ptr     source_node;
+  an_init_pos_descr    cctor_source_ipd;
+  an_init_pos_modifier cctor_source_ipm;
+
+  if (ctor_init != NULL) {
+    /* The implied source is the member being copied by the
+       ctor-initializer. */
+    set_var_indirect_init_pos_descr(var_for_copy_constructor_source(),
+                                    &cctor_source_ipd);
+    modify_ctor_init_pos_descr(ctor_init, &cctor_source_ipd,
+                               &cctor_source_ipm);
+    source_node = make_init_entity_node(&cctor_source_ipd);
+  } else {
+    /* The implied source is the address in __caught_object_address. */
+    source_node = var_rvalue_expr(make_caught_object_address_var());
+    /* Cast the source node to the same type as the destination node. */
+    source_node = add_cast_if_necessary(source_node, dest_node->type);
+  }  /* if */
+  return source_node;
+}  /* implied_source_of_copy */
+
+
+static void add_bitwise_copy(an_init_pos_descr_ptr  dest,
+                             a_constructor_init_ptr ctor_init,
+                             an_insert_location_ptr insert_location)
+/*
+Generate code to implement an initialization by bitwise copy.  dest
+describes the destination of the move.  ctor_init is the constructor
+initialization entry, or is NULL if this is the initialization of
+a catch clause parameter.  Insert the statement at *insert_location
+and update *insert_location.
+*/
+{
+  an_expr_node_ptr      source_node, dest_node;
+  a_type_ptr            type;
+  an_expr_operator_kind op;
+
+  /* Make an expression for the address of the destination entity. */
+  dest_node = make_init_entity_node(dest);
+  /* Make an expression for the address of the source entity. */
+  source_node = implied_source_of_copy(ctor_init, dest_node);
+  /* Make an assignment statement. */
+  /* Choose the operation.  For simple types use the built-in operator.
+     For other types use a block copy. */
+  type = type_pointed_to(source_node->type);
+  if (is_integral_type(type) ||
+      is_floating_type(type) ||
+      is_pointer_type(type) ||
+      is_class_struct_union_type(type)) {
+    op = lowered_assignment_operator(type);
+    /* The normal assignment operators take an rvalue as the source, so
+       change the node to an rvalue. */
+    source_node = add_indirection_to_node(source_node);
+  } else {
+    /* For other kinds, use a block move. */
+    op = (an_expr_operator_kind)eok_bassign;
+  }  /* if */
+  (void)insert_assignment_statement(dest_node, op, source_node,
+                                    insert_location);
+}  /* add_bitwise_copy */
 
 
 void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,
@@ -1934,52 +2057,6 @@ Determine the insert location for a file-scope termination statement.
 }  /* file_scope_term_insert_location */
 
 
-static a_variable_ptr var_for_copy_constructor_source(void)
-/*
-We are currently expanding the body of a copy constructor.  Return a pointer
-for the source parameter of the copy constructor.
-*/
-{
-  a_routine_ptr    curr_routine;
-  a_variable_ptr   source_param_var;
-  a_type_ptr       class_type;
-  a_base_class_ptr bcp;
-
-  curr_routine = nearest_function_scope->variant.routine.ptr;
-#if CHECKING
-  if (curr_routine->special_kind != (a_special_function_kind)sfk_constructor) {
-    internal_error(
-             "var_for_copy_constructor_source: curr routine not constructor");
-  }  /* if */
-#endif /* CHECKING */
-  source_param_var = nearest_function_scope->variant.routine.parameters->next;
-#if CHECKING
-  if (source_param_var == NULL) {
-    internal_error("var_for_copy_constructor_source: source param missing");
-  }  /* if */
-#endif /* CHECKING */
-  /* Skip over any parameters added for virtual base class pointers.
-     See add_constructor_params. */
-  class_type = curr_routine->source_corresp.class_of_which_a_member;
-  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-    for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-         bcp != NULL;
-         bcp = bcp->next) {
-      if (bcp->is_virtual) {
-        source_param_var = source_param_var->next;
-#if CHECKING
-        if (source_param_var == NULL) {
-          internal_error(
-                  "var_for_copy_constructor_source: source param missing (2)");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return source_param_var;
-}  /* var_for_copy_constructor_source */
-
-
 static void add_conditional_destruction_temp(
                                a_required_destructor_call_ptr rdcp,
                                an_insert_location             *insert_location)
@@ -2263,17 +2340,9 @@ do_assignment:;
       entity_node = make_init_entity_node(ipdp);
       source_node = NULL;
       if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
-        an_init_pos_descr    cctor_source_ipd;
-        an_init_pos_modifier cctor_source_ipm;
-        /* The constructor being called is a copy constructor.  The argument
-           for the source object is also implicit and needs to be generated.
-           It's the first real parameter of the copy constructor routine
-           being expanded, modified like the entity_node. */
-        set_var_indirect_init_pos_descr(var_for_copy_constructor_source(),
-                                        &cctor_source_ipd);
-        modify_ctor_init_pos_descr(ctor_init, &cctor_source_ipd,
-                                   &cctor_source_ipm);
-        source_node = make_init_entity_node(&cctor_source_ipd);
+        /* The constructor is a copy constructor, and the source of the
+           copy is implied.  Determine the source location. */
+        source_node = implied_source_of_copy(ctor_init, entity_node);
       }  /* if */
       if (ipdp->whole_array) {
         /* Construct an array. */
@@ -2317,6 +2386,13 @@ do_assignment:;
         simple_constant_init = TRUE;
         simple_constant = dip->variant.constant;
       }  /* if */
+      break;
+    case dik_bitwise_copy:
+      /* Bitwise copy of a value.  The source location is implied.
+         This is used for copying members of classes in ctor-initializers
+         of copy constructors, and for the parameter of catch clauses.
+         ctor_init is non-NULL for the first of those cases. */
+      add_bitwise_copy(ipdp, ctor_init, insert_location);
       break;
 #if CHECKING
     default:
@@ -3466,37 +3542,6 @@ the implicit parameters follow it.
 }  /* implicit_virtual_base_parameter */
 
 
-static void add_member_copy(an_init_pos_descr_ptr  dest,
-                            a_constructor_init_ptr ctor_init,
-                            an_insert_location_ptr insert_location)
-/*
-Make a block move to implement a copy in a copy constructor.  dest
-describes the destination of the move.  ctor_init is the constructor
-initialization entry, which gives (along with var_for_copy_constructor_source)
-the information needed to build the source expression.  Insert the
-statement at *insert_location and update *insert_location.
-*/
-{
-  an_expr_node_ptr      source_node, dest_node;
-  an_init_pos_descr     ipd;
-  an_init_pos_modifier  ipm;
-
-  /* Make an expression for the address of the destination entity. */
-  dest_node = make_init_entity_node(dest);
-  /* Make an expression for the address of the source entity.  This is
-     done by getting the source parameter of the copy constructor and
-     modifying it to select the same subobject as in the destination. */
-  set_var_indirect_init_pos_descr(var_for_copy_constructor_source(), &ipd);
-  modify_ctor_init_pos_descr(ctor_init, &ipd, &ipm);
-  source_node = make_init_entity_node(&ipd);
-  /* Make an assignment statement. */
-  (void)insert_assignment_statement(dest_node,
-                                    (an_expr_operator_kind)eok_bassign,
-                                    source_node,
-                                    insert_location);
-}  /* add_member_copy */
-
-
 static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
                             a_boolean              use_implicit_param,
@@ -3573,20 +3618,15 @@ created are inserted at *insert_location, and *insert_location is updated.
     develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   }  /* if */
   /* Generate the code to do the initialization. */
-  if (dip->kind == (a_dynamic_init_kind)dik_bitwise_copy) {
-    /* Special case -- copying a member or base class in a copy constructor. */
-    add_member_copy(&ipd, ctor_init, insert_location);
-  } else {
-    lower_dynamic_init(dip, &ipd, /*first_time_test_var=*/(a_variable_ptr)NULL,
-                       /*is_expr_temporary=*/FALSE,
-                       implied_arg_list, end_implied_arg_list, ctor_init,
-                       insert_location, &keep_dynamic_init);
+  lower_dynamic_init(dip, &ipd, /*first_time_test_var=*/(a_variable_ptr)NULL,
+                     /*is_expr_temporary=*/FALSE,
+                     implied_arg_list, end_implied_arg_list, ctor_init,
+                     insert_location, &keep_dynamic_init);
 #if CHECKING
-    if (keep_dynamic_init) {
-      internal_error("lower_ctor_init: keep_dynamic_init unexpected");
-    }  /* if */
-#endif /* CHECKING */
+  if (keep_dynamic_init) {
+    internal_error("lower_ctor_init: keep_dynamic_init unexpected");
   }  /* if */
+#endif /* CHECKING */
 }  /* lower_ctor_init */
 
 
