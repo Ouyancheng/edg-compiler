@@ -70,8 +70,7 @@ extern void set_error_constant(a_constant *cp);
 
 extern void set_arg_transfer_method_flag(a_param_type_ptr ptp);
 
-extern a_param_type_ptr alloc_param_type(a_type_ptr type,
-                                         a_boolean  at_file_scope);
+extern a_param_type_ptr alloc_param_type(a_type_ptr type);
 
 extern an_access_adjustment_ptr alloc_access_adjustment(
                                               an_access_adjustment_kind  kind);
@@ -93,9 +92,9 @@ extern void clear_type(a_type_ptr  pte,
 
 extern a_type_ptr alloc_type(a_type_kind kind);
 
-extern a_type_ptr fs_type(a_type_kind kind);
-
 extern a_type_ptr alloc_named_type(a_type_kind kind);
+
+extern a_type_ptr alloc_unlinked_type(a_type_kind kind);
 
 extern a_type_ptr alloc_local_scope_type(
                                   a_type_kind    kind,
