@@ -406,7 +406,7 @@ end_of_uuid_string:
 
                     str = const_for_curr_token.variant.string.value;
                     len = const_for_curr_token.variant.string.length;
-                    /* Copy to the token string into IL memory and save the
+                    /* Copy the token string into IL memory and save the
                        address. */
                     decl_modifiers->allocate_segname = alloc_il((sizeof_t)len);
                     (void)memcpy(decl_modifiers->allocate_segname, str,
