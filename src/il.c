@@ -749,6 +749,12 @@ class_struct_union:
         if (tp->variant.class_struct_union.abstract) {
           fputs(" (abstract)", f_debug);
         }  /* if */
+        if (ctsp != NULL &&
+            ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+          fprintf(f_debug, " (anonymous, %s)",
+                  ctsp->anonymous_union_kind ==
+                        (an_anonymous_union_kind)auk_field ? "field" : "var");
+        }  /* if */
         fputs(" {", f_debug);
         if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
