@@ -2043,6 +2043,7 @@ allocated.
 */
 {
   a_targ_size_t  offset;
+  a_boolean      do_not_update_overall_alignment = FALSE;
 
   /* Be sure the current byte_offset is consistent with the alignment required
      for the subobject. */
@@ -2060,6 +2061,12 @@ allocated.
     while (base_subobject_conflict(bcp, lob->byte_offset) ||
            (emulate_gnu_abi_bugs &&
             gnu_first_base_conflict(lob->class_type, bcp, lob->byte_offset))) {
+      if (emulate_gnu_abi_bugs && bcp != NULL && !bcp->is_virtual) {
+        /* Some GNU compilers do not update the alignment of the derived
+           class if a base class could not be allocated at the first
+           candidate offset. */
+        do_not_update_overall_alignment = TRUE;
+      }  /* if */
       if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
                                    (a_targ_size_t)alignment, 
                                    (an_unnormalized_bit_offset)0)) {
@@ -2079,7 +2086,9 @@ allocated.
   offset = lob->byte_offset;
   /* Adjust the overall alignment requirement for the current class, if
      necessary. */
-  if (lob->alignment < alignment) lob->alignment = alignment;
+  if (lob->alignment < alignment && !do_not_update_overall_alignment) {
+    lob->alignment = alignment;
+  }  /* if */
   /* Advance the layout block's byte_offset value -- it will be class's
      size if no new subobjects are added or else the offset for the *next*
      subobject. */
@@ -2328,7 +2337,7 @@ Lay out the nonvirtual direct base class bcp.
     /* Empty bases will be allocated later. */
 #else /* IA64_ABI */
     allocate_empty_base(lob, bcp);
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
   } else 
   /* Do not add code here. */
   {
