@@ -4812,11 +4812,12 @@ Returns TRUE if there is an error in the specifiers.
                  must be satisfied:  (1) we are inside a class definition;
                  (2) the current token is the name of the class being defined
                  (note that typedef names are not allowed); (3) the declaration
-                 has no other specifiers (e.g., const is not allowed); (4) the
-                 next token is a left parenthesis; (5) the token following the
-                 left paren is a right paren or the start of a formal parameter
-                 declaration. */
-              if (num_specifiers == 0 &&
+                 has no other specifiers besides "inline" (e.g., "const" is
+                 not allowed); (4) the next token is a left parenthesis; (5)
+                 the token following the left paren is a right paren or the
+                 start of a formal parameter declaration. */
+              if ((num_specifiers == 0 ||
+                   (num_specifiers == 1 && (*output_flags & DSO_INLINE))) &&
                   (curr_token_type_symbol->kind ==
                                        (a_symbol_kind)sk_class_or_struct_tag ||
                    curr_token_type_symbol->kind ==
@@ -4877,33 +4878,15 @@ Returns TRUE if there is an error in the specifiers.
              "A::operator int"." */
           goto operator_or_conversion_name;
         }  /* if */
-        /* If this is the first specifier, and this identifier is undefined,
-           assume that we are dealing with a name that was supposed to be
-           declared as a typedef.  Note that we do not get here on
-           declarations, so this bit of error recovery tweaking applies
-           only to things like prototyped parameter declarations and
-           members of structs/unions. */
-        if (num_specifiers == 0) {
-          if (input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED) {
-            a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
-
-            /* A function declaration without declaration specifiers is
-               permitted. */
-            *output_flags |= DSO_NO_DECL_SPECIFIERS;
-            /* Set the type appropriately if this the name of a constructor
-               member function. */
-            if (sym != NULL) {
-              if (is_constructor_symbol(sym)) {
-                *output_flags |= DSO_CONSTRUCTOR;
-                basic_type = bt_no_type;
-                *type_ptr = make_reference_type(sym->class_of_which_a_member);
-              } else if (is_destructor_symbol(sym)) {
-                *output_flags |= DSO_DESTRUCTOR;
-                basic_type = bt_no_type;
-              }  /* if */
-            }  /* if */
-            goto exit_loop;
-          } else if ((symbol_list_from_locator(locator_for_curr_id)) == NULL) {
+        if (num_specifiers == 0 &&
+            !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
+          /* If this is the first specifier, and this identifier is undefined,
+             assume that we are dealing with a name that was supposed to be
+             declared as a typedef.  Note that we do not get here on
+             declarations, so this bit of error recovery tweaking applies
+             only to things like prototyped parameter declarations and
+             members of structs/unions. */
+          if ((symbol_list_from_locator(locator_for_curr_id)) == NULL) {
             /* The identifier is undefined.  Assume it's an undefined
                typedef name. */
             str_error(ec_undefined_identifier,
@@ -4913,6 +4896,28 @@ Returns TRUE if there is an error in the specifiers.
             *type_ptr = error_type();
             break;
           }  /* if */
+        } else if (num_specifiers == 0 ||
+                   (num_specifiers == 1 && (*output_flags & DSO_INLINE))) {
+          a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
+
+          /* A function declaration without declaration specifiers is
+             permitted. */
+          if (num_specifiers == 0) {
+            *output_flags |= DSO_NO_DECL_SPECIFIERS;
+          }  /* if */
+          /* Set the type appropriately if this the name of a constructor
+             member function. */
+          if (sym != NULL) {
+            if (is_constructor_symbol(sym)) {
+              *output_flags |= DSO_CONSTRUCTOR;
+              basic_type = bt_no_type;
+              *type_ptr = make_reference_type(sym->class_of_which_a_member);
+            } else if (is_destructor_symbol(sym)) {
+              *output_flags |= DSO_DESTRUCTOR;
+              basic_type = bt_no_type;
+            }  /* if */
+          }  /* if */
+          goto exit_loop;
         }  /* if */
         /* For non-typedef identifiers, branch to the default case. */
         goto something_unexpected;
@@ -4946,10 +4951,14 @@ operator_or_conversion_name:
           if (num_specifiers == 0) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
-          /* The only specifier that is allowed with a destructor is
-             virtual (ARM 12.4).  Additional checking is done in declarator. */
+          /* The only specifiers that are allowed with a destructor are
+             virtual (ARM 12.4) and inline.  Additional checking is done
+             in declarator. */
           if (num_specifiers == 0 ||
-              (num_specifiers == 1 && (*output_flags & DSO_VIRTUAL))) {
+              (num_specifiers == 1 &&
+               (*output_flags & (DSO_VIRTUAL | DSO_INLINE))) ||
+              (num_specifiers == 2 &&
+               (*output_flags & (DSO_VIRTUAL & DSO_INLINE)))) {
             *output_flags |= DSO_DESTRUCTOR;
             basic_type = bt_no_type;
           }  /* if */
