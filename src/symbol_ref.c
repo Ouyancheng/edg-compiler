@@ -798,8 +798,11 @@ scopes and for the file scope.
         sym_list = symbol_supplement_for_class(tp)->symbols;
         break;
       default:
+#if CHECKING
         unexpected_condition();
+#else /* !CHECKING */
         sym_list = NULL;
+#endif /* CHECKING */
     }  /* if */
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
