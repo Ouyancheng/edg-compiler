@@ -3777,6 +3777,9 @@ This routine is called during IL walking.
 #if ONE_INSTANTIATION_PER_OBJECT
     case iek_per_instantiation_needed_flags_entry:
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    case iek_decl_position_supplement:
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* ifdef CFE */
       break;
     default:
