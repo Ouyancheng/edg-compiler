@@ -3319,6 +3319,17 @@ of the function, and again overloading is a possibility.
           clear_qualifier_from_locator(locator);
           set_to_named_error_locator(*locator);
         }  /* if */
+      } else if (sym != NULL &&
+                 sym->kind == (a_symbol_kind)sk_namespace_projection) {
+        /* Look for ambiguity resulting from pulling in declarations from
+           other namespaces. */
+        if (sym->ambiguous) {
+          /* Issue an error. */
+          check_for_ambiguity(locator);
+          sym = NULL;
+          clear_qualifier_from_locator(locator);
+          set_to_named_error_locator(*locator);
+        }  /* if */          
       }  /* if */
       if (func_info->is_inline) {
         storage_class = (a_storage_class)sc_static;
