@@ -19,7 +19,7 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 #define IL_WALK_H 1
 
 /* None of this is needed if not writing IL to a file. */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#if IL_WALK_NEEDED
 
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
@@ -88,6 +88,25 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* ifdef CIL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
+
+/*
+It is necessary to maintain a list of IL entries that are allocated in
+the file scope memory region but accessed from the function scope
+region.  These lists are walked during IL file writing and reading
+and when displaying the IL to ensure that all IL entries are
+visited.  Note, the first_entry and last_entry point to the first
+byte of the IL entry.  The address of the next entry in the linked list
+precedes the IL entry (entry_ptr - sizeof(char *)).
+*/
+typedef struct an_orphaned_il_entry_list {
+  char *first_entry;	/* Pointer to the first IL entry of a specific
+			   kind in a linked list. */
+  char *last_entry;	/* Pointer to the last IL entry of a specific
+			   kind in a linked list. */
+} an_orphaned_il_entry_list;
+
+EXTERN an_orphaned_il_entry_list
+		 orphaned_file_scope_il_entries[(int)iek_last];
 
 /* Macro to test whether or not an entry kind is a string kind. */
 #define is_string_entry_kind(entry_kind) \
@@ -200,13 +219,12 @@ extern void remap_pointers_in_il_entry(char                 *entry_ptr,
 
 extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* IL_WALK_NEEDED */
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || STANDALONE_UTILITY_PROGRAM
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY
 extern char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind);
 
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG ||
-          STANDALONE_UTILITY_PROGRAM */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || DEBUG || NEED_IL_DISPLAY */
                      
 #endif /* ifndef IL_WALK_H */
 
