@@ -1884,7 +1884,6 @@ returned.
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   } else if (replace_suffix) {
     /* We need to try a set of suffixes till we find a file we can open. */
-    check_assertion(depth_input_stack == 0);
     curr_directory_name_entry = search_path;
     done = FALSE;
     for (;;) {
@@ -2089,6 +2088,10 @@ Push the indicated file onto the input stack.
        automatic instantiation, its parent should be the (already closed)
        primary source file. */
     parent_file = il_header.primary_source_file;
+    /* after_end_of_all_source was set TRUE when we reached the end of the
+       primary source file.  Reset it so that we can continue accepting
+       input from the implicitly included template definition files. */
+    after_end_of_all_source = FALSE;
 #endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
     parent_file = input_stack[depth_input_stack-1].assoc_il_file;
@@ -2175,6 +2178,21 @@ at the next level down.
   if (curr_ise->assoc_actual_il_file != curr_ise->assoc_il_file) {
     record_end_of_source_file(curr_ise->assoc_il_file, seq_number_last_read);
   }  /* if */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  if (depth_input_stack == 0) {
+    /* The depth of the input stack can be zero for two reasons; we may
+       have reached the end of the primary source file or we may have
+       reached the end of a file implicitly included during template
+       instantiation processing.  If this is the end of an implicitly
+       included template definition file then update the last sequence
+       number of the primary source file to include the sequence numbers
+       of the statements read from the template definition file. */
+    if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {
+      record_end_of_source_file(il_header.primary_source_file,
+                                seq_number_last_read);
+    }  /* if */
+  }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   /* Close the current input file. */
   (void)fclose(curr_input_stream);
   eof_read_on_curr_input_stream = FALSE;
