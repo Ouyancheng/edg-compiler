@@ -2157,6 +2157,8 @@ associated with the indicated sck_function scope.
   rp = sp->variant.routine.ptr;
   ssep = rp->source_corresp.source_sequence_entry;
   if (ssep != NULL) {
+    a_memory_region_number region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
     if (rp->defined_outside_of_parent) {
       /* Definition of a class member outside the class definition or
          a namespace member outside the namespace definition.  Just
@@ -2304,6 +2306,7 @@ associated with the indicated sck_function scope.
 done_with_func_prototype_decls:;
       }  /* if */
     }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   rp->defined_outside_of_parent = FALSE;
 }  /* eliminate_function_body_source_sequence_entries */
