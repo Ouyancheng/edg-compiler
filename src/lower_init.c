@@ -1635,6 +1635,11 @@ Pop function corresponding to push_generated_routine_context.
     curr_object_lifetime = saved_curr_object_lifetime;
   }
   clean_up_all_object_lifetimes(scope);
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  /* Make orphan lists for any local types or static variables in the
+     routine. */
+  add_scope_orphaned_il_lists(scope);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   innermost_function_scope = grcontext->innermost_function_scope;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
   curr_cleanup_region_number = grcontext->curr_cleanup_region_number;
@@ -5273,11 +5278,6 @@ Do lowering on the file-scope dynamic initializations list.
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    /* Make orphan lists for any local types or static variables in the
-       routine. */
-    add_scope_orphaned_il_lists(scope);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     processing_file_scope_init_routine = FALSE;
     pop_generated_routine_context(scope, region_number, &grcontext);
     file_scope->dynamic_inits = NULL;
