@@ -3739,7 +3739,7 @@ this start position.
   /* Step through the characters of the source line, stepping over
      multibyte character sequences. */
   for (ptr = curr_source_line+column-1;; ptr += numch, column += numch) {
-    numch = mbc_length(ptr);
+    numch = mbc_length(ptr, (a_boolean *)NULL);
     if (column + numch > new_column) break;
   }  /* for */
 
@@ -4849,7 +4849,7 @@ normal_comment:
             if (multibyte_chars_in_source_enabled) {
               /* Advance to the next character, dealing with multibyte
                  characters. */
-              curr_char_loc += mbc_length(curr_char_loc);
+              curr_char_loc += mbc_length(curr_char_loc, (a_boolean *)NULL);
             } else
 #endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
@@ -5176,49 +5176,63 @@ static a_token_kind accum_quoted_string(a_token_kind  ctoken,
                                         a_boolean     *err)
 /*
 Scan a quoted construct, of kind indicated by ctoken.  The initial quote
-is at curr_char_loc.  Scan to the matching closing quote, and do not be
-confused by escaped characters.  Return in *num_chars the actual number
+is at curr_char_loc, or the "L" before that for a wide literal.  Scan to
+the matching closing quote, and do not be confused by escaped characters
+and multibyte character sequences.  Return in *num_chars the actual number
 of characters (after escape processing) contained within the quotes.
-Return *err TRUE if there was an error.  The value of the function is
-ctoken usually, but tok_error if there was an error and fetch_pp_tokens
-is TRUE.  This routine is used for character constants and string literals,
-in both the "wide" and normal forms, and for header names in #include
-directives.
+If the string is wide, *num_chars is set to the number of wide characters
+contained within the quotes.  Return *err TRUE if there was an error.
+The value of the function is ctoken usually, but tok_error if there was
+an error and fetch_pp_tokens is TRUE.  This routine is used for character
+constants and string literals, in both the "wide" and normal forms, and
+for header names in #include directives.
 */
 {
   register char quoting_char, ch;
   a_boolean     may_have_zero_characters = (ctoken == tok_string_literal);
   a_boolean     is_header_name = (ctoken == tok_header_name);
+  a_boolean     is_wide = (*curr_char_loc == 'L');
 
   *err = FALSE;
   *num_chars = 0;
+  /* Advance past the "L" on a wide string. */
+  if (is_wide) curr_char_loc++;
   quoting_char = *curr_char_loc;
   /* For <...> header names, the closing quoting character is different
      than the opening one. */
   if (quoting_char == '<') quoting_char = '>';
-  while ((ch = *(++curr_char_loc)) != quoting_char) {
-    (*num_chars)++;
+  /* Advance past the opening quoting character. */
+  curr_char_loc++;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  /* Initialize for scanning multibyte characters in the string. */
+  if (multibyte_chars_in_source_enabled) mbc_scan_init();
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  /* Scan through the characters of the string looking for the closing quoting
+     character. */
+  while ((ch = *curr_char_loc) != quoting_char) {
     if (ch == '\\') {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
          those digits so we can accurately count characters, but we do
          not convert them at this point. */
       ch = *(++curr_char_loc);
+      curr_char_loc++;
+      (*num_chars)++;
       if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
         /* Octal escape, one to three digits.  Note that neither ANSI nor
            pcc allows 8 and 9 as octal digits in this case.  Note that
            there is code in conv_single_char that must match this code.*/
-        ch = *(curr_char_loc+1);
+        ch = *curr_char_loc;
         if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
           curr_char_loc++;
-          ch = *(curr_char_loc+1);
+          ch = *curr_char_loc;
           if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
             curr_char_loc++;
           }  /* if */
         }  /* if */
       } else if (ch == 'x') {
         /* Hex escape, any number of digits. */
-        while (isxdigit((unsigned char)*(curr_char_loc+1))) curr_char_loc++;
+        while (isxdigit((unsigned char)*curr_char_loc)) curr_char_loc++;
       }  /* if */
     } else if (ch == LE_ESCAPE) {
       /* Lexical escape, e.g., newline. */
@@ -5229,7 +5243,7 @@ directives.
            when macro expansion is involved (see 3.8.2).  The end-of-token
            markers are removed when the file name is constructed later
            (see proc_include). */
-        curr_char_loc++;
+        curr_char_loc += LE_ESCAPE_LEN;
       } else {
         /* Newline -- error, quoted string unclosed. */
         /* Similar error for other strange cases of incomplete strings, which
@@ -5243,6 +5257,27 @@ directives.
         }  /* if */
         *err = TRUE;
         goto return_point;
+      }  /* if */
+    } else {
+      /* Normal character. */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+      if (multibyte_chars_in_source_enabled) {
+        /* Advance to the next character, dealing with multibyte characters. */
+        int numch = mbc_length(curr_char_loc, (a_boolean *)NULL);
+        curr_char_loc += numch;
+        if (is_wide) {
+          (*num_chars)++;
+        } else {
+          *num_chars += (unsigned long)numch;
+        }  /* if */
+      } else
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+      /* Do not insert code here -- this is the "else" of an "if". */
+      {
+        /* Advance to the next character without worrying about multibyte
+           characters. */
+        curr_char_loc++;
+        (*num_chars)++;
       }  /* if */
     }  /* if */
   }  /* while */
@@ -5267,6 +5302,7 @@ return_point:
 static a_token_kind scan_char_constant(void)
 /*
 Scan a character constant token, return the token kind or tok_error.
+The token can be a normal or wide string constant.
 */
 {
   a_token_kind  ctoken;
@@ -5295,6 +5331,7 @@ Scan a character constant token, return the token kind or tok_error.
 static a_token_kind scan_string_literal(void)
 /*
 Scan a string literal token, return the token kind or tok_error.
+The token can be a normal or wide string literal.
 */
 {
   a_token_kind  ctoken;
@@ -5318,30 +5355,6 @@ Scan a string literal token, return the token kind or tok_error.
   }  /* if */
   return ctoken;
 }  /* scan_string_literal */
-
-
-static a_token_kind scan_wide_char_constant(void)
-/*
-Scan a wide character constant token, return the token kind or tok_error.
-*/
-{
-  /* Skip over the "L". */
-  curr_char_loc++;
-  /* Otherwise, handle the same as the non-wide case. */
-  return(scan_char_constant());
-}  /* scan_wide_char_constant */
-
-
-static a_token_kind scan_wide_string_literal(void)
-/*
-Scan a wide string literal token, return the token kind or tok_error.
-*/
-{
-  /* Skip over the "L". */
-  curr_char_loc++;
-  /* Otherwise, handle the same as the non-wide case. */
-  return(scan_string_literal());
-}  /* scan_wide_string_literal */
 
 
 static void adjust_pp_int_constant(void)
@@ -5396,18 +5409,10 @@ reusable value of the constant.
       ctoken = scan_number();
       break;
     case tok_char_constant:
-      if (*curr_char_loc == 'L') {
-        ctoken = scan_wide_char_constant();
-      } else {
-        ctoken = scan_char_constant();
-      }  /* if */
+      ctoken = scan_char_constant();
       break;
     case tok_string_literal:
-      if (*curr_char_loc == 'L') {
-        ctoken = scan_wide_string_literal();
-      } else {
-        ctoken = scan_string_literal();
-      }  /* if */
+      ctoken = scan_string_literal();
       break;
 #if CHECKING
     default:
@@ -6022,11 +6027,11 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       /* Probably an identifier, but check for a wide character
          constant (L'x') or wide string literal (L"xyz") first. */
       if ((ch = *(curr_char_loc+1)) == '\'') {
-        ctoken = scan_wide_char_constant();
+        ctoken = scan_char_constant();
         goto end_of_token_scan;
       } else if (ch == '"') {
         remember_token_start();
-        ctoken = scan_wide_string_literal();
+        ctoken = scan_string_literal();
         goto concatenate_adjacent_string_literals;
       }  /* if */
       /* Neither of those cases, fall through into identifier processing. */

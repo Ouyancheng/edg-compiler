@@ -1061,7 +1061,7 @@ but it always gets the right answer.
 #endif /* ifndef STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 
 /* Determine length of multibyte character sequence. */
-extern int mbc_length(char *ptr);
+extern int mbc_length(char *ptr, a_boolean *error);
 
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
 /* Use custom processing for SJIS instead of the C library routines. */

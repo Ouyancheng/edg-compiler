@@ -389,6 +389,7 @@ is set to the character position of the error.
 
 
 static void conv_single_char(char          **temp_ptr,
+                             int           *remaining_mbc_char_count,
                              unsigned long *ch,
                              unsigned long centity_mask)
 /*
@@ -396,51 +397,80 @@ Fetch one character of a character constant or string literal.  The current
 position in the token is *temp_ptr (it is incremented appropriately
 for what is taken).  The character gotten is returned (not sign-extended)
 in ch.  centity_mask defines the size of the character entity into which
-this character is going (char or wchar_t).
+this character is going (char or wchar_t).  *remaining_mbc_char_count
+indicates the number of characters remaining to be extracted from a
+multibyte character sequence.  The caller must set it to zero before
+the first call of this routine in a given string.  It is updated
+appropriately on return (but it is not updated if multibyte characters
+are not enabled, and thus stays zero on all calls).
 */
 {
   register unsigned long targ_ch;
-  register char          src_ch, tch;
+  register unsigned char tch;
   register char          *lptr;
   int                    digit;
   a_boolean              range_error = FALSE;
   a_boolean              unrecognized;
 
   lptr = *temp_ptr;
-  targ_ch = src_ch = *(lptr++);
-  if (src_ch == '\\') {
+  targ_ch = (unsigned char)*lptr;
+  if (*remaining_mbc_char_count != 0) {
+    /* We are in the middle of a multibyte character sequence started on a
+       previous call of this routine.  Return another character and
+       decrement the count of remaining characters. */
+    lptr++;
+    (*remaining_mbc_char_count)--;
+  } else if (targ_ch != '\\') {
+    /* Normal character (not escaped). */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+    if (multibyte_chars_in_source_enabled) {
+      /* Determine the size of the multibyte character sequence that begins at
+         the current character.  Since we're returning one character on this
+         call, the remaining count is one less than the size. */
+      a_boolean error;
+      *remaining_mbc_char_count = mbc_length(lptr, &error) - 1;
+      if (error) {
+        /* Invalid multibyte character sequence. */
+        conv_line_loc_to_source_pos(lptr, &error_position);
+        warning(ec_bad_multibyte_char);
+      }  /* if */
+    }  /* if */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+    lptr++;
+  } else {
     /* Backslash, escaped character.  Can be an octal escape, a hexadecimal
        escape, a simple escape sequence (like \n), or something unrecognized,
        in which case the character is left alone.  See standard, 2.2.2,
        3.1.3.4, and 3.1.4. */
     unrecognized = FALSE;
-    switch ((int)(tch = *(lptr++))) {
+    lptr++;
+    switch ((int)(tch = (unsigned char)*(lptr++))) {
       case 'a':
         if (C_dialect == C_dialect_pcc) {
           /* pcc does not recognize \a. */
           unrecognized = TRUE;
         } else {
-          targ_ch = TARG_ALERT_CHAR;
+          targ_ch = (unsigned char)TARG_ALERT_CHAR;
         }  /* if */
         break;
       case 'b':
-        targ_ch = TARG_BACKSPACE_CHAR;
+        targ_ch = (unsigned char)TARG_BACKSPACE_CHAR;
         break;
       case 'f':
-        targ_ch = TARG_FORM_FEED_CHAR;
+        targ_ch = (unsigned char)TARG_FORM_FEED_CHAR;
         break;
       case 'n':
-        targ_ch = TARG_NEWLINE_CHAR;
+        targ_ch = (unsigned char)TARG_NEWLINE_CHAR;
         break;
       case 'r':
-        targ_ch = TARG_CARR_RETURN_CHAR;
+        targ_ch = (unsigned char)TARG_CARR_RETURN_CHAR;
         break;
       case 't':
-        targ_ch = TARG_HORIZ_TAB_CHAR;
+        targ_ch = (unsigned char)TARG_HORIZ_TAB_CHAR;
         break;
       case 'v':
         /* \v is not in K&R, but is recognized by pcc. */
-        targ_ch = TARG_VERT_TAB_CHAR;
+        targ_ch = (unsigned char)TARG_VERT_TAB_CHAR;
         break;
       case 'x':
         /* Hexadecimal escape.  There can be many digits, but there must be
@@ -449,7 +479,7 @@ this character is going (char or wchar_t).
           unrecognized = TRUE;
         } else {
           targ_ch = hexvalue(*lptr);  /* First digit. */
-          while (isxdigit((unsigned char)(tch = *(++lptr)))) {
+          while (tch = *(++lptr), isxdigit(tch)) {
             if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
               /* Error will be processed below.  We must keep going and take
                  all the digits. */
@@ -468,13 +498,13 @@ this character is going (char or wchar_t).
            Note that there is code in accum_quoted_string that must match
            this code. */
         targ_ch = tch - '0';  /* First digit. */
-        tch = *lptr;
-        if (isdigit((unsigned char)tch) && tch != '8' && tch != '9') {
+        tch = (unsigned char)*lptr;
+        if (isdigit(tch) && tch != '8' && tch != '9') {
           /* Second digit. */
           targ_ch = (targ_ch << 3) | (tch - '0');
           lptr++;
-          tch = *lptr;
-          if (isdigit((unsigned char)tch) && tch != '8' && tch != '9') {
+          tch = (unsigned char)*lptr;
+          if (isdigit(tch) && tch != '8' && tch != '9') {
             /* Third digit. */
             lptr++;
             targ_ch = (targ_ch << 3) | (tch - '0');
@@ -500,8 +530,7 @@ this character is going (char or wchar_t).
     }  /* if */
   }  /* if */
 return_point:
-  /* Drop sign extension (from host C compiler with signed characters)
-     and out-of-range bits. */
+  /* Drop out-of-range bits. */
   targ_ch &= centity_mask;
   *ch = targ_ch;
   *temp_ptr = lptr;
@@ -536,49 +565,59 @@ range_check:
 
 static void conv_single_wide_char(char          **temp_ptr,
                                   unsigned long *ch,
-                                  unsigned long *chars_taken,
                                   unsigned long centity_mask)
 /*
 Fetch one wide character of a wide character constant or string literal.
 The current position in the token is *temp_ptr (it is incremented
 appropriately for what is taken).  More than one source character
-may be taken to produce one wide character as output.  The number of
-source characters taken is returned in *chars_taken.  The wide character
+may be taken to produce one wide character as output.  The wide character
 gotten is returned (not sign-extended) in ch.  centity_mask defines
-the size of wchar_t.  This routine works like mbtowc (see 4.10.7.2 and
-3.1.3.4 in the ANSI C standard).
+the size of wchar_t.
 */
 {
-  /* Simple version: one character in means one wchar_t out. */
-  conv_single_char(temp_ptr, ch, centity_mask);
-  *chars_taken = 1;
+  int remaining_mbc_char_count = 0;
+
+#if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  /* Simple version: no multibyte characters to consider. */
+  conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
+#else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  /* Multibyte character processing may be needed, but not if it's disabled,
+     and not if the input is an escape sequence. */
+  if (!multibyte_chars_in_source_enabled || **temp_ptr == '\\') {
+    /* Simple version: no multibyte characters to consider. */
+    conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
+    check_assertion(remaining_mbc_char_count == 0);
+  } else {
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+    /* Use custom code for SJIS instead of the C library routines. */
+    conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
+    if (remaining_mbc_char_count != 0) {
+      unsigned long ch2;
+      conv_single_char(temp_ptr, &remaining_mbc_char_count, &ch2,
+                       centity_mask);
+      *ch = (*ch << targ_char_bit) | ch2;
+      check_assertion(remaining_mbc_char_count == 0);
+    }  /* if */
+#else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+    /* Use a standard C library routine to do the multibyte character
+       sequence to wide character conversion. */
+    { wchar_t wc;
+      int     numch;
+      numch = mbtowc(&wc, *temp_ptr, MB_CUR_MAX);
+      if (numch < 0) {
+        /* Invalid multibyte character sequence. */
+        conv_line_loc_to_source_pos(*temp_ptr, &error_position);
+        warning(ec_bad_multibyte_char);
+        wc = 0;
+        numch = 1;
+      }  /* if */
+      *ch = wc;
+      *temp_ptr += numch;
+    }
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+  }  /* if */
+#endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 }  /* conv_single_wide_char */
-
-
-/*ARGSUSED*/ /* <-- Because temp_ptr is not used in this simple version. */
-static void determine_wide_char_constant_size(char          *temp_ptr,
-                                              unsigned long num_chars,
-                                              a_boolean     add_null,
-                                              sizeof_t      *constant_size,
-                                              a_targ_size_t *num_elems)
-/*
-Determine the size of a wide character constant or string literal.
-temp_ptr points to the source characters; there are num_chars of them.
-A null should be considered appended to the constant if add_null is TRUE.
-Return *constant_size set to the size in bytes for the constant and
-*num_elems set to the number of wchar_t elements.  This routine should
-provide results consistent with the functioning of mbtowc (see 4.10.7.2
-and 3.1.3.4 in the ANSI C standard).
-*/
-{
-  /* Simple version: one character in means one wchar_t out. */
-  /* Fancier versions may have to scan the text of the literal here to
-     determine the proper size after allowing for escape sequences and
-     the like. */
-  *num_elems = num_chars;
-  if (add_null) (*num_elems)++;
-  *constant_size = (sizeof_t)((*num_elems)*targ_sizeof_wchar_t);
-}  /* determine_wide_char_constant_size */
 
 
 void conv_char_literal(unsigned long num_chars,
@@ -592,7 +631,7 @@ there is no error, *err_code is set to ec_no_error (which is 0);
 otherwise, *err_code is set to an appropriate error code and *err_pos
 is set to the character position of the error.  num_chars indicates
 the number of characters contained within the quotes (after escape
-processing).
+processing, and in wide characters if the constant is wide).
 */
 {
   unsigned long    i;
@@ -603,11 +642,10 @@ processing).
   a_type_ptr       con_type;
   an_integer_kind  int_kind;
   sizeof_t         constant_size;
-  a_targ_size_t    num_elems;
-  unsigned long    chars_taken;
   unsigned long    centity_mask;
   a_boolean        centity_is_signed;
   int              centity_bits;
+  int              remaining_mbc_char_count = 0;
 
   *err_code = ec_no_error;
   *err_pos = NULL;
@@ -624,8 +662,7 @@ processing).
     /* Skip over the "L". */
     temp_ptr++;
     int_kind = targ_wchar_t_int_kind;
-    determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/FALSE,
-                                      &constant_size, &num_elems);
+    constant_size = (sizeof_t)(num_chars*targ_sizeof_wchar_t);
     centity_mask = (unsigned long)1 << ((targ_sizeof_wchar_t*targ_char_bit)-1);
     centity_mask = centity_mask | (centity_mask - 1);
     centity_bits = targ_sizeof_wchar_t*targ_char_bit;
@@ -665,15 +702,19 @@ processing).
     }  /* if */
   }  /* if */
   if (*err_code == ec_no_error) {
-    /* Accumulate the characters. */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+    /* Initialize for scanning multibyte characters in the string. */
+    if (multibyte_chars_in_source_enabled) mbc_scan_init();
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     set_unsigned_integer_value(&number, 0L);
-    for (i = 0; i < num_chars; i += chars_taken) {
+    /* Accumulate the characters. */
+    for (i = 0; i < num_chars; i++) {
       /* Convert one character of the char constant. */
       if (!is_wide) {
-        conv_single_char(&temp_ptr, &ch, centity_mask);
-        chars_taken = 1;
+        conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
+                         centity_mask);
       } else {
-        conv_single_wide_char(&temp_ptr, &ch, &chars_taken, centity_mask);
+        conv_single_wide_char(&temp_ptr, &ch, centity_mask);
       }  /* if */
       /* For wide character constants with too many characters, ignore
          characters that don't fit. */
@@ -762,7 +803,7 @@ there is no error, *err_code is set to ec_no_error (which is 0);
 otherwise, *err_code is set to an appropriate error code and *err_pos
 is set to the character position of the error.  num_chars indicates
 the number of characters contained within the quotes (after escape
-processing).
+processing, and in wide characters if the string is wide).
 */
 {
   unsigned long i;
@@ -772,11 +813,14 @@ processing).
   a_boolean     is_wide = FALSE;
   sizeof_t      constant_size;
   a_targ_size_t num_elems;
-  unsigned long chars_taken;
   unsigned long centity_mask;
+  int           remaining_mbc_char_count = 0;
 
   *err_code = ec_no_error;
   *err_pos = NULL;  /* To make lint happy. */
+  /* The number of array elements is one more than the number of characters,
+     to leave space for the terminating null. */
+  num_elems = num_chars + 1;
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
@@ -787,8 +831,7 @@ processing).
     is_wide = TRUE;
     /* Skip over the "L". */
     temp_ptr++;
-    determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/TRUE,
-                                      &constant_size, &num_elems);
+    constant_size = (sizeof_t)(num_elems*targ_sizeof_wchar_t);
     /* Replicate the mask for one character as many times as there are
        characters in the wide character.  This "inefficient" method is used
        because it works right even when the target character is larger than
@@ -798,23 +841,27 @@ processing).
       centity_mask |= (centity_mask << targ_char_bit);
     }  /* for */
   } else {
-    /* Normal string literal.  The "+1" is space for the null. */
-    constant_size = (sizeof_t)(num_elems = num_chars+1);
+    /* Normal string literal. */
+    constant_size = (sizeof_t)num_elems;
     /* centity_mask is already set. */
   }  /* if */
   /* Allocate enough space to hold the final string, including the null
      added to it. */
   str_start = pstr = alloc_text_of_string_literal(constant_size);
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  /* Initialize for scanning multibyte characters in the string. */
+  if (multibyte_chars_in_source_enabled) mbc_scan_init();
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Accumulate the characters. */
-  for (i = 0; i < num_chars; i += chars_taken) {
+  for (i = 0; i < num_chars; i++) {
     /* Convert one character of the string literal. */
     if (!is_wide) {
-      conv_single_char(&temp_ptr, &ch, centity_mask);
+      conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
+                       centity_mask);
       /* Put the character in the right place. */
       *pstr++ = (char)ch;
-      chars_taken = 1;
     } else {
-      conv_single_wide_char(&temp_ptr, &ch, &chars_taken, centity_mask);
+      conv_single_wide_char(&temp_ptr, &ch, centity_mask);
       put_wide_char_into_string(ch, &pstr);
     }  /* if */
   }  /* for */

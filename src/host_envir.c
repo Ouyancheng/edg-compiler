@@ -2530,38 +2530,45 @@ a memory fault.
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
-int mbc_length(char *ptr)
+int mbc_length(char      *ptr,
+               a_boolean *error)
 /*
 Return the length of the multibyte character sequence beginning at ptr.
-Return 1 if the sequence there is invalid.
+If the sequence there is invalid, set *error to TRUE if error is non-NULL,
+and return 1.
 */
 {
   int len;
 
+  if (error != NULL) *error = FALSE;
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
   /* Use custom code for SJIS instead of the C library routines. */
-  unsigned char ch = (unsigned char)*ptr;
-  /* Check for codes that indicate the first character of a two-character
-     sequence.  Note that the test functions are macros that can be
-     replaced as necessary. */
-  if (is_first_char_of_sjis_two_char_sequence(ch)) {
-    /* Two-character sequence.  Check validity of second character. */
-    ch = (unsigned char)(ptr[1]);
-    if (is_valid_sjis_second_char(ch)) {
-      len = 2;
+  { unsigned char ch = (unsigned char)*ptr;
+    /* Check for codes that indicate the first character of a two-character
+       sequence.  Note that the test functions are macros that can be
+       replaced as necessary to deal with the fact that different
+       implementations of SJIS use different character ranges. */
+    if (is_first_char_of_sjis_two_char_sequence(ch)) {
+      /* Two-character sequence.  Check validity of second character. */
+      ch = (unsigned char)(ptr[1]);
+      if (is_valid_sjis_second_char(ch)) {
+        len = 2;
+      } else {
+        /* Invalid sequence.  Advance bytewise. */
+        if (error != NULL) *error = TRUE;
+        len = 1;
+      }  /* if */
     } else {
-      /* Invalid sequence.  Advance bytewise. */
+      /* One-character sequence. */
       len = 1;
     }  /* if */
-  } else {
-    /* One-character sequence. */
-    len = 1;
-  }  /* if */
+  }
 #else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
   /* Use standard C library routines. */
   len = mblen(ptr, MB_CUR_MAX);
-  if (len == 0) {
+  if (len < 0) {
     /* Invalid multibyte sequence.  Advance bytewise. */
+    if (error != NULL) *error = TRUE;
     len = 1;
   }  /* if */
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
