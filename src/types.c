@@ -2307,11 +2307,11 @@ that is not required to be checked by the ANSI C standard.
     /* Pointer types.  Get the underlying types. */
     ptr_type_1 = skip_typerefs(type_1->variant.pointer.type);
     ptr_type_2 = skip_typerefs(type_2->variant.pointer.type);
-    if (!strict_ansi_mode &&
-        (ptr_type_1 == ptr_type_2 ||  /* This test for speed. */
-         interchangeable_types(ptr_type_1, ptr_type_2))) {
-      /* Pointers to interchangeable types are interchangeable.  This is
-         an extension. */
+    if (ptr_type_1 == ptr_type_2 ||  /* This test for speed. */
+        (strict_ansi_mode ? types_are_compatible(ptr_type_1, ptr_type_2) :
+                            interchangeable_types(ptr_type_1, ptr_type_2))) {
+      /* Pointers to compatible types are compatible.  As an extension,
+         pointers to interchangeable types are interchangeable. */
       interch = TRUE;
     } else if ((is_void(ptr_type_1) && is_character(ptr_type_2)) ||
                (is_character(ptr_type_1) && is_void(ptr_type_2))) {
