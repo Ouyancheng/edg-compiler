@@ -10746,7 +10746,8 @@ not be returned.
   a_boolean	     try_found = FALSE;
 
   db_enter(3, "cache_function_body");
-  *first_tsn = *last_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  if (first_tsn != NULL) *first_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  if (last_tsn != NULL) *last_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   if (missing_end != NULL) *missing_end = FALSE;
   if (start_pos != NULL) *start_pos = null_source_position;
   if (end_pos != NULL) *end_pos = null_source_position;
