@@ -2872,9 +2872,7 @@ region of the primary IL.
     /* This memory has already been freed. */
   } else {
     a_scope_ptr sp = il_header.region_scope_entry[number];
-    a_boolean   from_secondary_trans_unit =
-                       (trans_unit_for_scope[sp->number] != translation_units);
-    if (!from_secondary_trans_unit &&
+    if (!in_secondary_trans_unit(sp) &&
         sp->kind != (a_scope_kind)sck_file) {
       result = TRUE;
     }  /* if */
@@ -3162,7 +3160,10 @@ before lowering and needed flag marking of the primary IL.
                        rewrite_secondary_termination_test,
                        /*clear_fe_pointers=*/FALSE);
     /* Loop through the memory regions looking for functions in the
-       primary IL, and process them too. */
+       primary IL, and process them too.  Note that copying has been
+       done already, so we're really ruling out file-scope regions from
+       secondary translation units and function regions (if any) that
+       didn't get copied over. */
     for (n = FILE_SCOPE_REGION_NUMBER + 1;
          n <= highest_used_region_number;
          n++) {
