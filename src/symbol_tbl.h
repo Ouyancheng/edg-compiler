@@ -1911,6 +1911,18 @@ typedef struct a_template_symbol_supplement {
 			   template parameter, points to the symbol of the
 			   actual template template argument for the
 			   current instantiation. */
+      a_template_ptr
+		substituted_param_template;
+			/* For a class template associated with a template
+			   template template parameter, if the template
+			   template parameter for which this is an argument
+			   has a template parameter with a dependent type,
+			   this points to the rescanned template parameter.
+			   This comes up in cases like
+			   "template <class T, template <T t> struct X> ...".
+			   The rescanned version of the parameter list must
+			   be used when scanning template argument lists of
+			   the template template parameter. */
       a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the

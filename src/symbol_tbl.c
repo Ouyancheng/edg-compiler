@@ -2496,6 +2496,7 @@ and return a pointer to it.
       tssp->variant.class_template.involves_template_param = FALSE;
       tssp->variant.class_template.any_full_instantiations = FALSE;
       tssp->variant.class_template.argument_template = NULL;
+      tssp->variant.class_template.substituted_param_template = NULL;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */

@@ -9419,7 +9419,7 @@ done using the disambiguation routines.
       check_assertion(is_template_templ_arg(arg_ptr));
       templ_ptr = scan_template_template_argument((a_template_ptr)NULL,
                                                    &error_position);
-      arg_ptr->variant.templ = templ_ptr;
+      arg_ptr->variant.templ.ptr = templ_ptr;
     }  /* if */
     /* Link this entry on to the argument list. */
     if (arg_list == NULL) arg_list = arg_ptr;
@@ -9443,9 +9443,16 @@ was declared by a template declaration scope currently on the scope stack.
   a_scope_depth	depth;
 
   depth = scope_depth_of_symbol(template_sym, &is_local_to_function);
-  if (depth != NO_SCOPE_DEPTH &&
-      scope_stack[depth].kind == (a_scope_kind)sck_template_declaration) {
-    result = TRUE;
+  if (depth != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr	ssep = &scope_stack[depth];
+    if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+      result = TRUE;
+    } else if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+               ssep->in_prototype_instantiation) {
+      /* We also return TRUE for template template parameters of prototype
+         instantiations. */
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_template_template_peram_of_current_decl */
@@ -9488,21 +9495,24 @@ this routine.  Its value is unchanged if no errors are detected.
     /* The template whose argument list is being scanned is a template
        template argument.  Determine whether the template declaration
        scope for that argument is still one the scope stack. */
+    a_template_ptr			subst_param_templ;
+    a_template_symbol_supplement_ptr	subst_param_tssp;
     templ_templ_param_of_curr_decl =
                      is_template_template_param_of_current_decl(template_sym);
-#if 0
-    /* If this is a template template parameter (and not of a current
-       declaration) get the parameter list via the IL template entry.
-       This may be different from the one pointed to by the template symbol
-       for template template parameters that have template parameter lists
-       that depend on other template parameters. */
-    a_symbol_ptr			argument_sym;
-    a_template_symbol_supplement_ptr	argument_tssp;
-    argument_sym = template_sym->variant.template_info->
-                                      variant.class_template.argument_template;
-    argument_tssp = argument_sym->variant.template_info;
-    param_ptr = argument_tssp->cache.decl_info->parameters;
-#endif
+    /* If this is a template template parameter, see if there is a substituted
+       version of the parameter templates.  This comes up in cases where the
+       template template parameter has template parameters that depends on
+       other template parameters.  In such cases, get the parameter list
+       via the IL template entry for the substituted parameter template. */
+    subst_param_templ = template_sym->variant.template_info->
+                             variant.class_template.substituted_param_template;
+    if (subst_param_templ != NULL) {
+      /* There will be no substituted parameter template for non-dependent
+         template template parameters or for prototype instantiations. */
+      subst_param_tssp = subst_param_templ->template_info;
+      check_assertion(subst_param_tssp != NULL);
+      param_ptr = subst_param_tssp->cache.decl_info->parameters;
+    }  /* if */
   }  /* if */
   do {
     a_source_position  arg_pos;
@@ -9572,9 +9582,10 @@ this routine.  Its value is unchanged if no errors are detected.
            parameter template. */
         param_template = rescan_template_template_parameter(
                                        template_sym, param_ptr, arg_list);
+        arg_ptr->variant.templ.substituted_param_template = param_template;
       }  /* if */
       templ = scan_template_template_argument(param_template, &arg_pos);
-      arg_ptr->variant.templ = templ;
+      arg_ptr->variant.templ.ptr = templ;
     }  /* if */
     /* Link this entry on to the argument list. */
     if (arg_list == NULL) arg_list = arg_ptr;
@@ -9614,7 +9625,7 @@ this routine.  Its value is unchanged if no errors are detected.
           if (param_ptr->has_default_arg) {
             /* A type parameter with a default value.  The default can be
 	       either a type or a token cache that needs to be scanned. */
-            arg_ptr->variant.templ =
+            arg_ptr->variant.templ.ptr =
                      rescan_template_template_default_arg(template_sym,
                                                           param_ptr, arg_list);
           } else {
@@ -9622,7 +9633,7 @@ this routine.  Its value is unchanged if no errors are detected.
                This occurs only in error cases.  Use an error template. */
             a_symbol_ptr	error_sym;
             error_sym = error_class_template();
-            arg_ptr->variant.templ =
+            arg_ptr->variant.templ.ptr =
                            error_sym->variant.template_info->il_template_entry;
           }  /* if */
         } else {

@@ -2833,7 +2833,7 @@ Add to the mangled name the encoding for the template template argument
 given by tap.
 */
 {
-  a_template_ptr temp = tap->variant.templ;
+  a_template_ptr temp = tap->variant.templ.ptr;
 
   if (temp->kind == (a_template_kind)templk_template_template_param) {
     /* The value of the argument is itself a template template parameter. */

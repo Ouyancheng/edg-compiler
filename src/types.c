@@ -6607,7 +6607,7 @@ with a template argument that is a template template parameter.
          tap = tap->next) {
       if (is_template_templ_arg(tap)) {
         a_template_symbol_supplement_ptr	tssp;
-        tssp = template_supplement_for_template(tap->variant.templ);
+        tssp = template_supplement_for_template(tap->variant.templ.ptr);
         /* Determine whether the template pointed to is a template template
            parameter. */
         if (tssp->variant.class_template.template_template_param) {
@@ -6707,7 +6707,7 @@ by specific_template_template_param.
            tap != NULL;
            tap = tap->next) {
         if (is_template_templ_arg(tap)) {
-          if (equiv_templates(tap->variant.templ,
+          if (equiv_templates(tap->variant.templ.ptr,
                                specific_template_template_param)) {
             *force_end_of_traversal = found = TRUE;
             break;
@@ -7183,7 +7183,7 @@ its parameters?).
               } else if (is_template_templ_arg(tap)) {
                 /* Template template arguments are not themselves processed,
                    but their parent type may be. */
-                a_template_ptr	templ_ptr = tap->variant.templ;
+                a_template_ptr	templ_ptr = tap->variant.templ.ptr;
                 if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
                      nonstandard_qualifier_deduction) &&
                     !status && templ_ptr->source_corresp.is_class_member) {

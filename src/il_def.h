@@ -3695,9 +3695,22 @@ typedef struct a_template_arg {
                            is converted into a normal constant parameter.
                            Contains zero if no value has been deduced yet. */
     /* When kind == tak_template */
-    a_template_ptr
-		templ;
+    struct {
+      a_template_ptr
+		ptr;
 			/* The template supplied as the argument. */
+      a_template_ptr
+		substituted_param_template;
+			/* If the template template parameter for which this
+			   is an argument has a template parameter with a
+			   dependent type, this points to the rescanned
+			   template parameter.  This comes up in cases like
+			   "template <class T, template <T t> struct X> ...".
+			   The rescanned version of the parameter list must
+			   be used when scanning template argument lists of
+			   the template template parameter.  Used only in
+			   the front end. */
+    } templ;
   } variant;
   an_arg_operand_ptr
 		arg_operand;

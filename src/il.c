@@ -194,7 +194,7 @@ Dump a list of template arguments, enclosed by angle brackets.
           db_type_name(tap->variant.type);
         }  /* if */
       } else if (is_template_templ_arg(tap)) {
-        db_template_name(tap->variant.templ);
+        db_template_name(tap->variant.templ.ptr);
       } else if (tap->is_array_bound_of_unknown_type) {
         fprintf(f_debug, "array-bound=%lu",
                 (unsigned long)tap->variant.integer_value);
@@ -3898,7 +3898,8 @@ to refine the hash value developed in hash_constant.
                 hash_value += hash_constant(tap->variant.constant) + 43;
                 break;
               case tak_template:
-                hash_value += hash_name(&tap->variant.templ->source_corresp);
+                hash_value += hash_name(&tap->
+                                            variant.templ.ptr->source_corresp);
                 break;
               default: unexpected_condition(); break;
             }  /* switch */

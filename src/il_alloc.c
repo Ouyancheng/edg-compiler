@@ -954,7 +954,8 @@ allocated.
       tap->variant.type = NULL;
       break;
     case tak_template:
-      tap->variant.templ = NULL;
+      tap->variant.templ.ptr = NULL;
+      tap->variant.templ.substituted_param_template = NULL;
       break;
     case tak_nontype:
       /* It is not really necessary to initialize all of these fields, but

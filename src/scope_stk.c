@@ -1303,7 +1303,9 @@ values needed for the previous call.
            argument. */
         param_tssp = param_symbol->variant.template_info;
         param_tssp->variant.class_template.argument_template =
-                                       symbol_for_template(tap->variant.templ);
+                                   symbol_for_template(tap->variant.templ.ptr);
+        param_tssp->variant.class_template.substituted_param_template =
+                                 tap->variant.templ.substituted_param_template;
       } else {
         check_assertion(param_symbol->kind == (a_symbol_kind)sk_constant);
         param_symbol->variant.constant = tap->variant.constant;
@@ -1343,6 +1345,7 @@ declaration is scanned and are used as placeholders between instantiations.
       check_assertion(param_symbol->kind == (a_symbol_kind)sk_class_template);
       param_tssp = param_symbol->variant.template_info;
       param_tssp->variant.class_template.argument_template = param_symbol;
+      param_tssp->variant.class_template.substituted_param_template = NULL;
     }  /* if */
     param_symbol->template_param_not_visible = FALSE;
     tpp = tpp->next;
@@ -2509,7 +2512,12 @@ to the namespace and class that must be reactivated.
 
   /* Determine the parent type and namespace based on the enclosing scope
      of the template. */
-  if (sp->kind == (a_scope_kind)sck_class_struct_union) {
+  if (sp == NULL) {
+    /* This will be the case when the template is a template template
+       parameter and we are rescanning a dependent template parameter. */
+    parent_type = NULL;
+    parent_namespace = NULL;
+  } else if (sp->kind == (a_scope_kind)sck_class_struct_union) {
     /* The scope is a class scope.  Get the class type and loop
        through any enclosing classes to find the parent namespace. */
     a_type_ptr	tp;

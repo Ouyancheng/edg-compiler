@@ -243,7 +243,7 @@ Output the indicated template argument in the way described by octl.
       break;
     case tak_template:
       /* A template template argument. */
-      form_template(tap->variant.templ, octl);
+      form_template(tap->variant.templ.ptr, octl);
       break;
     default:
       unexpected_condition();

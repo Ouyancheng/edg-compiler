@@ -4661,7 +4661,7 @@ static void add_template_template_arg_to_lookup_lists(
 Add the namespace in which "type" is defined to the namespace_list.
 */
 {
-  a_template_ptr		templ = tap->variant.templ;
+  a_template_ptr		templ = tap->variant.templ.ptr;
   a_namespace_ptr		nsp;
   a_source_correspondence	*scp;
 

@@ -1494,7 +1494,7 @@ for each parameter.
     } else {
       /* A template template argument -- the argument is okay if the template
          has been filled in. */
-      arg_okay = tap->variant.templ != NULL;
+      arg_okay = tap->variant.templ.ptr != NULL;
     }  /* if */
     if (!arg_okay) {
       result = FALSE;
@@ -1604,12 +1604,14 @@ values, and the handling of array bounds of unknown type.
              new parameter template. */
           param_template = rescan_template_template_parameter(
                                           rout_templ_sym, tpp, templ_arg_list);
+          tap->variant.templ.substituted_param_template = param_template;
         }  /* if */
         /* Compare the parameter list of the (potentially) rescanned template
            template parameter with the template supplied as an argument. */
         param_list_for_param = template_supplement_for_template(param_template)
                                                  ->cache.decl_info->parameters;
-        arg_template = template_supplement_for_template(tap->variant.templ);
+        arg_template = template_supplement_for_template(
+                                                       tap->variant.templ.ptr);
         param_list_for_arg = arg_template->cache.decl_info->parameters;
         if (equiv_template_param_lists(param_list_for_param,
                                        param_list_for_arg,
@@ -4308,7 +4310,7 @@ the same constant.
       if (!equiv) break;
     } else {
       /* A template template argument. */
-      if (equiv_templates(arg1->variant.templ, arg2->variant.templ)) {
+      if (equiv_templates(arg1->variant.templ.ptr, arg2->variant.templ.ptr)) {
         /* Okay. */
       } else {
         equiv = FALSE;
@@ -4363,7 +4365,7 @@ a template parameter.
     a_template_symbol_supplement_ptr	tssp;
     a_template_ptr			templ_ptr;
     a_symbol_ptr			templ_sym;
-    templ_ptr = tap->variant.templ;
+    templ_ptr = tap->variant.templ.ptr;
     /* Look at the argument template, not the original symbol (which,
        unlike other template parameters, always points to the prototype
        argument symbol). */
@@ -4803,7 +4805,7 @@ another template parameter.
              parameter. */
           a_template_symbol_supplement_ptr	arg_template;
           arg_template = template_supplement_for_template(
-                                                specified_tap->variant.templ);
+                                             specified_tap->variant.templ.ptr);
           if (equiv_template_param_lists(
                            arg_template->cache.decl_info->parameters,
                            tpp->variant.templ->cache.decl_info->parameters,
@@ -4997,16 +4999,16 @@ match is found.
                                              list_pos);
           check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
           templ_ptr = tssp->il_template_entry;
-          if (tap->variant.templ == NULL) {
+          if (tap->variant.templ.ptr == NULL) {
             /* No template has been bound to this template argument yet, so
                just the current template. */
-            tap->variant.templ = templ_ptr;
+            tap->variant.templ.ptr = templ_ptr;
             match = TRUE;
           } else {
             /* A template was already bound to this template argument.  We
                have a match if and only if the new one is the same as the
                old one. */
-            if (tap->variant.templ == templ_ptr) {
+            if (tap->variant.templ.ptr == templ_ptr) {
               /* Okay. */
               match = TRUE;
             } else {
@@ -5360,8 +5362,8 @@ partial specialization.
                                         templ_param_list);
     } else {
       /* A template template argument. */
-      match = matches_template_template_param(tap->variant.templ,
-                                              templ_tap->variant.templ,
+      match = matches_template_template_param(tap->variant.templ.ptr,
+                                              templ_tap->variant.templ.ptr,
 					      templ_arg_list,
 					      templ_param_list);
     }  /* if */
@@ -6117,13 +6119,13 @@ Otherwise, return the original template.
       tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
                                          &templ_arg_list,
                                          coordinates->position);
-      if (tap->variant.templ == NULL) {
+      if (tap->variant.templ.ptr == NULL) {
         /* No value has been provided for this template parameter yet.
            Don't do the substitution, but don't consider this to be
            a copy error either. */
       } else {
         /* Use the template specified by this template argument. */
-        result = tap->variant.templ;
+        result = tap->variant.templ.ptr;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6289,8 +6291,8 @@ set *copy_error to TRUE.
       }  /* if */
     } else {
       /* A template template argument. */
-      new_tap->variant.templ = copy_template_with_substitution(
-                                    tap->variant.templ, templ_arg_list,
+      new_tap->variant.templ.ptr = copy_template_with_substitution(
+                                    tap->variant.templ.ptr, templ_arg_list,
                                     templ_param_list,
                                     source_pos, options, copy_error);
     }  /* if */
@@ -7162,7 +7164,7 @@ Do some simple consistency checking on a function template argument list.
                          (is_nontype_templ_arg(tap) &&
                           tap->variant.constant != NULL) ||
                          (is_template_templ_arg(tap) &&
-                          tap->variant.templ != NULL),
+                          tap->variant.templ.ptr != NULL),
                          "check_template_arg_list:",
                          "missing type, constant, or template  pointer");
     if (tpp == NULL) {
@@ -9853,7 +9855,8 @@ to the newly created list.
       /* A template template parameter. */
       check_assertion(param_sym->kind == (a_symbol_kind)sk_class_template);
       tap = alloc_template_arg((a_templ_arg_kind)tak_template);
-      tap->variant.templ = param_sym->variant.template_info->il_template_entry;
+      tap->variant.templ.ptr = param_sym->
+                                      variant.template_info->il_template_entry;
     }  /* if */
     if (list_head == NULL) list_head = tap;
     if (list_tail != NULL) list_tail->next = tap;
@@ -9894,7 +9897,8 @@ the names of the template parameters specified by templ_param_list.
       tap->variant.constant = param_sym->variant.constant;
     } else {
       check_assertion(param_sym->kind == (a_symbol_kind)sk_class_template);
-      tap->variant.templ = param_sym->variant.template_info->il_template_entry;
+      tap->variant.templ.ptr = param_sym->
+                                      variant.template_info->il_template_entry;
     }  /* if */
   }  /* for */
 } /* rename_prototype_arg_list */

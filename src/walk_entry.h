@@ -2662,7 +2662,7 @@ after_entry_from_class:
           }  /* if */
         } else {
           /* A template template argument. */
-          walk_ptr(ptr->variant.templ, a_template_ptr, iek_template);
+          walk_ptr(ptr->variant.templ.ptr, a_template_ptr, iek_template);
         }  /* if */
         conditionally_clear_fe_pointer(ptr->arg_operand);
       }

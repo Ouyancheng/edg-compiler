@@ -2477,7 +2477,7 @@ Display the indicated name and template arg list.
         }  /* if */
       } else {
         /* A template template argument. */
-        disp_ptr("  template", (char *)ptr->variant.templ, iek_template);
+        disp_ptr("  template", (char *)ptr->variant.templ.ptr, iek_template);
       }  /* if */
       if (ptr->explicitly_specified) {
         disp_boolean("  explicitly_specified",
