@@ -903,8 +903,10 @@ extern void prelower_class_type(a_type_ptr class_type);
 
 extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 extern void rewrite_address_of_string_as_address_of_variable(
                                                       a_constant_ptr addr_con);
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 extern void lower_constant(a_constant_ptr constant);
 
