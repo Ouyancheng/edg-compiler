@@ -7587,18 +7587,23 @@ Output the initializer, if any, for the indicated variable.
       if (dip->kind == (a_dynamic_init_kind)dik_none) {
         /* No initialization at all.  (The dynamic init is here because
            there is a destructor, but it's implicit.) */
-        break;
+      } else if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+                 (dip->variant.constructor.args == NULL ||
+                  dip->variant.constructor.args->generated_default_arg)) {
+        /* This is default initialization.  Put out nothing. */
       } else if (default_class_array_initialization(dip)) {
         /* This is default initialization for a class array, so put out
            nothing. */
-        break;
+      } else {
+        /* Put out the initialization, using the "()" form if it was that
+           way in the source code. */
+        parenthesized_init = var->has_parenthesized_initializer;
+        if (!parenthesized_init) {
+          write_tok_str(" = ");
+        }  /* if */
+        gen_dynamic_init(dip, var->type, parenthesized_init,
+                         /*force_parens=*/FALSE);
       }  /* if */
-      parenthesized_init = var->has_parenthesized_initializer;
-      if (!parenthesized_init) {
-        write_tok_str(" = ");
-      }  /* if */
-      gen_dynamic_init(dip, var->type, parenthesized_init,
-                       /*force_parens=*/FALSE);
       break;
     case initk_zero:
       /* initk_zero is only produced by IL lowering. */
