@@ -5602,6 +5602,12 @@ class/struct/union is actually defined.
           if (is_class_struct_union_type(member_type)) {
             symbol_supplement_for_class(class_type)->any_nested_classes = TRUE;
           }  /* if */
+          /* Mark the IL entry for the nested class or enum as referenced. */
+#if 0
+          /* This is premature, since it isn't really referenced at this
+             point. */
+#endif /* if 0 */
+          member_type->source_corresp.referenced = TRUE;
         } /* if */
         local_no_decl_specifiers = dso_flags & DSO_NO_DECL_SPECIFIERS;
         type_explicitly_specified =
