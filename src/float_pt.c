@@ -926,12 +926,17 @@ specified by kind.
   int			offset;
   an_fp_value_part	*fp_ptr;
   an_fp_value_part	val;
+  an_fp_value_part	fp_temp[sizeof(an_internal_float_value) /
+                                sizeof(an_fp_value_part)];
 
+  /* This routine must be modified on a system for which this assertion is
+     not true. */
+  check_assertion(sizeof(a_host_fp_value) == sizeof(fp_temp));
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, store this value as a double. */
   if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  fp_ptr = (an_fp_value_part*)float_value;
+  fp_ptr = &fp_temp[0];
   if (host_little_endian) {
     /* On little endian systems, we start storing with the last 32-bit value
        and work backward. */
@@ -967,6 +972,9 @@ specified by kind.
     val = (mp->parts[0] << 20) | (mp->parts[1] >> 12);
     fp_ptr += offset;
     *fp_ptr = val;
+    /* The code above constructs the value in fp_temp.  Copy this to the
+       destination value. */
+    memcpy((char*)float_value, (char*)&fp_temp, sizeof(val) * 2);
   } else {
     check_assertion(kind == (a_float_kind)fk_long_double);
     if (targ_ldbl_mant_dig == 64) {
@@ -980,6 +988,9 @@ specified by kind.
       fp_ptr += offset;
       val = mp->parts[1];
       *fp_ptr = val;
+      /* The code above constructs the value in fp_temp.  Copy this to the
+         destination value. */
+      memcpy((char*)float_value, (char*)&fp_temp, sizeof(val) * 3);
     } else if (targ_ldbl_mant_dig == 113) {
       /* Update the pointer to refer to the last 32-bit word of the value. */
       if (host_little_endian) fp_ptr += 3;
@@ -994,6 +1005,9 @@ specified by kind.
       fp_ptr += offset;
       val = (mp->parts[2] << 16) | (mp->parts[3] >> 16);
       *fp_ptr = val;
+      /* The code above constructs the value in fp_temp.  Copy this to the
+         destination value. */
+      memcpy((char*)float_value, (char*)&fp_temp, sizeof(val) * 4);
     } else {
       unexpected_condition_str("store_hex_fp_value: bad long double size");
     }  /* if */

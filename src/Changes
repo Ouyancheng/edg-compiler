@@ -1,5 +1,11 @@
 Version 3.3
 
+6/5/03   Possible unaligned access in store_hex_fp_value
+
+On some platform/configuration combinations, store_hex_fp_value could
+perform improperly aligned memory accesses.  This could result in an
+abort.  Now fixed.
+
 6/5/03   Microsoft compatibility: __pragma operator
 
 The Microsoft __pragma operator is now supported in Microsoft mode.
