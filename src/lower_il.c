@@ -3144,6 +3144,7 @@ If the indicated class type is unnamed, give it a name.
     name = alloc_il(name_len);
     (void)sprintf(name, "__C%lu", (unsigned long)unnamed_class_name_seed);
     type->source_corresp.name = name;
+    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_class_a_name */
     
@@ -3178,7 +3179,8 @@ the name.
     (void)memcpy(store_at, name, (int)mangled_name_length);
     store_at += mangled_name_length;
   }  /* if */
-  if (template_arg_list != NULL) {
+  if (template_arg_list != NULL &&
+      !type->source_corresp.name_has_been_mangled) {
     /* A template class.  The mangled form of the name is something like
          abc__pt__3_ii
                     ^^--- Two template arguments of type int.
@@ -3309,7 +3311,8 @@ initial parts of the qualified names.
   } else {
     /* Got to the topmost class. */
     /* If the class is a local class, put out "Lnn__" using the declaration
-       scope number for "nn".  This is not from the ARM or cfront. */
+       scope number for "nn".  This is not from the ARM.  cfront uses the
+       same form but the numbers are probably different. */
     { a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       if (assoc_sym->decl_scope != scope_stack[DEPTH_OF_FILE_SCOPE].number) {
         /* This is a local name. */
@@ -3870,6 +3873,7 @@ Mangle the name of the indicated function, if necessary.
       /* Store the final null. */
       mangled_name[mangled_name_length] = '\0';
       routine->source_corresp.name = mangled_name;
+      routine->source_corresp.name_has_been_mangled = TRUE;
     }  /* if */
   }  /* if */
 }  /* mangle_function_name */
@@ -3942,6 +3946,7 @@ Mangle the name of the indicated static data member.
   /* Store the final null. */
   mangled_name[mangled_name_length] = '\0';
   variable->source_corresp.name = mangled_name;
+  variable->source_corresp.name_has_been_mangled = TRUE;
 }  /* mangle_static_data_member_name */
 
 
@@ -3969,9 +3974,7 @@ Mangle the name of the indicated class, if necessary.
        been completely built, because the old name is used in building the
        mangled form. */
     class_type->source_corresp.name = mangled_name;
-    /* Clear the template argument list as a way of recording the fact that
-       the name has been mangled. */
-    class_type->variant.class_struct_union.extra_info->template_arg_list =NULL;
+    class_type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* mangle_class_name */
 
@@ -4015,6 +4018,7 @@ other name mangling that might use the name is done.
        been completely built, because the old name is used in building the
        mangled form. */
     type->source_corresp.name = mangled_name;
+    type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* mangle_nested_type_name */
 
@@ -4688,6 +4692,7 @@ It might be changed later to add a definition.
      variable is not necessarily going to be referenced, so clear the
      flag. */
   vtbl_var->source_corresp.referenced = FALSE;
+  vtbl_var->source_corresp.name_has_been_mangled = TRUE;
   /* Remember the variable in the class type supplement or the base class
      entry so it can be found when constructor/destructor lowering is done. */
   if (bcp == NULL) {
@@ -11592,26 +11597,35 @@ Do IL lowering of the indicated scope and everything under it.
     }  /* if */
   }  /* if */
   lower_constant_list(scope->constants);
-  /* In function and block scopes, the types and variables lists point into
-     the file scope memory region, and are not lowered at this time.
-     They are lowered as part of lowering the file scope memory region. */
   if (lowering_file_scope) {
     /* Lower the file-scope lists or lists for a class scope. */
     lower_type_list(scope->types);
     lower_variable_list(scope->variables);
     if (scope->kind == (a_scope_kind)sck_class_struct_union &&
         allow_anachronisms) {
-      /* Change the storage class of static variables that have external
+      /* Change the storage class of static data members that have external
          linkage to sc_unspecified to accommodate the anachronism that
          does not require static data members to be defined somewhere. */
-      for (var = scope->variables; var != NULL; var = var->next) {
-        if (var->storage_class == (a_storage_class)sc_extern) {
-          var->storage_class = (a_storage_class)sc_unspecified;
-          var->source_corresp.referenced = TRUE;
+      var = scope->variables;
+      if (var != NULL) {
+        if (var->source_corresp.class_of_which_a_member->
+            variant.class_struct_union.extra_info->template_arg_list != NULL) {
+          /* Don't do this for static data members of template classes. */
+        } else {
+          for (; var != NULL; var = var->next) {
+            if (var->storage_class == (a_storage_class)sc_extern) {
+              var->storage_class = (a_storage_class)sc_unspecified;
+              var->source_corresp.referenced = TRUE;
+            }  /* if */
+          }  /* for */
         }  /* if */
-      }  /* for */
+      }  /* if */
     }  /* if */
   } else {
+    /* Function or block scope. */
+    /* In function and block scopes, the types and variables lists point into
+       the file scope memory region, and are not lowered at this time.
+       They are lowered as part of lowering the file scope memory region. */
     /* Remember the orphaned type list so those types can be processed in
        the proper order at the end of lowering the file scope memory region. */
     add_types_list_to_orphaned_types_list(scope->types);
