@@ -135,10 +135,6 @@ extern a_boolean reconcile_external_symbol_types(
                             a_type_ptr            type_ptr,
                             a_boolean             suppress_incompatible_error);
 
-extern a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind);
-
-extern a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind tag_kind);
-
 extern a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         check_for_vacuous_decl,
