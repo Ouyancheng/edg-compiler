@@ -3269,9 +3269,12 @@ return FALSE.
   a_template_symbol_supplement_ptr  tssp;
   a_template_instance_ptr           tip;
   a_param_type_ptr                  ptp, other_ptp;
+  a_routine_type_supplement_ptr	    curr_rtsp;
+  a_routine_type_supplement_ptr	    templ_rtsp;
 
   db_enter(3, "is_match_for_function_template");
   curr_type = skip_typerefs(curr_type);
+  curr_rtsp = curr_type->variant.routine.extra_info;
 #if CHECKING
   if (!is_function_type(curr_type)) {
     internal_error("is_match_for_function_template: expected routine type");
@@ -3287,10 +3290,11 @@ return FALSE.
     tssp = templ_sym->variant.template_info;
   }  /* if */
   templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
+  templ_rtsp = templ_rout_type->variant.routine.extra_info;
   /* First be sure the number of parameters in the template function is
      equal to the number in param_type_list. */
-  ptp = curr_type->variant.routine.extra_info->param_type_list;
-  other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
+  ptp = curr_rtsp->param_type_list;
+  other_ptp = templ_rtsp->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
     if (other_ptp == NULL) {
       /* Too many params to match this template. */
@@ -3303,9 +3307,15 @@ return FALSE.
        instantiations) to justify looking any further. */
     goto done;
   }  /* if */
-  if (curr_type->variant.routine.extra_info->has_ellipsis != 
-      templ_rout_type->variant.routine.extra_info->has_ellipsis) {
+  if (curr_rtsp->has_ellipsis != 
+      templ_rtsp->has_ellipsis) {
     /* One routine has an ellipsis argument and the other does not.
+       This cannot be a match. */
+    goto done;
+  }  /* if */
+  if ((curr_rtsp->implicit_this_param_type != NULL) !=
+      (templ_rtsp->implicit_this_param_type != NULL)) {
+    /* One routine has an implicit this parameter and the other does not.
        This cannot be a match. */
     goto done;
   }  /* if */
@@ -3319,57 +3329,23 @@ return FALSE.
        routine is called during instantiation pragma processing. */
     sym = tip->instance_sym;
     rout_type = skip_typerefs(sym->variant.routine.ptr->type);
-    /* Return type must match exactly. */
-    if (!identical_types(curr_type->variant.routine.return_type,
-                         rout_type->variant.routine.return_type)) {
-      /* No match.  Advance to the next template function symbol. */
-      goto get_next_sym;
-    }  /* if */
-    /* Each parameter type must match exactly. */
-    ptp = curr_type->variant.routine.extra_info->param_type_list;
-    other_ptp = rout_type->variant.routine.extra_info->param_type_list;
-    for (; ptp != NULL; ptp = ptp->next) {
-      if (!identical_types(ptp->type, other_ptp->type)) {
-        /* No match.  Advance to the next template function symbol. */
-        goto get_next_sym;
-      }  /* if */
-      other_ptp = other_ptp->next;      
-    }  /* for */
+    if (!identical_types(curr_type, rout_type)) continue;
     /* Falling through to here means curr_type exactly matches the function
        type for sym.  Skip over the remaining processing and return sym to
        the caller. */
     match = TRUE;
     *instance_sym = sym;
     goto done;
-get_next_sym:;
-    /* No match so far.  Continue looping through the function instantiation
-       entries. */
   }  /* for */
   /* Falling through to here means the type signature passed in does not
      match any existing template function based on the function template in
      question, but that it is not disqualified on other grounds.  Try to match
      the type signature to the template's type signature.  If successful, a
      template arg list is returned; otherwise, NULL is returned. */
-  if (!matches_template_type(curr_type->variant.routine.return_type,
-                             templ_rout_type->variant.routine.return_type,
-                             templ_arg_list, templ_param_list,
-                             /*allow_conversion=*/FALSE,
-                             (a_base_class_ptr*)NULL)) {
-    goto done;
-  } else {
-    /* The routine type for curr_type can be accommodated to the template
-       return type.  Now check each of the parameters. */
-    ptp = curr_type->variant.routine.extra_info->param_type_list;
-    other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
-    for (; other_ptp != NULL; other_ptp = other_ptp->next) {
-      if (!matches_template_type(ptp->type, other_ptp->type,
-                                 templ_arg_list, templ_param_list,
-                                 /*allow_conversion=*/FALSE,
-                                 (a_base_class_ptr*)NULL)) {
-        goto done;
-      }  /* if */
-      ptp = ptp->next;
-    }  /* for */
+  if (matches_template_type(curr_type, templ_rout_type, 
+                            templ_arg_list, templ_param_list,
+                            /*allow_conversion=*/FALSE,
+                            (a_base_class_ptr*)NULL)) {
     match = TRUE;
   }  /* if */
   /* Make sure that the types of nontype template parameters that depend
@@ -6021,6 +5997,8 @@ and not just a declaration.
 static a_symbol_ptr function_template_declaration
                               (a_symbol_locator          *locator,
                                a_scope_depth             effective_decl_level,
+                               a_boolean		 is_member_decl,
+                               a_boolean		 is_template_friend,
                                a_func_info_block         *func_info,
                                a_storage_class           storage_class,
                                a_decl_modifier           decl_modifiers,
@@ -6042,6 +6020,12 @@ scope, etc.)  for this template declaration.
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_template_param_flags(type);
+  if (curr_token == tok_lbrace && is_member_decl && is_template_friend) {
+    /* A function template defined inside a class or class template is
+       implicitly "inline".  Note that the only member declarations
+       processed by this routine are friend declarations. */
+    func_info->is_inline = TRUE;
+  }  /* if */
   /* Process a function template declaration. */
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, template_decl_info->parameters,
@@ -6444,6 +6428,8 @@ as the current token; otherwise, it is consumed.
 #endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
         sym = function_template_declaration(&locator, effective_decl_level,
+                                            is_member_decl,
+                                            is_template_friend,
                                             &func_info, storage_class,
                                             decl_modifiers, type,
                                             template_decl_info);
