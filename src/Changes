@@ -1,5 +1,12 @@
 Version 2.29
 
+4/30/95  Incomplete array fields in Microsoft C mode
+
+"[0]" may be used in place of "[]" to declare a final field of incomplete
+array type in Microsoft C mode -- e.g.,
+
+  struct S { int a,b,c[0]; }     // c[0] is equivalent to c[]
+
 4/29/95  Support for __int32 and __int64 keywords (Microsoft extension)
 
 In Microsoft compatibility mode __int32 and __int64 are recognized as long
