@@ -2605,7 +2605,7 @@ These two fields are normally consecutive members of the given "type", but
         fprintf(f_debug, "next offset    %lu\n", (unsigned long)field->offset);
         fprintf(f_debug, "next alignment %lu\n", (unsigned long)alignment);
 #endif /* DEBUG */
-        internal_error("dump_field_padding: negative padding required");
+        internal_error("field_padding: negative padding required");
       }  /* if */
 #endif /* CHECKING */
       padding = field->offset - rounded_after_field;
