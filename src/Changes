@@ -12,8 +12,8 @@ constructor or destructor for that class.  Now fixed.
 
 1/15/98   Internal error on PCH file that ends with stdarg.h
 
-An internal error would occur when an #include <stdarg.h> is the last
-include file in a precompiled header file and <stdarg.h> is treated as
+An internal error would occur when <stdarg.h> is the last file
+included in a precompiled header file and <stdarg.h> is treated as
 a built-in (i.e., pass_stdarg_referenced_to_generated_code is TRUE).
 This has been fixed.
 
