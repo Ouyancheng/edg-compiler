@@ -6340,6 +6340,8 @@ One-time initialization for statements.c static variables.
   register_trans_unit_variable(depth_stmt_stack);
   register_trans_unit_variable(struct_stmt_stack_container);
   register_trans_unit_variable(size_struct_stmt_stack_container);
+  register_trans_unit_variable(curr_reachability);
+  register_trans_unit_variable(goto_fixup_list);
 }  /* statements_one_time_init */
 
 
