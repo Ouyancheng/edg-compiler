@@ -6814,6 +6814,10 @@ initializer has previously been found to be acceptable, and
           /* The reference to const volatile case gets only a warning in cfront
              or anachronisms mode (it's a recent change to the language). */
           err_severity = es_warning;
+        } else if (!strict_ansi_mode) {
+          /* Because this shows up in a lot of code, issue a warning during
+             a transitional period. */
+          err_severity = es_warning;
         }  /* if */
         pos_diagnostic(err_severity,
                        ref_to_const_volatile ?

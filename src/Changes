@@ -343,8 +343,10 @@ standard in C++ mode.)
 We have had an extension that allows binding a reference to nonconst to
 an rvalue of a class type.  This was there with the expectation that
 something of that sort would be approved by the standards committee.
-That didn't happen, so the extension has been removed.  Some cases are
-still allowed in cfront mode, with a warning.
+That didn't happen, so the extension has been removed.  Well, actually,
+we got a little worried about the impact of this one, since most
+compilers seem to allow it, so we continue to permit it in non-strict
+mode, with a warning.
 
 2/16/95  A reference to const volatile cannot be bound to an rvalue
 
