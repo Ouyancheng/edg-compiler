@@ -5016,7 +5016,7 @@ Return a pointer to the variable that is declared.
   /* Scan the declaration specifiers.  "typedef" is not allowed and may
      not introduce a new class or enumeration. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
-              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_IS_CONDITION_DECL;
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
                         &qualifiers, &decl_modifiers);
