@@ -1,5 +1,34 @@
 Version 2.13
 
+1/15/93 Initialization of "empty" class objects
+
+A special case is made for the initialization of objects defined with the
+type of a class that has no nonstatic data members and no constructor.
+
+(1) When an empty class object is declared "const" but not "extern", no
+explicit initializer is required, despite the wording in ARM 7.1.6;
+rather, since there is no syntax for explicitly initializing such an
+object, an implicit initialization is deemed to occur.  For example:
+
+  const struct A { } a;    // const variable "a" is implicitly initialized
+
+(2) The attempt to initialize an empty class object with an initializer
+list produces an error even when the list contains no initializers, e.g.,
+
+  struct A { } a = { };    // initializer list is not allowed
+
+1/15/93 Classes used in template arguments have external linkage
+
+An inference from ARM 3.2 and 14.2 is that a class used as a template
+argument has external linkages.  Code to support that requirement has
+been added.
+
+1/15/93 Error on use of a local type as a template argument
+
+An inference from ARM 14.2 is that a class or enum type defined within
+the scope of a function (a "local type") cannot be used as a template
+argument.  Such cases are now detected and an error is issued.
+
 1/15/93 Error on out-of-range float constants
 
 store_double in float_pt.c has been enhanced so that it generates
