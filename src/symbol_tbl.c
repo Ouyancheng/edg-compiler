@@ -3099,19 +3099,20 @@ this is not allowed, an error will be issued by the caller.
        was referenced.  A new symbol can always coexist with
        an undefined one. */
     err = FALSE;
-  } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc || gcc_mode) &&
+  } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc ||
+              (gcc_mode && gnu_version < 30400)) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&
              old_sym->variant.variable.ptr->is_parameter &&
              (new_sym->kind != (a_symbol_kind)sk_variable ||
               (new_sym->variant.variable.ptr == NULL ||
                !new_sym->variant.variable.ptr->is_parameter))) {
-    /* The old symbol is a parameter and the new symbol not a
-       parameter -- allowed in cfront, pcc, and GNU C modes.  Note that we
-       test the variable pointer for being NULL before dereferencing it
-       above and we also pass the identifier string to the warning routine
-       rather than using the standard symbol name fill-in.  This is done
-       because the variable pointer may not have been filled in at the
-       time the symbol is entered. */
+    /* The old symbol is a parameter and the new symbol not a parameter --
+       allowed in cfront, pcc, and some GNU C modes.  Note that we test the
+       variable pointer for being NULL before dereferencing it above and we
+       also pass the identifier string to the warning routine rather than
+       using the standard symbol name fill-in.  This is done because the
+       variable pointer may not have been filled in at the time the symbol
+       is entered. */
     err = FALSE;
     if (!suppress_error) {
       pos_st_warning(ec_decl_hides_function_parameter, &new_sym->decl_position,

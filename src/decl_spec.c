@@ -1955,7 +1955,7 @@ to TRUE.
            namespace N { class X; }
            using N::X;
            class Y {
-             friend class ::Y;      // Error
+             friend class ::X;      // Error
            };
       */
       check_assertion(locator->is_file_scope_qualified_name);
@@ -1967,7 +1967,7 @@ to TRUE.
            namespace N { class X; }
            namespace M { using N::X; }
            class Y {
-             friend class M::Y;     // Error
+             friend class M::X;     // Error
            };
       */
       pos_stsy_error(ec_not_an_actual_member, &locator->source_position,

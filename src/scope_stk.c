@@ -3596,8 +3596,8 @@ body.  Only called in C++ mode.
                   (gpp_mode && rp->is_inline &&
                    rp->storage_class == (a_storage_class)sc_extern)) {
                 /* Microsoft compilers do not diagnose these sorts of
-                   situations.  Similarly, GNU C++ does not diagnose undefined
-                   extern inline functions even though they are used. */
+                   situations.  Similarly, GNU C++ accepts undefined extern
+                   inline functions even though they are used. */
                 severity = (an_error_severity)es_warning;
               }  /* if */
               pos_sy_diagnostic(severity, ec_never_defined,
@@ -3940,8 +3940,8 @@ NULL.
         } else if (rout_ptr->is_inline &&
                    !routine_defined(rout_ptr)) {
           /* An extern-inline function that was referenced but not defined.
-             Note that the Microsoft and GNU compilers issue no diagnostic on
-             this (though linker errors may result from this). */
+             Note that the Microsoft and GNU compilers accept such code
+             (though linker errors may result from this). */
           pos_sy_diagnostic((microsoft_mode || gnu_mode || sun_mode)
                                                        ? es_warning : es_error,
                             ec_extern_inline_never_defined,

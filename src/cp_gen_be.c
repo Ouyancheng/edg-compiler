@@ -2695,7 +2695,7 @@ aggregate constant and braces around it should be suppressed.
   *suppress_braces = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-    /* g++, at least up to version 3.3, still accepts only an older
+    /* g++, at least up to version 3.4, still accepts only an older
        form of designators.  gcc accepts the newer form as well. */
     use_old_form = TRUE;
   }  /* if */

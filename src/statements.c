@@ -179,10 +179,10 @@ suppress warnings that might otherwise be issued later.
 
 static void check_reachability_following_expression(an_expr_node_ptr  node)
 /*
-If the indicated expression node represents a throw or (in Microsoft mode)
-a call of a function that may not return, update the current "reachability"
-to indicate that the code directly following the expression is (or may be)
-unreachable.
+If the indicated expression node represents a throw or (in Microsoft and GNU
+modes) a call of a function that may not return, update the current
+"reachability" to indicate that the code directly following the expression is
+(or may be) unreachable.
 */
 {
   if (node->kind == (an_expr_node_kind)enk_object_lifetime) {

@@ -9445,7 +9445,7 @@ respectively.
     } else if ((microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
                class_state->is_nonreal_instantiation &&
                is_class_struct_union_type(field_type)) {
-      /* In Microsoft and g++ mode, a field type can be incomplete in a
+      /* In Microsoft and early g++ modes, a field type can be incomplete in a
          prototype instantiation. */
     } else {
       if (!C_mode() && is_error_locator(*locator) &&
@@ -9613,10 +9613,7 @@ non-NULL, *p_ms_attributes is returned NULL.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Find the last attribute. */
-    last_attribute = &attributes;
-    while (*last_attribute != NULL) {
-      last_attribute = &(*last_attribute)->next;
-    }  /* while */
+    last_attribute = last_attribute_link(&attributes);
     /* Scan the attributes that follow the declarator. */
     *last_attribute = scan_attributes();
     /* Apply the attributes to the field. */

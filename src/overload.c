@@ -4711,16 +4711,16 @@ lookup should be suppressed.
        are excluded. */
     if (gpp_mode || sun_mode ||
         (microsoft_mode && microsoft_version == 1310)) {
-      /* Sun, g++ 3.2/3.3, and Microsoft 7.1 do not suppress the
-         argument-dependent lookup for a block extern.  Microsoft 6.0
-         and 7.0 appear to suppress this, but that's actually because
-         they do not do argument-dependent lookup at all. */
+      /* Sun, g++, and Microsoft 7.1 do not suppress the argument-dependent
+         lookup for a block extern.  Microsoft 6.0 and 7.0 appear to suppress
+         this, but that's actually because they do not do argument-dependent
+         lookup at all. */
     } else {
       suppress = TRUE;
     }  /* if */
   } else if (gpp_mode && gnu_version < 30400 && is_local_symbol(sym)) {
-    /* g++ 3.2/3.3 suppress the argument-dependent lookup for a
-       using-declaration. */
+    /* Versions of g++ prior to 3.4 suppress the argument-dependent lookup
+       for a using-declaration. */
     suppress = TRUE;
   }  /* if */
   return suppress;

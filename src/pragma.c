@@ -129,7 +129,7 @@ but cannot be referenced by name in a pragma directive.
                        "add_pragma_kind_description:",
 		       "pragma flags not valid when using C/C++ gen. BE");
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-  /* When fetching pp-tokens, processing_C_mode and expand_macros must be
+  /* When fetching pp-tokens, processing_C_code and expand_macros must be
      FALSE and make_text_not_tokens must be TRUE. */
   check_assertion_str2(!p_fetch_pp_tokens ||
                        (!processing_C_code && !p_expand_macros &&

@@ -2335,7 +2335,7 @@ expression can be a multiple of the special UPC THREADS constant.
                "aggregate".  Note: last-field restriction and the aggregate
                restriction in C++ are enforced in scan_class_definition.
                GNU C and C++ also allow zero-sized array types: they are
-               considered complete types of zero size.  The can be used to
+               considered complete types of zero size.  They can be used to
                achieve the same effect as flexible array members, but are
                more general. */
             num_of_elements = 0;
@@ -3531,7 +3531,7 @@ to FALSE if the entity being declared is not initializable.
             /* GNU and Microsoft compilers accept the superfluous qualifier.
                We cannot emulate this behavior for templates because of
                reasons explained above (unless dependent name processing has
-               been enabled, but that is not the default in GNU C++ mode). */
+               been enabled, which is the default for gnu_version >= 30400). */
             severity = es_warning;
             err_code = ec_nonstd_qualifier_in_namespace_member_decl;
           }  /* if */

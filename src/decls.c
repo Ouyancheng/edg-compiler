@@ -8165,7 +8165,8 @@ symbol has already been entered as an undefined symbol.
      that the name spaces are the same). */
   set_symbol_kind(symbol_ptr, (a_symbol_kind)sk_routine);
   /* In pcc mode, all routines are entered at file scope level.  Remove
-     and re-enter the symbol (if necessary) so it will be there. */
+     and re-enter the symbol (if necessary) so it will be there.  (In some
+     GNU C modes, some implicit declarations are also treated this way.) */
   if (C_dialect == C_dialect_pcc ||
       (gcc_mode && implicitly_predeclared_gcc_function(symbol_ptr))) {
     if (symbol_ptr->decl_scope != file_scope_number) {
@@ -8659,7 +8660,7 @@ within this routine if is_parenthesized comes in FALSE.
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
-    if (gpp_mode && curr_token == tok_lbracket) {
+    if (gpp_mode && gnu_version < 30400 && curr_token == tok_lbracket) {
       /* GNU C++ treats a left bracket after a parenthesized type name as
          an array declarator that is part of the type name.  For example,
          in "new (int)[3]" the new expression is normally restricted to

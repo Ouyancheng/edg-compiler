@@ -4842,11 +4842,10 @@ implement <stdarg.h>, a standard feature.
     force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-    if (gnu_mode || microsoft_mode) {
-      /* If the expression is an lvalue for a variable with an
-         explicit alignment, use it.  (GNU C++ versions prior to 3.1
-         ignore the explicit alignment; we emulate the more recent
-         versions.) */
+    if ((gnu_mode && gnu_version >= 30100) || microsoft_mode) {
+      /* If the expression is an lvalue for a variable with an explicit
+         alignment, use it.  (GNU C++ versions prior to 3.1 ignore the
+         explicit alignment.) */
       a_variable_ptr  var;
       if (operand_is_lvalue_for_variable(&operand, &var) &&
           var->alignment != 0) {
@@ -9434,7 +9433,7 @@ Syntax:
                  See core issue 54.  However, MSVC++ 7.1 and g++
                  3.2/3.3 (but not 3.4) allow it. */
               if ((microsoft_mode && microsoft_version == 1310) ||
-                  gpp_mode) {
+                  (gpp_mode && gnu_version < 30400)) {
                 /* Okay. */
               } else {
                 pos_ty_diagnostic(es_discretionary_error,
@@ -10541,8 +10540,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         /* The first operand must be a pointer to an object. */
         if (gcc_mode && (is_void_type(type_pointed_to(operand_1->type)) ||
                          is_function_type(type_pointed_to(operand_1->type)))) {
-          /* Some versions of GNU C accept arithmetic on void and function
-             pointers. */
+          /* GNU C accepts arithmetic on void and function pointers. */
           pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
         } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
@@ -10591,8 +10589,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         } else if (gcc_mode && same_types &&
                    (is_void_type(type_pointed_to(operand_1->type)) ||
                     is_function_type(type_pointed_to(operand_1->type)))) {
-          /* Some versions of GNU C allows arithmetic on pointers to void and
-             pointers to functions. */
+          /* GNU C allows arithmetic on pointers to void and pointers to
+             functions. */
           pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
         } else if (!check_object_pointer_operand(
                                    operand_1, ec_expr_not_pointer_to_object)) {
@@ -10640,8 +10638,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
          arithmetic on pointers to void and pointers to functions. */
       if (gcc_mode && (is_void_type(type_pointed_to(operand_2.type)) ||
                        is_function_type(type_pointed_to(operand_2.type)))) {
-        /* Fine, but issue a warning because some versions of GNU C are
-           more strict. */
+        /* Fine, but issue a warning because some versions of GNU C (2.96 in
+           particular) are more strict. */
         pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
       } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
@@ -12844,8 +12842,8 @@ See section 3.3.16 of the standard.
                  integral or enum. */
               if (check_integral_or_enum_operand(&operand_2)) {
                 if (nonobject_pointer) {
-                  /* Some versions of GNU C accept arithmetic on void and
-                     function pointers.  Issue a warning in any case. */
+                  /* GNU C accepts arithmetic on void and function pointers.
+                     Issue a warning in any case. */
                   pos_warning(ec_nonobject_pointer_arithmetic,
                               &operator_position);
                 }  /* if */
@@ -16855,12 +16853,11 @@ nonstandard class member constants.  Assumes copy-initialization
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (gnu_mode && is_array_type(required_type) && is_array_type(result.type)) {
-    /* In GNU modes, an array can be initialized by a compound literal
-       of array type.  The normal string literal initialization case
-       comes here as well, whereas in other modes
-       process_string_constant_initializer is called before we get
-       here.  That's to allow parenthesized string literals as
-       initializers. */
+    /* In GNU modes, an array can be initialized by a compound literal of
+       array type.  The normal string literal initialization case comes here
+       as well, whereas in other modes process_string_constant_initializer is
+       called before we get here.  That's to allow parenthesized string
+       literals as initializers. */
     array_case = TRUE;
     if (is_an_lvalue(&result)) {
       /* See if the initializer expression is a string literal. */

@@ -6752,7 +6752,9 @@ The token can be a normal or wide string literal.
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
                           is_wide, '"')
 #if GNU_EXTENSIONS_ALLOWED
-      /* GCC permits a string literal to extend over multiple lines. */
+      /* GNU C and C++ versions prior to 3.3 permit a string literal to extend
+         over multiple lines.  We also accept it for later versions as an
+         extension. */
       && (!gnu_mode || curr_command_line_macro_def != NULL ||
           !scan_multiline_string(&num_chars, is_wide))
 #endif  /* GNU_EXTENSIONS_ALLOWED */
@@ -10324,7 +10326,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
         new_sym = orig_ctor_symbol;
       }  /* if */  
     }  /* if */
-  } else if ((sun_mode || gpp_mode) && !any_errors && !is_expr_context &&
+  } else if ((sun_mode || (gpp_mode && gnu_version < 30400)) &&
+             !any_errors && !is_expr_context &&
              scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* In g++ and Sun modes it is possible to refer to undeclared templates.
        We get here for example with 

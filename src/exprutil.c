@@ -9603,7 +9603,8 @@ If the operand is an array rvalue, the conversion is done in some modes
         (!C_mode() || c99_mode || gcc_mode || microsoft_mode)) {
       /* In C++ or C99 (but not in older C), an array rvalue is converted
          to a pointer to its first element.  Make an lvalue so the
-         conversion below will apply. */
+         conversion below will apply.  GNU and Microsoft C also behave as
+         required by C99. */
       conv_array_rvalue_to_lvalue(operand);
     }  /* if */
     if (is_an_lvalue(operand)) {
