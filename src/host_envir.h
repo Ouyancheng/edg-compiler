@@ -580,14 +580,12 @@ Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
 
 /*
 Flag that is TRUE if macro declarations should be recorded in the IL.
-Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
+When BACK_END_IS_CP_GEN_BE is TRUE, this would usually be FALSE (we
+don't want macros in the output, as already-expanded text might be
+expanded again).
 */
 #ifndef RECORD_MACROS_IN_IL
-#if BACK_END_IS_CP_GEN_BE
-#define RECORD_MACROS_IN_IL TRUE /* Do not change this. */
-#else /* !BACK_END_IS_CP_GEN_BE */
 #define RECORD_MACROS_IN_IL FALSE
-#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* !defined(RECORD_MACROS_IN_IL) */
 
 /*
