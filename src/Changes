@@ -1,10 +1,45 @@
 Version 2.06
 
+5/18/92  Fixed bug that caused internal error in function_definition.
+
+The problem occurred when duplicate parameter names appeared in a function
+definition -- e.g., void f(int i, int i) { /* ... */ }.
+
 5/18/92  Return added to end of constructor/destructor for assignment-to-this.
 
 enclose_routine_in_if in lower_il.c was changed so that it adds a return
 statement to the end of a constructor or destructor when it encloses the
 body of the routine in an "if" in the assignment-to-this case.
+
+5/11/92 Fixed bug in array initialization when default constructor is
+        needed for some elements.
+
+When an array of elements requiring constructor initialization is only
+partially accounted for in a brace-enclosed list, the remaining elements
+must be initialized by the default constructor -- e.g.,
+
+  class A { A(); A(int); /* ... */ } a[4] = { 0, 1 };
+
+A::A() was not being called for a[2] and a[3]; now it is.
+
+5/11/92  Fixed bug that caused internal error in corresponding_base_class.
+
+The problem sometimes appeared when a virtual base class itself had
+indirect base classes that declared virtual functions that were
+overridden in a class derived from the virtual base class.
+
+5/11/92  Fixed virtual function table pointer problem.
+
+When a compiler generated virtual destructor was the only virtual
+function in a class, the field to be used for the pointer to the virtual
+function table was not being allocated.  That bug is now fixed.
+
+5/11/92  Base classes list formed in depth-first left-to-right order.
+
+A design flaw has been fixed such that the base classes list for a class  
+is now put out in strict depth-first left-to-right order.  Thus a direct
+base class appears following its own base classes in the list, not
+ahead of them, as before.
 
 5/11/92  Extended standard conversions for pointers-to-members.
 
