@@ -7105,9 +7105,9 @@ Scan the body of a class definition, including the base classes list.
                together. */
             pos_error(ec_mutable_not_allowed, &decl_start_pos);
           } else if (curr_token == tok_assign && !C_mode() &&
-                     (is_scalar_type(local_type) ||
+                     ((is_scalar_type(local_type) &&
+                       (get_type_qualifiers(local_type) == TQ_CONST)) ||
                       is_or_contains_template_param(local_type)) &&
-                     (get_type_qualifiers(local_type) == TQ_CONST) &&
                      member_storage_class == (a_storage_class)sc_unspecified) {
             /* Provide support for the nonstandard declaration of a member
                constant of integral type -- e.g., "const int I = 2;". */
