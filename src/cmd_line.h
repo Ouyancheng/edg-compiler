@@ -165,6 +165,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   optk_late_tiebreaker,
   optk_preinclude,
+  optk_pending_instantiations,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1005,6 +1006,17 @@ EXTERN a_boolean stdc_zero_in_nonstrict_mode
 			   and overrides other factors that affect the
 			   setting of __STDC__.  For example, __STDC__
 			   will be defined even in Microsoft mode. */
+
+EXTERN unsigned long
+		max_pending_instantiations
+#if VAR_INITIALIZERS
+                                         = DEFAULT_MAX_PENDING_INSTANTIATIONS
+#endif /* VAR_INITIALIZERS */
+									     ;
+			/* The maximum number of pending instantiations
+			   of a given template that may be in process
+			   at a given time.  This is used to detect
+			   runaway recursive instantiations. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

@@ -720,6 +720,10 @@ Initialize the option information table.
   add_option_description(optk_preinclude, "preinclude", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_pending_instantiations,
+                         "pending_instantiations",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1861,6 +1865,18 @@ enable_microsoft_mode:
         /* Early vs. late overload resolution tiebreaker. */
         do_late_ovl_res_tiebreaker = opt_value;
         break;
+      case optk_pending_instantiations:
+        /* The number of instantiations of a given template that may be in
+           progress at any given time, or zero for an unlimited number. */
+        max_pending_instantiations = scan_opt_arg_number(opt_arg);
+        if (max_pending_instantiations < 0) {
+          str_command_line_error(ec_cl_invalid_pending_instantiations,
+                                 opt_arg);
+        }  /* if */
+        if (max_pending_instantiations == 0) {
+          max_pending_instantiations = ULONG_MAX;
+        }  /* if */
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1971,6 +1987,10 @@ enable_microsoft_mode:
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
     if (option_kind_used[(int)optk_late_tiebreaker]) {
       command_line_error(ec_cl_late_tiebreaker_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_pending_instantiations]) {
+      command_line_error(
+                       ec_cl_pending_instantiations_option_only_in_cplusplus);
     }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {

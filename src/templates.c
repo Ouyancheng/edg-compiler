@@ -262,6 +262,11 @@ static a_boolean
 			   not a function static so that it can be reset
 			   if a compilation is terminated abnormally. */
 
+static unsigned long
+		num_total_pending_instantiations;
+			/* The number of function instantiations that are
+			   in progress at any point in time. */
+
 #if DEBUG
 /*
 Counters used to track memory usage.
@@ -1847,7 +1852,7 @@ might not be able to if the template itself has not yet been defined.
     } else if (cssp->instantiation_in_progress) {
       /* This particular template class (not just some other one based on
          the same template) is currently being instantiated. */
-    } else if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
+    } else if (tssp->pending_instantiations >= max_pending_instantiations) {
       /* This class instantiation occurs within the context of other
          instantiations of the same class template.  When the number of
          such instantiations-in-progress exceeds a configuration
@@ -2596,7 +2601,7 @@ Instantiate the body of the template function associated with tip.
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   func_info_ptr = func_info_for_template(tssp);
-  if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
+  if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This function instantiation occurs within the context of other
        instantiations of the same function template.  When the number of
        such instantiations-in-progress exceeds a configuration
@@ -5607,7 +5612,7 @@ type based on the template argument list and the template parameter list
     locator_position = pos_curr_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (tssp->variant.function.pending_partial_instantiations >=
-                                                  MAX_PENDING_INSTANTIATIONS) {
+                                                  max_pending_instantiations) {
       sym_error(ec_runaway_recursive_instantiation, templ_sym);
       rout_type = create_error_routine_type(templ_rout, parent_class);
       /* Flush to the end of the declaration cache. */
@@ -11770,8 +11775,16 @@ data member specified by tip.
     /* Static data member definition. */
     define_template_static_data_member(tip);
   } else {
-    /* Function instantiation. */
-    instantiate_template_function(tip);
+    /* Function instantiation.  The number of simultaneous function
+       instantiations is limited to limit the amount of memory used by
+       memory regions for functions that are in the process of being
+       defined.  This is done because, while a function is being instantiated,
+       it generally consumes HOST_ALLOCATION_INCREMENT bytes of storage. */
+    if (num_total_pending_instantiations < MAX_TOTAL_PENDING_INSTANTIATIONS) {
+      num_total_pending_instantiations++;
+      instantiate_template_function(tip);
+      num_total_pending_instantiations--;
+    }  /* if */
   }  /* if */
 }  /* instantiate_entity */
 
@@ -11858,7 +11871,7 @@ defer_inline is TRUE.
         /* Inline (member or nonmember) functions are instantiated at the
            point of first use, in case the back end requires the function
            body immediately to perform inlining. */
-        instantiate_template_function(tip);
+        instantiate_entity(tip);
       }  /* if */
     } else if (flag_already_set) {
       /* The instantiation required flag is already set to the desired
@@ -13282,6 +13295,7 @@ Initializations for template.
   deferred_instantiations_tail = NULL;
   avail_partial_order_candidates = NULL;
   deferred_instantiations_in_process = FALSE;
+  num_total_pending_instantiations = 0;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
 #endif /* DEBUG */

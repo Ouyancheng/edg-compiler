@@ -431,13 +431,40 @@ using command line options.
 #endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
-The maximum number of pending instantiations of a given template
-that may be in process at a given time.  This is used to detect
-runaway recursive instantiations.
+The default value for the maximum number of pending instantiations of a
+given template that may be in process at a given time.  This is the initial
+value of the variable max_pending_instantiations, which can be overridden
+by the --pending_instantiations command-line option.
 */
-#ifndef MAX_PENDING_INSTANTIATIONS
-#define MAX_PENDING_INSTANTIATIONS 17
+#ifndef DEFAULT_MAX_PENDING_INSTANTIATIONS
+/* Use the old MAX_PENDING_INSTANTIATIONS value, if one is set. */
+#ifdef MAX_PENDING_INSTANTIATIONS
+#define DEFAULT_MAX_PENDING_INSTANTIATIONS MAX_PENDING_INSTANTIATIONS
+#else /* !ifndef MAX_PENDING_INSTANTIATIONS */
+#define DEFAULT_MAX_PENDING_INSTANTIATIONS 64
 #endif /* ifndef MAX_PENDING_INSTANTIATIONS */
+#endif /* ifndef DEFAULT_MAX_PENDING_INSTANTIATIONS */
+
+/*
+The maximum number of function instantiations that can be in progress
+at a given point in time.  If this is exceeded, the instantiations are
+still done, but are done later.  Note that this controls the maximum
+number of function instantiations that can take place at once
+regardless of whether the instantiations are from a single template or
+many templates. This differs from DEFAULT_MAX_PENDING_INSTANTIATIONS
+which limits the number of instantiations of a particular template
+that may be in progress at a given time.
+
+This is used to limit the amount of memory used for memory regions
+while generating instantiations.  When a function definition begins, a
+new memory region of HOST_ALLOCATION_INCREMENT bytes is allocated.
+Most of the memory region will later be made available for reuse, but
+the available memory can sometimes be exhausted if a program causes a
+large number of concurrent instantiations to be performed.
+*/
+#ifndef MAX_TOTAL_PENDING_INSTANTIATIONS
+#define MAX_TOTAL_PENDING_INSTANTIATIONS 256
+#endif /* ifndef MAX_TOTAL_PENDING_INSTANTIATIONS */
 
 /*
 The maximum number of unused instantiations of a given template function
