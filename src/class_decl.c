@@ -7033,6 +7033,13 @@ skip_tag_scan:
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
+    if (scope_stack[effective_decl_level].kind ==
+                                           (a_scope_kind)sck_func_prototype) {
+      /* A type is actually declared in a function prototype scope only in
+         C mode.  In C++ the type is injected into a containing scope. */
+      check_assertion(C_dialect != C_dialect_cplusplus || is_class_definition);
+      class_type->declared_in_function_prototype = TRUE;
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus && error_tag_sym != NULL) {
       class_type->variant.class_struct_union.extra_info->template_arg_list =
              error_tag_sym->variant.class_struct_union.type->
