@@ -49,6 +49,20 @@ TRUE if the value is not acceptable.
 }  /* fp_check_fit */
 
 
+#ifdef SUNOS_STRTOD_BUG
+/*
+Under SunOS, 4.0 at least, strtod has a bug -- an unitialized stack
+variable is referenced.  Calling this routine ensures that the variable
+is cleared.
+*/
+static void init_strtod(void)
+{
+  int temp[200]; /* Magic numbers. */
+  temp[56] = 0;
+}  /* init_strtod */
+#endif /* ifdef SUNOS_STRTOD_BUG */
+
+
 void fp_string_to_float(a_float_kind            kind,
                         char                    *str,
                         an_internal_float_value *float_value,
@@ -69,6 +83,12 @@ type.
      something "real" for a given implementation. */
   /* Convert the number. */
   errno = 0;
+#ifdef SUNOS_STRTOD_BUG
+  /* Under SunOS, 4.0 at least, strtod has a bug -- an unitialized stack
+     variable is referenced.  Calling this routine ensures that the variable
+     is cleared. */
+  init_strtod();
+#endif /* ifdef SUNOS_STRTOD_BUG */
   temp = atof(str);
   *err = (errno != 0);
   /* Use memcpy to copy the value since float_value might not be correctly
