@@ -4926,8 +4926,8 @@ processing.  If there is no next such field, return NULL.
 */
 {
   for (; field != NULL; field = field->next) {
-    /* Named fields and non-bit-fields are initializable. */
-    if (field->bit_size == 0 || field->source_corresp.name != NULL) break;
+    /* Named fields are initializable. */
+    if (field->source_corresp.name != NULL) break;
   }  /* for */
   return field;
 }  /* next_initializable_field */
