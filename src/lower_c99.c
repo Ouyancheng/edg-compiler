@@ -1221,6 +1221,7 @@ second parameter.
     case enk_variable:
     case enk_variable_address:
     case enk_field:
+    case enk_address_of_ellipsis:
       /* Nothing to be done. */
       break;
     case enk_runtime_sizeof:
@@ -1228,6 +1229,12 @@ second parameter.
         lower_c99_expr(expr->variant.runtime_sizeof.variant.expr);
       }  /* if */
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      /* GNU C statement expression, ({...}). */
+      lower_c99_statement(expr->variant.statement);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;

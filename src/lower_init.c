@@ -8688,6 +8688,9 @@ the given expression.
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       case enk_result_of_overriding_function:
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if GNU_EXTENSIONS_ALLOWED
+      case enk_statement:  /* Used only in C mode. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition_str("mark_expr_slice_dyn_inits: bad expr kind");
     }  /* switch */

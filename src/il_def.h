@@ -6057,6 +6057,9 @@ enum an_expr_node_kind_tag {
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
 			   stdarg.h macro va_start). */
+#if GNU_EXTENSIONS_ALLOWED
+  enk_statement,	/* GNU statement expression, ({...}). */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
 			/* Used to represent a partially-lowered exception
@@ -6926,6 +6929,12 @@ typedef struct an_expr_node {
 		expr;	/* The expression whose size is needed. */
       } variant;
     } runtime_sizeof;
+#if GNU_EXTENSIONS_ALLOWED
+    /* When kind == enk_statement: */
+    a_statement_ptr
+		statement;
+			/* Enclosed compound statement. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
     struct {

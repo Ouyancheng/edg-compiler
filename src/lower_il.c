@@ -8416,6 +8416,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_result_of_overriding_function:
       break;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:  /* Used only in C mode. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */

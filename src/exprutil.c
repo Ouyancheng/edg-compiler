@@ -1159,6 +1159,9 @@ destruction processed, and is updated on output.
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     case enk_object_lifetime:  /* Not expected at this level. */
     case enk_condition:        /* Not expected at this level. */
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:        /* Comes up only in C mode. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str(
                        "examine_expr_for_unordered_temp_inits: bad expr kind");
