@@ -1,5 +1,14 @@
 Version 3.1
 
+11/5/02  GNU C compatibility: Local declaration can hide parameter
+
+In GNU C mode (but not in GNU C++ mode) a local declaration can hide a
+parameter of the same name.  A warning is issued in such cases.
+
+  void f(int x) {
+    int x;  // Warning in GNU C mode.  (Previously an error.)
+  }
+
 11/5/02  Diagnostics on missing return statements
 
 In strict C++ mode and in non-Microsoft C99 mode, the front end used to issue
