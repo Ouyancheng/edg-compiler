@@ -9200,6 +9200,7 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
         new_sym = NULL;
       }  /* if */
     }  /* if */
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (exceptions_enabled) {
       /* When exceptions are enabled, be sure each placement operator new
          has a corresponding operator delete. */
@@ -9230,8 +9231,10 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
         }  /* for */
       }  /* if */
     } else {
-      /* Exceptions are not enabled.  Just issue a remark if the class has an
-         operator new() but no default operator delete() or vice versa. */
+      /* Exceptions are not enabled. */
+#endif ABI_CHANGES_FOR_PLACEMENT_DELETE
+      /* Just issue a remark if the class has an operator new() but no
+         default operator delete() or vice versa. */
       del_sym = opname_member_function_symbol(del_kind, class_type);
       ambiguous = FALSE;
       if (del_sym != NULL) {
@@ -9258,7 +9261,9 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
                           &error_position, array_pass ? "[]" : "", tag_sym);
         }  /* if */
       }  /* if */
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     }  /* if */
+#endif ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (array_pass) break;
     array_pass = TRUE;
   }  /* for */

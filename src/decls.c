@@ -634,9 +634,15 @@ new fields are set properly.
                member delete was allowed exactly two (and the second had to
                be size_t).  This restriction is no longer imposed, given the
                rules on matching delete to new in WP 5.3.4 para 18-19. */
-            if (!exceptions_enabled && !err) {
-              /* On the other hand, placement-delete declarations are useless
-                 when exception handling is disabled. */
+            /* Actually using placement delete only occurs when exception
+               handling is enabled, and only with newer ABIs.  If EH support
+               is disabled or an old ABI is used, issue a diagnostic if this
+               turns out to be a placement delete declaration. */
+            if (!err
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+                     && !exceptions_enabled
+#endif ABI_CHANGES_FOR_PLACEMENT_DELETE
+                                           ) {
               ptp = ptp->next;
               if (ptp != NULL) {
                 /* There is a second argument.  Except for the case in which
@@ -648,8 +654,9 @@ new fields are set properly.
                       tp->variant.integer.int_kind == targ_size_t_int_kind) {
                     /* No warning for X::operator delete(void *, size_t). */
                   } else {
-                    pos_remark(ec_useless_placement_delete,
-                               &locator->source_position);
+                    pos_diagnostic(exceptions_enabled ? es_warning : es_remark,
+                                   ec_useless_placement_delete,
+                                   &locator->source_position);
                   }  /* if */
                 }  /* if */
               }  /* if */
