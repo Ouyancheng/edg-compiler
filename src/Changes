@@ -52,7 +52,7 @@ enabled by --microsoft_16, or it can be made the default.  New
 command line options --far_code_pointers and --far_data_pointers
 can be used to control the default sizes of pointers.
 
-new and far are represented as type qualifiers.  They appear in the
+near and far are represented as type qualifiers.  They appear in the
 IL only when necessary to represent a non-default value.  The default
 values are indicated by the far_data_pointers and far_code_pointers
 fields in il_header.  Back ends that generate different code for near
