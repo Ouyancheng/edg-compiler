@@ -1143,6 +1143,7 @@ If not, *failed is set.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case stmk_set_vla_size:
       case stmk_alloc_vla_variable:
+      case stmk_vla_typedef:
       default:
 cannot_inline_ever:
         /* This statement cannot be inlined in any context. */
