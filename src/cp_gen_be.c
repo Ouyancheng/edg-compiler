@@ -4552,6 +4552,8 @@ sequence entry.
     is_definition = TRUE;
     var_type = var->declared_type;
   }  /* if */
+  check_assertion_str(var_type != NULL,
+                      "gen_variable_decl: declared_type is NULL");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
@@ -4786,6 +4788,8 @@ declaration or definition.
                         "gen_routine_decl: missing definition");
     rout_type = rout->declared_type;
   }  /* if */
+  check_assertion_str(rout_type != NULL,
+                      "gen_routine_decl: declared_type is NULL");
   unqual_rout_type = skip_typerefs(rout_type);
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
