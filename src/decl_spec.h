@@ -163,7 +163,7 @@ extern void decl_spec_one_time_init(void);
 #define DSI_MARKED_AS_GNU_EXTENSION ((a_decl_flag_set)0x40000)
 			/* If this bit is set the declaration was preceded by
 			   the GNU keyword __extension__. */
-#define DSI_LAST DSI_IS_SPECIALIZATION
+#define DSI_LAST DSI_MARKED_AS_GNU_EXTENSION
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
 
