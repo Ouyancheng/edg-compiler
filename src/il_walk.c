@@ -620,7 +620,7 @@ and the entry pointer is to an entry in the file scope, just return
 #ifdef CFE
         case iek_dynamic_init:  s = "dynamic init";            break;
         case iek_access_adjustment:
-                                s = "access_adjustment";       break;
+                                s = "access adjustment";       break;
         case iek_overriding_virtual_function:
                                 s = "overriding virtual function";
                                                                break;
@@ -632,7 +632,7 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_class_type_supplement:
                                 s = "class type supplement";   break;
         case iek_constructor_init:
-                                s = "constructor_init";        break;
+                                s = "constructor init";        break;
         case iek_asm_entry:     s = "asm entry";               break;
 #endif /* ifdef CFE */
         default:                s = "<bad kind>";              break;
