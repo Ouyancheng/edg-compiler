@@ -4177,13 +4177,15 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
        that may mean the wrong thing if operator& is overloaded. */
     if (is_variable_node(object_expr) &&
         object_expr->variant.variable->is_this_parameter &&
-        rout->special_kind != (a_special_function_kind)sfk_constructor) {
+        rout->special_kind != (a_special_function_kind)sfk_constructor &&
+        rout->special_kind != (a_special_function_kind)sfk_destructor) {
       /* Suppress "this->", as it's implied.  This is necessary to avoid
          a bug in MSVC++ 4.2.  Don't do this optimization when a constructor
          is called explicitly (a Microsoft extension), because
            this->X::X()   and
            X::X()
-         mean different things to the Microsoft compiler. */
+         mean different things to the Microsoft compiler.  Also don't
+         do it for explicit destructor calls. */
     } else {
       gen_expr_with_parens(object_expr);
       write_tok_str("->");

@@ -537,7 +537,9 @@ microsoft_mode and microsoft_version are now recorded in il_header.
 7/10/97   C++-generating back end: "this->" suppressed on function calls
 
 "this->" on a member function call, unnecessary because it's implied,
-is now suppressed.  This works around a bug in MSVC++ 4.2.
+is now suppressed.  This works around a bug in MSVC++ 4.2. (7/21: do
+not do this for explicit calls of constructors, a Microsoft extension.
+9/9: Do not do this for explicit calls of destructors.)
 
 7/8/97    C++-generating back end: representation of partial instantiations
 
