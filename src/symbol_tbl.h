@@ -78,12 +78,42 @@ typedef struct a_symbol_locator {
   unsigned int	is_global_qualified_name:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   that begins with a unary "::" (e.g., "::y"). */
+  unsigned int  is_operator_name:1;
+			/* TRUE if the "identifier" is a C++ overloaded
+			   operator name, of the form "operator<token>",
+			   e.g., "operator+".  Cannot be TRUE when
+			   is_conversion_name is TRUE. */
+  unsigned int  is_conversion_name:1;
+			/* TRUE if the "identifier" is a C++ user-defined
+			   conversion name, of the form "operator <type-name>",
+			   e.g., "operator int".  Cannot be TRUE when
+			   is_operator_name is TRUE. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
 			   if this pointer is non-NULL, it is the result of
 			   the most recent lookup of this identifier (e.g.,
 			   by normal_id_lookup). */
+  union {
+    /* When both is_operator_name and is_conversion_name are FALSE, both
+       variants are undefined. */
+    /* When is_operator_name is TRUE: */
+    int		op_token;
+			/* The token that identifies the operator when an
+			   operator name is scanned.  For () and [] operators
+			   the identifying tokens are tok_lparen and
+			   tok_lbracket, respectively.  Declared as int
+			   rather than a_token_kind because of mutual
+			   dependency between symbol_tbl.h and lexical.h;
+			   requires cast when accessed. */
+    /* When is_conversion_name is TRUE: */
+    char*	conversion_result_type;
+			/* The return type when a user-defined conversion
+			   name is scanned.  Declared as char* rather than
+			   a_type_ptr because of mutual dependency between
+			   symbol_tbl.h and il_def.h; requires cast when
+			   accessed. */
+  } variant;
 } a_symbol_locator;
 
 /*
@@ -94,7 +124,10 @@ Clear a symbol locator.
   (locator)->source_position = *position;                             \
   (locator)->is_qualified_name = FALSE;                               \
   (locator)->is_global_qualified_name = FALSE;                        \
+  (locator)->is_operator_name = FALSE;                                \
+  (locator)->is_conversion_name = FALSE;                              \
   (locator)->specific_symbol = NULL;                                  \
+  (locator)->variant.conversion_result_type = NULL;                   \
 }  /* clear_locator */
 
 /* Return TRUE if two locators indicate the same symbol. */
