@@ -116,8 +116,29 @@ should probably change those routines too.
     }  /* if */
 #endif /* CHECKING */
   }  /* while */
-  return(type_ptr);
+  return type_ptr;
 }  /* f_skip_typerefs */
+
+
+a_type_ptr skip_typedefs(a_type_ptr type_ptr)
+/*
+Strip any typedef entries off the given type to get to the real type, and
+return a pointer to that.  Note that type qualifiers (const, volatile)
+are not dropped here.
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref &&
+         !type_ptr->variant.typeref.is_const &&
+         !type_ptr->variant.typeref.is_volatile) {
+    type_ptr = type_ptr->variant.typeref.type;
+#if CHECKING
+    if (type_ptr == NULL) {
+      internal_error("skip_typedefs: NULL referenced type");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* while */
+  return type_ptr;
+}  /* skip_typedefs */
 
 
 a_boolean is_error_type(a_type_ptr tp)
