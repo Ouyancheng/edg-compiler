@@ -95,6 +95,12 @@ typedef struct an_aggregate_init_context {
 		end_of_constant_list;
 			/* Pointer to the end of the list that constant_list
 			   heads. */
+  a_byte_boolean
+		any_dynamic_initialization;
+			/* Flag that is TRUE if the current aggregate member
+			   requires dynamic initialization.  This information
+			   percolates back up when returning from recursive
+			   calls to get_initializer. */
 } an_aggregate_init_context;
 
 
@@ -109,6 +115,7 @@ Initialize an entry of type an_aggregreate_init_context.
   init_context->field = NULL;
   init_context->constant_list = NULL;
   init_context->end_of_constant_list = NULL;
+  init_context->any_dynamic_initialization = FALSE;
 }  /* initialize_init_context */
 
 
@@ -537,6 +544,7 @@ routine is called in C++ mode only.
       init_context->end_of_constant_list = cp;
       init_done = TRUE;
       init_info->any_dynamic_initialization = TRUE;
+      init_context->any_dynamic_initialization = TRUE;
     }  /* if */
   }  /* if */
   db_exit();
@@ -865,6 +873,7 @@ class.
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
       init_info->any_dynamic_initialization = TRUE;
+      init_context.any_dynamic_initialization = TRUE;
       if (exceptions_enabled && cssp->destructor != NULL) {
         /* If appropriate, add a destructor pointer to the dynamic init entry.
            This is for the case in which an exception is thrown by the
@@ -1020,19 +1029,38 @@ class.
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, init_info, &init_context,
                                      &local_nothing_taken);
+        /* If exceptions are enabled and the type of the member being
+           initialized is a class with a destructor, it may be appropriate to
+           record the destructor in case an exception is thrown before the
+           top-level object is fully constructed. */
         if (exceptions_enabled &&
             member_con->kind != (a_constant_repr_kind)ck_dynamic_init &&
             is_class_struct_union_type(member_type)) {
           cssp = symbol_supplement_for_class(member_type);
           if (cssp->destructor != NULL) {
             a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+            if (init_context.any_dynamic_initialization) {
+              /* Not a ck_dynamic_init, yet there was dynamic initialization:
+                 this must be an aggregate constant with a ck_dynamaic_init
+                 in its tree somewhere.  Put a dik_nonconstant_aggregate on
+                 top of it (instead of a dik_constant). */
+              check_assertion(member_con->kind ==
+                                      (a_constant_repr_kind)ck_aggregate);
+              dip = alloc_dynamic_init(
+                         (a_dynamic_init_kind)dik_nonconstant_aggregate);
+            } else {
+              /* Normal case: dik_constant is okay to use. */
+              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+            }  /* if */
             dip->variant.constant = member_con;
             add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+            /* Now put a ck_dynamic_init constant on top of the new dynamic
+               init entry, to which the destructor has been attached. */
             member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
             member_con->type = member_type;
             member_con->variant.dynamic_init = dip;
             init_info->any_dynamic_initialization = TRUE;
+            init_context.any_dynamic_initialization = TRUE;
           }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
@@ -1178,6 +1206,7 @@ class.
               curr_field = init_context.field;
               if (curr_field == NULL) any_more_members = FALSE;
               init_info->any_dynamic_initialization = TRUE;
+              init_context.any_dynamic_initialization = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -1235,6 +1264,7 @@ class.
       init_con->variant.dynamic_init = dip;
       init_con->type = local_type;
       init_info->any_dynamic_initialization = TRUE;
+      init_context.any_dynamic_initialization = TRUE;
       /* Since the destructor may have been added to a dynamic init entry
          that will not be "on top" when gen_dynamic_initialization is called,
          record the destruction, if needed, with the appropriate
@@ -1250,6 +1280,20 @@ class.
        place). */
     if (brace_flag && curr_token == tok_comma) (void)get_token();
     check_for_matching_closing_brace(brace_flag);
+  }  /* if */
+  if (prev_init_context != NULL) {
+    /* Let the flag recording whether there were any dynamic initializations
+       seen in this call to get_initializer percolate up to the next level. */
+    if (init_context.any_dynamic_initialization) {
+      prev_init_context->any_dynamic_initialization = TRUE;
+    }  /* if */
+  } else {
+    /* This is the top-level init-context, so it and the init-info block
+       should agree about dynamic initialization. */
+    check_assertion_str2(init_info->any_dynamic_initialization ==
+                            init_context.any_dynamic_initialization,
+                         "get_initializer: any_dynamic_initialization flags",
+                         "are not in sync");
   }  /* if */
   /* If the return value constant was not allocated (because of an error),
      allocate an error constant to return. */
