@@ -1450,6 +1450,7 @@ headers fail to define the prototype.
 #define STAT_FIRST_PARAM_IS_CONST TRUE
 #endif /* !__VMS__ */
 #endif /* !defined(STAT_FIRST_PARAM_IS_CONST) */
+/*lint -esym(762,stat)*/
 #if STAT_FIRST_PARAM_IS_CONST
 EXTERN_C int stat(const char *path, struct stat *buf);
 #else /* !defined(STAT_FIRST_PARAM_IS_CONST) */
