@@ -4119,7 +4119,7 @@ are allowed under a sizeof (etc.) in a template argument expression.
           a_throw_supplement_ptr tsp2 = node2->variant.throw_info;
           if (tsp1 == NULL && tsp2 == NULL) {
             eq = TRUE;
-          } else if (tsp1 != NULL || tsp2 != NULL) {
+          } else if (tsp1 == NULL || tsp2 == NULL) {
             eq = FALSE;
           } else {
             eq = (identical_types(tsp1->type, tsp2->type) &&
