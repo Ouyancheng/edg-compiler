@@ -546,7 +546,7 @@ are now processed properly.  There used to be a bug in handling the
 default argument token caches on all but the last function in the list.
 
   class A {
-    void f(int = 0).        // default arg expression is no longer lost
+    void f(int = 0),        // default arg expression is no longer lost
          g(int = 1);                  
   };
 
