@@ -1,5 +1,18 @@
 Version 2.28
 
+2/7/95   Address of string as initial value of local static in pcc mode
+
+When the address of a string is the initial value of a static variable
+local to a function in pcc mode, the address constant ended up in the
+file scope memory region and the (unshared) string constant in the
+function scope memory region, which caused IL write/read problems.
+This bug was introduced in version 2.27, with the changes for local
+static initialization.
+
+  void f() {
+    static char *p = "abc";
+  }
+
 2/6/95   Binding of immediate and other pragmas to IL entries
 
 It is now possible to bind pragmas with any binding kind to IL
