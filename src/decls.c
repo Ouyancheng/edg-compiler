@@ -2899,9 +2899,13 @@ otherwise, set *ext_sym to NULL.
     /* Indicate in the IL entry that the name is externally visible by
        assigning the external linkage kind that is the default for the current
        context. */
-    if (is_function && storage_class == (a_storage_class)sc_unspecified &&
-        routine_ptr->source_corresp.name != NULL &&
-        strcmp(routine_ptr->source_corresp.name, "main") == 0) {
+    if (C_dialect != C_dialect_cplusplus) {
+      source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_external;
+      sym->explicit_linkage_specifier = FALSE;
+    } else if (is_function &&
+               storage_class == (a_storage_class)sc_unspecified &&
+               routine_ptr->source_corresp.name != NULL &&
+               strcmp(routine_ptr->source_corresp.name, "main") == 0) {
       /* This is "main", which is always given "C" linkage. */
       source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_external;
       sym->explicit_linkage_specifier = FALSE;
