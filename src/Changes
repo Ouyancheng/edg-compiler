@@ -1,5 +1,19 @@
 Version 2.23
 
+5/17/94  Declaring a function as a template after it has been called
+
+In examples such as the following, in which a function template is declared
+after a specialization of the template has been called, the front end failed
+to set the instantiation required flag.  This has been corrected.
+
+  void f(int);
+  int main()
+  {
+    f(1);
+  }
+  template <class T> void f(T);
+
+
 5/15/94 Elimination of extra parentheses in type output
 
 Several pieces of very similar code that generate source-form
