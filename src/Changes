@@ -1,5 +1,13 @@
 Version 2.35
 
+2/13/97 Instantiations not done in -tused mode when first use is after
+        instantiation wrapup has completed
+
+If the first reference to a template entity is from a virtual destructor
+generated after instantiation wrapup has completed, the template entity
+will not be instantiated when using -tused or -tall mode (it will still
+be instantiated when using automatic instantiation).
+
 2/13/97 When reading in binary mode, control-Z is not EOF on Windows NT
 
 The front end incorrectly treated control-Z as an end-of-file marker
