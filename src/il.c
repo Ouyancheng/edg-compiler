@@ -2113,15 +2113,17 @@ not check that again, so it should not be called directly).
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
-void add_scope_orphaned_il_lists(a_scope_ptr scope)
+void r_add_scope_orphaned_il_lists(a_scope_ptr   scope,
+                                   a_routine_ptr routine)
 /*
-If the indicated scope contains non-empty lists that are in the file scope
-memory region (e.g., local types or static variables), create
-a_scope_orphaned_list_header entry to hold those pointers in the file scope
-so that orphan processing can be done on the lists later.  Also use recursion
-to visit all block scopes attached to this scope and do the same processing.
-The scope must be a function or block scope and must still be on the scope
-stack.
+If the indicated scope (a function or block scope) contains non-empty
+lists that are in the file scope memory region (e.g., local types or
+static variables), create a_scope_orphaned_list_header entry to hold
+those pointers in the file scope so that orphan processing can be
+done on the lists later.  Also use recursion to visit all block scopes
+under this scope to do the same processing.  routine indicates the
+function this scope is part of.  This routine does the recursive
+processing for add_scope_orphaned_il_lists.
 */
 {
   a_type_ptr            types = scope->types;
@@ -2145,7 +2147,7 @@ stack.
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
     num_scope_orphaned_list_headers_allocated++;
 #endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
-    solhp->assoc_routine = current_routine_entry();
+    solhp->assoc_routine = routine;
     solhp->orphaned_types = types;
     solhp->orphaned_variables = variables;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2163,8 +2165,24 @@ stack.
   for (block_scope = scope->scopes;
        block_scope != NULL;
        block_scope = block_scope->next) {
-    add_scope_orphaned_il_lists(block_scope);
+    r_add_scope_orphaned_il_lists(block_scope, routine);
   }  /* for */
+}  /* r_add_scope_orphaned_il_lists */
+
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+
+void add_scope_orphaned_il_lists(a_scope_ptr scope)
+/*
+If the indicated scope (a function scope) contains non-empty lists
+that are in the file scope memory region (e.g., local types or static
+variables), create a_scope_orphaned_list_header entry to hold those
+pointers in the file scope so that orphan processing can be done on
+the lists later.  Also visit all block scopes attached to this scope
+and do the same processing.
+*/
+{
+  r_add_scope_orphaned_il_lists(scope, scope->variant.routine.ptr);
 }  /* add_scope_orphaned_il_lists */
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
