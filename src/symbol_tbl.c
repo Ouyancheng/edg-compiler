@@ -5285,6 +5285,7 @@ we have scanned the entire function declarator.
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
+  a_symbol_ptr   fund_sym = fundamental_symbol_of(sym);
 
   /* This routine looks like overload_check_ambiguity_and_verify_access. */
   /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
@@ -5296,9 +5297,11 @@ we have scanned the entire function declarator.
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
        checking cannot be done for a template, only for instances. */
-  } else if (fundamental_symbol_of(sym)->kind !=
-	                            (a_symbol_kind)sk_overloaded_function &&
-             !have_access_to_symbol(sym)) {
+  } else if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* For overloaded functions, do not check access now.  The check will
+       be done after the specific function is determined. */
+  } else if (!have_access_to_symbol(sym)) {
+    /* The symbol is not accessible. */
     a_boolean			defer_access_checks = FALSE;
     a_scope_stack_entry_ptr	ssep;
 
@@ -5306,12 +5309,13 @@ we have scanned the entire function declarator.
       ssep = &scope_stack[curr_deferred_access_scope];
       defer_access_checks = ssep->defer_access_checks;
     }  /* if */
-    /* The symbol is not accessible. */
     if (!defer_access_checks) {
       issue_access_error(fundamental_symbol_of(sym),
                          &locator->source_position);
       locator->access_control_error_reported = TRUE;
     } else {
+      /* Access checks are deferred, so put an entry on a list for later
+         checking. */
       an_access_error_descr_ptr	aedp;
       aedp = alloc_access_error_descr();
       aedp->sym = sym;
