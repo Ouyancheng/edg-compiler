@@ -1,5 +1,10 @@
 Version 2.42
 
+7/2/99   Prelinker: error output of "nm" command no longer discarded
+
+Formerly, any error output of the "nm" command was discarded.  It
+will now go to wherever stderr is directed.
+
 6/23/99  Demangling of invalid name like x__1
 
 An invalid name like x__1 was demangled as ::x.  Now, an error is
