@@ -1429,7 +1429,13 @@ operand (op_1 = op_1 / op_2).  err is TRUE if an overflow occurred.
         result = value_1;
       } else {
         /* No overflow. */
-        result = value_1 / value_2;
+        if (c99_mode) {
+          /* In C99 mode, make sure the division is done with truncation
+             toward zero. */
+          result = divide_integers(value_1, value_2);
+        } else {
+          result = value_1 / value_2;
+        }  /* if */
       }  /* if */
     } else {
       /* Division of unsigned integers. */
